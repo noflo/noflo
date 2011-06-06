@@ -15,6 +15,7 @@ readFile = (fileName, socket) ->
                         errSocket.send err.message
                         errSocket.disconnect()
                     errSocket.connect()
+                    socket.disconnect()
                 return
 
             data.split("\n").forEach (line) ->

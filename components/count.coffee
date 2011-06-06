@@ -5,9 +5,11 @@
 countSocket = null
 
 handleInput = (socket) ->
-    count = 0
+    count = null
     socket.on "connect", ->
         socket.on "data", (data) ->
+            if count is null
+                count = 0
             count++
         socket.on "disconnect", ->
             countSocket.on "connect", ->
