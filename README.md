@@ -19,6 +19,41 @@ File line count:
 
     $ coffee ./examples/linecount/count.coffee somefile.txt
 
+## Structure of a component
+
+A component is the main ingredient of flow-based programming. Component is a CommonJS module providing a set of input and output port handlers. These ports are used for connecting components to each other.
+
+NoFlo processes (the boxes of a flow graph) are instances of a component, with the graph controlling connections between ports of components.
+
+Minimal component written in CoffeeScript would look like the following:
+
+    outSocket = null
+
+    exports.getInputs = ->
+        # Register a port named "input" with a handler callback
+        input: (socket) ->
+            socket.on "data", (data) ->
+                # Input received, forward it
+
+                if outSocket.isConnected()
+                    # Already connected, just send stuff
+                    return outSocket.send data
+
+                outSocket.on "connect", ->
+                    outSocket.send data
+
+                socket.on "disconnect", ->
+                    outSocket.disconnect()
+
+                outSocket.connect()
+
+    exports.getOutputs = ->
+        # Register a port named "output" with a handler callback
+        output: (socket) ->
+            outSocket = socket
+
+This example component register two ports: _input_ and _output_. When it receives data in the _input_ port, it opens the _output_ port and sends the same data there. When the _input_ connection closes, it will also close the _output_ connection. So basically this component would be a simple repeater.
+
 ## Development
 
 NoFlo development happens on GitHub. Just fork the [main repository](https://github.com/bergie/noflo), make modifications and send a pull request.
