@@ -8,7 +8,7 @@ errSocket = null
 
 readFile = (fileName, socket) ->
     socket.on "connect", ->
-        fs.readFile fileName, (err, data) ->
+        fs.readFile fileName, "utf-8", (err, data) ->
             if err
                 if errSocket
                     errSocket.on "connect", ->
@@ -17,8 +17,8 @@ readFile = (fileName, socket) ->
                     errSocket.connect()
                 return
 
-            # TODO: Split by line
-            socket.send data
+            data.split("\n").forEach (line) ->
+                socket.send line
             socket.disconnect()
 
     socket.connect()
