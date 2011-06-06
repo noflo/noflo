@@ -29,3 +29,5 @@ graph = [
 ]
 
 noflo.createNetwork graph
+
+#console.log noflo.networkToDOT graph

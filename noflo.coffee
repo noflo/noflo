@@ -2,11 +2,7 @@
 
 internalSocket = require "./internalSocket"
 
-processes = []
-connections = []
-sockets = []
-
-initializeNode = (node) ->
+initializeNode = (node, connections) ->
     process = {}
 
     if node.component
@@ -27,15 +23,15 @@ initializeNode = (node) ->
     if node.config and process.component.initialize
         process.component.initialize node.config
 
-    processes.push process
+    return process
 
-getProcess = (id) ->
+getProcess = (id, processes) ->
     for process in processes
         if process.id is id
             return process
     null
 
-connectProcess = (connection) ->
+connectProcess = (connection, processes) ->
     socket = internalSocket.createSocket()
 
     outputs = connection.process.component.getOutputs()
@@ -43,31 +39,51 @@ connectProcess = (connection) ->
         console.error "No such outbound port #{connection.from} in #{process.id}"
         return
     outputs[connection.from] socket
+    socket.from = 
+        process: connection.process
+        port: connection.from
     
-    target = getProcess connection.to[0]
+    target = getProcess connection.to[0], processes
     unless target
         console.error "No such process #{connection.to[0]}"
         return
     inputs = target.component.getInputs()
     unless inputs[connection.to[1]]
         console.error "No such inbound port #{connection.to[1]} in #{target.id}"
+        return
     inputs[connection.to[1]] socket
+    socket.to =
+        process: target
+        port: connection.to[1]
 
-    sockets.push socket
+    return socket
 
-    socket.on "connect", ->
-        console.error "  CONN #{connection.process.id}:#{connection.from} -> #{target.id}:#{connection.to[1]}"
+buildNetwork = (graph, sockets) ->
+    connections = []
+    processes = []
 
-    socket.on "data", (data) ->
-        console.error "  DATA #{connection.process.id}:#{connection.from} -> #{target.id}:#{connection.to[1]}"
+    for node in graph
+        processes.push initializeNode node, connections
 
-    socket.on "disconnect", ->
-        console.error "  DISC #{connection.process.id}:#{connection.from} -> #{target.id}:#{connection.to[1]}"
+    for connection in connections
+        sockets.push connectProcess connection, processes
 
 exports.createNetwork = (graph) ->
-    initializeNode node for node in graph
-
-    connectProcess connection for connection in connections
+    sockets = []
+    buildNetwork graph, sockets
 
     for socket in sockets
         socket.initialize()
+
+exports.networkToDOT = (graph) ->
+    sockets = []
+    buildNetwork graph, sockets
+
+    dot = "digraph {\n"
+
+    for socket in sockets
+        dot += "    #{socket.from.process.id} -> #{socket.to.process.id} [label=#{socket.from.port}]\n"
+
+    dot += "}"
+
+    return dot
