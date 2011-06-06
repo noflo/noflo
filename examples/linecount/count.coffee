@@ -18,13 +18,13 @@ graph = [
         id: "readLines"
         component: "fileReader"
         content: ["countLines", "input"]
-        error: ["write", "input"]
+        error: ["display", "input"]
     ,
         id: "countLines"
         component: "count"
-        count: ["write", "input"]
+        count: ["display", "input"]
     ,
-        id: "write"
+        id: "display"
         component: "consoleLog"
 ]
 
