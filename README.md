@@ -19,6 +19,15 @@ File line count:
 
     $ coffee ./examples/linecount/count.coffee somefile.txt
 
+## Terminology
+
+* Component: individual, pluggable and reusable piece of software. In this case a NoFlo-compatible CommonJS module
+* Graph: the control logic of a FBP application, can be either in programmatical or file format
+* Inport: inbound port of a component
+* Network: collection of processes connected by sockets. A running version of a graph
+* Outport: outbound port of a component
+* Process: an instance of a component that is running as part of a graph
+
 ## Structure of a component
 
 A component is the main ingredient of flow-based programming. Component is a CommonJS module providing a set of input and output port handlers. These ports are used for connecting components to each other.
