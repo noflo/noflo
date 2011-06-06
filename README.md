@@ -14,3 +14,13 @@ For now NoFlo should be treated as an interesting proof-of-concept. If I have ti
 File line count:
 
     $ coffee ./examples/linecount/count.coffee somefile.txt
+
+## Development
+
+NoFlo development happens on GitHub. Just fork the [main repository](https://github.com/bergie/noflo), make modifications and send a pull request.
+
+### Some ideas
+
+* Browser-based visual programming environment for viewing and editing NoFlo graphs
+* Real-time status of the NoFlo graph via socket.io, see where data is flowing
+* Loading of remote components
