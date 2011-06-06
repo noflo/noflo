@@ -13,11 +13,11 @@ graph = [
         component: "kicker"
         config:
             data: fileName
-        output: ["readLines", "input"]
+        output: ["readLines", "filename"]
     ,
         id: "readLines"
         component: "fileReader"
-        output: ["countLines", "input"]
+        content: ["countLines", "input"]
         error: ["write", "input"]
     ,
         id: "countLines"

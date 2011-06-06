@@ -39,9 +39,9 @@ handleOutput = (socket) ->
     outSocket = socket
 
 exports.getInputs = ->
-    input: handleInput
+    filename: handleInput
 
 exports.getOutputs = ->
-    output: handleOutput
+    content: handleOutput
     error: (socket) ->
         errSocket = socket
