@@ -26,14 +26,7 @@ readFile = (fileName, socket) ->
 
 handleInput = (socket) ->
     socket.on "data", (data) ->
-        unless outSocket
-            timer = setTimeout ->
-                if outSocket
-                    readFile data, outSocket
-                    clearTimeout timer
-            , 200
-        else
-            readFile data, outSocket
+        readFile data, outSocket
 
 handleOutput = (socket) ->
     outSocket = socket
