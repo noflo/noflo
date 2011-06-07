@@ -13,6 +13,12 @@ It has been written in [CoffeeScript](http://jashkenas.github.com/coffee-script)
 
 For now NoFlo should be treated as an interesting proof-of-concept. If I have time, more functionality will be added and the system made actually usable for real-world business applications.
 
+## Requirements and installing
+
+NoFlo requires a reasonably recent version of [Node.js](http://nodejs.org/), and the CoffeeScript environment that you can get from [npm](http://npmjs.org/):
+
+    $ npm install coffee-script
+
 ## Running the examples
 
 File line count:
