@@ -4,16 +4,18 @@
 connect = require "connect"
 
 outSocket = null
+inRequest = null
 
 exports.getInputs = ->
     in: (socket) ->
         socket.on "data", (request) ->
+            inRequest = request
             connect.profiler() request.req, request.res, () ->
-                outSocket.on "connect", ->
-                    outSocket.send request
-                    outSocket.disconnect()
-
                 outSocket.connect()
 
 exports.getOutputs = ->
-    out: (socket) -> outSocket = socket
+    out: (socket) ->
+        outSocket = socket
+        socket.on "connect", ->
+            socket.send inRequest
+            socket.disconnect()

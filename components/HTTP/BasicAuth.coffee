@@ -4,6 +4,7 @@
 connect = require "connect"
 
 outSocket = null
+inRequest = null
 
 authenticate = (login, password) ->
     login is "user" and password is "pass"
@@ -11,12 +12,13 @@ authenticate = (login, password) ->
 exports.getInputs = ->
     in: (socket) ->
         socket.on "data", (request) ->
+            inRequest = request
             connect.basicAuth(authenticate) request.req, request.res, () ->
-                outSocket.on "connect", ->
-                    outSocket.send request
-                    outSocket.disconnect()
-
                 outSocket.connect()
 
 exports.getOutputs = ->
-    out: (socket) -> outSocket = socket
+    out: (socket) ->
+        outSocket = socket
+        socket.on "connect", ->
+            socket.send inRequest
+            socket.disconnect()

@@ -3,5 +3,8 @@
 
 exports.getInputs = ->
     in: (socket) ->
+        sendRequest = null
         socket.on "data", (request) ->
-            request.res.end()
+            sendRequest = request
+        socket.on "disconnect", (request) ->
+            sendRequest.res.end()
