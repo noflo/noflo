@@ -13,12 +13,13 @@ initializeNode = (node, connections) ->
     unless node.out
         node.out = []
 
-    for port of process.component.getOutputs()
-        if node[port]
-            connections.push
-                process: process
-                from: port
-                to: node[port]
+    if process.component.getOutputs
+        for port of process.component.getOutputs()
+            if node[port]
+                connections.push
+                    process: process
+                    from: port
+                    to: node[port]
 
     if node.config and process.component.initialize
         process.component.initialize node.config

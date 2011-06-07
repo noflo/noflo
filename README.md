@@ -39,7 +39,7 @@ Functionality a component provides:
 * List of inports (named inbound ports)
 * List of outports (named outbound ports)
 * Handler for component initialization that accepts configuration
-* Handler for inport connections
+* Handler for connections for each inport
 
 Minimal component written in CoffeeScript would look like the following. Please note that this is not the final component API, but instead something used to get the proof-of-concept up and running quickly:
 

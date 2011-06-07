@@ -15,8 +15,5 @@ exports.initialize = (config) ->
     if config.data
         data = config.data
 
-exports.getInputs = ->
-    null
-
 exports.getOutputs = ->
     output: handleOutput

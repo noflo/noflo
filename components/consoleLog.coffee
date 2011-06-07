@@ -7,6 +7,3 @@ handleInput = (socket) ->
 
 exports.getInputs = ->
     input: handleInput
-
-exports.getOutputs = ->
-    null
