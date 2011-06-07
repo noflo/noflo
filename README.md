@@ -34,7 +34,14 @@ A component is the main ingredient of flow-based programming. Component is a Com
 
 NoFlo processes (the boxes of a flow graph) are instances of a component, with the graph controlling connections between ports of components.
 
-Minimal component written in CoffeeScript would look like the following:
+Functionality a component provides:
+
+* List of inports (named inbound ports)
+* List of outports (named outbound ports)
+* Handler for component initialization that accepts configuration
+* Handler for inport connections
+
+Minimal component written in CoffeeScript would look like the following. Please note that this is not the final component API, but instead something used to get the proof-of-concept up and running quickly:
 
     outSocket = null
 
