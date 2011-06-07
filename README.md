@@ -86,4 +86,5 @@ NoFlo development happens on GitHub. Just fork the [main repository](https://git
 
 * Browser-based visual programming environment for viewing and editing NoFlo graphs
 * Real-time status of the NoFlo graph via socket.io, see where data is flowing
-* Loading of remote components
+* [Web Workers](https://github.com/pgriess/node-webworker) based multiprocess runner
+* Sockets-based multi-computer runner
