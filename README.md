@@ -5,7 +5,7 @@ NoFlo is a simple [flow-based programming](http://en.wikipedia.org/wiki/Flow-bas
 
 > In computer science, flow-based programming (FBP) is a programming paradigm that defines applications as networks of "black box" processes, which exchange data across predefined connections by message passing, where the connections are specified externally to the processes. These black box processes can be reconnected endlessly to form different applications without having to be changed internally. FBP is thus naturally component-oriented.
 
-Developers familiar with the [Unix philosophy](http://en.wikipedia.org/wiki/Unix_philosophy) should be immediately familiar with FBP:
+Developers used to the [Unix philosophy](http://en.wikipedia.org/wiki/Unix_philosophy) should be immediately familiar with FBP:
 
 > This is the Unix philosophy: Write programs that do one thing and do it well. Write programs to work together. Write programs to handle text streams, because that is a universal interface. 
 
@@ -18,6 +18,8 @@ For now NoFlo should be treated as an interesting proof-of-concept. If I have ti
 NoFlo requires a reasonably recent version of [Node.js](http://nodejs.org/), and the CoffeeScript environment that you can get from [npm](http://npmjs.org/):
 
     $ npm install coffee-script
+
+NoFlo is available from [GitHub](https://github.com/bergie/noflo) under the MIT license.
 
 ## Running the examples
 
