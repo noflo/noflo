@@ -3,88 +3,81 @@
 internalSocket = require "./internalSocket"
 graph = require "./graph"
 
-loadComponent = (component) ->
-    try
-        return require component
-    catch error
+class NoFlo
+    processes: []
+
+    load: (component) ->
         try
-            require "./components/#{component}"
-        catch localError
-            # Throw the original error instead
-            throw error
+            return require component
+        catch error
+            try
+                return require "./components/#{component}"
+            catch localError
+                # Throw the original error instead
+                throw error
 
-initializeNode = (node) ->
-    process = {}
+    addNode: (node) ->
+        process = {}
 
-    if node.component
-        process.component = loadComponent node.component
+        if node.component
+            process.component = @load node.component
 
-    process.id = node.id
+        process.id = node.id
 
-    if node.config and process.component.initialize
-        process.component.initialize node.config
+        if node.config and process.component.initialize
+            process.component.initialize node.config
 
-    return process
+        @processes.push process
 
-getProcess = (id, processes) ->
-    for process in processes
-        if process.id is id
-            return process
-    null
+    getNode: (id) ->
+        for process in @processes
+            if process.id is id
+                return process
+        null
 
-connectPort = (socket, process, port, inbound) ->
-    if inbound
-        ports = process.component.getOutputs()
-    else
-        ports = process.component.getInputs()
+    connectPort: (socket, process, port, inbound) ->
+        if inbound
+            ports = process.component.getOutputs()
+            socket.from = 
+                process: process
+                port: port
+        else
+            ports = process.component.getInputs()
+            socket.to = 
+                process: process
+                port: port
 
-    unless ports[port]
-        throw new Error "No such port #{port} in #{process.id}"
+        unless ports[port]
+            throw new Error "No such port #{port} in #{process.id}"
 
-    ports[port] socket
+        ports[port] socket
 
-connectProcess = (edge, processes) ->
-    socket = internalSocket.createSocket()
+    addEdge: (edge) ->
+        socket = internalSocket.createSocket()
 
-    from = getProcess edge.from.node, processes
-    unless from
-        throw new Error "No process defined for outbound node #{edge.from.node}"
-    to = getProcess edge.to.node, processes
-    unless to
-        throw new Error "No process defined for inbound node #{edge.to.node}"
+        from = @getNode edge.from.node
+        unless from
+            throw new Error "No process defined for outbound node #{edge.from.node}"
+        to = @getNode edge.to.node
+        unless to
+            throw new Error "No process defined for inbound node #{edge.to.node}"
 
-    connectPort socket, from, edge.from.port, true
-    socket.from = 
-        process: from
-        port: edge.from.port
-    
-    connectPort socket, to, edge.to.port, false
-    socket.to =
-        process: to
-        port: edge.to.port
+        @connectPort socket, from, edge.from.port, true
+        @connectPort socket, to, edge.to.port, false
 
-    return socket
-
-connectInitializer = (initializer, processes) ->
-    socket = internalSocket.createSocket()
-    to = getProcess initializer.to.node, processes
-    connectPort socket, to, initializer.to.port, false
-    socket.connect()
-    socket.send initializer.from.data
-    socket.disconnect()
-    return socket
+    addInitial: (initializer) ->
+        socket = internalSocket.createSocket()
+        to = @getNode initializer.to.node
+        @connectPort socket, to, initializer.to.port, false
+        socket.connect()
+        socket.send initializer.from.data
+        socket.disconnect()
 
 exports.createNetwork = (graph) ->
-    sockets = []
-    processes = []
+    network = new NoFlo()
 
-    for node in graph.nodes
-        processes.push initializeNode node
-
-    for edge in graph.edges
-        sockets.push connectProcess edge, processes
-
-    for initializer in graph.initializers
-        sockets.push connectInitializer initializer, processes
+    network.addNode node for node in graph.nodes
+    network.addEdge edge for edge in graph.edges
+    network.addInitial initializer for initializer in graph.initializers
 
 exports.graph = graph
