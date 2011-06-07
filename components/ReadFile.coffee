@@ -1,13 +1,14 @@
-# The fileReader component receives a filename on an input port, and sends
-# each line of the specified file to the output port
+# The ReadFile component receives a filename on the soure port, and sends
+# contents the specified file to the out port. In case of errors the error
+# message will be sent to the error port
 
 fs = require "fs"
 
 outSocket = null
 errSocket = null
 
-readFile = (fileName, socket) ->
-    socket.on "connect", ->
+readFile = (fileName) ->
+    outSocket.on "connect", ->
         fs.readFile fileName, "utf-8", (err, data) ->
             if err
                 if errSocket
@@ -15,26 +16,25 @@ readFile = (fileName, socket) ->
                         errSocket.send err.message
                         errSocket.disconnect()
                     errSocket.connect()
-                    socket.disconnect()
+                    outSocket.disconnect()
                 return
 
-            data.split("\n").forEach (line) ->
-                socket.send line
-            socket.disconnect()
+            outSocket.send data
+            outSocket.disconnect()
 
-    socket.connect()
+    outSocket.connect()
 
 handleInput = (socket) ->
     socket.on "data", (data) ->
-        readFile data, outSocket
+        readFile data
 
 handleOutput = (socket) ->
     outSocket = socket
 
 exports.getInputs = ->
-    filename: handleInput
+    source: handleInput
 
 exports.getOutputs = ->
-    content: handleOutput
+    out: handleOutput
     error: (socket) ->
         errSocket = socket

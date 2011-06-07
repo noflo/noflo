@@ -68,6 +68,8 @@ class NoFlo
     addInitial: (initializer) ->
         socket = internalSocket.createSocket()
         to = @getNode initializer.to.node
+        unless to
+            throw new Error "No process defined for inbound node #{initializer.to.node}"
         @connectPort socket, to, initializer.to.port, false
         socket.connect()
         socket.send initializer.from.data

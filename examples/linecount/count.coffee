@@ -10,15 +10,17 @@ unless process.argv[2]
 fileName = process.argv[2]
 
 graph = noflo.graph.createGraph "linecount"
-graph.addNode "Read Lines", "fileReader"
-graph.addNode "Count Lines", "count"
-graph.addNode "Display", "consoleLog"
+graph.addNode "Read File", "ReadFile"
+graph.addNode "Split by Lines", "SplitStr"
+graph.addNode "Count Lines", "Counter"
+graph.addNode "Display", "Output"
 
-graph.addEdge "Read Lines", "content", "Count Lines", "input"
-graph.addEdge "Read Lines", "error", "Display", "input"
-graph.addEdge "Count Lines", "count", "Display", "input"
+graph.addEdge "Read File", "out", "Split by Lines", "in"
+graph.addEdge "Read File", "error", "Display", "in"
+graph.addEdge "Split by Lines", "out", "Count Lines", "in"
+graph.addEdge "Count Lines", "count", "Display", "in"
 
 # Kick the process of by sending filename to fileReader
-graph.addInitial fileName, "Read Lines", "filename"
+graph.addInitial fileName, "Read File", "source"
 
 noflo.createNetwork graph

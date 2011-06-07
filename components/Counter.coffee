@@ -17,11 +17,9 @@ handleInput = (socket) ->
                 countSocket.disconnect()
             countSocket.connect()
 
-handleOutput = (socket) ->
-    countSocket = socket
-
 exports.getInputs = ->
-    input: handleInput
+    in: handleInput
 
 exports.getOutputs = ->
-    count: handleOutput
+    count: (socket) ->
+        countSocket = socket
