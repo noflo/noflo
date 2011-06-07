@@ -2,11 +2,21 @@
 
 internalSocket = require "./internalSocket"
 
+loadComponent = (component) ->
+    try
+        return require component
+    catch error
+        try
+            require "./components/#{component}"
+        catch localError
+            # Throw the original error instead
+            throw error
+
 initializeNode = (node, connections) ->
     process = {}
 
     if node.component
-        process.component = require "./components/#{node.component}"
+        process.component = loadComponent node.component
 
     process.id = node.id
 
