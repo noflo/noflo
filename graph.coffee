@@ -53,5 +53,15 @@ class Graph
 
         return dot
 
+    toYUML: ->
+        yuml = []
+
+        for initializer in @initializers
+            yuml.push "(start)[#{initializer.to.port}]->(#{initializer.to.node})";
+
+        for edge in @edges
+            yuml.push "(#{edge.from.node})[#{edge.from.port}]->(#{edge.to.node})"
+        yuml.join ","
+
 exports.createGraph = (name) ->
     new Graph name
