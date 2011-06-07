@@ -7,6 +7,8 @@ class NoFlo
     processes: []
 
     load: (component) ->
+        if typeof component is "object"
+            return component
         try
             return require component
         catch error
