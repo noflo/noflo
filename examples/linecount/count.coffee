@@ -9,25 +9,16 @@ unless process.argv[2]
 
 fileName = process.argv[2]
 
-graph = [
-        component: "kicker"
-        config:
-            data: fileName
-        output: ["readLines", "filename"]
-    ,
-        id: "readLines"
-        component: "fileReader"
-        content: ["countLines", "input"]
-        error: ["display", "input"]
-    ,
-        id: "countLines"
-        component: "count"
-        count: ["display", "input"]
-    ,
-        id: "display"
-        component: "consoleLog"
-]
+graph = noflo.graph.createGraph "linecount"
+graph.addNode "Read Lines", "fileReader"
+graph.addNode "Count Lines", "count"
+graph.addNode "Display", "consoleLog"
+
+graph.addEdge "Read Lines", "content", "Count Lines", "input"
+graph.addEdge "Read Lines", "error", "Display", "input"
+graph.addEdge "Count Lines", "count", "Display", "input"
+
+# Kick the process of by sending filename to fileReader
+graph.addInitial fileName, "Read Lines", "filename"
 
 noflo.createNetwork graph
-
-#console.log noflo.networkToDOT graph

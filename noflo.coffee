@@ -1,6 +1,7 @@
 # The main NoFlo runner
 
 internalSocket = require "./internalSocket"
+graph = require "./graph"
 
 loadComponent = (component) ->
     try
@@ -12,24 +13,13 @@ loadComponent = (component) ->
             # Throw the original error instead
             throw error
 
-initializeNode = (node, connections) ->
+initializeNode = (node) ->
     process = {}
 
     if node.component
         process.component = loadComponent node.component
 
     process.id = node.id
-
-    unless node.out
-        node.out = []
-
-    if process.component.getOutputs
-        for port of process.component.getOutputs()
-            if node[port]
-                connections.push
-                    process: process
-                    from: port
-                    to: node[port]
 
     if node.config and process.component.initialize
         process.component.initialize node.config
@@ -42,59 +32,56 @@ getProcess = (id, processes) ->
             return process
     null
 
-connectProcess = (connection, processes) ->
+connectPort = (socket, process, port, inbound) ->
+    if inbound
+        ports = process.component.getOutputs()
+    else
+        ports = process.component.getInputs()
+
+    unless ports[port]
+        throw new Error "No such port #{port} in #{process.id}"
+
+    ports[port] socket
+
+connectProcess = (edge, processes) ->
     socket = internalSocket.createSocket()
 
-    outputs = connection.process.component.getOutputs()
-    unless outputs[connection.from]
-        console.error "No such outbound port #{connection.from} in #{process.id}"
-        return
-    outputs[connection.from] socket
+    from = getProcess edge.from.node, processes
+    unless from
+        throw new Error "No process defined for outbound node #{edge.from.node}"
+    to = getProcess edge.to.node, processes
+    unless to
+        throw new Error "No process defined for inbound node #{edge.to.node}"
+
+    connectPort socket, from, edge.from.port, true
     socket.from = 
-        process: connection.process
-        port: connection.from
+        process: from
+        port: edge.from.port
     
-    target = getProcess connection.to[0], processes
-    unless target
-        console.error "No such process #{connection.to[0]}"
-        return
-    inputs = target.component.getInputs()
-    unless inputs[connection.to[1]]
-        console.error "No such inbound port #{connection.to[1]} in #{target.id}"
-        return
-    inputs[connection.to[1]] socket
+    connectPort socket, to, edge.to.port, false
     socket.to =
-        process: target
-        port: connection.to[1]
+        process: to
+        port: edge.to.port
 
     return socket
 
-buildNetwork = (graph, sockets) ->
-    connections = []
-    processes = []
-
-    for node in graph
-        processes.push initializeNode node, connections
-
-    for connection in connections
-        sockets.push connectProcess connection, processes
-
 exports.createNetwork = (graph) ->
     sockets = []
-    buildNetwork graph, sockets
+    processes = []
 
-    for socket in sockets
-        socket.initialize()
+    for node in graph.nodes
+        processes.push initializeNode node
 
-exports.networkToDOT = (graph) ->
-    sockets = []
-    buildNetwork graph, sockets
+    for edge in graph.edges
+        sockets.push connectProcess edge, processes
 
-    dot = "digraph {\n"
+    for initializer in graph.initializers
+        socket = internalSocket.createSocket()
+        sockets.push socket
+        to = getProcess initializer.to.node, processes
+        connectPort socket, to, initializer.to.port, false
+        socket.connect()
+        socket.send initializer.from.data
+        socket.disconnect()
 
-    for socket in sockets
-        dot += "    #{socket.from.process.id} -> #{socket.to.process.id} [label=#{socket.from.port}]\n"
-
-    dot += "}"
-
-    return dot
+exports.graph = graph

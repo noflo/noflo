@@ -4,9 +4,6 @@ events = require "events"
 class internalSocket extends events.EventEmitter
     connected: false
 
-    initialize: ->
-        @emit "initialize", @
-
     connect: ->
         @connected = true
         @emit "connect", @
