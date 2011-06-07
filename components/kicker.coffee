@@ -1,19 +1,9 @@
-# The count component receives input on a single input port, and sends the
-# number of data items received to the output port when the input socket
-# disconnects
-
-data = null
-
-handleOutput = (socket) ->
-    socket.on "initialize", ->
+# This component generates a single packet and sends in to the output port.
+# Mostly usable for debugging, but can also be useful for starting up
+# networks.
+exports.getOutputs = ->
+    output: (socket) ->
         socket.on "connect", ->
-            socket.send data
+            socket.send null
             socket.disconnect()
         socket.connect()
-
-exports.initialize = (config) ->
-    if config.data
-        data = config.data
-
-exports.getOutputs = ->
-    output: handleOutput
