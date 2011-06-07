@@ -65,6 +65,15 @@ connectProcess = (edge, processes) ->
 
     return socket
 
+connectInitializer = (initializer, processes) ->
+    socket = internalSocket.createSocket()
+    to = getProcess initializer.to.node, processes
+    connectPort socket, to, initializer.to.port, false
+    socket.connect()
+    socket.send initializer.from.data
+    socket.disconnect()
+    return socket
+
 exports.createNetwork = (graph) ->
     sockets = []
     processes = []
@@ -76,12 +85,6 @@ exports.createNetwork = (graph) ->
         sockets.push connectProcess edge, processes
 
     for initializer in graph.initializers
-        socket = internalSocket.createSocket()
-        sockets.push socket
-        to = getProcess initializer.to.node, processes
-        connectPort socket, to, initializer.to.port, false
-        socket.connect()
-        socket.send initializer.from.data
-        socket.disconnect()
+        sockets.push connectInitializer initializer, processes
 
 exports.graph = graph
