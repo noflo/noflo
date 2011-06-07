@@ -35,13 +35,19 @@ class Graph
                 port: port
 
     toDOT: ->
+        cleanID = (id) ->
+            id.replace /\s*/g, ""
+
         dot = "digraph {\n"
 
-        for edge in @edges
-            unless edge.from.node
-                edge.from.node = "undefined"
+        for node in @nodes
+            dot += "    #{cleanID(node.id)} [shape=box]\n"
 
-            dot += "    #{edge.from.node.replace(' ', '')} -> #{edge.to.node.replace(' ', '')}[label='#{edge.from.port}']\n"
+        for initializer in @initializers
+            dot += "    data -> #{cleanID(initializer.to.node)} [label='#{initializer.to.port}']\n" 
+
+        for edge in @edges
+            dot += "    #{cleanID(edge.from.node)} -> #{cleanID(edge.to.node)}[label='#{edge.from.port}']\n"
 
         dot += "}"
 
