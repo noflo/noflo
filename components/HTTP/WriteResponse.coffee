@@ -1,20 +1,27 @@
 # This component receives a request and a string on the input ports, writes
 # that string to the request's response and forwards the request
 
-string = ""
+string = null
 inRequest = null
 outSocket = null
 
 exports.getInputs = ->
     string: (socket) ->
+        localString = ""
         socket.on "data", (data) ->
-            string += data
+            localString += data
+        socket.on "disconnect", ->
+            string = localString
+            if inRequest
+                outSocket.connect()
+
     in: (socket) ->
         socket.on "data", (request) ->
             inRequest = request
-            inRequest.res.write string
         socket.on "disconnect", ->
-            outSocket.connect()
+            if string
+                inRequest.res.write string
+                outSocket.connect()
 
 exports.getOutputs = ->
     out: (socket) ->
