@@ -31,7 +31,7 @@ Simple "Hello, world" web service with Basic authentication:
 
     $ coffee ./examples/http/hello.coffee
 
-Then just point your browser to [http://localhost:8003/](http://localhost:8003/). Note that this example needs to have `connect` NPM package installed.
+Then just point your browser to [http://localhost:8003/](http://localhost:8003/). Note that this example needs to have `connect` NPM package installed. Username is `user` and password is `pass`.
 
 ## Terminology
 
