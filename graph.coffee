@@ -43,8 +43,8 @@ class Graph
         for node in @nodes
             dot += "    #{cleanID(node.id)} [shape=box]\n"
 
-        for initializer in @initializers
-            dot += "    data -> #{cleanID(initializer.to.node)} [label='#{initializer.to.port}']\n" 
+        for initializer, id in @initializers
+            dot += "    data#{id} -> #{cleanID(initializer.to.node)} [label='#{initializer.to.port}']\n" 
 
         for edge in @edges
             dot += "    #{cleanID(edge.from.node)} -> #{cleanID(edge.to.node)}[label='#{edge.from.port}']\n"
