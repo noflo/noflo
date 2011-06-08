@@ -58,29 +58,31 @@ Functionality a component provides:
 Minimal component written in CoffeeScript would look like the following. Please note that this is not the final component API, but instead something used to get the proof-of-concept up and running quickly:
 
     outSocket = null
+    forwardData = null
 
     exports.getInputs = ->
         # Register a port named "input" with a handler callback
         input: (socket) ->
             socket.on "data", (data) ->
                 # Input received, forward it
+                forwardData = data
 
                 if outSocket.isConnected()
                     # Already connected, just send stuff
                     return outSocket.send data
 
-                outSocket.on "connect", ->
-                    outSocket.send data
-
-                socket.on "disconnect", ->
-                    outSocket.disconnect()
-
                 outSocket.connect()
+
+            socket.on "disconnect", ->
+                outSocket.disconnect()
 
     exports.getOutputs = ->
         # Register a port named "output" with a handler callback
         output: (socket) ->
             outSocket = socket
+
+            socket.on "connect", ->
+                outSocket.send forwardData
 
 This example component register two ports: _input_ and _output_. When it receives data in the _input_ port, it opens the _output_ port and sends the same data there. When the _input_ connection closes, it will also close the _output_ connection. So basically this component would be a simple repeater.
 
