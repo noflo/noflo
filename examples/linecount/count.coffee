@@ -1,7 +1,7 @@
 # Flow-based example of counting lines of a file, roughly equivalent to
 # "wc -l <filename>"
 
-noflo = require "../../noflo"
+noflo = require "../../lib/noflo"
 
 unless process.argv[2]
     console.error "You must provide a filename"

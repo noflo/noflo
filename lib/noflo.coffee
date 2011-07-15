@@ -13,7 +13,7 @@ class NoFlo
             return require component
         catch error
             try
-                return require "./components/#{component}"
+                return require "../components/#{component}"
             catch localError
                 # Throw the original error instead
                 throw error
@@ -56,14 +56,14 @@ class NoFlo
 
     addEdge: (edge) ->
         socket = internalSocket.createSocket()
-        #logSocket = (message) ->
-        #    console.error "#{edge.from.node}:#{socket.from.port} -> #{edge.to.node}:#{socket.to.port} #{message}"
-        #socket.on "connect", ->
-        #    logSocket "CONN"
-        #socket.on "disconnect", ->
-        #    logSocket "DISC"
-        #socket.on "data", ->
-        #    logSocket "DATA"
+        logSocket = (message) ->
+            #console.error "#{edge.from.node}:#{socket.from.port} -> #{edge.to.node}:#{socket.to.port} #{message}"
+        socket.on "connect", ->
+            logSocket "CONN"
+        socket.on "disconnect", ->
+            logSocket "DISC"
+        socket.on "data", ->
+            logSocket "DATA"
 
         from = @getNode edge.from.node
         unless from

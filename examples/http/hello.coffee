@@ -1,8 +1,9 @@
 # Flow-based example of serving web pages
 
-noflo = require "../../noflo"
+noflo = require "../../lib/noflo"
 
 graph = noflo.graph.createGraph "blog"
+
 graph.addNode "Web Server", "HTTP/Server"
 graph.addNode "Profiler", "HTTP/Profiler"
 graph.addNode "Authentication", "HTTP/BasicAuth"
@@ -25,5 +26,7 @@ graph.addEdge "Write Response", "out", "Send", "in"
 graph.addInitial "#{__dirname}/hello.jade", "Read Template", "source"
 graph.addEdge "Read Template", "out", "Render", "template"
 graph.addEdge "Render", "out", "Write Response", "string"
+
+console.log graph.toYUML()
 
 noflo.createNetwork graph
