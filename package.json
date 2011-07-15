@@ -1,0 +1,29 @@
+{
+    "name":         "noflo",
+    "description":  "Flow-Based Programming environment for Node.js",
+    "keywords":     ["fbp", "workflow", "flow"],
+    "author":       "Henri Bergius",
+    "version":      "0.0.1",
+    "licenses":     [{
+        "type":         "MIT",
+        "url":          "https://github.com/bergie/noflo/raw/master/LICENSE"
+    }],
+    "engines":      {
+        "node":         ">=0.4.0"
+    },
+    "dependencies": {
+        "coffee-script": ">=1.1.1"
+    },
+    "directories":  {
+        "lib":          "./lib",
+        "components":   "./components"
+    },
+    "main":         "./lib/noflo",
+    "bin":          {
+        "noflo":        "./bin/noflo"
+    },
+    "repository":   {
+        "type":         "git",
+        "url":          "git://github.com/bergie/noflo.git"
+    }
+}
