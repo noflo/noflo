@@ -1,7 +1,9 @@
 class Component
-    inports: []
-    outports: []
+    inPorts: null
+    outPorts: null
     description: ""
     
     getDescription: ->
         @description
+
+exports.Component = Component

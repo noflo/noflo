@@ -1,7 +1,7 @@
 # By default we use NoFlo-internal sockets for connections between workers
 events = require "events"
 
-class internalSocket extends events.EventEmitter
+class InternalSocket extends events.EventEmitter
     connected: false
 
     connect: ->
@@ -18,5 +18,7 @@ class internalSocket extends events.EventEmitter
     isConnected: ->
         @connected
 
+exports.InternalSocket = InternalSocket
+
 exports.createSocket = ->
-    new internalSocket()
+    new InternalSocket()

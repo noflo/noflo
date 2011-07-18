@@ -1,27 +1,31 @@
 # The main NoFlo runner
 
-internalSocket = require "./internalSocket"
+internalSocket = require "./InternalSocket"
 component = require "./Component"
 port = require "./Port"
-graph = require "./graph"
-fs = require "fs"
+graph = require "./Graph"
 
 class NoFlo
-    processes: []
+    processes: {}
 
     load: (component) ->
         if typeof component is "object"
             return component
         try
-            return require component
+            implementation = require component
         catch error
             try
-                return require "../components/#{component}"
+                implementation = require "../components/#{component}"
             catch localError
                 # Throw the original error instead
                 throw error
+        return implementation unless implementation.getComponent
+        # New component API
+        return implementation.getComponent()
 
     addNode: (node) ->
+        return if @processes[node.id]
+
         process = {}
 
         if node.component
@@ -32,23 +36,36 @@ class NoFlo
         if node.config and process.component.initialize
             process.component.initialize node.config
 
-        @processes.push process
+        @processes[process.id] = process
 
     getNode: (id) ->
-        for process in @processes
-            if process.id is id
-                return process
-        null
+        @processes[id]
+
+    connectPortNew: (socket, process, port, inbound) ->
+        if inbound
+            socket.to =
+                process: process
+                port: port
+            return process.component.inPorts[port].connect socket
+
+        socket.from =
+            process: process
+            port: port
+        process.component.outPorts[port].connect socket
 
     connectPort: (socket, process, port, inbound) ->
+        if process.component.inPorts
+            # New API
+            return @connectPortNew socket, process, port, inbound
+
         if inbound
-            ports = process.component.getOutputs()
-            socket.from = 
+            ports = process.component.getInputs()
+            socket.to = 
                 process: process
                 port: port
         else
-            ports = process.component.getInputs()
-            socket.to = 
+            ports = process.component.getOutputs()
+            socket.from = 
                 process: process
                 port: port
 
@@ -60,7 +77,7 @@ class NoFlo
     addEdge: (edge) ->
         socket = internalSocket.createSocket()
         logSocket = (message) ->
-            #console.error "#{edge.from.node}:#{socket.from.port} -> #{edge.to.node}:#{socket.to.port} #{message}"
+            console.error "#{edge.from.node}:#{socket.from.port} -> #{edge.to.node}:#{socket.to.port} #{message}"
         socket.on "connect", ->
             logSocket "CONN"
         socket.on "disconnect", ->
@@ -75,15 +92,15 @@ class NoFlo
         unless to
             throw new Error "No process defined for inbound node #{edge.to.node}"
 
-        @connectPort socket, from, edge.from.port, true
-        @connectPort socket, to, edge.to.port, false
+        @connectPort socket, from, edge.from.port, false
+        @connectPort socket, to, edge.to.port, true
 
     addInitial: (initializer) ->
         socket = internalSocket.createSocket()
         to = @getNode initializer.to.node
         unless to
             throw new Error "No process defined for inbound node #{initializer.to.node}"
-        @connectPort socket, to, initializer.to.port, false
+        @connectPort socket, to, initializer.to.port, true
         socket.connect()
         socket.send initializer.from.data
         socket.disconnect()
@@ -98,24 +115,9 @@ exports.createNetwork = (graph) ->
     network
 
 exports.loadFile = (file, success) ->
-    fs.readFile "#{file}.json", "utf-8", (err, data) ->
-        if err
-            throw err
+    graph.loadFile file, (net) ->
+        success exports.createNetwork net
 
-        definition = JSON.parse data
-        app = graph.createGraph definition.properties.name
-        
-        for id, def of definition.processes
-            app.addNode id, def.component
-
-        for conn in definition.connections
-            if conn.data
-                app.addInitial conn.data, conn.tgt.process, conn.tgt.port
-                continue
-            app.addEdge conn.src.process, conn.src.port, conn.tgt.process, conn.tgt.port
-
-        success exports.createNetwork app
-
-exports.graph = graph
 exports.Component = component.Component
-exports.Port = component.Port
+exports.Port = port.Port
+exports.graph = graph

@@ -1,7 +1,7 @@
 # Flow-based example of counting lines of a file, roughly equivalent to
 # "wc -l <filename>"
 
-noflo = require "../../lib/noflo"
+noflo = require "noflo"
 
 unless process.argv[2]
     console.error "You must provide a filename"
@@ -16,7 +16,7 @@ graph.addNode "Count Lines", "Counter"
 graph.addNode "Display", "Output"
 
 graph.addEdge "Read File", "out", "Split by Lines", "in"
-graph.addEdge "Read File", "error", "Display", "in"
+#graph.addEdge "Read File", "error", "Display", "in"
 graph.addEdge "Split by Lines", "out", "Count Lines", "in"
 graph.addEdge "Count Lines", "count", "Display", "in"
 
