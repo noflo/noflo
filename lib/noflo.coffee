@@ -1,6 +1,8 @@
 # The main NoFlo runner
 
 internalSocket = require "./internalSocket"
+component = require "./Component"
+port = require "./Port"
 graph = require "./graph"
 
 class NoFlo
@@ -93,3 +95,5 @@ exports.createNetwork = (graph) ->
     network.addInitial initializer for initializer in graph.initializers
 
 exports.graph = graph
+exports.Component = component.Component
+exports.Port = component.Port
