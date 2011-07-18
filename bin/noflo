@@ -1,0 +1,34 @@
+#!/usr/bin/env coffee
+noflo_root = "#{__dirname}/.."
+noflo = require "#{noflo_root}/lib/noflo"
+shell = require "shell"
+
+app = new shell.Shell
+    project_dir: noflo_root
+
+app.setPrompt = (prompt) ->
+    @settings.prompt = "#{prompt}>> "
+
+app.configure ->
+    app.use shell.history
+        shell: app
+    app.use shell.router
+        shell: app
+    app.use shell.help
+        shell: app
+        introduction: true
+
+app.setPrompt "NoFlo"
+
+app.cmd "load :file", "Load a NoFlo graph", (req, res, next) ->
+    app.setPrompt req.params.file
+    noflo.loadFile req.params.file, (graph) ->
+        console.log graph
+        res.prompt()
+
+app.cmd "save", "Save a NoFlo graph", (req, res, next) ->
+    res.prompt()
+
+app.cmd "close", "Close a NoFlo graph", (req, res, next) ->
+    app.setPrompt "NoFlo"
+    res.prompt()

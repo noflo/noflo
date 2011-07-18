@@ -4,6 +4,7 @@ internalSocket = require "./internalSocket"
 component = require "./Component"
 port = require "./Port"
 graph = require "./graph"
+fs = require "fs"
 
 class NoFlo
     processes: []
@@ -93,6 +94,27 @@ exports.createNetwork = (graph) ->
     network.addNode node for node in graph.nodes
     network.addEdge edge for edge in graph.edges
     network.addInitial initializer for initializer in graph.initializers
+
+    network
+
+exports.loadFile = (file, success) ->
+    fs.readFile "#{file}.json", "utf-8", (err, data) ->
+        if err
+            throw err
+
+        definition = JSON.parse data
+        app = graph.createGraph definition.properties.name
+        
+        for id, def of definition.processes
+            app.addNode id, def.component
+
+        for conn in definition.connections
+            if conn.data
+                app.addInitial conn.data, conn.tgt.process, conn.tgt.port
+                continue
+            app.addEdge conn.src.process, conn.src.port, conn.tgt.process, conn.tgt.port
+
+        success exports.createNetwork app
 
 exports.graph = graph
 exports.Component = component.Component
