@@ -12,7 +12,8 @@
         "node":         ">=0.4.0"
     },
     "dependencies": {
-        "coffee-script": ">=1.1.1"
+        "coffee-script": ">=1.1.1",
+        "shell": ">=0.0.9"
     },
     "directories":  {
         "lib":          "./lib",

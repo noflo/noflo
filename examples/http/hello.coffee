@@ -27,6 +27,6 @@ graph.addInitial "#{__dirname}/hello.jade", "Read Template", "source"
 graph.addEdge "Read Template", "out", "Render", "template"
 graph.addEdge "Render", "out", "Write Response", "string"
 
-console.log graph.toYUML()
+console.log graph.toDOT()
 
 noflo.createNetwork graph
