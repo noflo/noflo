@@ -1,8 +1,8 @@
 class Component
-    inPorts: null
-    outPorts: null
+    inPorts: {}
+    outPorts: {}
     description: ""
-    
+
     getDescription: ->
         @description
 

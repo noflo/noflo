@@ -1,20 +1,37 @@
 events = require "events"
 
 class Port extends events.EventEmitter
-    socket: null
+    constructor: (name) ->
+        @name = name
+        @socket = null
 
-    connect: (socket) ->
+    attach: (socket) ->
+        throw new Error "#{@name}: Socket already attached #{@socket.getId()} - #{socket.getId()}" if @socket
         @socket = socket
+        @from = socket.from
         @socket.on "connect", =>
             @emit "connect", socket
         @socket.on "data", (data) =>
             @emit "data", data
         @socket.on "disconnect", =>
             @emit "disconnect", socket
-            @disconnect()
+
+    detach: ->
+        @socket = null
+
+    send: (data) ->
+        return @socket.send data if @isConnected()
+        @socket.on "connect", =>
+            @socket.send data
+        @socket.connect()
+
+    connect: ->
+        throw new Error "No connection available" unless @socket
+        @socket.connect()
 
     disconnect: ->
-        @socket = null
+        return unless @socket
+        @socket.disconnect()
 
     isConnected: ->
         unless @socket

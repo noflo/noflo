@@ -3,7 +3,6 @@ noflo_root = "#{__dirname}/.."
 noflo = require "#{noflo_root}/lib/NoFlo"
 
 process.on "uncaughtException", (e) ->
-    app.styles.red "Error: #{e.message}"
     app.styles.red "#{e.stack}\n"
     e.stopPropagation()
     app.prompt()
@@ -70,6 +69,34 @@ app.cmd "close", "Close a NoFlo graph", (req, res, next) ->
     delete app.network
     delete app.filename
     app.setPrompt "NoFlo"
+    res.prompt()
+
+app.cmd "add :id :component", "Add a node to the graph", (req, res, next) ->
+    unless app.network
+        app.styles.red "No graph is loaded"
+        return res.prompt()
+    app.network.graph.addNode req.params.id, req.params.component
+    res.prompt()
+
+app.cmd "connect :fromid :fromport :toid :toport", "Connect nodes in graph", (req, res, next) ->
+    unless app.network
+        app.styles.red "No graph is loaded"
+        return res.prompt()
+    app.network.graph.addEdge req.params.fromid, req.params.fromport, req.params.toid, req.params.toport
+    res.prompt()
+
+app.cmd "disconnect :id :port", "Disconnect a node in graph", (req, res, next) ->
+    unless app.network
+        app.styles.red "No graph is loaded"
+        return res.prompt()
+    app.network.graph.removeEdge req.params.id, req.params.port
+    res.prompt()
+
+app.cmd "send :id :port :data", "Send data packet to a node", (req, res, next) ->
+    unless app.network
+        app.styles.red "No graph is loaded"
+        return res.prompt()
+    app.network.graph.addInitial req.params.data, req.params.id, req.params.port
     res.prompt()
 
 app.cmd "dot", "Get a DOT visualization of a graph", (req, res, next) ->

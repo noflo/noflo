@@ -2,24 +2,27 @@
 # string specified in the delimiter port, and send each part as a separate
 # packet to the out port
 
-delimiterString = "\n"
-outSocket = null
+noflo = require "noflo"
 
-exports.getInputs = ->
-    delimiter: (socket) ->
-        socket.on "data", (data) ->
-            delimiterString = data
-    in: (socket) ->
-        string = ""
-        socket.on "data", (data) ->
-            string += data
-        socket.on "disconnect", ->
-            outSocket.on "connect", ->
-                string.split(delimiterString).forEach (line) ->
-                    outSocket.send line
-                outSocket.disconnect()
-            outSocket.connect()
+class SplitStr extends noflo.Component
+    constructor: ->
+        @delimiterString = "\n"
+        @string = ""
 
-exports.getOutputs = ->
-    out: (socket) ->
-       outSocket = socket 
+        @inPorts =
+            delimiter: new noflo.Port()
+            in: new noflo.Port()
+        @outPorts =
+            out: new noflo.Port()
+
+        @inPorts.delimiter.on "data", (data) =>
+            @delimiterString = data
+        @inPorts.in.on "data", (data) =>
+            @string += data 
+        @inPorts.in.on "disconnect", (data) =>
+            @string.split(@delimiterString).forEach (line) =>
+                @outPorts.out.send line
+            @outPorts.out.disconnect()
+
+exports.getComponent = ->
+    new SplitStr()

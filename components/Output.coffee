@@ -1,8 +1,14 @@
-# This component receives input on a single input port, and sends
-# the data items directly to console.log
-handleInput = (socket) ->
-    socket.on "data", (data) ->
-        console.log data
+noflo = require "noflo"
 
-exports.getInputs = ->
-    in: handleInput
+class Output extends noflo.Component
+
+    description: "This component receives input on a single inport, and sends the data items directly to console.log"
+
+    constructor: ->
+        @inPorts.in = new noflo.Port()
+
+        @inPorts.in.on "data", (data) ->
+            console.log data
+
+exports.getComponent = ->
+    new Output()

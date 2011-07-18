@@ -3,38 +3,23 @@
 # message will be sent to the error port
 
 fs = require "fs"
+noflo = require "noflo"
 
-outSocket = null
-errSocket = null
+class ReadFile extends noflo.Component
+    constructor: ->
+        @inPorts.source = new noflo.Port()
+        @outPorts.out = new noflo.Port()
+        @outPorts.error = new noflo.Port()
+        @inPorts.source.on "data", (data) =>
+            @readFile data
 
-readFile = (fileName) ->
-    outSocket.on "connect", ->
-        fs.readFile fileName, "utf-8", (err, data) ->
-            if err
-                if errSocket
-                    errSocket.on "connect", ->
-                        errSocket.send err.message
-                        errSocket.disconnect()
-                    errSocket.connect()
-                    outSocket.disconnect()
-                return
+    readFile: (fileName) ->
+        fs.readFile fileName, "utf-8", (err, data) =>
+            if err  
+                @outPorts.error.send err
+                return @outPorts.error.disconnect()
+            @outPorts.out.send data
+            @outPorts.out.disconnect()
 
-            outSocket.send data
-            outSocket.disconnect()
-
-    outSocket.connect()
-
-handleInput = (socket) ->
-    socket.on "data", (data) ->
-        readFile data
-
-handleOutput = (socket) ->
-    outSocket = socket
-
-exports.getInputs = ->
-    source: handleInput
-
-exports.getOutputs = ->
-    out: handleOutput
-    error: (socket) ->
-        errSocket = socket
+exports.getComponent = ->
+    new ReadFile()

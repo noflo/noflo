@@ -1,18 +1,36 @@
 fs = require "fs"
+events = require "events"
 
-class Graph
+class Graph extends events.EventEmitter
     name: ""
     nodes: []
     edges: []
     initializers: []
 
     constructor: (name) ->
+        @nodes = []
+        @edges = []
+        @initializers = []
         @name = name
 
     addNode: (id, component) ->
-        @nodes.push
+        node =
             id: id
             component: component
+        @nodes.push node
+        @emit "addNode", node
+
+    removeNode: (id) ->
+        @emit "removeNode", node
+
+        for edge in @edges
+            if edge.from.node is node.id
+                @removeEdge edge
+            if edge.to.node is node.id
+                @removeEdge edge
+
+        if @nodes.indexOf node isnt -1
+            delete @nodes[@nodes.indexOf node]
 
     getNode: (id) ->
         for node in @nodes
@@ -20,21 +38,34 @@ class Graph
                 return node
 
     addEdge: (outNode, outPort, inNode, inPort) ->
-        @edges.push
+        edge =
             from:
                 node: outNode
                 port: outPort
             to:
                 node: inNode
                 port: inPort
+        @edges.push edge
+        @emit "addEdge", edge
+
+    removeEdge: (node, port) ->
+        for edge,index in @edges
+            if edge.from.node is node and edge.from.port is port
+                @emit "removeEdge", edge
+                delete @edges[index]
+            if edge.to.node is node and edge.to.port is port
+                @emit "removeEdge", edfe
+                delete @edges[index]
 
     addInitial: (data, node, port) ->
-        @initializers.push
+        initializer =
             from:
                 data: data
             to:
                 node: node
                 port: port
+        @initializers.push initializer
+        @emit "addInitial", initializer
 
     toDOT: ->
         cleanID = (id) ->
@@ -49,6 +80,7 @@ class Graph
             dot += "    data#{id} -> #{cleanID(initializer.to.node)} [label='#{initializer.to.port}']\n" 
 
         for edge in @edges
+            continue unless edge
             dot += "    #{cleanID(edge.from.node)} -> #{cleanID(edge.to.node)}[label='#{edge.from.port}']\n"
 
         dot += "}"

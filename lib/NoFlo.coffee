@@ -10,7 +10,19 @@ class NoFlo
     graph: null
 
     constructor: (graph) ->
+        @processes = {}
         @graph = graph
+
+        @graph.on "addNode", (node) =>
+            @addNode node
+        @graph.on "removeNode", (node) =>
+            @removeNode node
+        @graph.on "addEdge", (edge) =>
+            @addEdge edge
+        #@graph.on "removeEdge", (edge) =>
+        #    @removeEdge edge
+        @graph.on "addInitial", (initializer) =>
+            @addInitial initializer
 
     load: (component) ->
         if typeof component is "object"
@@ -23,9 +35,7 @@ class NoFlo
             catch localError
                 # Throw the original error instead
                 throw error
-        return implementation unless implementation.getComponent
-        # New component API
-        return implementation.getComponent()
+        implementation.getComponent()
 
     addNode: (node) ->
         return if @processes[node.id]
@@ -45,38 +55,18 @@ class NoFlo
     getNode: (id) ->
         @processes[id]
 
-    connectPortNew: (socket, process, port, inbound) ->
+    connectPort: (socket, process, port, inbound) ->
         if inbound
             socket.to =
                 process: process
                 port: port
-            return process.component.inPorts[port].connect socket
+
+            return process.component.inPorts[port].attach socket
 
         socket.from =
             process: process
             port: port
-        process.component.outPorts[port].connect socket
-
-    connectPort: (socket, process, port, inbound) ->
-        if process.component.inPorts
-            # New API
-            return @connectPortNew socket, process, port, inbound
-
-        if inbound
-            ports = process.component.getInputs()
-            socket.to = 
-                process: process
-                port: port
-        else
-            ports = process.component.getOutputs()
-            socket.from = 
-                process: process
-                port: port
-
-        unless ports[port]
-            throw new Error "No such port #{port} in #{process.id}"
-
-        ports[port] socket
+        process.component.outPorts[port].attach socket
 
     addEdge: (edge) ->
         socket = internalSocket.createSocket()
@@ -86,7 +76,7 @@ class NoFlo
             logSocket "CONN"
         socket.on "disconnect", ->
             logSocket "DISC"
-        socket.on "data", ->
+        socket.on "data", (data) ->
             logSocket "DATA"
 
         from = @getNode edge.from.node
@@ -101,6 +91,14 @@ class NoFlo
 
     addInitial: (initializer) ->
         socket = internalSocket.createSocket()
+        logSocket = (message) ->
+            console.error "DATA -> #{socket.to.process.id}:#{socket.to.port} #{message}"
+        socket.on "connect", ->
+            logSocket "CONN"
+        socket.on "disconnect", ->
+            logSocket "DISC"
+        socket.on "data", (data) ->
+            logSocket "DATA"
         to = @getNode initializer.to.node
         unless to
             throw new Error "No process defined for inbound node #{initializer.to.node}"
