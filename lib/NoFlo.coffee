@@ -7,6 +7,10 @@ graph = require "./Graph"
 
 class NoFlo
     processes: {}
+    graph: null
+
+    constructor: (graph) ->
+        @graph = graph
 
     load: (component) ->
         if typeof component is "object"
@@ -106,7 +110,7 @@ class NoFlo
         socket.disconnect()
 
 exports.createNetwork = (graph) ->
-    network = new NoFlo()
+    network = new NoFlo graph
 
     network.addNode node for node in graph.nodes
     network.addEdge edge for edge in graph.edges
