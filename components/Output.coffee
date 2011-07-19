@@ -5,7 +5,8 @@ class Output extends noflo.Component
     description: "This component receives input on a single inport, and sends the data items directly to console.log"
 
     constructor: ->
-        @inPorts.in = new noflo.Port()
+        @inPorts =
+            in: new noflo.Port()
 
         @inPorts.in.on "data", (data) ->
             console.log data

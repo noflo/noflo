@@ -14,10 +14,9 @@ class Counter extends noflo.Component
                 @count = 0
             @count++
         @inPorts.in.on "disconnect", =>
-            @outPorts.count.on "connect", =>
-                @outPorts.count.send @count
-                @outPorts.count.socket.disconnect()
-            @outPorts.count.socket.connect()
+            @outPorts.count.send @count
+            @outPorts.count.disconnect()
+            @count = null
 
 exports.getComponent = ->
     new Counter()

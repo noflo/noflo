@@ -23,6 +23,7 @@ class SplitStr extends noflo.Component
             @string.split(@delimiterString).forEach (line) =>
                 @outPorts.out.send line
             @outPorts.out.disconnect()
+            @string = ""
 
 exports.getComponent = ->
     new SplitStr()
