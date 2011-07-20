@@ -19,9 +19,9 @@ For now NoFlo should be treated as an interesting proof-of-concept. If I have ti
 
 ## Requirements and installing
 
-NoFlo requires a reasonably recent version of [Node.js](http://nodejs.org/), and the CoffeeScript environment that you can get from [npm](http://npmjs.org/):
+NoFlo requires a reasonably recent version of [Node.js](http://nodejs.org/), and some [npm](http://npmjs.org/) packages. You can install everything needed by a simple:
 
-    $ npm install coffee-script
+    $ npm link
 
 NoFlo is available from [GitHub](https://github.com/bergie/noflo) under the MIT license.
 
@@ -59,36 +59,108 @@ Functionality a component provides:
 * Handler for component initialization that accepts configuration
 * Handler for connections for each inport
 
-Minimal component written in CoffeeScript would look like the following. Please note that this is not the final component API, but instead something used to get the proof-of-concept up and running quickly:
+Minimal component written in CoffeeScript would look like the following:
 
-    outSocket = null
-    forwardData = null
+    noflo = require "noflo"
 
-    exports.getInputs = ->
-        # Register a port named "input" with a handler callback
-        input: (socket) ->
-            socket.on "data", (data) ->
-                # Input received, forward it
-                forwardData = data
+    class Forwarder extends noflo.Component
+        description: "This component receives data on a single input port and sends the same data out to the output port"
 
-                if outSocket.isConnected()
-                    # Already connected, just send stuff
-                    return outSocket.send data
+        constructor: ->
+            # Register ports
+            @inPorts =
+                in: new noflo.Port()
+            @outPorts =
+                out: new noflo.Port()
 
-                outSocket.connect()
+            @inPorts.in.on "data", (data) =>
+                # Forward data when we receive it.
+                # Note: send() will connect automatically if needed
+                @outPorts.out.send data
 
-            socket.on "disconnect", ->
-                outSocket.disconnect()
+            @inPorts.in.on "disconnect", =>
+                # Disconnect output port when input port disconnects
+                @outPorts.out.disconnect()
 
-    exports.getOutputs = ->
-        # Register a port named "output" with a handler callback
-        output: (socket) ->
-            outSocket = socket
+    exports.getComponent = ->
+        new Forwarder()
 
-            socket.on "connect", ->
-                outSocket.send forwardData
+This example component register two ports: _in_ and _out_. When it receives data in the _in_ port, it opens the _out_ port and sends the same data there. When the _in_ connection closes, it will also close the _out_ connection. So basically this component would be a simple repeater.
 
-This example component register two ports: _input_ and _output_. When it receives data in the _input_ port, it opens the _output_ port and sends the same data there. When the _input_ connection closes, it will also close the _output_ connection. So basically this component would be a simple repeater.
+## The NoFlo shell
+
+NoFlo comes with a command shell that you can use to load, run and manipulate NoFlo graphs. For example, the _line count example_ that ships with NoFlo could be built with the shell in the following way:
+
+    $ noflo
+    NoFlo>> new countlines
+    countlines>> add read ReadFile
+    countlines>> add split SplitStr
+    countlines>> add count Counter
+    countlines>> add display Output
+    countlines>> connect read out split in
+    countlines>> connect split out count in
+    countlines>> connect count count display in
+    countlines>> dot
+    digraph {
+      read [shape=box]
+      split [shape=box]
+      count [shape=box]
+      display [shape=box]
+      read -> split[label='out']
+      split -> count[label='out']
+      count -> display[label='count']
+    }
+    countlines>> send read source somefile
+
+You can run _help_ to see all available NoFlo shell commands, and _quit_ to get out of the shell.
+
+## NoFlo graph file format
+
+In addition to using NoFlo in _embedded mode_ where you create the FBP graph programmatically ([see example](https://raw.github.com/bergie/noflo/master/examples/linecount/count.coffee)), you can also initialize and run graphs defined using a JSON file.
+
+The NoFlo JSON files declare the processes used in the FBP graph, and the connections between them. They look like the following:
+
+    {
+        "properties": {
+            "name": "Count lines in a file"
+        },
+        "processes": {
+            "Read File": {
+                "component": "ReadFile"
+            },
+            "Split by Lines": {
+                "component": "SplitStr"
+            },
+            ...
+        },
+        "connections": [
+            {
+                "data": "package.json",
+                "tgt": {
+                    "process": "Read File",
+                    "port": "source"
+                }
+            },
+            {
+                "src": {
+                    "process": "Read File",
+                    "port": "out"
+                },
+                "tgt": {
+                    "process": "Split by Lines",
+                    "port": "in"
+                }
+            },
+            ...
+        ]
+    }
+
+To run a graph file, you can either use the _load_ command of the NoFlo shell, or do it programmatically:
+
+    noflo = require "noflo"
+    noflo.loadFile "example.json", (network) ->
+        console.log "Graph loaded"
+        console.log network.graph.toDOT()
 
 ## Development
 
