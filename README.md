@@ -87,6 +87,20 @@ Minimal component written in CoffeeScript would look like the following:
 
 This example component register two ports: _in_ and _out_. When it receives data in the _in_ port, it opens the _out_ port and sends the same data there. When the _in_ connection closes, it will also close the _out_ connection. So basically this component would be a simple repeater.
 
+## Ports and events
+
+Being a flow-based programming environment, the main action in NoFlo happens through ports and their connections. There are five events that can be associated with ports:
+
+* _Attach_: there is a connection to the port
+* _Connect_: the port has started sending or receiving a data transmission
+* _Data_: an individual data packet in a transmission
+* _Disconnect_: end of data transmission
+* _Detach_: A connection to the port has been removed
+
+It depends on the nature of the component how these events may be handled. Most typical components do operations on a whole transmission, meaning that they should wait for the _disconnect_ event on inports before they act, but some components can also act on single _data_ packets coming in.
+
+When a port has no connections, meaning that it was initialized without a connection, or a _detach_ event has happened, it should do no operations regarding that port.
+
 ## The NoFlo shell
 
 NoFlo comes with a command shell that you can use to load, run and manipulate NoFlo graphs. For example, the _line count example_ that ships with NoFlo could be built with the shell in the following way:
