@@ -93,7 +93,7 @@ Being a flow-based programming environment, the main action in NoFlo happens thr
 
 * _Attach_: there is a connection to the port
 * _Connect_: the port has started sending or receiving a data transmission
-* _Data_: an individual data packet in a transmission
+* _Data_: an individual data packet in a transmission. There might be multiple depending on how a component operates
 * _Disconnect_: end of data transmission
 * _Detach_: A connection to the port has been removed
 
