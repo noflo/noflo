@@ -123,3 +123,9 @@ exports.loadFile = (file, success) ->
 exports.Component = component.Component
 exports.Port = port.Port
 exports.graph = graph
+
+# Method for extending include paths for
+# NoFlo components
+exports.addComponentIncludePaths = (paths) ->
+  for path in paths
+    require.paths.unshift path
