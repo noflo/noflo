@@ -30,10 +30,14 @@ class Graph extends events.EventEmitter
             if edge.to.node is node.id
                 @removeEdge edge
 
+        for initializer in @initializers
+            if initializer.to.node is node.id
+                @removeEdge initializer.to.node, initializer.to.port
+
         @emit "removeNode", node
 
         if @nodes.indexOf node isnt -1
-            @nodes.splice @nodex.indexOf(node), 1
+            @nodes.splice @nodes.indexOf(node), 1
 
     getNode: (id) ->
         for node in @nodes
