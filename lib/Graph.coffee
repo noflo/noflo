@@ -97,6 +97,40 @@ class Graph extends events.EventEmitter
             yuml.push "(#{edge.from.node})[#{edge.from.port}]->(#{edge.to.node})"
         yuml.join ","
 
+    toJSON: ->
+        json = 
+            properties:
+                name: @name
+            processes: {}
+            connections: []
+
+        for node in @nodes
+            json.processes[node.id] =
+                component: node.component
+
+        for edge in @edges
+            json.connections.push
+                src:
+                    process: edge.from.node
+                    port: edge.from.port
+                tgt:
+                    process: edge.to.node
+                    port: edge.to.port
+
+        for initializer in @initializers
+            json.connections.push
+                data: initializer.from.data
+                tgt:
+                    process: initializer.to.node
+                    port: initializer.to.port
+
+        JSON.stringify json, null, 4
+
+    save: (file, success) ->
+        fs.writeFile "#{file}.json", @toJSON(), "utf-8", (err, data) ->
+            throw err if err
+            success file
+
 exports.createGraph = (name) ->
     new Graph name
 

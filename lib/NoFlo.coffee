@@ -120,6 +120,10 @@ exports.loadFile = (file, success) ->
     graph.loadFile file, (net) ->
         success exports.createNetwork net
 
+exports.saveFile = (graph, file, success) ->
+    graph.save file, ->
+        success file
+
 exports.Component = component.Component
 exports.Port = port.Port
 exports.graph = graph

@@ -47,7 +47,7 @@ app.cmd "save *", "Save a NoFlo graph", (req, res, next) ->
     unless app.network
         app.styles.red "No graph is loaded"
         return res.prompt()
-    noflo.saveFile app.filename, app.network.graph, ->
+    noflo.saveFile app.network.graph, app.filename, ->
         app.styles.green "Saved to #{app.filename}"
         res.prompt()
 
