@@ -1,6 +1,6 @@
 #!/usr/bin/env coffee
 noflo_root = "#{__dirname}/.."
-noflo = require "#{noflo_root}/lib/NoFlo"
+noflo = require "noflo"
 
 process.on "uncaughtException", (e) ->
     app.styles.red "#{e.stack}\n"
@@ -118,5 +118,28 @@ app.cmd "json", "Get a JSON visualization of a graph", (req, res, next) ->
         app.styles.red "No graph is loaded"
         return res.prompt()
 
-    app.styles.blue app.network.graph.toJSON()
+    app.styles.blue JSON.stringify app.network.graph.toJSON(), null, 4
     res.prompt()
+
+app.cmd "startserver :port", "Start graph HTTP server", (req, res, next) ->
+    unless app.network
+        app.styles.red "No graph is loaded"
+        return res.prompt()
+
+    server = require "../lib/Server"
+    server.createServer req.params.port, (server) ->
+        app.server = server
+        server.networks.push app.network
+        app.styles.blue "HTTP server is running in port #{req.params.port}"
+        res.prompt()
+
+app.cmd "stopserver", "Stop graph HTTP server", (req, res, next) ->
+    unless app.server
+        app.styles.red "No server is running"
+        return res.prompt()
+
+    app.server.on "close", ->
+        app.styles.blue "HTTP server stopped"
+        app.server = null
+        res.prompt()
+    app.server.close()

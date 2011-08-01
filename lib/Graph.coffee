@@ -135,10 +135,11 @@ class Graph extends events.EventEmitter
                     process: initializer.to.node
                     port: initializer.to.port
 
-        JSON.stringify json, null, 4
+        json
 
     save: (file, success) ->
-        fs.writeFile "#{file}.json", @toJSON(), "utf-8", (err, data) ->
+        json = JSON.stringify @toJSON(), null, 4
+        fs.writeFile "#{file}.json", json, "utf-8", (err, data) ->
             throw err if err
             success file
 
