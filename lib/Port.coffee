@@ -8,6 +8,8 @@ class Port extends events.EventEmitter
     attach: (socket) ->
         throw new Error "#{@name}: Socket already attached #{@socket.getId()} - #{socket.getId()}" if @socket
         @socket = socket
+        @emit "attach", socket
+
         @from = socket.from
         @socket.on "connect", =>
             @emit "connect", socket
@@ -17,6 +19,7 @@ class Port extends events.EventEmitter
             @emit "disconnect", socket
 
     detach: ->
+        @emit "detach", @socket
         @socket = null
 
     send: (data) ->

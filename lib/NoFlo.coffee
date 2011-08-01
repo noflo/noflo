@@ -7,6 +7,7 @@ graph = require "./Graph"
 
 class NoFlo
     processes: {}
+    connections: []
     graph: null
 
     constructor: (graph) ->
@@ -19,8 +20,8 @@ class NoFlo
             @removeNode node
         @graph.on "addEdge", (edge) =>
             @addEdge edge
-        #@graph.on "removeEdge", (edge) =>
-        #    @removeEdge edge
+        @graph.on "removeEdge", (edge) =>
+            @removeEdge edge
         @graph.on "addInitial", (initializer) =>
             @addInitial initializer
 
@@ -51,6 +52,13 @@ class NoFlo
             process.component.initialize node.config
 
         @processes[process.id] = process
+
+    removeNode: (node) ->
+        return unless @processes[node.id]
+
+        # TODO: Check for existing edges with this node
+
+        delete @processes[node.id]
 
     getNode: (id) ->
         @processes[id]
@@ -89,6 +97,18 @@ class NoFlo
         @connectPort socket, from, edge.from.port, false
         @connectPort socket, to, edge.to.port, true
 
+        @connections.push socket
+
+    removeEdge: (edge) ->
+        for connection,index in @connections
+            if edge.to.node is connection.to.process.id and edge.to.port is connection.to.port
+                connection.to.process.component.inPorts[connection.to.port].detach connection
+            if edge.from.node
+                if connection.from and edge.from.node is connection.from.process.id and edge.from.port is connection.from.port
+                    connection.from.process.component.inPorts[connection.from.port].detach connection
+                    
+            @connections.splice index, 1
+
     addInitial: (initializer) ->
         socket = internalSocket.createSocket()
         logSocket = (message) ->
@@ -106,6 +126,8 @@ class NoFlo
         socket.connect()
         socket.send initializer.from.data
         socket.disconnect()
+
+        @connections.push socket
 
 exports.createNetwork = (graph) ->
     network = new NoFlo graph

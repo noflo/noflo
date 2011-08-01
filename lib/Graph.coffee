@@ -21,7 +21,8 @@ class Graph extends events.EventEmitter
         @emit "addNode", node
 
     removeNode: (id) ->
-        @emit "removeNode", node
+        node =
+            id: id
 
         for edge in @edges
             if edge.from.node is node.id
@@ -29,8 +30,10 @@ class Graph extends events.EventEmitter
             if edge.to.node is node.id
                 @removeEdge edge
 
+        @emit "removeNode", node
+
         if @nodes.indexOf node isnt -1
-            delete @nodes[@nodes.indexOf node]
+            @nodes.splice @nodex.indexOf(node), 1
 
     getNode: (id) ->
         for node in @nodes
@@ -52,10 +55,15 @@ class Graph extends events.EventEmitter
         for edge,index in @edges
             if edge.from.node is node and edge.from.port is port
                 @emit "removeEdge", edge
-                delete @edges[index]
+                @edges.splice index, 1
             if edge.to.node is node and edge.to.port is port
-                @emit "removeEdge", edfe
-                delete @edges[index]
+                @emit "removeEdge", edge
+                @edges.splice index, 1
+
+        for edge,index in @initializers
+            if edge.to.node is node and edge.to.port is port
+                @emit "removeEdge", edge
+                @initializers.splice index, 1
 
     addInitial: (data, node, port) ->
         initializer =
@@ -80,7 +88,6 @@ class Graph extends events.EventEmitter
             dot += "    data#{id} -> #{cleanID(initializer.to.node)} [label='#{initializer.to.port}']\n" 
 
         for edge in @edges
-            continue unless edge
             dot += "    #{cleanID(edge.from.node)} -> #{cleanID(edge.to.node)}[label='#{edge.from.port}']\n"
 
         dot += "}"
