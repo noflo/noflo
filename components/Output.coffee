@@ -8,6 +8,8 @@ class Output extends noflo.Component
         @inPorts =
             in: new noflo.Port()
 
+        @outPorts = {}
+
         @inPorts.in.on "data", (data) ->
             console.log data
 

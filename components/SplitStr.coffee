@@ -10,8 +10,8 @@ class SplitStr extends noflo.Component
         @string = ""
 
         @inPorts =
-            delimiter: new noflo.Port()
             in: new noflo.Port()
+            delimiter: new noflo.Port()
         @outPorts =
             out: new noflo.Port()
 
