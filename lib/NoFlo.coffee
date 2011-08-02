@@ -3,6 +3,7 @@
 internalSocket = require "./InternalSocket"
 component = require "./Component"
 port = require "./Port"
+arrayport = require "./ArrayPort"
 graph = require "./Graph"
 
 class NoFlo
@@ -153,6 +154,7 @@ exports.saveFile = (graph, file, success) ->
 
 exports.Component = component.Component
 exports.Port = port.Port
+exports.ArrayPort = arrayport.ArrayPort
 exports.graph = graph
 
 # Method for extending include paths for

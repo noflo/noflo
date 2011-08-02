@@ -6,7 +6,7 @@ class Output extends noflo.Component
 
     constructor: ->
         @inPorts =
-            in: new noflo.Port()
+            in: new noflo.ArrayPort()
 
         @outPorts = {}
 

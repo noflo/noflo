@@ -60,16 +60,24 @@ jsPlumb.bind "ready", ->
             outAnchors = ["RightMiddle", "TopRight", "BottonRight"]
 
             for port,index in node.inPorts
-                node.inEndpoints[port] = jsPlumb.addEndpoint domNode,
+                maxConnections = 1
+                if port.type is "array"
+                    maxConnections = -1
+                node.inEndpoints[port.name] = jsPlumb.addEndpoint domNode,
                     isSource: false
                     isTarget: true
+                    maxConnections: maxConnections
                     anchor: inAnchors[index]
                 , endPoints.obj
 
             for port,index in node.outPorts
-                node.outEndpoints[port] = jsPlumb.addEndpoint domNode,
+                maxConnections = 1
+                if port.type is "array"
+                    maxConnections = -1
+                node.outEndpoints[port.name] = jsPlumb.addEndpoint domNode,
                     isSource: true
                     isTarget: false
+                    maxConnections: maxConnections
                     anchor: outAnchors[index]
                 , endPoints.obj
 

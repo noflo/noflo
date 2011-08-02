@@ -4,22 +4,29 @@ class Port extends events.EventEmitter
     constructor: (name) ->
         @name = name
         @socket = null
+        @from = null
 
     attach: (socket) ->
         throw new Error "#{@name}: Socket already attached #{@socket.getId()} - #{socket.getId()}" if @socket
         @socket = socket
+        @from = socket.from
+
+        @attachSocket socket
+
+    attachSocket: (socket) ->
         @emit "attach", socket
 
         @from = socket.from
-        @socket.on "connect", =>
+        socket.on "connect", =>
             @emit "connect", socket
-        @socket.on "data", (data) =>
+        socket.on "data", (data) =>
             @emit "data", data
-        @socket.on "disconnect", =>
+        socket.on "disconnect", =>
             @emit "disconnect", socket
 
-    detach: ->
+    detach: (socket) ->
         @emit "detach", @socket
+        @from = null
         @socket = null
 
     send: (data) ->

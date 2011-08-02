@@ -36,9 +36,19 @@ exports.createServer = (port, success) ->
             node.inPorts = []
             node.outPorts = []
             for name, port of process.component.inPorts
-                node.inPorts.push name
+                type = "single"
+                if port instanceof noflo.ArrayPort
+                    type = "array"
+                node.inPorts.push 
+                    name: name
+                    type: type
             for name, port of process.component.outPorts
-                node.outPorts.push name
+                type = "single"
+                if port instanceof noflo.ArrayPort
+                    type = "array"
+                node.outPorts.push
+                    name: name
+                    type: type
 
         req.network.id = id
         next()
