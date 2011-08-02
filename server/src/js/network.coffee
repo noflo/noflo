@@ -78,6 +78,9 @@ jsPlumb.bind "ready", ->
                 source: plumbNodes[edge.from.node].outEndpoints[edge.from.port]
                 target: plumbNodes[edge.to.node].inEndpoints[edge.to.port]
                 connector: "Bezier"
+                paintStyle:
+                    strokeStyle: "#5c3566"
+                    lineWidth: 6
                 overlays: [
                     [ "Label",
                         label: edge.from.port
