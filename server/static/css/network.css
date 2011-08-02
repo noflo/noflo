@@ -33,3 +33,10 @@ h1 {
     position: absolute;
     top: 50px;
 }
+
+.inPort, .outPort {
+    background-color: #d3d7cf;
+    border-radius: 2px;
+    padding: 1px;
+    opacity: 0.7;
+}

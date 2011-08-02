@@ -10,9 +10,8 @@ jsPlumb.bind "ready", ->
 
     endPoints =
         obj:
-            endpoint: ["Rectangle",
-                width: 10
-                height: 10
+            endpoint: ["Dot",
+                radius: 6
             ]
             paintStyle:
                 fillStyle: "#75507b"
@@ -74,3 +73,15 @@ jsPlumb.bind "ready", ->
                 source: plumbNodes[edge.from.node].outEndpoints[edge.from.port]
                 target: plumbNodes[edge.to.node].inEndpoints[edge.to.port]
                 connector: "Bezier"
+                overlays: [
+                    [ "Label",
+                        label: edge.from.port
+                        location: 0.2
+                        cssClass: "outPort"
+                    ],
+                    [ "Label",
+                        label: edge.to.port
+                        location: 0.8
+                        cssClass: "inPort"
+                    ]
+                ]
