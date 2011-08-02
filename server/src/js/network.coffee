@@ -18,6 +18,15 @@ jsPlumb.bind "ready", ->
         data: null
         rdf: null
 
+    jsPlumb.Defaults.Connector = "Bezier"
+    jsPlumb.Defaults.PaintStyle =
+        strokeStyle: "#5c3566"
+        lineWidth: 6 
+    jsPlumb.setMouseEventsEnabled true
+    jsPlumb.Defaults.DragOptions =
+        cursor: "pointer"
+        zIndex: 2000
+
     getNodePosition = (node) ->
         if node.display and node.display.x and node.display.y
             previousPosition = node.display
@@ -28,10 +37,7 @@ jsPlumb.bind "ready", ->
             y: previousPosition.y + 50
 
     jsPlumb.setRenderMode jsPlumb.CANVAS
-    jsPlumb.setMouseEventsEnabled true
-    jsPlumb.Defaults.DragOptions =
-        cursor: "pointer"
-        zIndex: 2000
+
 
     jQuery.get "/network/" + jQuery('#network').attr('about'), (data) ->
         jQuery('#uptime').countdown
@@ -77,10 +83,6 @@ jsPlumb.bind "ready", ->
             jsPlumb.connect
                 source: plumbNodes[edge.from.node].outEndpoints[edge.from.port]
                 target: plumbNodes[edge.to.node].inEndpoints[edge.to.port]
-                connector: "Bezier"
-                paintStyle:
-                    strokeStyle: "#5c3566"
-                    lineWidth: 6
                 overlays: [
                     [ "Label",
                         label: edge.from.port

@@ -1,6 +1,8 @@
 body {
     background-color: #eeeeec;
     font-family: "Cantarell", "Verdana", sans-serif;
+    padding: 0px;
+    margin: 0px;
 }
 
 div.component {
@@ -39,6 +41,7 @@ h1 {
     border-radius: 2px;
     padding: 1px;
     opacity: 0.7;
+    z-index: 110;
 }
 
 #uptime {
