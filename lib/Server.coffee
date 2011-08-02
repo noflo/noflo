@@ -66,6 +66,7 @@ exports.createServer = (port, success) ->
 
         network =
             name: req.network.graph.name
+            started: req.network.startupDate 
             nodes: req.network.graph.nodes
             edges: req.network.graph.edges.concat req.network.graph.initializers
         res.send network
