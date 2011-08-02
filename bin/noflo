@@ -176,6 +176,9 @@ app.cmd "uptime", "Show uptime of graph", (req, res, next) ->
         if timedef.minutes
             prettyDate = "#{prettyDate} #{timedef.minutes} minutes"
 
+        unless prettyDate.length is 15
+            prettyDate = "#{prettyDate} and"
+
         prettyDate = "#{prettyDate} #{timedef.seconds} seconds"
 
     app.styles.blue prettyUptime app.network.uptime()

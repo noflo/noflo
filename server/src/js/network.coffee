@@ -8,6 +8,17 @@ jsPlumb.bind "ready", ->
         x: 0
         y: 0
 
+    endPoints =
+        obj:
+            endpoint: ["Rectangle",
+                width: 10
+                height: 10
+            ]
+            paintStyle:
+                fillStyle: "#75507b"
+        data: null
+        rdf: null
+
     getNodePosition = (node) ->
         if node.display and node.display.x and node.display.y
             previousPosition = node.display
@@ -26,12 +37,7 @@ jsPlumb.bind "ready", ->
     jQuery.get "/network/" + jQuery('#network').attr('about'), (data) ->
         for node in data.nodes
             domNode = jQuery("##{node.id}")
-            domNode.css "width", "100px"
-            domNode.css "height", "50px"
-            domNode.css "margin", "2px"
-            domNode.css "border", "2px solid black"
-            domNode.css "background", "#ffffff"
-            domNode.css "position", "absolute"
+            domNode.addClass "component"
             
             position = getNodePosition node
             domNode.css "top", position.y
@@ -45,27 +51,17 @@ jsPlumb.bind "ready", ->
 
             for port,index in node.inPorts
                 node.inEndpoints[port] = jsPlumb.addEndpoint domNode,
-                    endpoint: ["Rectangle",
-                        width: 10
-                        height: 10
-                    ] 
                     isSource: false
                     isTarget: true
-                    paintStyle:
-                        fillStyle: "#ff0000"
                     anchor: inAnchors[index]
+                , endPoints.obj
 
             for port,index in node.outPorts
                 node.outEndpoints[port] = jsPlumb.addEndpoint domNode,
-                    endpoint: ["Rectangle",
-                        width: 10
-                        height: 10
-                    ]
                     isSource: true
                     isTarget: false
-                    paintStyle:
-                        fillStyle: "#00ff00"
                     anchor: outAnchors[index]
+                , endPoints.obj
 
             plumbNodes[node.id] = node
 
@@ -77,4 +73,4 @@ jsPlumb.bind "ready", ->
             jsPlumb.connect
                 source: plumbNodes[edge.from.node].outEndpoints[edge.from.port]
                 target: plumbNodes[edge.to.node].inEndpoints[edge.to.port]
-                connector: "Flowchart"
+                connector: "Bezier"

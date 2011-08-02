@@ -1,0 +1,35 @@
+body {
+    background-color: #eeeeec;
+    font-family: "Cantarell", "Verdana", sans-serif;
+}
+
+div.component {
+    background-color: #2e3436;
+    width: 100px;
+    height: 60px;
+    position: absolute;
+    color: #ffffff;
+    border-radius: 2px;
+    z-index: 100;
+    vertical-align: middle;
+    display: table-cell;
+    text-align: center;
+    font-weight: bold;
+}
+
+._jsPlumb_endpoint {
+    z-index: 120;
+}
+
+h1 {
+    top: 10px;
+    left: 10px;
+    margin: 0px;
+    padding: 0px;
+    position: absolute;
+}
+
+#network {
+    position: absolute;
+    top: 50px;
+}
