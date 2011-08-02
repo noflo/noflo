@@ -34,6 +34,11 @@ jsPlumb.bind "ready", ->
         zIndex: 2000
 
     jQuery.get "/network/" + jQuery('#network').attr('about'), (data) ->
+        jQuery('#uptime').countdown
+            since: new Date data.started
+            format: "YOWDHM"
+            significant: 2
+
         for node in data.nodes
             domNode = jQuery("##{node.id}")
             domNode.addClass "component"
