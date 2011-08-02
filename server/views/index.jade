@@ -1,0 +1,10 @@
+!!! 5
+html(lang="en")
+    head
+        title NoFlo
+    body
+        h1 NoFlo
+        ul
+        - each network,id in networks
+            li
+                a(href='/' + id) #{network.graph.name}

@@ -1,22 +1,51 @@
 express = require "express"
 noflo = require "noflo"
-nofloRoot = "#{__dirname}/.."
+path = require "path"
+nofloRoot = path.normalize "#{__dirname}/.."
 
 exports.createServer = (port, success) ->
 
+    staticDir = "#{nofloRoot}/server/static"
+    sourceDir = "#{nofloRoot}/server/src"
+
     app = express.createServer()
     app.networks = []
-    app.use "/static", express.static "#{nofloRoot}/static"
+    app.use express.compiler
+        src: sourceDir
+        dest: staticDir
+        enable: ['coffeescript']
+    app.use express.static staticDir
+    app.use express.bodyParser()
+    app.set "view engine", "jade"
+    app.set "view options",
+        layout: false
+    app.set "views", "#{nofloRoot}/server/views"
 
     app.get "/", (req, res) ->
-        res.send "Hello, there"
+        res.render "index", 
+            networks: app.networks 
 
     app.param "network_id", (req, res, next, id) ->
         unless app.networks[id]
           return res.send "No network '#{id}' found", 404
 
         req.network = app.networks[id]
+
+        for node in req.network.graph.nodes
+            process = req.network.getNode node.id
+            node.inPorts = []
+            node.outPorts = []
+            for name, port of process.component.inPorts
+                node.inPorts.push name
+            for name, port of process.component.outPorts
+                node.outPorts.push name
+
+        req.network.id = id
         next()
+
+    app.get "/:network_id", (req, res) ->
+        res.render "network",
+            network: req.network
 
     app.param "node_id", (req, res, next, id) ->
         for node in req.network.graph.nodes
@@ -34,6 +63,7 @@ exports.createServer = (port, success) ->
         next()
 
     app.get "/network/:network_id", (req, res) ->
+
         network =
             name: req.network.graph.name
             nodes: req.network.graph.nodes
