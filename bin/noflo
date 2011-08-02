@@ -143,3 +143,40 @@ app.cmd "stopserver", "Stop graph HTTP server", (req, res, next) ->
         app.server = null
         res.prompt()
     app.server.close()
+
+app.cmd "uptime", "Show uptime of graph", (req, res, next) ->
+    unless app.network
+        app.styles.red "No graph is loaded"
+        return res.prompt()
+
+    convertUptime = (uptime) ->
+        seconds = uptime / 1000
+        days = Math.floor(seconds / 86400)
+        hours = Math.floor((seconds - (days * 86400)) / 3600)
+        minutes = Math.floor((seconds - (days * 86400) - (hours * 3600)) / 60)
+        secs = Math.floor((seconds - (days * 86400) - (hours * 3600) - (minutes * 60)))
+
+        timedef =
+            days: days
+            hours: hours
+            minutes: minutes
+            seconds: secs
+
+    prettyUptime = (uptime) ->
+        timedef = convertUptime uptime
+
+        prettyDate = "Graph uptime is"
+
+        if timedef.days
+            prettyDate = "#{prettyDate} #{timedef.days} days"
+
+        if timedef.hours
+            prettyDate = "#{prettyDate} #{timedef.hours} hours"
+
+        if timedef.minutes
+            prettyDate = "#{prettyDate} #{timedef.minutes} minutes"
+
+        prettyDate = "#{prettyDate} #{timedef.seconds} seconds"
+
+    app.styles.blue prettyUptime app.network.uptime()
+    res.prompt()

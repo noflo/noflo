@@ -9,10 +9,13 @@ class NoFlo
     processes: {}
     connections: []
     graph: null
+    startupDate: null
 
     constructor: (graph) ->
         @processes = {}
         @graph = graph
+
+        @startupDate = new Date()
 
         @graph.on "addNode", (node) =>
             @addNode node
@@ -24,6 +27,8 @@ class NoFlo
             @removeEdge edge
         @graph.on "addInitial", (initializer) =>
             @addInitial initializer
+
+    uptime: -> new Date() - @startupDate
 
     load: (component) ->
         if typeof component is "object"
