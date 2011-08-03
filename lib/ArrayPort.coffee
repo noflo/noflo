@@ -9,7 +9,7 @@ class ArrayPort extends port.Port
         @attachSocket socket
 
     detach: (socket) ->
-        if @sockets.indexOf socket is -1
+        if @sockets.indexOf(socket) is -1
             return
 
         @emit "detach", @socket
