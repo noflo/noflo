@@ -143,6 +143,8 @@ class Graph extends events.EventEmitter
             throw err if err
             success file
 
+exports.Graph = Graph
+
 exports.createGraph = (name) ->
     new Graph name
 

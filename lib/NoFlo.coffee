@@ -14,6 +14,7 @@ class NoFlo
 
     constructor: (graph) ->
         @processes = {}
+        @connections = []
         @graph = graph
 
         @startupDate = new Date()
@@ -155,6 +156,7 @@ exports.saveFile = (graph, file, success) ->
 exports.Component = component.Component
 exports.Port = port.Port
 exports.ArrayPort = arrayport.ArrayPort
+exports.Graph = graph.Graph
 exports.graph = graph
 
 # Method for extending include paths for
