@@ -180,6 +180,10 @@ To run a graph file, you can either use the _load_ command of the NoFlo shell, o
 
 NoFlo development happens on GitHub. Just fork the [main repository](https://github.com/bergie/noflo), make modifications and send a pull request.
 
+To run the unit tests you need [nodeunit](https://github.com/caolan/nodeunit). Run the tests with:
+
+    $ nodeunit test/*
+
 ### Some ideas
 
 * Browser-based visual programming environment for viewing and editing NoFlo graphs
