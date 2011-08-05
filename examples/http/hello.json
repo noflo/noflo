@@ -1,0 +1,128 @@
+{
+  "properties": {
+    "name": "blog"
+  },
+  "processes": {
+    "Web Server": {
+      "component": "HTTP/Server"
+    },
+    "Profiler": {
+      "component": "HTTP/Profiler"
+    },
+    "Authentication": {
+      "component": "HTTP/BasicAuth"
+    },
+    "Read Template": {
+      "component": "ReadFile"
+    },
+    "Greet User": {
+      "component": "../examples/http/HelloController"
+    },
+    "Render": {
+      "component": "Template"
+    },
+    "Write Response": {
+      "component": "HTTP/WriteResponse"
+    },
+    "Send": {
+      "component": "HTTP/SendResponse"
+    }
+  },
+  "connections": [
+    {
+      "src": {
+        "process": "Web Server",
+        "port": "request"
+      },
+      "tgt": {
+        "process": "Profiler",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "Profiler",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "Authentication",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "Authentication",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "Greet User",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "Greet User",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "Write Response",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "Greet User",
+        "port": "data"
+      },
+      "tgt": {
+        "process": "Render",
+        "port": "options"
+      }
+    },
+    {
+      "src": {
+        "process": "Write Response",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "Send",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "Read Template",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "Render",
+        "port": "template"
+      }
+    },
+    {
+      "src": {
+        "process": "Render",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "Write Response",
+        "port": "string"
+      }
+    },
+    {
+      "data": 8003,
+      "tgt": {
+        "process": "Web Server",
+        "port": "listen"
+      }
+    },
+    {
+      "data": "/home/bergie/Projects/noflo/examples/http/hello.jade",
+      "tgt": {
+        "process": "Read Template",
+        "port": "source"
+      }
+    }
+  ]
+}
+

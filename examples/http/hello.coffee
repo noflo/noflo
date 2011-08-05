@@ -1,6 +1,6 @@
 # Flow-based example of serving web pages
 
-noflo = require "../../lib/noflo"
+noflo = require "noflo"
 
 graph = noflo.graph.createGraph "blog"
 
@@ -8,7 +8,7 @@ graph.addNode "Web Server", "HTTP/Server"
 graph.addNode "Profiler", "HTTP/Profiler"
 graph.addNode "Authentication", "HTTP/BasicAuth"
 graph.addNode "Read Template", "ReadFile"
-graph.addNode "Greet User", require "./HelloController"
+graph.addNode "Greet User", require("./HelloController").getComponent()
 graph.addNode "Render", "Template"
 graph.addNode "Write Response", "HTTP/WriteResponse"
 graph.addNode "Send", "HTTP/SendResponse"
@@ -27,6 +27,6 @@ graph.addInitial "#{__dirname}/hello.jade", "Read Template", "source"
 graph.addEdge "Read Template", "out", "Render", "template"
 graph.addEdge "Render", "out", "Write Response", "string"
 
-console.log graph.toDOT()
+console.log JSON.stringify graph.toJSON(), null, 2
 
 noflo.createNetwork graph

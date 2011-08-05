@@ -1,30 +1,28 @@
-# Simple controller that says hello, user
+noflo = require "noflo"
 
-outSocket = null
-dataSocket = null
+class HelloController extends noflo.Component
+    description: "Simple controller that says hello, user"
 
-inRequest = null
-options = null
+    constructor: ->
+        @request = null
 
-exports.getInputs = ->
-    in: (socket) ->
-        socket.on "data", (request) ->
-            inRequest = request
-            options =
+        @inPorts =
+            in: new noflo.Port()
+        @outPorts =
+            out: new noflo.Port()
+            data: new noflo.Port()
+
+        @inPorts.in.on "data", (data) =>
+            @request = request
+        @inPorts.in.on "disconnect", (data) =>
+            @outPorts.out.send @request
+            @outPorts.out.disconnect()
+
+            @outPorts.data.send
                 locals:
-                    string: "Hello, #{request.req.remoteUser}"
+                    string: "Hello, #{@request.req.remoteUser}"
+            @request = null
+            @outPorts.data.disconnect()
 
-            dataSocket.connect()
-            outSocket.connect()
-
-exports.getOutputs = ->
-    out: (socket) ->
-        outSocket = socket
-        socket.on "connect", ->
-            socket.send inRequest
-            socket.disconnect()
-    data: (socket) ->
-        dataSocket = socket
-        socket.on "connect", ->
-            socket.send options
-            socket.disconnect()
+exports.getComponent = ->
+    new HelloController()
