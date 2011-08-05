@@ -31,7 +31,8 @@ class Port extends events.EventEmitter
 
     send: (data) ->
         return @socket.send data if @isConnected()
-        @socket.on "connect", =>
+
+        @socket.once "connect", =>
             @socket.send data
         @socket.connect()
 
