@@ -15,7 +15,7 @@ It also fits well in Alan Kay's [original idea of object-oriented programming](h
 
 NoFlo has been written in [CoffeeScript](http://jashkenas.github.com/coffee-script) for simplicity. The system is heavily inspired by [J. Paul Morrison's](http://www.jpaulmorrison.com/) book [Flow-Based Programming](http://www.jpaulmorrison.com/fbp/#More). 
 
-For now NoFlo should be treated as an interesting proof-of-concept. If I have time, more functionality will be added and the system made actually usable for real-world business applications.
+Currently NoFlo is still in quite early stages. It has already been used in some real-world applications, but the small number of available components still limits the utility of the system.
 
 ## Requirements and installing
 
@@ -46,11 +46,13 @@ Then just point your browser to [http://localhost:8003/](http://localhost:8003/)
 * Outport: outbound port of a component
 * Process: an instance of a component that is running as part of a graph
 
-## Structure of a component
+## Components
 
 A component is the main ingredient of flow-based programming. Component is a CommonJS module providing a set of input and output port handlers. These ports are used for connecting components to each other.
 
 NoFlo processes (the boxes of a flow graph) are instances of a component, with the graph controlling connections between ports of components.
+
+### Structure of a component
 
 Functionality a component provides:
 
@@ -87,7 +89,25 @@ Minimal component written in CoffeeScript would look like the following:
 
 This example component register two ports: _in_ and _out_. When it receives data in the _in_ port, it opens the _out_ port and sends the same data there. When the _in_ connection closes, it will also close the _out_ connection. So basically this component would be a simple repeater.
 
-## Ports and events
+You can find more examples of components in the `components` folder shipping with NoFlo.
+
+### Some words on component design
+
+Components should aim to be reusable, to do one thing and do it well. This is why often it is a good idea to split functionality traditionally done in one function to multiple components. For example, counting lines in a text file could happen in the following way:
+
+* Filename is sent to a _Read File_ component
+* _Read File_ reads it and sends the contents onwards to _Split String_ component
+* _Split String_ splits the contents by newlines, and sends each line separately to a _Count_ component
+* _Count_ counts the number of packets it received, and sends the total to a _Output_ component
+* _Output_ displays the number
+
+This way the whole logic of the application is in the graph, in how the components are wired together. And each of the components is easily reusable for other purposes.
+
+If a component requires configuration, the good approach is to set sensible defaults in the component, and to allow them to be overridden via an input port. This method of configuration allows the settings to be kept in the graph itself, or for example to be read from a file or database, depending on the needs of the application.
+
+The components should not depend on a particular global state, either, but instead attempt to keep the input and output ports their sole interface to the external world. There may be some exceptions, like a component that listens for HTTP requests or Redis pub-sub messages, but even in these cases the server, or subscription should be set up by the component itself.
+
+### Ports and events
 
 Being a flow-based programming environment, the main action in NoFlo happens through ports and their connections. There are five events that can be associated with ports:
 
@@ -103,7 +123,7 @@ When a port has no connections, meaning that it was initialized without a connec
 
 ## The NoFlo shell
 
-NoFlo comes with a command shell that you can use to load, run and manipulate NoFlo graphs. For example, the _line count example_ that ships with NoFlo could be built with the shell in the following way:
+NoFlo comes with a command shell that you can use to load, run and manipulate NoFlo graphs. For example, the _line count_ graph that was explained in _Component design_ could be built with the shell in the following way:
 
     $ noflo
     NoFlo>> new countlines
@@ -127,6 +147,16 @@ NoFlo comes with a command shell that you can use to load, run and manipulate No
     countlines>> send read source somefile
 
 You can run _help_ to see all available NoFlo shell commands, and _quit_ to get out of the shell.
+
+## The web-based NoFlo monitor
+
+In addition to the shell, NoFlo also comes with a web interface that allows loaded graphs to be monitored. To start it, load a graph into the NoFlo shell, and run:
+
+    >> startserver 8080
+
+This will start the NoFlo monitor on port `8080` of your system, so browsers can connect to it with `http://localhost:8080`. You can also use another port number.
+
+At the moment the monitor only displays the graph, showing the processes and connections between them. Real-time statistics of data flow, and support for visual graph editing are planned.
 
 ## NoFlo graph file format
 
@@ -186,7 +216,6 @@ To run the unit tests you need [nodeunit](https://github.com/caolan/nodeunit). R
 
 ### Some ideas
 
-* Browser-based visual programming environment for viewing and editing NoFlo graphs
 * Real-time status of the NoFlo graph via socket.io, see where data is flowing
 * [Web Workers](https://github.com/pgriess/node-webworker) based multiprocess runner
 * Sockets-based multi-computer runner
