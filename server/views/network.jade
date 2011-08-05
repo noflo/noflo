@@ -2,8 +2,8 @@
 html
     head
         title #{network.graph.name}
-        script(type="text/javascript", src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.0/jquery.min.js")
-        script(type="text/javascript", src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.13/jquery-ui.min.js")
+        script(type="text/javascript", src="/js/jquery-1.5.1.min.js")
+        script(type="text/javascript", src="/js/jquery-ui-1.8.9.min.js")
         script(type="text/javascript", src="/js/jquery.jsPlumb-1.3.1-all-min.js")
         script(type="text/javascript", src="/js/jquery.countdown.min.js")
         script(type="text/javascript", src="/js/network.js")
@@ -16,5 +16,5 @@ html
             #uptime
         div(id="network", about=network.id)
             - each node in network.graph.nodes
-                div(id=node.id)
+                div(id=node.cleanId)
                     p #{node.component}

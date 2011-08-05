@@ -10,6 +10,7 @@ div.component {
     width: 100px;
     height: 60px;
     position: absolute;
+    overflow: hidden;
     color: #ffffff;
     border-radius: 2px;
     z-index: 100;

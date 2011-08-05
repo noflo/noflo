@@ -33,6 +33,7 @@ exports.createServer = (port, success) ->
 
         for node in req.network.graph.nodes
             process = req.network.getNode node.id
+            node.cleanId = node.id.replace " ", "_"
             node.inPorts = []
             node.outPorts = []
             for name, port of process.component.inPorts
@@ -49,6 +50,11 @@ exports.createServer = (port, success) ->
                 node.outPorts.push
                     name: name
                     type: type
+
+        for edge in req.network.graph.edges
+            edge.to.cleanNode = edge.to.node.replace " ", "_"
+            if edge.from.node
+                edge.from.cleanNode = edge.from.node.replace " ", "_"
 
         req.network.id = id
         next()

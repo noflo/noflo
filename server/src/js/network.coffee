@@ -46,7 +46,7 @@ jsPlumb.bind "ready", ->
             significant: 2
 
         for node in data.nodes
-            domNode = jQuery("##{node.id}")
+            domNode = jQuery("##{node.cleanId}")
             domNode.addClass "component"
             
             position = getNodePosition node
@@ -81,7 +81,7 @@ jsPlumb.bind "ready", ->
                     anchor: outAnchors[index]
                 , endPoints.obj
 
-            plumbNodes[node.id] = node
+            plumbNodes[node.cleanId] = node
 
             jsPlumb.draggable domNode
 
@@ -89,8 +89,8 @@ jsPlumb.bind "ready", ->
             unless edge.from.node
                 continue
             jsPlumb.connect
-                source: plumbNodes[edge.from.node].outEndpoints[edge.from.port]
-                target: plumbNodes[edge.to.node].inEndpoints[edge.to.port]
+                source: plumbNodes[edge.from.cleanNode].outEndpoints[edge.from.port]
+                target: plumbNodes[edge.to.cleanNode].inEndpoints[edge.to.port]
                 overlays: [
                     [ "Label",
                         label: edge.from.port
