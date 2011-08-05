@@ -1,10 +1,19 @@
-# This component receives a HTTP request (req, res, next) combination on
-# on input, and runs res.end(), sending the response to the user
+noflo = require "noflo"
 
-exports.getInputs = ->
-    in: (socket) ->
-        sendRequest = null
-        socket.on "data", (request) ->
-            sendRequest = request
-        socket.on "disconnect", (request) ->
-            sendRequest.res.end()
+class SendResponse extends noflo.Component
+    description: "This component receives a HTTP request (req, res, next) combination on on input, and runs res.end(), sending the response to the user"
+
+    constructor: ->
+        @request = null
+
+        @inPorts =
+            in: new noflo.Port()
+
+        @inPorts.in.on "data", (request) =>
+            @request = request
+        @inPorts.in.on "disconnect", =>
+            @request.res.end()
+            @request = null
+
+exports.getComponent = ->
+    new SendResponse()

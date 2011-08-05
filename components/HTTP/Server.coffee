@@ -1,26 +1,24 @@
-# This component receives a port and host, and initializes a HTTP server
-# for that combination. It sends out a request/response pair for each HTTP
-# request it receives
-
+noflo = require "noflo"
 http = require "connect"
-reqSocket = null
 
-exports.getInputs = ->
-    # Listen receives a packet containing a port to listen to
-    listen: (socket) ->
-        socket.on "data", (data) ->
-            reqSocket.on "connect", ->
-                server = http.createServer (req, res) ->
-                    reqSocket.send
-                        req: req
-                        res: res
-                server.listen data
+class Server extends noflo.Component
+    description: "This component receives a port and host, and initializes a HTTP server for that combination. It sends out a request/response pair for each HTTP request it receives"
 
-                server.on "close", ->
-                    reqSocket.disconnect()
+    constructor: ->
+        @server = null
 
-            reqSocket.connect()
+        @inPorts =
+            listen: new noflo.Port()
+        @outPorts =
+            request: new noflo.Port()
 
-exports.getOutputs = ->
-    # Request sends an object containing req, res and next objects
-    request: (socket) -> reqSocket = socket
+        @inPorts.listen.on "data", (data) =>
+            @server = http.createServer (req, res) =>
+                @outPorts.request.send
+                    req: req
+                    res: res
+                @outPorts.request.disconnect()
+            @server.listen data
+
+exports.getComponent = ->
+    new Server()

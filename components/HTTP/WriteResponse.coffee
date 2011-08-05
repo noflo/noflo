@@ -1,31 +1,38 @@
-# This component receives a request and a string on the input ports, writes
-# that string to the request's response and forwards the request
+noflo = require "noflo"
 
-string = null
-inRequest = null
-outSocket = null
+class WriteResponse extends noflo.Component
+    description: "This component receives a request and a string on the input ports, writes that string to the request's response and forwards the request"
 
-exports.getInputs = ->
-    string: (socket) ->
-        localString = ""
-        socket.on "data", (data) ->
-            localString += data
-        socket.on "disconnect", ->
-            string = localString
-            if inRequest
-                outSocket.connect()
+    constructor: ->
+        @string = ""
+        @request = null
 
-    in: (socket) ->
-        socket.on "data", (request) ->
-            inRequest = request
-        socket.on "disconnect", ->
-            if string
-                inRequest.res.write string
-                outSocket.connect()
+        @inPorts =
+            string: new noflo.Port()
+            in: new noflo.Port()
 
-exports.getOutputs = ->
-    out: (socket) ->
-        outSocket = socket
-        socket.on "connect", ->
-            socket.send inRequest
-            socket.disconnect()
+        @outPorts =
+            out: new noflo.Port()
+
+        @inPorts.string.on "connect", =>
+            @string = ""
+        @inPorts.string.on "data", (data) =>
+            @string += data
+        @inPorts.string.on "disconnect", =>
+            @outPorts.out.connect() if @request
+
+        @inPorts.in.on "data", (data) =>
+            @request = data
+        @inPorts.in.on "disconnect", =>
+            @outPorts.out.connect() if @string
+
+        @outPorts.out.on "connect", =>
+            console.log "Writing '#{@string}'"
+            @request.res.write @string
+            @outPorts.out.send @request
+            @request = null
+            @string = null
+            @outPorts.out.disconnect()
+
+exports.getComponent = ->
+    new WriteResponse()

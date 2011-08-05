@@ -1,37 +1,44 @@
-# This component receives a templating engine name, a string containing the
-# template, and variables for the template. Then it runs the chosen template
-# engine and sends resulting templated content to the output port
+noflo = require "noflo"
 
-templateEngine = "jade"
-inVariables = null
-inTemplate = null
-outSocket = null
+class Template extends noflo.Component
+    description: "This component receives a templating engine name, a string containing the template, and variables for the template. Then it runs the chosen template engine and sends resulting templated content to the output port"
 
-exports.getInputs = ->
-    engine: (socket) ->
-        socket.on "data", (data) ->
-            templateEngine = data
-    options: (socket) ->
-        socket.on "data", (data) ->
-            inVariables = data
-        socket.on "connect", ->
-            inVariables = null
-        socket.on "disconnect", ->
-            if inTemplate
-                outSocket.connect()
-    template: (socket) ->
-        socket.on "data", (data) ->
-           inTemplate = data
-        socket.on "connect", ->
-            inTemplate = null
-        socket.on "disconnect", ->
-            if inVariables
-               outSocket.connect() 
+    constructor: ->
+        @engine = "jade"
+        @variables = null
+        @template = null
 
-exports.getOutputs = ->
-    out: (socket) ->
-        outSocket = socket
-        socket.on "connect", ->
-            templating = require templateEngine
-            socket.send templating.render inTemplate, inVariables
-            socket.disconnect()
+        @inPorts =
+            engine: new noflo.Port()
+            options: new noflo.Port()
+            template: new noflo.Port()
+
+        @outPorts =
+            out: new noflo.Port()
+
+        @inPorts.engine.on "data", (data) =>
+            @engine = data
+
+        @inPorts.options.on "connect", =>
+            @variables = null
+        @inPorts.options.on "data", (data) =>
+            @variables = data
+        @inPorts.options.on "disconnect", =>
+            @outPorts.out.connect() if @template
+
+        @inPorts.template.on "connect", =>
+            @template = null
+        @inPorts.template.on "data", (data) =>
+            @template = data
+        @inPorts.template.on "disconnect", =>
+            @outPorts.out.connect() if @variables
+
+        @outPorts.out.on "connect", =>
+            templating = require @engine
+            @outPorts.out.send templating.render @template, @variables
+            @variables = null
+            @template = null
+            @outPorts.out.disconnect()
+
+exports.getComponent = ->
+    new Template()

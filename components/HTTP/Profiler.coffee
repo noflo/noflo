@@ -1,21 +1,19 @@
-# This component receives a HTTP request (req, res) combination on
-# on input, and runs the connect.profiler middleware for that
-
+noflo = require "noflo"
 connect = require "connect"
 
-outSocket = null
-inRequest = null
+class Profiler extends noflo.Component
+    description: "This component receives a HTTP request (req, res) combination on on input, and runs the connect.profiler middleware for that"
 
-exports.getInputs = ->
-    in: (socket) ->
-        socket.on "data", (request) ->
-            inRequest = request
-            connect.profiler() request.req, request.res, () ->
-                outSocket.connect()
+    constructor: ->
+        @inPorts =
+            in: new noflo.Port()
+        @outPorts =
+            out: new noflo.Port()
 
-exports.getOutputs = ->
-    out: (socket) ->
-        outSocket = socket
-        socket.on "connect", ->
-            socket.send inRequest
-            socket.disconnect()
+        @inPorts.in.on "data", (request) =>
+            connect.profiler() request.req, request.res, =>
+                @outPorts.out.send request
+                @outPorts.out.disconnect()
+
+exports.getComponent = ->
+    new Profiler()

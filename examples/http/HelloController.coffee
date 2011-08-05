@@ -13,7 +13,7 @@ class HelloController extends noflo.Component
             data: new noflo.Port()
 
         @inPorts.in.on "data", (data) =>
-            @request = request
+            @request = data
         @inPorts.in.on "disconnect", (data) =>
             @outPorts.out.send @request
             @outPorts.out.disconnect()
