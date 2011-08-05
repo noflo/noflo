@@ -76,11 +76,18 @@ class NoFlo
                 process: process
                 port: port
 
+            unless process.component.inPorts and process.component.inPorts[port]
+                throw new Error "No port '#{port}' defined in process #{process.id}"
+
             return process.component.inPorts[port].attach socket
 
         socket.from =
             process: process
             port: port
+
+        unless process.component.outPorts and process.component.outPorts[port]
+            throw new Error "No port '#{port}' defined in process #{process.id}"
+
         process.component.outPorts[port].attach socket
 
     addEdge: (edge) ->
