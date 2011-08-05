@@ -27,7 +27,6 @@ class WriteResponse extends noflo.Component
             @outPorts.out.connect() if @string
 
         @outPorts.out.on "connect", =>
-            console.log "Writing '#{@string}'"
             @request.res.write @string
             @outPorts.out.send @request
             @request = null

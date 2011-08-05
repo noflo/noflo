@@ -8,6 +8,7 @@ class SendResponse extends noflo.Component
 
         @inPorts =
             in: new noflo.Port()
+        @outPorts = {}
 
         @inPorts.in.on "data", (request) =>
             @request = request
