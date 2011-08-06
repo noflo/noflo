@@ -25,13 +25,25 @@ NoFlo requires a reasonably recent version of [Node.js](http://nodejs.org/), and
 
 NoFlo is available from [GitHub](https://github.com/bergie/noflo) under the MIT license.
 
-## Running the examples
+## Using NoFlo
 
-File line count:
+There are two ways to use NoFlo:
+
+* _Independent_: Building the whole control logic of your software as a NoFlo graph, and running it with the `noflo` tool
+* _Embedded_: Using NoFlo as a library and calling some NoFlo graphs whenever your software needs workflows
+
+### Running the examples
+
+File line count using _embedded_ NoFlo:
 
     $ coffee ./examples/linecount/count.coffee somefile.txt
 
-Simple "Hello, world" web service with Basic authentication:
+File line count as an _individual_ NoFlo application:
+
+    $ noflo
+    NoFlo>> load examples/linecount/count 
+
+Simple "Hello, world" web service with Basic authentication using _embedded_ NoFlo:
 
     $ coffee ./examples/http/hello.coffee
 

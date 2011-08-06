@@ -1,0 +1,68 @@
+{
+    "properties": {
+        "name": "Count lines in a file"
+    },
+    "processes": {
+        "ReadFile": {
+            "component": "ReadFile"
+        },
+        "SplitbyLines": {
+            "component": "SplitStr"
+        },
+        "CountLines": {
+            "component": "Counter"
+        },
+        "Display": {
+            "component": "Output"
+        }
+    },
+    "connections": [
+        {
+            "data": "package.json",
+            "tgt": {
+                "process": "ReadFile",
+                "port": "source"
+            }
+        },
+        {
+            "src": {
+                "process": "ReadFile",
+                "port": "out"
+            },
+            "tgt": {
+                "process": "SplitbyLines",
+                "port": "in"
+            }
+        },
+        {
+            "src": {
+                "process": "ReadFile",
+                "port": "error"
+            },
+            "tgt": {
+                "process": "Display",
+                "port": "in"
+            }
+        },
+        {
+            "src": {
+                "process": "SplitbyLines",
+                "port": "out"
+            },
+            "tgt": {
+                "process": "CountLines",
+                "port": "in"
+            }
+        },
+        {
+            "src": {
+                "process": "CountLines",
+                "port": "count"
+            },
+            "tgt": {
+                "process": "Display",
+                "port": "in"
+            }
+        }
+    ]
+}
