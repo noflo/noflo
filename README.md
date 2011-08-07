@@ -32,6 +32,17 @@ There are two ways to use NoFlo:
 * _Independent_: Building the whole control logic of your software as a NoFlo graph, and running it with the `noflo` tool
 * _Embedded_: Using NoFlo as a library and calling some NoFlo graphs whenever your software needs workflows
 
+When you create a NoFlo graph, it doesn't do anything by itself. It only loads the components of the graph and sets up the connections between them. Then it is up to the components to actually start sending messages to their outports, or reacting to messages they receive on their inports.
+
+Since most components require some input before they act, the usual way to make a NoFlo graph run is to send it some _initial information packets_, or IIPs. Examples of this would include sending a port number that a web server could listen to the web server component, or sending a file name to a file reader.
+
+This activation model provides many possibilities:
+
+* Starting the graph based on user interaction (shell command, clicking a button)
+* Starting the graph based on a received signal (Redis pub/sub, D-Bus signal, WebHook, email)
+* Starting the graph at a given time or interval (running a graph on the first of every month, or five minutes from now)
+* Starting the graph based on context (when arriving to a physical location, when user goes to a given web site)
+
 ### Running the examples
 
 File line count using _embedded_ NoFlo:
