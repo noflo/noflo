@@ -149,7 +149,7 @@ exports.createGraph = (name) ->
     new Graph name
 
 exports.loadFile = (file, success) ->
-    fs.readFile "#{file}.json", "utf-8", (err, data) ->
+    fs.readFile file, "utf-8", (err, data) ->
         throw err if err
 
         definition = JSON.parse data

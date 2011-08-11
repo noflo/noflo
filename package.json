@@ -3,6 +3,9 @@
     "description":  "Flow-Based Programming environment for Node.js",
     "keywords":     ["fbp", "workflow", "flow"],
     "author":       "Henri Bergius",
+    "contributors": [
+        "Jerry Jalava"
+    ],
     "version":      "0.0.1",
     "licenses":     [{
         "type":         "MIT",
@@ -13,7 +16,8 @@
     },
     "dependencies": {
         "coffee-script": ">=1.1.1",
-        "shell": ">=0.0.9"
+        "shell": ">=0.0.9",
+        "cli": ">=0.3.7"
     },
     "directories":  {
         "lib":          "./lib",
