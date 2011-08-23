@@ -9,7 +9,6 @@ class Port extends events.EventEmitter
     attach: (socket) ->
         throw new Error "#{@name}: Socket already attached #{@socket.getId()} - #{socket.getId()}" if @socket
         @socket = socket
-        @from = socket.from
 
         @attachSocket socket
 

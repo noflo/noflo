@@ -27,8 +27,6 @@ class NoFlo
             @addEdge edge
         @graph.on "removeEdge", (edge) =>
             @removeEdge edge
-        @graph.on "addInitial", (initializer) =>
-            @addInitial initializer
 
     uptime: -> new Date() - @startupDate
 
@@ -77,7 +75,7 @@ class NoFlo
                 port: port
 
             unless process.component.inPorts and process.component.inPorts[port]
-                throw new Error "No port '#{port}' defined in process #{process.id}"
+                throw new Error "No inport '#{port}' defined in process #{process.id}"
 
             return process.component.inPorts[port].attach socket
 
@@ -86,11 +84,13 @@ class NoFlo
             port: port
 
         unless process.component.outPorts and process.component.outPorts[port]
-            throw new Error "No port '#{port}' defined in process #{process.id}"
+            throw new Error "No outport '#{port}' defined in process #{process.id}"
 
         process.component.outPorts[port].attach socket
 
     addEdge: (edge) ->
+        return @addInitial(edge) unless edge.from.node
+
         socket = internalSocket.createSocket()
         logSocket = (message) ->
             console.error "#{edge.from.node}:#{socket.from.port} -> #{edge.to.node}:#{socket.to.port} #{message}"
@@ -117,11 +117,11 @@ class NoFlo
         for connection,index in @connections
             if edge.to.node is connection.to.process.id and edge.to.port is connection.to.port
                 connection.to.process.component.inPorts[connection.to.port].detach connection
+                @connections.splice index, 1
             if edge.from.node
                 if connection.from and edge.from.node is connection.from.process.id and edge.from.port is connection.from.port
                     connection.from.process.component.inPorts[connection.from.port].detach connection
-                    
-            @connections.splice index, 1
+                    @connections.splice index, 1
 
     addInitial: (initializer) ->
         socket = internalSocket.createSocket()

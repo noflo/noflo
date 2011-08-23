@@ -77,7 +77,7 @@ class Graph extends events.EventEmitter
                 node: node
                 port: port
         @initializers.push initializer
-        @emit "addInitial", initializer
+        @emit "addEdge", initializer
 
     toDOT: ->
         cleanID = (id) ->

@@ -22,8 +22,6 @@ class ArrayPort extends port.Port
 
         return @sockets[socketId].send data if @isConnected socketId
 
-        console.log @sockets
-
         @sockets[socketId].on "connect", =>
             @sockets[socketId].send data
         @sockets[socketId].connect()
