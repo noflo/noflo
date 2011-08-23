@@ -17,7 +17,9 @@
     "dependencies": {
         "coffee-script": ">=1.1.1",
         "shell": ">=0.0.9",
-        "cli": ">=0.3.7"
+        "cli": ">=0.3.7",
+        "daemon": ">=0.3.0",
+        "glob": ">=2.0.7"
     },
     "directories":  {
         "lib":          "./lib",
