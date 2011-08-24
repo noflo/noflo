@@ -1,4 +1,6 @@
 .node_shell
+node_modules
+bin/*.js
 lib/*.js
 components/*.js
 components/HTTP/*.js

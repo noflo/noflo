@@ -1,12 +1,12 @@
 exec = require('child_process').exec
 task 'build', ->
-  exec 'coffee -o lib -c lib/*.coffee', (err) ->
+  exec 'coffee -o lib -c src/lib/*.coffee', (err) ->
     console.log err if err
-  exec 'coffee -o components -c components/*.coffee', (err) ->
+  exec 'coffee -o components -c src/components/*.coffee', (err) ->
     console.log err if err
-  exec 'coffee -o components/HTTP -c components/HTTP/*.coffee', (err) ->
+  exec 'coffee -o components/HTTP -c src/components/HTTP/*.coffee', (err) ->
     console.log err if err
-  exec 'coffee -o bin -c bin/noflo.coffee', (err) ->
+  exec 'coffee -o bin -c src/bin/*.coffee', (err) ->
     console.log err if err
 
 task 'test', -> 
