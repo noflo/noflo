@@ -6,6 +6,8 @@ task 'build', ->
     console.log err if err
   exec 'coffee -o components/HTTP -c components/HTTP/*.coffee', (err) ->
     console.log err if err
+  exec 'coffee -o bin -c bin/noflo.coffee', (err) ->
+    console.log err if err
 
 task 'test', -> 
   exec 'nodeunit test', (err) ->
