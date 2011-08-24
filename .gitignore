@@ -1,1 +1,5 @@
 .node_shell
+lib/*.js
+components/*.js
+components/HTTP/*.js
+server/static/js/network.js
