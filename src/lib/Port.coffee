@@ -28,16 +28,16 @@ class Port extends events.EventEmitter
         @from = null
         @socket = null
 
-    send: (data) ->
+    send: (data, id) ->
         return @socket.send data if @isConnected()
 
         @socket.once "connect", =>
             @socket.send data
-        @socket.connect()
+        @socket.connect id
 
-    connect: ->
+    connect: (id) ->
         throw new Error "No connection available" unless @socket
-        @socket.connect()
+        @socket.connect id
 
     disconnect: ->
         return unless @socket
