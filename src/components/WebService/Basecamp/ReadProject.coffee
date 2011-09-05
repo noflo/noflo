@@ -51,10 +51,11 @@ class ReadProject extends noflo.Component
 
     parseProject: (data) ->
         target = @outPorts.out
+        id = "https://#{@hostname}/projects/"
         parser = new xml2js.Parser
         parser.on "end", (projects) ->
             projects.project.forEach (project) ->
-                target.send project
+                target.send project, id
         parser.parseString data
 
 exports.getComponent = ->
