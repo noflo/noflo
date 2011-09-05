@@ -1,7 +1,7 @@
 noflo = require "noflo"
 base = require "./BasecampComponent"
 
-class ReadProject extends base.BasecampComponent
+class ReadProjects extends base.BasecampComponent
     constructor: ->
         do @basePortSetup
         @outPorts =
@@ -24,4 +24,4 @@ class ReadProject extends base.BasecampComponent
                 target.send project, id
 
 exports.getComponent = ->
-    new ReadProject()
+    new ReadProjects
