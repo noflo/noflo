@@ -10,7 +10,6 @@ class ConvertToJson extends noflo.Component
             out: new noflo.Port()
 
         @inPorts.in.on "connect", (socket) =>
-            console.log socket
             @id = socket.id
         @inPorts.in.on "data", (data) =>
             @outPorts.out.send @convert data
