@@ -16,7 +16,12 @@ class ArrayPort extends port.Port
 
         @sockets.splice @sockets.indexOf(socket), 1
 
-    send: (data, id, socketId = 0) ->
+    send: (data, id, socketId = null) ->
+        if socketId is null
+            @sockets.forEach (socket, index) =>
+                @send data, id, index
+            return
+
         unless @sockets[socketId]
             throw new Error "No socket '#{socketId}' available"
 
@@ -26,11 +31,23 @@ class ArrayPort extends port.Port
             @sockets[socketId].send data
         @sockets[socketId].connect id
 
-    disconnect: (socketId = 0) ->
+    disconnect: (socketId = null) ->
+        if socketId is null
+            @sockets.forEach (socket) ->
+                socket.disconnect()
+            return     
+
         return unless @sockets[socketId]
         @sockets[socketId].disconnect()
 
-    isConnected: (socketId = 0) ->
+    isConnected: (socketId = null) ->
+        if socketId is null
+            connected = true
+            @sockets.forEach (socket) =>
+                unless socket.isConnected()
+                    connected = false
+            return connected
+
         unless @sockets[socketId]
             return false
         @sockets[socketId].isConnected()
