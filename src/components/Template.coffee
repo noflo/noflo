@@ -35,7 +35,8 @@ class Template extends noflo.Component
 
         @outPorts.out.on "connect", =>
             templating = require @engine
-            @outPorts.out.send templating.render @template, @variables
+            fn = templating.compile @template, @variables
+            @outPorts.out.send fn @variables.locals
             @variables = null
             @outPorts.out.disconnect()
 
