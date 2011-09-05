@@ -41,8 +41,6 @@ class GetObjectKey extends noflo.Component
         throw "Key not defined" unless @key
         throw "Data is not an object" unless typeof data is "object"
 
-        console.log data[@key]
-
         @outPorts.out.send data[@key]
 
 exports.getComponent = ->
