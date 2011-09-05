@@ -130,6 +130,12 @@ If a component requires configuration, the good approach is to set sensible defa
 
 The components should not depend on a particular global state, either, but instead attempt to keep the input and output ports their sole interface to the external world. There may be some exceptions, like a component that listens for HTTP requests or Redis pub-sub messages, but even in these cases the server, or subscription should be set up by the component itself.
 
+When discussing how to solve the unnecessary complexity of software, _Out of the Tar Pit_ promotes an approach quite similar to the one discussed here:
+
+> The first thing that we’re doing is to advocate separating out all complexity of any kind from the pure logic of the system (which - having nothing to do with either state or control - we’re not really considering part of the complexity).
+
+Done this way, components represent the pure logic, and the control flow and state of the application is managed separately of them in the graph. This separation makes the system a lot simpler.
+
 ### Ports and events
 
 Being a flow-based programming environment, the main action in NoFlo happens through ports and their connections. There are five events that can be associated with ports:
