@@ -1,5 +1,6 @@
 noflo = require "noflo"
 http = require "connect"
+uuid = require "node-uuid"
 
 class Server extends noflo.Component
     description: "This component receives a port and host, and initializes a HTTP server for that combination. It sends out a request/response pair for each HTTP request it receives"
@@ -20,9 +21,11 @@ class Server extends noflo.Component
             @server.listen @serverPort
 
     sendRequest: (req, res) =>
+        req.id = do uuid
         @outPorts.request.send
             req: req
             res: res
+        , req.id
         @outPorts.request.disconnect()
 
 exports.getComponent = ->
