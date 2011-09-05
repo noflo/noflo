@@ -20,6 +20,7 @@ class ConvertToJson extends noflo.Component
 
     convert: (data) ->
         return @convertTaskList data if data['completed-count'] and data['uncompleted-count']
+        return @convertTask data if data['completed'] and data['todo-list-id']
 
         json = 
             "@type": "prj:Project"
@@ -35,6 +36,19 @@ class ConvertToJson extends noflo.Component
             "@subject": "#{@id}todo_lists/#{data.id['#']}"
             "prj:name": data.name
             "prj:taskListOf": "#{@id}projects/#{data['project-id']['#']}"
+
+    convertTask: (data) ->
+        json =
+            "@type": "prj:Task"
+            "@subject": "#{@id}todo_items/#{data.id['#']}"
+            "prj:name": data.content
+            "prj:taskOf": "#{@id}todo_lists/#{data['todo-list-id']['#']}"
+            "dc:created": data['created-at']['#']
+
+        if data['completed-on']
+            json['prj:finishDate'] = data['completed-on']['#']
+
+        json
 
 exports.getComponent = ->
     new ConvertToJson
