@@ -18,8 +18,6 @@ cli.main (args, options) ->
     if options.interactive
         process.argv = [process.argv[0], process.argv[1]]
         shell = require "#{nofloRoot}/lib/shell" 
-
-    cli.args.shift()
     return unless cli.args.length
 
     for arg in cli.args
