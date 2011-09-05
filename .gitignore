@@ -2,6 +2,5 @@
 node_modules
 bin/*.js
 lib/*.js
-components/*.js
-components/HTTP/*.js
+components/*
 server/static/js/network.js
