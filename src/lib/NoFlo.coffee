@@ -40,6 +40,7 @@ class NoFlo
                 implementation = require "../components/#{component}"
             catch localError
                 # Throw the original error instead
+                error.message = "#{localError.message} (#{error.message})"
                 throw error
         implementation.getComponent()
 
@@ -95,7 +96,7 @@ class NoFlo
         logSocket = (message) ->
             console.error "#{edge.from.node}:#{socket.from.port} -> #{edge.to.node}:#{socket.to.port} #{message}"
         socket.on "connect", ->
-            logSocket "CONN"
+            logSocket "CONN #{socket.id}"
         socket.on "disconnect", ->
             logSocket "DISC"
         socket.on "data", (data) ->
