@@ -19,7 +19,11 @@ Currently NoFlo is still in quite early stages. It has already been used in some
 
 ## Requirements and installing
 
-NoFlo requires a reasonably recent version of [Node.js](http://nodejs.org/), and some [npm](http://npmjs.org/) packages. You can install everything needed by a simple:
+NoFlo requires a reasonably recent version of [Node.js](http://nodejs.org/), and some [npm](http://npmjs.org/) packages. Ensure you have the `coffee-script` package installed (`coffee` command should be available on command line) and NoFlo checked out from Git. Build NoFlo with:
+
+    $ cake build
+
+Then you can install everything needed by a simple:
 
     $ npm link
 
