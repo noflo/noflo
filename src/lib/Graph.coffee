@@ -1,5 +1,6 @@
 fs = require "fs"
 events = require "events"
+fbp = require "./Fbp"
 
 class Graph extends events.EventEmitter
     name: ""
@@ -148,21 +149,28 @@ exports.Graph = Graph
 exports.createGraph = (name) ->
     new Graph name
 
+exports.loadJSON = (definition, success) ->
+    graph = new Graph definition.properties.name
+
+    for id, def of definition.processes
+        graph.addNode id, def.component
+
+    for conn in definition.connections
+        if conn.data
+            graph.addInitial conn.data, conn.tgt.process, conn.tgt.port
+            continue
+        graph.addEdge conn.src.process, conn.src.port, conn.tgt.process, conn.tgt.port
+
+    success graph
+
 exports.loadFile = (file, success) ->
     fs.readFile file, "utf-8", (err, data) ->
         throw err if err
 
         definition = JSON.parse data
+        exports.loadJSON definition, success
 
-        graph = new Graph definition.properties.name
-
-        for id, def of definition.processes
-            graph.addNode id, def.component
-
-        for conn in definition.connections
-            if conn.data
-                graph.addInitial conn.data, conn.tgt.process, conn.tgt.port
-                continue
-            graph.addEdge conn.src.process, conn.src.port, conn.tgt.process, conn.tgt.port
-
-        success graph
+exports.loadFbp = (fbpData, success) ->
+    parser = new fbp.Fbp
+    definition = parser.parse fbpData
+    exports.loadJSON definition, success
