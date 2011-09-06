@@ -21,7 +21,7 @@ cli.main (args, options) ->
     return unless cli.args.length
 
     for arg in cli.args
-        if arg.indexOf(".json") is -1
+        if arg.indexOf(".json") is -1 and arg.indexOf(".fbp") is -1
             console.error "#{arg} is not a NoFlo graph file, skipping"
             continue
         noflo.loadFile "#{nofloRoot}/#{arg}", (network) ->

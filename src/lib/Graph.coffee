@@ -167,11 +167,10 @@ exports.loadFile = (file, success) ->
     fs.readFile file, "utf-8", (err, data) ->
         throw err if err
 
-        definition = JSON.parse data
-
         if file.split('.').pop() is 'fbp'
-            return exports.loadFBP definition, success
+            return exports.loadFBP data, success
 
+        definition = JSON.parse data
         exports.loadJSON definition, success
 
 exports.loadFBP = (fbpData, success) ->

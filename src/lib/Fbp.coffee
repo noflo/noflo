@@ -49,7 +49,7 @@ class Fbp
             data: initial[1]
 
         @currentEdge =
-            data: @currentNode
+            data: @currentNode.data
             tgt: {}
         delete @currentEdge.src if @currentEdge.src
 
@@ -71,8 +71,8 @@ class Fbp
     handlePort: (port) ->
         if @currentEdge.data or @currentEdge.src.port
             @currentEdge.tgt =
-                port: port[1]
+                port: port[1].toLowerCase()
             return
-        @currentEdge.src.port = port[1]
+        @currentEdge.src.port = port[1].toLowerCase()
 
 exports.Fbp = Fbp
