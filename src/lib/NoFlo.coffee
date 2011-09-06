@@ -89,18 +89,25 @@ class NoFlo
 
         process.component.outPorts[port].attach socket
 
+    addDebug: (socket) ->
+        logSocket = (message) ->
+            console.error "#{socket.getId()} #{message}"
+        socket.on "connect", ->
+            logSocket "CONN"
+        socket.on "begingroup", (group) ->
+            logSocket "< #{group}"
+        socket.on "disconnect", ->
+            logSocket "DISC"
+        socket.on "endgroup", (group) ->
+            logSocket "> #{group}"
+        socket.on "data", (data) ->
+            logSocket "DATA"
+
     addEdge: (edge) ->
         return @addInitial(edge) unless edge.from.node
 
         socket = internalSocket.createSocket()
-        logSocket = (message) ->
-            console.error "#{edge.from.node}:#{socket.from.port} -> #{edge.to.node}:#{socket.to.port} #{message}"
-        socket.on "connect", ->
-            logSocket "CONN #{socket.id}"
-        socket.on "disconnect", ->
-            logSocket "DISC"
-        socket.on "data", (data) ->
-            logSocket "DATA"
+        @addDebug socket if @debug
 
         from = @getNode edge.from.node
         unless from
@@ -126,14 +133,8 @@ class NoFlo
 
     addInitial: (initializer) ->
         socket = internalSocket.createSocket()
-        logSocket = (message) ->
-            console.error "DATA -> #{socket.to.process.id}:#{socket.to.port} #{message}"
-        socket.on "connect", ->
-            logSocket "CONN"
-        socket.on "disconnect", ->
-            logSocket "DISC"
-        socket.on "data", (data) ->
-            logSocket "DATA"
+        @addDebug socket if @debug
+
         to = @getNode initializer.to.node
         unless to
             throw new Error "No process defined for inbound node #{initializer.to.node}"
@@ -144,8 +145,9 @@ class NoFlo
 
         @connections.push socket
 
-exports.createNetwork = (graph) ->
+exports.createNetwork = (graph, debug = false) ->
     network = new NoFlo graph
+    network.debug = debug
 
     network.addNode node for node in graph.nodes
     network.addEdge edge for edge in graph.edges

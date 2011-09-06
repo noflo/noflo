@@ -7,10 +7,9 @@ class InternalSocket extends events.EventEmitter
         @groups = []
 
     getId: ->
-        if @from and not @to
-            return "#{@from.process.id}.#{@from.port}:ANON"
-        return "ANON:#{@to.process.id}.#{@to.port}" unless @from
-        "#{@from.process.id}.#{@from.port}:#{@to.process.id}.#{@to.port}"
+        return "#{@from.process.id}:#{@from.port} -> ANON" if @from and not @to
+        return "DATA -> #{@to.process.id}:#{@to.port}" unless @from
+        "#{@from.process.id}:#{@from.port} -> #{@to.process.id}:#{@to.port}"
 
     connect: ->
         @connected = true
