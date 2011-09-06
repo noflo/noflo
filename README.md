@@ -51,8 +51,12 @@ File line count using _embedded_ NoFlo:
 
 File line count as an _individual_ NoFlo application:
 
-    $ noflo
-    NoFlo>> load examples/linecount/count 
+    $ noflo -i
+    NoFlo>> load examples/linecount/count.json
+
+or
+
+    $ noflo examples/linecount/count.json
 
 Simple "Hello, world" web service with Basic authentication using _embedded_ NoFlo:
 
@@ -138,11 +142,13 @@ Done this way, components represent the pure logic, and the control flow and sta
 
 ### Ports and events
 
-Being a flow-based programming environment, the main action in NoFlo happens through ports and their connections. There are five events that can be associated with ports:
+Being a flow-based programming environment, the main action in NoFlo happens through ports and their connections. There are several events that can be associated with ports:
 
 * _Attach_: there is a connection to the port
 * _Connect_: the port has started sending or receiving a data transmission
+* _BeginGroup_: the data stream after this event is associated with a given named group. Components may or may not utilize this information
 * _Data_: an individual data packet in a transmission. There might be multiple depending on how a component operates
+* _EndGroup_: A particular grouped stream of data ends
 * _Disconnect_: end of data transmission
 * _Detach_: A connection to the port has been removed
 
