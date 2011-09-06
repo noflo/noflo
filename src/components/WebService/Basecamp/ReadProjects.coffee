@@ -20,7 +20,9 @@ class ReadProjects extends base.BasecampComponent
         target = @outPorts.out
         id = "https://#{@hostname}/"
         @parse data, (parsed) ->
-            target.send project, id for project in parsed.project
+            target.beginGroup id
+            target.send project for project in parsed.project
+            target.endGroup()
             target.disconnect()
     
 exports.getComponent = ->

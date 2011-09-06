@@ -31,11 +31,15 @@ class ReadTaskLists extends base.BasecampComponent
         @parse data, (parsed) ->
             return unless parsed['todo-list']
 
+            target.beginGroup id
+
             unless toString.call(parsed['todo-list']) is '[object Array]'
-                target.send parsed['todo-list'], id
+                target.send parsed['todo-list']
+                target.endGroup()
                 return target.disconnect()
 
-            target.send taskList, id for taskList in parsed['todo-list']
+            target.send taskList for taskList in parsed['todo-list']
+            target.endGroup()
             target.disconnect()
 
 exports.getComponent = ->

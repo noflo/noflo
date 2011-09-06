@@ -25,11 +25,15 @@ class ReadTasks extends base.BasecampComponent
         @parse data, (parsed) ->
             return unless parsed['todo-item']
 
+            target.beginGroup id
+
             unless toString.call(parsed['todo-item']) is '[object Array]'
-                target.send parsed['todo-item'], id
+                target.send parsed['todo-item']
+                target.endGroup()
                 return target.disconnect()
 
-            target.send task, id for task in parsed['todo-item']
+            target.send task for task in parsed['todo-item']
+            target.endGroup()
             target.disconnect()
 
 exports.getComponent = ->

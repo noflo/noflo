@@ -8,18 +8,25 @@ class ArrayPort extends port.Port
         @sockets.push socket
         @attachSocket socket
 
-    detach: (socket) ->
-        if @sockets.indexOf(socket) is -1
-            return
-
-        @emit "detach", @socket
-
-        @sockets.splice @sockets.indexOf(socket), 1
-
-    send: (data, id, socketId = null) ->
+    beginGroup: (group, socketId = null) ->
         if socketId is null
             @sockets.forEach (socket, index) =>
-                @send data, id, index
+                @beginGroup group, index
+            return
+
+        unless @sockets[socketId]
+            throw new Error "No socket '#{socketId}' available"
+
+        return @sockets[socketId].beginGroup group if @isConnected socketId
+
+        @sockets[socketId].on "connect", =>
+            @sockets[socketId].beginGroup group
+        @sockets[socketId].connect()
+
+    send: (data, socketId = null) ->
+        if socketId is null
+            @sockets.forEach (socket, index) =>
+                @send data, index
             return
 
         unless @sockets[socketId]
@@ -29,7 +36,18 @@ class ArrayPort extends port.Port
 
         @sockets[socketId].on "connect", =>
             @sockets[socketId].send data
-        @sockets[socketId].connect id
+        @sockets[socketId].connect()
+
+    endGroup: (socketId = null) ->
+        if socketId is null
+            @sockets.forEach (socket, index) =>
+                @endGroup index
+            return
+
+        unless @sockets[socketId]
+            throw new Error "No socket '#{socketId}' available"
+
+        do @sockets[socketId].endGroup
 
     disconnect: (socketId = null) ->
         if socketId is null
@@ -39,6 +57,14 @@ class ArrayPort extends port.Port
 
         return unless @sockets[socketId]
         @sockets[socketId].disconnect()
+
+    detach: (socket) ->
+        if @sockets.indexOf(socket) is -1
+            return
+
+        @emit "detach", @socket
+
+        @sockets.splice @sockets.indexOf(socket), 1
 
     isConnected: (socketId = null) ->
         if socketId is null

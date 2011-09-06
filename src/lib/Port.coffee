@@ -18,32 +18,49 @@ class Port extends events.EventEmitter
         @from = socket.from
         socket.on "connect", =>
             @emit "connect", socket
+        socket.on "begingroup", (group) =>
+            @emit "begingroup", group
         socket.on "data", (data) =>
             @emit "data", data
+        socket.on "endgroup", (group) =>
+            @emit "endgroup", group
         socket.on "disconnect", =>
             @emit "disconnect", socket
 
-    detach: (socket) ->
-        @emit "detach", @socket
-        @from = null
-        @socket = null
+    connect: ->
+        throw new Error "No connection available" unless @socket
+        do @socket.connect
 
-    send: (data, id) ->
+    beginGroup: (group) ->
+        throw new Error "No connection available" unless @socket
+
+        return @socket.beginGroup group if @isConnected()
+
+        @socket.once "connect", =>
+            @socket.beginGroup group
+        do @socket.connect
+
+    send: (data) ->
         throw new Error "No connection available" unless @socket
 
         return @socket.send data if @isConnected()
 
         @socket.once "connect", =>
             @socket.send data
-        @socket.connect id
+        do @socket.connect
 
-    connect: (id) ->
+    endGroup: ->
         throw new Error "No connection available" unless @socket
-        @socket.connect id
+        do @socket.endGroup
 
     disconnect: ->
         return unless @socket
         @socket.disconnect()
+
+    detach: (socket) ->
+        @emit "detach", @socket
+        @from = null
+        @socket = null
 
     isConnected: ->
         unless @socket

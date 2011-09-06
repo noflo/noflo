@@ -9,13 +9,14 @@ class ConvertToJson extends noflo.Component
         @outPorts =
             out: new noflo.Port()
 
-        @inPorts.in.on "connect", (socket) =>
-            @id = socket.id
+        @inPorts.in.on "begingroup", (group) =>
+            @id = group
         @inPorts.in.on "data", (data) =>
             @outPorts.out.send @convert data
+        @inPorts.in.on "endgroup", =>
+            @id = null
         @inPorts.in.on "disconnect", =>
             do @outPorts.out.disconnect
-            @id = null
 
     convert: (data) ->
         return @convertTaskList data if data['completed-count'] and data['uncompleted-count']

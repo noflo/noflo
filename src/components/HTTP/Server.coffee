@@ -21,11 +21,11 @@ class Server extends noflo.Component
             @server.listen @serverPort
 
     sendRequest: (req, res) =>
-        req.id = do uuid
+        @outPorts.request.beginGroup uuid()
         @outPorts.request.send
             req: req
             res: res
-        , req.id
+        @outPorts.request.endGroup()
         @outPorts.request.disconnect()
 
 exports.getComponent = ->

@@ -2,8 +2,9 @@
 events = require "events"
 
 class InternalSocket extends events.EventEmitter
-    connected: false
-    id: null
+    constructor: ->
+        @connected = false
+        @groups = []
 
     getId: ->
         if @from and not @to
@@ -11,16 +12,21 @@ class InternalSocket extends events.EventEmitter
         return "ANON:#{@to.process.id}.#{@to.port}" unless @from
         "#{@from.process.id}.#{@from.port}:#{@to.process.id}.#{@to.port}"
 
-    connect: (id) ->
+    connect: ->
         @connected = true
-        @id = id
         @emit "connect", @
+
+    beginGroup: (group) ->
+        @groups.push group
+        @emit "begingroup", group
 
     send: (data) ->
         @emit "data", data
 
+    endGroup: ->
+        @emit "endgroup", @groups.pop()
+
     disconnect: ->
-        @id = null
         @connected = false
         @emit "disconnect", @
 
