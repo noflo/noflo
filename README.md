@@ -261,7 +261,9 @@ NoFlo supports the FBP language fully. You can either load a graph with a string
         console.log "Graph loaded"
         console.log graph.toDOT()
 
-The `.fbp` file suffix is used for files containing FBP language. This means you can load them also the same way as you load JSON files, using the `noflo.loadFile` method.
+The `.fbp` file suffix is used for files containing FBP language. This means you can load them also the same way as you load JSON files, using the `noflo.loadFile` method, or the NoFlo shell. Example:
+
+    $ noflo examples/linecount/count.fbp     
 
 ## Development
 
