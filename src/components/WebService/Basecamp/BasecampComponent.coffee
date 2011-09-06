@@ -40,7 +40,7 @@ class BasecampComponent extends noflo.Component
             resp.setEncoding "utf8"
             body = ""
             resp.on "data", (data) ->
-                throw resp.headers.status unless resp.statusCode > 400
+                throw resp.headers.status unless resp.statusCode < 400
                 body += data
             resp.on "end", ->
                 success body
