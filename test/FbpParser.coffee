@@ -5,7 +5,7 @@ exports["test simple FBP file"] = (test) ->
     'somefile.txt' -> SOURCE Read(Readfile) OUT -> In Display(Output)
     """
 
-    noflo.graph.loadFbp fbpData, (graph) ->
+    noflo.graph.loadFBP fbpData, (graph) ->
         test.equal graph.edges.length, 1
         test.equal graph.initializers.length, 1
         test.equal graph.nodes.length, 2
@@ -20,7 +20,7 @@ exports["test more complicated FBP file"] = (test) ->
     GreetUser() DATA -> OPTIONS Render() OUT -> STRING WriteResponse()
     """
 
-    noflo.graph.loadFbp fbpData, (graph) ->
+    noflo.graph.loadFBP fbpData, (graph) ->
         test.equal graph.edges.length, 8
         test.equal graph.initializers.length, 2
         test.equal graph.nodes.length, 8

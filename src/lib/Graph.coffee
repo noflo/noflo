@@ -168,9 +168,13 @@ exports.loadFile = (file, success) ->
         throw err if err
 
         definition = JSON.parse data
+
+        if file.split('.').pop() is 'fbp'
+            return exports.loadFBP definition, success
+
         exports.loadJSON definition, success
 
-exports.loadFbp = (fbpData, success) ->
+exports.loadFBP = (fbpData, success) ->
     parser = new fbp.Fbp
     definition = parser.parse fbpData
     exports.loadJSON definition, success

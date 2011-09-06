@@ -35,7 +35,7 @@ app.cmd "new *", "Create a new NoFlo graph", (req, res, next) ->
     res.prompt()
 
 app.cmd "load *", "Load a NoFlo graph", (req, res, next) ->
-    app.filename = "#{req.params[0]}.json"
+    app.filename = req.params[0]
     noflo.loadFile app.filename, (network) ->
         app.network = network
         app.setPrompt app.network.graph.name
