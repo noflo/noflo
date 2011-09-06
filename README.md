@@ -235,6 +235,34 @@ To run a graph file, you can either use the _load_ command of the NoFlo shell, o
         console.log "Graph loaded"
         console.log network.graph.toDOT()
 
+## Language for Flow-Based Programming
+
+In addition to the JSON format described above, FBP has its own Domain-Specific Language (DSL) for easy graph definition. The syntax is the following:
+
+* `'somedata' -> PORT Process(Component)` sends initial data _somedata_ to port _PORT_ of process _Process_ that runs component _Component_
+* `A(Component1) X -> Y B(Component2)` sets up a connection between port _X_ of process _A_ that runs component _Component1_ and port _Y_ of process _B_ that runs component _Component2_
+
+You can connect multiple components and ports together on one line, and separate connection definitions with a newline or a comma (`,`). 
+
+Components only have to be specified the first time you mention a new process. Afterwards, simply append empty parentheses (`()`) after the process name.
+
+Example:
+
+    'somefile.txt' -> SOURCE Read(ReadFile) OUT -> IN Split(SplitStr)
+    Split() OUT -> IN Count(Counter) COUNT -> IN Display(Output)
+    Read() ERROR -> IN Display()
+
+NoFlo supports the FBP language fully. You can either load a graph with a string of FBP-language commands with:
+    
+    fbpData = "<some FBP language connections>"
+    
+    noflo = require "noflo"
+    noflo.graph.loadFbp fbpData, (graph) ->
+        console.log "Graph loaded"
+        console.log graph.toDOT()
+
+The `.fbp` file suffix is used for files containing FBP language. This means you can load them also the same way as you load JSON files, using the `noflo.loadFile` method.
+
 ## Development
 
 NoFlo development happens on GitHub. Just fork the [main repository](https://github.com/bergie/noflo), make modifications and send a pull request.
