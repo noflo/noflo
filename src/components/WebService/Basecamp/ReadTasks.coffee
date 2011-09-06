@@ -13,7 +13,6 @@ class ReadTasks extends base.BasecampComponent
 
         @inPorts.tasklist.on "data", (data) =>
             @tasklist = data
-        @inPorts.tasklist.on "disconnect", =>
             do @readTasks if @hostname and @apikey
 
     readTasks: ->

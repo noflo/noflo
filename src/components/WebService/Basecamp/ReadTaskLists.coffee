@@ -13,7 +13,6 @@ class ReadTaskLists extends base.BasecampComponent
 
         @inPorts.project.on "data", (data) =>
             @project = data
-        @inPorts.project.on "disconnect", =>
             do @readTaskLists if @hostname and @apikey
 
     readTaskListsAll: ->
