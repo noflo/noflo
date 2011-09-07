@@ -6,6 +6,7 @@ class Fbp
     matchSeparator: new RegExp "[\\s,\\n]"
 
     constructor: ->
+        @lastElement = null
         @currentNode = {}
         @currentEdge = {}
         @nodes = {}
@@ -14,24 +15,38 @@ class Fbp
     parse: (string) ->
         currentString = ""
         for char, index in string
+
+            # Commenting support. Ignore everything from # to newline
+            if char is '#'
+                @lastElement = "comment"
+                continue
+            if @lastElement is "comment"
+                if char is "\n"
+                    @lastElement = null
+                continue
+
             checkTerminator = @matchSeparator.exec(char)
             currentString += char unless checkTerminator
             continue unless checkTerminator or index is string.length - 1
 
             connection = @matchConnection.exec currentString
             if connection
+                @lastElement = "connection"
                 @handleConnection connection
                 currentString = ""
             initial = @matchInitial currentString
             if initial
+                @lastElement = "initial"
                 @handleInitial initial
                 currentString = ""
             component = @matchComponent currentString
             if component
+                @lastElement = "component"
                 @handleComponent component
                 currentString = ""
             port = @matchPort currentString
             if port
+                @lastElement = "port"
                 @handlePort port
                 currentString = ""
 
