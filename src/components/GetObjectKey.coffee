@@ -13,9 +13,13 @@ class GetObjectKey extends noflo.Component
 
         @inPorts.in.on "connect", =>
             @data = []
+        @inPorts.in.on "begingroup", (group) =>
+            @outPorts.out.beginGroup group
         @inPorts.in.on "data", (data) =>
             return @getKey data if @key
-            @data.push data 
+            @data.push data
+        @inPorts.in.on "endgroup", =>
+            @outPorts.out.endGroup()
         @inPorts.in.on "disconnect", =>
             unless @data.length
                 # Data already sent
@@ -40,7 +44,6 @@ class GetObjectKey extends noflo.Component
     getKey: (data) ->
         throw "Key not defined" unless @key
         throw "Data is not an object" unless typeof data is "object"
-
         @outPorts.out.send data[@key]
 
 exports.getComponent = ->

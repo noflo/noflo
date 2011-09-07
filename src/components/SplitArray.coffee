@@ -7,8 +7,12 @@ class SplitArray extends noflo.Component
         @outPorts =
             out: new noflo.Port()
 
+        @inPorts.in.on "begingroup", (group) =>
+            @outPorts.out.beginGroup group
         @inPorts.in.on "data", (data) =>
             @outPorts.out.send item for item in data
+        @inPorts.in.on "endgroup", =>
+            @outPorts.out.endGroup()
         @inPorts.in.on "disconnect", (data) =>
             @outPorts.out.disconnect()
 
