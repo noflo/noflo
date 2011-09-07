@@ -20,6 +20,7 @@ class ParseXml extends noflo.Component
         parser = new xml2js.Parser
         parser.on "end", (parsed) ->
             target.send parsed
+            target.disconnect()
         parser.parseString xml
 
 exports.getComponent = -> new ParseXml
