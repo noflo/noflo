@@ -13,6 +13,7 @@ cli.setApp "#{nofloRoot}/package.json"
 cli.parse
     listen: ['l', 'Start NoFlo server on this port', 'number']
     interactive: ['i', 'Start an interactive NoFlo shell']
+    debug: ['debug', 'Start NoFlo in debug mode']
 
 cli.main (args, options) ->
     if options.interactive
@@ -31,3 +32,4 @@ cli.main (args, options) ->
             
             shell.app.network = network
             shell.app.setPrompt network.graph.name
+        , options.debug
