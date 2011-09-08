@@ -76,9 +76,7 @@ class NoFlo
                 port: port
 
             unless process.component.inPorts and process.component.inPorts[port]
-                throw new Error "No inport '#{port}' defined in process #{process.id}" if process.component.isReady()
-                process.component.once "ready", =>
-                    @connectPort socket, process, port, inbound 
+                throw new Error "No inport '#{port}' defined in process #{process.id}"
                 return
 
             return process.component.inPorts[port].attach socket
@@ -88,9 +86,7 @@ class NoFlo
             port: port
 
         unless process.component.outPorts and process.component.outPorts[port]
-            throw new Error "No outport '#{port}' defined in process #{process.id}" if process.component.isReady()
-            process.component.once "ready", =>
-                @connectPort socket, process, port, inbound 
+            throw new Error "No outport '#{port}' defined in process #{process.id}"
             return
 
         process.component.outPorts[port].attach socket
@@ -118,9 +114,17 @@ class NoFlo
         from = @getNode edge.from.node
         unless from
             throw new Error "No process defined for outbound node #{edge.from.node}"
+        unless from.component.isReady()
+            from.component.once "ready", =>
+                @addEdge edge
+            return
         to = @getNode edge.to.node
         unless to
             throw new Error "No process defined for inbound node #{edge.to.node}"
+        unless to.component.isReady()
+            to.component.once "ready", =>
+                @addEdge edge
+            return
 
         @connectPort socket, from, edge.from.port, false
         @connectPort socket, to, edge.to.port, true
@@ -144,18 +148,16 @@ class NoFlo
         to = @getNode initializer.to.node
         unless to
             throw new Error "No process defined for inbound node #{initializer.to.node}"
-        @connectPort socket, to, initializer.to.port, true
-        @sendInitial socket, to.component, initializer.to.port, initializer.from.data
-        @connections.push socket
 
-    sendInitial: (socket, component, port, data) ->
-        unless component.isReady() 
-            unless component.inPorts[port] and component.inPorts[port].isAttached()
-                component.once "ready", =>
-                    @sendInitial socket, component, port, data
-                return
+        unless to.component.isReady() or to.component.inPorts[initializer.to.port]
+            to.component.once "ready", =>
+                @addInitial initializer
+            return
+
+        @connectPort socket, to, initializer.to.port, true
+        @connections.push socket
         socket.connect()
-        socket.send data
+        socket.send initializer.from.data
         socket.disconnect()
 
 exports.createNetwork = (graph, debug = false) ->
