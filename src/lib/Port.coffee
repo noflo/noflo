@@ -67,4 +67,7 @@ class Port extends events.EventEmitter
             return false
         @socket.isConnected()
 
+    isAttached: ->
+        @socket isnt null
+
 exports.Port = Port
