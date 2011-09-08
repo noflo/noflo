@@ -28,11 +28,8 @@ class SliceArray extends noflo.Component
 
     sliceData: (data) ->
         throw "Data #{typeof data} cannot be sliced" unless data.slice
-
-        console.error "BEFORE", data
         sliced = data.slice @begin, @end unless @end is null
         sliced = data.slice @begin if @end is null
-        console.error "AFTER", sliced
         @outPorts.out.send sliced
 
 exports.getComponent = -> new SliceArray
