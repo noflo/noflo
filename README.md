@@ -19,7 +19,11 @@ Currently NoFlo is still in quite early stages. It has already been used in some
 
 ## Requirements and installing
 
-NoFlo requires a reasonably recent version of [Node.js](http://nodejs.org/), and some [npm](http://npmjs.org/) packages. You can install everything needed by a simple:
+NoFlo requires a reasonably recent version of [Node.js](http://nodejs.org/), and some [npm](http://npmjs.org/) packages. Ensure you have the `coffee-script` package installed (`coffee` command should be available on command line) and NoFlo checked out from Git. Build NoFlo with:
+
+    $ cake build
+
+Then you can install everything needed by a simple:
 
     $ npm link
 
@@ -51,8 +55,12 @@ File line count using _embedded_ NoFlo:
 
 File line count as an _individual_ NoFlo application:
 
-    $ noflo
-    NoFlo>> load examples/linecount/count 
+    $ noflo -i
+    NoFlo>> load examples/linecount/count.json
+
+or
+
+    $ noflo examples/linecount/count.json
 
 Simple "Hello, world" web service with Basic authentication using _embedded_ NoFlo:
 
@@ -138,11 +146,13 @@ Done this way, components represent the pure logic, and the control flow and sta
 
 ### Ports and events
 
-Being a flow-based programming environment, the main action in NoFlo happens through ports and their connections. There are five events that can be associated with ports:
+Being a flow-based programming environment, the main action in NoFlo happens through ports and their connections. There are several events that can be associated with ports:
 
 * _Attach_: there is a connection to the port
 * _Connect_: the port has started sending or receiving a data transmission
+* _BeginGroup_: the data stream after this event is associated with a given named group. Components may or may not utilize this information
 * _Data_: an individual data packet in a transmission. There might be multiple depending on how a component operates
+* _EndGroup_: A particular grouped stream of data ends
 * _Disconnect_: end of data transmission
 * _Detach_: A connection to the port has been removed
 
@@ -234,6 +244,36 @@ To run a graph file, you can either use the _load_ command of the NoFlo shell, o
     noflo.loadFile "example.json", (network) ->
         console.log "Graph loaded"
         console.log network.graph.toDOT()
+
+## Language for Flow-Based Programming
+
+In addition to the JSON format described above, FBP has its own Domain-Specific Language (DSL) for easy graph definition. The syntax is the following:
+
+* `'somedata' -> PORT Process(Component)` sends initial data _somedata_ to port _PORT_ of process _Process_ that runs component _Component_
+* `A(Component1) X -> Y B(Component2)` sets up a connection between port _X_ of process _A_ that runs component _Component1_ and port _Y_ of process _B_ that runs component _Component2_
+
+You can connect multiple components and ports together on one line, and separate connection definitions with a newline or a comma (`,`). 
+
+Components only have to be specified the first time you mention a new process. Afterwards, simply append empty parentheses (`()`) after the process name.
+
+Example:
+
+    'somefile.txt' -> SOURCE Read(ReadFile) OUT -> IN Split(SplitStr)
+    Split() OUT -> IN Count(Counter) COUNT -> IN Display(Output)
+    Read() ERROR -> IN Display()
+
+NoFlo supports the FBP language fully. You can either load a graph with a string of FBP-language commands with:
+    
+    fbpData = "<some FBP language connections>"
+    
+    noflo = require "noflo"
+    noflo.graph.loadFbp fbpData, (graph) ->
+        console.log "Graph loaded"
+        console.log graph.toDOT()
+
+The `.fbp` file suffix is used for files containing FBP language. This means you can load them also the same way as you load JSON files, using the `noflo.loadFile` method, or the NoFlo shell. Example:
+
+    $ noflo examples/linecount/count.fbp     
 
 ## Development
 

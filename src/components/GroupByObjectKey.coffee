@@ -1,6 +1,6 @@
 noflo = require "noflo"
 
-class GetObjectKey extends noflo.Component
+class GroupByObjectKey extends noflo.Component
     constructor: ->
         @data = []
         @key = null
@@ -13,13 +13,9 @@ class GetObjectKey extends noflo.Component
 
         @inPorts.in.on "connect", =>
             @data = []
-        @inPorts.in.on "begingroup", (group) =>
-            @outPorts.out.beginGroup group
         @inPorts.in.on "data", (data) =>
             return @getKey data if @key
-            @data.push data
-        @inPorts.in.on "endgroup", =>
-            @outPorts.out.endGroup()
+            @data.push data 
         @inPorts.in.on "disconnect", =>
             unless @data.length
                 # Data already sent
@@ -44,7 +40,13 @@ class GetObjectKey extends noflo.Component
     getKey: (data) ->
         throw "Key not defined" unless @key
         throw "Data is not an object" unless typeof data is "object"
-        @outPorts.out.send data[@key]
 
-exports.getComponent = ->
-    new GetObjectKey
+        group = data[@key]
+        unless typeof data[@key] is "string"
+            group = undefined
+
+        @outPorts.out.beginGroup group
+        @outPorts.out.send data
+        @outPorts.out.endGroup()
+
+exports.getComponent = -> new GroupByObjectKey

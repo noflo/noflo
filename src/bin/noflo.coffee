@@ -13,6 +13,7 @@ cli.setApp "#{nofloRoot}/package.json"
 cli.parse
     listen: ['l', 'Start NoFlo server on this port', 'number']
     interactive: ['i', 'Start an interactive NoFlo shell']
+    debug: ['debug', 'Start NoFlo in debug mode']
 
 cli.main (args, options) ->
     if options.interactive
@@ -21,11 +22,14 @@ cli.main (args, options) ->
     return unless cli.args.length
 
     for arg in cli.args
-        if arg.indexOf(".json") is -1
+        if arg.indexOf(".json") is -1 and arg.indexOf(".fbp") is -1
             console.error "#{arg} is not a NoFlo graph file, skipping"
             continue
-        noflo.loadFile "#{nofloRoot}/#{arg}", (network) ->
+        if arg.substr(0, 1) isnt "/"
+            arg = "#{nofloRoot}/#{arg}"
+        noflo.loadFile arg, (network) ->
             return unless options.interactive
             
             shell.app.network = network
             shell.app.setPrompt network.graph.name
+        , options.debug

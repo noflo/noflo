@@ -155,9 +155,9 @@ exports.createNetwork = (graph, debug = false) ->
 
     network
 
-exports.loadFile = (file, success) ->
+exports.loadFile = (file, success, debug = false) ->
     graph.loadFile file, (net) ->
-        success exports.createNetwork net
+        success exports.createNetwork net, debug
 
 exports.saveFile = (graph, file, success) ->
     graph.save file, ->
