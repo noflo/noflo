@@ -13,9 +13,13 @@ class GroupByObjectKey extends noflo.Component
 
         @inPorts.in.on "connect", =>
             @data = []
+        @inPorts.in.on "begingroup", (group) =>
+            @outPorts.out.beginGroup group
         @inPorts.in.on "data", (data) =>
             return @getKey data if @key
             @data.push data 
+        @inPorts.in.on "endgroup", =>
+            @outPorts.out.endGroup()
         @inPorts.in.on "disconnect", =>
             unless @data.length
                 # Data already sent
@@ -43,7 +47,7 @@ class GroupByObjectKey extends noflo.Component
 
         group = data[@key]
         unless typeof data[@key] is "string"
-            group = undefined
+            group = "undefined"
 
         @outPorts.out.beginGroup group
         @outPorts.out.send data
