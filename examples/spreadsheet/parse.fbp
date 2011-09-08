@@ -1,0 +1,55 @@
+# This graph provides the base infrastructure for retrieving
+# semantic information from Excel spreadsheets.
+#
+# You'll need to provide at least the following information to
+# the ports of this network:
+#
+# * READ.SOURCE: Filename of the spreadsheet document
+# * SLICEROWS.BEGIN: How many rows to skip from the start of a sheet
+# * SLICEROWS.END: How many rows to skip from the end of a sheet (optional)
+# * GROUPBYROWLABEL.KEY: Which column provides the label of the row
+# * SLICECOLUMNS.BEGIN: How many columns to skip from the start of a sheet
+# * SLICECOLUMNS.END: How many columns to skip from the end of a sheet (optional)
+#
+# In the end the output will be provided through the ENTITIZE.OUT port.
+#
+# This network uses Apache Tika for parsing the spreadsheet into 
+# XHTML. Ensure that Tika can be found in the location set below:
+'tika-app-0.9.jar' -> TIKA Read(ReadDocument)
+
+# If reading fails, just display the error
+Read() ERROR -> IN Display(Output)
+
+# Parse the file to JSON, get all spreadsheets from it
+Read() OUT -> IN Parse(ParseXml) 
+
+# We're only interested in DIVs inside the BODY
+'body' -> KEY GetBody(GetObjectKey)
+'div' -> KEY GetDiv(GetObjectKey)
+# Read DIVs and pass them forward
+Parse() OUT -> IN GetBody() OUT -> IN GetDiv()
+
+# Spreadsheet title is in a H1
+'h1' -> KEY GroupByTableId(GroupByObjectKey)
+
+# Group the data by spreadsheet titles
+GetDiv() OUT -> IN SplitSheets(SplitArray) OUT -> IN GroupByTableId()
+
+# Get spreadsheet table and the rows from it
+'table' -> KEY GetTable(GetObjectKey)
+'tbody' -> KEY GetTBody(GetObjectKey)
+'tr' -> KEY GetTR(GetObjectKey)
+GroupByTableId() OUT -> IN GetTable() OUT -> IN GetTBody() OUT -> IN GetTR() 
+
+# Process each row individually and get the cells
+'td' -> KEY GetTD(GetObjectKey)
+GetTR() OUT -> IN SliceRows(SliceArray) OUT -> IN SplitRows(SplitArray) OUT -> IN GetTD()
+
+# Group by the row label, and collect into objects
+GetTD() OUT -> IN GroupByRowLabel(GroupByObjectKey) OUT -> IN SliceColumns(SliceArray) OUT -> IN Collect(CollectGroups)
+
+# If no columns are found, display that as an error message
+SliceColumns() ERROR -> IN Display()
+
+# Turn the columns into objects
+Collect() OUT -> IN Entitize(PropertiesToObjects)
