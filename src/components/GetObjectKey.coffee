@@ -1,6 +1,7 @@
 noflo = require "noflo"
 
 class GetObjectKey extends noflo.Component
+    description: "Filtering the elements with a specific KEY from the flow of data objects."
     constructor: ->
         @data = []
         @key = null
@@ -25,7 +26,7 @@ class GetObjectKey extends noflo.Component
                 # Data already sent
                 @outPorts.out.disconnect()
                 return
-            
+
             # No key, data will be sent when we get it
             return unless @key
 

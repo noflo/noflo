@@ -1,12 +1,12 @@
 noflo = require "noflo"
 
 class CollectGroups extends noflo.Component
+    description: "Deserializes a flow of groups into a JSON object. The group names are "
     constructor: ->
         @data = {}
         @keys = []
         @currentData = {}
         @parentData = []
-        @parentGroup = undefined
 
         @inPorts =
             in: new noflo.Port()

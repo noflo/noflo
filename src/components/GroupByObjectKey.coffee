@@ -1,6 +1,7 @@
 noflo = require "noflo"
 
 class GroupByObjectKey extends noflo.Component
+    description: "Serialize an object by its keys and values into groups."
     constructor: ->
         @data = []
         @key = null
@@ -21,7 +22,7 @@ class GroupByObjectKey extends noflo.Component
                 # Data already sent
                 @outPorts.out.disconnect()
                 return
-            
+
             # No key, data will be sent when we get it
             return unless @key
 
