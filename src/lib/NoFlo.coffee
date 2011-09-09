@@ -77,6 +77,7 @@ class NoFlo
 
             unless process.component.inPorts and process.component.inPorts[port]
                 throw new Error "No inport '#{port}' defined in process #{process.id}"
+                return
 
             return process.component.inPorts[port].attach socket
 
@@ -86,6 +87,7 @@ class NoFlo
 
         unless process.component.outPorts and process.component.outPorts[port]
             throw new Error "No outport '#{port}' defined in process #{process.id}"
+            return
 
         process.component.outPorts[port].attach socket
 
@@ -112,9 +114,17 @@ class NoFlo
         from = @getNode edge.from.node
         unless from
             throw new Error "No process defined for outbound node #{edge.from.node}"
+        unless from.component.isReady()
+            from.component.once "ready", =>
+                @addEdge edge
+            return
         to = @getNode edge.to.node
         unless to
             throw new Error "No process defined for inbound node #{edge.to.node}"
+        unless to.component.isReady()
+            to.component.once "ready", =>
+                @addEdge edge
+            return
 
         @connectPort socket, from, edge.from.port, false
         @connectPort socket, to, edge.to.port, true
@@ -138,12 +148,17 @@ class NoFlo
         to = @getNode initializer.to.node
         unless to
             throw new Error "No process defined for inbound node #{initializer.to.node}"
+
+        unless to.component.isReady() or to.component.inPorts[initializer.to.port]
+            to.component.once "ready", =>
+                @addInitial initializer
+            return
+
         @connectPort socket, to, initializer.to.port, true
+        @connections.push socket
         socket.connect()
         socket.send initializer.from.data
         socket.disconnect()
-
-        @connections.push socket
 
 exports.createNetwork = (graph, debug = false) ->
     network = new NoFlo graph
@@ -168,6 +183,7 @@ exports.Port = port.Port
 exports.ArrayPort = arrayport.ArrayPort
 exports.Graph = graph.Graph
 exports.graph = graph
+exports.internalSocket = internalSocket
 
 # Method for extending include paths for
 # NoFlo components

@@ -122,6 +122,23 @@ This example component register two ports: _in_ and _out_. When it receives data
 
 You can find more examples of components in the `components` folder shipping with NoFlo.
 
+### Subgraphs
+
+A NoFlo graph may contain multiple subgraphs, managed by instances of the `Graph` component. Subgraphs are useful for packaging particular flows to be used as a "new component" by other flows. This allows building more advanced functionality by creating reusable graphs of connected components.
+
+The Graph component loads the graph given to it as a new NoFlo network, and looks for unattached ports in it. It then exposes these ports as its own inports or outports. This way a graph containing subgraphs can easily connect data between the main graph and the subgraph.
+
+Unattached ports from the subgraph will be available through naming `ProcessName.port` on the Graph component instance.
+
+Simple example, specifying what file a spreadsheet-parsing subgraph should run with:
+
+    # Load a subgraph as a new process
+    'examples/spreadsheet/parse.fbp' -> GRAPH Reader(Graph)
+    # Send the filename to the component (subgraph)
+    'somefile.xls' -> READ.SOURCE Reader()
+    # Display the results
+    Reader() ENTITIZE.OUT -> IN Display(Output)
+
 ### Some words on component design
 
 Components should aim to be reusable, to do one thing and do it well. This is why often it is a good idea to split functionality traditionally done in one function to multiple components. For example, counting lines in a text file could happen in the following way:

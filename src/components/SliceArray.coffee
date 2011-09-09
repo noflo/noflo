@@ -11,6 +11,7 @@ class SliceArray extends noflo.Component
             end: new noflo.Port()
         @outPorts =
             out: new noflo.Port()
+            error: new noflo.Port()
 
         @inPorts.begin.on "data", (data) =>
             @begin = data
@@ -27,7 +28,7 @@ class SliceArray extends noflo.Component
             @outPorts.out.disconnect()
 
     sliceData: (data) ->
-        throw "Data #{typeof data} cannot be sliced" unless data.slice
+        return @outPorts.error.send "Data #{typeof data} cannot be sliced" unless data.slice
         sliced = data.slice @begin, @end unless @end is null
         sliced = data.slice @begin if @end is null
         @outPorts.out.send sliced
