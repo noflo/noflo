@@ -33,7 +33,7 @@ Parse() OUT -> IN GetBody() OUT -> IN GetDiv()
 'h1' -> KEY GroupByTableId(GroupByObjectKey)
 
 # Group the data by spreadsheet titles
-GetDiv() OUT -> IN SplitSheets(SplitArray) OUT -> IN GroupByTableId()
+GetDiv() OUT -> IN GetSheet(GetObjectKey) OUT -> IN GroupByTableId()
 
 # Get spreadsheet table and the rows from it
 'table' -> KEY GetTable(GetObjectKey)
@@ -52,4 +52,4 @@ GetTD() OUT -> IN GroupByRowLabel(GroupByObjectKey) OUT -> IN SliceColumns(Slice
 SliceColumns() ERROR -> IN Display()
 
 # Turn the columns into objects
-Collect() OUT -> IN Entitize(PropertiesToObjects)
+Collect() OUT -> IN SplitEntities(SplitArray) OUT -> IN Entitize(PropertiesToObjects)
