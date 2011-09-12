@@ -9,7 +9,7 @@ class SaveObject extends noflo.Component
         @data = []
 
         @inPorts =
-            in: new noflo.Port()
+            in: new noflo.ArrayPort()
             database: new noflo.Port()
             connection: new noflo.Port()
 
@@ -36,11 +36,7 @@ class SaveObject extends noflo.Component
     saveObject: (object) ->
         do @openRequest unless @request
 
-        # FIXME: Support for updating existing
-        console.log "SAVING"
-
         @connection.save object, (err, result) ->
             console.error err if err
-            console.error result
 
 exports.getComponent = -> new SaveObject
