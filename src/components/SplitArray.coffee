@@ -5,7 +5,7 @@ class SplitArray extends noflo.Component
         @inPorts =
             in: new noflo.Port()
         @outPorts =
-            out: new noflo.Port()
+            out: new noflo.ArrayPort()
 
         @inPorts.in.on "begingroup", (group) =>
             @outPorts.out.beginGroup group
