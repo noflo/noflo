@@ -27,6 +27,10 @@ app.setPrompt "NoFlo"
 app.network = null
 app.filename = null
 
+normalizePath: (path) ->
+    return path if path.substr(0, 1) is "/"
+    "#{process.cwd()}/#{path}"
+
 app.cmd "new *", "Create a new NoFlo graph", (req, res, next) ->
     graph = noflo.graph.createGraph req.params[0]
     app.setPrompt req.params[0]
@@ -35,14 +39,14 @@ app.cmd "new *", "Create a new NoFlo graph", (req, res, next) ->
     res.prompt()
 
 app.cmd "load *", "Load a NoFlo graph", (req, res, next) ->
-    app.filename = req.params[0]
+    app.filename = normalizePath req.params[0]
     noflo.loadFile app.filename, (network) ->
         app.network = network
         app.setPrompt app.network.graph.name
         res.prompt()
 
 app.cmd "save *", "Save a NoFlo graph", (req, res, next) ->
-    app.filename = req.params[0]
+    app.filename = normalizePath req.params[0]
     unless app.network
         app.styles.red "No graph is loaded"
         return res.prompt()

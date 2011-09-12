@@ -26,7 +26,7 @@ cli.main (args, options) ->
             console.error "#{arg} is not a NoFlo graph file, skipping"
             continue
         if arg.substr(0, 1) isnt "/"
-            arg = "#{nofloRoot}/#{arg}"
+            arg = "#{process.cwd()}/#{arg}"
         noflo.loadFile arg, (network) ->
             return unless options.interactive
             

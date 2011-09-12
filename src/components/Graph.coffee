@@ -16,6 +16,9 @@ class Graph extends noflo.Component
         if graph instanceof noflo.Graph
             return @createNetwork graph
 
+        if graph.substr(0, 1) isnt "/"
+            graph = "#{process.cwd()}/#{graph}"
+
         graph = noflo.graph.loadFile graph, (instance) =>
             @createNetwork instance
 
