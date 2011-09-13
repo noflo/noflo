@@ -45,7 +45,7 @@ class CollectGroups extends noflo.Component
                 for value, index in data
                     @setDataToKey @currentData, index, value
                 return
-            for value, key of data
+            for key, value of data
                 @setDataToKey @currentData, key, value
             return
 
@@ -61,13 +61,13 @@ class CollectGroups extends noflo.Component
             return @setDataToKey target, key, value
 
         if typeof value is "object"
-            if toString.call(data) is '[object Array]'
-                for value, index in data
-                    @setDataToKey target[key], index, data
+            if toString.call(value) is '[object Array]' 
+                for val, index in value
+                    @setDataToKey target[key], index, val
                 return
-            for value, subKey of data
-                @setDataToKey target[key], subKey, data
+            for subKey, val of value
+                @setDataToKey target[key], subKey, val
             return
-        target[key].value = data
+        target[key].value = value
 
 exports.getComponent = -> new CollectGroups

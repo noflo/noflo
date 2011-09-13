@@ -49,10 +49,7 @@ class MapProperty extends noflo.Component
                 matched = regexp.exec property
                 continue unless matched
 
-                for match, index in matched
-                    continue if replacement.indexOf("$#{index}") is -1
-                    replacement = replacement.replace "\$#{index}", match
-                property = replacement
+                property = property.replace regexp, replacement
 
             newData[property] = value
         @outPorts.out.send newData
