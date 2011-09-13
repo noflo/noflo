@@ -3,15 +3,19 @@ noflo = require "noflo"
 class DuplicateProperty extends noflo.Component
     constructor: ->
         @properties = {}
+        @separator = '/'
 
         @inPorts =
             property: new noflo.ArrayPort()
+            separator: new noflo.Port()
             in: new noflo.Port()
         @outPorts =
             out: new noflo.Port()
 
         @inPorts.property.on "data", (data) =>
             @setProperty data
+        @inPorts.separator.on "data", (data) =>
+            @separator = data
 
         @inPorts.in.on "begingroup", (group) =>
             @outPorts.out.beginGroup group
@@ -28,11 +32,22 @@ class DuplicateProperty extends noflo.Component
             return
 
         propParts = prop.split "="
-        @properties[propParts[0]] = propParts[1]
+        if propParts.length > 2
+            @properties[propParts.pop()] = propParts 
+            return
+        
+        @properties[propParts[1]] = propParts[0]
 
     addProperties: (object) ->
-        for original, newprop of @properties
-            object[newprop] = object[original]
+        for newprop, original of @properties
+            if typeof original is "string"
+                object[newprop] = object[original]
+                continue
+
+            newValues = []
+            for originalProp in original
+                newValues.push object[originalProp]
+            object[newprop] = newValues.join @separator
 
         @outPorts.out.send object
 
