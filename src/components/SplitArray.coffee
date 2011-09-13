@@ -11,7 +11,10 @@ class SplitArray extends noflo.Component
             @outPorts.out.beginGroup group
         @inPorts.in.on "data", (data) =>
             unless toString.call(data) is '[object Array]'
-                @outPorts.out.send item for key, item of data
+                for key, item of data
+                    @outPorts.out.beginGroup key
+                    @outPorts.out.send item
+                    @outPorts.out.endGroup()
                 return
             @outPorts.out.send item for item in data
         @inPorts.in.on "endgroup", =>
