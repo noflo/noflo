@@ -1,7 +1,7 @@
 noflo = require "noflo"
 
 class CollectGroups extends noflo.Component
-    description: "Deserializes a flow of groups into a JSON object. The group names are "
+    description: "Deserializes a flow of groups into a JSON object."
     constructor: ->
         @data = {}
         @keys = []
@@ -61,7 +61,7 @@ class CollectGroups extends noflo.Component
             return @setDataToKey target, key, value
 
         if typeof value is "object"
-            if toString.call(data) is '[object Array]' 
+            if toString.call(data) is '[object Array]'
                 for value, index in data
                     @setDataToKey target[key], index, data
                 return
