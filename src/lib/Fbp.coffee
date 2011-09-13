@@ -7,6 +7,7 @@ class Fbp
 
     constructor: ->
         @lastElement = null
+        @currentElement = null
         @currentNode = {}
         @currentEdge = {}
         @nodes = {}
@@ -15,40 +16,55 @@ class Fbp
     parse: (string) ->
         currentString = ""
         for char, index in string
-
             # Commenting support. Ignore everything from # to newline
             if char is '#'
-                @lastElement = "comment"
+                @currentElement = "comment"
                 continue
-            if @lastElement is "comment"
+            if @currentElement is "comment"
                 if char is "\n"
-                    @lastElement = null
+                    @currentElement = null
                 continue
 
+            if char is "'"
+                if @currentElement is "initial"
+                    # End of initial data
+                    @currentElement = null
+                else
+                    # Start of initial data
+                    @currentElement = "initial"
+
             checkTerminator = @matchSeparator.exec(char)
-            currentString += char unless checkTerminator
+            checkTerminator = null if @currentElement is "initial"
+            currentString += char unless checkTerminator 
             continue unless checkTerminator or index is string.length - 1
 
             connection = @matchConnection.exec currentString
             if connection
+                throw "Port or initial expected" unless @lastElement is "initial" or @lastElement is "port"
                 @lastElement = "connection"
                 @handleConnection connection
                 currentString = ""
             initial = @matchInitial currentString
             if initial
+                throw "Newline expected" unless @lastElement is null
                 @lastElement = "initial"
                 @handleInitial initial
                 currentString = ""
             component = @matchComponent currentString
             if component
+                throw "Port or newline expected" unless @lastElement is "port" or @lastElement is null
                 @lastElement = "component"
                 @handleComponent component
                 currentString = ""
             port = @matchPort currentString
             if port
+                throw "Connection or component expected" unless @lastElement is "connection" or @lastElement is "component"
                 @lastElement = "port"
                 @handlePort port
                 currentString = ""
+
+            if char is "\n"
+                @lastElement = null
 
         json =
             properties: 
