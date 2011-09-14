@@ -3,11 +3,11 @@ noflo = require "noflo"
 class GetObjectKey extends noflo.Component
     constructor: ->
         @data = []
-        @key = null
+        @key = []
 
         @inPorts =
             in: new noflo.Port()
-            key: new noflo.Port()
+            key: new noflo.ArrayPort()
         @outPorts =
             out: new noflo.Port()
 
@@ -16,7 +16,7 @@ class GetObjectKey extends noflo.Component
         @inPorts.in.on "begingroup", (group) =>
             @outPorts.out.beginGroup group
         @inPorts.in.on "data", (data) =>
-            return @getKey data if @key
+            return @getKey data if @key.length
             @data.push data
         @inPorts.in.on "endgroup", =>
             @outPorts.out.endGroup()
@@ -27,14 +27,14 @@ class GetObjectKey extends noflo.Component
                 return
             
             # No key, data will be sent when we get it
-            return unless @key
+            return unless @key.length
 
             # Otherwise send data we have an disconnect
             @getKey data for data in @data
             @outPorts.out.disconnect()
 
         @inPorts.key.on "data", (data) =>
-            @key = data
+            @key.push data
         @inPorts.key.on "disconnect", =>
             return unless @data.length
 
@@ -42,9 +42,13 @@ class GetObjectKey extends noflo.Component
             @outPorts.out.disconnect()
 
     getKey: (data) ->
-        throw "Key not defined" unless @key
+        throw "Key not defined" unless @key.length
         throw "Data is not an object" unless typeof data is "object"
-        @outPorts.out.send data[@key]
+        for key in @key
+            continue unless data[key]
+            @outPorts.out.beginGroup key unless @key.length is 1
+            @outPorts.out.send data[key]
+            @outPorts.out.endGroup() unless @key.length is 1
 
 exports.getComponent = ->
     new GetObjectKey
