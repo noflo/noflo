@@ -150,6 +150,7 @@ class NoFlo
             throw new Error "No process defined for inbound node #{initializer.to.node}"
 
         unless to.component.isReady() or to.component.inPorts[initializer.to.port]
+            to.component.setMaxListeners 0
             to.component.once "ready", =>
                 @addInitial initializer
             return
