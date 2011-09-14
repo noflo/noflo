@@ -34,6 +34,8 @@ class NoFlo
         if typeof component is "object"
             return component
         try
+            if component.substr(0, 1) is "."
+                component = "#{process.cwd()}#{component.substr(1)}"
             implementation = require component
         catch error
             try
