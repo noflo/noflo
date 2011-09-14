@@ -1,6 +1,6 @@
 class Fbp
     matchPort: new RegExp "([A-Z\.]+)"
-    matchComponent: new RegExp "([A-Za-z]+)\\(([A-Za-z\/]+|)\\)"
+    matchComponent: new RegExp "([A-Za-z]+)\\(([A-Za-z\/\.]+|)\\)"
     matchInitial: new RegExp "\'(.+)\'"
     matchConnection: new RegExp "\-\>"
     matchSeparator: new RegExp "[\\s,\\n]"
