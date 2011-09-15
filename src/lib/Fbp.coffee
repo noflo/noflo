@@ -91,13 +91,18 @@ class Fbp
 
         @nodes[@currentNode.name] = @currentNode unless @nodes[@currentNode.name]
 
-        if @currentEdge.tgt.port
+        if @currentEdge.tgt and @currentEdge.tgt.port
             @currentEdge.tgt.process = @currentNode.name
             @edges.push @currentEdge
             @currentEdge = 
                 src: {}
                 tgt: {}
             return
+        unless @currentEdge.src
+            @currentEdge =
+                src:
+                    process: @currentNode.name
+                tgt: {}
     
     handlePort: (port) ->
         if @currentEdge.data or @currentEdge.src.port
