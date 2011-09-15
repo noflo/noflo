@@ -15,9 +15,9 @@ class SaveObject extends noflo.Component
 
         @inPorts.connection.on "data", (data) =>
             @connection = data
-        @inPorts.connection.on "disconnect", =>
             return unless @data.length
-            saveObject data for data in @data
+            @saveObject data for data in @data
+
         @inPorts.in.on "data", (data) =>
             return @saveObject data if @connection
             @data.push data
