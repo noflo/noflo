@@ -16,6 +16,7 @@ class Port extends events.EventEmitter
         @emit "attach", socket
 
         @from = socket.from
+        socket.setMaxListeners 0
         socket.on "connect", =>
             @emit "connect", socket
         socket.on "begingroup", (group) =>

@@ -34,6 +34,8 @@ class NoFlo
         if typeof component is "object"
             return component
         try
+            if component.substr(0, 1) is "."
+                component = "#{process.cwd()}#{component.substr(1)}"
             implementation = require component
         catch error
             try
@@ -150,6 +152,7 @@ class NoFlo
             throw new Error "No process defined for inbound node #{initializer.to.node}"
 
         unless to.component.isReady() or to.component.inPorts[initializer.to.port]
+            to.component.setMaxListeners 0
             to.component.once "ready", =>
                 @addInitial initializer
             return
