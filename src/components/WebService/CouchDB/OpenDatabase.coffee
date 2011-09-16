@@ -10,7 +10,12 @@ class OpenDatabase extends noflo.Component
 
         @inPorts.url.on "data", (data) =>
             db = couch data
-            @outPorts.connection.send db
-            @outPorts.connection.disconnect()
+            @createDatabase db, @outPorts.connection
+
+    createDatabase: (connection, outPort) ->
+        connection.request "PUT", "/#{connection.uri.pathname}", (err, result) ->
+            console.error err if err
+            outPort.send connection
+            outPort.disconnect()
 
 exports.getComponent = -> new OpenDatabase

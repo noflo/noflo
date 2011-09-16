@@ -40,25 +40,25 @@ class Fbp
 
             connection = @matchConnection.exec currentString
             if connection
-                throw "Port or initial expected" unless @lastElement is "initial" or @lastElement is "port"
+                throw "Port or initial expected, got #{currentString}" unless @lastElement is "initial" or @lastElement is "port"
                 @lastElement = "connection"
                 @handleConnection connection
                 currentString = ""
             initial = @matchInitial currentString
             if initial
-                throw "Newline expected" unless @lastElement is null
+                throw "Newline expected, gor #{currentString}" unless @lastElement is null
                 @lastElement = "initial"
                 @handleInitial initial
                 currentString = ""
             component = @matchComponent currentString
             if component
-                throw "Port or newline expected" unless @lastElement is "port" or @lastElement is null
+                throw "Port or newline expected, got #{currentString}" unless @lastElement is "port" or @lastElement is null
                 @lastElement = "component"
                 @handleComponent component
                 currentString = ""
             port = @matchPort currentString
             if port
-                throw "Connection or component expected" unless @lastElement is "connection" or @lastElement is "component"
+                throw "Connection or component expected, got #{currentString}" unless @lastElement is "connection" or @lastElement is "component"
                 @lastElement = "port"
                 @handlePort port
                 currentString = ""
@@ -91,13 +91,18 @@ class Fbp
 
         @nodes[@currentNode.name] = @currentNode unless @nodes[@currentNode.name]
 
-        if @currentEdge.tgt.port
+        if @currentEdge.tgt and @currentEdge.tgt.port
             @currentEdge.tgt.process = @currentNode.name
             @edges.push @currentEdge
             @currentEdge = 
                 src: {}
                 tgt: {}
             return
+        unless @currentEdge.src
+            @currentEdge =
+                src:
+                    process: @currentNode.name
+                tgt: {}
     
     handlePort: (port) ->
         if @currentEdge.data or @currentEdge.src.port

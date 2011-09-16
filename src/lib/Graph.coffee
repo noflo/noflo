@@ -83,6 +83,8 @@ class Graph extends events.EventEmitter
     toDOT: ->
         cleanID = (id) ->
             id.replace /\s*/g, ""
+        cleanPort = (port) ->
+            port.replace /\./g, ""
 
         dot = "digraph {\n"
 
@@ -90,10 +92,10 @@ class Graph extends events.EventEmitter
             dot += "    #{cleanID(node.id)} [shape=box]\n"
 
         for initializer, id in @initializers
-            dot += "    data#{id} -> #{cleanID(initializer.to.node)} [label='#{initializer.to.port}']\n" 
+            dot += "    data#{id} -> #{cleanID(initializer.to.node)} [label='#{cleanPort(initializer.to.port)}']\n" 
 
         for edge in @edges
-            dot += "    #{cleanID(edge.from.node)} -> #{cleanID(edge.to.node)}[label='#{edge.from.port}']\n"
+            dot += "    #{cleanID(edge.from.node)} -> #{cleanID(edge.to.node)}[label='#{cleanPort(edge.from.port)}']\n"
 
         dot += "}"
 

@@ -109,7 +109,6 @@ class NoFlo
 
     addEdge: (edge) ->
         return @addInitial(edge) unless edge.from.node
-
         socket = internalSocket.createSocket()
         @addDebug socket if @debug
 
@@ -128,8 +127,8 @@ class NoFlo
                 @addEdge edge
             return
 
-        @connectPort socket, from, edge.from.port, false
         @connectPort socket, to, edge.to.port, true
+        @connectPort socket, from, edge.from.port, false
 
         @connections.push socket
 
