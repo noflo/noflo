@@ -21,6 +21,11 @@ class WriteDocument extends noflo.Component
         @inPorts.in.on "data", (data) =>
             return @saveObject data if @connection
             @data.push data
+        @inPorts.in.on "disconnect", =>
+            return unless @outPorts.out.isAttached()
+            for port in @inPorts.in
+                return if port.isConnected()
+            @outPorts.out.disconnect() 
 
     saveObject: (object) ->
         @connection.save object, (err, document) =>
