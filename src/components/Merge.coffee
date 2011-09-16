@@ -9,6 +9,8 @@ class Merge extends noflo.Component
         @outPorts =
             out: new noflo.Port()
 
+        @inPorts.in.on "connect", =>
+            @outPorts.out.connect()
         @inPorts.in.on "begingroup", (group) =>
             @outPorts.out.beginGroup group
         @inPorts.in.on "data", (data) =>

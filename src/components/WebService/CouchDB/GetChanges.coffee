@@ -14,7 +14,7 @@ class GetChanges extends noflo.Component
             connection: new noflo.Port()
             option: new noflo.ArrayPort()
         @outPorts =
-            out: new noflo.Port()
+            out: new noflo.ArrayPort()
 
         @inPorts.connection.on "data", (data) =>
             @connection = data

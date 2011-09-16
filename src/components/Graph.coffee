@@ -23,31 +23,45 @@ class Graph extends noflo.Component
             @createNetwork instance
 
     createNetwork: (graph) ->
-        @network = noflo.createNetwork graph
-
+        @network = noflo.createNetwork graph, true
+        notReady = false
         for name, process of @network.processes
-            for portName, port of process.component.inPorts
-                continue if port.isAttached()
-                newPort = "#{name.toLowerCase()}.#{portName}"
-                @inPorts[newPort] = @replicateInPort port
+            notReady = true unless @findEdgePorts name, process
 
-            for portName, port of process.component.outPorts
-                continue if port.isAttached()
-                newPort = "#{name.toLowerCase()}.#{portName}"
-                @outPorts[newPort] = @replicateOutPort port
+        unless notReady
+            @ready = true
+            @emit "ready"
 
-        @ready = true
-        @emit "ready"
+    findEdgePorts: (name, process) ->
+        unless process.component.isReady()
+            process.component.once "ready", =>
+                @findEdgePorts name, process
+                @ready = true
+                @emit "ready"
+            return false
+
+        for portName, port of process.component.inPorts
+            continue if port.isAttached()
+            newPort = "#{name.toLowerCase()}.#{portName}"
+            @inPorts[newPort] = @replicateInPort port, newPort
+
+        for portName, port of process.component.outPorts
+            continue if port.isAttached()
+            newPort = "#{name.toLowerCase()}.#{portName}"
+            @outPorts[newPort] = @replicateOutPort port, newPort
+
+        return true
 
     replicatePort: (port) ->
         return new noflo.ArrayPort() if port instanceof noflo.ArrayPort
         return new noflo.Port() unless port instanceof noflo.ArrayPort  
-    replicateInPort: (port) ->
+    replicateInPort: (port, portName) ->
         newPort = @replicatePort port
         newPort.on "attach", (socket) ->
             newSocket = noflo.internalSocket.createSocket()
             port.attach newSocket
         newPort.on "connect", ->
+            return unless port.isAttached()
             port.connect()
         newPort.on "begingroup", (group) ->
             port.beginGroup group
@@ -59,18 +73,22 @@ class Graph extends noflo.Component
             port.disconnect()
         newPort
 
-    replicateOutPort: (port) ->
+    replicateOutPort: (port, portName) ->
         newPort = @replicatePort port
         newPort.on "attach", (socket) ->
             newSocket = noflo.internalSocket.createSocket()
             port.attach newSocket
         port.on "connect", ->
+            return unless newPort.isAttached()
             newPort.connect()
         port.on "begingroup", (group) ->
+            return unless newPort.isAttached()
             newPort.beginGroup group
         port.on "data", (data) ->
+            return unless newPort.isAttached()
             newPort.send data
         port.on "endgroup", ->
+            return unless newPort.isAttached()
             newPort.endGroup()
         port.on "disconnect", ->
             newPort.disconnect()
