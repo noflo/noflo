@@ -1,6 +1,6 @@
 class Fbp
     matchPort: new RegExp "([A-Z\.]+)"
-    matchComponent: new RegExp "([A-Za-z]+)\\(([A-Za-z\/\.]+|)\\)"
+    matchComponent: new RegExp "([A-Za-z]+)\\(([A-Za-z0-9\/\.]+|)\\)"
     matchInitial: new RegExp "\'(.+)\'"
     matchConnection: new RegExp "\-\>"
     matchSeparator: new RegExp "[\\s,\\n]"
@@ -10,12 +10,15 @@ class Fbp
         @currentElement = null
         @currentNode = {}
         @currentEdge = {}
+        @currentLine = 1
         @nodes = {}
         @edges = []
 
     parse: (string) ->
         currentString = ""
         for char, index in string
+            @currentLine++ if char is "\n"
+
             # Commenting support. Ignore everything from # to newline
             if char is '#'
                 @currentElement = "comment"
@@ -40,25 +43,25 @@ class Fbp
 
             connection = @matchConnection.exec currentString
             if connection
-                throw "Port or initial expected, got #{currentString}" unless @lastElement is "initial" or @lastElement is "port"
+                throw "Port or initial expected, got #{currentString} on line #{@currentLine}" unless @lastElement is "initial" or @lastElement is "port"
                 @lastElement = "connection"
                 @handleConnection connection
                 currentString = ""
             initial = @matchInitial currentString
             if initial
-                throw "Newline expected, gor #{currentString}" unless @lastElement is null
+                throw "Newline expected, got #{currentString} on line #{@currentLine}" unless @lastElement is null
                 @lastElement = "initial"
                 @handleInitial initial
                 currentString = ""
             component = @matchComponent currentString
             if component
-                throw "Port or newline expected, got #{currentString}" unless @lastElement is "port" or @lastElement is null
+                throw "Port or newline expected, got #{currentString} on line #{@currentLine}" unless @lastElement is "port" or @lastElement is null
                 @lastElement = "component"
                 @handleComponent component
                 currentString = ""
             port = @matchPort currentString
             if port
-                throw "Connection or component expected, got #{currentString}" unless @lastElement is "connection" or @lastElement is "component"
+                throw "Connection or component expected, got #{currentString} on line #{@currentLine}" unless @lastElement is "connection" or @lastElement is "component"
                 @lastElement = "port"
                 @handlePort port
                 currentString = ""
