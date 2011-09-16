@@ -16,7 +16,7 @@ class ReadDocument extends noflo.Component
         @inPorts.connection.on "data", (data) =>
             @connection = data
             return unless @data.length
-            @saveObject data for data in @data
+            @loadObject data for data in @data
 
         @inPorts.in.on "data", (data) =>
             return @loadObject data if @connection
