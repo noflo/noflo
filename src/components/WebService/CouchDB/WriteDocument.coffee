@@ -1,7 +1,7 @@
 noflo = require "noflo"
 couch = require "couch-client"
 
-class SaveObject extends noflo.Component
+class WriteDocument extends noflo.Component
     constructor: ->
         @request = null
         @connection = null
@@ -28,4 +28,4 @@ class SaveObject extends noflo.Component
             return unless @outPorts.out.isAttached()
             @outPorts.out.send document
 
-exports.getComponent = -> new SaveObject
+exports.getComponent = -> new WriteDocument
