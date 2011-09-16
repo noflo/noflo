@@ -115,6 +115,8 @@ class NoFlo
         from = @getNode edge.from.node
         unless from
             throw new Error "No process defined for outbound node #{edge.from.node}"
+        unless from.component
+            throw new Error "No component defined for outbound node #{edge.from.node}"
         unless from.component.isReady()
             from.component.once "ready", =>
                 @addEdge edge
@@ -122,6 +124,8 @@ class NoFlo
         to = @getNode edge.to.node
         unless to
             throw new Error "No process defined for inbound node #{edge.to.node}"
+        unless to.component
+            throw new Error "No component defined for inbound node #{edge.to.node}"
         unless to.component.isReady()
             to.component.once "ready", =>
                 @addEdge edge
