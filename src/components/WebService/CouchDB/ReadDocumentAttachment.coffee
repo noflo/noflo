@@ -34,19 +34,32 @@ class ReadDocumentAttachment extends noflo.Component
 
         return headers
 
-    getRequest: (callback) ->
+    getRequest: (attachment, callback) ->
         options =
             host: @connection.uri.hostname
             method: "GET"
-            path: "#{@connection.uri.pathname}/#{@document['_id']}/#{@attachment}"
+            path: "#{@connection.uri.pathname}/#{@document['_id']}/#{attachment}"
             port: @connection.uri.port
             headers: @getHeaders()
 
         req = @connection.uri.protocolHandler.request options, callback
         req.end()
 
+    getAttachmentNameByIndex: (document, index) ->
+        count = 0
+        index = parseInt index
+        for name, value of document['_attachments']
+            return name if count is index
+            count++
+        return index
+
+    getAttachmentName: (document, attachment) ->
+        return attachment if isNaN attachment - 0
+        return @getAttachmentNameByIndex document, attachment
+
     readAttachment: ->
-        @getRequest (response) =>
+        attachment = @getAttachmentName @document, @attachment
+        @getRequest attachment, (response) =>
             response.setEncoding "binary"
             body = ""
             port = @outPorts.out
