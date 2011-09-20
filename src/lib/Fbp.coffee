@@ -20,7 +20,7 @@ class Fbp
             @currentLine++ if char is "\n"
 
             # Commenting support. Ignore everything from # to newline
-            if char is '#'
+            if char is '#' and @currentElement isnt "initial"
                 @currentElement = "comment"
                 continue
             if @currentElement is "comment"
