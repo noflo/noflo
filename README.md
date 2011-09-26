@@ -300,6 +300,10 @@ To run the unit tests you need [nodeunit](https://github.com/caolan/nodeunit). R
 
     $ nodeunit test/*
 
+## Discussion
+
+Flow-based programming in general, including NoFlo can be discussed on the [Flow Based Programming Google group](http://groups.google.com/group/flow-based-programming).
+
 ### Some ideas
 
 * Real-time status of the NoFlo graph via socket.io, see where data is flowing
