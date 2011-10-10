@@ -27,7 +27,7 @@ app.setPrompt "NoFlo"
 app.network = null
 app.filename = null
 
-normalizePath: (path) ->
+normalizePath = (path) ->
     return path if path.substr(0, 1) is "/"
     "#{process.cwd()}/#{path}"
 
