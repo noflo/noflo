@@ -1,7 +1,7 @@
 noflo = require "noflo"
 base = require "./BasecampComponent"
 
-class ReadHours extends base.BasecampComponent
+class ReadProjectHours extends base.BasecampComponent
     constructor: ->
         @project = null
         do @basePortSetup
@@ -33,4 +33,4 @@ class ReadHours extends base.BasecampComponent
             target.disconnect()
     
 exports.getComponent = ->
-    new ReadHours
+    new ReadProjectHours

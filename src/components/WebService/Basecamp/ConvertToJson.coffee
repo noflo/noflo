@@ -61,7 +61,7 @@ class ConvertToJson extends noflo.Component
             "prj:reporter": "#{@id}people/#{data['person-id']['#']}"
             "prj:inProject": "#{@id}projects/#{data['project-id']['#']}"
         
-        if data['todo-item-id']
+        if data['todo-item-id']['#']
             json['prj:inTask'] = "#{@id}todo_items/#{data['todo-item-id']['#']}"
 
         json
