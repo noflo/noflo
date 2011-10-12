@@ -16,7 +16,7 @@
       "component": "ReadFile"
     },
     "Greet User": {
-      "component": "../examples/http/HelloController"
+      "component": "./examples/http/HelloController"
     },
     "Render": {
       "component": "Template"
