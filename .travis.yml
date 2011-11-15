@@ -1,0 +1,9 @@
+language: node_js
+node_js:
+  - 0.4
+  - 0.6
+
+before_script:
+  - test/travis.sh
+
+script: nodeunit test-node 
