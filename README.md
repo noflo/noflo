@@ -298,7 +298,11 @@ NoFlo development happens on GitHub. Just fork the [main repository](https://git
 
 To run the unit tests you need [nodeunit](https://github.com/caolan/nodeunit). Run the tests with:
 
-    $ nodeunit test/*
+    $ nodeunit test
+
+or:
+
+    $ npm test
 
 ## Discussion
 
