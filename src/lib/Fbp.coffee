@@ -47,19 +47,19 @@ class Fbp
                 @lastElement = "connection"
                 @handleConnection connection
                 currentString = ""
-            initial = @matchInitial currentString
+            initial = @matchInitial.exec currentString
             if initial
                 throw "Newline expected, got #{currentString} on line #{@currentLine}" unless @lastElement is null
                 @lastElement = "initial"
                 @handleInitial initial
                 currentString = ""
-            component = @matchComponent currentString
+            component = @matchComponent.exec currentString
             if component
                 throw "Port or newline expected, got #{currentString} on line #{@currentLine}" unless @lastElement is "port" or @lastElement is null
                 @lastElement = "component"
                 @handleComponent component
                 currentString = ""
-            port = @matchPort currentString
+            port = @matchPort.exec currentString
             if port
                 throw "Connection or component expected, got #{currentString} on line #{@currentLine}" unless @lastElement is "connection" or @lastElement is "component"
                 @lastElement = "port"
