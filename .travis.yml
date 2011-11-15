@@ -7,3 +7,6 @@ before_script:
   - test/travis.sh
 
 script: npm test
+
+notifications:
+    irc: "irc.freenode.org#fbp"
