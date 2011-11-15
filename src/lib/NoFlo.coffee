@@ -190,9 +190,3 @@ exports.ArrayPort = arrayport.ArrayPort
 exports.Graph = graph.Graph
 exports.graph = graph
 exports.internalSocket = internalSocket
-
-# Method for extending include paths for
-# NoFlo components
-exports.addComponentIncludePaths = (paths) ->
-  for path in paths
-    require.paths.unshift path
