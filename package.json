@@ -20,6 +20,10 @@
         "daemon": ">=0.3.0",
         "glob": ">=2.0.7"
     },
+    "devDependencies": {
+        "nodeunit"  : ">=0.6.0",
+        "coffee-script": ">=1.1.0"
+    },
     "main":         "./lib/NoFlo",
     "bin":          {
         "noflo":        "./bin/noflo"
@@ -27,5 +31,8 @@
     "repository":   {
         "type":         "git",
         "url":          "git://github.com/bergie/noflo.git"
+    },
+    "scripts":    {
+        "test": "./node_modules/nodeunit/bin/nodeunit test"
     }
 }
