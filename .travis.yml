@@ -6,4 +6,4 @@ node_js:
 before_script:
   - test/travis.sh
 
-script: nodeunit test-node 
+script: npm test
