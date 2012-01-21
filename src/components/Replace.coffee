@@ -4,7 +4,6 @@ class Replace extends noflo.Component
     constructor: ->
         @pattern = null
         @replacement = ""
-        @string = ""
 
         @inPorts =
             in: new noflo.Port()
@@ -18,13 +17,11 @@ class Replace extends noflo.Component
         @inPorts.replacement.on "data", (data) =>
             @replacement = data
         @inPorts.in.on "data", (data) =>
-            @string += data
-        @inPorts.in.on "disconnect", =>
-            newString = @string
+            string = data
             if @pattern?
-                newString = @string.replace @pattern, @replacement
-            @outPorts.out.send newString
+                string = data.replace @pattern, @replacement
+            @outPorts.out.send string
+        @inPorts.in.on "disconnect", =>
             @outPorts.out.disconnect()
-            @string = ""
 
 exports.getComponent = -> new Replace
