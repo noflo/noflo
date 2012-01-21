@@ -40,8 +40,8 @@ class ScrapeHtml extends noflo.Component
                 @outPorts.error.send err
                 return @outPorts.error.disconnect()
             win.$(crap).remove() for crap in @crapSelectors
-            data = win.$(@textSelector).text()
-            @outPorts.out.send data
+            for text in (win.$(@textSelector).map -> win.$(this).text())
+                @outPorts.out.send text
             @outPorts.out.disconnect()
             @html = ""
 
