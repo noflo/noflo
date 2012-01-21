@@ -15,22 +15,25 @@ class ScrapeHtml extends noflo.Component
             out: new noflo.Port()
             error: new noflo.Port()
 
+        html = ""
         @inPorts.in.on "data", (data) =>
-            @html += data
+            html += data
         @inPorts.in.on "disconnect", =>
-            return unless @textSelector.length
+            @html = html
+            html = ""
             @scrapeHtml()
 
         @inPorts.textSelector.on "data", (data) =>
             @textSelector = data
         @inPorts.textSelector.on "disconnect", =>
-            return unless @html.length
             @scrapeHtml()
 
         @inPorts.crapSelector.on "data", (data) =>
             @crapSelectors.push data
 
     scrapeHtml: ->
+        return unless @html.length
+        return unless @textSelector.length
         target = @outPorts.out
         jsdom.env @html, ['http://code.jquery.com/jquery.min.js'], (err, win) =>
             if err
