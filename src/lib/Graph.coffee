@@ -159,9 +159,9 @@ exports.loadJSON = (definition, success) ->
 
     for conn in definition.connections
         if conn.data
-            graph.addInitial conn.data, conn.tgt.process, conn.tgt.port
+            graph.addInitial conn.data, conn.tgt.process, conn.tgt.port.toLowerCase()
             continue
-        graph.addEdge conn.src.process, conn.src.port, conn.tgt.process, conn.tgt.port
+        graph.addEdge conn.src.process, conn.src.port.toLowerCase(), conn.tgt.process, conn.tgt.port.toLowerCase()
 
     success graph
 
