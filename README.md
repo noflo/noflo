@@ -204,6 +204,12 @@ NoFlo comes with a command shell that you can use to load, run and manipulate No
 
 You can run _help_ to see all available NoFlo shell commands, and _quit_ to get out of the shell.
 
+## Designing NoFlo graphs with DrawFBP
+
+As of version 2.6 onwards, the [DrawFBP](http://www.jpaulmorrison.com/cgi-bin/wiki.pl?DrawFBP) GUI tool for designing Flow-Based Programming graphs is able to generate graphs compatible with NoFlo.
+
+The graphs can be exported to NoFlo format from the _File -> Generate network -> NoFlo_ menu and then run normally.
+
 ## The web-based NoFlo monitor
 
 In addition to the shell, NoFlo also comes with a web interface that allows loaded graphs to be monitored. To start it, load a graph into the NoFlo shell, and run:
