@@ -1,14 +1,16 @@
 <?xml version="1.0"?> 
-<net> <desc>Count lines in a text file</desc> <title>linecount</title> <clicktogrid/> <blocks><block> <x> 255 </x> <y> 116 </y> <id> 1 </id> <type>B</type> <width>92</width> <height>64</height> <description>Read</description> <blockclassname>/home/bergie/Projects/noflo/components/ReadFile.js</blockclassname> </block> 
+<net> <desc>Count lines in a text file</desc> <title>count</title> <clicktogrid/> <blocks><block> <x> 255 </x> <y> 116 </y> <id> 1 </id> <type>B</type> <width>92</width> <height>64</height> <description>Read</description> <blockclassname>/home/bergie/Projects/noflo/components/ReadFile.js</blockclassname> </block> 
 <block> <x> 622 </x> <y> 116 </y> <id> 2 </id> <type>B</type> <width>92</width> <height>64</height> <description>Split</description> <blockclassname>/home/bergie/Projects/noflo/components/SplitStr.js</blockclassname> </block> 
 <block> <x> 996 </x> <y> 116 </y> <id> 3 </id> <type>B</type> <width>92</width> <height>64</height> <description>Count</description> <blockclassname>/home/bergie/Projects/noflo/components/Counter.js</blockclassname> </block> 
 <block> <x> 996 </x> <y> 356 </y> <id> 4 </id> <type>B</type> <width>92</width> <height>64</height> <description>Display</description> <blockclassname>/home/bergie/Projects/noflo/components/Output.js</blockclassname> </block> 
-<block> <x> 108 </x> <y> 112 </y> <id> 5 </id> <type>I</type> <width>88</width> <height>15</height> <description>"package.json"</description> </block> 
+<block> <x> 108 </x> <y> 112 </y> <id> 5 </id> <type>I</type> <width>102</width> <height>15</height> <description>"package.json"</description> </block> 
+<block> <x> 478 </x> <y> 88 </y> <id> 6 </id> <type>I</type> <width>32</width> <height>15</height> <description>"\n"</description> </block> 
 </blocks> <connections>
 <connection> <fromx>999</fromx> <fromy>148</fromy> <tox>994</tox> <toy>324</toy> <fromid>3</fromid> <toid>4</toid> <id>4</id> <upstreamport>COUNT</upstreamport><downstreamport>IN</downstreamport><fromside> B </fromside><toside> T </toside></connection> 
 <connection> <fromx>301</fromx> <fromy>117</fromy> <tox>576</tox> <toy>118</toy> <fromid>1</fromid> <toid>2</toid> <id>5</id> <upstreamport>OUT</upstreamport><downstreamport>IN</downstreamport><fromside> R </fromside><toside> L </toside></connection> 
 <connection> <fromx>668</fromx> <fromy>114</fromy> <tox>950</tox> <toy>113</toy> <fromid>2</fromid> <toid>3</toid> <id>6</id> <upstreamport>OUT</upstreamport><downstreamport>IN</downstreamport><fromside> R </fromside><toside> L </toside></connection> 
 <connection> <fromx>258</fromx> <fromy>148</fromy> <tox>950</tox> <toy>359</toy> <fromid>1</fromid> <toid>4</toid> <id>7</id> <upstreamport>ERROR</upstreamport><downstreamport>IN</downstreamport><bends> <bend> <x>260</x> <y> 356</y> </bend>
- </bends> <fromside> B </fromside><toside> L </toside></connection> 
+ </bends> </connection> 
 <connection> <fromx>147</fromx> <fromy>119</fromy> <tox>209</tox> <toy>119</toy> <fromid>5</fromid> <toid>1</toid> <id>8</id> <upstreamport>OUT</upstreamport><downstreamport>SOURCE</downstreamport><fromside> B </fromside><toside> L </toside></connection> 
+<connection> <fromx>494</fromx> <fromy>93</fromy> <tox>576</tox> <toy>92</toy> <fromid>6</fromid> <toid>2</toid> <id>9</id> <upstreamport>OUT</upstreamport><downstreamport>DELIMITER</downstreamport><fromside> R </fromside><toside> L </toside></connection> 
 </connections> <genCodeFileNames> /home/bergie/Projects/noflo/examples/linecount/count2.json</genCodeFileNames> </net>
