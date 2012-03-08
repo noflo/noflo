@@ -14,10 +14,11 @@ class Graph extends events.EventEmitter
         @initializers = []
         @name = name
 
-    addNode: (id, component) ->
+    addNode: (id, component, display) ->
         node =
             id: id
             component: component
+            display: display
         @nodes.push node
         @emit "addNode", node
 
@@ -121,6 +122,8 @@ class Graph extends events.EventEmitter
         for node in @nodes
             json.processes[node.id] =
                 component: node.component
+            if node.display
+                json.processes[node.id].display = node.display
 
         for edge in @edges
             json.connections.push
@@ -155,7 +158,7 @@ exports.loadJSON = (definition, success) ->
     graph = new Graph definition.properties.name
 
     for id, def of definition.processes
-        graph.addNode id, def.component
+        graph.addNode id, def.component, def.display
 
     for conn in definition.connections
         if conn.data

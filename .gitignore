@@ -3,4 +3,4 @@ node_modules
 bin/*.js
 lib/*.js
 components/*
-server/static/js/network.js
+server/static/js/*.js
