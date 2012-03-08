@@ -22,7 +22,6 @@ jsPlumb.bind "ready", ->
     jsPlumb.Defaults.PaintStyle =
         strokeStyle: "#5c3566"
         lineWidth: 6 
-    jsPlumb.setMouseEventsEnabled true
     jsPlumb.Defaults.DragOptions =
         cursor: "pointer"
         zIndex: 2000
@@ -68,6 +67,13 @@ jsPlumb.bind "ready", ->
                     isTarget: true
                     maxConnections: maxConnections
                     anchor: inAnchors[index]
+                    overlays: [
+                      [
+                        "Label",
+                          location: [-1.5,-0.5]
+                          label: port.name
+                      ]
+                    ]
                 , endPoints.obj
 
             for port,index in node.outPorts
@@ -79,6 +85,13 @@ jsPlumb.bind "ready", ->
                     isTarget: false
                     maxConnections: maxConnections
                     anchor: outAnchors[index]
+                    overlays: [
+                      [
+                        "Label",
+                          location: [2,-0.5]
+                          label: port.name
+                      ]
+                    ]
                 , endPoints.obj
 
             plumbNodes[node.cleanId] = node
@@ -91,15 +104,3 @@ jsPlumb.bind "ready", ->
             jsPlumb.connect
                 source: plumbNodes[edge.from.cleanNode].outEndpoints[edge.from.port]
                 target: plumbNodes[edge.to.cleanNode].inEndpoints[edge.to.port]
-                overlays: [
-                    [ "Label",
-                        label: edge.from.port
-                        location: 0.2
-                        cssClass: "outPort"
-                    ],
-                    [ "Label",
-                        label: edge.to.port
-                        location: 0.8
-                        cssClass: "inPort"
-                    ]
-                ]
