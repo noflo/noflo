@@ -141,6 +141,12 @@ view.Network = Backbone.View.extend
     element = jQuery @el
     element.empty()
 
+    element.append jQuery "<header><h1>#{@model.get('name')}</h1><div id='uptime'></div>"
+    jQuery('#uptime').countdown
+      since: new Date @model.get 'started'
+      format: 'YOWDHM'
+      significant: 2
+
     _(@nodeViews).each (nodeView) ->
       element.append nodeView.render().el
       nodeView.renderPorts()
@@ -311,11 +317,3 @@ jsPlumb.bind "ready", ->
       do Backbone.history.start
     error: ->
       jQuery('#noflo').empty().append jQuery('<div>Failed to fetch networks</div>')
-
-###
-    jQuery.get "/network/" + jQuery('#network').attr('about'), (data) ->
-        jQuery('#uptime').countdown
-            since: new Date data.started
-            format: "YOWDHM"
-            significant: 2
-###
