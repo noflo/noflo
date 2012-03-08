@@ -1,12 +1,66 @@
-jsPlumb.bind "ready", ->
-    plumbNodes = {}
+plumbNodes = {}
 
+addPort = (node, port, inPort, anchor, endpointProto) ->
+  portOptions = 
+    isSource: true
+    isTarget: false
+    maxConnections: if port.type is "array" then -1 else 1
+    anchor: anchor
+    overlays: [
+      [
+        "Label"
+          location: [2.5,-0.5]
+          label: port.name
+      ]
+    ]
+
+  if inPort
+    portOptions.isSource = false
+    portOptions.isTarget = true
+    portOptions.overlays[0][1].location = [-1.5, -0.5]
+
+  endPoint = jsPlumb.addEndpoint node.domNode, portOptions, endpointProto
+
+addComponent = (node, endPoints) ->
+  domNode = jQuery("##{node.cleanId}")
+  domNode.addClass "component"
+  node.domNode = domNode
+            
+  position = getNodePosition node
+  domNode.css "top", position.y
+  domNode.css "left", position.x
+
+  node.inEndpoints = {}
+  node.outEndpoints = {}
+
+  inAnchors = ["LeftMiddle", "TopLeft", "BottomLeft"]
+  outAnchors = ["RightMiddle", "TopRight", "BottonRight"]
+
+  for port, index in node.inPorts
+    node.inEndpoints[port.name] = addPort node, port, true, inAnchors[index], endPoints.obj
+
+  for port,index in node.outPorts
+    node.outEndpoints[port.name] = addPort node, port, false, outAnchors[index], endPoints.obj
+
+  plumbNodes[node.cleanId] = node
+  jsPlumb.draggable domNode
+
+getNodePosition = (node) ->
+  previousPosition ?= 
+    x: 0
+    y: 0
+ 
+  if node.display and node.display.x and node.display.y
+    previousPosition = node.display
+    return node.display
+
+  previousPosition =
+    x: previousPosition.x + 200
+    y: previousPosition.y + 50
+
+jsPlumb.bind "ready", ->
     document.onselectstart = -> 
         false
-
-    previousPosition = 
-        x: 0
-        y: 0
 
     endPoints =
         obj:
@@ -26,15 +80,6 @@ jsPlumb.bind "ready", ->
         cursor: "pointer"
         zIndex: 2000
 
-    getNodePosition = (node) ->
-        if node.display and node.display.x and node.display.y
-            previousPosition = node.display
-            return node.display
-
-        previousPosition =
-            x: previousPosition.x + 200
-            y: previousPosition.y + 50
-
     jsPlumb.setRenderMode jsPlumb.CANVAS
 
 
@@ -44,59 +89,7 @@ jsPlumb.bind "ready", ->
             format: "YOWDHM"
             significant: 2
 
-        for node in data.nodes
-            domNode = jQuery("##{node.cleanId}")
-            domNode.addClass "component"
-            
-            position = getNodePosition node
-            domNode.css "top", position.y
-            domNode.css "left", position.x
-
-            node.inEndpoints = {}
-            node.outEndpoints = {}
-
-            inAnchors = ["LeftMiddle", "TopLeft", "BottomLeft"]
-            outAnchors = ["RightMiddle", "TopRight", "BottonRight"]
-
-            for port,index in node.inPorts
-                maxConnections = 1
-                if port.type is "array"
-                    maxConnections = -1
-                node.inEndpoints[port.name] = jsPlumb.addEndpoint domNode,
-                    isSource: false
-                    isTarget: true
-                    maxConnections: maxConnections
-                    anchor: inAnchors[index]
-                    overlays: [
-                      [
-                        "Label",
-                          location: [-1.5,-0.5]
-                          label: port.name
-                      ]
-                    ]
-                , endPoints.obj
-
-            for port,index in node.outPorts
-                maxConnections = 1
-                if port.type is "array"
-                    maxConnections = -1
-                node.outEndpoints[port.name] = jsPlumb.addEndpoint domNode,
-                    isSource: true
-                    isTarget: false
-                    maxConnections: maxConnections
-                    anchor: outAnchors[index]
-                    overlays: [
-                      [
-                        "Label",
-                          location: [2,-0.5]
-                          label: port.name
-                      ]
-                    ]
-                , endPoints.obj
-
-            plumbNodes[node.cleanId] = node
-
-            jsPlumb.draggable domNode
+        addComponent node, endPoints for node in data.nodes
 
         for edge in data.edges
             unless edge.from.node
