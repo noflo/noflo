@@ -6,29 +6,29 @@
         "ReadFile": {
             "component": "ReadFile",
             "display": {
-                "x": 61,
-                "y": 165
+                "x": 91,
+                "y": 154
             }
         },
         "SplitbyLines": {
             "component": "SplitStr",
             "display": {
-                "x": 190,
-                "y": 399
+                "x": 209,
+                "y": 414
             }
         },
         "CountLines": {
             "component": "Counter",
             "display": {
-                "x": 201,
-                "y": 816
+                "x": 206,
+                "y": 750
             }
         },
         "Display": {
             "component": "Output",
             "display": {
-                "x": 49,
-                "y": 989
+                "x": 71,
+                "y": 1003
             }
         }
     },
