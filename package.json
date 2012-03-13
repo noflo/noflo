@@ -28,6 +28,7 @@
     "bin":          {
         "noflo":        "./bin/noflo"
     },
+    "homepage": "http://noflojs.org/",
     "repository":   {
         "type":         "git",
         "url":          "git://github.com/bergie/noflo.git"
