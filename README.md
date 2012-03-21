@@ -97,7 +97,8 @@ Minimal component written in CoffeeScript would look like the following:
     noflo = require "noflo"
 
     class Forwarder extends noflo.Component
-        description: "This component receives data on a single input port and sends the same data out to the output port"
+        description: "This component receives data on a single input 
+    port and sends the same data out to the output port"
 
         constructor: ->
             # Register ports
