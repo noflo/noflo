@@ -1,11 +1,21 @@
-# The main NoFlo runner
-
+#     NoFlo - Flow-Based Programming for Node.js
+#     (c) 2011 Henri Bergius, Nemein
+#     NoFlo may be freely distributed under the MIT license
 internalSocket = require "./InternalSocket"
 component = require "./Component"
 port = require "./Port"
 arrayport = require "./ArrayPort"
 graph = require "./Graph"
 
+# # The NoFlo network coordinator
+#
+# NoFlo networks consist of processes connected to each other
+# via sockets attached from outports to inports.
+#
+# The role of the network coordinator is to take a graph and
+# instantiate all the necessary processes from the designated
+# components, attach sockets between them, and handle the sending
+# of Initial Information Packets.
 class NoFlo
     processes: {}
     connections: []
@@ -17,21 +27,39 @@ class NoFlo
         @connections = []
         @graph = graph
 
+        # As most NoFlo networks are long-running processes, the
+        # network coordinator marks down the start-up time. This
+        # way we can calculate the uptime of the network.
         @startupDate = new Date()
 
-        @graph.on "addNode", (node) =>
+        # A NoFlo graph may change after network initialization.
+        # For this, the network subscribes to the change events from
+        # the graph.
+        #
+        # In graph we talk about nodes and edges. Nodes correspond
+        # to NoFlo processes, and edges to connections between them.
+        @graph.on 'addNode', (node) =>
             @addNode node
-        @graph.on "removeNode", (node) =>
+        @graph.on 'removeNode', (node) =>
             @removeNode node
-        @graph.on "addEdge", (edge) =>
+        @graph.on 'addEdge', (edge) =>
             @addEdge edge
-        @graph.on "removeEdge", (edge) =>
+        @graph.on 'removeEdge', (edge) =>
             @removeEdge edge
 
+    # The uptime of the network is the current time minus the start-up
+    # time, in seconds.
     uptime: -> new Date() - @startupDate
 
+    # ## Loading components
+    #
+    # Components can be passed to the NoFlo network in two ways:
+    #
+    # * As direct, instantiated JavaScript objects
+    # * As filenames
     load: (component) ->
-        if typeof component is "object"
+        # Direct component instance, return as is
+        if typeof component is 'object'
             return component
         try
             if component.substr(0, 1) is "."
@@ -46,19 +74,27 @@ class NoFlo
                 throw error
         implementation.getComponent()
 
+    # ## Add a process to the network
+    # 
+    # Processes can be added to a network at either start-up time
+    # or later. The processes are added with a node definition object
+    # that includes the following properties:
+    #
+    # * `id`: Identifier of the process in the network. Typically a string
+    # * `component`: Filename or path of a NoFlo component, or a component instance object
     addNode: (node) ->
+        # Processes are treated as singletons by their identifier. If
+        # we already have a process with the given ID, return that.
         return if @processes[node.id]
 
-        process = {}
+        process =
+          id: node.id
 
+        # Load the process for the node.
         if node.component
             process.component = @load node.component
 
-        process.id = node.id
-
-        if node.config and process.component.initialize
-            process.component.initialize node.config
-
+        # Store and return the process instance 
         @processes[process.id] = process
 
     removeNode: (node) ->
@@ -68,6 +104,7 @@ class NoFlo
 
         delete @processes[node.id]
 
+    # Get process by its ID.
     getNode: (id) ->
         @processes[id]
 
@@ -139,7 +176,7 @@ class NoFlo
     removeEdge: (edge) ->
         for connection,index in @connections
             if edge.to.node is connection.to.process.id and edge.to.port is connection.to.port
-                connection.to.process.component.inPorts[connection.to.port].detach connection
+                connection.to.process.component.inPorts[connection.to.port]?.detach connection
                 @connections.splice index, 1
             if edge.from.node
                 if connection.from and edge.from.node is connection.from.process.id and edge.from.port is connection.from.port
