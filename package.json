@@ -22,7 +22,8 @@
     },
     "devDependencies": {
         "nodeunit"  : ">=0.6.0",
-        "coffee-script": ">=1.1.0"
+        "coffee-script": ">=1.1.0",
+        "docco-husky": ">=0.3.2"
     },
     "main":         "./lib/NoFlo",
     "bin":          {
@@ -35,5 +36,9 @@
     },
     "scripts":    {
         "test": "./node_modules/nodeunit/bin/nodeunit test"
+    },
+    "docco_husky": {
+      "output_dir": "docs",
+      "project_name": "NoFlo"
     }
 }

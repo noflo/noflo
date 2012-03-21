@@ -1,6 +1,5 @@
-exec = require('child_process').exec
-
-fs = require "fs"
+{exec} = require 'child_process'
+fs = require 'fs'
 
 buildFile = (parentPath, dir, file) ->
   exec "coffee -o #{parentPath}/#{dir} -c #{parentPath}/src/#{dir}/#{file}", (err, stdout, stderr) ->
@@ -17,11 +16,19 @@ buildDir = (path) ->
         return unless stats.isDirectory()
         buildDir "#{path}/#{file}"
 
-task 'build', ->
+# deal with errors from child processes
+exerr = (err, sout, serr) ->
+  console.log err if err
+  console.log sout if sout
+  console.log serr if serr
+
+task 'build', 'transpile CoffeeScript sources to JavaScript', ->
   buildDir "lib"
   buildDir "components"
   buildDir "bin"
 
-task 'test', -> 
-  exec 'nodeunit test', (err) ->
-    console.log err if err
+task 'test', 'run the unit tests', -> 
+  exec 'npm test', exerr
+
+task 'doc', 'generate documentation for *.coffee files', ->
+  exec "docco-husky src", exerr
