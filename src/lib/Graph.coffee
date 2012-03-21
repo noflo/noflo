@@ -1,27 +1,64 @@
-fs = require "fs"
-events = require "events"
-fbp = require "./Fbp"
+#     NoFlo - Flow-Based Programming for Node.js
+#     (c) 2011 Henri Bergius, Nemein
+#     NoFlo may be freely distributed under the MIT license
+fs = require 'fs'
+events = require 'events'
+fbp = require './Fbp'
 
+# # NoFlo network graph
+#
+# This class represents an abstract NoFlo graph containing nodes
+# connected to each other with edges.
+#
+# These graphs can be used for visualization and sketching, but
+# also are the way to start a NoFlo network.
 class Graph extends events.EventEmitter
-    name: ""
+    name: ''
     nodes: []
     edges: []
     initializers: []
 
-    constructor: (name) ->
+    # ## Creating new graphs
+    #
+    # Graphs are created by simply instantiating the Graph class
+    # and giving it a name:
+    #
+    #     myGraph = new Graph 'My very cool graph'
+    constructor: (@name) ->
         @nodes = []
         @edges = []
         @initializers = []
-        @name = name
 
+    # ## Adding a node to the graph
+    #
+    # Nodes are identified by an ID unique to the graph. Additionally,
+    # a node may contain information on what NoFlo component it is and
+    # possible display coordinates.
+    #
+    # For example:
+    # 
+    #     myGraph.addNode 'Read, 'ReadFile',
+    #       x: 91
+    #       y: 154
+    #
+    # Addition of a node will emit the `addNode` event.
     addNode: (id, component, display) ->
         node =
             id: id
             component: component
             display: display
         @nodes.push node
-        @emit "addNode", node
+        @emit 'addNode', node
 
+    # ## Removing a node from the graph
+    #
+    # Existing nodes can be removed from a graph by their ID. This
+    # will remove the node and also remove all edges connected to it.
+    #
+    #     myGraph.removeNode 'Read'
+    #
+    # Once the node has been removed, the `removeNode` event will be
+    # emitted.
     removeNode: (id) ->
         node =
             id: id
@@ -36,16 +73,28 @@ class Graph extends events.EventEmitter
             if initializer.to.node is node.id
                 @removeEdge initializer.to.node, initializer.to.port
 
-        @emit "removeNode", node
+        @emit 'removeNode', node
 
         if @nodes.indexOf node isnt -1
             @nodes.splice @nodes.indexOf(node), 1
 
+    # ## Getting a node
+    #
+    # Nodes objects can be retrieved from the graph by their ID:
+    #
+    #     myNode = myGraph.getNode 'Read'
     getNode: (id) ->
         for node in @nodes
-            if node.id is id
-                return node
+            return node if node.id is id
 
+    # ## Connecting nodes
+    #
+    # Nodes can be connected by adding edges between a node's outport
+    # and another node's inport:
+    #
+    #     myGraph.addEdge 'Read', 'out', 'Display', 'in'
+    #
+    # Adding an edge will emit the `addEdge` event.
     addEdge: (outNode, outPort, inNode, inPort) ->
         edge =
             from:
@@ -55,22 +104,47 @@ class Graph extends events.EventEmitter
                 node: inNode
                 port: inPort
         @edges.push edge
-        @emit "addEdge", edge
+        @emit 'addEdge', edge
 
+    # ## Disconnected nodes
+    #
+    # Connections between nodes can be removed by providing the
+    # node and port to disconnect. The specified node and port can
+    # be either the outport or the inport of the connection:
+    #
+    #     myGraph.removeEdge 'Read', 'out'
+    #
+    # or:
+    # 
+    #     myGraph.removeEdge 'Display', 'in'
+    #
+    # Removing a connection will emit the `removeEdge` event.
     removeEdge: (node, port) ->
         for edge,index in @edges
             if edge.from.node is node and edge.from.port is port
-                @emit "removeEdge", edge
+                @emit 'removeEdge', edge
                 @edges.splice index, 1
             if edge.to.node is node and edge.to.port is port
-                @emit "removeEdge", edge
+                @emit 'removeEdge', edge
                 @edges.splice index, 1
 
         for edge,index in @initializers
             if edge.to.node is node and edge.to.port is port
-                @emit "removeEdge", edge
+                @emit 'removeEdge', edge
                 @initializers.splice index, 1
 
+    # ## Adding Initial Information Packets
+    #
+    # Initial Information Packets (IIPs) can be used for sending data
+    # to specified node inports without a sending node instance.
+    #
+    # IIPs are especially useful for sending configuration information
+    # to components at NoFlo network start-up time. This could include
+    # filenames to read, or network ports to listen to.
+    #
+    #     myGraph.addInitial 'somefile.txt', 'Read', 'source'
+    #
+    # Adding an IIP will emit a `addEdge` event.
     addInitial: (data, node, port) ->
         initializer =
             from:
@@ -79,7 +153,7 @@ class Graph extends events.EventEmitter
                 node: node
                 port: port
         @initializers.push initializer
-        @emit "addEdge", initializer
+        @emit 'addEdge', initializer
 
     toDOT: ->
         cleanID = (id) ->
