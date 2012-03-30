@@ -3,23 +3,36 @@ jsdom = require "jsdom"
 
 class ScrapeHtml extends noflo.Component
     constructor: ->
-        @html = ""
+        @html = []
         @textSelector = ""
-        @crapSelectors = []
+        @ignoreSelectors = []
 
         @inPorts =
             in: new noflo.Port()
             textSelector: new noflo.Port()
-            crapSelector: new noflo.ArrayPort()
+            ignoreSelector: new noflo.ArrayPort()
         @outPorts =
             out: new noflo.Port()
             error: new noflo.Port()
 
         html = ""
+        @inPorts.in.on "connect", =>
+            @html = []
+        @inPorts.in.on "begingroup", (group) =>
+            @outPorts.out.beginGroup group
         @inPorts.in.on "data", (data) =>
             html += data
+        @inPorts.in.on "endgroup", =>
+            @once "scraped", =>
+                @outPorts.out.endGroup()
+            @html.push html
+            html = ""
+            @scrapeHtml()
         @inPorts.in.on "disconnect", =>
-            @html = html
+            @once "scraped", =>
+                @outPorts.out.disconnect()
+            return if @html.length > 0 # we are using groups
+            @html.push html
             html = ""
             @scrapeHtml()
 
@@ -28,21 +41,22 @@ class ScrapeHtml extends noflo.Component
         @inPorts.textSelector.on "disconnect", =>
             @scrapeHtml()
 
-        @inPorts.crapSelector.on "data", (data) =>
-            @crapSelectors.push data
+        @inPorts.ignoreSelector.on "data", (data) =>
+            @ignoreSelectors.push data
 
     scrapeHtml: ->
-        return unless @html.length
-        return unless @textSelector.length
-        target = @outPorts.out
-        jsdom.env @html, ['http://code.jquery.com/jquery.min.js'], (err, win) =>
-            if err
-                @outPorts.error.send err
-                return @outPorts.error.disconnect()
-            win.$(crap).remove() for crap in @crapSelectors
-            for text in (win.$(@textSelector).map -> win.$(this).text())
-                @outPorts.out.send text
-            @outPorts.out.disconnect()
-            @html = ""
+        return unless @html.length > 0
+        return unless @textSelector.length > 0
+        for h in @html
+            jsdom.env h, ['http://code.jquery.com/jquery.min.js'], (err, win) =>
+                if err
+                    @outPorts.error.send err
+                    return @outPorts.error.disconnect()
+                win.$(ignore).remove() for ignore in @ignoreSelectors
+                win.$(@textSelector).map (i,e) =>
+                    @outPorts.out.beginGroup e.id if e.hasAttribute "id"
+                    @outPorts.out.send win.$(e).text()
+                    @outPorts.out.endGroup() if e.hasAttribute "id"
+                @emit "scraped"
 
 exports.getComponent = -> new ScrapeHtml
