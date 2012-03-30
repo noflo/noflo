@@ -16,11 +16,16 @@ class Replace extends noflo.Component
             @pattern = new RegExp(data, 'g')
         @inPorts.replacement.on "data", (data) =>
             @replacement = data
+
+        @inPorts.in.on "begingroup", (group) =>
+            @outPorts.out.beginGroup group
         @inPorts.in.on "data", (data) =>
             string = data
             if @pattern?
                 string = data.replace @pattern, @replacement
             @outPorts.out.send string
+        @inPorts.in.on "endgroup", =>
+            @outPorts.out.endGroup()
         @inPorts.in.on "disconnect", =>
             @outPorts.out.disconnect()
 
