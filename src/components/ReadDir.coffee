@@ -7,9 +7,12 @@ noflo = require "noflo"
 
 class ReadDir extends noflo.Component
     constructor: ->
-        @inPorts.source = new noflo.Port()
-        @outPorts.out = new noflo.Port()
-        @outPorts.error = new noflo.Port()
+        @inPorts =
+            source: new noflo.Port()
+        @outPorts =
+            out: new noflo.Port()
+            error: new noflo.Port()
+
         @inPorts.source.on "data", (data) =>
             @readdir data
 
