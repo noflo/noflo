@@ -1,8 +1,6 @@
 events = require "events"
 
 class Component extends events.EventEmitter
-    inPorts: {}
-    outPorts: {}
     description: ""
 
     getDescription: ->

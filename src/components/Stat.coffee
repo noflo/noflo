@@ -7,9 +7,12 @@ noflo = require "noflo"
 
 class Stat extends noflo.Component
     constructor: ->
-        @inPorts.in = new noflo.Port()
-        @outPorts.out = new noflo.Port()
-        @outPorts.error = new noflo.Port()
+        @inPorts =
+            in: new noflo.Port()
+        @outPorts =
+            out: new noflo.Port()
+            error: new noflo.Port()
+
         @inPorts.in.on "data", (data) =>
             @stat data
 
