@@ -1,5 +1,5 @@
 fs = require "fs"
-readdir = require "../src/components/Readdir"
+readdir = require "../src/components/ReadDir"
 socket = require "../src/lib/InternalSocket"
 
 setupComponent = ->
