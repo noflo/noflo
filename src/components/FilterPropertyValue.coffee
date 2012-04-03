@@ -32,7 +32,12 @@ class FilterPropertyValue extends noflo.Component
             return
 
         mapParts = map.split "="
-        @accepts[mapParts[0]] = mapParts[1]
+        try
+            @accepts[mapParts[0]] = eval mapParts[1]
+        catch e
+            if e instanceof ReferenceError
+                @accepts[mapParts[0]] = mapParts[1]
+            else throw e
 
     prepareRegExp: (map) ->
         mapParts = map.split "="
@@ -42,16 +47,16 @@ class FilterPropertyValue extends noflo.Component
         newData = {}
         match = false
         for property, value of object
-            if @accepts[property] and @accepts[property] isnt value
-                continue
+            if @accepts[property]
+                continue unless @accepts[property] is value
+                match = true
 
             if @regexps[property]
                 regexp = new RegExp @regexps[property]
-                unless regexp.exec value
-                    continue
+                continue unless regexp.exec value
+                match = true
 
             newData[property] = value
-            match = true
             continue
 
         return unless match
