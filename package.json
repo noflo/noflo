@@ -2,9 +2,10 @@
     "name":         "noflo",
     "description":  "Flow-Based Programming environment for Node.js",
     "keywords":     ["fbp", "workflow", "flow"],
-    "author":       "Henri Bergius",
+    "author":       "Henri Bergius <henri.bergius@iki.fi>",
     "contributors": [
-        "Jerry Jalava"
+        "Jerry Jalava",
+        "Ryan Shaw"
     ],
     "version":      "0.0.2",
     "licenses":     [{
@@ -22,6 +23,7 @@
     },
     "devDependencies": {
         "nodeunit"  : ">=0.6.0",
+        "async"     : ">=0.1.18",
         "coffee-script": ">=1.1.0",
         "docco-husky": ">=0.3.2"
     },
