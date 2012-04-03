@@ -113,7 +113,7 @@ class NoFlo
         @addDebug socket if @debug
 
         from = @getNode edge.from.node
-        unless from
+        unless from.component
             throw new Error "No process defined for outbound node #{edge.from.node}"
         unless from.component
             throw new Error "No component defined for outbound node #{edge.from.node}"
@@ -122,7 +122,7 @@ class NoFlo
                 @addEdge edge
             return
         to = @getNode edge.to.node
-        unless to
+        unless to.component
             throw new Error "No process defined for inbound node #{edge.to.node}"
         unless to.component
             throw new Error "No component defined for inbound node #{edge.to.node}"
