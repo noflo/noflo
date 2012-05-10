@@ -41,7 +41,7 @@ exports['test receiving message for grouped topic'] = (test) ->
     test.equals data, 'hello'
     test.equals groups.join(':'), 'foo'
     do mq.disconnect
-    do topic.disconnect
+    do c.disconnectMQ
     do test.done
   out.on 'endgroup', ->
     groups.pop()
@@ -65,7 +65,7 @@ exports['test receiving message for subgrouped topic'] = (test) ->
     test.equals data, 'hello'
     test.equals groups.join(':'), 'foo:bar'
     do mq.disconnect
-    do topic.disconnect
+    do c.disconnectMQ
     do test.done
   out.on 'endgroup', ->
     groups.pop()
