@@ -2,6 +2,7 @@
 nofloRoot = "#{__dirname}/.."
 noflo = require "noflo"
 cli = require "cli"
+path = require "path"
 
 cli.enable "help"
 cli.enable "version"
@@ -25,8 +26,7 @@ cli.main (args, options) ->
         if arg.indexOf(".json") is -1 and arg.indexOf(".fbp") is -1
             console.error "#{arg} is not a NoFlo graph file, skipping"
             continue
-        if arg.substr(0, 1) isnt "/"
-            arg = "#{process.cwd()}/#{arg}"
+        arg = path.resolve process.cwd(), arg
         noflo.loadFile arg, (network) ->
             return unless options.interactive
             
