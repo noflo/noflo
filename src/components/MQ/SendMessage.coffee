@@ -18,7 +18,9 @@ class SendMessage extends QueueComponent
 
     @inPorts.in.on 'data', (data) =>
       return unless mq
-      mq.publish groups.join(':'), data
+      return mq.publish groups.join(':'), data if mq.pub.connected
+      mq.pub.once 'connect', ->
+        mq.publish groups.join(':'), data
 
     @inPorts.in.on 'endgroup', =>
       groups.pop()
