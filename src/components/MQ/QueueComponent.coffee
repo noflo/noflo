@@ -22,6 +22,8 @@ class QueueComponent extends noflo.Component
     return {} unless process.env.REDISTOGO_URL
 
     rtg = url.parse process.env.REDISTOGO_URL
+    config =
+      auth: {}
     config.host = rtg.hostname
     config.port = rtg.port
     config.auth.password = rtg.auth.split(':')[1]
