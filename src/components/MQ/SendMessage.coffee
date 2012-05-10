@@ -14,6 +14,7 @@ class SendMessage extends QueueComponent
       mq = @getMQ()
 
     @inPorts.in.on 'begingroup', (group) =>
+      return unless groups.indexOf(group) is -1
       groups.push group
 
     @inPorts.in.on 'data', (data) =>

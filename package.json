@@ -7,7 +7,7 @@
         "Jerry Jalava",
         "Ryan Shaw"
     ],
-    "version":      "0.0.6",
+    "version":      "0.0.8",
     "licenses":     [{
         "type":         "MIT",
         "url":          "https://github.com/bergie/noflo/raw/master/LICENSE"
