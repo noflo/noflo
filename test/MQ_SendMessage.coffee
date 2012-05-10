@@ -28,12 +28,16 @@ exports['test sending grouped message'] = (test) ->
   [c, clientId, src] = setupComponent()
 
   clientId.send mq.clientId
+  do src.connect
 
-  test.expect 1
+  test.expect 2
 
   mq.subscribe 'foo', (err, topics) ->
+    test.equal err, null
     mq.on 'foo', (id, message) ->
       test.equal message, 'hello'
+      do mq.disconnect
+      do src.disconnect
       do test.done
 
     src.beginGroup 'foo'
@@ -44,12 +48,15 @@ exports['test sending subgrouped message'] = (test) ->
   [c, clientId, src] = setupComponent()
 
   clientId.send mq.clientId
+  do src.connect
 
-  test.expect 1
-
+  test.expect 2
   mq.subscribe 'foo:bar', (err, topics) ->
+    test.equal err, null
     mq.on 'foo:bar', (id, message) ->
       test.equal message, 'hello'
+      do mq.disconnect
+      do src.disconnect
       do test.done
 
     src.beginGroup 'foo'

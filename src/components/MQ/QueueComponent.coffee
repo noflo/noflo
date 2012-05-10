@@ -5,7 +5,8 @@ url = require 'url'
 class QueueComponent extends noflo.Component
   basePortSetup: ->
     @config = @checkEnv()
-    @mq = null
+    @clientId = null
+    @mqType = 'redis'
 
     @inPorts =
       config: new noflo.Port
@@ -14,7 +15,7 @@ class QueueComponent extends noflo.Component
     @inPorts.config.on 'data', (data) =>
       @config = data
     @inPorts.clientid.on 'data', (data) =>
-      @mq = @connectMQ data
+      @clientId = data
 
   checkEnv: ->
     # Redis config for use inside Heroku nodes
@@ -26,7 +27,7 @@ class QueueComponent extends noflo.Component
     config.auth.password = rtg.auth.split(':')[1]
     config
 
-  connectMQ: (clientId) ->
-    kckupmq.instance 'redis', @config, clientId
+  getMQ: ->
+    kckupmq.instance @mqType, @config, @clientId
 
 exports.QueueComponent = QueueComponent
