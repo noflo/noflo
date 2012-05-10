@@ -1,4 +1,4 @@
-NoFlo: Flow-based programming for Node.js
+NoFlo: Flow-based programming for Node.js [![Build Status](https://secure.travis-ci.org/bergie/noflo.png?branch=master)](http://travis-ci.org/bergie/noflo)
 =========================================
 
 NoFlo is a simple [flow-based programming](http://en.wikipedia.org/wiki/Flow-based_programming) implementation for Node.js. From WikiPedia:
