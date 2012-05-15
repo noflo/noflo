@@ -29,6 +29,7 @@ class SetPropertyValue extends noflo.Component
             @outPorts.out.endGroup()
         @inPorts.in.on "disconnect", =>
             @outPorts.out.disconnect() if @property and @value
+            @value = null
 
     addProperty: (object) ->
         object[@property] = @value
