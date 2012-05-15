@@ -39,6 +39,7 @@ class GetObjectKey extends noflo.Component
             return unless @data.length
 
             @getKey data for data in @data
+            @data = []
             @outPorts.out.disconnect()
 
     getKey: (data) ->

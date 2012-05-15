@@ -37,6 +37,7 @@ class SetPropertyValue extends noflo.Component
 
     addProperties: ->
         @addProperty object for object in @data
+        @data = []
         @outPorts.out.disconnect()
 
 exports.getComponent = -> new SetPropertyValue
