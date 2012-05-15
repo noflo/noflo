@@ -1,5 +1,5 @@
 kckmq = require 'kckupmq'
-sender = require "../src/components/MQ/Queue"
+sender = require "../src/components/MQ/Listen"
 socket = require "../src/lib/InternalSocket"
 url = require 'url'
 

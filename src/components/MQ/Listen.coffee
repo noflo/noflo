@@ -1,7 +1,7 @@
 noflo = require 'noflo'
 {QueueComponent} = require './QueueComponent'
 
-class Queue extends QueueComponent
+class Listen extends QueueComponent
   constructor: ->
     do @basePortSetup
     @mq = null
@@ -26,4 +26,4 @@ class Queue extends QueueComponent
     do @mq.disconnect if @mq
     @mq = null
 
-exports.getComponent = -> new Queue
+exports.getComponent = -> new Listen
