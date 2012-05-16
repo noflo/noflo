@@ -27,7 +27,8 @@
         "coffee-script": ">=1.1.0",
         "docco-husky": ">=0.3.2",
         "kckupmq": "0.3.x",
-        "jsdom": "0.2.x"
+        "jsdom": "0.2.x",
+        "request": "2.x.x"
     },
     "main":         "./lib/NoFlo",
     "bin":          {
