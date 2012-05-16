@@ -12,13 +12,15 @@ class Output extends noflo.Component
             colors: false
 
         @inPorts =
-            in: new noflo.ArrayPort()
-            options: new noflo.Port()
+            in: new noflo.ArrayPort
+            options: new noflo.Port
 
-        @outPorts = {}
+        @outPorts =
+            out: new noflo.Port
 
         @inPorts.in.on "data", (data) =>
             @log data
+            @outPorts.out.send data if @outPorts.out.isAttached()
 
         @inPorts.options.on "data", (data) =>
             @setOptions data

@@ -6,13 +6,16 @@ class Counter extends noflo.Component
     constructor: ->
         @count = null
         @inPorts =
-            in: new noflo.Port()
+            in: new noflo.Port
         @outPorts =
-            count: new noflo.Port()
+            count: new noflo.Port
+            out: new noflo.Port
         @inPorts.in.on "data", (data) =>
             if @count is null
                 @count = 0
             @count++
+
+            @outPorts.out.send data if @outPorts.out.isAttached()
         @inPorts.in.on "disconnect", =>
             @outPorts.count.send @count
             @outPorts.count.disconnect()
