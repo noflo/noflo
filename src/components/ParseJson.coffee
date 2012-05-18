@@ -7,11 +7,9 @@ class ParseJson extends noflo.Component
         @outPorts =
             out: new noflo.Port()
 
-        json = ""
-        @inPorts.in.on "data", (data) ->
-            json += data
+        @inPorts.in.on "data", (data) =>
+            @outPorts.out.send JSON.parse data
         @inPorts.in.on "disconnect", =>
-            @outPorts.out.send JSON.parse json
             @outPorts.out.disconnect()
 
 exports.getComponent = -> new ParseJson
