@@ -28,7 +28,8 @@
         "docco-husky": ">=0.3.2",
         "kckupmq": "0.3.x",
         "jsdom": "0.2.x",
-        "request": "2.x.x"
+        "request": "2.x.x",
+        "js-yaml": "0.3.x"
     },
     "main":         "./lib/NoFlo",
     "bin":          {
