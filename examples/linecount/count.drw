@@ -1,16 +1,29 @@
 <?xml version="1.0"?> 
-<net> <desc>Count lines in a text file</desc> <title>count</title> <clicktogrid/> <blocks><block> <x> 255 </x> <y> 116 </y> <id> 1 </id> <type>B</type> <width>92</width> <height>64</height> <description>Read</description> <blockclassname>/home/bergie/Projects/noflo/components/ReadFile.js</blockclassname> </block> 
-<block> <x> 622 </x> <y> 116 </y> <id> 2 </id> <type>B</type> <width>92</width> <height>64</height> <description>Split</description> <blockclassname>/home/bergie/Projects/noflo/components/SplitStr.js</blockclassname> </block> 
-<block> <x> 996 </x> <y> 116 </y> <id> 3 </id> <type>B</type> <width>92</width> <height>64</height> <description>Count</description> <blockclassname>/home/bergie/Projects/noflo/components/Counter.js</blockclassname> </block> 
-<block> <x> 996 </x> <y> 356 </y> <id> 4 </id> <type>B</type> <width>92</width> <height>64</height> <description>Display</description> <blockclassname>/home/bergie/Projects/noflo/components/Output.js</blockclassname> </block> 
-<block> <x> 108 </x> <y> 112 </y> <id> 5 </id> <type>I</type> <width>102</width> <height>15</height> <description>"package.json"</description> </block> 
-<block> <x> 478 </x> <y> 88 </y> <id> 6 </id> <type>I</type> <width>32</width> <height>15</height> <description>"\n"</description> </block> 
+<net> <desc>Count lines in a text file</desc> <title>count</title> <clicktogrid/> <blocks><block> <x> 268 </x> <y> 199 </y> <id> 1 </id> <type>B</type> <width>92</width> <height>64</height> <description>Read</description> <blockclassname>/home/bergie/Projects/noflo/components/ReadFile.js</blockclassname> </block> 
+<block> <x> 483 </x> <y> 199 </y> <id> 2 </id> <type>B</type> <width>92</width> <height>64</height> <description>Split</description> <blockclassname>/home/bergie/Projects/noflo/components/SplitStr.js</blockclassname> </block> 
+<block> <x> 701 </x> <y> 199 </y> <id> 3 </id> <type>B</type> <width>92</width> <height>64</height> <description>Count</description> <blockclassname>/home/bergie/Projects/noflo/components/Counter.js</blockclassname> </block> 
+<block> <x> 701 </x> <y> 358 </y> <id> 4 </id> <type>B</type> <width>92</width> <height>64</height> <description>Display</description> <blockclassname>/home/bergie/Projects/noflo/components/Output.js</blockclassname> </block> 
+<block> <x> 272 </x> <y> 89 </y> <id> 5 </id> <type>I</type> <width>102</width> <height>15</height> <description>"package.json"</description> </block> 
+<block> <x> 477 </x> <y> 90 </y> <id> 6 </id> <type>I</type> <width>32</width> <height>15</height> <description>"\n"</description> </block> 
+<block> <x> 175 </x> <y> 125 </y> <id> 7 </id> <type>L</type> <width>84</width> <height>33</height> <description>Name of file
+to be read
+and counted</description> </block> 
+<block> <x> 409 </x> <y> 118 </y> <id> 8 </id> <type>L</type> <width>77</width> <height>33</height> <description>Split by
+newlines to
+count lines</description> </block> 
+<block> <x> 327 </x> <y> 330 </y> <id> 9 </id> <type>L</type> <width>105</width> <height>33</height> <description>Send file read
+errors directly
+to display</description> </block> 
+<block> <x> 702 </x> <y> 115 </y> <id> 10 </id> <type>L</type> <width>105</width> <height>33</height> <description>Sum the packets
+and send count
+to output</description> </block> 
 </blocks> <connections>
-<connection> <fromx>999</fromx> <fromy>148</fromy> <tox>994</tox> <toy>324</toy> <fromid>3</fromid> <toid>4</toid> <id>4</id> <upstreamport>COUNT</upstreamport><downstreamport>IN</downstreamport><fromside> B </fromside><toside> T </toside></connection> 
-<connection> <fromx>301</fromx> <fromy>117</fromy> <tox>576</tox> <toy>118</toy> <fromid>1</fromid> <toid>2</toid> <id>5</id> <upstreamport>OUT</upstreamport><downstreamport>IN</downstreamport><fromside> R </fromside><toside> L </toside></connection> 
-<connection> <fromx>668</fromx> <fromy>114</fromy> <tox>950</tox> <toy>113</toy> <fromid>2</fromid> <toid>3</toid> <id>6</id> <upstreamport>OUT</upstreamport><downstreamport>IN</downstreamport><fromside> R </fromside><toside> L </toside></connection> 
-<connection> <fromx>258</fromx> <fromy>148</fromy> <tox>950</tox> <toy>359</toy> <fromid>1</fromid> <toid>4</toid> <id>7</id> <upstreamport>ERROR</upstreamport><downstreamport>IN</downstreamport><bends> <bend> <x>260</x> <y> 356</y> </bend>
- </bends> </connection> 
-<connection> <fromx>147</fromx> <fromy>119</fromy> <tox>209</tox> <toy>119</toy> <fromid>5</fromid> <toid>1</toid> <id>8</id> <upstreamport>OUT</upstreamport><downstreamport>SOURCE</downstreamport><fromside> B </fromside><toside> L </toside></connection> 
-<connection> <fromx>494</fromx> <fromy>93</fromy> <tox>576</tox> <toy>92</toy> <fromid>6</fromid> <toid>2</toid> <id>9</id> <upstreamport>OUT</upstreamport><downstreamport>DELIMITER</downstreamport><fromside> R </fromside><toside> L </toside></connection> 
+<connection> <fromx>271</fromx> <fromy>231</fromy> <tox>700</tox> <toy>326</toy> <fromid>1</fromid> <toid>4</toid> <id>16</id> <upstreamport></upstreamport><downstreamport></downstreamport><bends> <bend> <x>272</x> <y> 292</y> </bend>
+ <bend> <x>644</x> <y> 292</y> </bend>
+ </bends> <fromside> B </fromside><toside> T </toside></connection> 
+<connection> <fromx>314</fromx> <fromy>200</fromy> <tox>437</tox> <toy>201</toy> <fromid>1</fromid> <toid>2</toid> <id>5</id> <upstreamport>OUT</upstreamport><downstreamport>IN</downstreamport><fromside> R </fromside><toside> L </toside></connection> 
+<connection> <fromx>529</fromx> <fromy>197</fromy> <tox>655</tox> <toy>196</toy> <fromid>2</fromid> <toid>3</toid> <id>6</id> <upstreamport>OUT</upstreamport><downstreamport>IN</downstreamport><fromside> R </fromside><toside> L </toside></connection> 
+<connection> <fromx>268</fromx> <fromy>96</fromy> <tox>268</tox> <toy>167</toy> <fromid>5</fromid> <toid>1</toid> <id>12</id> <upstreamport>OUT</upstreamport><downstreamport>SOURCE</downstreamport><fromside> B </fromside><toside> T </toside></connection> 
+<connection> <fromx>478</fromx> <fromy>97</fromy> <tox>478</tox> <toy>167</toy> <fromid>6</fromid> <toid>2</toid> <id>13</id> <upstreamport>OUT</upstreamport><downstreamport>DELIMITER</downstreamport><fromside> B </fromside><toside> T </toside></connection> 
+<connection> <fromx>701</fromx> <fromy>231</fromy> <tox>701</tox> <toy>326</toy> <fromid>3</fromid> <toid>4</toid> <id>15</id> <upstreamport>OUT</upstreamport><downstreamport>IN</downstreamport><fromside> B </fromside><toside> T </toside></connection> 
 </connections> <genCodeFileNames> /home/bergie/Projects/noflo/examples/linecount/count2.json</genCodeFileNames> </net>
