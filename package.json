@@ -29,7 +29,8 @@
         "kckupmq": "0.3.x",
         "jsdom": "0.2.x",
         "request": "2.x.x",
-        "js-yaml": "0.3.x"
+        "js-yaml": "0.3.x",
+        "json2yaml": "1.x.x"
     },
     "main":         "./lib/NoFlo",
     "bin":          {
