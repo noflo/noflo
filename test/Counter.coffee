@@ -33,4 +33,34 @@ exports['single packet should be forwarded'] = (test) ->
     test.done()
 
   ins.send 'hello'
+
+exports['two packets should return count of 2'] = (test) ->
+  [c, ins, count] = setupComponent()
+
+  test.expect 1
+
+  count.once 'data', (data) ->
+    test.equals data, 2
+    test.done()
+
+  ins.send 'hello'
+  ins.send 'world'
+  ins.disconnect()
+
+exports['disconnecting and sending later should start new count'] = (test) ->
+  [c, ins, count] = setupComponent()
+
+  test.expect 2
+
+  count.once 'data', (data) ->
+    test.equals data, 2
+  count.once 'disconnect', ->
+    count.once 'data', (data) ->
+      test.equals data, 1
+      test.done()
+
+  ins.send 'hello'
+  ins.send 'world'
+  ins.disconnect()
+  ins.send 'foo'
   ins.disconnect()
