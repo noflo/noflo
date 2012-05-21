@@ -1,3 +1,11 @@
-'package.json' -> SOURCE Read(ReadFile) OUT -> IN Split(SplitStr)
-Split() OUT -> IN Count(Counter) COUNT -> IN Display(Output)
+# Read a file
+'package.json' -> SOURCE Read(ReadFile)
+# Split the file contents by newlines
+Read() OUT -> IN Split(SplitStr)
+# Count the packets
+Split() OUT -> IN Count(Counter)
+# Send the total count to display
+Count() COUNT -> IN Display(Output)
+
+# Display also file read errors
 Read() ERROR -> IN Display()
