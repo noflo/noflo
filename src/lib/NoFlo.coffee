@@ -3,6 +3,7 @@
 #     NoFlo may be freely distributed under the MIT license
 internalSocket = require "./InternalSocket"
 component = require "./Component"
+asynccomponent = require "./AsyncComponent"
 port = require "./Port"
 arrayport = require "./ArrayPort"
 graph = require "./Graph"
@@ -222,6 +223,7 @@ exports.saveFile = (graph, file, success) ->
         success file
 
 exports.Component = component.Component
+exports.AsyncComponent = asynccomponent.AsyncComponent
 exports.Port = port.Port
 exports.ArrayPort = arrayport.ArrayPort
 exports.Graph = graph.Graph
