@@ -10,10 +10,25 @@ sh = (command) -> (k) ->
     console.log serr if serr
     do k
 
+checkSubDir = (path) ->
+  fs.stat "#{__dirname}/src/#{path}", (err, stat) ->
+   buildDir "#{path}" if stat.isDirectory()
+
 buildDir = (path) ->
-  console.log "Compiling CoffeeScript from 'src/#{path}' to '#{path}"
-  exec "coffee -c -o #{__dirname}/#{path} #{__dirname}/src/#{path}", (err, stdout, stderr) ->
-    console.log stderr if stderr
+  realPath = "#{__dirname}/src/#{path}"
+  targetPath = "#{__dirname}/#{path}"
+  fs.readdir realPath, (err, files) ->
+    hasCoffee = false
+    for file in files
+      if file.indexOf('.coffee') isnt -1
+        hasCoffee = true
+        continue
+      checkSubDir "#{path}/#{file}"
+
+    return unless hasCoffee
+    console.log "Compiling CoffeeScript from 'src/#{path}' to '#{path}"
+    exec "coffee -c -o #{targetPath} #{realPath}", (err, stdout, stderr) ->
+      console.log stderr if stderr
 
 task 'build', 'transpile CoffeeScript sources to JavaScript', ->
   buildDir "lib"
