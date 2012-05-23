@@ -6,7 +6,7 @@ setupComponent = ->
     src = socket.createSocket()
     out = socket.createSocket()
     err = socket.createSocket()
-    c.inPorts.source.attach src
+    c.inPorts.in.attach src
     c.outPorts.out.attach out
     c.outPorts.error.attach err
     return [c, src, out, err]

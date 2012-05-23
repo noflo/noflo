@@ -1,4 +1,4 @@
-# The ReadFile component receives a filename on the soure port, and
+# The ReadFile component receives a filename on the in port, and
 # sends the contents of the specified file to the out port. The filename
 # is used to create a named group around the file contents data. In case
 # of errors the error message will be sent to the error port.
@@ -6,26 +6,23 @@
 fs = require "fs"
 noflo = require "noflo"
 
-class ReadFile extends noflo.Component
+class ReadFile extends noflo.AsyncComponent
     constructor: ->
         @inPorts =
-            source: new noflo.Port()
+            in: new noflo.Port()
         @outPorts =
             out: new noflo.Port()
             error: new noflo.Port()
+        super()
 
-        @inPorts.source.on "data", (data) =>
-            @readFile data
-
-    readFile: (fileName) ->
+    doAsync: (fileName, callback) ->
         fs.readFile fileName, "utf-8", (err, data) =>
-            if err
-                @outPorts.error.send err
-                return @outPorts.error.disconnect()
+            return callback err if err?
             @outPorts.out.beginGroup fileName
             @outPorts.out.send data
             @outPorts.out.endGroup()
             @outPorts.out.disconnect()
+            callback null
 
 exports.getComponent = ->
     new ReadFile()
