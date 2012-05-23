@@ -27,7 +27,7 @@
         "coffee-script": ">=1.1.0",
         "docco-husky": ">=0.3.2",
         "kckupmq": "0.3.x",
-        "jsdom": "0.2.x",
+        "cheerio": "0.7.x",
         "request": "2.x.x",
         "js-yaml": "0.3.x",
         "json2yaml": "1.x.x"
