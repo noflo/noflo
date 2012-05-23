@@ -41,7 +41,7 @@ class MapProperty extends noflo.Component
     mapData: (data) ->
         newData = {}
         for property, value of data
-            if @map[property]
+            if property of @map
                 property = @map[property]
 
             for expression, replacement of @regexps
@@ -51,7 +51,13 @@ class MapProperty extends noflo.Component
 
                 property = property.replace regexp, replacement
 
-            newData[property] = value
+            if property of newData
+                if Array.isArray newData[property]
+                    newData[property].push value
+                else
+                    newData[property] = [newData[property], value]
+            else
+                newData[property] = value
         @outPorts.out.send newData
 
 exports.getComponent = -> new MapProperty
