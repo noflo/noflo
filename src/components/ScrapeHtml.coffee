@@ -1,9 +1,12 @@
 noflo = require "noflo"
-jsdom = require "jsdom"
+cheerio = require "cheerio"
+
+decode = (str) ->
+  return str unless str.indexOf "&" >= 0
+  return str.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&")
 
 class ScrapeHtml extends noflo.Component
     constructor: ->
-        @html = []
         @textSelector = ""
         @ignoreSelectors = []
 
@@ -13,28 +16,21 @@ class ScrapeHtml extends noflo.Component
             ignoreSelector: new noflo.ArrayPort()
         @outPorts =
             out: new noflo.Port()
-            error: new noflo.Port()
 
-        html = ""
+        @html = ""
         @inPorts.in.on "connect", =>
-            @html = []
+            @html = ""
         @inPorts.in.on "begingroup", (group) =>
+            @html = ""
             @outPorts.out.beginGroup group
         @inPorts.in.on "data", (data) =>
-            html += data
+            @html += data
         @inPorts.in.on "endgroup", =>
-            @once "scraped", =>
-                @outPorts.out.endGroup()
-            @html.push html
-            html = ""
             @scrapeHtml()
+            @outPorts.out.endGroup()
         @inPorts.in.on "disconnect", =>
-            @once "scraped", =>
-                @outPorts.out.disconnect()
-            return if @html.length > 0 # we are using groups
-            @html.push html
-            html = ""
             @scrapeHtml()
+            @outPorts.out.disconnect()
 
         @inPorts.textSelector.on "data", (data) =>
             @textSelector = data
@@ -47,16 +43,14 @@ class ScrapeHtml extends noflo.Component
     scrapeHtml: ->
         return unless @html.length > 0
         return unless @textSelector.length > 0
-        for h in @html
-            jsdom.env h, ['http://code.jquery.com/jquery.min.js'], (err, win) =>
-                if err
-                    @outPorts.error.send err
-                    return @outPorts.error.disconnect()
-                win.$(ignore).remove() for ignore in @ignoreSelectors
-                win.$(@textSelector).map (i,e) =>
-                    @outPorts.out.beginGroup e.id if e.hasAttribute "id"
-                    @outPorts.out.send win.$(e).text()
-                    @outPorts.out.endGroup() if e.hasAttribute "id"
-                @emit "scraped"
+        $ = cheerio.load @html
+        $(ignore).remove() for ignore in @ignoreSelectors
+        $(@textSelector).each (i,e) =>
+            o = $(e)
+            id = o.attr "id"
+            @outPorts.out.beginGroup id if id?
+            @outPorts.out.send decode o.text()
+            @outPorts.out.endGroup() if id?
+        @html = ""
 
 exports.getComponent = -> new ScrapeHtml
