@@ -20,11 +20,16 @@ class FilterPropertyValue extends noflo.Component
         @inPorts.in.on "begingroup", (group) =>
             @outPorts.out.beginGroup group
         @inPorts.in.on "data", (data) =>
-            @filterData data
+            return @filterData data if @filtering()
+            @outPorts.out.send data
         @inPorts.in.on "endgroup", =>
             @outPorts.out.endGroup()
         @inPorts.in.on "disconnect", =>
             @outPorts.out.disconnect()
+
+    filtering: ->
+        return ((Object.keys @accepts).length > 0 or
+                (Object.keys @regexps).length > 0)
 
     prepareAccept: (map) ->
         if typeof map is "object"

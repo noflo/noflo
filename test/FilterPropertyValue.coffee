@@ -9,6 +9,17 @@ setupComponent = ->
     c.outPorts.out.attach out
     return [c, ins, out]
 
+exports["test default behavior"] = (test) ->
+    [c, ins, out] = setupComponent()
+    actual = [{a:1},{b:2},{c:3}]
+    expect = [{a:1},{b:2},{c:3}]
+    out.on "data", (data) ->
+        expected = expect.shift()
+        test.equal (Object.keys data).length, (Object.keys expected).length
+        test.equal val, expected[prop] for prop, val of data
+        test.done() if expect.length == 0
+    ins.send a for a in actual
+
 exports["test accept via map"] = (test) ->
     [c, ins, out] = setupComponent()
     acc = socket.createSocket()
