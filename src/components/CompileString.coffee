@@ -18,8 +18,12 @@ class CompileString extends noflo.Component
     @inPorts.in.on 'data', (data) =>
       @data.push data
 
+    @inPorts.in.on 'endgroup', =>
+      @outPorts.out.send @data.join @delimiter if @data.length
+      @data = []
+
     @inPorts.in.on 'disconnect', =>
-      @outPorts.out.send @data.join @delimiter
+      @outPorts.out.send @data.join @delimiter if @data.length
       @data = []
       @outPorts.out.disconnect()
 
