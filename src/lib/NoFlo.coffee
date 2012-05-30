@@ -145,8 +145,8 @@ class NoFlo
         socket.on "data", (data) ->
             logSocket "DATA"
 
-    addEdge: (edge) ->
-        return @addInitial(edge) unless edge.from.node
+    addEdge: (edge, callback) ->
+        return @addInitial edge, callback unless edge.from.node
         socket = internalSocket.createSocket()
         @addDebug socket if @debug
 
@@ -157,7 +157,7 @@ class NoFlo
             throw new Error "No component defined for outbound node #{edge.from.node}"
         unless from.component.isReady()
             from.component.once "ready", =>
-                @addEdge edge
+                @addEdge edge, callback
             return
         to = @getNode edge.to.node
         unless to
@@ -166,13 +166,14 @@ class NoFlo
             throw new Error "No component defined for inbound node #{edge.to.node}"
         unless to.component.isReady()
             to.component.once "ready", =>
-                @addEdge edge
+                @addEdge edge, callback
             return
 
         @connectPort socket, to, edge.to.port, true
         @connectPort socket, from, edge.from.port, false
 
         @connections.push socket
+        callback() if callback?
 
     removeEdge: (edge) ->
         for connection,index in @connections
@@ -184,7 +185,7 @@ class NoFlo
                     connection.from.process.component.inPorts[connection.from.port].detach connection
                     @connections.splice index, 1
 
-    addInitial: (initializer) ->
+    addInitial: (initializer, callback) ->
         socket = internalSocket.createSocket()
         @addDebug socket if @debug
 
@@ -195,7 +196,7 @@ class NoFlo
         unless to.component.isReady() or to.component.inPorts[initializer.to.port]
             to.component.setMaxListeners 0
             to.component.once "ready", =>
-                @addInitial initializer
+                @addInitial initializer, callback
             return
 
         @connectPort socket, to, initializer.to.port, true
@@ -203,14 +204,25 @@ class NoFlo
         socket.connect()
         socket.send initializer.from.data
         socket.disconnect()
+        callback() if callback?
 
-exports.createNetwork = (graph, debug = false) ->
+exports.createNetwork = (graph, debug = false, callback) ->
     network = new NoFlo graph
     network.debug = debug
 
     network.addNode node for node in graph.nodes
-    network.addEdge edge for edge in graph.edges
-    network.addInitial initializer for initializer in graph.initializers
+
+    toadd = graph.edges.length + graph.initializers.length
+
+    for edge in graph.edges
+        network.addEdge edge, ->
+            toadd--
+            callback() if callback? and toadd == 0
+
+    for initializer in graph.initializers
+        network.addInitial initializer, ->
+            toadd--
+            callback() if callback? and toadd == 0
 
     network
 
