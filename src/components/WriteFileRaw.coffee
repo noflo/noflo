@@ -15,19 +15,22 @@ class WriteFileRaw extends noflo.Component
 
         @inPorts.in.on "data", (data) =>
             @data = data
-            do @writeFile if @filename
+            @writeFile @filename, data if @filename
+
+        @inPorts.filename.on 'endgroup', =>
+            @filename = null
 
         @inPorts.filename.on "data", (data) =>
             @filename = data
-            do @writeFile if @data
+            @writeFile data, @data if @data
 
-    writeFile: ->
-        fs.open @filename, 'w', (err, fd) =>
+    writeFile: (filename, data) ->
+        fs.open filename, 'w', (err, fd) =>
             return @outPorts.error.send err if err
 
-            fs.write fd, @data, 0, @data.length, 0, (err, bytes, buffer) =>
+            fs.write fd, data, 0, data.length, 0, (err, bytes, buffer) =>
                 return @outPorts.error.send err if err
-                @outPorts.filename.send @filename
+                @outPorts.filename.send filename
                 @outPorts.filename.disconnect()
 
 exports.getComponent = -> new WriteFileRaw

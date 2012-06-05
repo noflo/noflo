@@ -32,6 +32,8 @@ exports['two strings should be returned together'] = (test) ->
     test.equals data, 'foobar'
     test.done()
 
+  delim.send ''
+
   ins.send 'foo'
   ins.send 'bar'
   ins.disconnect()

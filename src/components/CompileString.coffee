@@ -3,7 +3,7 @@ noflo = require 'noflo'
 class CompileString extends noflo.Component
 
   constructor: ->
-    @delimiter = ''
+    @delimiter = "\n"
     @data = []
 
     @inPorts = 
@@ -15,11 +15,15 @@ class CompileString extends noflo.Component
     @inPorts.delimiter.on 'data', (data) =>
       @delimiter = data
 
+    @inPorts.in.on 'begingroup', (group) =>
+      @outPorts.out.beginGroup group 
+
     @inPorts.in.on 'data', (data) =>
       @data.push data
 
     @inPorts.in.on 'endgroup', =>
       @outPorts.out.send @data.join @delimiter if @data.length
+      @outPorts.out.endGroup()
       @data = []
 
     @inPorts.in.on 'disconnect', =>
