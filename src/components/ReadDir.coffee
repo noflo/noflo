@@ -22,6 +22,7 @@ class ReadDir extends noflo.Component
                 @outPorts.error.send err
                 return @outPorts.error.disconnect()
             path = path.slice(0,-1) if path.slice(-1) == "/"
-            @outPorts.out.send "#{path}/#{f}" for f in files
+            sortedFiles = files.sort()
+            @outPorts.out.send "#{path}/#{f}" for f in sortedFiles
 
 exports.getComponent = -> new ReadDir()
