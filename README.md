@@ -321,4 +321,4 @@ There is also an IRC channel `#fbp` on FreeNode.
 
 * Real-time status of the NoFlo graph via socket.io, see where data is flowing
 * [Web Workers](https://github.com/pgriess/node-webworker) based multiprocess runner
-* Sockets-based multi-computer runner
+* Sockets-based multi-computer runner, or possibly DNode
