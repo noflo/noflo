@@ -75,7 +75,7 @@ class Graph extends events.EventEmitter
 
         @emit 'removeNode', node
 
-        if @nodes.indexOf node isnt -1
+        if -1 isnt @nodes.indexOf node
             @nodes.splice @nodes.indexOf(node), 1
 
     # ## Getting a node
