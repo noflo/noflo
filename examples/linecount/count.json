@@ -77,7 +77,7 @@
             "data": "package.json",
             "tgt": {
                 "process": "ReadFile",
-                "port": "source"
+                "port": "in"
             }
         }
     ]

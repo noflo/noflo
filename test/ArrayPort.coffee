@@ -10,7 +10,7 @@ getBaseGraph = ->
 exports["test ArrayPort type"] = (test) ->
     network = getBaseGraph()
 
-    port = network.processes["Display"].component.inPorts["in"]  
+    port = network.processes["Display"].component.inPorts["in"]
     test.equal port instanceof noflo.ArrayPort, true
 
     test.done()
@@ -20,7 +20,7 @@ exports["test connecting to ArrayPorts"] = (test) ->
     network = getBaseGraph()
     test.equal network.connections.length, 2
 
-    port = network.processes["Display"].component.inPorts["in"]  
+    port = network.processes["Display"].component.inPorts["in"]
     test.equal port.sockets.length, 2
 
     test.done()

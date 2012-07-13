@@ -21,6 +21,6 @@ graph.addEdge "Split by Lines", "out", "Count Lines", "in"
 graph.addEdge "Count Lines", "count", "Display", "in"
 
 # Kick the process of by sending filename to fileReader
-graph.addInitial fileName, "Read File", "source"
+graph.addInitial fileName, "Read File", "in"
 
 noflo.createNetwork graph

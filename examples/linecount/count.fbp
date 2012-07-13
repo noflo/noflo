@@ -1,5 +1,5 @@
 # Read a file
-'package.json' -> SOURCE Read(ReadFile)
+'package.json' -> IN Read(ReadFile)
 # Split the file contents by newlines
 Read() OUT -> IN Split(SplitStr)
 # Count the packets

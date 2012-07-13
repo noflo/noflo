@@ -120,7 +120,7 @@
       "data": "/home/bergie/Projects/noflo/examples/http/hello.jade",
       "tgt": {
         "process": "Read Template",
-        "port": "source"
+        "port": "in"
       }
     }
   ]

@@ -23,7 +23,7 @@ graph.addEdge "Greet User", "data", "Render", "options"
 graph.addEdge "Write Response", "out", "Send", "in"
 
 # Templating flow
-graph.addInitial "#{__dirname}/hello.jade", "Read Template", "source"
+graph.addInitial "#{__dirname}/hello.jade", "Read Template", "in"
 graph.addEdge "Read Template", "out", "Render", "template"
 graph.addEdge "Render", "out", "Write Response", "string"
 
