@@ -8,6 +8,7 @@ class Server extends noflo.Component
     constructor: ->
         @server = null
         @serverPort = null
+        @httpServer = null
 
         @inPorts =
             listen: new noflo.Port()
@@ -18,9 +19,13 @@ class Server extends noflo.Component
             @serverPort = data
         @inPorts.listen.on "disconnect", =>
             @server = http.createServer @sendRequest
-            @server.listen @serverPort
+            @httpServer = @server.listen @serverPort
 
-    sendRequest: (req, res) =>
+    close: ->
+      @httpServer.close()
+      @httpServer = @server = @serverPort = null
+
+    sendRequest: (req, res) ->
         @outPorts.request.beginGroup uuid()
         @outPorts.request.send
             req: req
