@@ -13,7 +13,7 @@ class Group extends noflo.Component
     @inPorts.in.on 'data', (data) =>
       @outPorts.out.beginGroup group for group in groups
       @outPorts.out.send data
-      @outPorts.out.endGroup for group in groups
+      @outPorts.out.endGroup() for group in groups
 
     @inPorts.group.on 'data', (data) =>
       groups.push data
