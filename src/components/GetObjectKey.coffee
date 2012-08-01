@@ -47,9 +47,9 @@ class GetObjectKey extends noflo.Component
         throw "Data is not an object" unless typeof data is "object"
         for key in @key
             continue unless data[key]
-            @outPorts.out.beginGroup key unless @key.length is 1
+            @outPorts.out.beginGroup key
             @outPorts.out.send data[key]
-            @outPorts.out.endGroup() unless @key.length is 1
+            @outPorts.out.endGroup()
 
 exports.getComponent = ->
     new GetObjectKey
