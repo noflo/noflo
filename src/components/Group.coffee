@@ -18,4 +18,7 @@ class Group extends noflo.Component
     @inPorts.group.on 'data', (data) =>
       groups.push data
 
+    @inPorts.in.on "disconnect", () =>
+      @outPorts.out.disconnect()
+
 exports.getComponent = -> new Group
