@@ -165,8 +165,12 @@ class NoFlo
         unless to.component
             throw new Error "No component defined for inbound node #{edge.to.node}"
         unless to.component.isReady()
+            fromPort = from.component.outPorts[edge.from.port]
+            fromPort.isGettingReady = true
+
             to.component.once "ready", =>
                 @addEdge edge
+                fromPort.emit("ready")
             return
 
         @connectPort socket, to, edge.to.port, true

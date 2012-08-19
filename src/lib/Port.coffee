@@ -5,6 +5,28 @@ class Port extends events.EventEmitter
         @name = name
         @socket = null
         @from = null
+        @isGettingReady = false
+        @groups = []
+        @data = []
+        @buffer = []
+
+        @on "ready", () =>
+            if @isGettingReady
+                @isGettingReady = false
+
+                for call in @buffer
+                    for group in call.groups
+                        @beginGroup(group)
+
+                    for datum in call.data
+                        @send(datum)
+
+                    for group in call.groups
+                        @endGroup()
+
+                    @disconnect()
+
+                @buffer = []
 
     attach: (socket) ->
         throw new Error "#{@name}: Socket already attached #{@socket.getId()} - #{socket.getId()}" if @socket
@@ -33,6 +55,10 @@ class Port extends events.EventEmitter
         do @socket.connect
 
     beginGroup: (group) ->
+        if @isGettingReady
+            @groups.push(group)
+            return
+
         throw new Error "No connection available" unless @socket
 
         return @socket.beginGroup group if @isConnected()
@@ -42,6 +68,10 @@ class Port extends events.EventEmitter
         do @socket.connect
 
     send: (data) ->
+        if @isGettingReady
+            @data.push(data)
+            return
+
         throw new Error "No connection available" unless @socket
 
         return @socket.send data if @isConnected()
@@ -51,10 +81,24 @@ class Port extends events.EventEmitter
         do @socket.connect
 
     endGroup: ->
+        if @isGettingReady
+            return
+
         throw new Error "No connection available" unless @socket
         do @socket.endGroup
 
     disconnect: ->
+        if @isGettingReady
+            buffer =
+                groups: @groups
+                data: @data
+            @buffer.push(buffer)
+
+            @groups = []
+            @data = []
+
+            return
+
         return unless @socket
         @socket.disconnect()
 
