@@ -9,6 +9,10 @@ class ArrayPort extends port.Port
         @attachSocket socket
 
     connect: (socketId = null) ->
+        # Send only once when this is a linking port between a graph and a subgraph
+        if @isLink
+          socketId = 0
+
         if socketId is null
             @sockets.forEach (socket) ->
                 socket.disconnect()
@@ -20,6 +24,10 @@ class ArrayPort extends port.Port
         @sockets[socketId].disconnect()
 
     beginGroup: (group, socketId = null) ->
+        # Send only once when this is a linking port between a graph and a subgraph
+        if @isLink
+          socketId = 0
+
         if socketId is null
             @sockets.forEach (socket, index) =>
                 @beginGroup group, index
@@ -35,6 +43,10 @@ class ArrayPort extends port.Port
         @sockets[socketId].connect()
 
     send: (data, socketId = null) ->
+        # Send only once when this is a linking port between a graph and a subgraph
+        if @isLink
+          socketId = 0
+
         if socketId is null
             @sockets.forEach (socket, index) =>
                 @send data, index
@@ -50,6 +62,10 @@ class ArrayPort extends port.Port
         @sockets[socketId].connect()
 
     endGroup: (socketId = null) ->
+        # Send only once when this is a linking port between a graph and a subgraph
+        if @isLink
+          socketId = 0
+
         if socketId is null
             @sockets.forEach (socket, index) =>
                 @endGroup index
@@ -61,6 +77,10 @@ class ArrayPort extends port.Port
         do @sockets[socketId].endGroup
 
     disconnect: (socketId = null) ->
+        # Send only once when this is a linking port between a graph and a subgraph
+        if @isLink
+          socketId = 0
+
         if socketId is null
             @sockets.forEach (socket) ->
                 socket.disconnect()

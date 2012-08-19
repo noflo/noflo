@@ -53,8 +53,12 @@ class Graph extends noflo.Component
         return true
 
     replicatePort: (port) ->
+        # Designate the destination port as a link to avoid sending multiple IPs
+        port.isLink = true
+
         return new noflo.ArrayPort() if port instanceof noflo.ArrayPort
-        return new noflo.Port() unless port instanceof noflo.ArrayPort  
+        return new noflo.Port() unless port instanceof noflo.ArrayPort
+
     replicateInPort: (port, portName) ->
         newPort = @replicatePort port
         newPort.on "attach", (socket) ->
