@@ -5,23 +5,25 @@ class Port extends events.EventEmitter
         @name = name
         @socket = null
         @from = null
-        @isGettingReady = false
+        @downstreamIsGettingReady = false
         @groups = []
         @data = []
         @buffer = []
 
         @on "ready", () =>
-            if @isGettingReady
-                @isGettingReady = false
+            if @downstreamIsGettingReady
+                # Reset the flag
+                @downstreamIsGettingReady = false
 
-                for call in @buffer
-                    for group in call.groups
+                # Each record in buffer is a separate connection
+                for conn in @buffer
+                    for group in conn.groups
                         @beginGroup(group)
 
-                    for datum in call.data
+                    for datum in conn.data
                         @send(datum)
 
-                    for group in call.groups
+                    for group in conn.groups
                         @endGroup()
 
                     @disconnect()
@@ -51,11 +53,14 @@ class Port extends events.EventEmitter
             @emit "disconnect", socket
 
     connect: ->
+        if @downstreamIsGettingReady
+            return
+
         throw new Error "No connection available" unless @socket
         do @socket.connect
 
     beginGroup: (group) ->
-        if @isGettingReady
+        if @downstreamIsGettingReady
             @groups.push(group)
             return
 
@@ -68,7 +73,7 @@ class Port extends events.EventEmitter
         do @socket.connect
 
     send: (data) ->
-        if @isGettingReady
+        if @downstreamIsGettingReady
             @data.push(data)
             return
 
@@ -81,14 +86,14 @@ class Port extends events.EventEmitter
         do @socket.connect
 
     endGroup: ->
-        if @isGettingReady
+        if @downstreamIsGettingReady
             return
 
         throw new Error "No connection available" unless @socket
         do @socket.endGroup
 
     disconnect: ->
-        if @isGettingReady
+        if @downstreamIsGettingReady
             buffer =
                 groups: @groups
                 data: @data

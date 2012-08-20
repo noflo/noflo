@@ -166,7 +166,7 @@ class NoFlo
             throw new Error "No component defined for inbound node #{edge.to.node}"
         unless to.component.isReady()
             fromPort = from.component.outPorts[edge.from.port]
-            fromPort.isGettingReady = true
+            fromPort.downstreamIsGettingReady = true
 
             to.component.once "ready", =>
                 @addEdge edge
