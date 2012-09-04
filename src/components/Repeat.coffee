@@ -14,7 +14,7 @@ class Repeat extends noflo.Component
         @inPorts.in.on "data", (data) =>
             @outPorts.out.send data
         @inPorts.in.on "endgroup", =>
-            @outPorts.out.endGroup
+            @outPorts.out.endGroup()
         @inPorts.in.on "disconnect", =>
             @outPorts.out.disconnect()
 

@@ -1,4 +1,5 @@
 noflo = require "noflo"
+_ = require 'underscore'
 
 class RemoveProperty extends noflo.Component
     constructor: ->
@@ -22,6 +23,9 @@ class RemoveProperty extends noflo.Component
             @outPorts.out.disconnect()
 
     removeProperties: (object) ->
+        # Clone the object so that the original isn't changed
+        object = _.clone(object)
+
         for property in @properties
             delete object[property]
         return object

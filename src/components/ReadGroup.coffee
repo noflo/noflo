@@ -16,5 +16,7 @@ class ReadGroup extends noflo.Component
       @outPorts.out.send @groups.join ':'
     @inPorts.in.on 'endgroup', =>
       @groups.pop()
+    @inPorts.in.on 'disconnect', =>
+      @outPorts.out.disconnect()
 
 exports.getComponent = -> new ReadGroup
