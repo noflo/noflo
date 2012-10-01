@@ -3,7 +3,8 @@ node_js:
   - 0.6
 
 before_script:
-  - test/travis.sh
+  - ./node_modules/.bin/cake build
+  - ln -s `pwd` node_modules/noflo
 
 script: npm test
 

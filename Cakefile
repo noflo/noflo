@@ -27,7 +27,7 @@ buildDir = (path) ->
 
     return unless hasCoffee
     console.log "Compiling CoffeeScript from 'src/#{path}' to '#{path}"
-    exec "coffee -c -o #{targetPath} #{realPath}", (err, stdout, stderr) ->
+    exec "./node_modules/.bin/coffee -c -o #{targetPath} #{realPath}", (err, stdout, stderr) ->
       console.log stderr if stderr
 
 task 'build', 'transpile CoffeeScript sources to JavaScript', ->
@@ -35,7 +35,7 @@ task 'build', 'transpile CoffeeScript sources to JavaScript', ->
   buildDir "components"
   buildDir "bin"
 
-task 'test', 'run the unit tests', -> 
+task 'test', 'run the unit tests', ->
   sh('npm test') ->
 
 task 'doc', 'generate documentation for *.coffee files', ->
