@@ -38,30 +38,30 @@ class Fbp
 
             checkTerminator = @matchSeparator.exec(char)
             checkTerminator = null if @currentElement is "initial"
-            currentString += char unless checkTerminator 
+            currentString += char unless checkTerminator
             continue unless checkTerminator or index is string.length - 1
 
             connection = @matchConnection.exec currentString
             if connection
-                throw "Port or initial expected, got #{currentString} on line #{@currentLine}" unless @lastElement is "initial" or @lastElement is "port"
+                throw new Error "Port or initial expected, got #{currentString} on line #{@currentLine}" unless @lastElement is "initial" or @lastElement is "port"
                 @lastElement = "connection"
                 @handleConnection connection
                 currentString = ""
             initial = @matchInitial.exec currentString
             if initial
-                throw "Newline expected, got #{currentString} on line #{@currentLine}" unless @lastElement is null
+                throw new Error "Newline expected, got #{currentString} on line #{@currentLine}" unless @lastElement is null
                 @lastElement = "initial"
                 @handleInitial initial
                 currentString = ""
             component = @matchComponent.exec currentString
             if component
-                throw "Port or newline expected, got #{currentString} on line #{@currentLine}" unless @lastElement is "port" or @lastElement is null
+                throw new Error "Port or newline expected, got #{currentString} on line #{@currentLine}" unless @lastElement is "port" or @lastElement is null
                 @lastElement = "component"
                 @handleComponent component
                 currentString = ""
             port = @matchPort.exec currentString
             if port
-                throw "Connection or component expected, got #{currentString} on line #{@currentLine}" unless @lastElement is "connection" or @lastElement is "component"
+                throw new Error "Connection or component expected, got #{currentString} on line #{@currentLine}" unless @lastElement is "connection" or @lastElement is "component"
                 @lastElement = "port"
                 @handlePort port
                 currentString = ""
@@ -70,7 +70,7 @@ class Fbp
                 @lastElement = null
 
         json =
-            properties: 
+            properties:
                 name: ""
             processes: @nodes
             connections: @edges
@@ -97,7 +97,7 @@ class Fbp
         if @currentEdge.tgt and @currentEdge.tgt.port
             @currentEdge.tgt.process = @currentNode.name
             @edges.push @currentEdge
-            @currentEdge = 
+            @currentEdge =
                 src: {}
                 tgt: {}
             return

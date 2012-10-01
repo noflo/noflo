@@ -7,7 +7,7 @@ prepareNetwork = (network, id) ->
   cleanNetwork =
     id: id
     name: network.graph.name
-    started: network.startupDate 
+    started: network.startupDate
     nodes: []
     edges: []
 
@@ -16,7 +16,7 @@ prepareNetwork = (network, id) ->
 
   combined = network.graph.edges.concat network.graph.initializers
   for edge, index in combined
-    cleanNetwork.edges.push prepareEdge edge, index 
+    cleanNetwork.edges.push prepareEdge edge, index
 
   cleanNetwork
 

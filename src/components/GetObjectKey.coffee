@@ -43,8 +43,8 @@ class GetObjectKey extends noflo.Component
             @outPorts.out.disconnect()
 
     getKey: (data) ->
-        throw "Key not defined" unless @key.length
-        throw "Data is not an object" unless typeof data is "object"
+        throw new Error "Key not defined" unless @key.length
+        throw new Error "Data is not an object" unless typeof data is "object"
         for key in @key
             continue unless data[key]
             @outPorts.out.beginGroup key unless @key.length is 1

@@ -6,7 +6,7 @@ class CompileString extends noflo.Component
     @delimiter = "\n"
     @data = []
 
-    @inPorts = 
+    @inPorts =
       delimiter: new noflo.Port
       in: new noflo.Port
     @outPorts =
@@ -16,7 +16,7 @@ class CompileString extends noflo.Component
       @delimiter = data
 
     @inPorts.in.on 'begingroup', (group) =>
-      @outPorts.out.beginGroup group 
+      @outPorts.out.beginGroup group
 
     @inPorts.in.on 'data', (data) =>
       @data.push data

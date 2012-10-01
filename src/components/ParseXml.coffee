@@ -25,7 +25,7 @@ class ParseXml extends noflo.Component
             @setOptions data
 
     setOptions: (options) ->
-        throw "Options is not an object" unless typeof options is "object"
+        throw new Error "Options is not an object" unless typeof options is "object"
         for own key, value of options
             @options[key] = value
 

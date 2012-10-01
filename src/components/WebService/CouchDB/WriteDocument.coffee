@@ -25,7 +25,7 @@ class WriteDocument extends noflo.Component
             return unless @outPorts.out.isAttached()
             for port in @inPorts.in
                 return if port.isConnected()
-            @outPorts.out.disconnect() 
+            @outPorts.out.disconnect()
 
     saveObject: (object) ->
         @connection.save object, (err, document) =>

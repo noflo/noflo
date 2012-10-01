@@ -33,7 +33,7 @@ class DuplicateProperty extends noflo.Component
 
         propParts = prop.split "="
         if propParts.length > 2
-            @properties[propParts.pop()] = propParts 
+            @properties[propParts.pop()] = propParts
             return
         
         @properties[propParts[1]] = propParts[0]

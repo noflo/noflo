@@ -54,7 +54,7 @@ class Graph extends noflo.Component
 
     replicatePort: (port) ->
         return new noflo.ArrayPort() if port instanceof noflo.ArrayPort
-        return new noflo.Port() unless port instanceof noflo.ArrayPort  
+        return new noflo.Port() unless port instanceof noflo.ArrayPort
     replicateInPort: (port, portName) ->
         newPort = @replicatePort port
         newPort.on "attach", (socket) ->

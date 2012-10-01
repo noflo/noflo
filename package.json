@@ -31,7 +31,8 @@
         "cheerio": "0.7.x",
         "request": "2.x.x",
         "js-yaml": "0.3.x",
-        "json2yaml": "1.x.x"
+        "json2yaml": "1.x.x",
+        "coffeelint": "*"
     },
     "main":         "./lib/NoFlo",
     "bin":          {
@@ -43,7 +44,8 @@
         "url":          "git://github.com/bergie/noflo.git"
     },
     "scripts":    {
-        "test": "./node_modules/nodeunit/bin/nodeunit test"
+        "pretest": "./node_modules/.bin/coffeelint -f test/coffeelint.json -r src",
+        "test": "./node_modules/.bin/nodeunit test"
     },
     "docco_husky": {
       "output_dir": "docs",

@@ -36,7 +36,7 @@ class Graph extends events.EventEmitter
     # possible display coordinates.
     #
     # For example:
-    # 
+    #
     #     myGraph.addNode 'Read, 'ReadFile',
     #       x: 91
     #       y: 154
@@ -115,7 +115,7 @@ class Graph extends events.EventEmitter
     #     myGraph.removeEdge 'Read', 'out'
     #
     # or:
-    # 
+    #
     #     myGraph.removeEdge 'Display', 'in'
     #
     # Removing a connection will emit the `removeEdge` event.
@@ -167,7 +167,7 @@ class Graph extends events.EventEmitter
             dot += "    #{cleanID(node.id)} [shape=box]\n"
 
         for initializer, id in @initializers
-            dot += "    data#{id} -> #{cleanID(initializer.to.node)} [label='#{cleanPort(initializer.to.port)}']\n" 
+            dot += "    data#{id} -> #{cleanID(initializer.to.node)} [label='#{cleanPort(initializer.to.port)}']\n"
 
         for edge in @edges
             dot += "    #{cleanID(edge.from.node)} -> #{cleanID(edge.to.node)}[label='#{cleanPort(edge.from.port)}']\n"
@@ -180,14 +180,14 @@ class Graph extends events.EventEmitter
         yuml = []
 
         for initializer in @initializers
-            yuml.push "(start)[#{initializer.to.port}]->(#{initializer.to.node})";
+            yuml.push "(start)[#{initializer.to.port}]->(#{initializer.to.node})"
 
         for edge in @edges
             yuml.push "(#{edge.from.node})[#{edge.from.port}]->(#{edge.to.node})"
         yuml.join ","
 
     toJSON: ->
-        json = 
+        json =
             properties:
                 name: @name
             processes: {}

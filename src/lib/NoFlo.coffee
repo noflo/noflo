@@ -76,7 +76,7 @@ class NoFlo
         implementation.getComponent()
 
     # ## Add a process to the network
-    # 
+    #
     # Processes can be added to a network at either start-up time
     # or later. The processes are added with a node definition object
     # that includes the following properties:
@@ -95,7 +95,7 @@ class NoFlo
         if node.component
             process.component = @load node.component
 
-        # Store and return the process instance 
+        # Store and return the process instance
         @processes[process.id] = process
 
     removeNode: (node) ->

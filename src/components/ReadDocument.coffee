@@ -29,7 +29,7 @@ class ReadDocument extends noflo.Component
         tika.stdout.on "data", (data) =>
             @outPorts.out.send data
         tika.stderr.on "data", (data) ->
-            error += data 
+            error += data
         tika.on "exit", (code) =>
             if code > 0
                 @outPorts.error.send error

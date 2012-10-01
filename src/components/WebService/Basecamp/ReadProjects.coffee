@@ -8,7 +8,7 @@ class ReadProjects extends base.BasecampComponent
             out: new noflo.Port()
 
         @inPorts.apikey.on "disconnect", =>
-            do @readProject if @hostname 
+            do @readProject if @hostname
         @inPorts.hostname.on "disconnect", =>
             do @readProject if @apikey
 

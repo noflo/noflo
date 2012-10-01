@@ -17,7 +17,7 @@ class GroupByObjectKey extends noflo.Component
             @outPorts.out.beginGroup group
         @inPorts.in.on "data", (data) =>
             return @getKey data if @key
-            @data.push data 
+            @data.push data
         @inPorts.in.on "endgroup", =>
             @outPorts.out.endGroup()
         @inPorts.in.on "disconnect", =>
@@ -42,8 +42,8 @@ class GroupByObjectKey extends noflo.Component
             @outPorts.out.disconnect()
 
     getKey: (data) ->
-        throw "Key not defined" unless @key
-        throw "Data is not an object" unless typeof data is "object"
+        throw new Error "Key not defined" unless @key
+        throw new Error "Data is not an object" unless typeof data is "object"
 
         group = data[@key]
         unless typeof data[@key] is "string"

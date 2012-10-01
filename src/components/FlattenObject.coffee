@@ -31,7 +31,7 @@ class FlattenObject extends noflo.Component
 
     mapKeys: (object) ->
         for key, map of @map
-            object[map] = object.flattenedKeys[key] 
+            object[map] = object.flattenedKeys[key]
         delete object.flattenedKeys
         return object
 

@@ -62,6 +62,6 @@ class GetChanges extends noflo.Component
 
         @request.on "end", =>
             # TODO: Try to reconnect?
-            @outPorts.out.disconnect() 
+            @outPorts.out.disconnect()
 
 exports.getComponent = -> new GetChanges

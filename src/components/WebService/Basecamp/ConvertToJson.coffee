@@ -23,7 +23,7 @@ class ConvertToJson extends noflo.Component
         return @convertTask data if data['completed'] and data['todo-list-id']
         return @convertHour data if data['hours'] and data['person-id']
 
-        json = 
+        json =
             "@type": "prj:Project"
             "@subject": "#{@id}projects/#{data.id['#']}"
             "prj:name": data.name
@@ -32,7 +32,7 @@ class ConvertToJson extends noflo.Component
             "dc:modified": data['last-changed-on']['#']
 
     convertTaskList: (data) ->
-        json =  
+        json =
             "@type": "prj:TaskList"
             "@subject": "#{@id}todo_lists/#{data.id['#']}"
             "prj:name": data.name
