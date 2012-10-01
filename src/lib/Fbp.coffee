@@ -1,9 +1,13 @@
+fs = require 'fs'
+
 class Fbp
     matchPort: new RegExp "([A-Z\.]+)"
-    matchComponent: new RegExp "([A-Za-z]+)\\(([A-Za-z0-9\/\.]+|)\\)"
+    matchComponent: new RegExp "([A-Za-z\.]+)\\(([A-Za-z0-9\/\.]+|)\\)"
+    matchComponentGlobal: new RegExp "([A-Za-z\.]+)\\(([A-Za-z0-9\/\.]+|)\\)", "g"
     matchInitial: new RegExp "\'(.+)\'"
     matchConnection: new RegExp "\-\>"
     matchSeparator: new RegExp "[\\s,\\n]"
+    matchSubgraph: new RegExp "\n *\\'(.+)\\' *-> *GRAPH *([A-Za-z\\.]+)\\(Graph\\)"
 
     constructor: ->
         @lastElement = null
@@ -14,8 +18,36 @@ class Fbp
         @nodes = {}
         @edges = []
 
+    loadFile: (file) ->
+        fs.readFileSync file, "utf-8", (err) ->
+            throw err if err
+
+    # Compile subgraphs INTO the parent graph
+    compileSubgraphs: (string) ->
+        loop
+            match = string.match(@matchSubgraph)
+
+            # Done when there's no more subgraphs
+            unless match?
+                return string
+
+            else
+                [match, file, name, index, original] = match
+
+                # Get the FBP of the subgraph and compile that first
+                fbp = @compileSubgraphs(@loadFile(file))
+
+                # Affix the name to the beginning of all components in the subgraph
+                fbp = fbp.replace(@matchComponentGlobal, "#{name}.$1($2)")
+
+                # Replace the graph statement with the FBP
+                string = string.replace(match, "\n#{fbp}")
+
+
     parse: (string) ->
         currentString = ""
+        string = @compileSubgraphs("\n#{string}") # Pad string with newline in case the first line is a graph include
+
         for char, index in string
             @currentLine++ if char is "\n"
 
