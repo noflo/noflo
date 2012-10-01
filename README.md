@@ -94,30 +94,32 @@ Functionality a component provides:
 
 Minimal component written in CoffeeScript would look like the following:
 
-    noflo = require "noflo"
+```coffeescript
+noflo = require "noflo"
 
-    class Forwarder extends noflo.Component
-        description: "This component receives data on a single input 
+class Forwarder extends noflo.Component
+    description: "This component receives data on a single input 
     port and sends the same data out to the output port"
 
-        constructor: ->
-            # Register ports
-            @inPorts =
-                in: new noflo.Port()
-            @outPorts =
-                out: new noflo.Port()
+    constructor: ->
+        # Register ports
+        @inPorts =
+            in: new noflo.Port()
+        @outPorts =
+            out: new noflo.Port()
 
-            @inPorts.in.on "data", (data) =>
-                # Forward data when we receive it.
-                # Note: send() will connect automatically if needed
-                @outPorts.out.send data
+        @inPorts.in.on "data", (data) =>
+            # Forward data when we receive it.
+            # Note: send() will connect automatically if needed
+            @outPorts.out.send data
 
-            @inPorts.in.on "disconnect", =>
-                # Disconnect output port when input port disconnects
-                @outPorts.out.disconnect()
+        @inPorts.in.on "disconnect", =>
+            # Disconnect output port when input port disconnects
+            @outPorts.out.disconnect()
 
-    exports.getComponent = ->
-        new Forwarder()
+exports.getComponent = ->
+    new Forwarder()
+```
 
 This example component register two ports: _in_ and _out_. When it receives data in the _in_ port, it opens the _out_ port and sends the same data there. When the _in_ connection closes, it will also close the _out_ connection. So basically this component would be a simple repeater.
 
@@ -133,12 +135,14 @@ Unattached ports from the subgraph will be available through naming `ProcessName
 
 Simple example, specifying what file a spreadsheet-parsing subgraph should run with:
 
-    # Load a subgraph as a new process
-    'examples/spreadsheet/parse.fbp' -> GRAPH Reader(Graph)
-    # Send the filename to the component (subgraph)
-    'somefile.xls' -> READ.SOURCE Reader()
-    # Display the results
-    Reader() ENTITIZE.OUT -> IN Display(Output)
+```fbp
+# Load a subgraph as a new process
+'examples/spreadsheet/parse.fbp' -> GRAPH Reader(Graph)
+# Send the filename to the component (subgraph)
+'somefile.xls' -> READ.SOURCE Reader()
+# Display the results
+Reader() ENTITIZE.OUT -> IN Display(Output)
+```
 
 ### Some words on component design
 
@@ -227,47 +231,51 @@ In addition to using NoFlo in _embedded mode_ where you create the FBP graph pro
 
 The NoFlo JSON files declare the processes used in the FBP graph, and the connections between them. They look like the following:
 
-    {
-        "properties": {
-            "name": "Count lines in a file"
+```json
+{
+    "properties": {
+        "name": "Count lines in a file"
+    },
+    "processes": {
+        "Read File": {
+            "component": "ReadFile"
         },
-        "processes": {
-            "Read File": {
-                "component": "ReadFile"
-            },
-            "Split by Lines": {
-                "component": "SplitStr"
-            },
-            ...
+        "Split by Lines": {
+            "component": "SplitStr"
         },
-        "connections": [
-            {
-                "data": "package.json",
-                "tgt": {
-                    "process": "Read File",
-                    "port": "source"
-                }
+        ...
+    },
+    "connections": [
+        {
+            "data": "package.json",
+            "tgt": {
+                "process": "Read File",
+                "port": "source"
+            }
+        },
+        {
+            "src": {
+                "process": "Read File",
+                "port": "out"
             },
-            {
-                "src": {
-                    "process": "Read File",
-                    "port": "out"
-                },
-                "tgt": {
-                    "process": "Split by Lines",
-                    "port": "in"
-                }
-            },
-            ...
-        ]
-    }
+            "tgt": {
+                "process": "Split by Lines",
+                "port": "in"
+            }
+        },
+        ...
+    ]
+}
+```
 
 To run a graph file, you can either use the _load_ command of the NoFlo shell, or do it programmatically:
 
-    noflo = require "noflo"
-    noflo.loadFile "example.json", (network) ->
-        console.log "Graph loaded"
-        console.log network.graph.toDOT()
+```coffeescript
+noflo = require "noflo"
+noflo.loadFile "example.json", (network) ->
+    console.log "Graph loaded"
+    console.log network.graph.toDOT()
+```
 
 ## Language for Flow-Based Programming
 
@@ -282,18 +290,22 @@ Components only have to be specified the first time you mention a new process. A
 
 Example:
 
-    'somefile.txt' -> SOURCE Read(ReadFile) OUT -> IN Split(SplitStr)
-    Split() OUT -> IN Count(Counter) COUNT -> IN Display(Output)
-    Read() ERROR -> IN Display()
+```fbp
+'somefile.txt' -> SOURCE Read(ReadFile) OUT -> IN Split(SplitStr)
+Split() OUT -> IN Count(Counter) COUNT -> IN Display(Output)
+Read() ERROR -> IN Display()
+```
 
 NoFlo supports the FBP language fully. You can either load a graph with a string of FBP-language commands with:
+
+```coffeescript
+fbpData = "<some FBP language connections>"
     
-    fbpData = "<some FBP language connections>"
-    
-    noflo = require "noflo"
-    noflo.graph.loadFbp fbpData, (graph) ->
-        console.log "Graph loaded"
-        console.log graph.toDOT()
+noflo = require "noflo"
+noflo.graph.loadFbp fbpData, (graph) ->
+    console.log "Graph loaded"
+    console.log graph.toDOT()
+```
 
 The `.fbp` file suffix is used for files containing FBP language. This means you can load them also the same way as you load JSON files, using the `noflo.loadFile` method, or the NoFlo shell. Example:
 
