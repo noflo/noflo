@@ -7,7 +7,7 @@ noflo = require "noflo"
 class SplitStr extends noflo.Component
     constructor: ->
         @delimiterString = "\n"
-        @string = ""
+        @strings = []
 
         @inPorts =
             in: new noflo.Port()
@@ -18,12 +18,12 @@ class SplitStr extends noflo.Component
         @inPorts.delimiter.on "data", (data) =>
             @delimiterString = data
         @inPorts.in.on "data", (data) =>
-            @string += data
+            @strings.push data
         @inPorts.in.on "disconnect", (data) =>
-            @string.split(@delimiterString).forEach (line) =>
+            @strings.join(@delimiterString).split(@delimiterString).forEach (line) =>
                 @outPorts.out.send line
             @outPorts.out.disconnect()
-            @string = ""
+            @strings = []
 
 exports.getComponent = ->
     new SplitStr()
