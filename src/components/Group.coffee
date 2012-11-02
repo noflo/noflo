@@ -2,7 +2,8 @@ noflo = require 'noflo'
 
 class Group extends noflo.Component
   constructor: ->
-    groups = []
+    @groups = []
+    @newGroups = []
 
     @inPorts =
       in: new noflo.ArrayPort
@@ -10,15 +11,24 @@ class Group extends noflo.Component
     @outPorts =
       out: new noflo.Port
 
+    @inPorts.in.on 'connect', () =>
+      @outPorts.out.beginGroup group for group in @newGroups
+
+    @inPorts.in.on 'begingroup', (group) =>
+      @outPorts.out.beginGroup group
+
     @inPorts.in.on 'data', (data) =>
-      @outPorts.out.beginGroup group for group in groups
       @outPorts.out.send data
-      @outPorts.out.endGroup() for group in groups
+
+    @inPorts.in.on 'endgroup', (group) =>
+      @outPorts.out.endGroup()
+
+    @inPorts.in.on 'disconnect', () =>
+      @outPorts.out.endGroup() for group in @newGroups
+      @outPorts.out.disconnect()
+      @groups = []
 
     @inPorts.group.on 'data', (data) =>
-      groups.push data
-
-    @inPorts.in.on "disconnect", () =>
-      @outPorts.out.disconnect()
+      @newGroups.push data
 
 exports.getComponent = -> new Group
