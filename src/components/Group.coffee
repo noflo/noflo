@@ -32,9 +32,10 @@ class Group extends noflo.Component
 
     @inPorts.group.on 'data', (data) =>
       # Get rid of groups in the past to make room for the new one
-      diff = @newGroups.length - @threshold + 1
-      if diff > 0
-        @newGroups = @newGroups.slice(diff)
+      if @threshold
+        diff = @newGroups.length - @threshold + 1
+        if diff > 0
+          @newGroups = @newGroups.slice(diff)
 
       @newGroups.push data
 
