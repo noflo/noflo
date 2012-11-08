@@ -33,6 +33,10 @@ cli.main (args, options) ->
               console.log ''
               console.log "#{component} (#{path})"
               console.log instance.description if instance.description
+              if instance.inPorts
+                console.log 'Inports:', _.keys(instance.inPorts).join ', '
+              if instance.outPorts
+                console.log 'Outports:', _.keys(instance.outPorts).join ', '
               process.exit 0 if todo is 0
         return
 
