@@ -11,15 +11,18 @@ log = require 'npmlog'
 log.pause()
 
 class ComponentLoader
-  @components = null
+  components = null
+  checked = []
 
   constructor: (@baseDir) ->
 
   getModuleComponents: (moduleDef) ->
     components = {}
+    checked.push moduleDef.name
 
     # Handle sub-modules
     _.each moduleDef.dependencies, (def) =>
+      return unless checked.indexOf(def.name) is -1
       depComponents = @getModuleComponents def
       return if _.isEmpty depComponents
       _.each depComponents, (cPath, name) ->
