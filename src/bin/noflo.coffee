@@ -3,6 +3,7 @@ nofloRoot = "#{__dirname}/.."
 noflo = require "noflo"
 cli = require "cli"
 path = require "path"
+{_} = require "underscore"
 
 cli.enable "help"
 cli.enable "version"
@@ -25,9 +26,14 @@ cli.main (args, options) ->
         baseDir = path.resolve process.cwd(), cli.args[1]
         loader = new noflo.ComponentLoader baseDir
         loader.listComponents (components) ->
-          for component, path of components
-            console.log "#{component} (#{path})"
-          process.exit 0
+          todo = 0
+          _.each components, (path, component) ->
+            instance = loader.load component, (instance) ->
+              todo--
+              console.log ''
+              console.log "#{component} (#{path})"
+              console.log instance.description if instance.description
+              process.exit 0 if todo is 0
         return
 
     for arg in cli.args
