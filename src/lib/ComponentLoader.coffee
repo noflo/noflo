@@ -6,6 +6,10 @@ fs = require 'fs'
 # We allow components to be un-compiled CoffeeScript
 require 'coffee-script'
 
+# Disable NPM logging in normal NoFlo operation
+log = require 'npmlog'
+log.pause()
+
 class ComponentLoader
   @components = null
 
