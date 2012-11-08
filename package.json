@@ -26,7 +26,6 @@
         "async"     : ">=0.1.18",
         "coffee-script": ">=1.1.0",
         "docco-husky": ">=0.3.2",
-        "kckupmq": "0.3.x",
         "cheerio": "0.7.x",
         "request": "2.x.x",
         "coffeelint": "*"
