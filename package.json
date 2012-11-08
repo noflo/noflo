@@ -29,8 +29,6 @@
         "kckupmq": "0.3.x",
         "cheerio": "0.7.x",
         "request": "2.x.x",
-        "js-yaml": "0.3.x",
-        "json2yaml": "1.x.x",
         "coffeelint": "*"
     },
     "main":         "./lib/NoFlo",
