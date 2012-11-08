@@ -263,13 +263,14 @@ class NoFlo
         socket.send initializer.from.data
         socket.disconnect()
 
-exports.createNetwork = (graph, debug = false) ->
+exports.createNetwork = (graph, debug = false, callback) ->
     network = new NoFlo graph
     network.debug = debug
 
     connect = ->
       network.addEdge edge for edge in graph.edges
       network.addInitial initializer for initializer in graph.initializers
+      callback network if callback
 
     todo = graph.nodes.length
     for node in graph.nodes

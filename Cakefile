@@ -32,7 +32,6 @@ buildDir = (path) ->
 
 task 'build', 'transpile CoffeeScript sources to JavaScript', ->
   buildDir "lib"
-  buildDir "components"
   buildDir "bin"
 
 task 'test', 'run the unit tests', ->
