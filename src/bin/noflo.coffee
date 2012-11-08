@@ -7,7 +7,6 @@ path = require "path"
 cli.enable "help"
 cli.enable "version"
 cli.enable "glob"
-cli.enable "daemon"
 cli.setApp "#{nofloRoot}/package.json"
 
 # Non-interactive processing
