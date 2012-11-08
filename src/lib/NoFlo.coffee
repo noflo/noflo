@@ -95,7 +95,7 @@ class NoFlo
 
           # Store and return the process instance
           @processes[process.id] = process
-          callback process
+          callback process if callback
 
     removeNode: (node) ->
         return unless @processes[node.id]
