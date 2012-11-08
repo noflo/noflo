@@ -21,6 +21,15 @@ cli.main (args, options) ->
         shell = require "#{nofloRoot}/lib/shell"
     return unless cli.args.length
 
+    if cli.args.length is 2 and cli.args[0] is 'list'
+        baseDir = path.resolve process.cwd(), cli.args[1]
+        loader = new noflo.ComponentLoader baseDir
+        loader.listComponents (components) ->
+          for component, path of components
+            console.log "#{component} (#{path})"
+          process.exit 0
+        return
+
     for arg in cli.args
         if arg.indexOf(".json") is -1 and arg.indexOf(".fbp") is -1
             console.error "#{arg} is not a NoFlo graph file, skipping"

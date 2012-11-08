@@ -1,6 +1,10 @@
 reader = require 'read-installed'
 {_} = require 'underscore'
 path = require 'path'
+fs = require 'fs'
+
+# We allow components to be un-compiled CoffeeScript
+require 'coffee-script'
 
 class ComponentLoader
   @components = null
@@ -22,13 +26,23 @@ class ComponentLoader
     components
 
   listComponents: (callback) ->
-    reader @baseDir, (err, data) =>
-      return callback err, data if err
-      @components = @getModuleComponents data
-      callback @components
+    # Read core components
+    # TODO: These components should eventually be migrated to modules too
+    corePath = path.resolve __dirname, '../src/components'
+    fs.readdir corePath, (err, components) =>
+      coreComponents = {}
+      _.each components, (component) ->
+        return if component.substr(0, 1) is '.'
+        [componentName, componentExtension] = component.split '.'
+        return unless componentExtension is 'coffee'
+        coreComponents[componentName] = "#{corePath}/#{component}"
+      reader @baseDir, (err, data) =>
+        return callback err, data if err
+        @components = _.extend coreComponents, @getModuleComponents data
+        callback @components
 
   load: (name, callback) ->
-    if @components is null
+    unless @components
       @listComponents (components) =>
         @load name, callback
       return

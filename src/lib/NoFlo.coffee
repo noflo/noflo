@@ -3,6 +3,7 @@
 #     NoFlo may be freely distributed under the MIT license
 internalSocket = require "./InternalSocket"
 component = require "./Component"
+componentLoader = require "./ComponentLoader"
 asynccomponent = require "./AsyncComponent"
 port = require "./Port"
 arrayport = require "./ArrayPort"
@@ -49,6 +50,8 @@ class NoFlo
         @graph.on 'removeEdge', (edge) =>
             @removeEdge edge
 
+        @loader = new componentLoader.ComponentLoader process.cwd()
+
     # The uptime of the network is the current time minus the start-up
     # time, in seconds.
     uptime: -> new Date() - @startupDate
@@ -59,22 +62,11 @@ class NoFlo
     #
     # * As direct, instantiated JavaScript objects
     # * As filenames
-    load: (component) ->
+    load: (component, callback) ->
         # Direct component instance, return as is
         if typeof component is 'object'
-            return component
-        try
-            if component.substr(0, 1) is "."
-                component = "#{process.cwd()}#{component.substr(1)}"
-            implementation = require component
-        catch error
-            try
-                implementation = require "../components/#{component}"
-            catch localError
-                # Throw the original error instead
-                error.message = "#{localError.message} (#{error.message})"
-                throw error
-        implementation.getComponent()
+            return callback component
+        @loader.load component, callback
 
     # ## Add a process to the network
     #
@@ -84,7 +76,7 @@ class NoFlo
     #
     # * `id`: Identifier of the process in the network. Typically a string
     # * `component`: Filename or path of a NoFlo component, or a component instance object
-    addNode: (node) ->
+    addNode: (node, callback) ->
         # Processes are treated as singletons by their identifier. If
         # we already have a process with the given ID, return that.
         return if @processes[node.id]
@@ -92,12 +84,18 @@ class NoFlo
         process =
           id: node.id
 
-        # Load the process for the node.
-        if node.component
-            process.component = @load node.component
+        unless node.component
+          @processes[process.id] = process
+          callback process if callback
+          return
 
-        # Store and return the process instance
-        @processes[process.id] = process
+        # Load the process for the node.
+        @load node.component, (instance) =>
+          process.component = instance
+
+          # Store and return the process instance
+          @processes[process.id] = process
+          callback process
 
     removeNode: (node) ->
         return unless @processes[node.id]
@@ -269,9 +267,16 @@ exports.createNetwork = (graph, debug = false) ->
     network = new NoFlo graph
     network.debug = debug
 
-    network.addNode node for node in graph.nodes
-    network.addEdge edge for edge in graph.edges
-    network.addInitial initializer for initializer in graph.initializers
+    connect = ->
+      network.addEdge edge for edge in graph.edges
+      network.addInitial initializer for initializer in graph.initializers
+
+    todo = graph.nodes.length
+    for node in graph.nodes
+      network.addNode node, ->
+        todo--
+        return unless todo is 0
+        do connect
 
     network
 
@@ -284,6 +289,7 @@ exports.saveFile = (graph, file, success) ->
         success file
 
 exports.Component = component.Component
+exports.ComponentLoader = componentLoader.ComponentLoader
 exports.AsyncComponent = asynccomponent.AsyncComponent
 exports.Port = port.Port
 exports.ArrayPort = arrayport.ArrayPort
