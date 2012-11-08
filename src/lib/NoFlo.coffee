@@ -267,17 +267,12 @@ exports.createNetwork = (graph, debug = false, callback) ->
     network = new NoFlo graph
     network.debug = debug
 
-    connect = ->
+    # Ensure components are loaded before continuing
+    network.loader.listComponents ->
+      network.addNode node for node in graph.nodes
       network.addEdge edge for edge in graph.edges
       network.addInitial initializer for initializer in graph.initializers
       callback network if callback
-
-    todo = graph.nodes.length
-    for node in graph.nodes
-      network.addNode node, ->
-        todo--
-        return unless todo is 0
-        do connect
 
     network
 
