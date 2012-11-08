@@ -16,7 +16,10 @@ class ComponentLoader
 
     # Handle sub-modules
     _.each moduleDef.dependencies, (def) =>
-      _.extend components, @getModuleComponents def
+      depComponents = @getModuleComponents def
+      return if _.isEmpty depComponents
+      _.each depComponents, (cPath, name) ->
+        components[name] = cPath
 
     # Handle own components
     return components unless moduleDef.noflo
