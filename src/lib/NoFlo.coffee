@@ -171,7 +171,7 @@ class NoFlo
 
         @portBuffer[id]
 
-    addEdge: (edge) ->
+    addEdge: (edge, callback) ->
         return @addInitial(edge) unless edge.from.node
         socket = internalSocket.createSocket()
         @addDebug socket if @debug
@@ -185,7 +185,7 @@ class NoFlo
             buffer = @setupPortBuffer(from.id)
 
             from.component.once "ready", =>
-                @addEdge edge
+                @addEdge edge, callback
 
                 # When the "from" component isn't ready, it's an outgoing port
                 fromPort = from.component.outPorts[edge.from.port]
@@ -212,7 +212,7 @@ class NoFlo
             buffer = @setupPortBuffer(from.id)
 
             to.component.once "ready", =>
-                @addEdge edge
+                @addEdge edge, callback
 
                 # When the "to" component isn't ready, it's an incoming port
                 fromPort = from.component.outPorts[edge.from.port]
@@ -232,6 +232,7 @@ class NoFlo
         @connectPort socket, from, edge.from.port, false
 
         @connections.push socket
+        callback() if callback
 
     removeEdge: (edge) ->
         for connection,index in @connections
@@ -243,7 +244,7 @@ class NoFlo
                     connection.from.process.component.inPorts[connection.from.port].detach connection
                     @connections.splice index, 1
 
-    addInitial: (initializer) ->
+    addInitial: (initializer, callback) ->
         socket = internalSocket.createSocket()
         @addDebug socket if @debug
 
@@ -254,7 +255,7 @@ class NoFlo
         unless to.component.isReady() or to.component.inPorts[initializer.to.port]
             to.component.setMaxListeners 0
             to.component.once "ready", =>
-                @addInitial initializer
+                @addInitial initializer, callback
             return
 
         @connectPort socket, to, initializer.to.port, true
@@ -262,6 +263,7 @@ class NoFlo
         socket.connect()
         socket.send initializer.from.data
         socket.disconnect()
+        callback() if callback
 
 exports.createNetwork = (graph, debug = false, callback) ->
     network = new NoFlo graph
@@ -269,16 +271,32 @@ exports.createNetwork = (graph, debug = false, callback) ->
 
     # Ensure components are loaded before continuing
     network.loader.listComponents ->
-      network.addNode node for node in graph.nodes
-      network.addEdge edge for edge in graph.edges
-      network.addInitial initializer for initializer in graph.initializers
-      callback network if callback
+      toAdd = graph.nodes.length + graph.edges.length + graph.initializers.length
+
+      if toAdd is 0
+        callback network
+        return
+
+      for node in graph.nodes
+        network.addNode node, ->
+          toAdd--
+          callback network if callback? and toAdd is 0
+
+      for edge in graph.edges
+        network.addEdge edge, ->
+          toAdd--
+          callback network if callback? and toAdd is 0
+
+      for initializer in graph.initializers
+        network.addInitial initializer, ->
+          toAdd--
+          callback network if callback? and toAdd is 0
 
     network
 
 exports.loadFile = (file, success, debug = false) ->
     graph.loadFile file, (net) ->
-        success exports.createNetwork net, debug
+        exports.createNetwork net, debug, success
 
 exports.saveFile = (graph, file, success) ->
     graph.save file, ->
