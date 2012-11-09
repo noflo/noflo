@@ -17,6 +17,7 @@ class ComponentLoader
   constructor: (@baseDir) ->
 
   getModulePrefix: (name) ->
+    return '' unless name
     name.replace 'noflo-', ''
 
   getModuleComponents: (moduleDef) ->
