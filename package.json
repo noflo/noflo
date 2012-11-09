@@ -28,7 +28,6 @@
         "nodeunit"  : ">=0.6.0",
         "async"     : ">=0.1.18",
         "docco-husky": ">=0.3.2",
-        "request": "2.x.x",
         "coffeelint": "*"
     },
     "main":         "./lib/NoFlo",
