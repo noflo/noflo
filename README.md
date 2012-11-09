@@ -144,6 +144,10 @@ Simple example, specifying what file a spreadsheet-parsing subgraph should run w
 Reader() ENTITIZE.OUT -> IN Display(Output)
 ```
 
+### Sharing components via NPM
+
+Since version 0.2.0, NoFlo has been able to utilize components shared via NPM packages. [Read the introductory blog post](http://bergie.iki.fi/blog/distributing-noflo-components/) to learn more.
+
 ### Some words on component design
 
 Components should aim to be reusable, to do one thing and do it well. This is why often it is a good idea to split functionality traditionally done in one function to multiple components. For example, counting lines in a text file could happen in the following way:
