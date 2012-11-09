@@ -16,9 +16,14 @@ class ComponentLoader
 
   constructor: (@baseDir) ->
 
+  getModulePrefix: (name) ->
+    name.replace 'noflo-', ''
+
   getModuleComponents: (moduleDef) ->
     components = {}
     checked.push moduleDef.name
+
+    prefix = @getModulePrefix moduleDef.name
 
     # Handle sub-modules
     _.each moduleDef.dependencies, (def) =>
@@ -32,7 +37,7 @@ class ComponentLoader
     return components unless moduleDef.noflo
     return components unless moduleDef.noflo.components
     _.each moduleDef.noflo.components, (cPath, name) ->
-      components[name] = path.resolve moduleDef.realPath, cPath
+      components["#{prefix}/#{name}"] = path.resolve moduleDef.realPath, cPath
     components
 
   listComponents: (callback) ->
