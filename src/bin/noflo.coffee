@@ -16,6 +16,19 @@ cli.parse
     interactive: ['i', 'Start an interactive NoFlo shell']
     debug: ['debug', 'Start NoFlo in debug mode']
 
+showComponent = (component, path, instance, callback) ->
+    unless instance.isReady()
+        instance.once 'ready', ->
+            showComponent component, path, instance, callback
+        return
+    console.log ''
+    console.log "#{component} (#{path})"
+    console.log instance.description if instance.description
+    if instance.inPorts
+        console.log 'Inports:', _.keys(instance.inPorts).join ', '
+    if instance.outPorts
+        console.log 'Outports:', _.keys(instance.outPorts).join ', '
+
 cli.main (args, options) ->
     if options.interactive
         process.argv = [process.argv[0], process.argv[1]]
@@ -26,18 +39,12 @@ cli.main (args, options) ->
         baseDir = path.resolve process.cwd(), cli.args[1]
         loader = new noflo.ComponentLoader baseDir
         loader.listComponents (components) ->
-          todo = 0
-          _.each components, (path, component) ->
-            instance = loader.load component, (instance) ->
-              todo--
-              console.log ''
-              console.log "#{component} (#{path})"
-              console.log instance.description if instance.description
-              if instance.inPorts
-                console.log 'Inports:', _.keys(instance.inPorts).join ', '
-              if instance.outPorts
-                console.log 'Outports:', _.keys(instance.outPorts).join ', '
-              process.exit 0 if todo is 0
+            todo = 0
+            _.each components, (path, component) ->
+                instance = loader.load component, (instance) ->
+                    showComponent component, path, instance, ->
+                        todo--
+                        process.exit 0 if todo is 0
         return
 
     for arg in cli.args

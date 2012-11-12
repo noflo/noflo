@@ -49,7 +49,6 @@ class NoFlo
             @addEdge edge
         @graph.on 'removeEdge', (edge) =>
             @removeEdge edge
-
         @loader = new componentLoader.ComponentLoader process.cwd()
 
     # The uptime of the network is the current time minus the start-up
@@ -262,35 +261,38 @@ class NoFlo
         @connections.push socket
         socket.connect()
         socket.send initializer.from.data
-        socket.disconnect()
+        process.nextTick ->
+          socket.disconnect()
         callback() if callback
 
 exports.createNetwork = (graph, debug = false, callback) ->
     network = new NoFlo graph
     network.debug = debug
 
+    toAddNodes = graph.nodes.length
+    return callback network if toAddNodes is 0
+
     # Ensure components are loaded before continuing
     network.loader.listComponents ->
-      toAdd = graph.nodes.length + graph.edges.length + graph.initializers.length
+        toAdd = graph.edges.length + graph.initializers.length
 
-      if toAdd is 0
-        callback network
-        return
+        connect = ->
+            return callback network if toAdd is 0
 
-      for node in graph.nodes
-        network.addNode node, ->
-          toAdd--
-          callback network if callback? and toAdd is 0
+            for edge in graph.edges
+                network.addEdge edge, ->
+                    toAdd--
+                    callback network if callback? and toAdd is 0
 
-      for edge in graph.edges
-        network.addEdge edge, ->
-          toAdd--
-          callback network if callback? and toAdd is 0
+            for initializer in graph.initializers
+                network.addInitial initializer, ->
+                    toAdd--
+                    callback network if callback? and toAdd is 0
 
-      for initializer in graph.initializers
-        network.addInitial initializer, ->
-          toAdd--
-          callback network if callback? and toAdd is 0
+        for node in graph.nodes
+            network.addNode node, ->
+                toAddNodes--
+                connect() if toAddNodes is 0
 
     network
 

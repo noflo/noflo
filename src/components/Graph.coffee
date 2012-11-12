@@ -23,14 +23,14 @@ class Graph extends noflo.Component
             @createNetwork instance
 
     createNetwork: (graph) ->
-        @network = noflo.createNetwork graph
-        notReady = false
-        for name, process of @network.processes
-            notReady = true unless @findEdgePorts name, process
+        @network = noflo.createNetwork graph, false, =>
+            notReady = false
+            for name, process of @network.processes
+                notReady = true unless @findEdgePorts name, process
 
-        unless notReady
-            @ready = true
-            @emit "ready"
+            unless notReady
+                @ready = true
+                @emit "ready"
 
     findEdgePorts: (name, process) ->
         unless process.component.isReady()

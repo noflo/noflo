@@ -2,6 +2,7 @@ reader = require 'read-installed'
 {_} = require 'underscore'
 path = require 'path'
 fs = require 'fs'
+internalSocket = require './InternalSocket'
 
 # We allow components to be un-compiled CoffeeScript
 require 'coffee-script'
@@ -11,10 +12,9 @@ log = require 'npmlog'
 log.pause()
 
 class ComponentLoader
-  components = null
-  checked = []
-
   constructor: (@baseDir) ->
+    @components = null
+    @checked = []
 
   getModulePrefix: (name) ->
     return '' unless name
@@ -22,13 +22,13 @@ class ComponentLoader
 
   getModuleComponents: (moduleDef) ->
     components = {}
-    checked.push moduleDef.name
+    @checked.push moduleDef.name
 
     prefix = @getModulePrefix moduleDef.name
 
     # Handle sub-modules
     _.each moduleDef.dependencies, (def) =>
-      return unless checked.indexOf(def.name) is -1
+      return unless @checked.indexOf(def.name) is -1
       depComponents = @getModuleComponents def
       return if _.isEmpty depComponents
       _.each depComponents, (cPath, name) ->
@@ -36,12 +36,17 @@ class ComponentLoader
 
     # Handle own components
     return components unless moduleDef.noflo
-    return components unless moduleDef.noflo.components
-    _.each moduleDef.noflo.components, (cPath, name) ->
-      components["#{prefix}/#{name}"] = path.resolve moduleDef.realPath, cPath
+    if moduleDef.noflo.components
+      _.each moduleDef.noflo.components, (cPath, name) ->
+        components["#{prefix}/#{name}"] = path.resolve moduleDef.realPath, cPath
+    if moduleDef.noflo.graphs
+      _.each moduleDef.noflo.graphs, (gPath, name) ->
+        components["#{prefix}/#{name}"] = path.resolve moduleDef.realPath, gPath
     components
 
   listComponents: (callback) ->
+    return callback @components unless @components is null
+
     # Read core components
     # TODO: These components should eventually be migrated to modules too
     corePath = path.resolve __dirname, '../src/components'
@@ -57,6 +62,9 @@ class ComponentLoader
         @components = _.extend coreComponents, @getModuleComponents data
         callback @components
 
+  isGraph: (path) ->
+    path.indexOf('.fbp') isnt -1 or path.indexOf('.json') isnt -1
+
   load: (name, callback) ->
     unless @components
       @listComponents (components) =>
@@ -67,7 +75,21 @@ class ComponentLoader
       throw new Error "Component #{name} not available"
       return
 
+    if @isGraph @components[name]
+      process.nextTick =>
+        @loadGraph name, callback
+      return
+
     implementation = require @components[name]
     callback implementation.getComponent()
+
+  loadGraph: (name, callback) ->
+    graphImplementation = require @components['Graph']
+    graphSocket = internalSocket.createSocket()
+    graph = graphImplementation.getComponent()
+    graph.inPorts.graph.attach graphSocket
+    graphSocket.send @components[name]
+    graphSocket.disconnect()
+    callback graph
 
 exports.ComponentLoader = ComponentLoader
