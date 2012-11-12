@@ -21,6 +21,9 @@ class Concat extends noflo.Component
     @inPorts.in.on 'endgroup', =>
       @outPorts.out.endGroup()
     @inPorts.in.on 'disconnect', =>
+      # Check that all ports have disconnected before emitting
+      for socket in @inPorts.in.sockets
+        return if socket.connected
       @buffers = {}
       @outPorts.out.disconnect()
 
