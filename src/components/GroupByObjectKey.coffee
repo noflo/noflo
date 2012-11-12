@@ -48,6 +48,8 @@ class GroupByObjectKey extends noflo.Component
         group = data[@key]
         unless typeof data[@key] is "string"
             group = "undefined"
+        if typeof data[@key] is "boolean"
+            group = @key if data[@key]
 
         @outPorts.out.beginGroup group
         @outPorts.out.send data

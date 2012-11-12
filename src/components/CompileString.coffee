@@ -8,7 +8,7 @@ class CompileString extends noflo.Component
 
     @inPorts =
       delimiter: new noflo.Port
-      in: new noflo.Port
+      in: new noflo.ArrayPort
     @outPorts =
       out: new noflo.Port
 
