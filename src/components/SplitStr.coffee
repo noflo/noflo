@@ -15,8 +15,10 @@ class SplitStr extends noflo.Component
             delimiter: new noflo.Port()
         @outPorts =
             out: new noflo.Port()
-
         @inPorts.delimiter.on "data", (data) =>
+            if data.substr(0, 1) is '/' and data.substr(data.length - 1, 1) is '/'
+                # Handle regular expressions
+                data = new RegExp data.substr 1, data.length - 2
             @delimiterString = data
         @inPorts.in.on "begingroup", (group) =>
             @groups.push(group)
@@ -24,11 +26,11 @@ class SplitStr extends noflo.Component
             @strings.push data
         @inPorts.in.on "disconnect", (data) =>
             for group in @groups
-              @outPorts.out.beginGroup(group)
+                @outPorts.out.beginGroup(group)
             @strings.join(@delimiterString).split(@delimiterString).forEach (line) =>
                 @outPorts.out.send line
             for group in @groups
-              @outPorts.out.endGroup()
+                @outPorts.out.endGroup()
             @outPorts.out.disconnect()
             @strings = []
             @groups = []
