@@ -25,6 +25,7 @@ class SplitStr extends noflo.Component
         @inPorts.in.on "data", (data) =>
             @strings.push data
         @inPorts.in.on "disconnect", (data) =>
+            return @outPorts.out.disconnect() if @strings.length is 0
             for group in @groups
                 @outPorts.out.beginGroup(group)
             @strings.join(@delimiterString).split(@delimiterString).forEach (line) =>

@@ -41,10 +41,12 @@ class InternalSocket extends events.EventEmitter
     #         # Otherwise, call same method recursively
     #         @readBuffer fd, position, size, buffer
     connect: ->
+        return if @connected
         @connected = true
         @emit 'connect', @
 
     disconnect: ->
+        return unless @connected
         @connected = false
         @emit 'disconnect', @
 
@@ -62,6 +64,7 @@ class InternalSocket extends events.EventEmitter
     # can be constructed with more flexibility, as file buffers or
     # message queues can be used as additional packet relay mechanisms.
     send: (data) ->
+        @connect() unless @connected
         @emit 'data', data
 
     # ## Information Packet grouping

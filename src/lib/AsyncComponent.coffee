@@ -31,7 +31,7 @@ class AsyncComponent extends component.Component
     processData: (data) ->
         @incrementLoad()
         @doAsync data, (err) =>
-            if err?
+            if err
                 if (@errPortName of @outPorts)
                     @outPorts[@errPortName].send err
                     @outPorts[@errPortName].disconnect()
