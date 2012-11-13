@@ -1,4 +1,4 @@
-noflo = require "noflo"
+noflo = require "../lib/NoFlo"
 
 getBaseGraph = ->
     graph = new noflo.Graph "ArrayPort"

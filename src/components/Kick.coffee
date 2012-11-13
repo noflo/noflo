@@ -1,4 +1,4 @@
-noflo = require "noflo"
+noflo = require "../../lib/NoFlo"
 
 class Kick extends noflo.Component
     description: "This component generates a single packet and sends in to the output port. Mostly usable for debugging, but can also be useful for starting up networks."

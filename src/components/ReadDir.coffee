@@ -3,7 +3,7 @@
 # of errors the error message will be sent to the error port.
 
 fs = require "fs"
-noflo = require "noflo"
+noflo = require "../../lib/NoFlo"
 
 class ReadDir extends noflo.Component
     constructor: ->

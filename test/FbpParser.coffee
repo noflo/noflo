@@ -1,4 +1,4 @@
-noflo = require "noflo"
+noflo = require "../lib/NoFlo"
 
 exports["test simple FBP file"] = (test) ->
     fbpData = """

@@ -1,4 +1,4 @@
-noflo = require "noflo"
+noflo = require "../../lib/NoFlo"
 
 class Merge extends noflo.Component
     description: "This component receives data on multiple input ports and sends the same data out to the connected output port"

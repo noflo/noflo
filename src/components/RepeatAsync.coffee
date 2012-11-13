@@ -1,7 +1,5 @@
-noflo = require("noflo")
-util = require("util")
-
-
+noflo = require "../../lib/NoFlo"
+util = require "util"
 
 class RepeatAsync extends noflo.Component
 

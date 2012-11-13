@@ -1,4 +1,4 @@
-noflo = require "noflo"
+noflo = require "../../lib/NoFlo"
 {spawn} = require "child_process"
 
 class ReadDocument extends noflo.Component

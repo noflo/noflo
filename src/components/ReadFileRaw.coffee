@@ -1,5 +1,5 @@
 fs = require "fs"
-noflo = require "noflo"
+noflo = require "../../lib/NoFlo"
 
 class ReadFileRaw extends noflo.Component
     constructor: ->

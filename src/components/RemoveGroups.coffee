@@ -1,4 +1,4 @@
-noflo = require "noflo"
+noflo = require "../../lib/NoFlo"
 
 class RemoveGroups extends noflo.Component
     constructor: ->

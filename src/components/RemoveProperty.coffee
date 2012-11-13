@@ -1,4 +1,4 @@
-noflo = require "noflo"
+noflo = require "../../lib/NoFlo"
 _ = require 'underscore'
 
 class RemoveProperty extends noflo.Component

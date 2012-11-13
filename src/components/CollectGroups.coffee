@@ -1,4 +1,4 @@
-noflo = require "noflo"
+noflo = require "../../lib/NoFlo"
 assert = require "assert"
 
 class CollectGroups extends noflo.Component

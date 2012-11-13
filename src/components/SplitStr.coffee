@@ -2,7 +2,7 @@
 # string specified in the delimiter port, and send each part as a separate
 # packet to the out port
 
-noflo = require "noflo"
+noflo = require "../../lib/NoFlo"
 
 class SplitStr extends noflo.Component
     constructor: ->

@@ -1,4 +1,4 @@
-noflo = require "noflo"
+noflo = require "../../lib/NoFlo"
 util = require "util"
 
 class Throttle extends noflo.Component

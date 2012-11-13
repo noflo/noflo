@@ -1,4 +1,4 @@
-noflo = require "noflo"
+noflo = require "../../lib/NoFlo"
 
 class Template extends noflo.Component
     description: "This component receives a templating engine name, a string containing the template, and variables for the template. Then it runs the chosen template engine and sends resulting templated content to the output port"

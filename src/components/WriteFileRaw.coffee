@@ -1,4 +1,4 @@
-noflo = require "noflo"
+noflo = require "../../lib/NoFlo"
 fs = require "fs"
 
 class WriteFileRaw extends noflo.Component

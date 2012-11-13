@@ -1,5 +1,5 @@
 fs = require 'fs'
-noflo = require 'noflo'
+noflo = require '../../lib/NoFlo'
 
 class WriteFile extends noflo.Component
   constructor: ->
