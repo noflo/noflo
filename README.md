@@ -19,6 +19,12 @@ Currently NoFlo is still in quite early stages. It has already been used in some
 
 ## Requirements and installing
 
+NoFlo is available [via NPM](https://npmjs.org/package/noflo), so you can install it with:
+
+    $ npm install -g noflo
+
+### Installing from Git
+
 NoFlo requires a reasonably recent version of [Node.js](http://nodejs.org/), and some [npm](http://npmjs.org/) packages. Ensure you have the `coffee-script` package installed (`coffee` command should be available on command line) and NoFlo checked out from Git. Build NoFlo with:
 
     $ cake build
@@ -83,6 +89,8 @@ A component is the main ingredient of flow-based programming. Component is a Com
 
 NoFlo processes (the boxes of a flow graph) are instances of a component, with the graph controlling connections between ports of components.
 
+Since version 0.2.0, NoFlo has been able to utilize components shared via NPM packages. [Read the introductory blog post](http://bergie.iki.fi/blog/distributing-noflo-components/) to learn more.
+
 ### Structure of a component
 
 Functionality a component provides:
@@ -144,9 +152,18 @@ Simple example, specifying what file a spreadsheet-parsing subgraph should run w
 Reader() ENTITIZE.OUT -> IN Display(Output)
 ```
 
-### Sharing components via NPM
+Just like with components, it is possible to share subgraphs via NPM. You have to register them in your `package.json`, for example:
 
-Since version 0.2.0, NoFlo has been able to utilize components shared via NPM packages. [Read the introductory blog post](http://bergie.iki.fi/blog/distributing-noflo-components/) to learn more.
+```json
+  "name": "noflo-spreadsheet",
+  "noflo": {
+    "graphs": {
+      "Parse": "./graphs/parse.fbp"
+    }
+  }
+```
+
+After this the subgraph is available as a "virtual component" with the name `spreadsheet/Parse` and can be used just like any other component. Subgraphs exported in this manner can be in either JSON or the `.fbp` format.
 
 ### Some words on component design
 
