@@ -2,6 +2,5 @@
 node_modules
 bin/*.js
 lib/*.js
-components/*
 server/static/js/*.js
 docs_tmp/
