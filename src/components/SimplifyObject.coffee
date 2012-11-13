@@ -21,8 +21,6 @@ class SimplifyObject extends noflo.Component
       @outPorts.out.disconnect()
 
   simplify: (data) ->
-    console.log data
-
     if _.isArray data
       if data.length is 1
         return data[0]
