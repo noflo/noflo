@@ -5,7 +5,6 @@ node_js:
 
 before_script:
   - ./node_modules/.bin/cake build
-  - ln -s `pwd` node_modules/noflo
 
 script: npm test
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 nofloRoot = "#{__dirname}/.."
-noflo = require "noflo"
+noflo = require "../lib/NoFlo"
 cli = require "cli"
 path = require "path"
 {_} = require "underscore"

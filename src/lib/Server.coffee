@@ -1,5 +1,5 @@
 express = require "express"
-noflo = require "noflo"
+noflo = require "./NoFlo"
 path = require "path"
 nofloRoot = path.normalize "#{__dirname}/.."
 

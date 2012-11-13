@@ -1,5 +1,5 @@
 noflo_root = "#{__dirname}/.."
-noflo = require "noflo"
+noflo = require "./NoFlo"
 shell = require "shell"
 
 process.on "uncaughtException", (e) ->
