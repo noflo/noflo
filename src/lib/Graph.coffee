@@ -164,13 +164,14 @@ class Graph extends events.EventEmitter
         dot = "digraph {\n"
 
         for node in @nodes
-            dot += "    #{cleanID(node.id)} [shape=box]\n"
+            dot += "    #{cleanID(node.id)} [label=#{node.id} shape=box]\n"
 
         for initializer, id in @initializers
-            dot += "    data#{id} -> #{cleanID(initializer.to.node)} [label='#{cleanPort(initializer.to.port)}']\n"
+            dot += "    data#{id} [label=\"'#{initializer.from.data}'\" shape=plaintext]\n"
+            dot += "    data#{id} -> #{cleanID(initializer.to.node)}[headlabel=#{cleanPort(initializer.to.port)} labelfontcolor=blue labelfontsize=8.0]\n"
 
         for edge in @edges
-            dot += "    #{cleanID(edge.from.node)} -> #{cleanID(edge.to.node)}[label='#{cleanPort(edge.from.port)}']\n"
+            dot += "    #{cleanID(edge.from.node)} -> #{cleanID(edge.to.node)}[taillabel=#{cleanPort(edge.from.port)} headlabel=#{cleanPort(edge.to.port)} labelfontcolor=blue labelfontsize=8.0]\n"
 
         dot += "}"
 
