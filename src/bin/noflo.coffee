@@ -2,6 +2,7 @@
 nofloRoot = "#{__dirname}/.."
 noflo = require "../lib/NoFlo"
 cli = require "cli"
+clc = require "cli-color"
 path = require "path"
 {_} = require "underscore"
 
@@ -31,21 +32,24 @@ showComponent = (component, path, instance, callback) ->
         console.log 'Outports:', _.keys(instance.outPorts).join ', '
 
 addDebug = (network, verbose) ->
+
+  identifier = clc.blue.italic
+
   network.on 'connect', (data) ->
-    console.log "#{data.id} CONN"
+    console.log "#{identifier(data.id)} #{clc.yellow('CONN')}"
 
   network.on 'begingroup', (data) ->
-    console.log "#{data.id} < #{data.group}"
+    console.log "#{identifier(data.id)} #{clc.cyan('< ' + data.group)}"
 
   network.on 'data', (data) ->
-    console.error "#{data.id} DATA" unless verbose
-    console.error "#{data.id} DATA", data.data if verbose
+    console.error "#{identifier(data.id)} #{clc.green('DATA')}" unless verbose
+    console.error "#{identifier(data.id)} #{clc.green('DATA')}", data.data if verbose
 
   network.on 'endgroup', (data) ->
-    console.log "#{data.id} > #{data.group}"
+    console.log "#{identifier(data.id)} #{clc.cyan('> ' + data.group)}"
 
   network.on 'disc', (data) ->
-    console.log "#{data.id} DISC"
+    console.log "#{identifier(data.id)} #{clc.yellow('DISC')}"
 
 cli.main (args, options) ->
     if options.interactive
