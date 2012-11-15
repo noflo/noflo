@@ -10,29 +10,32 @@ arrayport = require "./ArrayPort"
 graph = require "./Graph"
 {Network} = require "./Network"
 
-exports.createNetwork = (graph, debug = false, callback) ->
+exports.createNetwork = (graph, callback) ->
     network = new Network graph
-    network.debug = debug
+
+    networkReady = (network) ->
+      callback network
+      network.sendInitials()
 
     toAddNodes = graph.nodes.length
-    return callback network if toAddNodes is 0
+    return networkReady network if toAddNodes is 0
 
     # Ensure components are loaded before continuing
     network.loader.listComponents ->
         toAdd = graph.edges.length + graph.initializers.length
 
         connect = ->
-            return callback network if toAdd is 0
+            return networkReady network if toAdd is 0
 
             for edge in graph.edges
                 network.addEdge edge, ->
                     toAdd--
-                    callback network if callback? and toAdd is 0
+                    networkReady network if callback? and toAdd is 0
 
             for initializer in graph.initializers
                 network.addInitial initializer, ->
                     toAdd--
-                    callback network if callback? and toAdd is 0
+                    networkReady network if callback? and toAdd is 0
 
         for node in graph.nodes
             network.addNode node, ->
@@ -41,13 +44,12 @@ exports.createNetwork = (graph, debug = false, callback) ->
 
     network
 
-exports.loadFile = (file, success, debug = false) ->
+exports.loadFile = (file, callback) ->
     graph.loadFile file, (net) ->
-        exports.createNetwork net, debug, success
+        exports.createNetwork net, callback
 
-exports.saveFile = (graph, file, success) ->
-    graph.save file, ->
-        success file
+exports.saveFile = (graph, file, callback) ->
+    graph.save file, -> callback file
 
 exports.Component = component.Component
 exports.ComponentLoader = componentLoader.ComponentLoader

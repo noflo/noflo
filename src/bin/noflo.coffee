@@ -15,6 +15,7 @@ cli.parse
     listen: ['l', 'Start NoFlo server on this port', 'number']
     interactive: ['i', 'Start an interactive NoFlo shell']
     debug: ['debug', 'Start NoFlo in debug mode']
+    verbose: ['v', 'Log in verbose format']
 
 showComponent = (component, path, instance, callback) ->
     unless instance.isReady()
@@ -28,6 +29,23 @@ showComponent = (component, path, instance, callback) ->
         console.log 'Inports:', _.keys(instance.inPorts).join ', '
     if instance.outPorts
         console.log 'Outports:', _.keys(instance.outPorts).join ', '
+
+addDebug = (network, verbose) ->
+  network.on 'connect', (data) ->
+    console.log "#{data.id} CONN"
+
+  network.on 'begingroup', (data) ->
+    console.log "#{data.id} < #{data.group}"
+
+  network.on 'data', (data) ->
+    console.error "#{data.id} DATA" unless verbose
+    console.error "#{data.id} DATA", data.data if verbose
+
+  network.on 'endgroup', (data) ->
+    console.log "#{data.id} > #{data.group}"
+
+  network.on 'disc', (data) ->
+    console.log "#{data.id} DISC"
 
 cli.main (args, options) ->
     if options.interactive
@@ -53,8 +71,9 @@ cli.main (args, options) ->
             continue
         arg = path.resolve process.cwd(), arg
         noflo.loadFile arg, (network) ->
+            addDebug network, options.verbose if options.debug
+
             return unless options.interactive
             
             shell.app.network = network
             shell.app.setPrompt network.graph.name
-        , options.debug

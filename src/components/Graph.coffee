@@ -2,7 +2,6 @@ noflo = require "../../lib/NoFlo"
 
 class Graph extends noflo.Component
     constructor: ->
-        @debug = false
         @network = null
         @ready = false
 
@@ -24,7 +23,7 @@ class Graph extends noflo.Component
             @createNetwork instance
 
     createNetwork: (graph) ->
-        @network = noflo.createNetwork graph, @debug, =>
+        @network = noflo.createNetwork graph, =>
             notReady = false
             for name, process of @network.processes
                 notReady = true unless @findEdgePorts name, process

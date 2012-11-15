@@ -4,6 +4,7 @@
 internalSocket = require "./InternalSocket"
 componentLoader = require "./ComponentLoader"
 graph = require "./Graph"
+events = require "events"
 
 # # The NoFlo network coordinator
 #
@@ -14,9 +15,10 @@ graph = require "./Graph"
 # instantiate all the necessary processes from the designated
 # components, attach sockets between them, and handle the sending
 # of Initial Information Packets.
-class Network
+class Network extends events.EventEmitter
     processes: {}
     connections: []
+    initials: []
     graph: null
     startupDate: null
     portBuffer: {}
@@ -24,6 +26,7 @@ class Network
     constructor: (graph) ->
         @processes = {}
         @connections = []
+        @initials = []
         @graph = graph
 
         # As most NoFlo networks are long-running processes, the
@@ -125,19 +128,31 @@ class Network
 
         process.component.outPorts[port].attach socket
 
-    addDebug: (socket) ->
-        logSocket = (message) ->
-            console.error "#{socket.getId()} #{message}"
-        socket.on "connect", ->
-            logSocket "CONN"
-        socket.on "begingroup", (group) ->
-            logSocket "< #{group}"
-        socket.on "disconnect", ->
-            logSocket "DISC"
-        socket.on "endgroup", (group) ->
-            logSocket "> #{group}"
-        socket.on "data", (data) ->
-            logSocket "DATA"
+    # Subscribe to events from all connected sockets and re-emit them
+    subscribeSocket: (socket) ->
+        socket.on 'connect', =>
+            @emit 'connect',
+                id: socket.getId()
+                socket: socket
+        socket.on 'begingroup', (group) =>
+            @emit 'begingroup',
+                id: socket.getId()
+                socket: socket
+                group: group
+        socket.on 'data', (data) =>
+            @emit 'data',
+                id: socket.getId()
+                socket: socket
+                data: data
+        socket.on 'endgroup', (group) =>
+            @emit 'endgroup',
+                id: socket.getId()
+                socket: socket
+                group: group
+        socket.on 'disconnect', =>
+            @emit 'disc',
+                id: socket.getId()
+                socket: socket
 
     # Release the IPs buffered because of an un-ready component
     flushPortBuffer: (id) ->
@@ -169,7 +184,6 @@ class Network
     addEdge: (edge, callback) ->
         return @addInitial(edge) unless edge.from.node
         socket = internalSocket.createSocket()
-        @addDebug socket if @debug
 
         from = @getNode edge.from.node
         unless from
@@ -226,6 +240,9 @@ class Network
         @connectPort socket, to, edge.to.port, true
         @connectPort socket, from, edge.from.port, false
 
+        # Subscribe to events from the socket
+        @subscribeSocket socket
+
         @connections.push socket
         callback() if callback
 
@@ -241,7 +258,6 @@ class Network
 
     addInitial: (initializer, callback) ->
         socket = internalSocket.createSocket()
-        @addDebug socket if @debug
 
         to = @getNode initializer.to.node
         unless to
@@ -254,11 +270,26 @@ class Network
             return
 
         @connectPort socket, to, initializer.to.port, true
+
+        # Subscribe to events from the socket
+        @subscribeSocket socket
+
         @connections.push socket
-        socket.connect()
-        socket.send initializer.from.data
-        process.nextTick ->
-          socket.disconnect()
+
+        @initials.push
+          socket: socket
+          data: initializer.from.data
+
         callback() if callback
+
+    sendInitial: (initial) ->
+        initial.socket.connect()
+        initial.socket.send initial.data
+        process.nextTick ->
+            initial.socket.disconnect()
+
+    sendInitials: ->
+        @sendInitial initial for initial in @initials
+        @initials = []
 
 exports.Network = Network
