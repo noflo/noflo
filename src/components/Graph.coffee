@@ -26,28 +26,48 @@ class Graph extends noflo.Component
         @network = noflo.createNetwork graph, =>
             notReady = false
             for name, process of @network.processes
-                notReady = true unless @findEdgePorts name, process
+                notReady = true unless @checkComponent name, process
 
-            unless notReady
-                @ready = true
-                @emit "ready"
+            do @setToReady unless notReady
 
-    findEdgePorts: (name, process) ->
+    checkComponent: (name, process) ->
         unless process.component.isReady()
             process.component.once "ready", =>
-                @findEdgePorts name, process
-                @ready = true
-                @emit "ready"
+                @checkComponent name, process
+                @setToReady()
             return false
 
+        @findEdgePorts name, process
+
+        true
+
+    portName: (nodeName, portName) ->
+        "#{nodeName.toLowerCase()}.#{portName}"
+
+    isExported: (port, nodeName, portName) ->
+        newPort = @portName nodeName, portName
+        return false if port.isAttached()
+        return newPort if @network.graph.exports.length is 0
+
+        for exported in @network.graph.exports
+            return exported.public if exported.private is newPort
+        return false
+
+    setToReady: ->
+        @ready = true
+        @emit "ready"
+
+    findEdgePorts: (name, process) ->
         for portName, port of process.component.inPorts
-            continue if port.isAttached()
-            newPort = "#{name.toLowerCase()}.#{portName}"
+            newPort = @isExported port, name, portName
+            continue if newPort is false
+            console.log "EXPOSE", newPort, portName
             @inPorts[newPort] = @replicateInPort port, newPort
 
         for portName, port of process.component.outPorts
-            continue if port.isAttached()
-            newPort = "#{name.toLowerCase()}.#{portName}"
+            newPort = @isExported port, name, portName
+            continue if newPort is false
+            console.log "EXPOSE", newPort, portName
             @outPorts[newPort] = @replicateOutPort port, newPort
 
         return true
@@ -55,6 +75,7 @@ class Graph extends noflo.Component
     replicatePort: (port) ->
         return new noflo.ArrayPort() if port instanceof noflo.ArrayPort
         return new noflo.Port() unless port instanceof noflo.ArrayPort
+
     replicateInPort: (port, portName) ->
         newPort = @replicatePort port
         newPort.on "attach", (socket) ->

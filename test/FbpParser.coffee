@@ -6,6 +6,7 @@ exports["test simple FBP file"] = (test) ->
     """
 
     noflo.graph.loadFBP fbpData, (graph) ->
+        test.equal graph.exports.length, 0
         test.equal graph.edges.length, 1
         test.equal graph.initializers.length, 1
         test.equal graph.nodes.length, 2
@@ -60,3 +61,16 @@ exports["test invalid syntax"] = (test) ->
         noflo.graph.loadFBP fbpData, (graph) ->
 
     test.done()
+
+exports["test exporting ports"] = (test) ->
+    fbpData = """
+    EXPORT=READ.IN:FILENAME
+    Read(ReadFile) OUT -> IN Display(Output) 
+    """
+    noflo.graph.loadFBP fbpData, (graph) ->
+        test.equal graph.edges.length, 1
+        test.equal graph.initializers.length, 0
+        test.equal graph.exports.length, 1
+        test.equal graph.exports[0].private, 'read.in'
+        test.equal graph.exports[0].public, 'filename'
+        test.done()

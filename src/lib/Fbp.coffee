@@ -1,6 +1,7 @@
 fs = require 'fs'
 
 class Fbp
+    matchExport: new RegExp "EXPORT=([A-Z\.]+):([A-Z]+)"
     matchPort: new RegExp "([A-Z\.]+)"
     matchComponent: new RegExp "([A-Za-z\.]+)\\(([A-Za-z0-9\/\.]+|)\\)"
     matchComponentGlobal: new RegExp "([A-Za-z\.]+)\\(([A-Za-z0-9\/\.]+|)\\)", "g"
@@ -17,6 +18,7 @@ class Fbp
         @currentLine = 1
         @nodes = {}
         @edges = []
+        @exported = []
 
     loadFile: (file) ->
         fs.readFileSync file, "utf-8", (err) ->
@@ -73,6 +75,11 @@ class Fbp
             currentString += char unless checkTerminator
             continue unless checkTerminator or index is string.length - 1
 
+            continue if currentString is 'EXPORT'
+            exported = @matchExport.exec currentString
+            if exported
+                @handleExported exported
+                currentString = ""
             connection = @matchConnection.exec currentString
             if connection
                 throw new Error "Port or initial expected, got #{currentString} on line #{@currentLine}" unless @lastElement is "initial" or @lastElement is "port"
@@ -106,6 +113,13 @@ class Fbp
                 name: ""
             processes: @nodes
             connections: @edges
+            exports: @exported
+
+    handleExported: (exported) ->
+        exportedPort = {}
+        exportedPort.private = exported[1].toLowerCase()
+        exportedPort.public = exported[2].toLowerCase()
+        @exported.push exportedPort
 
     handleConnection: ->
         @currentEdge.src.process = @currentNode.name if @currentNode.name

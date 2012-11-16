@@ -17,6 +17,7 @@ class Graph extends events.EventEmitter
     nodes: []
     edges: []
     initializers: []
+    exports: []
 
     # ## Creating new graphs
     #
@@ -28,6 +29,16 @@ class Graph extends events.EventEmitter
         @nodes = []
         @edges = []
         @initializers = []
+        @exports = []
+
+    # ## Exporting a port from subgraph
+    #
+    # This allows subgraphs to expose a cleaner API by having reasonably
+    # named ports shown instead of all the free ports of the graph
+    addExport: (privatePort, publicPort) ->
+      @exports.push
+        private: privatePort
+        public: publicPort
 
     # ## Adding a node to the graph
     #
@@ -240,6 +251,10 @@ exports.loadJSON = (definition, success) ->
             graph.addInitial conn.data, conn.tgt.process, conn.tgt.port.toLowerCase()
             continue
         graph.addEdge conn.src.process, conn.src.port.toLowerCase(), conn.tgt.process, conn.tgt.port.toLowerCase()
+
+    if definition.exports
+        for exported in definition.exports
+            graph.addExport exported.private, exported.public
 
     success graph
 
