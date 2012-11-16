@@ -9,4 +9,7 @@ class Component extends events.EventEmitter
     isReady: ->
         true
 
+    isSubgraph: ->
+        false
+
 exports.Component = Component

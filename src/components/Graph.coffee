@@ -97,4 +97,7 @@ class Graph extends noflo.Component
     isReady: ->
         @ready
 
+    isSubgraph: ->
+        true
+
 exports.getComponent = -> new Graph
