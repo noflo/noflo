@@ -4,10 +4,12 @@ class Group extends noflo.Component
   constructor: ->
     @groups = []
     @newGroups = []
+    @threshold = null # How many groups to be saved?
 
     @inPorts =
       in: new noflo.ArrayPort
       group: new noflo.ArrayPort
+      threshold: new noflo.Port
     @outPorts =
       out: new noflo.Port
 
@@ -29,6 +31,14 @@ class Group extends noflo.Component
       @groups = []
 
     @inPorts.group.on 'data', (data) =>
+      # Get rid of groups in the past to make room for the new one
+      if @threshold
+        diff = @newGroups.length - @threshold + 1
+        if diff > 0
+          @newGroups = @newGroups.slice(diff)
+
       @newGroups.push data
+
+    @inPorts.threshold.on 'data', (@threshold) =>
 
 exports.getComponent = -> new Group
