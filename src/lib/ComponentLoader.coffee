@@ -90,6 +90,7 @@ class ComponentLoader
     graph.inPorts.graph.attach graphSocket
     graphSocket.send @components[name]
     graphSocket.disconnect()
+    delete graph.inPorts.graph
     callback graph
 
 exports.ComponentLoader = ComponentLoader
