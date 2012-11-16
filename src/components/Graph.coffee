@@ -61,13 +61,11 @@ class Graph extends noflo.Component
         for portName, port of process.component.inPorts
             newPort = @isExported port, name, portName
             continue if newPort is false
-            console.log "EXPOSE", newPort, portName
             @inPorts[newPort] = @replicateInPort port, newPort
 
         for portName, port of process.component.outPorts
             newPort = @isExported port, name, portName
             continue if newPort is false
-            console.log "EXPOSE", newPort, portName
             @outPorts[newPort] = @replicateOutPort port, newPort
 
         return true
