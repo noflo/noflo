@@ -91,6 +91,7 @@ class Graph extends noflo.Component
         newPort.on "disconnect", ->
             port.disconnect()
         newPort.on "detach", (socket) ->
+            return unless newPort.isAttached()
             port.detach()
         newPort
 
@@ -113,6 +114,9 @@ class Graph extends noflo.Component
             newPort.endGroup()
         port.on "disconnect", ->
             newPort.disconnect()
+        newPort.on "detach", (socket) ->
+            return unless newPort.isAttached()
+            port.detach()
         newPort
 
     isReady: ->

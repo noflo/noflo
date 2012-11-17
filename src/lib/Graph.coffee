@@ -60,6 +60,7 @@ class Graph extends events.EventEmitter
             display: display
         @nodes.push node
         @emit 'addNode', node
+        node
 
     # ## Removing a node from the graph
     #
@@ -116,6 +117,7 @@ class Graph extends events.EventEmitter
                 port: inPort
         @edges.push edge
         @emit 'addEdge', edge
+        edge
 
     # ## Disconnected nodes
     #
@@ -167,6 +169,7 @@ class Graph extends events.EventEmitter
                 port: port
         @initializers.push initializer
         @emit 'addEdge', initializer
+        initializer
 
     toDOT: ->
         cleanID = (id) ->
