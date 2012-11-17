@@ -132,6 +132,7 @@ class Graph extends events.EventEmitter
     # Removing a connection will emit the `removeEdge` event.
     removeEdge: (node, port) ->
         for edge,index in @edges
+            continue unless edge
             if edge.from.node is node and edge.from.port is port
                 @emit 'removeEdge', edge
                 @edges.splice index, 1
@@ -140,6 +141,7 @@ class Graph extends events.EventEmitter
                 @edges.splice index, 1
 
         for edge,index in @initializers
+            continue unless edge
             if edge.to.node is node and edge.to.port is port
                 @emit 'removeEdge', edge
                 @initializers.splice index, 1

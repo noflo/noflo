@@ -247,14 +247,14 @@ class Network extends events.EventEmitter
         callback() if callback
 
     removeEdge: (edge) ->
-        for connection,index in @connections
-            if edge.to.node is connection.to.process.id and edge.to.port is connection.to.port
-                connection.to.process.component.inPorts[connection.to.port]?.detach connection
-                @connections.splice index, 1
+        for connection in @connections
+            continue unless connection
+            continue unless edge.to.node is connection.to.process.id and edge.to.port is connection.to.port
+            connection.to.process.component.inPorts[connection.to.port]?.detach connection
             if edge.from.node
                 if connection.from and edge.from.node is connection.from.process.id and edge.from.port is connection.from.port
-                    connection.from.process.component.inPorts[connection.from.port].detach connection
-                    @connections.splice index, 1
+                    connection.from.process.component.outPorts[connection.from.port].detach connection
+            @connections.splice @connections.indexOf(connection), 1
 
     addInitial: (initializer, callback) ->
         socket = internalSocket.createSocket()
