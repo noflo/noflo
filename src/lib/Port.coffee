@@ -31,7 +31,7 @@ class Port extends events.EventEmitter
                 @buffer = []
 
     attach: (socket) ->
-        throw new Error "#{@name}: Socket already attached #{@socket.getId()} - #{socket.getId()}" if @socket
+        throw new Error "#{@name}: Socket already attached #{@socket.getId()} - #{socket.getId()}" if @isAttached()
         @socket = socket
 
         @attachSocket socket
@@ -108,6 +108,7 @@ class Port extends events.EventEmitter
         @socket.disconnect()
 
     detach: (socket) ->
+        return unless @isAttached socket
         @emit "detach", @socket
         @from = null
         @socket = null

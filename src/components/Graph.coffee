@@ -90,6 +90,8 @@ class Graph extends noflo.Component
             port.endGroup()
         newPort.on "disconnect", ->
             port.disconnect()
+        newPort.on "detach", (socket) ->
+            port.detach()
         newPort
 
     replicateOutPort: (port, portName) ->

@@ -115,7 +115,6 @@ class Network extends events.EventEmitter
             unless process.component.inPorts and process.component.inPorts[port]
                 throw new Error "No inport '#{port}' defined in process #{process.id}"
                 return
-
             return process.component.inPorts[port].attach socket
 
         socket.from =
@@ -250,7 +249,7 @@ class Network extends events.EventEmitter
         for connection in @connections
             continue unless connection
             continue unless edge.to.node is connection.to.process.id and edge.to.port is connection.to.port
-            connection.to.process.component.inPorts[connection.to.port]?.detach connection
+            connection.to.process.component.inPorts[connection.to.port].detach connection
             if edge.from.node
                 if connection.from and edge.from.node is connection.from.process.id and edge.from.port is connection.from.port
                     connection.from.process.component.outPorts[connection.from.port].detach connection
