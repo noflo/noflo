@@ -3,7 +3,7 @@ noflo = require "../../lib/NoFlo"
 class Graph extends noflo.Component
     constructor: ->
         @network = null
-        @ready = false
+        @ready = true
 
         @inPorts =
             graph: new noflo.Port()
@@ -13,6 +13,7 @@ class Graph extends noflo.Component
             @setGraph data
 
     setGraph: (graph) ->
+        @ready = false
         if graph instanceof noflo.Graph
             return @createNetwork graph
 

@@ -61,7 +61,7 @@ cli.main (args, options) ->
         baseDir = path.resolve process.cwd(), cli.args[1]
         loader = new noflo.ComponentLoader baseDir
         loader.listComponents (components) ->
-            todo = 0
+            todo = components.length
             _.each components, (path, component) ->
                 instance = loader.load component, (instance) ->
                     showComponent component, path, instance, ->
