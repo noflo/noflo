@@ -7,16 +7,15 @@ process.on "uncaughtException", (e) ->
     e.stopPropagation()
     app.prompt()
 
-app = new shell.Shell
-    isShell: true
-    project_dir: noflo_root
+app = new shell
+  isShell: true
 
 app.setPrompt = (prompt) ->
     @settings.prompt = "#{prompt}>> "
 
 app.configure ->
-    app.use shell.history
-        shell: app
+    #app.use shell.history
+    #      shell: app
     app.use shell.router
         shell: app
     app.use shell.help
