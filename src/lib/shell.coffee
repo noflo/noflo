@@ -124,6 +124,7 @@ app.cmd "json", "Get a JSON visualization of a graph", (req, res, next) ->
     app.styles.blue JSON.stringify app.network.graph.toJSON(), null, 4
     res.prompt()
 
+###
 app.cmd "startserver :port", "Start graph HTTP server", (req, res, next) ->
     unless app.network
         app.styles.red "No graph is loaded"
@@ -146,6 +147,7 @@ app.cmd "stopserver", "Stop graph HTTP server", (req, res, next) ->
         app.server = null
         res.prompt()
     app.server.close()
+###
 
 app.cmd "uptime", "Show uptime of graph", (req, res, next) ->
     unless app.network

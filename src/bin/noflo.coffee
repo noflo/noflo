@@ -13,7 +13,6 @@ cli.setApp "#{nofloRoot}/package.json"
 
 # Non-interactive processing
 cli.parse
-    listen: ['l', 'Start NoFlo server on this port', 'number']
     interactive: ['i', 'Start an interactive NoFlo shell']
     debug: ['debug', 'Start NoFlo in debug mode']
     verbose: ['v', 'Log in verbose format']
