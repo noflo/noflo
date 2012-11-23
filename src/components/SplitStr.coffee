@@ -16,8 +16,8 @@ class SplitStr extends noflo.Component
         @outPorts =
             out: new noflo.Port()
         @inPorts.delimiter.on "data", (data) =>
-            if data.substr(0, 1) is '/' and data.substr(data.length - 1, 1) is '/'
-                # Handle regular expressions
+            if data.substr(0, 1) is '/' and data.substr(data.length - 1, 1) is '/' and data.length > 1
+                # Handle regular expressions and not simply a slash
                 data = new RegExp data.substr 1, data.length - 2
             @delimiterString = data
         @inPorts.in.on "begingroup", (group) =>
