@@ -59,8 +59,20 @@ class ComponentLoader
         coreComponents[componentName] = "#{corePath}/#{component}"
       reader @baseDir, (err, data) =>
         return callback err, data if err
-        @components = _.extend coreComponents, @getModuleComponents data
-        callback @components
+
+        # Read private, project-specific components. These should shadow any other components by the same names.
+        projectPath = path.resolve './components'
+        fs.readdir projectPath, (err, components) =>
+          projectComponents = {}
+          _.each components, (component) ->
+            return if component.substr(0, 1) is '.'
+            [componentName, componentExtension] = component.split '.'
+            return unless componentExtension is 'coffee'
+            projectComponents[componentName] = "#{projectPath}/#{component}"
+
+          # Merge and finish
+          @components = _.extend coreComponents, (@getModuleComponents data), projectComponents
+          callback @components
 
   isGraph: (path) ->
     path.indexOf('.fbp') isnt -1 or path.indexOf('.json') isnt -1
