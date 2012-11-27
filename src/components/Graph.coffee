@@ -55,8 +55,9 @@ class Graph extends noflo.Component
         return false
 
     setToReady: ->
-        @ready = true
-        @emit "ready"
+        process.nextTick =>
+            @ready = true
+            @emit "ready"
 
     findEdgePorts: (name, process) ->
         for portName, port of process.component.inPorts
