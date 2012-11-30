@@ -8,7 +8,7 @@ class Fbp
     matchInitial: new RegExp "\'(.+)\'"
     matchConnection: new RegExp "\-\>"
     matchSeparator: new RegExp "[\\s,\\n]"
-    matchSubgraph: new RegExp "\n *\\'(.+)\\' *-> *GRAPH *([A-Za-z\\.]+)\\(Graph\\)"
+    matchSubgraph: new RegExp "\n *\\'(.+)\\' *-> *GRAPH *([A-Za-z\\.]+)\\(Graph\\) *\n"
 
     constructor: ->
         @lastElement = null
@@ -47,7 +47,7 @@ class Fbp
                 fbp = fbp.replace(@matchComponentGlobal, "#{name}.$1($2)")
 
                 # Replace the graph statement with the FBP
-                string = string.replace(match, "\n#{fbp}")
+                string = string.replace(match, "\n#{fbp}\n")
 
 
     parse: (string) ->
