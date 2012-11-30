@@ -25,7 +25,7 @@ class Fbp
             throw err if err
 
     # Compile subgraphs INTO the parent graph
-    compileSubgraphs: (string) ->
+    compileSubgraphs: (string, currentFile) ->
         loop
             match = string.match(@matchSubgraph)
 
@@ -36,8 +36,12 @@ class Fbp
             else
                 [match, file, name, index, original] = match
 
+                # Cannot include self as a sub-graph
+                if file is currentFile
+                  throw new Error("#{currentFile} is attempting to use itself as a sub-graph")
+
                 # Get the FBP of the subgraph and compile that first
-                fbp = @compileSubgraphs(@loadFile(file))
+                fbp = @compileSubgraphs(@loadFile(file), file)
 
                 # Affix the name to the beginning of all components in the subgraph
                 fbp = fbp.replace(@matchComponentGlobal, "#{name}.$1($2)")
