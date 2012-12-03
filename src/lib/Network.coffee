@@ -91,6 +91,8 @@ class Network extends events.EventEmitter
         @load node.component, (instance) =>
           process.component = instance
 
+          @subscribeSubgraph node.id, instance if instance.isSubgraph()
+
           # Store and return the process instance
           @processes[process.id] = process
           callback process if callback
@@ -126,6 +128,24 @@ class Network extends events.EventEmitter
             return
 
         process.component.outPorts[port].attach socket
+
+    subscribeSubgraph: (nodeName, process) ->
+        unless process.isReady()
+          process.once 'ready', =>
+            @subscribeSubgraph nodeName, process
+            return
+
+        return unless process.network
+
+        emitSub = (type, data) =>
+          data.subgraph = nodeName
+          @emit type, data
+
+        process.network.on 'connect', (data) -> emitSub 'connect', data
+        process.network.on 'begingroup', (data) -> emitSub 'begingroup', data
+        process.network.on 'data', (data) -> emitSub 'data', data
+        process.network.on 'endgroup', (data) -> emitSub 'endgroup', data
+        process.network.on 'disconnect', (data) -> emitSub 'disconnect', data
 
     # Subscribe to events from all connected sockets and re-emit them
     subscribeSocket: (socket) ->

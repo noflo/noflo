@@ -16,6 +16,7 @@ cli.parse
     interactive: ['i', 'Start an interactive NoFlo shell']
     debug: ['debug', 'Start NoFlo in debug mode']
     verbose: ['v', 'Log in verbose format']
+    subgraph: ['s', 'Log subgraph events']
 
 showComponent = (component, path, instance, callback) ->
     unless instance.isReady()
@@ -30,25 +31,34 @@ showComponent = (component, path, instance, callback) ->
     if instance.outPorts
         console.log 'Outports:', _.keys(instance.outPorts).join ', '
 
-addDebug = (network, verbose) ->
+addDebug = (network, verbose, logSubgraph) ->
 
-  identifier = clc.blue.italic
+  identifier = (data) ->
+    result = ''
+    result += clc.magenta.italic data.subgraph if data.subgraph
+    result += clc.blue.italic data.id
+    result
 
   network.on 'connect', (data) ->
-    console.log "#{identifier(data.id)} #{clc.yellow('CONN')}"
+    return if data.subgraph and not logSubgraph
+    console.log "#{identifier(data)} #{clc.yellow('CONN')}"
 
   network.on 'begingroup', (data) ->
-    console.log "#{identifier(data.id)} #{clc.cyan('< ' + data.group)}"
+    return if data.subgraph and not logSubgraph
+    console.log "#{identifier(data)} #{clc.cyan('< ' + data.group)}"
 
   network.on 'data', (data) ->
-    console.error "#{identifier(data.id)} #{clc.green('DATA')}" unless verbose
-    console.error "#{identifier(data.id)} #{clc.green('DATA')}", data.data if verbose
+    return if data.subgraph and not logSubgraph
+    console.error "#{identifier(data)} #{clc.green('DATA')}" unless verbose
+    console.error "#{identifier(data)} #{clc.green('DATA')}", data.data if verbose
 
   network.on 'endgroup', (data) ->
-    console.log "#{identifier(data.id)} #{clc.cyan('> ' + data.group)}"
+    return if data.subgraph and not logSubgraph
+    console.log "#{identifier(data)} #{clc.cyan('> ' + data.group)}"
 
   network.on 'disc', (data) ->
-    console.log "#{identifier(data.id)} #{clc.yellow('DISC')}"
+    return if data.subgraph and not logSubgraph
+    console.log "#{identifier(data)} #{clc.yellow('DISC')}"
 
 cli.main (args, options) ->
     if options.interactive
@@ -74,7 +84,7 @@ cli.main (args, options) ->
             continue
         arg = path.resolve process.cwd(), arg
         noflo.loadFile arg, (network) ->
-            addDebug network, options.verbose if options.debug
+            addDebug network, options.verbose, options.subgraph if options.debug
 
             return unless options.interactive
             
