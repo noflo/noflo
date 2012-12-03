@@ -8,9 +8,14 @@ class UniquePacket extends noflo.Component
             in: new noflo.Port()
         @outPorts =
             out: new noflo.Port()
+            duplicate: new noflo.Port()
 
         @inPorts.in.on "data", (data) =>
-            @outPorts.out.send data if @unique data
+            unless @unique data
+                return unless @outPorts.duplicate.isAttached()
+                @outPorts.duplicate.send data
+                return
+            @outPorts.out.send data
         @inPorts.in.on "disconnect", =>
             @outPorts.out.disconnect()
 
