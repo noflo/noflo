@@ -26,6 +26,32 @@ exports["test no pattern"] = (test) ->
     r.send "foo"
     ins.send "abc123"
 
+exports["test simple replacement"] = (test) ->
+    [c, ins, out] = setupComponent()
+    p = socket.createSocket()
+    c.inPorts.pattern.attach p
+    r = socket.createSocket()
+    c.inPorts.replacement.attach r
+    out.once "data", (data) ->
+        test.equal data, "xyz123"
+        test.done()
+    p.send "abc"
+    r.send "xyz"
+    ins.send "abc123"
+
+exports["test simple replacement with slashes"] = (test) ->
+    [c, ins, out] = setupComponent()
+    p = socket.createSocket()
+    c.inPorts.pattern.attach p
+    r = socket.createSocket()
+    c.inPorts.replacement.attach r
+    out.once "data", (data) ->
+        test.equal data, "/abc/xyz/baz"
+        test.done()
+    p.send "/foo/bar/"
+    r.send "/abc/xyz/"
+    ins.send "/foo/bar/baz"
+
 exports["test no replacement"] = (test) ->
     [c, ins, out] = setupComponent()
     p = socket.createSocket()
