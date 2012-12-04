@@ -46,7 +46,7 @@ class GetObjectKey extends noflo.Component
     throw new Error "Key not defined" unless @key.length
     throw new Error "Data is not an object" unless typeof data is "object"
     for key in @key
-      continue unless data[key]
+      continue if data[key] is undefined
       @outPorts.out.beginGroup key
       @outPorts.out.send data[key]
       @outPorts.out.endGroup()
