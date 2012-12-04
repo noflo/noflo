@@ -1,15 +1,12 @@
 events = require "events"
 
 class Component extends events.EventEmitter
-    description: ""
+  description: ""
 
-    getDescription: ->
-        @description
+  getDescription: -> @description
 
-    isReady: ->
-        true
+  isReady: -> true
 
-    isSubgraph: ->
-        false
+  isSubgraph: -> false
 
 exports.Component = Component
