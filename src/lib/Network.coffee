@@ -16,299 +16,299 @@ events = require "events"
 # components, attach sockets between them, and handle the sending
 # of Initial Information Packets.
 class Network extends events.EventEmitter
-    processes: {}
-    connections: []
-    initials: []
-    graph: null
-    startupDate: null
-    portBuffer: {}
+  processes: {}
+  connections: []
+  initials: []
+  graph: null
+  startupDate: null
+  portBuffer: {}
 
-    constructor: (graph) ->
-        @processes = {}
-        @connections = []
-        @initials = []
-        @graph = graph
+  constructor: (graph) ->
+    @processes = {}
+    @connections = []
+    @initials = []
+    @graph = graph
 
-        # As most NoFlo networks are long-running processes, the
-        # network coordinator marks down the start-up time. This
-        # way we can calculate the uptime of the network.
-        @startupDate = new Date()
+    # As most NoFlo networks are long-running processes, the
+    # network coordinator marks down the start-up time. This
+    # way we can calculate the uptime of the network.
+    @startupDate = new Date()
 
-        # A NoFlo graph may change after network initialization.
-        # For this, the network subscribes to the change events from
-        # the graph.
-        #
-        # In graph we talk about nodes and edges. Nodes correspond
-        # to NoFlo processes, and edges to connections between them.
-        @graph.on 'addNode', (node) =>
-            @addNode node
-        @graph.on 'removeNode', (node) =>
-            @removeNode node
-        @graph.on 'addEdge', (edge) =>
-            @addEdge edge
-        @graph.on 'removeEdge', (edge) =>
-            @removeEdge edge
-        @loader = new componentLoader.ComponentLoader process.cwd()
-
-    # The uptime of the network is the current time minus the start-up
-    # time, in seconds.
-    uptime: -> new Date() - @startupDate
-
-    # ## Loading components
+    # A NoFlo graph may change after network initialization.
+    # For this, the network subscribes to the change events from
+    # the graph.
     #
-    # Components can be passed to the NoFlo network in two ways:
-    #
-    # * As direct, instantiated JavaScript objects
-    # * As filenames
-    load: (component, callback) ->
-        # Direct component instance, return as is
-        if typeof component is 'object'
-            return callback component
-        @loader.load component, callback
+    # In graph we talk about nodes and edges. Nodes correspond
+    # to NoFlo processes, and edges to connections between them.
+    @graph.on 'addNode', (node) =>
+      @addNode node
+    @graph.on 'removeNode', (node) =>
+      @removeNode node
+    @graph.on 'addEdge', (edge) =>
+      @addEdge edge
+    @graph.on 'removeEdge', (edge) =>
+      @removeEdge edge
+    @loader = new componentLoader.ComponentLoader process.cwd()
 
-    # ## Add a process to the network
-    #
-    # Processes can be added to a network at either start-up time
-    # or later. The processes are added with a node definition object
-    # that includes the following properties:
-    #
-    # * `id`: Identifier of the process in the network. Typically a string
-    # * `component`: Filename or path of a NoFlo component, or a component instance object
-    addNode: (node, callback) ->
-        # Processes are treated as singletons by their identifier. If
-        # we already have a process with the given ID, return that.
-        return if @processes[node.id]
+  # The uptime of the network is the current time minus the start-up
+  # time, in seconds.
+  uptime: -> new Date() - @startupDate
 
-        process =
-          id: node.id
+  # ## Loading components
+  #
+  # Components can be passed to the NoFlo network in two ways:
+  #
+  # * As direct, instantiated JavaScript objects
+  # * As filenames
+  load: (component, callback) ->
+    # Direct component instance, return as is
+    if typeof component is 'object'
+      return callback component
+    @loader.load component, callback
 
-        unless node.component
-          @processes[process.id] = process
-          callback process if callback
-          return
+  # ## Add a process to the network
+  #
+  # Processes can be added to a network at either start-up time
+  # or later. The processes are added with a node definition object
+  # that includes the following properties:
+  #
+  # * `id`: Identifier of the process in the network. Typically a string
+  # * `component`: Filename or path of a NoFlo component, or a component instance object
+  addNode: (node, callback) ->
+    # Processes are treated as singletons by their identifier. If
+    # we already have a process with the given ID, return that.
+    return if @processes[node.id]
 
-        # Load the process for the node.
-        @load node.component, (instance) =>
-          process.component = instance
+    process =
+      id: node.id
 
-          @subscribeSubgraph node.id, instance if instance.isSubgraph()
+    unless node.component
+      @processes[process.id] = process
+      callback process if callback
+      return
 
-          # Store and return the process instance
-          @processes[process.id] = process
-          callback process if callback
+    # Load the process for the node.
+    @load node.component, (instance) =>
+      process.component = instance
 
-    removeNode: (node) ->
-        return unless @processes[node.id]
+      @subscribeSubgraph node.id, instance if instance.isSubgraph()
 
-        # TODO: Check for existing edges with this node
+      # Store and return the process instance
+      @processes[process.id] = process
+      callback process if callback
 
-        delete @processes[node.id]
+  removeNode: (node) ->
+    return unless @processes[node.id]
 
-    # Get process by its ID.
-    getNode: (id) ->
-        @processes[id]
+    # TODO: Check for existing edges with this node
 
-    connectPort: (socket, process, port, inbound) ->
-        if inbound
-            socket.to =
-                process: process
-                port: port
+    delete @processes[node.id]
 
-            unless process.component.inPorts and process.component.inPorts[port]
-                throw new Error "No inport '#{port}' defined in process #{process.id}"
-                return
-            return process.component.inPorts[port].attach socket
+  # Get process by its ID.
+  getNode: (id) ->
+    @processes[id]
 
-        socket.from =
-            process: process
-            port: port
+  connectPort: (socket, process, port, inbound) ->
+    if inbound
+      socket.to =
+        process: process
+        port: port
 
-        unless process.component.outPorts and process.component.outPorts[port]
-            throw new Error "No outport '#{port}' defined in process #{process.id}"
-            return
+      unless process.component.inPorts and process.component.inPorts[port]
+        throw new Error "No inport '#{port}' defined in process #{process.id}"
+        return
+      return process.component.inPorts[port].attach socket
 
-        process.component.outPorts[port].attach socket
+    socket.from =
+      process: process
+      port: port
 
-    subscribeSubgraph: (nodeName, process) ->
-        unless process.isReady()
-          process.once 'ready', =>
-            @subscribeSubgraph nodeName, process
-            return
+    unless process.component.outPorts and process.component.outPorts[port]
+      throw new Error "No outport '#{port}' defined in process #{process.id}"
+      return
 
-        return unless process.network
+    process.component.outPorts[port].attach socket
 
-        emitSub = (type, data) =>
-          data.subgraph = nodeName
-          @emit type, data
+  subscribeSubgraph: (nodeName, process) ->
+    unless process.isReady()
+      process.once 'ready', =>
+        @subscribeSubgraph nodeName, process
+        return
 
-        process.network.on 'connect', (data) -> emitSub 'connect', data
-        process.network.on 'begingroup', (data) -> emitSub 'begingroup', data
-        process.network.on 'data', (data) -> emitSub 'data', data
-        process.network.on 'endgroup', (data) -> emitSub 'endgroup', data
-        process.network.on 'disconnect', (data) -> emitSub 'disconnect', data
+    return unless process.network
 
-    # Subscribe to events from all connected sockets and re-emit them
-    subscribeSocket: (socket) ->
-        socket.on 'connect', =>
-            @emit 'connect',
-                id: socket.getId()
-                socket: socket
-        socket.on 'begingroup', (group) =>
-            @emit 'begingroup',
-                id: socket.getId()
-                socket: socket
-                group: group
-        socket.on 'data', (data) =>
-            @emit 'data',
-                id: socket.getId()
-                socket: socket
-                data: data
-        socket.on 'endgroup', (group) =>
-            @emit 'endgroup',
-                id: socket.getId()
-                socket: socket
-                group: group
-        socket.on 'disconnect', =>
-            @emit 'disc',
-                id: socket.getId()
-                socket: socket
+    emitSub = (type, data) =>
+      data.subgraph = nodeName
+      @emit type, data
 
-    # Release the IPs buffered because of an un-ready component
-    flushPortBuffer: (id) ->
-        buffer = @portBuffer[id]
-        inports = buffer.ins
-        outports = buffer.outs
+    process.network.on 'connect', (data) -> emitSub 'connect', data
+    process.network.on 'begingroup', (data) -> emitSub 'begingroup', data
+    process.network.on 'data', (data) -> emitSub 'data', data
+    process.network.on 'endgroup', (data) -> emitSub 'endgroup', data
+    process.network.on 'disconnect', (data) -> emitSub 'disconnect', data
 
-        # Notify outports FIRST so that connections are attached because the floodgate is opened
-        for port in outports
-            port.emit("ready")
+  # Subscribe to events from all connected sockets and re-emit them
+  subscribeSocket: (socket) ->
+    socket.on 'connect', =>
+      @emit 'connect',
+        id: socket.getId()
+        socket: socket
+    socket.on 'begingroup', (group) =>
+      @emit 'begingroup',
+        id: socket.getId()
+        socket: socket
+        group: group
+    socket.on 'data', (data) =>
+      @emit 'data',
+        id: socket.getId()
+        socket: socket
+        data: data
+    socket.on 'endgroup', (group) =>
+      @emit 'endgroup',
+        id: socket.getId()
+        socket: socket
+        group: group
+    socket.on 'disconnect', =>
+      @emit 'disc',
+        id: socket.getId()
+        socket: socket
 
-        for port in inports
-            port.emit("ready")
+  # Release the IPs buffered because of an un-ready component
+  flushPortBuffer: (id) ->
+    buffer = @portBuffer[id]
+    inports = buffer.ins
+    outports = buffer.outs
 
-        delete @portBuffer[id]
+    # Notify outports FIRST so that connections are attached because the floodgate is opened
+    for port in outports
+      port.emit("ready")
 
-    # Set up a buffer for an un-ready component's port
-    setupPortBuffer: (id) ->
-        if @portBuffer[id]?
-            @portBuffer[id].count++
-        else
-            @portBuffer[id] =
-                ins: [] # Inports of upstream components of an un-ready component that need to buffer
-                outs: [] # Outports of an un-ready component
-                count: 1 # A stack count to make sure all IPs are flushed at the same time with the right order of setup (i.e. outports of an un-ready component are set first)
+    for port in inports
+      port.emit("ready")
 
-        @portBuffer[id]
+    delete @portBuffer[id]
 
-    addEdge: (edge, callback) ->
-        return @addInitial(edge) unless edge.from.node
-        socket = internalSocket.createSocket()
+  # Set up a buffer for an un-ready component's port
+  setupPortBuffer: (id) ->
+    if @portBuffer[id]?
+      @portBuffer[id].count++
+    else
+      @portBuffer[id] =
+        ins: [] # Inports of upstream components of an un-ready component that need to buffer
+        outs: [] # Outports of an un-ready component
+        count: 1 # A stack count to make sure all IPs are flushed at the same time with the right order of setup (i.e. outports of an un-ready component are set first)
 
-        from = @getNode edge.from.node
-        unless from
-            throw new Error "No process defined for outbound node #{edge.from.node}"
-        unless from.component
-            throw new Error "No component defined for outbound node #{edge.from.node}"
-        unless from.component.isReady()
-            buffer = @setupPortBuffer(from.id)
+    @portBuffer[id]
 
-            from.component.once "ready", =>
-                @addEdge edge, callback
+  addEdge: (edge, callback) ->
+    return @addInitial(edge) unless edge.from.node
+    socket = internalSocket.createSocket()
 
-                # When the "from" component isn't ready, it's an outgoing port
-                fromPort = from.component.outPorts[edge.from.port]
-                buffer.outs.push(fromPort)
+    from = @getNode edge.from.node
+    unless from
+      throw new Error "No process defined for outbound node #{edge.from.node}"
+    unless from.component
+      throw new Error "No component defined for outbound node #{edge.from.node}"
+    unless from.component.isReady()
+      buffer = @setupPortBuffer(from.id)
 
-                # Decrement the count and flush the buffer on empty stack ON NEXT CYCLE
-                next = () =>
-                  buffer.count--
-                  if buffer.count is 0
-                    @flushPortBuffer(from.id)
+      from.component.once "ready", =>
+        @addEdge edge, callback
 
-                setTimeout(next, 0)
+        # When the "from" component isn't ready, it's an outgoing port
+        fromPort = from.component.outPorts[edge.from.port]
+        buffer.outs.push(fromPort)
 
-            return
+        # Decrement the count and flush the buffer on empty stack ON NEXT CYCLE
+        next = () =>
+          buffer.count--
+          if buffer.count is 0
+            @flushPortBuffer(from.id)
 
-        to = @getNode edge.to.node
-        unless to
-            throw new Error "No process defined for inbound node #{edge.to.node}"
-        unless to.component
-            throw new Error "No component defined for inbound node #{edge.to.node}"
-        unless to.component.isReady()
-            fromPort = from.component.outPorts[edge.from.port]
-            fromPort.downstreamIsGettingReady = true
-            buffer = @setupPortBuffer(from.id)
+        setTimeout(next, 0)
 
-            to.component.once "ready", =>
-                @addEdge edge, callback
+      return
 
-                # When the "to" component isn't ready, it's an incoming port
-                fromPort = from.component.outPorts[edge.from.port]
-                buffer.ins.push(fromPort)
+    to = @getNode edge.to.node
+    unless to
+      throw new Error "No process defined for inbound node #{edge.to.node}"
+    unless to.component
+      throw new Error "No component defined for inbound node #{edge.to.node}"
+    unless to.component.isReady()
+      fromPort = from.component.outPorts[edge.from.port]
+      fromPort.downstreamIsGettingReady = true
+      buffer = @setupPortBuffer(from.id)
 
-                # Decrement the count and flush the buffer on empty stack ON NEXT CYCLE
-                next = () =>
-                  buffer.count--
-                  if buffer.count is 0
-                    @flushPortBuffer(from.id)
+      to.component.once "ready", =>
+        @addEdge edge, callback
 
-                setTimeout(next, 0)
+        # When the "to" component isn't ready, it's an incoming port
+        fromPort = from.component.outPorts[edge.from.port]
+        buffer.ins.push(fromPort)
 
-            return
+        # Decrement the count and flush the buffer on empty stack ON NEXT CYCLE
+        next = () =>
+          buffer.count--
+          if buffer.count is 0
+            @flushPortBuffer(from.id)
 
-        @connectPort socket, to, edge.to.port, true
-        @connectPort socket, from, edge.from.port, false
+        setTimeout(next, 0)
 
-        # Subscribe to events from the socket
-        @subscribeSocket socket
+      return
 
-        @connections.push socket
-        callback() if callback
+    @connectPort socket, to, edge.to.port, true
+    @connectPort socket, from, edge.from.port, false
 
-    removeEdge: (edge) ->
-        for connection in @connections
-            continue unless connection
-            continue unless edge.to.node is connection.to.process.id and edge.to.port is connection.to.port
-            connection.to.process.component.inPorts[connection.to.port].detach connection
-            if edge.from.node
-                if connection.from and edge.from.node is connection.from.process.id and edge.from.port is connection.from.port
-                    connection.from.process.component.outPorts[connection.from.port].detach connection
-            @connections.splice @connections.indexOf(connection), 1
+    # Subscribe to events from the socket
+    @subscribeSocket socket
 
-    addInitial: (initializer, callback) ->
-        socket = internalSocket.createSocket()
+    @connections.push socket
+    callback() if callback
 
-        to = @getNode initializer.to.node
-        unless to
-            throw new Error "No process defined for inbound node #{initializer.to.node}"
+  removeEdge: (edge) ->
+    for connection in @connections
+      continue unless connection
+      continue unless edge.to.node is connection.to.process.id and edge.to.port is connection.to.port
+      connection.to.process.component.inPorts[connection.to.port].detach connection
+      if edge.from.node
+        if connection.from and edge.from.node is connection.from.process.id and edge.from.port is connection.from.port
+          connection.from.process.component.outPorts[connection.from.port].detach connection
+      @connections.splice @connections.indexOf(connection), 1
 
-        unless to.component.isReady() or to.component.inPorts[initializer.to.port]
-            to.component.setMaxListeners 0
-            to.component.once "ready", =>
-                @addInitial initializer, callback
-            return
+  addInitial: (initializer, callback) ->
+    socket = internalSocket.createSocket()
 
-        @connectPort socket, to, initializer.to.port, true
+    to = @getNode initializer.to.node
+    unless to
+      throw new Error "No process defined for inbound node #{initializer.to.node}"
 
-        # Subscribe to events from the socket
-        @subscribeSocket socket
+    unless to.component.isReady() or to.component.inPorts[initializer.to.port]
+      to.component.setMaxListeners 0
+      to.component.once "ready", =>
+        @addInitial initializer, callback
+      return
 
-        @connections.push socket
+    @connectPort socket, to, initializer.to.port, true
 
-        @initials.push
-          socket: socket
-          data: initializer.from.data
+    # Subscribe to events from the socket
+    @subscribeSocket socket
 
-        callback() if callback
+    @connections.push socket
 
-    sendInitial: (initial) ->
-        initial.socket.connect()
-        initial.socket.send initial.data
-        process.nextTick ->
-            initial.socket.disconnect()
+    @initials.push
+      socket: socket
+      data: initializer.from.data
 
-    sendInitials: ->
-        @sendInitial initial for initial in @initials
-        @initials = []
+    callback() if callback
+
+  sendInitial: (initial) ->
+    initial.socket.connect()
+    initial.socket.send initial.data
+    process.nextTick ->
+      initial.socket.disconnect()
+
+  sendInitials: ->
+    @sendInitial initial for initial in @initials
+    @initials = []
 
 exports.Network = Network

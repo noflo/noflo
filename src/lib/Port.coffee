@@ -1,124 +1,124 @@
 events = require "events"
 
 class Port extends events.EventEmitter
-    constructor: (name) ->
-        @name = name
-        @socket = null
-        @from = null
+  constructor: (name) ->
+    @name = name
+    @socket = null
+    @from = null
+    @downstreamIsGettingReady = false
+    @groups = []
+    @data = []
+    @buffer = []
+
+    @on "ready", () =>
+      if @downstreamIsGettingReady
+        # Reset the flag
         @downstreamIsGettingReady = false
-        @groups = []
-        @data = []
+
+        # Each record in buffer is a separate connection
+        for conn in @buffer
+          for group in conn.groups
+            @beginGroup(group)
+
+          for datum in conn.data
+            @send(datum)
+
+          for group in conn.groups
+            @endGroup()
+
+          @disconnect()
+
         @buffer = []
 
-        @on "ready", () =>
-            if @downstreamIsGettingReady
-                # Reset the flag
-                @downstreamIsGettingReady = false
+  attach: (socket) ->
+    throw new Error "#{@name}: Socket already attached #{@socket.getId()} - #{socket.getId()}" if @isAttached()
+    @socket = socket
 
-                # Each record in buffer is a separate connection
-                for conn in @buffer
-                    for group in conn.groups
-                        @beginGroup(group)
+    @attachSocket socket
 
-                    for datum in conn.data
-                        @send(datum)
+  attachSocket: (socket) ->
+    @emit "attach", socket
 
-                    for group in conn.groups
-                        @endGroup()
+    @from = socket.from
+    socket.setMaxListeners 0
+    socket.on "connect", =>
+      @emit "connect", socket
+    socket.on "begingroup", (group) =>
+      @emit "begingroup", group
+    socket.on "data", (data) =>
+      @emit "data", data
+    socket.on "endgroup", (group) =>
+      @emit "endgroup", group
+    socket.on "disconnect", =>
+      @emit "disconnect", socket
 
-                    @disconnect()
+  connect: ->
+    if @downstreamIsGettingReady
+      return
 
-                @buffer = []
+    throw new Error "No connection available" unless @socket
+    do @socket.connect
 
-    attach: (socket) ->
-        throw new Error "#{@name}: Socket already attached #{@socket.getId()} - #{socket.getId()}" if @isAttached()
-        @socket = socket
+  beginGroup: (group) ->
+    if @downstreamIsGettingReady
+      @groups.push(group)
+      return
 
-        @attachSocket socket
+    throw new Error "No connection available" unless @socket
 
-    attachSocket: (socket) ->
-        @emit "attach", socket
+    return @socket.beginGroup group if @isConnected()
 
-        @from = socket.from
-        socket.setMaxListeners 0
-        socket.on "connect", =>
-            @emit "connect", socket
-        socket.on "begingroup", (group) =>
-            @emit "begingroup", group
-        socket.on "data", (data) =>
-            @emit "data", data
-        socket.on "endgroup", (group) =>
-            @emit "endgroup", group
-        socket.on "disconnect", =>
-            @emit "disconnect", socket
+    @socket.once "connect", =>
+      @socket.beginGroup group
+    do @socket.connect
 
-    connect: ->
-        if @downstreamIsGettingReady
-            return
+  send: (data) ->
+    if @downstreamIsGettingReady
+      @data.push(data)
+      return
 
-        throw new Error "No connection available" unless @socket
-        do @socket.connect
+    throw new Error "No connection available" unless @socket
 
-    beginGroup: (group) ->
-        if @downstreamIsGettingReady
-            @groups.push(group)
-            return
+    return @socket.send data if @isConnected()
 
-        throw new Error "No connection available" unless @socket
+    @socket.once "connect", =>
+      @socket.send data
+    do @socket.connect
 
-        return @socket.beginGroup group if @isConnected()
+  endGroup: ->
+    if @downstreamIsGettingReady
+      return
 
-        @socket.once "connect", =>
-            @socket.beginGroup group
-        do @socket.connect
+    throw new Error "No connection available" unless @socket
+    do @socket.endGroup
 
-    send: (data) ->
-        if @downstreamIsGettingReady
-            @data.push(data)
-            return
+  disconnect: ->
+    if @downstreamIsGettingReady
+      buffer =
+        groups: @groups
+        data: @data
+      @buffer.push(buffer)
 
-        throw new Error "No connection available" unless @socket
+      @groups = []
+      @data = []
 
-        return @socket.send data if @isConnected()
+      return
 
-        @socket.once "connect", =>
-            @socket.send data
-        do @socket.connect
+    return unless @socket
+    @socket.disconnect()
 
-    endGroup: ->
-        if @downstreamIsGettingReady
-            return
+  detach: (socket) ->
+    return unless @isAttached socket
+    @emit "detach", @socket
+    @from = null
+    @socket = null
 
-        throw new Error "No connection available" unless @socket
-        do @socket.endGroup
+  isConnected: ->
+    unless @socket
+      return false
+    @socket.isConnected()
 
-    disconnect: ->
-        if @downstreamIsGettingReady
-            buffer =
-                groups: @groups
-                data: @data
-            @buffer.push(buffer)
-
-            @groups = []
-            @data = []
-
-            return
-
-        return unless @socket
-        @socket.disconnect()
-
-    detach: (socket) ->
-        return unless @isAttached socket
-        @emit "detach", @socket
-        @from = null
-        @socket = null
-
-    isConnected: ->
-        unless @socket
-            return false
-        @socket.isConnected()
-
-    isAttached: ->
-        @socket isnt null
+  isAttached: ->
+    @socket isnt null
 
 exports.Port = Port
