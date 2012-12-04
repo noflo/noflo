@@ -11,45 +11,45 @@ graph = require "./Graph"
 {Network} = require "./Network"
 
 exports.createNetwork = (graph, callback) ->
-    network = new Network graph
+  network = new Network graph
 
-    networkReady = (network) ->
-      callback network
-      network.sendInitials()
+  networkReady = (network) ->
+    callback network
+    network.sendInitials()
 
-    toAddNodes = graph.nodes.length
-    return networkReady network if toAddNodes is 0
+  toAddNodes = graph.nodes.length
+  return networkReady network if toAddNodes is 0
 
-    # Ensure components are loaded before continuing
-    network.loader.listComponents ->
-        toAdd = graph.edges.length + graph.initializers.length
+  # Ensure components are loaded before continuing
+  network.loader.listComponents ->
+    toAdd = graph.edges.length + graph.initializers.length
 
-        connect = ->
-            return networkReady network if toAdd is 0
+    connect = ->
+      return networkReady network if toAdd is 0
 
-            for edge in graph.edges
-                network.addEdge edge, ->
-                    toAdd--
-                    networkReady network if callback? and toAdd is 0
+      for edge in graph.edges
+        network.addEdge edge, ->
+          toAdd--
+          networkReady network if callback? and toAdd is 0
 
-            for initializer in graph.initializers
-                network.addInitial initializer, ->
-                    toAdd--
-                    networkReady network if callback? and toAdd is 0
+      for initializer in graph.initializers
+        network.addInitial initializer, ->
+          toAdd--
+          networkReady network if callback? and toAdd is 0
 
-        for node in graph.nodes
-            network.addNode node, ->
-                toAddNodes--
-                connect() if toAddNodes is 0
+    for node in graph.nodes
+      network.addNode node, ->
+        toAddNodes--
+        connect() if toAddNodes is 0
 
-    network
+  network
 
 exports.loadFile = (file, callback) ->
-    graph.loadFile file, (net) ->
-        exports.createNetwork net, callback
+  graph.loadFile file, (net) ->
+    exports.createNetwork net, callback
 
 exports.saveFile = (graph, file, callback) ->
-    graph.save file, -> callback file
+  graph.save file, -> callback file
 
 exports.Component = component.Component
 exports.ComponentLoader = componentLoader.ComponentLoader
