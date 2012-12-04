@@ -6,25 +6,25 @@ fs = require "fs"
 noflo = require "../../lib/NoFlo"
 
 class Stat extends noflo.Component
-    constructor: ->
-        @inPorts =
-            in: new noflo.Port()
-        @outPorts =
-            out: new noflo.Port()
-            error: new noflo.Port()
+  constructor: ->
+    @inPorts =
+      in: new noflo.Port()
+    @outPorts =
+      out: new noflo.Port()
+      error: new noflo.Port()
 
-        @inPorts.in.on "data", (data) =>
-            @stat data
+    @inPorts.in.on "data", (data) =>
+      @stat data
 
-    stat: (path) ->
-        fs.stat path, (err, stats) =>
-            if err
-                @outPorts.error.send err
-                return @outPorts.error.disconnect()
-            stats.path = path
-            for func in ["isFile","isDirectory","isBlockDevice",
-                "isCharacterDevice", "isFIFO", "isSocket"]
-                stats[func] = stats[func]()
-            @outPorts.out.send stats
+  stat: (path) ->
+    fs.stat path, (err, stats) =>
+      if err
+        @outPorts.error.send err
+        return @outPorts.error.disconnect()
+      stats.path = path
+      for func in ["isFile","isDirectory","isBlockDevice",
+        "isCharacterDevice", "isFIFO", "isSocket"]
+        stats[func] = stats[func]()
+      @outPorts.out.send stats
 
 exports.getComponent = -> new Stat()

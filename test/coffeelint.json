@@ -1,8 +1,4 @@
 {
-  "indentation": {
-    "value": 2,
-    "level": "warn"
-  },
   "max_line_length": {
     "value": 80,
     "level": "warn"

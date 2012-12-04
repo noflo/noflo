@@ -6,24 +6,24 @@ fs = require "fs"
 noflo = require "../../lib/NoFlo"
 
 class ReadDir extends noflo.Component
-    constructor: ->
-        @inPorts =
-            source: new noflo.Port()
-        @outPorts =
-            out: new noflo.Port()
-            error: new noflo.Port()
+  constructor: ->
+    @inPorts =
+      source: new noflo.Port()
+    @outPorts =
+      out: new noflo.Port()
+      error: new noflo.Port()
 
-        @inPorts.source.on "data", (data) =>
-            @readdir data
+    @inPorts.source.on "data", (data) =>
+      @readdir data
 
-    readdir: (path) ->
-        fs.readdir path, (err, files) =>
-            if err
-                @outPorts.error.send err
-                return @outPorts.error.disconnect()
-            path = path.slice(0,-1) if path.slice(-1) == "/"
-            sortedFiles = files.sort()
-            @outPorts.out.send "#{path}/#{f}" for f in sortedFiles
-            @outPorts.out.disconnect()
+  readdir: (path) ->
+    fs.readdir path, (err, files) =>
+      if err
+        @outPorts.error.send err
+        return @outPorts.error.disconnect()
+      path = path.slice(0,-1) if path.slice(-1) == "/"
+      sortedFiles = files.sort()
+      @outPorts.out.send "#{path}/#{f}" for f in sortedFiles
+      @outPorts.out.disconnect()
 
 exports.getComponent = -> new ReadDir()

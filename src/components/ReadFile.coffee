@@ -7,22 +7,22 @@ fs = require "fs"
 noflo = require "../../lib/NoFlo"
 
 class ReadFile extends noflo.AsyncComponent
-    constructor: ->
-        @inPorts =
-            in: new noflo.Port()
-        @outPorts =
-            out: new noflo.Port()
-            error: new noflo.Port()
-        super()
+  constructor: ->
+    @inPorts =
+      in: new noflo.Port()
+    @outPorts =
+      out: new noflo.Port()
+      error: new noflo.Port()
+    super()
 
-    doAsync: (fileName, callback) ->
-        fs.readFile fileName, "utf-8", (err, data) =>
-            return callback err if err?
-            @outPorts.out.beginGroup fileName
-            @outPorts.out.send data
-            @outPorts.out.endGroup()
-            @outPorts.out.disconnect()
-            callback null
+  doAsync: (fileName, callback) ->
+    fs.readFile fileName, "utf-8", (err, data) =>
+      return callback err if err?
+      @outPorts.out.beginGroup fileName
+      @outPorts.out.send data
+      @outPorts.out.endGroup()
+      @outPorts.out.disconnect()
+      callback null
 
 exports.getComponent = ->
-    new ReadFile()
+  new ReadFile()

@@ -1,7 +1,9 @@
 noflo = require '../../lib/NoFlo'
 
 class Counter extends noflo.Component
-  description: "The count component receives input on a single input port, and sends the number of data packets received to the output port when the input disconnects"
+  description: "The count component receives input on a single input port,
+    and sends the number of data packets received to the output port when
+    the input disconnects"
 
   constructor: ->
     @count = null
@@ -27,5 +29,4 @@ class Counter extends noflo.Component
       @outPorts.count.disconnect()
       @count = null
 
-exports.getComponent = ->
-    new Counter
+exports.getComponent = -> new Counter
