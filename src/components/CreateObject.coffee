@@ -7,8 +7,12 @@ class CreateObject extends noflo.Component
     @outPorts =
       out: new noflo.Port()
 
+    @inPorts.start.on 'begingroup', (group) =>
+      @outPorts.out.beginGroup group
     @inPorts.start.on "data", =>
       @outPorts.out.send {}
       @outPorts.out.disconnect()
+    @inPorts.start.on 'endgroup', =>
+      @outPorts.out.endGroup()
 
 exports.getComponent = -> new CreateObject
