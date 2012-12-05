@@ -40,7 +40,7 @@ NoFlo internals:
 * The `debug` flag was removed from NoFlo _Network_ class, and the networks were made EventEmitters for more flexible monitoring
 * The `isSubgraph` method tells whether a _Component_ is a subgraph or a regular code component
 * Subgraphs loaded directly by _ComponentLoader_ no longer expose their `graph` port
-* The `add*` methods of _Graph_ now return the object that was added to the graph
+* The `addX` methods of _Graph_ now return the object that was added to the graph
 
 Changes to core components:
 
@@ -61,3 +61,40 @@ New core components:
 * _LastPacket_ sends the last packet it received when getting a disconnect to the inport
 * _MergeGroups_ collects grouped packets from its inports, and sends them out together once each inport has sent data with the same grouping
 * _SimplifyObject_ simplifies the object structures outputted by the _CollectGroups_ component
+
+## 0.2.0 (November 13th 2012)
+
+The main change in 0.2 series was component packaging support and the fact that most component with external dependencies were moved to their own NPM packages:
+
+* Message Queue components were moved to [noflo-mq](https://npmjs.org/package/noflo-mq)
+* HTML parsing components were moved to [noflo-html](https://npmjs.org/package/noflo-html)
+* XML parsing components were moved to [noflo-html](https://npmjs.org/package/noflo-xml)
+* YAML parsing components were moved to [noflo-html](https://npmjs.org/package/noflo-yaml)
+* Web Server components were moved to [noflo-webserver](https://npmjs.org/package/noflo-webserver)
+* CouchDB components were moved to [noflo-couchdb](https://npmjs.org/package/noflo-couchdb)
+* BaseCamp API components were moved to [noflo-basecamp](https://npmjs.org/package/noflo-basecamp)
+* Restful Metrics components were moved to [noflo-restfulmetrics](https://npmjs.org/package/noflo-restfulmetrics)
+
+To use the components, install the corresponding NPM package and change the component's name in your graph to include the package namespace. For example, `yaml/ParseYaml` for the _ParseYaml_ component in the _noflo-yaml_ package
+
+User interface:
+
+* The `noflo` command-line tool now has a new `list` command for listing components available for a given directory, for example: `$ noflo list .`
+
+NoFlo internals:
+
+* New _ComponentLoader_ to support loading components and subgraphs to installed NPM modules
+* NoFlo's own codebase was moved to direct requires making the NPM installation simpler
+* [daemon](https://npmjs.org/package/daemon) dependency was removed from NoFlo's command-line tools
+
+Changes to core components:
+
+* _Merge_ only disconnects once all of its inports have disconnected
+* _Concat_ only disconnects once all of its inports have disconnected
+* _CompileString_'s `in` port is now an ArrayPort
+* _GroupByObjectKey_ also supports boolean values for the matched keys
+* _ReadDir_ disconnects after reading a directory
+
+New core components:
+
+* _Drop_ allows explicitly dropping packets in a graph. The component performs no operations on the data it receives
