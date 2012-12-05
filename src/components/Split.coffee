@@ -9,6 +9,8 @@ class Split extends noflo.Component
     @outPorts =
       out: new noflo.ArrayPort()
 
+    @inPorts.in.on "connect", =>
+      @outPorts.out.connect()
     @inPorts.in.on "begingroup", (group) =>
       @outPorts.out.beginGroup group
     @inPorts.in.on "data", (data) =>
