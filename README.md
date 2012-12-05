@@ -35,6 +35,10 @@ Then you can install everything needed by a simple:
 
 NoFlo is available from [GitHub](https://github.com/bergie/noflo) under the MIT license.
 
+## Changes
+
+Please refer to the [CHANGES.md document](https://github.com/bergie/noflo/blob/master/CHANGES.md).
+
 ## Using NoFlo
 
 There are two ways to use NoFlo:
