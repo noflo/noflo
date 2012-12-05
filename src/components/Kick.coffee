@@ -6,14 +6,43 @@ class Kick extends noflo.Component
   be useful for starting up networks."
 
   constructor: ->
+    @data =
+      packet: null
+      group: []
+    @groups = []
+
     @inPorts =
       in: new noflo.Port()
+      data: new noflo.Port()
 
     @outPorts =
       out: new noflo.Port()
 
-    @inPorts.in.on "disconnect", =>
-      @outPorts.out.send null
-      @outPorts.out.disconnect()
+    @inPorts.in.on 'begingroup', (group) =>
+      @groups.push group
+
+    @inPorts.in.on 'data', =>
+      @data.group = @groups.slice 0
+
+    @inPorts.in.on 'endgroup', (group) =>
+      @groups.pop()
+
+    @inPorts.in.on 'disconnect', =>
+      @sendKick @data
+      @groups = []
+
+    @inPorts.data.on 'data', (data) =>
+      @data.packet = data
+
+  sendKick: (kick) ->
+    for group in kick.group
+      @outPorts.out.beginGroup group
+
+    @outPorts.out.send kick.packet
+
+    for group in kick.group
+      @outPorts.out.endGroup group
+
+    @outPorts.out.disconnect()
 
 exports.getComponent = -> new Kick

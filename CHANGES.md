@@ -9,3 +9,4 @@ NoFlo ChangeLog
 * The new _FirstGroup_ component allows you to limit group hierarchies of packets to a single level
 * _GetObjectKey_ can now send packets that don't contain the specified key to a `missed` port instead of dropping them
 * _SetPropertyValue_ provides the group hierarchy received via its `in` port when sending packets out
+* _Kick_ can now optionally send out the packet it received via its `data` port when receiving a disconnect on the `in` port
