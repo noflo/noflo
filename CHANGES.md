@@ -3,6 +3,7 @@ NoFlo ChangeLog
 
 ## 0.3.0
 
+* NoFlo's web-based user interface has been moved to a separate [noflo-ui](https://github.com/bergie/noflo-ui) repository
 * Events emitted by ArrayPorts now contain the socket number as a second parameter
 * _ReadGroup_ now sends the group to a `group` outport, and original packet to `out` port
 * The new _FirstGroup_ component allows you to limit group hierarchies of packets to a single level
