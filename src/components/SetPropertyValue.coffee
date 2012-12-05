@@ -5,6 +5,7 @@ class SetPropertyValue extends noflo.Component
     @property = null
     @value = null
     @data = []
+    @groups = []
 
     @inPorts =
       property: new noflo.Port()
@@ -21,19 +22,29 @@ class SetPropertyValue extends noflo.Component
       @addProperties() if @property and @data.length
 
     @inPorts.in.on "begingroup", (group) =>
-      @outPorts.out.beginGroup group
+      @groups.push group
     @inPorts.in.on "data", (data) =>
-      return @addProperty data if @property and @value
-      @data.push data
+      if @property and @value
+        @addProperty
+          data: data
+          group: @groups.slice 0
+        return
+      @data.push
+        data: data
+        group: @groups.slice 0
     @inPorts.in.on "endgroup", =>
-      @outPorts.out.endGroup()
+      @groups.pop()
     @inPorts.in.on "disconnect", =>
       @outPorts.out.disconnect() if @property and @value
       @value = null
 
   addProperty: (object) ->
-    object[@property] = @value
-    @outPorts.out.send object
+    object.data[@property] = @value
+    for group in object.group
+      @outPorts.out.beginGroup group
+    @outPorts.out.send object.data
+    for group in object.group
+      @outPorts.out.endGroup()
 
   addProperties: ->
     @addProperty object for object in @data
