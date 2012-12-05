@@ -1,5 +1,4 @@
 noflo = require "../../lib/NoFlo"
-util = require "util"
 
 class Repeat extends noflo.Component
 
