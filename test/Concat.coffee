@@ -57,10 +57,12 @@ exports['buffers should be cleared by disconnect to avoid deadlock'] = (test) ->
       test.equals data, 'world'
       test.done()
     
+  ins[0].connect()
   ins[1].connect()
   # This packet will be lost because it doesn't have a pair
   # and we disconnect
   ins[1].send 'foo'
+  ins[0].disconnect()
   ins[1].disconnect()
   ins[0].connect()
   ins[1].send 'world'

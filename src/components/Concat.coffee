@@ -3,19 +3,23 @@ noflo = require '../../lib/NoFlo'
 class Concat extends noflo.Component
   constructor: ->
     @buffers = {}
-    subscribed = false
+    @hasConnected = {}
 
     @inPorts =
       in: new noflo.ArrayPort
     @outPorts =
       out: new noflo.Port
 
-    @inPorts.in.on 'connect', =>
+    subscribed = false
+    @inPorts.in.on 'connect', (socket) =>
+      @hasConnected[@inPorts.in.sockets.indexOf(socket)] = true
+
       # In this component we need to know which of the sockets
       # sent the data, so we connect to the sockets directly
       unless subscribed
         @subscribeSocket id for socket, id in @inPorts.in.sockets
         subscribed = true
+
     @inPorts.in.on 'begingroup', (group) =>
       @outPorts.out.beginGroup group
     @inPorts.in.on 'endgroup', =>
@@ -23,9 +27,15 @@ class Concat extends noflo.Component
     @inPorts.in.on 'disconnect', =>
       # Check that all ports have disconnected before emitting
       for socket in @inPorts.in.sockets
-        return if socket.connected
-      @buffers = {}
+        return if socket.isConnected()
+      do @clearBuffers
       @outPorts.out.disconnect()
+
+  clearBuffers: ->
+    for id, data of @buffers
+      return unless @hasConnected[id]
+    @buffers = {}
+    @hasConnected = {}
 
   subscribeSocket: (id) ->
     @buffers[id] = []
