@@ -6,18 +6,18 @@ class ArrayPort extends port.Port
 
   attach: (socket) ->
     @sockets.push socket
-    @attachSocket socket
+    @attachSocket socket, @sockets.length - 1
 
   connect: (socketId = null) ->
     if socketId is null
       @sockets.forEach (socket) ->
-        socket.disconnect()
+        socket.connect()
       return
 
     unless @sockets[socketId]
       throw new Error "No socket '#{socketId}' available"
 
-    @sockets[socketId].disconnect()
+    @sockets[socketId].connect()
 
   beginGroup: (group, socketId = null) ->
     if socketId is null
@@ -62,7 +62,7 @@ class ArrayPort extends port.Port
 
   disconnect: (socketId = null) ->
     if socketId is null
-      @sockets.forEach (socket) ->
+      for socket in @sockets
         socket.disconnect()
       return
 
