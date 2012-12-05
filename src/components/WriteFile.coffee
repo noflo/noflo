@@ -14,19 +14,22 @@ class WriteFile extends noflo.Component
       error: new noflo.Port
 
     @inPorts.in.on 'data', (data) =>
+      if @filename
+        @writeFile @filename, data
+        @filename = null
+        return
       @data = data
-      @writeFile @filename, data if @filename
 
     @inPorts.filename.on 'data', (data) =>
+      if @data
+        @writeFile data, @data
+        @data = null
+        return
       @filename = data
-      @writeFile data, @data if @data
-
-    @inPorts.filename.on 'endgroup', =>
-      @filename = null
 
   writeFile: (filename, data) ->
     fs.writeFile filename, data, 'utf-8', (err) =>
-      return @outPorts.error send err if err
+      return @outPorts.error.send err if err
       @outPorts.out.send filename
       @outPorts.out.disconnect()
 
