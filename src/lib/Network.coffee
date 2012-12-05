@@ -115,7 +115,7 @@ class Network extends events.EventEmitter
         port: port
 
       unless process.component.inPorts and process.component.inPorts[port]
-        throw new Error "No inport '#{port}' defined in process #{process.id}"
+        throw new Error "No inport '#{port}' defined in process #{process.id} (#{socket.getId()})"
         return
       return process.component.inPorts[port].attach socket
 
@@ -124,7 +124,7 @@ class Network extends events.EventEmitter
       port: port
 
     unless process.component.outPorts and process.component.outPorts[port]
-      throw new Error "No outport '#{port}' defined in process #{process.id}"
+      throw new Error "No outport '#{port}' defined in process #{process.id} (#{socket.getId()})"
       return
 
     process.component.outPorts[port].attach socket
@@ -138,6 +138,7 @@ class Network extends events.EventEmitter
     return unless process.network
 
     emitSub = (type, data) =>
+      data = {} unless data
       data.subgraph = nodeName
       @emit type, data
 
@@ -169,7 +170,7 @@ class Network extends events.EventEmitter
         socket: socket
         group: group
     socket.on 'disconnect', =>
-      @emit 'disc',
+      @emit 'disconnect',
         id: socket.getId()
         socket: socket
 

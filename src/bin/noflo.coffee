@@ -35,7 +35,7 @@ addDebug = (network, verbose, logSubgraph) ->
 
   identifier = (data) ->
     result = ''
-    result += clc.magenta.italic data.subgraph if data.subgraph
+    result += "#{clc.magenta.italic(data.subgraph)} " if data.subgraph
     result += clc.blue.italic data.id
     result
 
@@ -50,15 +50,15 @@ addDebug = (network, verbose, logSubgraph) ->
   network.on 'data', (data) ->
     return if data.subgraph and not logSubgraph
     if verbose
-      console.error "#{identifier(data)} #{clc.green('DATA')}", data.data
+      console.log "#{identifier(data)} #{clc.green('DATA')}", data.data
       return
-    console.error "#{identifier(data)} #{clc.green('DATA')}"
+    console.log "#{identifier(data)} #{clc.green('DATA')}"
 
   network.on 'endgroup', (data) ->
     return if data.subgraph and not logSubgraph
     console.log "#{identifier(data)} #{clc.cyan('> ' + data.group)}"
 
-  network.on 'disc', (data) ->
+  network.on 'disconnect', (data) ->
     return if data.subgraph and not logSubgraph
     console.log "#{identifier(data)} #{clc.yellow('DISC')}"
 
