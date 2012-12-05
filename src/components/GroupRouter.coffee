@@ -27,5 +27,10 @@ class GroupRouter extends noflo.Component
 
     @inPorts.in.on 'endgroup', =>
       do @groups.pop
+
+    @inPorts.in.on 'disconnect', =>
+      @groups = []
+      @outPorts.out.disconnect()
+      @outPorts.missed.disconnect()
  
 exports.getComponent = -> new GroupRouter
