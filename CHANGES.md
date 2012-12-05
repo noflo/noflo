@@ -21,3 +21,4 @@ New core components:
 
 * _FirstGroup_ allows you to limit group hierarchies of packets to a single level
 * _LastPacket_ sends the last packet it received when getting a disconnect to the inport
+* _MergeGroups_ collects grouped packets from its inports, and sends them out together once each inport has sent data with the same grouping
