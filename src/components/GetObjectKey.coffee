@@ -10,6 +10,7 @@ class GetObjectKey extends noflo.Component
       key: new noflo.ArrayPort()
     @outPorts =
       out: new noflo.Port()
+      missed: new noflo.Port()
 
     @inPorts.in.on "connect", =>
       @data = []
@@ -46,7 +47,10 @@ class GetObjectKey extends noflo.Component
     throw new Error "Key not defined" unless @key.length
     throw new Error "Data is not an object" unless typeof data is "object"
     for key in @key
-      continue if data[key] is undefined
+      if data[key] is undefined
+        if @outPorts.missed.isAttached()
+          @outPorts.missed.send new Error "Object has no key #{key}"
+        continue
       @outPorts.out.beginGroup key
       @outPorts.out.send data[key]
       @outPorts.out.endGroup()
