@@ -1,4 +1,5 @@
 noflo = require "../lib/NoFlo"
+fs = require "fs"
 
 exports["test simple FBP file"] = (test) ->
     fbpData = """
@@ -74,3 +75,24 @@ exports["test exporting ports"] = (test) ->
         test.equal graph.exports[0].private, 'read.in'
         test.equal graph.exports[0].public, 'filename'
         test.done()
+
+exports["test sub-graph compilation at start-up time"] = (test) ->
+    file = "test/subgraph.tmp.fbp"
+    subgraph = """
+    'test string' -> IN Repeat(Repeat)
+    """
+    fbpData = """
+    '#{file}' -> GRAPH Graph(Graph)
+    Graph.Repeat() OUT -> IN Display(Output)
+    """
+
+    fs.writeFileSync(file, subgraph)
+
+    noflo.graph.loadFBP fbpData, (graph) ->
+        test.equal graph.edges.length, 1
+        test.equal graph.initializers.length, 1
+        test.equal graph.initializers[0].from.data, "test string"
+        test.equal graph.nodes.length, 2
+        test.done()
+
+    fs.unlinkSync(file)
