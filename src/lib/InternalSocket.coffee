@@ -110,10 +110,15 @@ class InternalSocket extends events.EventEmitter
   # but for sockets sending initial information packets to
   # components may also loom like _DATA -> ReadFile:SOURCE_.
   getId: ->
+    fromStr = (from) ->
+      "#{from.process.id}() #{from.port.toUpperCase()}"
+    toStr = (to) ->
+      "#{to.port.toUpperCase()} #{to.process.id}()"
+
     return "UNDEFINED" unless @from or @to
-    return "#{@from.process.id}:#{@from.port} -> ANON" if @from and not @to
-    return "DATA -> #{@to.process.id}:#{@to.port}" unless @from
-    "#{@from.process.id}:#{@from.port} -> #{@to.process.id}:#{@to.port}"
+    return "#{fromStr(@from)} -> ANON" if @from and not @to
+    return "DATA -> #{toStr(@to)}" unless @from
+    "#{fromStr(@from)} -> #{toStr(@to)}"
 
 exports.InternalSocket = InternalSocket
 
