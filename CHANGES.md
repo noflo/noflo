@@ -41,6 +41,7 @@ NoFlo internals:
 * The `isSubgraph` method tells whether a _Component_ is a subgraph or a regular code component
 * Subgraphs loaded directly by _ComponentLoader_ no longer expose their `graph` port
 * The `addX` methods of _Graph_ now return the object that was added to the graph
+* NoFlo networks now emit `start` and `end` events
 
 Changes to core components:
 
