@@ -62,6 +62,11 @@ New core components:
 * _MergeGroups_ collects grouped packets from its inports, and sends them out together once each inport has sent data with the same grouping
 * _SimplifyObject_ simplifies the object structures outputted by the _CollectGroups_ component
 
+New component libraries:
+
+* [noflo-liquid](https://npmjs.org/package/noflo-liquid) provides Liquid Templating functionality
+* [noflo-markdown](https://npmjs.org/package/noflo-markdown) provides Markdown conversion
+
 ## 0.2.0 (November 13th 2012)
 
 The main change in 0.2 series was component packaging support and the fact that most component with external dependencies were moved to their own NPM packages:
