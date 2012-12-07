@@ -52,6 +52,7 @@ class MergeGroups extends noflo.Component
     @outPorts.out.beginGroup id
     @outPorts.out.send @data[id]
     @outPorts.out.endGroup()
+    @outPorts.out.disconnect()
     delete @data[id]
 
 exports.getComponent = -> new MergeGroups

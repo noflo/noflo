@@ -23,6 +23,7 @@ class FilterPacket extends noflo.Component
       @outPorts.out.endGroup()
     @inPorts.in.on "disconnect", =>
       @outPorts.out.disconnect()
+      @outPorts.missed.disconnect()
 
   filterData: (data) ->
     match = false

@@ -33,6 +33,7 @@ class Network extends events.EventEmitter
     # network coordinator marks down the start-up time. This
     # way we can calculate the uptime of the network.
     @startupDate = new Date()
+    do @handleStartEnd
 
     # A NoFlo graph may change after network initialization.
     # For this, the network subscribes to the change events from
@@ -53,6 +54,36 @@ class Network extends events.EventEmitter
   # The uptime of the network is the current time minus the start-up
   # time, in seconds.
   uptime: -> new Date() - @startupDate
+
+  # Emit a 'start' event on the first connection, and 'end' event when
+  # last connection has been closed
+  handleStartEnd: ->
+    connections = 0
+    started = false
+    ended = false
+    timeOut = null
+    @on 'connect', (data) =>
+      return unless data.socket.from
+      clearTimeout timeOut if timeOut
+      if connections is 0 and not started
+        @emit 'start',
+          start: @startupDate
+        started = true
+      connections++
+    @on 'disconnect', (data) =>
+      return unless data.socket.from
+      connections--
+      return unless connections <= 0
+
+      timeOut = setTimeout =>
+        return if ended
+        @emit 'end',
+          start: @startupDate
+          end: new Date
+          uptime: @uptime()
+        started = false
+        ended = true
+      , 10
 
   # ## Loading components
   #
@@ -139,7 +170,10 @@ class Network extends events.EventEmitter
 
     emitSub = (type, data) =>
       data = {} unless data
-      data.subgraph = nodeName
+      if data.subgraph
+        data.subgraph = "#{nodeName}:#{data.subgraph}"
+      else
+        data.subgraph = nodeName
       @emit type, data
 
     process.network.on 'connect', (data) -> emitSub 'connect', data
@@ -279,6 +313,9 @@ class Network extends events.EventEmitter
   addInitial: (initializer, callback) ->
     socket = internalSocket.createSocket()
 
+    # Subscribe to events from the socket
+    @subscribeSocket socket
+
     to = @getNode initializer.to.node
     unless to
       throw new Error "No process defined for inbound node #{initializer.to.node}"
@@ -290,9 +327,6 @@ class Network extends events.EventEmitter
       return
 
     @connectPort socket, to, initializer.to.port, true
-
-    # Subscribe to events from the socket
-    @subscribeSocket socket
 
     @connections.push socket
 

@@ -5,6 +5,7 @@ class CopyFile extends noflo.Component
   constructor: ->
     @sourcePath = null
     @destPath = null
+    @disconnected = false
 
     @inPorts =
       source: new noflo.Port()
@@ -27,10 +28,12 @@ class CopyFile extends noflo.Component
       @destPath = data
 
     @inPorts.source.on 'disconnect', =>
-      @outPorts.out.disconnect() unless @inPorts.destination.isConnected()
+      return unless @inPorts.destination.isConnected()
+      @disconnected = true
 
     @inPorts.destination.on 'disconnect', =>
-      @outPorts.out.disconnect() unless @inPorts.source.isConnected()
+      return unless @inPorts.source.isConnected()
+      @disconnected = true
 
   copy: (source, destination) ->
     handleError = (err) =>
@@ -46,5 +49,6 @@ class CopyFile extends noflo.Component
     rs.pipe ws
     rs.on 'end', =>
       @outPorts.out.send destination
+      @outPorts.out.disconnect() if @disconnected
 
 exports.getComponent = -> new CopyFile
