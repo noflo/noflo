@@ -47,11 +47,8 @@ class MapGroup extends noflo.Component
       regexp = new RegExp expression
       matched = regexp.exec group
       continue unless matched
-
-      @outPorts.out.beginGroup group.replace regexp, replacement
-      return
+      group = group.replace regexp, replacement
 
     @outPorts.out.beginGroup group
-
 
 exports.getComponent = -> new MapGroup
