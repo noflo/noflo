@@ -10,6 +10,7 @@ class GetObjectKey extends noflo.Component
       key: new noflo.ArrayPort()
     @outPorts =
       out: new noflo.Port()
+      object: new noflo.Port()
       missed: new noflo.Port()
 
     @inPorts.in.on "connect", =>
@@ -54,6 +55,10 @@ class GetObjectKey extends noflo.Component
       @outPorts.out.beginGroup key
       @outPorts.out.send data[key]
       @outPorts.out.endGroup()
+
+    return unless @outPorts.object.isAttached()
+    @outPorts.object.send data
+    @outPorts.object.disconnect()
 
 exports.getComponent = ->
   new GetObjectKey
