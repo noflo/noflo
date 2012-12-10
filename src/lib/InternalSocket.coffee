@@ -2,6 +2,7 @@
 #     (c) 2011 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
 events = require "events"
+_ = require "underscore"
 
 # # Internal Sockets
 #
@@ -43,12 +44,17 @@ class InternalSocket extends events.EventEmitter
   connect: ->
     return if @connected
     @connected = true
-    @emit 'connect', @
+    @groups = []
+    emitArgs = ['connect']
+    Array::push.apply(emitArgs, arguments)
+    @emit.apply(@, emitArgs)
 
   disconnect: ->
     return unless @connected
     @connected = false
-    @emit 'disconnect', @
+    emitArgs = ['disconnect']
+    Array::push.apply(emitArgs, arguments)
+    @emit.apply(@, emitArgs)
 
   isConnected: -> @connected
 
@@ -65,7 +71,9 @@ class InternalSocket extends events.EventEmitter
   # message queues can be used as additional packet relay mechanisms.
   send: (data) ->
     @connect() unless @connected
-    @emit 'data', data
+    emitArgs = ['data']
+    Array::push.apply(emitArgs, arguments)
+    @emit.apply(@, emitArgs)
 
   # ## Information Packet grouping
   #
@@ -96,12 +104,18 @@ class InternalSocket extends events.EventEmitter
   # Components are free to ignore groupings, but are recommended
   # to pass received groupings onward if the data structures remain
   # intact through the component's processing.
-  beginGroup: (group) ->
-    @groups.push group
-    @emit 'begingroup', group
+  beginGroup: ->
+    emitArgs = ['begingroup']
+    group = _.toArray(arguments).shift()
+    @groups.push(group)
+    Array::push.apply(emitArgs, [group].concat(arguments))
+    @emit.apply(@, emitArgs)
 
   endGroup: ->
-    @emit 'endgroup', @groups.pop()
+    emitArgs = ['endgroup']
+    group = @groups.pop()
+    Array::push.apply(emitArgs, [group].concat(arguments))
+    @emit.apply(@, emitArgs)
 
   # ## Socket identifiers
   #
