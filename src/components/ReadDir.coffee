@@ -5,25 +5,23 @@
 fs = require "fs"
 noflo = require "../../lib/NoFlo"
 
-class ReadDir extends noflo.Component
+class ReadDir extends noflo.AsyncComponent
   constructor: ->
     @inPorts =
       source: new noflo.Port()
     @outPorts =
       out: new noflo.Port()
       error: new noflo.Port()
+    super 'source'
 
-    @inPorts.source.on "data", (data) =>
-      @readdir data
-
-  readdir: (path) ->
+  doAsync: (path, callback) ->
+    console.log path
     fs.readdir path, (err, files) =>
-      if err
-        @outPorts.error.send err
-        return @outPorts.error.disconnect()
+      return callback err if err
       path = path.slice(0,-1) if path.slice(-1) == "/"
       sortedFiles = files.sort()
       @outPorts.out.send "#{path}/#{f}" for f in sortedFiles
       @outPorts.out.disconnect()
+      callback null
 
 exports.getComponent = -> new ReadDir()
