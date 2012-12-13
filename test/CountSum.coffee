@@ -29,7 +29,7 @@ exports['count sum for two connected ports'] = (test) ->
   out = socket.createSocket()
   c.outPorts.out.attach out
 
-  expects = [3, 5, 7]
+  expects = [1, 3, 5, 7]
   sendsOne = [1, 3]
   sendsTwo = [2, 4]
 

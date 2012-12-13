@@ -25,9 +25,8 @@ class MakeDir extends noflo.AsyncComponent
     orig = dirPath
     dirPath = path.resolve dirPath
     fs.mkdir dirPath, (err) =>
-      unless err
-        # Directory was created
-        return callback null, dirPath
+      # Directory was created
+      return callback null unless err
 
       switch err.code
         when 'ENOENT'
@@ -41,6 +40,6 @@ class MakeDir extends noflo.AsyncComponent
           fs.stat dirPath, (statErr, stat) =>
             return callback err if statErr
             return callback err unless stat.isDirectory()
-            callback null, dirPath
+            callback null
 
 exports.getComponent = -> new MakeDir

@@ -43,7 +43,7 @@ class Throttle extends noflo.Component
   process: ->
     sent = 0
     while @q.length > 0 and @load < @max
-      return if sent > @max
+      return if sent >= @max
       event = @q.shift()
       switch event.name
         when "data"

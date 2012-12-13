@@ -57,7 +57,8 @@ class AsyncComponent extends component.Component
     process.nextTick => @processQueue()
 
   processQueue: ->
-    return if @load > 0
+    if @load > 0
+      return
     processedData = false
     while @q.length > 0
       event = @q[0]

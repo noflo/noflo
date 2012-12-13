@@ -21,7 +21,7 @@ class WriteFile extends noflo.Component
       @data = data
 
     @inPorts.filename.on 'data', (data) =>
-      if @data
+      unless @data is null
         @writeFile data, @data
         @data = null
         return

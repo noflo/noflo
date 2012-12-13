@@ -25,10 +25,7 @@ class CountSum extends noflo.Component
     for socket, id in @inPorts.in.sockets
       if typeof @portCounts[id] is 'undefined'
         # Never connected
-        @portCounts[id] = null
-
-      # No data for a given port
-      return if @portCounts[id] is null
+        @portCounts[id] = 0
 
       sum += @portCounts[id]
 

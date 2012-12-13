@@ -17,12 +17,12 @@ class Stat extends noflo.AsyncComponent
   doAsync: (path, callback) ->
     fs.stat path, (err, stats) =>
       return callback err if err
+      callback null
       stats.path = path
       for func in ["isFile","isDirectory","isBlockDevice",
         "isCharacterDevice", "isFIFO", "isSocket"]
         stats[func] = stats[func]()
       @outPorts.out.send stats
       @outPorts.out.disconnect()
-      callback null
 
 exports.getComponent = -> new Stat()
