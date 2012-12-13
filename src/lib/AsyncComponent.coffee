@@ -23,6 +23,7 @@ class AsyncComponent extends component.Component
     @inPorts[@inPortName].on "disconnect", =>
       return @q.push { name: "disconnect" } if @load > 0
       @outPorts[@outPortName].disconnect()
+      @outPorts.load.disconnect() if @outPorts.load.isAttached()
 
     @inPorts[@inPortName].on "data", (data) =>
       return @q.push { name: "data", data: data } if @q.length > 0
@@ -48,7 +49,8 @@ class AsyncComponent extends component.Component
   decrementLoad: ->
     throw new Error "load cannot be negative" if @load == 0
     @load--
-    @outPorts.load.send @load if @outPorts.load.socket
+    @outPorts.load.send @load if @outPorts.load.isAttached()
+    @outPorts.load.disconnect() if @outPorts.load.isAttached()
     process.nextTick => @processQueue()
 
   processQueue: ->
@@ -68,6 +70,7 @@ class AsyncComponent extends component.Component
         when "disconnect"
           return if processedData
           @outPorts[@outPortName].disconnect()
+          @outPorts.load.disconnect() if @outPorts.load.isAttached()
           @q.shift()
         when "data"
           @processData event.data
