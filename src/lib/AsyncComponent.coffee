@@ -43,7 +43,8 @@ class AsyncComponent extends component.Component
 
   incrementLoad: ->
     @load++
-    @outPorts.load.send @load if @outPorts.load.socket
+    @outPorts.load.send @load if @outPorts.load.isAttached()
+    @outPorts.load.disconnect() if @outPorts.load.isAttached()
 
   doAsync: (data, callback) ->
     callback new Error "AsyncComponents must implement doAsync"
