@@ -63,6 +63,8 @@ New core components:
 * _LastPacket_ sends the last packet it received when getting a disconnect to the inport
 * _MergeGroups_ collects grouped packets from its inports, and sends them out together once each inport has sent data with the same grouping
 * _SimplifyObject_ simplifies the object structures outputted by the _CollectGroups_ component
+* _CountSum_ sums together numbers received from different inports and sends the total out
+* _SplitInSequence_ sends each packet to only one of its outports, going through them in sequence
 
 New component libraries:
 
