@@ -20,7 +20,7 @@ class Throttle extends noflo.Component
       @process()
 
     @inPorts.max.on "data", (data) =>
-      @max = data
+      @max = parseInt data
       @process()
 
     @inPorts.in.on "begingroup", (group) =>
