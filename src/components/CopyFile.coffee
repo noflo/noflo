@@ -6,6 +6,7 @@ class CopyFile extends noflo.Component
     @sourcePath = null
     @destPath = null
     @disconnected = false
+    @q = []
 
     @inPorts =
       source: new noflo.Port()
@@ -35,8 +36,19 @@ class CopyFile extends noflo.Component
       return unless @inPorts.source.isConnected()
       @disconnected = true
 
+  processQueue: ->
+    while @q.length
+      item = @q.shift()
+      @copy item.source, item.destination
+
   copy: (source, destination) ->
     handleError = (err) =>
+      if err.code is 'EMFILE'
+        @q.push
+          source: source
+          destination: destination
+        process.nextTick => @processQueue()
+        return
       return unless @outPorts.error.isAttached()
       @outPorts.error.send err
       @outPorts.error.disconnect()
