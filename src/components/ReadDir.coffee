@@ -15,7 +15,6 @@ class ReadDir extends noflo.AsyncComponent
     super 'source'
 
   doAsync: (path, callback) ->
-    console.log path
     fs.readdir path, (err, files) =>
       return callback err if err
       path = path.slice(0,-1) if path.slice(-1) == "/"
