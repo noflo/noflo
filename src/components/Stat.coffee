@@ -5,27 +5,24 @@
 fs = require "fs"
 noflo = require "../../lib/NoFlo"
 
-class Stat extends noflo.Component
+class Stat extends noflo.AsyncComponent
   constructor: ->
     @inPorts =
       in: new noflo.Port()
     @outPorts =
       out: new noflo.Port()
       error: new noflo.Port()
+    super()
 
-    @inPorts.in.on "data", (data) =>
-      @stat data
-
-  stat: (path) ->
+  doAsync: (path, callback) ->
     fs.stat path, (err, stats) =>
-      if err
-        @outPorts.error.send err
-        return @outPorts.error.disconnect()
+      return callback err if err
       stats.path = path
       for func in ["isFile","isDirectory","isBlockDevice",
         "isCharacterDevice", "isFIFO", "isSocket"]
         stats[func] = stats[func]()
       @outPorts.out.send stats
       @outPorts.out.disconnect()
+      callback null
 
 exports.getComponent = -> new Stat()

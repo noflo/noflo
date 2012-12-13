@@ -4,8 +4,10 @@ component = require "./Component"
 class AsyncComponent extends component.Component
 
   constructor: (@inPortName="in", @outPortName="out", @errPortName="error") ->
-    throw new Error "no inPort named '#{@inPortName}'" unless (@inPortName of @inPorts)
-    throw new Error "no outPort named '#{@outPortName}'" unless (@outPortName of @outPorts)
+    unless @inPorts[@inPortName]
+      throw new Error "no inPort named '#{@inPortName}'"
+    unless @outPorts[@outPortName]
+      throw new Error "no outPort named '#{@outPortName}'"
 
     @load = 0
     @q = []
@@ -33,7 +35,7 @@ class AsyncComponent extends component.Component
     @incrementLoad()
     @doAsync data, (err) =>
       if err
-        if (@errPortName of @outPorts)
+        if @outPorts[@errPortName] and @outPorts[@errPortName].isAttached()
           @outPorts[@errPortName].send err
           @outPorts[@errPortName].disconnect()
         else throw err
