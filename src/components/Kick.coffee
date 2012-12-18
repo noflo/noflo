@@ -16,7 +16,7 @@ class Kick extends noflo.Component
       data: new noflo.Port()
 
     @outPorts =
-      out: new noflo.Port()
+      out: new noflo.ArrayPort()
 
     @inPorts.in.on 'begingroup', (group) =>
       @groups.push group
@@ -41,7 +41,7 @@ class Kick extends noflo.Component
     @outPorts.out.send kick.packet
 
     for group in kick.group
-      @outPorts.out.endGroup group
+      @outPorts.out.endGroup()
 
     @outPorts.out.disconnect()
 
