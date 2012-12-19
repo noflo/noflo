@@ -73,6 +73,7 @@ New component libraries:
 
 * [noflo-liquid](https://npmjs.org/package/noflo-liquid) provides Liquid Templating functionality
 * [noflo-markdown](https://npmjs.org/package/noflo-markdown) provides Markdown conversion
+* [noflo-diffbot](https://npmjs.org/package/noflo-diffbot) provides access to the Diffbot screen-scraping service
 
 ## 0.2.0 (November 13th 2012)
 
