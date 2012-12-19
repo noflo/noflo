@@ -39,6 +39,18 @@ exports["test strings with whitespace"] = (test) ->
         test.equal graph.nodes.length, 1
         test.done()
 
+exports["test empty strings"] = (test) ->
+    fbpData = """
+    '' -> IN Display(Output)
+    """
+
+    noflo.graph.loadFBP fbpData, (graph) ->
+        test.equal graph.edges.length, 0
+        test.equal graph.initializers.length, 1
+        test.equal graph.initializers[0].from.data, ""
+        test.equal graph.nodes.length, 1
+        test.done()
+
 exports["test strings with comments"] = (test) ->
     fbpData = """
     # Do more

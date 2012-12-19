@@ -252,7 +252,7 @@ exports.loadJSON = (definition, success) ->
     graph.addNode id, def.component, def.display
 
   for conn in definition.connections
-    if conn.data
+    if conn.data isnt undefined
       graph.addInitial conn.data, conn.tgt.process, conn.tgt.port.toLowerCase()
       continue
     graph.addEdge conn.src.process, conn.src.port.toLowerCase(), conn.tgt.process, conn.tgt.port.toLowerCase()

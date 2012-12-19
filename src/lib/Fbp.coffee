@@ -5,7 +5,7 @@ class Fbp
   matchPort: new RegExp "([A-Z\.]+)"
   matchComponent: new RegExp "([A-Za-z\.]+)\\(([A-Za-z0-9\/\.]+|)\\)"
   matchComponentGlobal: new RegExp "([A-Za-z\.]+)\\(([A-Za-z0-9\/\.]+|)\\)", "g"
-  matchInitial: new RegExp "\'(.+)\'"
+  matchInitial: new RegExp "\'(.*)\'"
   matchConnection: new RegExp "\-\>"
   matchSeparator: new RegExp "[\\s,\\n]"
   matchSubgraph: new RegExp "\n *\\'(.+)\\' *-> *GRAPH *([A-Za-z\\.]+)\\(Graph\\)"
@@ -154,7 +154,7 @@ class Fbp
         tgt: {}
 
   handlePort: (port) ->
-    if @currentEdge.data or @currentEdge.src.port
+    if @currentEdge.data isnt undefined or @currentEdge.src.port
       @currentEdge.tgt =
         port: port[1].toLowerCase()
       return

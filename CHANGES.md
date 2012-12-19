@@ -43,6 +43,7 @@ NoFlo internals:
 * The `addX` methods of _Graph_ now return the object that was added to the graph
 * NoFlo networks now emit `start` and `end` events
 * Component instances have the ID of the node available at the `nodeId` property
+* Empty strings and other falsy values are now allowed as contents of Initial Information Packets
 
 Changes to core components:
 
