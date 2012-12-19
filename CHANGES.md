@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.3.0 (git master)
+## 0.3.0 (December 19th 2012)
 
 User interface:
 
