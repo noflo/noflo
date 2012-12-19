@@ -14,6 +14,7 @@ exports["test ArrayPort type"] = (test) ->
     network = noflo.createNetwork graph, ->
       port = network.processes["Merge"].component.inPorts["in"]
       test.equal port instanceof noflo.ArrayPort, true
+      test.equal network.processes['Merge'].component.nodeId, 'Merge'
       test.done()
 
 exports["test connecting to ArrayPorts"] = (test) ->

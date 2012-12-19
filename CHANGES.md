@@ -42,6 +42,7 @@ NoFlo internals:
 * Subgraphs loaded directly by _ComponentLoader_ no longer expose their `graph` port
 * The `addX` methods of _Graph_ now return the object that was added to the graph
 * NoFlo networks now emit `start` and `end` events
+* Component instances have the ID of the node available at the `nodeId` property
 
 Changes to core components:
 

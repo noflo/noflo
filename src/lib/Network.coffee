@@ -120,6 +120,7 @@ class Network extends events.EventEmitter
 
     # Load the process for the node.
     @load node.component, (instance) =>
+      instance.nodeId = node.id
       process.component = instance
 
       @subscribeSubgraph node.id, instance if instance.isSubgraph()
