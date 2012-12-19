@@ -44,13 +44,26 @@ class GetObjectKey extends noflo.Component
       @data = []
       @outPorts.out.disconnect()
 
+  error: (data, error) ->
+    if @outPorts.missed.isAttached()
+      @outPorts.missed.send data
+      @outPorts.missed.disconnect()
+      return
+    throw error
+
   getKey: (data) ->
-    throw new Error "Key not defined" unless @key.length
-    throw new Error "Data is not an object" unless typeof data is "object"
+    unless @key.length
+      @error data, new Error "Key not defined"
+      return
+    unless typeof data is "object"
+      @error data, new Error "Data is not an object"
+      return
+    if data is null
+      @error data, new Error "Data is NULL"
+      return
     for key in @key
       if data[key] is undefined
-        if @outPorts.missed.isAttached()
-          @outPorts.missed.send new Error "Object has no key #{key}"
+        @error data, new Error "Object has no key #{key}"
         continue
       @outPorts.out.beginGroup key
       @outPorts.out.send data[key]
