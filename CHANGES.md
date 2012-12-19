@@ -48,7 +48,7 @@ Changes to core components:
 * _ReadGroup_ now sends the group to a `group` outport, and original packet to `out` port
 * _GetObjectKey_ can now send packets that don't contain the specified key to a `missed` port instead of dropping them
 * _SetPropertyValue_ provides the group hierarchy received via its `in` port when sending packets out
-* _Kick_ can now optionally send out the packet it received via its `data` port when receiving a disconnect on the `in` port
+* _Kick_ can now optionally send out the packet it received via its `data` port when receiving a disconnect on the `in` port. Its `out` port is now an ArrayPort
 * _Concat_ only clears its buffers on disconnect when all inports have connected at least once
 * _SplitStr_ accepts both regular expressions (starting and ending with a `/`) and strings for splitting
 * _ReadDir_ and _Stat_ are now AsyncComponents that can be throttled
