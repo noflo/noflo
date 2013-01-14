@@ -10,6 +10,7 @@ NoFlo internals:
 New component libraries:
 
 * [noflo-filesystem](https://npmjs.org/package/noflo-filesystem) provides advanced file system components
+* [noflo-github](https://npmjs.org/package/noflo-github) provides components for interacting with the GitHub service
 
 ## 0.3.0 (December 19th 2012)
 
