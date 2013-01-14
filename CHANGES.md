@@ -1,6 +1,16 @@
 NoFlo ChangeLog
 ===============
 
+## 0.3.1 (git master)
+
+NoFlo internals:
+
+* The NoFlo `.fbp` parser now [guards against recursion](https://github.com/bergie/noflo/pull/57) on inline subgraphs
+
+New component libraries:
+
+* [noflo-filesystem](https://npmjs.org/package/noflo-filesystem) provides advanced file system components
+
 ## 0.3.0 (December 19th 2012)
 
 User interface:
