@@ -12,6 +12,7 @@ New component libraries:
 * [noflo-filesystem](https://npmjs.org/package/noflo-filesystem) provides advanced file system components
 * [noflo-github](https://npmjs.org/package/noflo-github) provides components for interacting with the GitHub service
 * [noflo-git](https://npmjs.org/package/noflo-git) provides components for Git revision control system
+* [noflo-oembed](https://npmjs.org/package/noflo-oembed) provides oEmbed protocol support
 
 ## 0.3.0 (December 19th 2012)
 
