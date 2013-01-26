@@ -4,6 +4,7 @@ class Graph extends noflo.Component
   constructor: ->
     @network = null
     @ready = true
+    @baseDir = null
 
     @inPorts =
       graph: new noflo.Port()
@@ -21,6 +22,7 @@ class Graph extends noflo.Component
       graph = "#{process.cwd()}/#{graph}"
 
     graph = noflo.graph.loadFile graph, (instance) =>
+      instance.baseDir = @baseDir
       @createNetwork instance
 
   createNetwork: (graph) ->

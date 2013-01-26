@@ -87,6 +87,7 @@ class ComponentLoader
     graphImplementation = require @components['Graph']
     graphSocket = internalSocket.createSocket()
     graph = graphImplementation.getComponent()
+    graph.baseDir = @baseDir
     graph.inPorts.graph.attach graphSocket
     graphSocket.send @components[name]
     graphSocket.disconnect()

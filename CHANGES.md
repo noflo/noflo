@@ -6,6 +6,7 @@ NoFlo ChangeLog
 NoFlo internals:
 
 * The NoFlo `.fbp` parser now [guards against recursion](https://github.com/bergie/noflo/pull/57) on inline subgraphs
+* NoFlo subgraphs now inherit the directory context for component loading from the NoFlo process that loaded them
 
 New component libraries:
 

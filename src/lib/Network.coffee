@@ -28,6 +28,7 @@ class Network extends events.EventEmitter
     @connections = []
     @initials = []
     @graph = graph
+    @baseDir = graph.baseDir or process.cwd()
 
     # As most NoFlo networks are long-running processes, the
     # network coordinator marks down the start-up time. This
@@ -49,7 +50,7 @@ class Network extends events.EventEmitter
       @addEdge edge
     @graph.on 'removeEdge', (edge) =>
       @removeEdge edge
-    @loader = new componentLoader.ComponentLoader process.cwd()
+    @loader = new componentLoader.ComponentLoader @baseDir
 
   # The uptime of the network is the current time minus the start-up
   # time, in seconds.
