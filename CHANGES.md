@@ -13,6 +13,7 @@ New component libraries:
 * [noflo-github](https://npmjs.org/package/noflo-github) provides components for interacting with the GitHub service
 * [noflo-git](https://npmjs.org/package/noflo-git) provides components for Git revision control system
 * [noflo-oembed](https://npmjs.org/package/noflo-oembed) provides oEmbed protocol support
+* [noflo-redis](https://npmjs.org/package/noflo-redis) provides Redis database components
 
 ## 0.3.0 (December 19th 2012)
 
