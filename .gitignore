@@ -5,3 +5,4 @@ lib/*.js
 server/static/js/*.js
 docs_tmp/
 npm-debug.log
+.DS_Store
