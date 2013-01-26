@@ -86,3 +86,27 @@ exports["test exporting ports"] = (test) ->
         test.equal graph.exports[0].private, 'read.in'
         test.equal graph.exports[0].public, 'filename'
         test.done()
+
+exports["test node metadata"] = (test) ->
+    fbpData = """
+    Read(ReadFile) OUT -> IN Display(Output:foo) 
+    # And we drop the rest
+    Display() OUT -> IN Drop(Drop:foo)
+    """
+    noflo.graph.loadFBP fbpData, (graph) ->
+        test.equal graph.edges.length, 2
+        test.equal graph.initializers.length, 0
+        test.equal graph.exports.length, 0
+
+        for node in graph.nodes
+          switch node.id
+            when 'Display', 'Drop'
+              test.ok node.metadata
+              test.ok node.metadata.routes
+              test.equal node.metadata.routes[0], 'foo'
+            else
+              test.ok node.metadata
+              test.equal node.metadata.routes, undefined
+
+        test.done()
+

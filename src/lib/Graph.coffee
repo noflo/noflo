@@ -53,11 +53,13 @@ class Graph extends events.EventEmitter
   #       y: 154
   #
   # Addition of a node will emit the `addNode` event.
-  addNode: (id, component, display) ->
+  addNode: (id, component, metadata) ->
+    metadata = {} unless metadata
     node =
       id: id
       component: component
-      display: display
+      metadata: metadata
+    node.display = metadata.display if metadata.display
     @nodes.push node
     @emit 'addNode', node
     node
@@ -160,13 +162,14 @@ class Graph extends events.EventEmitter
   #     myGraph.addInitial 'somefile.txt', 'Read', 'source'
   #
   # Adding an IIP will emit a `addEdge` event.
-  addInitial: (data, node, port) ->
+  addInitial: (data, node, port, metadata) ->
     initializer =
       from:
         data: data
       to:
         node: node
         port: port
+      metadata: metadata
     @initializers.push initializer
     @emit 'addEdge', initializer
     initializer
@@ -249,7 +252,10 @@ exports.loadJSON = (definition, success) ->
   graph = new Graph definition.properties.name
 
   for id, def of definition.processes
-    graph.addNode id, def.component, def.display
+    if def.display
+      def.metadata = {} unless def.metadata
+      def.metadata.display = def.display
+    graph.addNode id, def.component, def.metadata
 
   for conn in definition.connections
     if conn.data isnt undefined

@@ -7,6 +7,13 @@ NoFlo internals:
 
 * The NoFlo `.fbp` parser now [guards against recursion](https://github.com/bergie/noflo/pull/57) on inline subgraphs
 * NoFlo subgraphs now inherit the directory context for component loading from the NoFlo process that loaded them
+* Nodes in NoFlo graphs can now contain additional metadata to be used for visualization purposes. For example, in FBP format graphs:
+
+  ``` fbp
+  Read(ReadFile:foo) OUT -> IN Display(Output:foo)
+  ```
+
+  will cause both the _Read_ and the _Display_ node to contain a `metadata.routes` field with an array containing `foo`. Multiple routes can be specified by separating them with commas
 
 New component libraries:
 

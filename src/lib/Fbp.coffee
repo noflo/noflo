@@ -3,7 +3,7 @@ fs = require 'fs'
 class Fbp
   matchExport: new RegExp "EXPORT=([A-Z\.]+):([A-Z]+)"
   matchPort: new RegExp "([A-Z\.]+)"
-  matchComponent: new RegExp "([A-Za-z\.]+)\\(([A-Za-z0-9\/\.]+|)\\)"
+  matchComponent: new RegExp "([A-Za-z\.]+)\\(([A-Za-z0-9\/\.]+|)\:?([a-z\,]+)?\\)"
   matchComponentGlobal: new RegExp "([A-Za-z\.]+)\\(([A-Za-z0-9\/\.]+|)\\)", "g"
   matchInitial: new RegExp "\'(.*)\'"
   matchConnection: new RegExp "\-\>"
@@ -141,6 +141,9 @@ class Fbp
     @currentNode =
       name: component[1]
       component: component[2]
+    if component[3]
+      @currentNode.metadata =
+        routes: component[3].split ','
 
     @nodes[@currentNode.name] = @currentNode unless @nodes[@currentNode.name]
 
