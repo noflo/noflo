@@ -209,8 +209,14 @@ class Graph extends events.EventEmitter
     json =
       properties:
         name: @name
+      exports: []
       processes: {}
       connections: []
+
+    for exported in @exports
+      json.exports.push
+        private: exported.private
+        public: exported.public
 
     for node in @nodes
       json.processes[node.id] =

@@ -27,3 +27,19 @@ exports["Test JSON export"] = (test) ->
   test.ok json.connections
   test.equals json.connections.length, 1
   test.done()
+
+exports["Test port exports in JSON"] = (test) ->
+  g = new graph.Graph
+  g.addNode 'Foo', 'Bar'
+  g.addNode 'Baz', 'Foo'
+  g.addEdge 'Foo', 'out', 'Baz', 'in'
+  g.addExport 'Foo.IN', 'IN'
+
+  test.equals g.exports.length, 1
+  json = g.toJSON()
+  test.ok json.exports
+  test.equals json.exports.length, 1
+  test.equals json.exports[0].private, 'Foo.IN'
+  test.equals json.exports[0].public, 'IN'
+
+  test.done()
