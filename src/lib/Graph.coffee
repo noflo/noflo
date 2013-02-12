@@ -74,14 +74,13 @@ class Graph extends events.EventEmitter
   # Once the node has been removed, the `removeNode` event will be
   # emitted.
   removeNode: (id) ->
-    node =
-      id: id
+    node = @getNode id
 
     for edge in @edges
       if edge.from.node is node.id
-        @removeEdge edge
+        @removeEdge edge.from.node, edge.from.port
       if edge.to.node is node.id
-        @removeEdge edge
+        @removeEdge edge.to.node, edge.to.port
 
     for initializer in @initializers
       if initializer.to.node is node.id
