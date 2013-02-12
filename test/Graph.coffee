@@ -39,7 +39,7 @@ exports["Test port exports in JSON"] = (test) ->
   json = g.toJSON()
   test.ok json.exports
   test.equals json.exports.length, 1
-  test.equals json.exports[0].private, 'Foo.IN'
-  test.equals json.exports[0].public, 'IN'
+  test.equals json.exports[0].private, 'foo.in'
+  test.equals json.exports[0].public, 'in'
 
   test.done()

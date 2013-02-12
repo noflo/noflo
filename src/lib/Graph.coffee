@@ -37,8 +37,8 @@ class Graph extends events.EventEmitter
   # named ports shown instead of all the free ports of the graph
   addExport: (privatePort, publicPort) ->
     @exports.push
-      private: privatePort
-      public: publicPort
+      private: privatePort.toLowerCase()
+      public: publicPort.toLowerCase()
 
   # ## Adding a node to the graph
   #
