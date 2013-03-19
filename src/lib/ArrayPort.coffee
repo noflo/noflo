@@ -1,7 +1,8 @@
 port = require "./Port"
 
 class ArrayPort extends port.Port
-  constructor: (name) ->
+  constructor: (@type) ->
+    @type = 'all' unless @type
     @sockets = []
 
   attach: (socket) ->

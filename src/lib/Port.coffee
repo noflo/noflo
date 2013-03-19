@@ -1,8 +1,8 @@
 events = require "events"
 
 class Port extends events.EventEmitter
-  constructor: (name) ->
-    @name = name
+  constructor: (@type) ->
+    @type = 'all' unless @type
     @socket = null
     @from = null
     @downstreamIsGettingReady = false

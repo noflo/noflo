@@ -1,6 +1,20 @@
 NoFlo ChangeLog
 ===============
 
+## 0.3.2 (git master)
+
+NoFlo internals:
+
+* Ports now support optional type information, allowing editors to visualize compatible port types
+
+  ``` coffeescript
+  @inPorts =
+    in = new noflo.Port 'array'
+    times = new noflo.Port 'int'
+  @outPorts =
+    out = new noflo.Port 'object'
+  ```
+
 ## 0.3.1 (February 13th 2013)
 
 NoFlo internals:
