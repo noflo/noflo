@@ -9,10 +9,10 @@ NoFlo internals:
 
   ``` coffeescript
   @inPorts =
-    in = new noflo.Port 'array'
-    times = new noflo.Port 'int'
+    in: new noflo.ArrayPort 'object'
+    times: new noflo.Port 'int'
   @outPorts =
-    out = new noflo.Port 'object'
+    out: new noflo.Port 'string'
   ```
 
 ## 0.3.1 (February 13th 2013)
