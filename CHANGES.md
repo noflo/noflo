@@ -15,6 +15,10 @@ NoFlo internals:
     out: new noflo.Port 'string'
   ```
 
+New libraries:
+
+* [noflo-test](https://npmjs.org/package/noflo-test) provides a framework for testing NoFlo components
+
 ## 0.3.1 (February 13th 2013)
 
 NoFlo internals:
