@@ -94,4 +94,51 @@ class ComponentLoader
     delete graph.inPorts.graph
     callback graph
 
+  getPackagePath: (packageId, callback) ->
+    found = null
+    find = (packageData) ->
+      if packageData.name is packageId
+        found = "#{packageData.realPath}/package.json"
+        return
+      _.each packageData.dependencies, find
+    reader @baseDir, (err, data) ->
+      return callback err if err
+      find data
+      return callback null, found
+
+  readPackage: (packageId, callback) ->
+    @getPackagePath packageId, (err, packageFile) ->
+      return callback err if err
+      return callback new Error 'no package found' unless packageFile
+      fs.readFile packageFile, 'utf-8', (err, packageData) ->
+        return callback err if err
+        callback null, JSON.parse packageData
+
+  writePackage: (packageId, data, callback) ->
+    @getPackagePath packageId, (err, packageFile) ->
+      return callback err if err
+      return callback new Error 'no package found' unless packageFile
+      packageData = JSON.stringify data, null, 2
+      fs.writeFile packageFile, packageData, callback
+
+  registerComponent: (packageId, name, path, callback) ->
+    @readPackage packageId, (err, packageData) =>
+      return callback err if err
+      packageData.noflo = {} unless packageData.noflo
+      packageData.noflo.components = {} unless packageData.noflo.components
+      packageData.noflo.components[name] = path
+      @writePackage packageId, packageData, callback
+      @components = null
+      @checked = []
+
+  registerGraph: (packageId, name, path, callback) ->
+    @readPackage packageId, (err, packageData) =>
+      return callback err if err
+      packageData.noflo = {} unless packageData.noflo
+      packageData.noflo.graphs = {} unless packageData.noflo.graphs
+      packageData.noflo.graphs[name] = path
+      @writePackage packageId, packageData, callback
+      @components = null
+      @checked = []
+
 exports.ComponentLoader = ComponentLoader

@@ -15,6 +15,14 @@ NoFlo internals:
     out: new noflo.Port 'string'
   ```
 
+* NoFlo ComponentLoader is now able to register new components and graphs and update package.json files accordingly
+
+  ``` coffeescript
+  loader = new noflo.ComponentLoader __dirname
+  loader.registerComponent 'myproject', 'SayHello', './components/SayHello.json', (err) ->
+    console.error err if err
+  ```
+
 New libraries:
 
 * [noflo-test](https://npmjs.org/package/noflo-test) provides a framework for testing NoFlo components
