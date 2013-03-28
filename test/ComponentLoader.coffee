@@ -21,6 +21,13 @@ exports['Resolve dependency package path'] = (test) ->
     test.equal path, depRoot
     test.done()
 
+exports['Read a raw package file'] = (test) ->
+  loader = new ComponentLoader projectRoot
+  loader.readPackageFile "#{projectRoot}/package.json", (err, data) ->
+    test.ok data
+    test.equals data.name, 'noflo'
+    test.done()
+
 exports['Read root package data'] = (test) ->
   loader = new ComponentLoader projectRoot
   loader.readPackage 'noflo', (err, data) ->
@@ -32,4 +39,11 @@ exports['Read missing package data'] = (test) ->
   loader = new ComponentLoader projectRoot
   loader.readPackage 'foobar', (err, data) ->
     test.ok err
+    test.done()
+
+exports['Resolve path to a core component'] = (test) ->
+  loader = new ComponentLoader projectRoot
+  loader.listComponents (components) ->
+    test.ok components['Split']
+    test.ok components['Merge']
     test.done()

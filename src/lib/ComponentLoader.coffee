@@ -15,55 +15,88 @@ class ComponentLoader
   constructor: (@baseDir) ->
     @components = null
     @checked = []
+    @revalidate = false
 
   getModulePrefix: (name) ->
     return '' unless name
     name.replace 'noflo-', ''
 
-  getModuleComponents: (moduleDef) ->
+  getModuleComponents: (moduleDef, callback) ->
     components = {}
     @checked.push moduleDef.name
 
-    prefix = @getModulePrefix moduleDef.name
+    depCount = _.keys(moduleDef.dependencies).length
+    done = _.after depCount + 1, =>
+      callback components
 
     # Handle sub-modules
     _.each moduleDef.dependencies, (def) =>
-      return unless @checked.indexOf(def.name) is -1
-      depComponents = @getModuleComponents def
-      return if _.isEmpty depComponents
-      _.each depComponents, (cPath, name) ->
-        components[name] = cPath
+      return done() unless @checked.indexOf(def.name) is -1
+      @getModuleComponents def, (depComponents) ->
+        return done() if _.isEmpty depComponents
+        components[name] = cPath for name, cPath of depComponents
+        done()
 
-    # Handle own components
-    return components unless moduleDef.noflo
-    if moduleDef.noflo.components
-      _.each moduleDef.noflo.components, (cPath, name) ->
-        components["#{prefix}/#{name}"] = path.resolve moduleDef.realPath, cPath
-    if moduleDef.noflo.graphs
-      _.each moduleDef.noflo.graphs, (gPath, name) ->
-        components["#{prefix}/#{name}"] = path.resolve moduleDef.realPath, gPath
-    components
+    # No need for further processing for non-NoFlo projects
+    return done() unless moduleDef.noflo
+
+    checkOwn = (def) =>
+      # Handle own components
+      prefix = @getModulePrefix def.name
+
+      if def.noflo.components
+        for name, cPath of def.noflo.components
+          components["#{prefix}/#{name}"] = path.resolve def.realPath, cPath
+      if moduleDef.noflo.graphs
+        for name, gPath of def.noflo.graphs
+          components["#{prefix}/#{name}"] = path.resolve def.realPath, gPath
+      done()
+
+    # Normally we can rely on the module data we get from read-installed, but in
+    # case cache has been cleared, we must re-read the file
+    unless @revalidate
+      return checkOwn moduleDef
+    @readPackageFile "#{moduleDef.realPath}/package.json", (err, data) ->
+      return done() if err
+      checkOwn data
+
+  getCoreComponents: (callback) ->
+    # Read core components
+    # TODO: These components should eventually be migrated to modules too
+    corePath = path.resolve __dirname, '../src/components'
+    if path.extname(__filename) is '.coffee'
+      # Handle the non-compiled version of ComponentLoader for unit tests
+      corePath = path.resolve __dirname, '../components'
+
+    fs.readdir corePath, (err, components) =>
+      coreComponents = {}
+      return callback coreComponents if err
+      for component in components
+        continue if component.substr(0, 1) is '.'
+        [componentName, componentExtension] = component.split '.'
+        continue unless componentExtension is 'coffee'
+        coreComponents[componentName] = "#{corePath}/#{component}"
+      callback coreComponents
 
   listComponents: (callback) ->
     return callback @components unless @components is null
 
-    # Read core components
-    # TODO: These components should eventually be migrated to modules too
-    corePath = path.resolve __dirname, '../src/components'
-    fs.readdir corePath, (err, components) =>
-      coreComponents = {}
-      _.each components, (component) ->
-        return if component.substr(0, 1) is '.'
-        [componentName, componentExtension] = component.split '.'
-        return unless componentExtension is 'coffee'
-        coreComponents[componentName] = "#{corePath}/#{component}"
-      reader @baseDir, (err, data) =>
-        return callback err, data if err
-        @components = _.extend coreComponents, @getModuleComponents data
-        callback @components
+    @components = {}
+    done = _.after 2, =>
+      callback @components
 
-  isGraph: (path) ->
-    path.indexOf('.fbp') isnt -1 or path.indexOf('.json') isnt -1
+    @getCoreComponents (coreComponents) =>
+      @components[name] = cPath for name, cPath of coreComponents
+      done()
+
+    reader @baseDir, (err, data) =>
+      return done() if err
+      @getModuleComponents data, (components) =>
+        @components[name] = cPath for name, cPath of components
+        done()
+
+  isGraph: (cPath) ->
+    cPath.indexOf('.fbp') isnt -1 or cPath.indexOf('.json') isnt -1
 
   load: (name, callback) ->
     unless @components
@@ -107,38 +140,47 @@ class ComponentLoader
       return callback null, found
 
   readPackage: (packageId, callback) ->
-    @getPackagePath packageId, (err, packageFile) ->
+    @getPackagePath packageId, (err, packageFile) =>
       return callback err if err
       return callback new Error 'no package found' unless packageFile
-      fs.readFile packageFile, 'utf-8', (err, packageData) ->
-        return callback err if err
-        callback null, JSON.parse packageData
+      @readPackageFile packageFile, callback
+
+  readPackageFile: (packageFile, callback) ->
+    fs.readFile packageFile, 'utf-8', (err, packageData) ->
+      return callback err if err
+      data = JSON.parse packageData
+      data.realPath = path.dirname packageFile
+      callback null, data
 
   writePackage: (packageId, data, callback) ->
     @getPackagePath packageId, (err, packageFile) ->
       return callback err if err
       return callback new Error 'no package found' unless packageFile
+      delete data.realPath if data.realPath
       packageData = JSON.stringify data, null, 2
       fs.writeFile packageFile, packageData, callback
 
-  registerComponent: (packageId, name, path, callback) ->
+  registerComponent: (packageId, name, cPath, callback) ->
     @readPackage packageId, (err, packageData) =>
       return callback err if err
       packageData.noflo = {} unless packageData.noflo
       packageData.noflo.components = {} unless packageData.noflo.components
-      packageData.noflo.components[name] = path
+      packageData.noflo.components[name] = cPath
+      @clear()
       @writePackage packageId, packageData, callback
-      @components = null
-      @checked = []
 
-  registerGraph: (packageId, name, path, callback) ->
+  registerGraph: (packageId, name, cPath, callback) ->
     @readPackage packageId, (err, packageData) =>
       return callback err if err
       packageData.noflo = {} unless packageData.noflo
       packageData.noflo.graphs = {} unless packageData.noflo.graphs
-      packageData.noflo.graphs[name] = path
+      packageData.noflo.graphs[name] = cPath
+      @clear()
       @writePackage packageId, packageData, callback
-      @components = null
-      @checked = []
+
+  clear: ->
+    @components = null
+    @checked = []
+    @revalidate = true
 
 exports.ComponentLoader = ComponentLoader
