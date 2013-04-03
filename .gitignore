@@ -4,5 +4,6 @@ bin/*.js
 lib/*.js
 server/static/js/*.js
 docs_tmp/
+docs/
 npm-debug.log
 .DS_Store
