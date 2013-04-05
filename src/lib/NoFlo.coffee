@@ -18,7 +18,10 @@ exports.createNetwork = (graph, callback) ->
     network.sendInitials()
 
   toAddNodes = graph.nodes.length
-  return networkReady network if toAddNodes is 0
+  if toAddNodes is 0
+    process.nextTick ->
+      networkReady network
+    return network
 
   # Ensure components are loaded before continuing
   network.loader.listComponents ->
