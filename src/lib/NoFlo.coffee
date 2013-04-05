@@ -60,5 +60,6 @@ exports.AsyncComponent = asynccomponent.AsyncComponent
 exports.Port = port.Port
 exports.ArrayPort = arrayport.ArrayPort
 exports.Graph = graph.Graph
+exports.Network = Network
 exports.graph = graph
 exports.internalSocket = internalSocket
