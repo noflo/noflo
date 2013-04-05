@@ -46,6 +46,16 @@ exports["test group named $data"] = (test) ->
     test.throws (-> ins.beginGroup "$data"), "groups cannot be named '$data'"
     test.done()
 
+exports["test group named $data with attached error port"] = (test) ->
+    [c, ins, out] = setupComponent()
+    err = socket.createSocket()
+    c.outPorts.error.attach err
+
+    err.on 'data', (data) ->
+      test.ok data
+      test.done()
+    ins.beginGroup '$data'
+
 exports["test two groups"] = (test) ->
     [c, ins, out] = setupComponent()
     output = []

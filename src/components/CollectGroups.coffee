@@ -1,21 +1,24 @@
 noflo = require "../../lib/NoFlo"
-assert = require "assert"
 
 class CollectGroups extends noflo.Component
+  description: 'Collect packets into object keyed by its groups'
   constructor: ->
     @data = {}
     @groups = []
     @parents = []
 
     @inPorts =
-      in: new noflo.Port()
+      in: new noflo.Port 'all'
     @outPorts =
-      out: new noflo.Port()
+      out: new noflo.Port 'object'
+      error: new noflo.Port 'object'
 
     @inPorts.in.on "connect", =>
       @data = {}
     @inPorts.in.on "begingroup", (group) =>
-      throw new Error "groups cannot be named '$data'" if group == "$data"
+      if group is '$data'
+        @error 'groups cannot be named "$data"'
+        return
       @parents.push @data
       @groups.push group
       @data = {}
@@ -40,5 +43,12 @@ class CollectGroups extends noflo.Component
 
   setDataToKey: (target, key, value) ->
     target[key].value = value
+
+  error: (msg) ->
+    if @outPorts.error.isAttached()
+      @outPorts.error.send new Error msg
+      @outPorts.error.disconnect()
+      return
+    throw new Error msg
 
 exports.getComponent = -> new CollectGroups
