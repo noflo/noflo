@@ -5,14 +5,12 @@ module.exports = ->
 
     # CoffeeScript compilation
     coffee:
-
       libraries:
         expand: true
         cwd: 'src/lib'
         src: ['**.coffee']
         dest: 'lib'
         ext: '.js'
-
       bin:
         expand: true
         cwd: 'src/bin'
@@ -20,8 +18,27 @@ module.exports = ->
         dest: 'bin'
         ext: '.js'
 
-  # Load the CoffeeScript plugin
+    # Unit tests
+    nodeunit:
+      all: ['test/*.coffee']
+
+    # Coding standards
+    coffeelint:
+      libraries:
+        files:
+          src: ['src/lib/*.coffee', 'src/bin/*.coffee']
+        options:
+          max_line_length:
+            value: 80
+            level: 'warn'
+      components: ['src/components/*.coffee']
+
+  # Load Grunt plugins
   @loadNpmTasks 'grunt-contrib-coffee'
+  @loadNpmTasks 'grunt-contrib-nodeunit'
+  @loadNpmTasks 'grunt-coffeelint'
 
   # Our local tasks
   @registerTask 'build', ['coffee']
+  @registerTask 'lint', ['coffeelint']
+  @registerTask 'test', ['build', 'lint', 'nodeunit']

@@ -31,11 +31,11 @@
     "coffee-script": ">=1.1.0"
   },
   "devDependencies": {
-    "nodeunit": ">=0.6.0",
-    "coffeelint": "*",
     "grunt": "~0.4.1",
     "grunt-contrib-coffee": "~0.6.6",
-    "grunt-cli": "~0.1.7"
+    "grunt-cli": "~0.1.7",
+    "grunt-contrib-nodeunit": "~0.1.2",
+    "grunt-coffeelint": "0.0.6"
   },
   "main": "./lib/NoFlo",
   "bin": {
@@ -47,8 +47,7 @@
     "url": "git://github.com/bergie/noflo.git"
   },
   "scripts": {
-    "pretest": "./node_modules/.bin/coffeelint -f test/coffeelint.json -r src",
-    "test": "./node_modules/.bin/nodeunit test"
+    "test": "./node_modules/.bin/grunt test"
   },
   "docco_husky": {
     "output_dir": "docs",
