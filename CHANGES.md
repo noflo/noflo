@@ -1,6 +1,13 @@
 NoFlo ChangeLog
 ===============
 
+## 0.4.0 (git master)
+
+Development:
+
+* Build process was switched from Cake to [Grunt](http://gruntjs.com/)
+* NoFlo is no longer tested against Node.js 0.6
+
 ## 0.3.2 (April 9th 2013)
 
 NoFlo internals:
