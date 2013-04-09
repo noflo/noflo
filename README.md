@@ -25,9 +25,9 @@ NoFlo is available [via NPM](https://npmjs.org/package/noflo), so you can instal
 
 ### Installing from Git
 
-NoFlo requires a reasonably recent version of [Node.js](http://nodejs.org/), and some [npm](http://npmjs.org/) packages. Ensure you have the `coffee-script` package installed (`coffee` command should be available on command line) and NoFlo checked out from Git. Build NoFlo with:
+NoFlo requires a reasonably recent version of [Node.js](http://nodejs.org/), and some [npm](http://npmjs.org/) packages. Ensure you have the `grunt-cli` package installed (`grunt` command should be available on command line) and NoFlo checked out from Git. Build NoFlo with:
 
-    $ cake build
+    $ grunt build
 
 Then you can install everything needed by a simple:
 

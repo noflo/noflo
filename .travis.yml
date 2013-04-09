@@ -5,7 +5,7 @@ node_js:
   - 0.10
 
 before_script:
-  - ./node_modules/.bin/cake build
+  - ./node_modules/.bin/grunt build
 
 script: npm test
 
