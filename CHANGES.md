@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.4.0 (git master)
+## 0.3.3 (April 9th 2013)
 
 Development:
 
