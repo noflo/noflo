@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.3.2 (git master)
+## 0.3.2 (April 9th 2013)
 
 NoFlo internals:
 
