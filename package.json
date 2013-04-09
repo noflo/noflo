@@ -35,7 +35,10 @@
     "grunt-contrib-coffee": "~0.6.6",
     "grunt-cli": "~0.1.7",
     "grunt-contrib-nodeunit": "~0.1.2",
-    "grunt-coffeelint": "0.0.6"
+    "grunt-coffeelint": "0.0.6",
+    "grunt-bumpup": "~0.2.0",
+    "grunt-tagrelease": "~0.2.0",
+    "grunt-exec": "~0.4.0"
   },
   "main": "./lib/NoFlo",
   "bin": {
