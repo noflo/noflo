@@ -28,7 +28,8 @@ class SliceArray extends noflo.Component
       @outPorts.out.disconnect()
 
   sliceData: (data) ->
-    return @outPorts.error.send "Data #{typeof data} cannot be sliced" unless data.slice
+    unless data.slice
+      return @outPorts.error.send "Data #{typeof data} cannot be sliced"
     sliced = data.slice @begin, @end unless @end is null
     sliced = data.slice @begin if @end is null
     @outPorts.out.send sliced

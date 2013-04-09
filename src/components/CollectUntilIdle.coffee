@@ -1,7 +1,8 @@
 noflo = require '../../lib/NoFlo'
 
 class CollectUntilIdle extends noflo.Component
-  description: 'Collect packets and send them when input stops after a given timeout'
+  description: 'Collect packets and send them when input stops
+after a given timeout'
   constructor: ->
     @milliseconds = 500
     @data = []
