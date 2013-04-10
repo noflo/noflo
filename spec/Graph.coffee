@@ -48,7 +48,7 @@ describe 'Graph instance', ->
       json = g.toJSON()
       chai.expect(typeof json.processes.Foo).to.equal 'object'
       chai.expect(json.processes.Foo.component).to.equal 'Bar'
-      chai.expect(json.processes.Foo.display).to.equal undefined
+      chai.expect(json.processes.Foo.display).to.not.exist
     it 'removing should emit an event', (done) ->
       g.once 'removeNode', (node) ->
         chai.expect(node.id).to.equal 'Foo'
@@ -57,6 +57,6 @@ describe 'Graph instance', ->
       g.removeNode 'Foo'
     it 'should not be available after removal', ->
       node = g.getNode 'Foo'
-      chai.expect(node).to.equal null
+      chai.expect(node).to.not.exist
       chai.expect(g.nodes.length).to.equal 0
       chai.expect(g.nodes.indexOf(n)).to.equal -1
