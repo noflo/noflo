@@ -41,6 +41,15 @@ describe 'Named graph instance', ->
       node = g.getNode 'Foo'
       chai.expect(node.id).to.equal 'Foo'
       chai.expect(node).to.equal n
+    it 'should have empty metadata', ->
+      node = g.getNode 'Foo'
+      chai.expect(JSON.stringify(node.metadata)).to.equal '{}'
+      chai.expect(node.display).to.equal undefined
+    it 'should be available in the JSON export', ->
+      json = g.toJSON()
+      chai.expect(typeof json.processes.Foo).to.equal 'object'
+      chai.expect(json.processes.Foo.component).to.equal 'Bar'
+      chai.expect(json.processes.Foo.display).to.equal undefined
     it 'removing should emit an event', (done) ->
       g.once 'removeNode', (node) ->
         chai.expect(node.id).to.equal 'Foo'
