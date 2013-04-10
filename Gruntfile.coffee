@@ -22,6 +22,10 @@ module.exports = ->
     nodeunit:
       all: ['test/*.coffee']
 
+    # BDD tests on Node.js
+    cafemocha:
+      src: ['spec/*.coffee']
+
     # Coding standards
     coffeelint:
       libraries:
@@ -44,6 +48,7 @@ module.exports = ->
   # Load Grunt plugins
   @loadNpmTasks 'grunt-contrib-coffee'
   @loadNpmTasks 'grunt-contrib-nodeunit'
+  @loadNpmTasks 'grunt-cafe-mocha'
   @loadNpmTasks 'grunt-coffeelint'
   @loadNpmTasks 'grunt-bumpup'
   @loadNpmTasks 'grunt-tagrelease'
@@ -52,7 +57,7 @@ module.exports = ->
   # Our local tasks
   @registerTask 'build', ['coffee']
   @registerTask 'lint', ['coffeelint']
-  @registerTask 'test', ['build', 'lint', 'nodeunit']
+  @registerTask 'test', ['build', 'lint', 'nodeunit', 'cafemocha']
   @registerTask 'default', ['test']
 
   # Task for releasing new NoFlo versions
