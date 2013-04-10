@@ -5,12 +5,11 @@ else
   graph = require 'noflo/lib/Graph.js'
 
 describe 'Unnamed graph instance', ->
-  g = null
   it 'should have an empty name', ->
     g = new graph.Graph
     chai.expect(g.name).to.equal ''
 
-describe 'Named graph instance', ->
+describe 'Graph instance', ->
   g = null
   it 'should get a name from constructor', ->
     g = new graph.Graph 'Foo bar'

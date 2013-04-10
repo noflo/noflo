@@ -1,7 +1,10 @@
 #     NoFlo - Flow-Based Programming for Node.js
 #     (c) 2011 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
-events = require "events"
+if typeof process is 'object' and process.title is 'node'
+  {EventEmitter} = require 'events'
+else
+  EventEmitter = require 'emitter'
 
 # # Internal Sockets
 #
@@ -10,7 +13,7 @@ events = require "events"
 # packets sent from processes' outports, and emitting corresponding
 # events so that the packets can be caught to the inport of the
 # connected process.
-class InternalSocket extends events.EventEmitter
+class InternalSocket extends EventEmitter
   constructor: ->
     @connected = false
     @groups = []

@@ -1,6 +1,12 @@
-events = require "events"
+#     NoFlo - Flow-Based Programming for Node.js
+#     (c) 2011 Henri Bergius, Nemein
+#     NoFlo may be freely distributed under the MIT license
+if typeof process is 'object' and process.title is 'node'
+  {EventEmitter} = require 'events'
+else
+  EventEmitter = require 'emitter'
 
-class Port extends events.EventEmitter
+class Port extends EventEmitter
   constructor: (@type) ->
     @type = 'all' unless @type
     @socket = null
@@ -40,7 +46,7 @@ class Port extends events.EventEmitter
     @emit "attach", socket
 
     @from = socket.from
-    socket.setMaxListeners 0
+    socket.setMaxListeners 0 if socket.setMaxListeners
     socket.on "connect", =>
       @emit "connect", socket, localId
     socket.on "begingroup", (group) =>
