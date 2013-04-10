@@ -28,7 +28,7 @@ class Graph extends EventEmitter
   # and giving it a name:
   #
   #     myGraph = new Graph 'My very cool graph'
-  constructor: (@name) ->
+  constructor: (@name = '') ->
     @nodes = []
     @edges = []
     @initializers = []
@@ -102,6 +102,7 @@ class Graph extends EventEmitter
   getNode: (id) ->
     for node in @nodes
       return node if node.id is id
+    return null
 
   # ## Connecting nodes
   #
