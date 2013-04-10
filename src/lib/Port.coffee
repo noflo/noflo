@@ -110,7 +110,7 @@ class Port extends EventEmitter
 
       return
 
-    return unless @socket
+    throw new Error "No connection available" unless @socket
     @socket.disconnect()
 
   detach: (socket) ->
