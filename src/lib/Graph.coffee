@@ -1,9 +1,12 @@
 #     NoFlo - Flow-Based Programming for Node.js
 #     (c) 2011 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
-fs = require 'fs'
-events = require 'events'
-fbp = require './Fbp'
+if typeof process is 'object' and process.title is 'node'
+  fs = require 'fs'
+  {EventEmitter} = require 'events'
+  fbp = require './Fbp'
+else
+  EventEmitter = require 'emitter'
 
 # # NoFlo network graph
 #
@@ -12,7 +15,7 @@ fbp = require './Fbp'
 #
 # These graphs can be used for visualization and sketching, but
 # also are the way to start a NoFlo network.
-class Graph extends events.EventEmitter
+class Graph extends EventEmitter
   name: ''
   nodes: []
   edges: []

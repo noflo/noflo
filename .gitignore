@@ -1,7 +1,10 @@
 .node_shell
 node_modules
+/components/
+/browser/
 bin/*.js
 lib/*.js
+spec/*.js
 server/static/js/*.js
 docs_tmp/
 docs/

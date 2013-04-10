@@ -17,6 +17,22 @@ module.exports = ->
         src: ['**.coffee']
         dest: 'bin'
         ext: '.js'
+      spec:
+        options:
+          bare: true
+        expand: true
+        cwd: 'spec'
+        src: ['**.coffee']
+        dest: 'spec'
+        ext: '.js'
+
+    # Browser version building
+    component:
+      noflo:
+        output: './browser/'
+        config: './component.json'
+        scripts: true
+        styles: false
 
     # Unit tests
     nodeunit:
@@ -25,6 +41,10 @@ module.exports = ->
     # BDD tests on Node.js
     cafemocha:
       src: ['spec/*.coffee']
+
+    # BDD tests on browser
+    mocha_phantomjs:
+      all: ['spec/runner.html']
 
     # Coding standards
     coffeelint:
@@ -37,6 +57,7 @@ module.exports = ->
             level: 'warn'
       components: ['src/components/*.coffee']
 
+    # Release automation
     bumpup: 'package.json'
     tagrelease:
       file: 'package.json'
@@ -45,19 +66,29 @@ module.exports = ->
       npm_publish:
         cmd: 'npm publish'
 
-  # Load Grunt plugins
+  # Grunt plugins used for building
   @loadNpmTasks 'grunt-contrib-coffee'
+  @loadNpmTasks 'grunt-component-build'
   @loadNpmTasks 'grunt-contrib-nodeunit'
+
+  # Grunt plugins used for testing
   @loadNpmTasks 'grunt-cafe-mocha'
+  @loadNpmTasks 'grunt-mocha-phantomjs'
   @loadNpmTasks 'grunt-coffeelint'
+
+  # Grunt plugins used for release automation
   @loadNpmTasks 'grunt-bumpup'
   @loadNpmTasks 'grunt-tagrelease'
   @loadNpmTasks 'grunt-exec'
 
   # Our local tasks
-  @registerTask 'build', ['coffee']
+  @registerTask 'build_node', ['coffee']
+  @registerTask 'build_browser', ['coffee', 'component']
+  @registerTask 'build', ['build_node', 'build_browser']
   @registerTask 'lint', ['coffeelint']
-  @registerTask 'test', ['build', 'lint', 'nodeunit', 'cafemocha']
+  @registerTask 'test_node', ['build', 'lint', 'nodeunit', 'cafemocha']
+  @registerTask 'test_browser', ['build', 'lint', 'mocha_phantomjs']
+  @registerTask 'test', ['test_node', 'test_browser']
   @registerTask 'default', ['test']
 
   # Task for releasing new NoFlo versions

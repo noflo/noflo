@@ -1,0 +1,19 @@
+{
+  "name": "noflo",
+  "description": "Flow-Based Programming environment for JavaScript",
+  "keywords": [
+    "fbp",
+    "workflow",
+    "flow"
+  ],
+  "repo": "bergie/noflo",
+  "version": "0.3.3",
+  "dependencies": {
+    "component/emitter": "*"
+  },
+  "development": {},
+  "license": "MIT",
+  "scripts": [
+    "lib/Graph.js"
+  ]
+}
