@@ -84,11 +84,11 @@ module.exports = ->
   # Our local tasks
   @registerTask 'build_node', ['coffee']
   @registerTask 'build_browser', ['coffee', 'component']
-  @registerTask 'build', ['build_node', 'build_browser']
+  @registerTask 'build', ['coffee', 'component']
   @registerTask 'lint', ['coffeelint']
   @registerTask 'test_node', ['build', 'lint', 'nodeunit', 'cafemocha']
   @registerTask 'test_browser', ['build', 'lint', 'mocha_phantomjs']
-  @registerTask 'test', ['test_node', 'test_browser']
+  @registerTask 'test', ['build', 'lint', 'nodeunit', 'cafemocha', 'mocha_phantomjs']
   @registerTask 'default', ['test']
 
   # Task for releasing new NoFlo versions
