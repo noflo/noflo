@@ -1,6 +1,13 @@
 NoFlo ChangeLog
 ===============
 
+## 0.4.0 (git master)
+
+Browser support:
+
+* The NoFlo engine has been made available client-side via the [Component](https://github.com/component/component) system
+* New BDD tests written with [Mocha](http://visionmedia.github.io/mocha/) that can be run on both browser and server
+
 ## 0.3.3 (April 9th 2013)
 
 Development:

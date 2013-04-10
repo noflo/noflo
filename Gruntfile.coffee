@@ -58,7 +58,7 @@ module.exports = ->
       components: ['src/components/*.coffee']
 
     # Release automation
-    bumpup: 'package.json'
+    bumpup: ['package.json', 'component.json']
     tagrelease:
       file: 'package.json'
       prefix: ''
