@@ -34,6 +34,15 @@ module.exports = ->
         scripts: true
         styles: false
 
+    # JavaScript minification for the browser
+    uglify:
+      options:
+        banner: '/* NoFlo <%= pkg.version %> - Flow-Based Programming environment. See http://noflojs.org for more information. */'
+        report: 'min'
+      noflo:
+        files:
+          './browser/noflo.min.js': ['./browser/noflo.js']
+
     # Unit tests
     nodeunit:
       all: ['test/*.coffee']
@@ -69,9 +78,10 @@ module.exports = ->
   # Grunt plugins used for building
   @loadNpmTasks 'grunt-contrib-coffee'
   @loadNpmTasks 'grunt-component-build'
-  @loadNpmTasks 'grunt-contrib-nodeunit'
+  @loadNpmTasks 'grunt-contrib-uglify'
 
   # Grunt plugins used for testing
+  @loadNpmTasks 'grunt-contrib-nodeunit'
   @loadNpmTasks 'grunt-cafe-mocha'
   @loadNpmTasks 'grunt-mocha-phantomjs'
   @loadNpmTasks 'grunt-coffeelint'
@@ -83,8 +93,8 @@ module.exports = ->
 
   # Our local tasks
   @registerTask 'build_node', ['coffee']
-  @registerTask 'build_browser', ['coffee', 'component']
-  @registerTask 'build', ['coffee', 'component']
+  @registerTask 'build_browser', ['coffee', 'component', 'uglify']
+  @registerTask 'build', ['coffee', 'component', 'uglify']
   @registerTask 'lint', ['coffeelint']
   @registerTask 'test_node', ['build', 'lint', 'nodeunit', 'cafemocha']
   @registerTask 'test_browser', ['build', 'lint', 'mocha_phantomjs']

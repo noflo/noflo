@@ -43,7 +43,8 @@
     "chai": "~1.5.0",
     "mocha": "~1.9.0",
     "grunt-mocha-phantomjs": "~0.2.0",
-    "grunt-component-build": "~0.2.1"
+    "grunt-component-build": "~0.2.1",
+    "grunt-contrib-uglify": "~0.2.0"
   },
   "main": "./lib/NoFlo",
   "bin": {
