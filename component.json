@@ -17,6 +17,7 @@
     "lib/Graph.js",
     "lib/InternalSocket.js",
     "lib/Port.js",
-    "lib/ArrayPort.js"
+    "lib/ArrayPort.js",
+    "lib/Component.js"
   ]
 }
