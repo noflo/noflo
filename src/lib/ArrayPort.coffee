@@ -11,6 +11,8 @@ class ArrayPort extends port.Port
 
   connect: (socketId = null) ->
     if socketId is null
+      unless @sockets.length
+        throw new Error "No sockets available"
       @sockets.forEach (socket) ->
         socket.connect()
       return
@@ -22,6 +24,8 @@ class ArrayPort extends port.Port
 
   beginGroup: (group, socketId = null) ->
     if socketId is null
+      unless @sockets.length
+        throw new Error "No sockets available"
       @sockets.forEach (socket, index) =>
         @beginGroup group, index
       return
@@ -37,6 +41,8 @@ class ArrayPort extends port.Port
 
   send: (data, socketId = null) ->
     if socketId is null
+      unless @sockets.length
+        throw new Error "No sockets available"
       @sockets.forEach (socket, index) =>
         @send data, index
       return
@@ -52,6 +58,8 @@ class ArrayPort extends port.Port
 
   endGroup: (socketId = null) ->
     if socketId is null
+      unless @sockets.length
+        throw new Error "No sockets available"
       @sockets.forEach (socket, index) =>
         @endGroup index
       return
@@ -63,6 +71,8 @@ class ArrayPort extends port.Port
 
   disconnect: (socketId = null) ->
     if socketId is null
+      unless @sockets.length
+        throw new Error "No sockets available"
       for socket in @sockets
         socket.disconnect()
       return
@@ -73,17 +83,15 @@ class ArrayPort extends port.Port
   detach: (socket) ->
     if @sockets.indexOf(socket) is -1
       return
-
-    @emit "detach", @socket
-
     @sockets.splice @sockets.indexOf(socket), 1
+    @emit "detach", socket
 
   isConnected: (socketId = null) ->
     if socketId is null
-      connected = true
+      connected = false
       @sockets.forEach (socket) =>
-        unless socket.isConnected()
-          connected = false
+        if socket.isConnected()
+          connected = true
       return connected
 
     unless @sockets[socketId]

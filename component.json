@@ -16,6 +16,7 @@
   "scripts": [
     "lib/Graph.js",
     "lib/InternalSocket.js",
-    "lib/Port.js"
+    "lib/Port.js",
+    "lib/ArrayPort.js"
   ]
 }
