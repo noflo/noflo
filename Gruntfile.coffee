@@ -43,6 +43,11 @@ module.exports = ->
         files:
           './browser/noflo.min.js': ['./browser/noflo.js']
 
+    # Automated recompilation and testing when developing
+    watch:
+      files: ['spec/*.coffee', 'src/**/*.coffee']
+      tasks: ['test']
+
     # Unit tests
     nodeunit:
       all: ['test/*.coffee']
@@ -81,6 +86,7 @@ module.exports = ->
   @loadNpmTasks 'grunt-contrib-uglify'
 
   # Grunt plugins used for testing
+  @loadNpmTasks 'grunt-contrib-watch'
   @loadNpmTasks 'grunt-contrib-nodeunit'
   @loadNpmTasks 'grunt-cafe-mocha'
   @loadNpmTasks 'grunt-mocha-phantomjs'
