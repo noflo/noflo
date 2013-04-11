@@ -1,3 +1,8 @@
+#     NoFlo - Flow-Based Programming for Node.js
+#     (c) 2013 Henri Bergius, Nemein
+#     NoFlo may be freely distributed under the MIT license
+#
+# This is the Node.js version of the ComponentLoader. A different implementation is needed for browser.
 reader = require 'read-installed'
 {_} = require 'underscore'
 path = require 'path'

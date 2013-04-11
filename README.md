@@ -340,13 +340,21 @@ The `.fbp` file suffix is used for files containing FBP language. This means you
 
 NoFlo development happens on GitHub. Just fork the [main repository](https://github.com/bergie/noflo), make modifications and send a pull request.
 
-To run the unit tests you need [nodeunit](https://github.com/caolan/nodeunit). Run the tests with:
+We have an extensive suite of tests available for NoFlo. Run them with:
 
-    $ nodeunit test
+    $ grunt test
 
 or:
 
     $ npm test
+
+### Running tests automatically
+
+The build system used for NoFlo is also able to watch for changes in the filesystem and run the tests automatically when something changes. To start the watcher, run:
+
+    $ grunt watch
+
+To quit thew watcher, just end the process with Ctrl-C.
 
 ## Discussion
 
