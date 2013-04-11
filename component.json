@@ -18,6 +18,7 @@
     "lib/InternalSocket.js",
     "lib/Port.js",
     "lib/ArrayPort.js",
-    "lib/Component.js"
+    "lib/Component.js",
+    "lib/AsyncComponent.js"
   ]
 }
