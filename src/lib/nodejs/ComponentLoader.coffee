@@ -2,11 +2,13 @@
 #     (c) 2013 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
 #
-# This is the Node.js version of the ComponentLoader. A different implementation is needed for browser.
+# This is the Node.js version of the ComponentLoader.
+
 reader = require 'read-installed'
 {_} = require 'underscore'
 path = require 'path'
 fs = require 'fs'
+loader = require '../ComponentLoader'
 internalSocket = require '../InternalSocket'
 
 # We allow components to be un-compiled CoffeeScript
@@ -16,16 +18,7 @@ require 'coffee-script'
 log = require 'npmlog'
 log.pause()
 
-class ComponentLoader
-  constructor: (@baseDir) ->
-    @components = null
-    @checked = []
-    @revalidate = false
-
-  getModulePrefix: (name) ->
-    return '' unless name
-    name.replace 'noflo-', ''
-
+class ComponentLoader extends loader.ComponentLoader
   getModuleComponents: (moduleDef, callback) ->
     components = {}
     @checked.push moduleDef.name
@@ -103,24 +96,6 @@ class ComponentLoader
   isGraph: (cPath) ->
     cPath.indexOf('.fbp') isnt -1 or cPath.indexOf('.json') isnt -1
 
-  load: (name, callback) ->
-    unless @components
-      @listComponents (components) =>
-        @load name, callback
-      return
-    
-    unless @components[name]
-      throw new Error "Component #{name} not available"
-      return
-
-    if @isGraph @components[name]
-      process.nextTick =>
-        @loadGraph name, callback
-      return
-
-    implementation = require @components[name]
-    callback implementation.getComponent()
-
   loadGraph: (name, callback) ->
     graphImplementation = require @components['Graph']
     graphSocket = internalSocket.createSocket()
@@ -165,7 +140,7 @@ class ComponentLoader
       packageData = JSON.stringify data, null, 2
       fs.writeFile packageFile, packageData, callback
 
-  registerComponent: (packageId, name, cPath, callback) ->
+  registerComponent: (packageId, name, cPath, callback = ->) ->
     @readPackage packageId, (err, packageData) =>
       return callback err if err
       packageData.noflo = {} unless packageData.noflo
@@ -174,7 +149,7 @@ class ComponentLoader
       @clear()
       @writePackage packageId, packageData, callback
 
-  registerGraph: (packageId, name, cPath, callback) ->
+  registerGraph: (packageId, name, cPath, callback = ->) ->
     @readPackage packageId, (err, packageData) =>
       return callback err if err
       packageData.noflo = {} unless packageData.noflo
@@ -182,10 +157,5 @@ class ComponentLoader
       packageData.noflo.graphs[name] = cPath
       @clear()
       @writePackage packageId, packageData, callback
-
-  clear: ->
-    @components = null
-    @checked = []
-    @revalidate = true
 
 exports.ComponentLoader = ComponentLoader

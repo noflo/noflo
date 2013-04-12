@@ -2,9 +2,14 @@
 #     (c) 2011 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
 internalSocket = require "./InternalSocket"
-componentLoader = require "./nodejs/ComponentLoader"
 graph = require "./Graph"
-events = require "events"
+
+if typeof process is 'object' and process.title is 'node'
+  componentLoader = require "./nodejs/ComponentLoader"
+  {EventEmitter} = require 'events'
+else
+  componentLoader = require './ComponentLoader'
+  EventEmitter = require 'emitter'
 
 # # The NoFlo network coordinator
 #
@@ -15,7 +20,7 @@ events = require "events"
 # instantiate all the necessary processes from the designated
 # components, attach sockets between them, and handle the sending
 # of Initial Information Packets.
-class Network extends events.EventEmitter
+class Network extends EventEmitter
   processes: {}
   connections: []
   initials: []

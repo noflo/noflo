@@ -1,4 +1,7 @@
-noflo = require "../../lib/NoFlo"
+if typeof process is 'object' and process.title is 'node'
+  noflo = require "../../lib/NoFlo"
+else
+  noflo = require '/noflo'
 
 class Split extends noflo.Component
   description: "This component receives data on a single input port and sends
@@ -6,9 +9,9 @@ the same data out to all connected output ports"
 
   constructor: ->
     @inPorts =
-      in: new noflo.Port()
+      in: new noflo.Port 'all'
     @outPorts =
-      out: new noflo.ArrayPort()
+      out: new noflo.ArrayPort 'all'
 
     @inPorts.in.on "connect", =>
       @outPorts.out.connect()

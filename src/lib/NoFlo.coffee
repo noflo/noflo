@@ -3,12 +3,16 @@
 #     NoFlo may be freely distributed under the MIT license
 internalSocket = require "./InternalSocket"
 component = require "./Component"
-componentLoader = require "./nodejs/ComponentLoader"
 asynccomponent = require "./AsyncComponent"
 port = require "./Port"
 arrayport = require "./ArrayPort"
 graph = require "./Graph"
 {Network} = require "./Network"
+
+if typeof process is 'object' and process.title is 'node'
+  componentLoader = require "./nodejs/ComponentLoader"
+else
+  componentLoader = require './ComponentLoader'
 
 exports.createNetwork = (graph, callback) ->
   network = new Network graph

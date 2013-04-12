@@ -13,12 +13,25 @@
   },
   "development": {},
   "license": "MIT",
+  "main": "lib/NoFlo.js",
   "scripts": [
+    "components.js",
     "lib/Graph.js",
     "lib/InternalSocket.js",
     "lib/Port.js",
     "lib/ArrayPort.js",
     "lib/Component.js",
-    "lib/AsyncComponent.js"
-  ]
+    "lib/AsyncComponent.js",
+    "lib/ComponentLoader.js",
+    "lib/NoFlo.js",
+    "lib/Network.js",
+    "components/Split.js",
+    "components/Merge.js"
+  ],
+  "noflo": {
+    "components": {
+      "Split": "components/Split.js",
+      "Merge": "components/Merge.js"
+    }
+  }
 }
