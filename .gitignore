@@ -3,7 +3,7 @@ node_modules
 /components/
 /browser/
 bin/*.js
-lib/*.js
+/lib/
 spec/*.js
 server/static/js/*.js
 docs_tmp/

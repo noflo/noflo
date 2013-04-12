@@ -3,7 +3,7 @@
 #     NoFlo may be freely distributed under the MIT license
 internalSocket = require "./InternalSocket"
 component = require "./Component"
-componentLoader = require "./ComponentLoader"
+componentLoader = require "./nodejs/ComponentLoader"
 asynccomponent = require "./AsyncComponent"
 port = require "./Port"
 arrayport = require "./ArrayPort"

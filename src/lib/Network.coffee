@@ -2,7 +2,7 @@
 #     (c) 2011 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
 internalSocket = require "./InternalSocket"
-componentLoader = require "./ComponentLoader"
+componentLoader = require "./nodejs/ComponentLoader"
 graph = require "./Graph"
 events = require "events"
 

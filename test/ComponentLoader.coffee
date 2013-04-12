@@ -1,4 +1,4 @@
-{ComponentLoader} = require '../src/lib/ComponentLoader'
+{ComponentLoader} = require '../src/lib/nodejs/ComponentLoader'
 path = require 'path'
 projectRoot = path.resolve __dirname, '../'
 

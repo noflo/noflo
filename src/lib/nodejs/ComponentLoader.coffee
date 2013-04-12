@@ -7,7 +7,7 @@ reader = require 'read-installed'
 {_} = require 'underscore'
 path = require 'path'
 fs = require 'fs'
-internalSocket = require './InternalSocket'
+internalSocket = require '../InternalSocket'
 
 # We allow components to be un-compiled CoffeeScript
 require 'coffee-script'
@@ -68,10 +68,10 @@ class ComponentLoader
   getCoreComponents: (callback) ->
     # Read core components
     # TODO: These components should eventually be migrated to modules too
-    corePath = path.resolve __dirname, '../src/components'
+    corePath = path.resolve __dirname, '../../src/components'
     if path.extname(__filename) is '.coffee'
       # Handle the non-compiled version of ComponentLoader for unit tests
-      corePath = path.resolve __dirname, '../components'
+      corePath = path.resolve __dirname, '../../components'
 
     fs.readdir corePath, (err, components) =>
       coreComponents = {}
