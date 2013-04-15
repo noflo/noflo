@@ -1,18 +1,16 @@
 if typeof process is 'object' and process.title is 'node'
   chai = require 'chai' unless chai
-  network = require '../src/lib/Network.coffee'
-  graph = require '../src/lib/Graph.coffee'
+  noflo = require '../src/lib/NoFlo.coffee'
   path = require 'path'
   root = path.resolve __dirname, '../'
 else
-  network = require 'noflo/lib/Network.js'
-  graph = require 'noflo/lib/Graph.js'
+  noflo = require 'noflo/lib/NoFlo.js'
   root = '/noflo/'
 
 describe 'Network with an empty graph', ->
-  g = new graph.Graph
+  g = new noflo.Graph
   g.baseDir = root
-  n = new network.Network g
+  n = new noflo.Network g
 
   it 'should initially have no processes', ->
     chai.expect(n.processes).to.be.empty
@@ -47,3 +45,37 @@ describe 'Network with an empty graph', ->
           done()
         , 10
       g.removeNode 'Split'
+
+describe 'Network with a simple graph', ->
+  g = null
+  n = null
+  before (done) ->
+    g = new noflo.Graph
+    g.baseDir = root
+    g.addNode 'Merge', 'Merge'
+    g.addNode 'Callback', 'Callback'
+    g.addEdge 'Merge', 'out', 'Callback', 'in'
+    noflo.createNetwork g, (nw) ->
+      n = nw
+      done()
+
+  it 'should contain two processes', ->
+    chai.expect(n.processes).to.not.be.empty
+    chai.expect(n.processes.Merge).to.exist
+    chai.expect(n.processes.Merge).to.be.an 'Object'
+    chai.expect(n.processes.Callback).to.exist
+    chai.expect(n.processes.Callback).to.be.an 'Object'
+
+  it 'should contain one connection', ->
+    chai.expect(n.connections).to.not.be.empty
+    chai.expect(n.connections.length).to.equal 1
+
+  it 'should call callback when receiving data', (done) ->
+    g.addInitial (data) ->
+      chai.expect(data).to.equal 'Foo'
+      done()
+    , 'Callback', 'callback'
+    g.addInitial 'Foo', 'Merge', 'in'
+
+    chai.expect(n.initials).not.to.be.empty
+    n.sendInitials()

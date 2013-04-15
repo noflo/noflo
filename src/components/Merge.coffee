@@ -1,4 +1,7 @@
-noflo = require "../../lib/NoFlo"
+if typeof process is 'object' and process.title is 'node'
+  noflo = require "../../lib/NoFlo"
+else
+  noflo = require '/noflo'
 
 class Merge extends noflo.Component
   description: "This component receives data on multiple input ports
