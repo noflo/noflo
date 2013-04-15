@@ -9,7 +9,8 @@
   "repo": "bergie/noflo",
   "version": "0.3.3",
   "dependencies": {
-    "component/emitter": "*"
+    "component/emitter": "*",
+    "component/underscore": "*"
   },
   "development": {},
   "license": "MIT",
@@ -25,11 +26,13 @@
     "lib/ComponentLoader.js",
     "lib/NoFlo.js",
     "lib/Network.js",
+    "components/Callback.js",
     "components/Split.js",
     "components/Merge.js"
   ],
   "noflo": {
     "components": {
+      "Callback": "components/Callback.js",
       "Split": "components/Split.js",
       "Merge": "components/Merge.js"
     }

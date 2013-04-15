@@ -2,7 +2,10 @@
 # The Callback component is typically used to connect NoFlo with external
 # Node.js code.
 
-noflo = require '../../lib/NoFlo'
+if typeof process is 'object' and process.title is 'node'
+  noflo = require "../../lib/NoFlo"
+else
+  noflo = require '/noflo'
 {_} = require 'underscore'
 
 class Callback extends noflo.Component
