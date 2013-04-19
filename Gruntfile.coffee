@@ -70,6 +70,8 @@ module.exports = ->
 
     # BDD tests on browser
     mocha_phantomjs:
+      options:
+        output: 'spec/result.xml'
       all: ['spec/runner.html']
 
     # Coding standards
