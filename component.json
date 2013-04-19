@@ -28,6 +28,7 @@
     "lib/Network.js",
     "components/GetElement.js",
     "components/Callback.js",
+    "components/Kick.js",
     "components/Split.js",
     "components/Merge.js"
   ],
@@ -35,6 +36,7 @@
     "components": {
       "GetElement": "components/GetElement.js",
       "Callback": "components/Callback.js",
+      "Kick": "components/Kick.js",
       "Split": "components/Split.js",
       "Merge": "components/Merge.js"
     }

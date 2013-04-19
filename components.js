@@ -6,4 +6,5 @@ exports.register = function (loader) {
   loader.registerComponent('', 'Merge', '/noflo/components/Merge.js');
   loader.registerComponent('', 'Callback', '/noflo/components/Callback.js');
   loader.registerComponent('', 'GetElement', '/noflo/components/GetElement.js');
+  loader.registerComponent('', 'Kick', '/noflo/components/Kick.js');
 };
