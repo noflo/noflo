@@ -26,12 +26,14 @@
     "lib/ComponentLoader.js",
     "lib/NoFlo.js",
     "lib/Network.js",
+    "components/GetElement.js",
     "components/Callback.js",
     "components/Split.js",
     "components/Merge.js"
   ],
   "noflo": {
     "components": {
+      "GetElement": "components/GetElement.js",
       "Callback": "components/Callback.js",
       "Split": "components/Split.js",
       "Merge": "components/Merge.js"
