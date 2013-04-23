@@ -98,7 +98,9 @@ class ArrayPort extends port.Port
       return false
     @sockets[socketId].isConnected()
 
-  isAttached: ->
+  isAttached: (socketId) ->
+    return false unless socketId
+    return true if @sockets[socketId]
     false
 
 exports.ArrayPort = ArrayPort
