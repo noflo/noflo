@@ -7,4 +7,5 @@ exports.register = function (loader) {
   loader.registerComponent('', 'Callback', '/noflo/components/Callback.js');
   loader.registerComponent('', 'GetElement', '/noflo/components/GetElement.js');
   loader.registerComponent('', 'Kick', '/noflo/components/Kick.js');
+  loader.registerComponent('', 'Gate', '/noflo/components/Gate.js');
 };

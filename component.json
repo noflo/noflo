@@ -29,6 +29,7 @@
     "components/GetElement.js",
     "components/Callback.js",
     "components/Kick.js",
+    "components/Gate.js",
     "components/Split.js",
     "components/Merge.js"
   ],
@@ -37,6 +38,7 @@
       "GetElement": "components/GetElement.js",
       "Callback": "components/Callback.js",
       "Kick": "components/Kick.js",
+      "Gate": "components/Gate.js",
       "Split": "components/Split.js",
       "Merge": "components/Merge.js"
     }
