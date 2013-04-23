@@ -14,6 +14,10 @@
     <div id="mocha"></div>
     <div id="fixtures">
       <div class="getelement">Foo</div>
+      <div class="listentouch">
+        <div class="target">Target</div>
+        <div class="other">Other</div>
+      </div>
     </div>
     <script src="../browser/noflo.js"></script>
     <script src="http://chaijs.com/chai.js"></script>
@@ -29,6 +33,7 @@
     <script src="./Kick.js"></script>
     <script src="./Gate.js"></script>
     <script src="./GetElement.js"></script>
+    <script src="./ListenTouch.js"></script>
     <script>
       if (window.mochaPhantomJS) {
         mochaPhantomJS.run();

@@ -27,6 +27,7 @@
     "lib/NoFlo.js",
     "lib/Network.js",
     "components/GetElement.js",
+    "components/ListenTouch.js",
     "components/Callback.js",
     "components/Kick.js",
     "components/Gate.js",
@@ -36,6 +37,7 @@
   "noflo": {
     "components": {
       "GetElement": "components/GetElement.js",
+      "ListenTouch": "components/ListenTouch.js",
       "Callback": "components/Callback.js",
       "Kick": "components/Kick.js",
       "Gate": "components/Gate.js",

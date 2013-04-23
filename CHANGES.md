@@ -12,6 +12,11 @@ New core components:
 
 * _Gate_ forwards packets when the OPEN port has received data, and stops when CLOSE port has received data
 
+New browser-only components:
+
+* _GetElement_ transmits a DOM element matching a CSS query
+* _ListenTouch_ transmits touch events grouped by fingers connected to screen
+
 ## 0.3.3 (April 9th 2013)
 
 Development:
