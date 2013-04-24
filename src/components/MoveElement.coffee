@@ -23,7 +23,6 @@ class MoveElement extends noflo.Component
       @setPosition 'zIndex', z
 
   setPosition: (attr, value) ->
-    console.log attr, value, @element.style
     @element.style.position = 'absolute'
     @element.style[attr] = value
 
