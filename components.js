@@ -4,4 +4,11 @@
 exports.register = function (loader) {
   loader.registerComponent('', 'Split', '/noflo/components/Split.js');
   loader.registerComponent('', 'Merge', '/noflo/components/Merge.js');
+  loader.registerComponent('', 'Callback', '/noflo/components/Callback.js');
+  loader.registerComponent('', 'GetElement', '/noflo/components/GetElement.js');
+  loader.registerComponent('', 'MoveElement', '/noflo/components/MoveElement.js');
+  loader.registerComponent('', 'ListenTouch', '/noflo/components/ListenTouch.js');
+  loader.registerComponent('', 'Kick', '/noflo/components/Kick.js');
+  loader.registerComponent('', 'Gate', '/noflo/components/Gate.js');
+  loader.registerComponent('', 'Output', '/noflo/components/Output.js');
 };

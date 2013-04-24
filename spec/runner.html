@@ -4,9 +4,21 @@
     <meta charset="utf-8">
     <title>NoFlo in browser</title>
     <link rel="stylesheet" href="../node_modules/mocha/mocha.css">
+    <style type="text/css">
+      #fixtures {
+        display: none;
+      }
+    </style>
   </head>
   <body>
     <div id="mocha"></div>
+    <div id="fixtures">
+      <div class="getelement">Foo</div>
+      <div class="listentouch">
+        <div class="target">Target</div>
+        <div class="other">Other</div>
+      </div>
+    </div>
     <script src="../browser/noflo.js"></script>
     <script src="http://chaijs.com/chai.js"></script>
     <script src="../node_modules/mocha/mocha.js"></script>
@@ -16,6 +28,12 @@
     <script src="./ArrayPort.js"></script>
     <script src="./AsyncComponent.js"></script>
     <script src="./ComponentLoader.js"></script>
+    <script src="./Network.js"></script>
+    <script src="./Callback.js"></script>
+    <script src="./Kick.js"></script>
+    <script src="./Gate.js"></script>
+    <script src="./GetElement.js"></script>
+    <script src="./ListenTouch.js"></script>
     <script>
       if (window.mochaPhantomJS) {
         mochaPhantomJS.run();

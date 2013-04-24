@@ -33,7 +33,11 @@ class Network extends EventEmitter
     @connections = []
     @initials = []
     @graph = graph
-    @baseDir = graph.baseDir or process.cwd()
+
+    if typeof process is 'object' and process.title is 'node'
+      @baseDir = graph.baseDir or process.cwd()
+    else
+      @baseDir = graph.baseDir or '/'
 
     # As most NoFlo networks are long-running processes, the
     # network coordinator marks down the start-up time. This
@@ -55,6 +59,8 @@ class Network extends EventEmitter
       @addEdge edge
     @graph.on 'removeEdge', (edge) =>
       @removeEdge edge
+
+    # Initialize a Component Loader for the network
     @loader = new componentLoader.ComponentLoader @baseDir
 
   # The uptime of the network is the current time minus the start-up
@@ -346,8 +352,14 @@ class Network extends EventEmitter
   sendInitial: (initial) ->
     initial.socket.connect()
     initial.socket.send initial.data
-    process.nextTick ->
-      initial.socket.disconnect()
+    if typeof process is 'object' and process.title is 'node'
+      # nextTick is faster on Node.js
+      process.nextTick ->
+        initial.socket.disconnect()
+    else
+      setTimeout ->
+        initial.socket.disconnect()
+      , 0
 
   sendInitials: ->
     @sendInitial initial for initial in @initials

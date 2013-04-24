@@ -36,6 +36,10 @@ describe 'Component Loader with no external packages installed', ->
     it 'should contain input ports', ->
       chai.expect(instance.inPorts).to.be.an 'object'
       chai.expect(instance.inPorts.in).to.be.an 'object'
+    it 'should have "on" method on the input port', ->
+      chai.expect(instance.inPorts.in.on).to.be.a 'function'
     it 'should contain output ports', ->
       chai.expect(instance.outPorts).to.be.an 'object'
       chai.expect(instance.outPorts.out).to.be.an 'object'
+    it 'should have "send" method on the output port', ->
+      chai.expect(instance.outPorts.out.send).to.be.a 'function'

@@ -4,7 +4,9 @@ node_modules
 /browser/
 bin/*.js
 /lib/
+/_site/
 spec/*.js
+spec/result.xml
 server/static/js/*.js
 docs_tmp/
 docs/

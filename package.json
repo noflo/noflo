@@ -39,10 +39,10 @@
     "grunt-bumpup": "~0.2.0",
     "grunt-tagrelease": "~0.2.0",
     "grunt-exec": "~0.4.0",
-    "grunt-cafe-mocha": "~0.1.1",
+    "grunt-cafe-mocha": "~0.1.2",
     "chai": "~1.5.0",
     "mocha": "~1.9.0",
-    "grunt-mocha-phantomjs": "~0.2.0",
+    "grunt-mocha-phantomjs": "~0.2.2",
     "grunt-component-build": "~0.2.1",
     "grunt-contrib-uglify": "~0.2.0",
     "grunt-contrib-watch": "~0.3.1"

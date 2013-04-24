@@ -24,8 +24,9 @@ exports.createNetwork = (graph, callback) ->
 
   toAddNodes = graph.nodes.length
   if toAddNodes is 0
-    process.nextTick ->
+    setTimeout ->
       networkReady network
+    , 0
     return network
 
   # Ensure components are loaded before continuing

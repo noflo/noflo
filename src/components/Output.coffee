@@ -1,5 +1,10 @@
-noflo = require "../../lib/NoFlo"
-util = require "util"
+if typeof process is 'object' and process.title is 'node'
+  noflo = require "../../lib/NoFlo"
+  util = require "util"
+else
+  noflo = require '/noflo'
+  util =
+    inspect: (data) -> data
 
 class Output extends noflo.Component
 
