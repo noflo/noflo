@@ -9,10 +9,10 @@ class ListenTouch extends noflo.Component
     @inPorts =
       element: new noflo.Port 'object'
     @outPorts =
-      start: new noflo.Port 'object'
+      start: new noflo.ArrayPort 'object'
       moveX: new noflo.Port 'number'
       moveY: new noflo.Port 'number'
-      end: new noflo.Port 'object'
+      end: new noflo.ArrayPort 'object'
 
     @inPorts.element.on 'data', (element) =>
       @subscribe element
