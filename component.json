@@ -27,22 +27,26 @@
     "lib/NoFlo.js",
     "lib/Network.js",
     "components/GetElement.js",
+    "components/MoveElement.js",
     "components/ListenTouch.js",
     "components/Callback.js",
     "components/Kick.js",
     "components/Gate.js",
     "components/Split.js",
-    "components/Merge.js"
+    "components/Merge.js",
+    "components/Output.js"
   ],
   "noflo": {
     "components": {
       "GetElement": "components/GetElement.js",
+      "MoveElement": "components/MoveElement.js",
       "ListenTouch": "components/ListenTouch.js",
       "Callback": "components/Callback.js",
       "Kick": "components/Kick.js",
       "Gate": "components/Gate.js",
       "Split": "components/Split.js",
-      "Merge": "components/Merge.js"
+      "Merge": "components/Merge.js",
+      "Output": "components/Output.js"
     }
   }
 }
