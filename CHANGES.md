@@ -15,6 +15,7 @@ New core components:
 New browser-only components:
 
 * _GetElement_ transmits a DOM element matching a CSS query
+* _MoveElement_ manipulates the x, y, and z positioning of a DOM element
 * _ListenTouch_ transmits touch events grouped by fingers connected to screen
 
 ## 0.3.3 (April 9th 2013)
