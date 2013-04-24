@@ -8,6 +8,7 @@ exports.register = function (loader) {
   loader.registerComponent('', 'GetElement', '/noflo/components/GetElement.js');
   loader.registerComponent('', 'MoveElement', '/noflo/components/MoveElement.js');
   loader.registerComponent('', 'ListenTouch', '/noflo/components/ListenTouch.js');
+  loader.registerComponent('', 'Spring', '/noflo/components/Spring.js');
   loader.registerComponent('', 'Kick', '/noflo/components/Kick.js');
   loader.registerComponent('', 'Gate', '/noflo/components/Gate.js');
   loader.registerComponent('', 'Output', '/noflo/components/Output.js');

@@ -11,6 +11,7 @@ Browser support:
 New core components:
 
 * _Gate_ forwards packets when the OPEN port has received data, and stops when CLOSE port has received data
+* _Spring_ calculates motion of a damped spring
 
 New browser-only components:
 
