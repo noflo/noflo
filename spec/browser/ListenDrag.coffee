@@ -1,10 +1,7 @@
-if typeof process is 'object' and process.title is 'node'
-  return
-else
-  listenTouch = require 'noflo/components/ListenTouch.js'
-  socket = require 'noflo/lib/InternalSocket.js'
+listenDrag = require 'noflo/components/ListenDrag.js'
+socket = require 'noflo/lib/InternalSocket.js'
 
-describe 'ListenTouch component', ->
+describe 'ListenDrag component', ->
   c = null
   element = null
   start = null
@@ -12,7 +9,7 @@ describe 'ListenTouch component', ->
   moveY = null
   end = null
   beforeEach ->
-    c = listenTouch.getComponent()
+    c = listenDrag.getComponent()
     element = socket.createSocket()
     start = socket.createSocket()
     moveX = socket.createSocket()
@@ -25,55 +22,47 @@ describe 'ListenTouch component', ->
     c.outPorts.end.attach end
 
   describe 'on matched element', ->
-    el = document.querySelector '#fixtures .listentouch .target'
-    it 'should transmit a start event on touch start', (done) ->
+    el = document.querySelector '#fixtures .listendrag .target'
+    it 'should transmit a start event on drag start', (done) ->
       element.send el
       start.once 'data', (data) ->
         chai.expect(data).is.instanceof UIEvent
         done()
       evt = document.createEvent 'UIEvent'
-      evt.initUIEvent 'touchstart', true, true
-      evt.changedTouches = []
-      evt.changedTouches.push
-        pageX: 5
-        pageY: 10
+      evt.initUIEvent 'dragstart', true, true
+      evt.clientX = 5
+      evt.clientY = 10
       el.dispatchEvent evt
 
-    it 'should transmit a moveX event on touch move', (done) ->
+    it 'should transmit a moveX event on drag move', (done) ->
       element.send el
       moveX.once 'data', (data) ->
         chai.expect(data).to.equal 5
         done()
       evt = document.createEvent 'UIEvent'
-      evt.initUIEvent 'touchmove', true, true
-      evt.changedTouches = []
-      evt.changedTouches.push
-        pageX: 5
-        pageY: 10
+      evt.initUIEvent 'drag', true, true
+      evt.clientX = 5
+      evt.clientY = 10
       el.dispatchEvent evt
 
-    it 'should transmit a moveY event on touch move', (done) ->
+    it 'should transmit a moveY event on drag move', (done) ->
       element.send el
       moveY.once 'data', (data) ->
         chai.expect(data).to.equal 10
         done()
       evt = document.createEvent 'UIEvent'
-      evt.initUIEvent 'touchmove', true, true
-      evt.changedTouches = []
-      evt.changedTouches.push
-        pageX: 5
-        pageY: 10
+      evt.initUIEvent 'drag', true, true
+      evt.clientX = 5
+      evt.clientY = 10
       el.dispatchEvent evt
 
-    it 'should transmit a end event on touch end', (done) ->
+    it 'should transmit a end event on drag end', (done) ->
       element.send el
       end.once 'data', (data) ->
         chai.expect(data).is.instanceof UIEvent
         done()
       evt = document.createEvent 'UIEvent'
-      evt.initUIEvent 'touchend', true, true
-      evt.changedTouches = []
-      evt.changedTouches.push
-        pageX: 5
-        pageY: 10
+      evt.initUIEvent 'dragend', true, true
+      evt.clientX = 5
+      evt.clientY = 10
       el.dispatchEvent evt

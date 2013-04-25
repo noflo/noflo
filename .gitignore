@@ -6,6 +6,7 @@ bin/*.js
 /lib/
 /_site/
 spec/*.js
+spec/browser/*.js
 spec/result.xml
 server/static/js/*.js
 docs_tmp/

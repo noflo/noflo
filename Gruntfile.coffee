@@ -37,6 +37,14 @@ module.exports = ->
         src: ['**.coffee']
         dest: 'spec'
         ext: '.js'
+      spec_browser:
+        options:
+          bare: true
+        expand: true
+        cwd: 'spec/browser'
+        src: ['**.coffee']
+        dest: 'spec/browser'
+        ext: '.js'
 
     # Browser version building
     component:
@@ -66,12 +74,18 @@ module.exports = ->
 
     # BDD tests on Node.js
     cafemocha:
-      src: ['spec/*.coffee']
+      nodejs:
+        src: ['spec/*.coffee']
+        options:
+          grep: '@browser'
+          invert: true
+          reporter: 'dot'
 
     # BDD tests on browser
     mocha_phantomjs:
       options:
         output: 'spec/result.xml'
+        reporter: 'dot'
       all: ['spec/runner.html']
 
     # Coding standards

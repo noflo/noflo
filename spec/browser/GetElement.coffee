@@ -1,9 +1,5 @@
-if typeof process is 'object' and process.title is 'node'
-  # TODO: Use jsdom to make DOM components work also on Node
-  return
-else
-  getelement = require 'noflo/components/GetElement.js'
-  socket = require 'noflo/lib/InternalSocket.js'
+getelement = require 'noflo/components/GetElement.js'
+socket = require 'noflo/lib/InternalSocket.js'
 
 describe 'GetElement component', ->
   c = null
