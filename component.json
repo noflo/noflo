@@ -16,7 +16,6 @@
   "license": "MIT",
   "main": "lib/NoFlo.js",
   "scripts": [
-    "components.js",
     "lib/Graph.js",
     "lib/InternalSocket.js",
     "lib/Port.js",
