@@ -5,7 +5,7 @@ if typeof process is 'object' and process.title is 'node'
   root = path.resolve __dirname, '../'
 else
   noflo = require 'noflo/lib/NoFlo.js'
-  root = '/noflo/'
+  root = 'noflo'
 
 describe 'Network with an empty graph', ->
   g = new noflo.Graph

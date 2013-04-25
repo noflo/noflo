@@ -12,16 +12,34 @@ class ComponentLoader
   
   getModulePrefix: (name) ->
     return '' unless name
+    return '' if name is 'noflo'
     name.replace 'noflo-', ''
+
+  getModuleComponents: (moduleName) ->
+    return unless @checked.indexOf(moduleName) is -1
+    @checked.push moduleName
+
+    try
+      definition = require "/#{moduleName}/component.json"
+    catch e
+      return
+
+    for dependency of definition.dependencies
+      @getModuleComponents dependency
+
+    return unless definition.noflo
+
+    prefix = @getModulePrefix definition.name
+    if definition.noflo.components
+      for name, cPath of definition.noflo.components
+        @registerComponent prefix, name, "/#{definition.name}/#{cPath}"
 
   listComponents: (callback) ->
     return callback @components unless @components is null
 
-    # Interim solution for loading registered components
-    # until component/builder.js#62 is fixed
     @components = {}
-    registration = require "#{@baseDir}components.js"
-    registration.register @
+
+    @getModuleComponents @baseDir
 
     callback @components
 
@@ -30,7 +48,6 @@ class ComponentLoader
       @listComponents (components) =>
         @load name, callback
       return
-    
     unless @components[name]
       throw new Error "Component #{name} not available"
       return

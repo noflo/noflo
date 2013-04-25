@@ -5,9 +5,9 @@ if typeof process is 'object' and process.title is 'node'
   root = path.resolve __dirname, '../'
 else
   loader = require 'noflo/lib/ComponentLoader.js'
-  root = '/noflo/'
+  root = 'noflo'
 
-describe 'Component Loader with no external packages installed', ->
+describe 'ComponentLoader with no external packages installed', ->
   l = new loader.ComponentLoader root
 
   it 'should initially know of no components', ->
