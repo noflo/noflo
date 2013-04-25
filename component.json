@@ -39,6 +39,9 @@
     "components/Merge.js",
     "components/Output.js"
   ],
+  "json": [
+    "component.json"
+  ],
   "noflo": {
     "components": {
       "GetElement": "components/GetElement.js",

@@ -53,6 +53,10 @@ module.exports = ->
         config: './component.json'
         scripts: true
         styles: false
+        configure: (builder) ->
+          # Enable Component plugins
+          json = require 'component-json'
+          builder.use json()
 
     # JavaScript minification for the browser
     uglify:

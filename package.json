@@ -45,7 +45,8 @@
     "grunt-mocha-phantomjs": "~0.2.2",
     "grunt-component-build": "~0.2.1",
     "grunt-contrib-uglify": "~0.2.0",
-    "grunt-contrib-watch": "~0.3.1"
+    "grunt-contrib-watch": "~0.3.1",
+    "component-json": "~0.1.2"
   },
   "main": "./lib/NoFlo",
   "bin": {
