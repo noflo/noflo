@@ -10,10 +10,10 @@ after a given timeout'
     @timeout = null
 
     @inPorts =
-      in: new noflo.Port
-      timeout: new noflo.Port
+      in: new noflo.Port 'all'
+      timeout: new noflo.Port 'number'
     @outPorts =
-      out: new noflo.Port
+      out: new noflo.Port 'all'
     
     @inPorts.timeout.on 'data', (data) =>
       @milliseconds = parseInt data
