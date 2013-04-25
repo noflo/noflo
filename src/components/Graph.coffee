@@ -63,65 +63,16 @@ class Graph extends noflo.Component
 
   findEdgePorts: (name, process) ->
     for portName, port of process.component.inPorts
-      newPort = @isExported port, name, portName
-      continue if newPort is false
-      @inPorts[newPort] = @replicateInPort port, newPort
+      targetPortName = @isExported port, name, portName
+      continue if targetPortName is false
+      @inPorts[targetPortName] = port
 
     for portName, port of process.component.outPorts
-      newPort = @isExported port, name, portName
-      continue if newPort is false
-      @outPorts[newPort] = @replicateOutPort port, newPort
+      targetPortName = @isExported port, name, portName
+      continue if targetPortName is false
+      @outPorts[targetPortName] = port
 
     return true
-
-  replicatePort: (port) ->
-    return new noflo.ArrayPort() if port instanceof noflo.ArrayPort
-    return new noflo.Port() unless port instanceof noflo.ArrayPort
-
-  replicateInPort: (port, portName) ->
-    newPort = @replicatePort port
-    newPort.on "attach", (socket) ->
-      newSocket = noflo.internalSocket.createSocket()
-      port.attach newSocket
-    newPort.on "connect", ->
-      return unless port.isAttached()
-      port.connect()
-    newPort.on "begingroup", (group) ->
-      port.beginGroup group
-    newPort.on "data", (data) ->
-      port.send data
-    newPort.on "endgroup", ->
-      port.endGroup()
-    newPort.on "disconnect", ->
-      port.disconnect()
-    newPort.on "detach", (socket) ->
-      return unless newPort.isAttached()
-      port.detach()
-    newPort
-
-  replicateOutPort: (port, portName) ->
-    newPort = @replicatePort port
-    newPort.on "attach", (socket) ->
-      newSocket = noflo.internalSocket.createSocket()
-      port.attach newSocket
-    port.on "connect", ->
-      return unless newPort.isAttached()
-      newPort.connect()
-    port.on "begingroup", (group) ->
-      return unless newPort.isAttached()
-      newPort.beginGroup group
-    port.on "data", (data) ->
-      return unless newPort.isAttached()
-      newPort.send data
-    port.on "endgroup", ->
-      return unless newPort.isAttached()
-      newPort.endGroup()
-    port.on "disconnect", ->
-      newPort.disconnect()
-    newPort.on "detach", (socket) ->
-      return unless newPort.isAttached()
-      port.detach()
-    newPort
 
   isReady: ->
     @ready
