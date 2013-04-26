@@ -352,17 +352,17 @@ class Network extends EventEmitter
   sendInitial: (initial) ->
     initial.socket.connect()
     initial.socket.send initial.data
-    if typeof process is 'object' and process.title is 'node'
-      # nextTick is faster on Node.js
-      process.nextTick ->
-        initial.socket.disconnect()
-    else
-      setTimeout ->
-        initial.socket.disconnect()
-      , 0
+    initial.socket.disconnect()
 
   sendInitials: ->
-    @sendInitial initial for initial in @initials
-    @initials = []
+    send = =>
+      @sendInitial initial for initial in @initials
+      @initials = []
+
+    if typeof process is 'object' and process.title is 'node'
+      # nextTick is faster on Node.js
+      process.nextTick send
+    else
+      setTimeout send, 0
 
 exports.Network = Network
