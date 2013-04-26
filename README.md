@@ -1,7 +1,7 @@
 NoFlo: Flow-based programming for Node.js [![Build Status](https://secure.travis-ci.org/bergie/noflo.png?branch=master)](http://travis-ci.org/bergie/noflo)
 =========================================
 
-NoFlo is a simple [flow-based programming](http://en.wikipedia.org/wiki/Flow-based_programming) implementation for Node.js. From WikiPedia:
+NoFlo is a simple [flow-based programming](http://en.wikipedia.org/wiki/Flow-based_programming) implementation for JavaScript running on both Node.js and the browser. From WikiPedia:
 
 > In computer science, flow-based programming (FBP) is a programming paradigm that defines applications as networks of "black box" processes, which exchange data across predefined connections by message passing, where the connections are specified externally to the processes. These black box processes can be reconnected endlessly to form different applications without having to be changed internally. FBP is thus naturally component-oriented.
 
