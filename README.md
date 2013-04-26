@@ -207,6 +207,44 @@ It depends on the nature of the component how these events may be handled. Most 
 
 When a port has no connections, meaning that it was initialized without a connection, or a _detach_ event has happened, it should do no operations regarding that port.
 
+### Conveniently add logging to your components
+
+There are many ways to monitor the health of your flow based programmes, one way being to log important events from your components as they happen.  To help with this we provide a LoggingComponent base class which you can extend when you create your own components.  It will set up an initial outPorts data member with an out port named 'log'.  It also provides a convenience method for sending log messages.  When the log port is not attached, it will send the log messages to the console.
+
+Here's a version of the Forwarder component from above that logs messages when it can't send them.
+
+```coffeescript
+noflo = require "noflo"
+
+class LoggingForwarder extends noflo.Component
+    description: "This component receives data on a single input
+    port and sends the same data out to the output port"
+
+    constructor: ->
+        # Register ports
+        @inPorts =
+            in: new noflo.Port()
+        @outPorts =
+            out: new noflo.Port()
+
+        @inPorts.in.on "data", (data) =>
+            # Forward data when we receive it.
+            if @outports.out.isAttached()
+              @outPorts.out.send data
+            else
+              @sendLog
+                logLevel: "error"
+                message: "Received message '#{data} on IN port but OUT port isn't attached."
+
+        @inPorts.in.on "disconnect", =>
+            # Disconnect output port when input port disconnects
+            @outPorts.out.disconnect()
+
+exports.getComponent = -> new LoggingForwarder()
+```
+
+You can send objects, as I have done in this example, or simple strings, numbers etc.  This isn't the only way to log but it is provided here for your convenience should you wish to use it.
+
 ## The NoFlo shell
 
 NoFlo comes with a command shell that you can use to load, run and manipulate NoFlo graphs. For example, the _line count_ graph that was explained in _Component design_ could be built with the shell in the following way:
