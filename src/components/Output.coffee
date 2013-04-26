@@ -24,9 +24,21 @@ class Output extends noflo.Component
     @outPorts =
       out: new noflo.Port
 
+    @inPorts.in.on "begingroup", (group) =>
+      @log group, "begingroup"
+      @outPorts.out.beginGroup group if @outPorts.out.isAttached()
+
     @inPorts.in.on "data", (data) =>
-      @log data
+      @log data, "data"
       @outPorts.out.send data if @outPorts.out.isAttached()
+
+    @inPorts.in.on "endgroup", (group) =>
+      @log group, "endgroup"
+      @outPorts.out.endGroup() if @outPorts.out.isAttached()
+
+    @inPorts.in.on "disconnect", =>
+      @log "", "disconnect"
+      @outPorts.out.disconnect() if @outPorts.out.isAttached()
 
     @inPorts.options.on "data", (data) =>
       @setOptions data
@@ -36,8 +48,8 @@ class Output extends noflo.Component
     for own key, value of options
       @options[key] = value
 
-  log: (data) ->
-    console.log util.inspect data,
+  log: (data, label = "") ->
+    console.log "[#{label.toUpperCase()}] " + util.inspect data,
       @options.showHidden, @options.depth, @options.colors
 
 exports.getComponent = ->
