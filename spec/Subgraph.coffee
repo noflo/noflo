@@ -69,6 +69,34 @@ describe 'Graph component', ->
             process: 'Split'
             port: 'in'
         ]
+    it 'should expose only exported ports when they exist', (done) ->
+      c.baseDir = root
+      c.once 'ready', ->
+        chai.expect(c.inPorts).to.have.keys [
+          'graph'
+        ]
+        chai.expect(c.outPorts).to.have.keys [
+          'out'
+        ]
+        done()
+      g.send
+        exports: [
+          public: 'out'
+          private: 'split.out'
+        ]
+        processes:
+          Split:
+            component: 'Split'
+          Merge:
+            component: 'Merge'
+        connections: [
+          src:
+            process: 'Merge'
+            port: 'out'
+          tgt:
+            process: 'Split'
+            port: 'in'
+        ]
     it 'should be able to run the graph', (done) ->
       c.baseDir = root
       c.once 'ready', ->
