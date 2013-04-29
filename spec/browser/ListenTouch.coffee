@@ -1,5 +1,5 @@
-listenTouch = require 'noflo/components/ListenTouch.js'
-socket = require 'noflo/lib/InternalSocket.js'
+listenTouch = require 'noflo/src/components/ListenTouch.js'
+socket = require 'noflo/src/lib/InternalSocket.js'
 
 describe 'ListenTouch component', ->
   c = null

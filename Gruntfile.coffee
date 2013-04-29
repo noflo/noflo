@@ -17,12 +17,6 @@ module.exports = ->
         src: ['**.coffee']
         dest: 'lib/nodejs'
         ext: '.js'
-      components:
-        expand: true
-        cwd: 'src/components'
-        src: ['**.coffee']
-        dest: 'components'
-        ext: '.js'
       bin:
         expand: true
         cwd: 'src/bin'
@@ -56,7 +50,9 @@ module.exports = ->
         configure: (builder) ->
           # Enable Component plugins
           json = require 'component-json'
+          coffee = require 'component-coffee'
           builder.use json()
+          builder.use coffee
 
     # JavaScript minification for the browser
     uglify:

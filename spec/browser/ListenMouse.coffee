@@ -1,5 +1,5 @@
-listenMouse = require 'noflo/components/ListenMouse.js'
-socket = require 'noflo/lib/InternalSocket.js'
+listenMouse = require 'noflo/src/components/ListenMouse.js'
+socket = require 'noflo/src/lib/InternalSocket.js'
 
 describe 'ListenMouse component', ->
   c = null

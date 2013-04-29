@@ -3,8 +3,8 @@ if typeof process is 'object' and process.title is 'node'
   spring = require '../src/components/Spring.coffee'
   socket = require '../src/lib/InternalSocket.coffee'
 else
-  spring = require 'noflo/components/Spring.js'
-  socket = require 'noflo/lib/InternalSocket.js'
+  spring = require 'noflo/src/components/Spring.js'
+  socket = require 'noflo/src/lib/InternalSocket.js'
 
 describe 'Spring component', ->
   c = null

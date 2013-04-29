@@ -56,7 +56,6 @@ class ComponentLoader
       process.nextTick =>
         @loadGraph name, callback
       return
-
     implementation = require @components[name]
     callback implementation.getComponent()
 

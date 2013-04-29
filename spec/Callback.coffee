@@ -3,8 +3,8 @@ if typeof process is 'object' and process.title is 'node'
   callback = require '../src/components/Callback.coffee'
   socket = require '../src/lib/InternalSocket.coffee'
 else
-  callback = require 'noflo/components/Callback.js'
-  socket = require 'noflo/lib/InternalSocket.js'
+  callback = require 'noflo/src/components/Callback.js'
+  socket = require 'noflo/src/lib/InternalSocket.js'
 
 describe 'Callback component', ->
   c = null

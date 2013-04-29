@@ -1,5 +1,5 @@
-listenDrag = require 'noflo/components/ListenDrag.js'
-socket = require 'noflo/lib/InternalSocket.js'
+listenDrag = require 'noflo/src/components/ListenDrag.js'
+socket = require 'noflo/src/lib/InternalSocket.js'
 
 describe 'ListenDrag component', ->
   c = null

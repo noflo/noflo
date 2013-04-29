@@ -4,7 +4,7 @@ if typeof process is 'object' and process.title is 'node'
   path = require 'path'
   root = path.resolve __dirname, '../'
 else
-  loader = require 'noflo/lib/ComponentLoader.js'
+  loader = require 'noflo/src/lib/ComponentLoader.js'
   root = 'noflo'
 
 describe 'ComponentLoader with no external packages installed', ->

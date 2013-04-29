@@ -4,9 +4,9 @@ if typeof process is 'object' and process.title is 'node'
   port = require '../src/lib/Port.coffee'
   socket = require '../src/lib/InternalSocket.coffee'
 else
-  acomponent = require 'noflo/lib/AsyncComponent.js'
-  port = require 'noflo/lib/Port.js'
-  socket = require 'noflo/lib/InternalSocket.js'
+  acomponent = require 'noflo/src/lib/AsyncComponent.js'
+  port = require 'noflo/src/lib/Port.js'
+  socket = require 'noflo/src/lib/InternalSocket.js'
 
 describe 'AsyncComponent with missing ports', ->
   class C1 extends acomponent.AsyncComponent

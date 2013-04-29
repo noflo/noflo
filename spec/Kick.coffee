@@ -3,8 +3,8 @@ if typeof process is 'object' and process.title is 'node'
   kick = require '../src/components/Kick.coffee'
   socket = require '../src/lib/InternalSocket.coffee'
 else
-  kick = require 'noflo/components/Kick.js'
-  socket = require 'noflo/lib/InternalSocket.js'
+  kick = require 'noflo/src/components/Kick.js'
+  socket = require 'noflo/src/lib/InternalSocket.js'
 
 describe 'Kick component', ->
   c = null

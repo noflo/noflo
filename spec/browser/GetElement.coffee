@@ -1,5 +1,5 @@
-getelement = require 'noflo/components/GetElement.js'
-socket = require 'noflo/lib/InternalSocket.js'
+getelement = require 'noflo/src/components/GetElement.js'
+socket = require 'noflo/src/lib/InternalSocket.js'
 
 describe 'GetElement component', ->
   c = null

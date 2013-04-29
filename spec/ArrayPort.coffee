@@ -3,8 +3,8 @@ if typeof process is 'object' and process.title is 'node'
   aport = require '../src/lib/ArrayPort.coffee'
   socket = require '../src/lib/InternalSocket.coffee'
 else
-  aport = require 'noflo/lib/ArrayPort.js'
-  socket = require 'noflo/lib/InternalSocket.js'
+  aport = require 'noflo/src/lib/ArrayPort.js'
+  socket = require 'noflo/src/lib/InternalSocket.js'
 
 describe 'Untyped ArrayPort instance', ->
   it 'should be of type "all"', ->

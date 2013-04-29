@@ -2,7 +2,7 @@ if typeof process is 'object' and process.title is 'node'
   chai = require 'chai' unless chai
   graph = require '../src/lib/Graph.coffee'
 else
-  graph = require 'noflo/lib/Graph.js'
+  graph = require 'noflo/src/lib/Graph.js'
 
 describe 'Unnamed graph instance', ->
   it 'should have an empty name', ->

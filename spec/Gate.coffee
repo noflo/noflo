@@ -3,8 +3,8 @@ if typeof process is 'object' and process.title is 'node'
   gate = require '../src/components/Gate.coffee'
   socket = require '../src/lib/InternalSocket.coffee'
 else
-  gate = require 'noflo/components/Gate.js'
-  socket = require 'noflo/lib/InternalSocket.js'
+  gate = require 'noflo/src/components/Gate.js'
+  socket = require 'noflo/src/lib/InternalSocket.js'
 
 describe 'Gate component', ->
   c = null

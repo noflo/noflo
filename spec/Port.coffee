@@ -3,8 +3,8 @@ if typeof process is 'object' and process.title is 'node'
   port = require '../src/lib/Port.coffee'
   socket = require '../src/lib/InternalSocket.coffee'
 else
-  port = require 'noflo/lib/Port.js'
-  socket = require 'noflo/lib/InternalSocket.js'
+  port = require 'noflo/src/lib/Port.js'
+  socket = require 'noflo/src/lib/InternalSocket.js'
 
 describe 'Untyped port instance', ->
   it 'should be of type "all"', ->
