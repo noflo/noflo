@@ -18,11 +18,11 @@ class Graph extends noflo.Component
 
   setGraph: (graph) ->
     @ready = false
-    if graph instanceof noflo.Graph
-      # Existing Graph object
-      return @createNetwork graph
+    if typeof graph is 'object'
+      if typeof graph.addNode is 'function'
+        # Existing Graph object
+        return @createNetwork graph
 
-    if typeof graph is 'object' and graph.processes
       # JSON definition of a graph
       noflo.graph.loadJSON graph, (instance) =>
         instance.baseDir = @baseDir
