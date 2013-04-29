@@ -258,6 +258,10 @@ exports.createGraph = (name) ->
   new Graph name
 
 exports.loadJSON = (definition, success) ->
+  definition.properties = {} unless definition.properties
+  definition.processes = {} unless definition.processes
+  definition.connections = [] unless definition.connections
+
   graph = new Graph definition.properties.name
 
   for id, def of definition.processes

@@ -1,4 +1,7 @@
-noflo = require "../../lib/NoFlo"
+if typeof process is 'object' and process.title is 'node'
+  noflo = require "../../lib/NoFlo"
+else
+  noflo = require '/noflo'
 
 class Graph extends noflo.Component
   constructor: ->
@@ -16,7 +19,15 @@ class Graph extends noflo.Component
   setGraph: (graph) ->
     @ready = false
     if graph instanceof noflo.Graph
+      # Existing Graph object
       return @createNetwork graph
+
+    if typeof graph is 'object' and graph.processes
+      # JSON definition of a graph
+      noflo.graph.loadJSON graph, (instance) =>
+        instance.baseDir = @baseDir
+        @createNetwork instance
+      return
 
     if graph.substr(0, 1) isnt "/"
       graph = "#{process.cwd()}/#{graph}"
@@ -26,11 +37,10 @@ class Graph extends noflo.Component
       @createNetwork instance
 
   createNetwork: (graph) ->
-    @network = noflo.createNetwork graph, =>
+    noflo.createNetwork graph, (@network) =>
       notReady = false
       for name, process of @network.processes
         notReady = true unless @checkComponent name, process
-
       do @setToReady unless notReady
 
   checkComponent: (name, process) ->
@@ -57,9 +67,15 @@ class Graph extends noflo.Component
     return false
 
   setToReady: ->
-    process.nextTick =>
-      @ready = true
-      @emit "ready"
+    if typeof process is 'object' and process.title is 'node'
+      process.nextTick =>
+        @ready = true
+        @emit 'ready'
+    else
+      setTimeout =>
+        @ready = true
+        @emit 'ready'
+      , 0
 
   findEdgePorts: (name, process) ->
     for portName, port of process.component.inPorts

@@ -37,6 +37,7 @@
     "src/components/Gate.coffee",
     "src/components/Split.coffee",
     "src/components/Merge.coffee",
+    "src/components/Graph.coffee",
     "src/components/Output.coffee"
   ],
   "json": [
@@ -55,6 +56,7 @@
       "Gate": "src/components/Gate.js",
       "Split": "src/components/Split.js",
       "Merge": "src/components/Merge.js",
+      "Graph": "src/components/Graph.js",
       "Output": "src/components/Output.js"
     }
   }

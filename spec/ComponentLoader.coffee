@@ -43,3 +43,13 @@ describe 'ComponentLoader with no external packages installed', ->
       chai.expect(instance.outPorts.out).to.be.an 'object'
     it 'should have "send" method on the output port', ->
       chai.expect(instance.outPorts.out.send).to.be.a 'function'
+
+  describe 'loading the Graph component', ->
+    instance = null
+    it 'should be able to load the component', (done) ->
+      l.load 'Graph', (graph) ->
+        chai.expect(graph).to.be.an 'object'
+        instance = graph
+        done()
+    it 'should have a reference to the Component Loader\'s baseDir', ->
+      chai.expect(instance.baseDir).to.equal l.baseDir

@@ -57,7 +57,9 @@ class ComponentLoader
         @loadGraph name, callback
       return
     implementation = require @components[name]
-    callback implementation.getComponent()
+    instance = implementation.getComponent()
+    instance.baseDir = @baseDir if name is 'Graph'
+    callback instance
 
   isGraph: (cPath) -> false
 
