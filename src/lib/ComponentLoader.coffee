@@ -32,7 +32,7 @@ class ComponentLoader
     prefix = @getModulePrefix definition.name
     if definition.noflo.components
       for name, cPath of definition.noflo.components
-        @registerComponent prefix, name, "/#{definition.name}/#{cPath}"
+        @registerComponent prefix, name, "/#{moduleName}/#{cPath}"
 
   listComponents: (callback) ->
     return callback @components unless @components is null
