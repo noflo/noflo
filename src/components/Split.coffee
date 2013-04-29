@@ -1,7 +1,7 @@
 if typeof process is 'object' and process.title is 'node'
   noflo = require "../../lib/NoFlo"
 else
-  noflo = require '/noflo'
+  noflo = require '../lib/NoFlo'
 
 class Split extends noflo.Component
   description: "This component receives data on a single input port and sends

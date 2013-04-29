@@ -2,7 +2,7 @@ if typeof process is 'object' and process.title is 'node'
   noflo = require "../../lib/NoFlo"
   util = require "util"
 else
-  noflo = require '/noflo'
+  noflo = require '../lib/NoFlo'
   util =
     inspect: (data) -> data
 

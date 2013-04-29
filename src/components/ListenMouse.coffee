@@ -1,7 +1,7 @@
 if typeof process is 'object' and process.title is 'node'
   noflo = require "../../lib/NoFlo"
 else
-  noflo = require '/noflo'
+  noflo = require '../lib/NoFlo'
 
 class ListenMouse extends noflo.Component
   description: 'Listen to mouse events on a DOM element'

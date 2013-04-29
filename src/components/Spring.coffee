@@ -2,7 +2,7 @@ if typeof process is 'object' and process.title is 'node'
   noflo = require "../../lib/NoFlo"
   requestAnimFrame = process.nextTick
 else
-  noflo = require '/noflo'
+  noflo = require '../lib/NoFlo'
   requestAnimFrame = window.requestAnimationFrame or
     window.webkitRequestAnimationFrame or
     window.mozRequestAnimationFrame or
