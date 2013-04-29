@@ -1,9 +1,13 @@
-
 { Component } = require "./Component"
 { Port } = require "./Port"
-util = require "util"
+if typeof process is 'object' and process.title is 'node'
+  util = require "util"
+else
+  util =
+    inspect: (data) -> data
 
-# This class should not be put into a flow. It is intended to be a parent class to real components.
+# This class should not be put into a flow. It is intended to be a
+# parent class to real components.
 # You might use it in your own classes like this:
 #
 # noflo = require "noflo"
@@ -37,4 +41,3 @@ class exports.LoggingComponent extends Component
       @outPorts.log.send message
     else
       console.log util.inspect message, 4, true, true
- 
