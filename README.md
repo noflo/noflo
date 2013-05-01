@@ -25,13 +25,20 @@ NoFlo is available [via NPM](https://npmjs.org/package/noflo), so you can instal
 
 ### Installing from Git
 
-NoFlo requires a reasonably recent version of [Node.js](http://nodejs.org/), and some [npm](http://npmjs.org/) packages. Ensure you have the `grunt-cli` package installed (`grunt` command should be available on command line) and NoFlo checked out from Git. Build NoFlo with:
+NoFlo requires a reasonably recent version of [Node.js](http://nodejs.org/), and some [npm](http://npmjs.org/) packages. Ensure that NoFlo is checked out from Git.
+
+You can install everything needed by a simple:
+
+    $ npm link
+
+Ensure you have the `grunt-cli` package installed (`grunt` command should be available on command line). Then build NoFlo with:
 
     $ grunt build
 
-Then you can install everything needed by a simple:
+Finally install the `component` package and let it install the rest:
 
-    $ npm link
+    $ npm install -g component
+    $ component install
 
 NoFlo is available from [GitHub](https://github.com/bergie/noflo) under the MIT license.
 
