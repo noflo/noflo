@@ -47,7 +47,8 @@
     "grunt-contrib-uglify": "~0.2.0",
     "grunt-contrib-watch": "~0.3.1",
     "component-json": "~0.1.2",
-    "component-coffee": "~0.1.2"
+    "component-coffee": "~0.1.2",
+    "component": "0.15.x"
   },
   "main": "./lib/NoFlo",
   "bin": {
@@ -59,7 +60,8 @@
     "url": "git://github.com/bergie/noflo.git"
   },
   "scripts": {
-    "test": "./node_modules/.bin/grunt test"
+    "test": "./node_modules/.bin/grunt test",
+    "postinstall": "./node_modules/.bin/grunt build; ./node_modules/.bin/component install"
   },
   "docco_husky": {
     "output_dir": "docs",
