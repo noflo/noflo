@@ -9,6 +9,7 @@ arrayport = require "./ArrayPort"
 graph = require "./Graph"
 {Network} = require "./Network"
 {LoggingComponent} = require "./LoggingComponent"
+_ = require "underscore"
 
 if typeof process is 'object' and process.title is 'node'
   componentLoader = require "./nodejs/ComponentLoader"
@@ -41,10 +42,21 @@ exports.createNetwork = (graph, callback) ->
           toAdd--
           networkReady network if callback? and toAdd is 0
 
-      for initializer in graph.initializers
+      # Serialize initializer so user-specified order of initial packets is
+      # preserved.
+      init = (initializer, next) ->
         network.addInitial initializer, ->
           toAdd--
           networkReady network if callback? and toAdd is 0
+          next()
+
+      # Wrap the serialized initializer inside the "next" initializer to
+      # "further" serialize it.
+      serialize = (chained, initializer) ->
+        -> init initializer, chained
+
+      # Reduce from right because otherwise the last one added is called first.
+      do _.reduceRight graph.initializers, serialize, ->
 
     for node in graph.nodes
       network.addNode node, ->
