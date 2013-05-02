@@ -29,6 +29,8 @@ NoFlo requires a reasonably recent version of [Node.js](http://nodejs.org/), and
 
     $ grunt build
 
+You can also build NoFlo only for the desired target platform with either *grunt build:nodejs* or *grunt build:browser*.
+
 Then you can install everything needed by a simple:
 
     $ npm link
@@ -385,6 +387,16 @@ We have an extensive suite of tests available for NoFlo. Run them with:
 or:
 
     $ npm test
+
+### Platform-specific tests
+
+By default, the tests are run for both Node.js and the browser. You can also run only the tests for a particular target platform:
+
+    $ grunt test:nodejs
+
+or:
+
+    $ grunt test:browser
 
 ### Running tests automatically
 

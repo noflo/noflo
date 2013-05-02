@@ -126,13 +126,22 @@ module.exports = ->
   @loadNpmTasks 'grunt-exec'
 
   # Our local tasks
-  @registerTask 'build_node', ['coffee']
-  @registerTask 'build_browser', ['coffee', 'component', 'uglify']
-  @registerTask 'build', ['coffee', 'component', 'uglify']
-  @registerTask 'lint', ['coffeelint']
-  @registerTask 'test_node', ['build', 'lint', 'nodeunit', 'cafemocha']
-  @registerTask 'test_browser', ['build', 'lint', 'mocha_phantomjs']
-  @registerTask 'test', ['build', 'lint', 'nodeunit', 'cafemocha', 'mocha_phantomjs']
+  @registerTask 'build', (target = 'all') =>
+    @task.run 'coffee'
+    if target is 'all' or target is 'browser'
+      @task.run 'component'
+      @task.run 'uglify'
+
+  @registerTask 'test', (target = 'all') =>
+    @task.run 'coffeelint'
+    @task.run 'coffee'
+    if target is 'all' or target is 'nodejs'
+      @task.run 'nodeunit'
+      @task.run 'cafemocha'
+    if target is 'all' or target is 'browser'
+      @task.run 'component'
+      @task.run 'mocha_phantomjs'
+
   @registerTask 'default', ['test']
 
   # Task for releasing new NoFlo versions
