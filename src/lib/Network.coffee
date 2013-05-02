@@ -158,16 +158,19 @@ class Network extends EventEmitter
     # it
     serialize = (next, add) =>
       (type) =>
-        # Add either Initial or Edge and move on to the next one when done
+        # Add either a Node, an Initial, or an Edge and move on to the next one
+        # when done
         this["add#{type}"] add, ->
           next type
 
     # Serialize initializers then call callback when done
     initializers = _.reduceRight @graph.initializers, serialize, done
-    # Serialize edge creators then call initializers
+    # Serialize edge creators then call the initializers
     edges = _.reduceRight @graph.edges, serialize, -> initializers "Initial"
-    # Start with edges
-    edges "Edge"
+    # Serialize node creators then call the edge creators
+    nodes = _.reduceRight @graph.nodes, serialize, -> edges "Edge"
+    # Start with node creators
+    nodes "Node"
 
   connectPort: (socket, process, port, inbound) ->
     if inbound

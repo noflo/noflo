@@ -9,7 +9,6 @@ arrayport = require "./ArrayPort"
 graph = require "./Graph"
 {Network} = require "./Network"
 {LoggingComponent} = require "./LoggingComponent"
-_ = require "underscore"
 
 if typeof process is 'object' and process.title is 'node'
   componentLoader = require "./nodejs/ComponentLoader"
@@ -20,11 +19,10 @@ exports.createNetwork = (graph, callback) ->
   network = new Network graph
 
   networkReady = (network) ->
-    callback network if _.isFunction callback
+    callback network if callback?
     network.sendInitials()
 
-  toAddNodes = graph.nodes.length
-  if toAddNodes is 0
+  if graph.nodes.length is 0
     setTimeout ->
       networkReady network
     , 0
@@ -32,12 +30,8 @@ exports.createNetwork = (graph, callback) ->
 
   # Ensure components are loaded before continuing
   network.loader.listComponents ->
-    for node in graph.nodes
-      network.addNode node, ->
-        toAddNodes--
-        if toAddNodes is 0
-          network.connect ->
-            networkReady network
+    network.connect ->
+      networkReady network
 
   network
 
