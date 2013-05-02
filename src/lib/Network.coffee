@@ -221,33 +221,6 @@ class Network extends EventEmitter
         id: socket.getId()
         socket: socket
 
-  # Release the IPs buffered because of an un-ready component
-  flushPortBuffer: (id) ->
-    buffer = @portBuffer[id]
-    inports = buffer.ins
-    outports = buffer.outs
-
-    # Notify outports FIRST so that connections are attached because the floodgate is opened
-    for port in outports
-      port.emit("ready")
-
-    for port in inports
-      port.emit("ready")
-
-    delete @portBuffer[id]
-
-  # Set up a buffer for an un-ready component's port
-  setupPortBuffer: (id) ->
-    if @portBuffer[id]?
-      @portBuffer[id].count++
-    else
-      @portBuffer[id] =
-        ins: [] # Inports of upstream components of an un-ready component that need to buffer
-        outs: [] # Outports of an un-ready component
-        count: 1 # A stack count to make sure all IPs are flushed at the same time with the right order of setup (i.e. outports of an un-ready component are set first)
-
-    @portBuffer[id]
-
   addEdge: (edge, callback) ->
     return @addInitial(edge) unless edge.from.node
     socket = internalSocket.createSocket()
@@ -258,22 +231,8 @@ class Network extends EventEmitter
     unless from.component
       throw new Error "No component defined for outbound node #{edge.from.node}"
     unless from.component.isReady()
-      buffer = @setupPortBuffer(from.id)
-
       from.component.once "ready", =>
         @addEdge edge, callback
-
-        # When the "from" component isn't ready, it's an outgoing port
-        fromPort = from.component.outPorts[edge.from.port]
-        buffer.outs.push(fromPort)
-
-        # Decrement the count and flush the buffer on empty stack ON NEXT CYCLE
-        next = () =>
-          buffer.count--
-          if buffer.count is 0
-            @flushPortBuffer(from.id)
-
-        setTimeout(next, 0)
 
       return
 
@@ -283,24 +242,8 @@ class Network extends EventEmitter
     unless to.component
       throw new Error "No component defined for inbound node #{edge.to.node}"
     unless to.component.isReady()
-      fromPort = from.component.outPorts[edge.from.port]
-      fromPort.downstreamIsGettingReady = true
-      buffer = @setupPortBuffer(from.id)
-
       to.component.once "ready", =>
         @addEdge edge, callback
-
-        # When the "to" component isn't ready, it's an incoming port
-        fromPort = from.component.outPorts[edge.from.port]
-        buffer.ins.push(fromPort)
-
-        # Decrement the count and flush the buffer on empty stack ON NEXT CYCLE
-        next = () =>
-          buffer.count--
-          if buffer.count is 0
-            @flushPortBuffer(from.id)
-
-        setTimeout(next, 0)
 
       return
 
