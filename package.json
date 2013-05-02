@@ -59,8 +59,8 @@
   },
   "scripts": {
     "test": "./node_modules/.bin/grunt test",
-    "preinstall": "npm install -g component",
-    "postinstall": "component install; ./node_modules/.bin/grunt build"
+    "preinstall": "npm install -g component grunt-cli",
+    "postinstall": "component install; grunt build"
   },
   "docco_husky": {
     "output_dir": "docs",
