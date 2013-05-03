@@ -41,18 +41,17 @@ module.exports = ->
         ext: '.js'
 
     # Browser version building
-    component:
+    component_build:
       noflo:
         output: './browser/'
         config: './component.json'
         scripts: true
         styles: false
+        plugins: ['coffee']
         configure: (builder) ->
           # Enable Component plugins
           json = require 'component-json'
-          coffee = require 'component-coffee'
           builder.use json()
-          builder.use coffee
 
     # JavaScript minification for the browser
     uglify:
@@ -129,7 +128,7 @@ module.exports = ->
   @registerTask 'build', (target = 'all') =>
     @task.run 'coffee'
     if target is 'all' or target is 'browser'
-      @task.run 'component'
+      @task.run 'component_build'
       @task.run 'uglify'
 
   @registerTask 'test', (target = 'all') =>
@@ -139,7 +138,7 @@ module.exports = ->
       @task.run 'nodeunit'
       @task.run 'cafemocha'
     if target is 'all' or target is 'browser'
-      @task.run 'component'
+      @task.run 'component_build'
       @task.run 'mocha_phantomjs'
 
   @registerTask 'default', ['test']
