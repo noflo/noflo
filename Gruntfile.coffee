@@ -41,6 +41,10 @@ module.exports = ->
         ext: '.js'
 
     # Browser version building
+    component:
+      install:
+        options:
+          action: 'install'
     component_build:
       noflo:
         output: './browser/'
@@ -109,6 +113,7 @@ module.exports = ->
 
   # Grunt plugins used for building
   @loadNpmTasks 'grunt-contrib-coffee'
+  @loadNpmTasks 'grunt-component'
   @loadNpmTasks 'grunt-component-build'
   @loadNpmTasks 'grunt-contrib-uglify'
 
@@ -125,19 +130,21 @@ module.exports = ->
   @loadNpmTasks 'grunt-exec'
 
   # Our local tasks
-  @registerTask 'build', (target = 'all') =>
+  @registerTask 'build', 'Build NoFlo for the chosen target platform', (target = 'all') =>
     @task.run 'coffee'
     if target is 'all' or target is 'browser'
+      @task.run 'component'
       @task.run 'component_build'
       @task.run 'uglify'
 
-  @registerTask 'test', (target = 'all') =>
+  @registerTask 'test', 'Build NoFlo and run automated tests', (target = 'all') =>
     @task.run 'coffeelint'
     @task.run 'coffee'
     if target is 'all' or target is 'nodejs'
       @task.run 'nodeunit'
       @task.run 'cafemocha'
     if target is 'all' or target is 'browser'
+      @task.run 'component'
       @task.run 'component_build'
       @task.run 'mocha_phantomjs'
 
@@ -148,7 +155,7 @@ module.exports = ->
   # Builds, runs tests, updates package.json, tags a release, and publishes on NPM
   #
   # Usage: grunt release:patch
-  @registerTask 'release', (type = 'patch') =>
+  @registerTask 'release', 'Build, test, tag, and release NoFlo', (type = 'patch') =>
     @task.run 'build'
     @task.run 'test'
     @task.run "bumpup:#{type}"
