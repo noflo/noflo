@@ -1,6 +1,7 @@
 #     NoFlo - Flow-Based Programming for Node.js
 #     (c) 2011 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
+_ = require "underscore"
 internalSocket = require "./InternalSocket"
 graph = require "./Graph"
 
@@ -151,6 +152,25 @@ class Network extends EventEmitter
   # Get process by its ID.
   getNode: (id) ->
     @processes[id]
+
+  connect: (done = ->) ->
+    # Wrap the future which will be called when done in a function and return
+    # it
+    serialize = (next, add) =>
+      (type) =>
+        # Add either a Node, an Initial, or an Edge and move on to the next one
+        # when done
+        this["add#{type}"] add, ->
+          next type
+
+    # Serialize initializers then call callback when done
+    initializers = _.reduceRight @graph.initializers, serialize, done
+    # Serialize edge creators then call the initializers
+    edges = _.reduceRight @graph.edges, serialize, -> initializers "Initial"
+    # Serialize node creators then call the edge creators
+    nodes = _.reduceRight @graph.nodes, serialize, -> edges "Edge"
+    # Start with node creators
+    nodes "Node"
 
   connectPort: (socket, process, port, inbound) ->
     if inbound
