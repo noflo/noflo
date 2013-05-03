@@ -9,7 +9,6 @@ arrayport = require "./ArrayPort"
 graph = require "./Graph"
 {Network} = require "./Network"
 {LoggingComponent} = require "./LoggingComponent"
-_ = require "underscore"
 
 if typeof process is 'object' and process.title is 'node'
   componentLoader = require "./nodejs/ComponentLoader"
@@ -20,11 +19,10 @@ exports.createNetwork = (graph, callback) ->
   network = new Network graph
 
   networkReady = (network) ->
-    callback network
+    callback network if callback?
     network.sendInitials()
 
-  toAddNodes = graph.nodes.length
-  if toAddNodes is 0
+  if graph.nodes.length is 0
     setTimeout ->
       networkReady network
     , 0
@@ -32,36 +30,8 @@ exports.createNetwork = (graph, callback) ->
 
   # Ensure components are loaded before continuing
   network.loader.listComponents ->
-    toAdd = graph.edges.length + graph.initializers.length
-
-    connect = ->
-      return networkReady network if toAdd is 0
-
-      for edge in graph.edges
-        network.addEdge edge, ->
-          toAdd--
-          networkReady network if callback? and toAdd is 0
-
-      # Serialize initializer so user-specified order of initial packets is
-      # preserved.
-      init = (initializer, next) ->
-        network.addInitial initializer, ->
-          toAdd--
-          networkReady network if callback? and toAdd is 0
-          next()
-
-      # Wrap the serialized initializer inside the "next" initializer to
-      # "further" serialize it.
-      serialize = (chained, initializer) ->
-        -> init initializer, chained
-
-      # Reduce from right because otherwise the last one added is called first.
-      do _.reduceRight graph.initializers, serialize, ->
-
-    for node in graph.nodes
-      network.addNode node, ->
-        toAddNodes--
-        connect() if toAddNodes is 0
+    network.connect ->
+      networkReady network
 
   network
 
