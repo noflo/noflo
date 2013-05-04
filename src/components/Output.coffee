@@ -28,6 +28,9 @@ class Output extends noflo.Component
       @log data
       @outPorts.out.send data if @outPorts.out.isAttached()
 
+    @inPorts.in.on "disconnect", =>
+      @outPorts.out.disconnect()
+
     @inPorts.options.on "data", (data) =>
       @setOptions data
 
