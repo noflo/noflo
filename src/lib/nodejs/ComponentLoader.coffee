@@ -29,6 +29,7 @@ class ComponentLoader extends loader.ComponentLoader
 
     # Handle sub-modules
     _.each moduleDef.dependencies, (def) =>
+      return done() unless def.name?
       return done() unless @checked.indexOf(def.name) is -1
       @getModuleComponents def, (depComponents) ->
         return done() if _.isEmpty depComponents
