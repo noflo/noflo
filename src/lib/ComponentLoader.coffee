@@ -18,14 +18,13 @@ class ComponentLoader
   getModuleComponents: (moduleName) ->
     return unless @checked.indexOf(moduleName) is -1
     @checked.push moduleName
-
     try
       definition = require "/#{moduleName}/component.json"
     catch e
       return
 
     for dependency of definition.dependencies
-      @getModuleComponents dependency
+      @getModuleComponents dependency.replace '/', '-'
 
     return unless definition.noflo
 
