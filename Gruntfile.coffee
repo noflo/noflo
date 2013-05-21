@@ -31,14 +31,6 @@ module.exports = ->
         src: ['**.coffee']
         dest: 'spec'
         ext: '.js'
-      spec_browser:
-        options:
-          bare: true
-        expand: true
-        cwd: 'spec/browser'
-        src: ['**.coffee']
-        dest: 'spec/browser'
-        ext: '.js'
 
     # Browser version building
     component:

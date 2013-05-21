@@ -12,21 +12,7 @@
   </head>
   <body>
     <div id="mocha"></div>
-    <div id="fixtures">
-      <div class="getelement">Foo</div>
-      <div class="listentouch">
-        <div class="target">Target</div>
-        <div class="other">Other</div>
-      </div>
-      <div class="listendrag">
-        <div class="target">Target</div>
-        <div class="other">Other</div>
-      </div>
-      <div class="listenmouse">
-        <div class="target">Target</div>
-        <div class="other">Other</div>
-      </div>
-    </div>
+    <div id="fixtures"></div>
     <script src="../browser/noflo.js"></script>
     <script src="http://chaijs.com/chai.js"></script>
     <script src="../node_modules/mocha/mocha.js"></script>
@@ -42,10 +28,6 @@
     <script src="./Gate.js"></script>
     <script src="./Spring.js"></script>
     <script src="./Subgraph.js"></script>
-    <script src="./browser/GetElement.js"></script>
-    <script src="./browser/ListenTouch.js"></script>
-    <script src="./browser/ListenDrag.js"></script>
-    <script src="./browser/ListenMouse.js"></script>
     <script>
       if (window.mochaPhantomJS) {
         mochaPhantomJS.run();

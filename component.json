@@ -26,11 +26,6 @@
     "src/lib/ComponentLoader.coffee",
     "src/lib/NoFlo.coffee",
     "src/lib/Network.coffee",
-    "src/components/GetElement.coffee",
-    "src/components/MoveElement.coffee",
-    "src/components/ListenTouch.coffee",
-    "src/components/ListenDrag.coffee",
-    "src/components/ListenMouse.coffee",
     "src/components/Spring.coffee",
     "src/components/Callback.coffee",
     "src/components/Kick.coffee",
@@ -45,11 +40,6 @@
   ],
   "noflo": {
     "components": {
-      "GetElement": "src/components/GetElement.js",
-      "MoveElement": "src/components/MoveElement.js",
-      "ListenTouch": "src/components/ListenTouch.js",
-      "ListenDrag": "src/components/ListenDrag.js",
-      "ListenMouse": "src/components/ListenMouse.js",
       "Spring": "src/components/Spring.js",
       "Callback": "src/components/Callback.js",
       "Kick": "src/components/Kick.js",

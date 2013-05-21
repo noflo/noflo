@@ -13,13 +13,10 @@ New core components:
 * _Gate_ forwards packets when the OPEN port has received data, and stops when CLOSE port has received data
 * _Spring_ calculates motion of a damped spring
 
-New browser-only components:
+New libraries:
 
-* _GetElement_ transmits a DOM element matching a CSS query
-* _MoveElement_ manipulates the x, y, and z positioning of a DOM element
-* _ListenTouch_ transmits touch events grouped by fingers connected to screen
-* _ListenMouse_ transmits mouse events
-* _ListenDrag_ transmits drag events made with a mouse
+* noflo-dom for working with the Document Object Model
+* noflo-draggabilly for drag-and-drop handling in the browser
 
 ## 0.3.3 (April 9th 2013)
 
