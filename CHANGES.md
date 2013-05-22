@@ -18,6 +18,10 @@ New libraries:
 * noflo-dom for working with the Document Object Model
 * noflo-draggabilly for drag-and-drop handling in the browser
 
+Development tools:
+
+* [Grunt scaffold](https://github.com/bergie/grunt-init-noflo) for easily creating NoFlo component packages including cross-platform test automation
+
 ## 0.3.3 (April 9th 2013)
 
 Development:
