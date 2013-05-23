@@ -15,8 +15,9 @@ New core components:
 
 New libraries:
 
-* noflo-dom for working with the Document Object Model
-* noflo-draggabilly for drag-and-drop handling in the browser
+* [noflo-dom](https://github.com/bergie/noflo-dom) for working with the Document Object Model
+* [noflo-draggabilly](https://github.com/d4tocchini/noflo-draggabilly) for drag-and-drop handling in the browser
+* [noflo-interpolator](https://github.com/d4tocchini/noflo-interpolator) for arbitrary value interpolation
 
 Development tools:
 
