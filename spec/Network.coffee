@@ -79,3 +79,64 @@ describe 'Network with a simple graph', ->
 
     chai.expect(n.initials).not.to.be.empty
     n.sendInitials()
+
+describe "Nodes are added first, then edges, then initializers (i.e. IIPs), and in order of definition order within each", ->
+  g = null
+  n = null
+  stubbed = {}
+  actual = []
+  expected = []
+
+  # Poor man's way of stubbing the Network. Investigate using
+  # [sinon-chai](https://github.com/domenic/sinon-chai) when we need stubbing
+  # for other parts of testing as well.
+  stub = ->
+    stubbed.addNode = noflo.Network::addNode
+    stubbed.addEdge = noflo.Network::addEdge
+    stubbed.addInitial = noflo.Network::addInitial
+
+    # Record the node/edge/initial and pass it along
+    noflo.Network::addNode = (node, cb) ->
+      actual.push node
+      stubbed.addNode.call this, node, cb
+    noflo.Network::addEdge = (edge, cb) ->
+      actual.push edge
+      stubbed.addEdge.call this, edge, cb
+    noflo.Network::addInitial = (initial, cb) ->
+      actual.push initial
+      stubbed.addInitial.call this, initial, cb
+
+  # Clean up after ourselves
+  restore = ->
+    noflo.Network::addNode = stubbed.addNode
+    noflo.Network::addEdge = stubbed.addEdge
+    noflo.Network::addInitial = stubbed.addInitial
+
+  before (done) ->
+    stub()
+
+    g = new noflo.Graph
+    g.baseDir = root
+    # Save the nodes/edges/initial for order testing later. The index numbers
+    # are the expected positions.
+    expected[0] = g.addNode "D", "Callback"
+    expected[10] = g.addInitial (->), "D", "callback"
+    expected[1] = g.addNode "A", "Split"
+    expected[11] = g.addInitial "Hello", "A", "in"
+    expected[2] = g.addNode "B1", "Merge"
+    expected[5] = g.addEdge "A", "out", "B1", "in"
+    expected[6] = g.addEdge "A", "out", "B2", "in"
+    expected[3] = g.addNode "B2", "Merge"
+    expected[4] = g.addNode "C", "Merge"
+    expected[7] = g.addEdge "B1", "out", "C", "in"
+    expected[12] = g.addInitial "World", "C", "in"
+    expected[8] = g.addEdge "B2", "out", "C", "in"
+    expected[9] = g.addEdge "C", "out", "D", "in"
+    noflo.createNetwork g, (nw) ->
+      n = nw
+      done()
+
+  after restore
+
+  it "should add nodes, edges, and initials, in that order", ->
+    chai.expect(actual).to.deep.equal expected
