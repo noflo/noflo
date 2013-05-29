@@ -83,11 +83,14 @@ Then just point your browser to [http://localhost:8003/](http://localhost:8003/)
 ## Terminology
 
 * Component: individual, pluggable and reusable piece of software. In this case a NoFlo-compatible CommonJS module
+* Component Library: an NPM module providing a set of components for a particular domain (for example, *noflo-fs* for file operations components)
 * Graph: the control logic of a FBP application, can be either in programmatical or file format
 * Inport: inbound port of a component
 * Network: collection of processes connected by sockets. A running version of a graph
 * Outport: outbound port of a component
-* Process: an instance of a component that is running as part of a graph
+* Process: an instance of a component that is running as part of a graph (also known as Node in non-live graphs)
+* Connection: connection between an outport of a Process, and inport of another Process (also known as Edge in non-live graphs)
+* Initial Information Packet: predefined data packet sent to a defined inport of a Process
 
 ## Components
 
