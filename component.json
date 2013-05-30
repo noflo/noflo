@@ -10,7 +10,8 @@
   "version": "0.3.3",
   "dependencies": {
     "component/emitter": "*",
-    "component/underscore": "*"
+    "component/underscore": "*",
+    "noflo/fbp": "*"
   },
   "development": {},
   "license": "MIT",

@@ -4,9 +4,9 @@
 if typeof process is 'object' and process.title is 'node'
   fs = require 'fs'
   {EventEmitter} = require 'events'
-  fbp = require 'fbp'
 else
   EventEmitter = require 'emitter'
+fbp = require 'fbp'
 
 # # NoFlo network graph
 #
