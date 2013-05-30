@@ -4,7 +4,7 @@
 if typeof process is 'object' and process.title is 'node'
   fs = require 'fs'
   {EventEmitter} = require 'events'
-  fbp = require './Fbp'
+  fbp = require 'fbp'
 else
   EventEmitter = require 'emitter'
 
@@ -293,6 +293,5 @@ exports.loadFile = (file, success) ->
     exports.loadJSON definition, success
 
 exports.loadFBP = (fbpData, success) ->
-  parser = new fbp.Fbp
-  definition = parser.parse fbpData
+  definition = fbp.parse fbpData
   exports.loadJSON definition, success

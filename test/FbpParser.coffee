@@ -2,7 +2,7 @@ noflo = require "../lib/NoFlo"
 
 exports["test simple FBP file"] = (test) ->
     fbpData = """
-    'somefile.txt' -> SOURCE Read(Readfile) OUT -> In Display(Output)
+    'somefile.txt' -> SOURCE Read(ReadFile) OUT -> IN Display(Output)
     """
 
     noflo.graph.loadFBP fbpData, (graph) ->
