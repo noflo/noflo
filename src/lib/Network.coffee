@@ -22,13 +22,25 @@ else
 # components, attach sockets between them, and handle the sending
 # of Initial Information Packets.
 class Network extends EventEmitter
+  # Processes contains all the instantiated components for this network
   processes: {}
+  # Connections contains all the socket connections in the network
   connections: []
+  # Initials contains all Initial Information Packets (IIPs)
   initials: []
+  # The Graph this network is instantiated with
   graph: null
+  # Start-up timestamp for the network, used for calculating uptime
   startupDate: null
   portBuffer: {}
 
+  # All NoFlo networks are instantiated with a graph. Upon instantiation
+  # they will load all the needed components, instantiate them, and
+  # set up the defined connections and IIPs.
+  #
+  # The network will also listen to graph changes and modify itself
+  # accordingly, including removing connections, adding new nodes,
+  # and sending new IIPs.
   constructor: (graph) ->
     @processes = {}
     @connections = []
@@ -36,8 +48,12 @@ class Network extends EventEmitter
     @graph = graph
 
     if typeof process is 'object' and process.title is 'node'
+      # On Node.js we default the baseDir for component loading to
+      # the current working directory
       @baseDir = graph.baseDir or process.cwd()
     else
+      # On browser we default the baseDir to the Component loading
+      # root
       @baseDir = graph.baseDir or '/'
 
     # As most NoFlo networks are long-running processes, the
