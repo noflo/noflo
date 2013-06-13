@@ -306,7 +306,10 @@ The NoFlo JSON files declare the processes used in the FBP graph, and the connec
     },
     "processes": {
         "Read File": {
-            "component": "ReadFile"
+            "component": "ReadFile",
+            "metadata": {
+                ...
+            }
         },
         "Split by Lines": {
             "component": "SplitStr"

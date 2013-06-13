@@ -5,30 +5,38 @@
     "processes": {
         "ReadFile": {
             "component": "ReadFile",
-            "display": {
-                "x": 91,
-                "y": 154
+            "metadata": {
+                "display": {
+                    "x": 91,
+                    "y": 154
+                }
             }
         },
         "SplitbyLines": {
             "component": "SplitStr",
-            "display": {
-                "x": 209,
-                "y": 414
+            "metadata": {
+                "display": {
+                    "x": 209,
+                    "y": 414
+                }
             }
         },
         "CountLines": {
             "component": "Counter",
-            "display": {
-                "x": 206,
-                "y": 750
+            "metadata": {
+                "display": {
+                    "x": 206,
+                    "y": 750
+                }
             }
         },
         "Display": {
             "component": "Output",
-            "display": {
-                "x": 71,
-                "y": 1003
+            "metadata": {
+                "display": {
+                    "x": 71,
+                    "y": 1003
+                }
             }
         }
     },

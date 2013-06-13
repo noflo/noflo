@@ -23,6 +23,11 @@ Development tools:
 
 * [Grunt scaffold](https://github.com/bergie/grunt-init-noflo) for easily creating NoFlo component packages including cross-platform test automation
 
+File format support:
+
+* NoFlo's internal FBP parser was removed in favor of the [fbp](https://github.com/noflo/fbp) package
+* The `display` property of nodes in the [JSON format](https://github.com/bergie/noflo#noflo-graph-file-format) was removed in favor of the more flexible `metadata` object
+
 ## 0.3.3 (April 9th 2013)
 
 Development:
