@@ -62,7 +62,6 @@ class Graph extends EventEmitter
       id: id
       component: component
       metadata: metadata
-    node.display = metadata.display if metadata.display
     @nodes.push node
     @emit 'addNode', node
     node
@@ -211,11 +210,12 @@ class Graph extends EventEmitter
 
   toJSON: ->
     json =
-      properties:
-        name: @name
+      properties: {}
       exports: []
       processes: {}
       connections: []
+
+    json.properties.name = @name if @name
 
     for exported in @exports
       json.exports.push
@@ -225,8 +225,8 @@ class Graph extends EventEmitter
     for node in @nodes
       json.processes[node.id] =
         component: node.component
-      if node.display
-        json.processes[node.id].display = node.display
+      if node.metadata
+        json.processes[node.id].metadata = node.metadata
 
     for edge in @edges
       json.connections.push
@@ -265,9 +265,7 @@ exports.loadJSON = (definition, success) ->
   graph = new Graph definition.properties.name
 
   for id, def of definition.processes
-    if def.display
-      def.metadata = {} unless def.metadata
-      def.metadata.display = def.display
+    def.metadata = {} unless def.metadata
     graph.addNode id, def.component, def.metadata
 
   for conn in definition.connections
