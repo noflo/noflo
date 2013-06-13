@@ -81,15 +81,15 @@ describe 'Graph', ->
           component: 'Baz'
       connections: [
         src:
-          data: 'Hello, world!'
-        tgt:
-          process: 'Foo'
-          port: 'in'
-        src:
           process: 'Foo'
           port: 'out'
         tgt:
           process: 'Bar'
+          port: 'in'
+      ,
+        data: 'Hello, world!'
+        tgt:
+          process: 'Foo'
           port: 'in'
       ]
     g = null
@@ -110,5 +110,9 @@ describe 'Graph', ->
       chai.expect(node.metadata.routes).to.contain 'two'
     it 'should contain one connection', ->
       chai.expect(g.edges.length).to.equal 1
+    it 'should contain one IIP', ->
+      chai.expect(g.initializers.length).to.equal 1
+    it 'should contain no exports', ->
+      chai.expect(g.exports.length).to.equal 0
     it 'should produce same JSON when serialized', ->
       chai.expect(g.toJSON()).to.eql json
