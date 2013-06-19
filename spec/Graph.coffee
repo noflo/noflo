@@ -137,3 +137,33 @@ describe 'Graph', ->
         for edge in g.initializers
           iip = edge if edge.to.node is 'Baz'
         chai.expect(iip).to.be.an 'object'
+
+  describe 'with multiple connected ArrayPorts', ->
+    g = new graph.Graph
+    g.addNode 'Split1', 'Split'
+    g.addNode 'Split2', 'Split'
+    g.addNode 'Merge1', 'Merge'
+    g.addNode 'Merge2', 'Merge'
+    g.addEdge 'Split1', 'out', 'Merge1', 'in'
+    g.addEdge 'Split1', 'out', 'Merge2', 'in'
+    g.addEdge 'Split2', 'out', 'Merge1', 'in'
+    g.addEdge 'Split2', 'out', 'Merge2', 'in'
+    it 'should contain four nodes', ->
+      chai.expect(g.nodes.length).to.equal 4
+    it 'should contain four edges', ->
+      chai.expect(g.edges.length).to.equal 4
+    it 'should allow a specific edge to be removed', ->
+      g.removeEdge 'Split1', 'out', 'Merge2', 'in'
+      chai.expect(g.edges.length).to.equal 3
+    it 'shouldn\'t contain the removed connection from Split1', ->
+      connection = null
+      for edge in g.edges
+        if edge.from.node is 'Split1' and edge.to.node is 'Merge2'
+          connection = edge
+      chai.expect(connection).to.be.null
+    it 'should still contain the other connection from Split1', ->
+      connection = null
+      for edge in g.edges
+        if edge.from.node is 'Split1' and edge.to.node is 'Merge1'
+          connection = edge
+      chai.expect(connection).to.be.an 'object'
