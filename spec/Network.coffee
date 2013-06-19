@@ -80,6 +80,15 @@ describe 'Network with a simple graph', ->
     chai.expect(n.initials).not.to.be.empty
     n.sendInitials()
 
+  describe 'with a renamed node', ->
+    it 'should have the process in a new location', (done) ->
+      g.once 'renameNode', ->
+        chai.expect(n.processes.Func).to.be.an 'object'
+        done()
+      g.renameNode 'Callback', 'Func'
+    it 'shouldn\'t have the process in the old location', ->
+      chai.expect(n.processes.Callback).to.be.undefined
+
 describe "Nodes are added first, then edges, then initializers (i.e. IIPs), and in order of definition order within each", ->
   g = null
   n = null

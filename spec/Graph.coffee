@@ -116,3 +116,24 @@ describe 'Graph', ->
       chai.expect(g.exports.length).to.equal 0
     it 'should produce same JSON when serialized', ->
       chai.expect(g.toJSON()).to.eql json
+    describe 'renaming a node', ->
+      it 'should emit an event', (done) ->
+        g.once 'renameNode', (oldId, newId) ->
+          chai.expect(oldId).to.equal 'Foo'
+          chai.expect(newId).to.equal 'Baz'
+          done()
+        g.renameNode 'Foo', 'Baz'
+      it 'should be available with the new name', ->
+        chai.expect(g.getNode('Baz')).to.be.an 'object'
+      it 'shouldn\'t be available with the old name', ->
+        chai.expect(g.getNode('Foo')).to.be.null
+      it 'should have the edge still going from it', ->
+        connection = null
+        for edge in g.edges
+          connection = edge if edge.from.node is 'Baz'
+        chai.expect(connection).to.be.an 'object'
+      it 'should have the IIP still going to it', ->
+        iip = null
+        for edge in g.initializers
+          iip = edge if edge.to.node is 'Baz'
+        chai.expect(iip).to.be.an 'object'

@@ -72,6 +72,8 @@ class Network extends EventEmitter
       @addNode node
     @graph.on 'removeNode', (node) =>
       @removeNode node
+    @graph.on 'renameNode', (oldId, newId) =>
+      @renameNode oldId, newId
     @graph.on 'addEdge', (edge) =>
       @addEdge edge
     @graph.on 'removeEdge', (edge) =>
@@ -164,6 +166,13 @@ class Network extends EventEmitter
     # TODO: Check for existing edges with this node
 
     delete @processes[node.id]
+
+  renameNode: (oldId, newId) ->
+    process = @getNode oldId
+    return unless process
+    process.id = newId
+    @processes[newId] = process
+    delete @processes[oldId]
 
   # Get process by its ID.
   getNode: (id) ->

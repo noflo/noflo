@@ -103,6 +103,26 @@ class Graph extends EventEmitter
       return node if node.id is id
     return null
 
+  # ## Renaming a node
+  #
+  # Nodes IDs can be changed by calling this method.
+  renameNode: (oldId, newId) ->
+    node = @getNode oldId
+    return unless node
+    node.id = newId
+
+    for edge in @edges
+      if edge.from.node is oldId
+        edge.from.node = newId
+      if edge.to.node is oldId
+        edge.to.node = newId
+
+    for iip in @initializers
+      if iip.to.node is oldId
+        iip.to.node = newId
+
+    @emit 'renameNode', oldId, newId
+
   # ## Connecting nodes
   #
   # Nodes can be connected by adding edges between a node's outport
