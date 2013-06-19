@@ -78,6 +78,8 @@ class Network extends EventEmitter
       @addEdge edge
     @graph.on 'removeEdge', (edge) =>
       @removeEdge edge
+    @graph.on 'addInitial', (iip) =>
+      @addInitial iip
 
     # Initialize a Component Loader for the network
     @loader = new componentLoader.ComponentLoader @baseDir

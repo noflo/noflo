@@ -28,6 +28,11 @@ File format support:
 * NoFlo's internal FBP parser was removed in favor of the [fbp](https://github.com/noflo/fbp) package
 * The `display` property of nodes in the [JSON format](https://github.com/bergie/noflo#noflo-graph-file-format) was removed in favor of the more flexible `metadata` object
 
+Internals:
+
+* Support for renaming nodes in a NoFlo graph via the `renameNode` method
+* Adding IIPs to a graph will now emit a `addInitial` event instead of an `addEdge` event
+
 ## 0.3.3 (April 9th 2013)
 
 Development:

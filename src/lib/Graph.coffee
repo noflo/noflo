@@ -183,7 +183,7 @@ class Graph extends EventEmitter
   #
   #     myGraph.addInitial 'somefile.txt', 'Read', 'source'
   #
-  # Adding an IIP will emit a `addEdge` event.
+  # Adding an IIP will emit a `addInitial` event.
   addInitial: (data, node, port, metadata) ->
     initializer =
       from:
@@ -193,7 +193,7 @@ class Graph extends EventEmitter
         port: port
       metadata: metadata
     @initializers.push initializer
-    @emit 'addEdge', initializer
+    @emit 'addInitial', initializer
     initializer
 
   toDOT: ->
