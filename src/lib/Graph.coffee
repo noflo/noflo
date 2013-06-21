@@ -172,12 +172,6 @@ class Graph extends EventEmitter
         @emit 'removeEdge', edge
         @edges.splice index, 1
 
-    for edge,index in @initializers
-      continue unless edge
-      if edge.to.node is node and edge.to.port is port
-        @emit 'removeEdge', edge
-        @initializers.splice index, 1
-
   # ## Adding Initial Information Packets
   #
   # Initial Information Packets (IIPs) can be used for sending data
@@ -201,6 +195,20 @@ class Graph extends EventEmitter
     @initializers.push initializer
     @emit 'addInitial', initializer
     initializer
+
+  # ## Removing Initial Information Packets
+  #
+  # IIPs can be removed by calling the `removeInitial` method.
+  #
+  #     myGraph.removeInitial 'Read', 'source'
+  #
+  # Remove an IIP will emit a `removeInitial` event.
+  removeInitial: (node, port) ->
+    for edge, index in @initializers
+      continue unless edge
+      if edge.to.node is node and edge.to.port is port
+        @emit 'removeInitial', edge
+        @initializers.splice index, 1
 
   toDOT: ->
     cleanID = (id) ->

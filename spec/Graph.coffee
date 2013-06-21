@@ -167,3 +167,24 @@ describe 'Graph', ->
         if edge.from.node is 'Split1' and edge.to.node is 'Merge1'
           connection = edge
       chai.expect(connection).to.be.an 'object'
+
+  describe 'with an Initial Information Packet', ->
+    g = new graph.Graph
+    g.addNode 'Split', 'Split'
+    g.addInitial 'Foo', 'Split', 'in'
+    it 'should contain one node', ->
+      chai.expect(g.nodes.length).to.equal 1
+    it 'should contain no edges', ->
+      chai.expect(g.edges.length).to.equal 0
+    it 'should contain one IIP', ->
+      chai.expect(g.initializers.length).to.equal 1
+    describe 'on removing that IIP', ->
+      it 'should emit a removeInitial event', (done) ->
+        g.once 'removeInitial', (iip) ->
+          chai.expect(iip.from.data).to.equal 'Foo'
+          chai.expect(iip.to.node).to.equal 'Split'
+          chai.expect(iip.to.port).to.equal 'in'
+          done()
+        g.removeInitial 'Split', 'in'
+      it 'should contain no IIPs', ->
+        chai.expect(g.initializers.length).to.equal 0

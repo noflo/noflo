@@ -149,3 +149,42 @@ describe "Nodes are added first, then edges, then initializers (i.e. IIPs), and 
 
   it "should add nodes, edges, and initials, in that order", ->
     chai.expect(actual).to.deep.equal expected
+
+describe 'Network with an existing IIP', ->
+  g = null
+  n = null
+  before ->
+    g = new noflo.Graph
+    g.baseDir = root
+    g.addNode 'Callback', 'Callback'
+    g.addNode 'Repeat', 'Repeat'
+    g.addEdge 'Repeat', 'out', 'Callback', 'in'
+  it 'should call the Callback with the original IIP value', (done) ->
+    cb = (packet) ->
+      chai.expect(packet).to.equal 'Foo'
+      done()
+    g.addInitial cb, 'Callback', 'callback'
+    g.addInitial 'Foo', 'Repeat', 'in'
+    setTimeout ->
+      noflo.createNetwork g, (nw) ->
+        n = nw
+    , 10
+  it 'should allow removing the IIPs', (done) ->
+    removed = 0
+    onRemove = ->
+      removed++
+      return if removed < 2
+      chai.expect(n.initials.length).to.equal 0, 'No IIPs left'
+      chai.expect(n.connections.length).to.equal 1, 'Only one connection'
+      g.removeListener 'removeInitial', onRemove
+      done()
+    g.on 'removeInitial', onRemove
+    g.removeInitial 'Callback', 'callback'
+    g.removeInitial 'Repeat', 'in'
+  it 'new IIPs to replace original ones should work correctly', (done) ->
+    cb = (packet) ->
+      chai.expect(packet).to.equal 'Baz'
+      done()
+    g.addInitial cb, 'Callback', 'callback'
+    g.addInitial 'Baz', 'Repeat', 'in'
+    n.sendInitials()

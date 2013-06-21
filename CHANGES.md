@@ -33,6 +33,7 @@ Internals:
 * Support for renaming nodes in a NoFlo graph via the `renameNode` method
 * Adding IIPs to a graph will now emit a `addInitial` event instead of an `addEdge` event
 * Graph's `removeEdge` method allows specifying both ends of the connection to prevent ambiguity
+* IIPs can now be removed using the `removeInitial` method, which fires a `removeInitial` event instead of `removeEdge`
 
 ## 0.3.3 (April 9th 2013)
 

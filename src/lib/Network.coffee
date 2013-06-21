@@ -80,6 +80,8 @@ class Network extends EventEmitter
       @removeEdge edge
     @graph.on 'addInitial', (iip) =>
       @addInitial iip
+    @graph.on 'removeInitial', (iip) =>
+      @removeInitial iip
 
     # Initialize a Component Loader for the network
     @loader = new componentLoader.ComponentLoader @baseDir
@@ -269,7 +271,6 @@ class Network extends EventEmitter
         socket: socket
 
   addEdge: (edge, callback) ->
-    return @addInitial(edge) unless edge.from.node
     socket = internalSocket.createSocket()
 
     from = @getNode edge.from.node
@@ -338,6 +339,13 @@ class Network extends EventEmitter
       data: initializer.from.data
 
     callback() if callback
+
+  removeInitial: (initializer) ->
+    for connection in @connections
+      continue unless connection
+      continue unless initializer.to.node is connection.to.process.id and initializer.to.port is connection.to.port
+      connection.to.process.component.inPorts[connection.to.port].detach connection
+      @connections.splice @connections.indexOf(connection), 1
 
   sendInitial: (initial) ->
     initial.socket.connect()
