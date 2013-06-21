@@ -34,7 +34,8 @@
     "src/components/Split.coffee",
     "src/components/Merge.coffee",
     "src/components/Graph.coffee",
-    "src/components/Output.coffee"
+    "src/components/Output.coffee",
+    "src/components/Repeat.coffee"
   ],
   "json": [
     "component.json"
@@ -48,7 +49,8 @@
       "Split": "src/components/Split.js",
       "Merge": "src/components/Merge.js",
       "Graph": "src/components/Graph.js",
-      "Output": "src/components/Output.js"
+      "Output": "src/components/Output.js",
+      "Repeat": "src/components/Repeat.js"
     }
   }
 }

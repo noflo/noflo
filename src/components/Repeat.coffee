@@ -1,4 +1,7 @@
-noflo = require "../../lib/NoFlo"
+if typeof process is 'object' and process.title is 'node'
+  noflo = require "../../lib/NoFlo"
+else
+  noflo = require '../lib/NoFlo'
 
 class Repeat extends noflo.Component
 
