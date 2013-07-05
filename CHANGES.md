@@ -13,6 +13,10 @@ New core components:
 * _Gate_ forwards packets when the OPEN port has received data, and stops when CLOSE port has received data
 * _Spring_ calculates motion of a damped spring
 
+Changes to components:
+
+* Filesystem components were moved to [noflo-filesystem](https://npmjs.org/package/noflo-filesystem)
+
 New libraries:
 
 * [noflo-dom](https://github.com/bergie/noflo-dom) for working with the Document Object Model
