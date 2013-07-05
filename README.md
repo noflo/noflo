@@ -39,7 +39,7 @@ NoFlo is available from [GitHub](https://github.com/bergie/noflo) under the MIT 
 
 ## Changes
 
-Please refer to the [CHANGES.md document](https://github.com/bergie/noflo/blob/master/CHANGES.md).
+Please refer to the [Release Notes](https://github.com/bergie/noflo/releases) and the [CHANGES.md document](https://github.com/bergie/noflo/blob/master/CHANGES.md).
 
 ## Using NoFlo
 
