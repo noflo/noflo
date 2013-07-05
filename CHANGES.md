@@ -35,6 +35,12 @@ Internals:
 * Graph's `removeEdge` method allows specifying both ends of the connection to prevent ambiguity
 * IIPs can now be removed using the `removeInitial` method, which fires a `removeInitial` event instead of `removeEdge`
 
+## 0.3.4 (July 5th 2013)
+
+Internals:
+
+* New `LoggingComponent` base class for component libraries
+
 ## 0.3.3 (April 9th 2013)
 
 Development:
