@@ -9,6 +9,7 @@ port = require "./Port"
 arrayport = require "./ArrayPort"
 graph = require "./Graph"
 {Network} = require "./Network"
+{LoggingComponent} = require "./LoggingComponent"
 
 exports.createNetwork = (graph, callback) ->
   network = new Network graph
@@ -57,6 +58,7 @@ exports.saveFile = (graph, file, callback) ->
 exports.Component = component.Component
 exports.ComponentLoader = componentLoader.ComponentLoader
 exports.AsyncComponent = asynccomponent.AsyncComponent
+exports.LoggingComponent = LoggingComponent
 exports.Port = port.Port
 exports.ArrayPort = arrayport.ArrayPort
 exports.Graph = graph.Graph
