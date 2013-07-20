@@ -5,10 +5,12 @@ class CompileString extends noflo.Component
   constructor: ->
     @delimiter = "\n"
     @data = []
+    @onGroupEnd = true
 
     @inPorts =
       delimiter: new noflo.Port
       in: new noflo.ArrayPort
+      ongroup: new noflo.Port
     @outPorts =
       out: new noflo.Port
 
@@ -22,7 +24,7 @@ class CompileString extends noflo.Component
       @data.push data
 
     @inPorts.in.on 'endgroup', =>
-      @outPorts.out.send @data.join @delimiter if @data.length
+      @outPorts.out.send @data.join @delimiter if @data.length and @onGroupEnd
       @outPorts.out.endGroup()
       @data = []
 
@@ -30,5 +32,14 @@ class CompileString extends noflo.Component
       @outPorts.out.send @data.join @delimiter if @data.length
       @data = []
       @outPorts.out.disconnect()
+
+    @inPorts.ongroup.on "data", (data) =>
+      if typeof data is 'string'
+        if data.toLowerCase() is 'false'
+          @onGroupEnd = false
+          return
+        @onGroupEnd = true
+        return
+      @onGroupEnd = data
 
 exports.getComponent = -> new CompileString
