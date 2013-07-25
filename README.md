@@ -1,4 +1,4 @@
-NoFlo: Flow-based programming for Node.js [![Build Status](https://secure.travis-ci.org/bergie/noflo.png?branch=master)](http://travis-ci.org/bergie/noflo)
+NoFlo: Flow-based programming for Node.js [![Build Status](https://secure.travis-ci.org/noflo/noflo.png?branch=master)](http://travis-ci.org/noflo/noflo)
 =========================================
 
 NoFlo is a simple [flow-based programming](http://en.wikipedia.org/wiki/Flow-based_programming) implementation for JavaScript running on both Node.js and the browser. From WikiPedia:
@@ -35,11 +35,11 @@ Then you can install everything needed by a simple:
 
     $ npm link
 
-NoFlo is available from [GitHub](https://github.com/bergie/noflo) under the MIT license.
+NoFlo is available from [GitHub](https://github.com/noflo/noflo) under the MIT license.
 
 ## Changes
 
-Please refer to the [Release Notes](https://github.com/bergie/noflo/releases) and the [CHANGES.md document](https://github.com/bergie/noflo/blob/master/CHANGES.md).
+Please refer to the [Release Notes](https://github.com/noflo/noflo/releases) and the [CHANGES.md document](https://github.com/noflo/noflo/blob/master/CHANGES.md).
 
 ## Using NoFlo
 
@@ -295,7 +295,7 @@ At the moment the monitor only displays the graph, showing the processes and con
 
 ## NoFlo graph file format
 
-In addition to using NoFlo in _embedded mode_ where you create the FBP graph programmatically ([see example](https://raw.github.com/bergie/noflo/master/examples/linecount/count.coffee)), you can also initialize and run graphs defined using a JSON file.
+In addition to using NoFlo in _embedded mode_ where you create the FBP graph programmatically ([see example](https://raw.github.com/noflo/noflo/master/examples/linecount/count.coffee)), you can also initialize and run graphs defined using a JSON file.
 
 The NoFlo JSON files declare the processes used in the FBP graph, and the connections between them. They look like the following:
 
@@ -384,7 +384,7 @@ The `.fbp` file suffix is used for files containing FBP language. This means you
 
 ## Development
 
-NoFlo development happens on GitHub. Just fork the [main repository](https://github.com/bergie/noflo), make modifications and send a pull request.
+NoFlo development happens on GitHub. Just fork the [main repository](https://github.com/noflo/noflo), make modifications and send a pull request.
 
 We have an extensive suite of tests available for NoFlo. Run them with:
 

@@ -57,7 +57,7 @@
   "homepage": "http://noflojs.org/",
   "repository": {
     "type": "git",
-    "url": "git://github.com/bergie/noflo.git"
+    "url": "git://github.com/noflo/noflo.git"
   },
   "scripts": {
     "test": "./node_modules/.bin/grunt test"
