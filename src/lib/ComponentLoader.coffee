@@ -9,7 +9,7 @@ class ComponentLoader
     @components = null
     @checked = []
     @revalidate = false
-  
+
   getModulePrefix: (name) ->
     return '' unless name
     return '' if name is 'noflo'
@@ -47,15 +47,23 @@ class ComponentLoader
       @listComponents (components) =>
         @load name, callback
       return
-    unless @components[name]
-      throw new Error "Component #{name} not available"
-      return
+    component = @components[name]
+    unless component
+      # Try an alias
+      for componentName of @components
+        if componentName.split('/')[1] is name
+          component = @components[componentName]
+          break
+      unless component
+        # Failure to load
+        throw new Error "Component #{name} not available"
+        return
 
-    if @isGraph @components[name]
+    if @isGraph component
       process.nextTick =>
         @loadGraph name, callback
       return
-    implementation = require @components[name]
+    implementation = require component
     instance = implementation.getComponent()
     instance.baseDir = @baseDir if name is 'Graph'
     callback instance
