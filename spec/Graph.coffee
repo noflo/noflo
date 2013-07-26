@@ -86,6 +86,8 @@ describe 'Graph', ->
         tgt:
           process: 'Bar'
           port: 'in'
+        metadata:
+          route: 'foo'
       ,
         data: 'Hello, world!'
         tgt:
@@ -102,6 +104,7 @@ describe 'Graph', ->
       chai.expect(g.nodes.length).to.equal 2
     it 'the first Node should have its metadata intact', ->
       node = g.getNode 'Foo'
+      chai.expect(node.metadata).to.be.an 'object'
       chai.expect(node.metadata.display).to.be.an 'object'
       chai.expect(node.metadata.display.x).to.equal 100
       chai.expect(node.metadata.display.y).to.equal 200
@@ -110,6 +113,10 @@ describe 'Graph', ->
       chai.expect(node.metadata.routes).to.contain 'two'
     it 'should contain one connection', ->
       chai.expect(g.edges.length).to.equal 1
+    it 'the first Edge should have its metadata intact', ->
+      edge = g.edges[0]
+      chai.expect(edge.metadata).to.be.an 'object'
+      chai.expect(edge.metadata.route).equal 'foo'
     it 'should contain one IIP', ->
       chai.expect(g.initializers.length).to.equal 1
     it 'should contain no exports', ->

@@ -131,7 +131,8 @@ class Graph extends EventEmitter
   #     myGraph.addEdge 'Read', 'out', 'Display', 'in'
   #
   # Adding an edge will emit the `addEdge` event.
-  addEdge: (outNode, outPort, inNode, inPort) ->
+  addEdge: (outNode, outPort, inNode, inPort, metadata) ->
+    metadata = {} unless metadata
     edge =
       from:
         node: outNode
@@ -139,6 +140,7 @@ class Graph extends EventEmitter
       to:
         node: inNode
         port: inPort
+      metadata: metadata
     @edges.push edge
     @emit 'addEdge', edge
     edge
@@ -263,13 +265,15 @@ class Graph extends EventEmitter
         json.processes[node.id].metadata = node.metadata
 
     for edge in @edges
-      json.connections.push
+      connection =
         src:
           process: edge.from.node
           port: edge.from.port
         tgt:
           process: edge.to.node
           port: edge.to.port
+      connection.metadata = edge.metadata if Object.keys(edge.metadata).length
+      json.connections.push connection
 
     for initializer in @initializers
       json.connections.push
@@ -306,7 +310,8 @@ exports.loadJSON = (definition, success) ->
     if conn.data isnt undefined
       graph.addInitial conn.data, conn.tgt.process, conn.tgt.port.toLowerCase()
       continue
-    graph.addEdge conn.src.process, conn.src.port.toLowerCase(), conn.tgt.process, conn.tgt.port.toLowerCase()
+    metadata = if conn.metadata then conn.metadata else {}
+    graph.addEdge conn.src.process, conn.src.port.toLowerCase(), conn.tgt.process, conn.tgt.port.toLowerCase(), metadata
 
   if definition.exports
     for exported in definition.exports
