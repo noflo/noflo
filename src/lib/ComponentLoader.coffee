@@ -31,7 +31,7 @@ class ComponentLoader
 
     prefix = @getModulePrefix definition.name
     if moduleName[0] is '/'
-      moduleName.substr 1
+      moduleName = moduleName.substr 1
     if definition.noflo.components
       for name, cPath of definition.noflo.components
         @registerComponent prefix, name, "/#{moduleName}/#{cPath}"
