@@ -319,7 +319,19 @@ exports.loadJSON = (definition, success) ->
 
   success graph
 
+exports.loadFBP = (fbpData, success) ->
+  definition = fbp.parse fbpData
+  exports.loadJSON definition, success
+
 exports.loadFile = (file, success) ->
+  unless typeof process is 'object' and process.title is 'node'
+    try
+      definition = require file
+      exports.loadJSON definition, success
+    catch e
+      # TODO: Try AJAX GET
+      throw new Error "Failed to load graph #{file}"
+    return
   fs.readFile file, "utf-8", (err, data) ->
     throw err if err
 
@@ -328,7 +340,3 @@ exports.loadFile = (file, success) ->
 
     definition = JSON.parse data
     exports.loadJSON definition, success
-
-exports.loadFBP = (fbpData, success) ->
-  definition = fbp.parse fbpData
-  exports.loadJSON definition, success
