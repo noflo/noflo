@@ -97,6 +97,7 @@ class ComponentLoader
     graphSocket.send @components[name]
     graphSocket.disconnect()
     delete graph.inPorts.graph
+    delete graph.inPorts.start
     callback graph
 
   registerComponent: (packageId, name, cPath, callback) ->
