@@ -94,17 +94,6 @@ class ComponentLoader extends loader.ComponentLoader
         @components[name] = cPath for name, cPath of components
         done()
 
-  loadGraph: (name, callback) ->
-    graphImplementation = require @components['Graph']
-    graphSocket = internalSocket.createSocket()
-    graph = graphImplementation.getComponent()
-    graph.baseDir = @baseDir
-    graph.inPorts.graph.attach graphSocket
-    graphSocket.send @components[name]
-    graphSocket.disconnect()
-    delete graph.inPorts.graph
-    callback graph
-
   getPackagePath: (packageId, callback) ->
     found = null
     seen = []
