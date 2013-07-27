@@ -23,26 +23,21 @@ describe 'ComponentLoader with no external packages installed', ->
       chai.expect(components).to.equal l.components
       done()
 
-  it 'should have the Split component registered', ->
-    chai.expect(l.components.Split).not.to.be.empty
+  it 'should have the Graph component registered', ->
+    chai.expect(l.components.Graph).not.to.be.empty
 
-  describe 'loading the Split component', ->
+  describe 'loading the Graph component', ->
     instance = null
     it 'should be able to load the component', (done) ->
-      l.load 'Split', (split) ->
+      l.load 'Graph', (split) ->
         chai.expect(split).to.be.an 'object'
         instance = split
         done()
     it 'should contain input ports', ->
       chai.expect(instance.inPorts).to.be.an 'object'
-      chai.expect(instance.inPorts.in).to.be.an 'object'
+      chai.expect(instance.inPorts.graph).to.be.an 'object'
     it 'should have "on" method on the input port', ->
-      chai.expect(instance.inPorts.in.on).to.be.a 'function'
-    it 'should contain output ports', ->
-      chai.expect(instance.outPorts).to.be.an 'object'
-      chai.expect(instance.outPorts.out).to.be.an 'object'
-    it 'should have "send" method on the output port', ->
-      chai.expect(instance.outPorts.out.send).to.be.a 'function'
+      chai.expect(instance.inPorts.graph.on).to.be.a 'function'
 
   describe 'loading the Graph component', ->
     instance = null

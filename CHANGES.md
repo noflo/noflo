@@ -38,6 +38,7 @@ Internals:
 * Adding IIPs to a graph will now emit a `addInitial` event instead of an `addEdge` event
 * Graph's `removeEdge` method allows specifying both ends of the connection to prevent ambiguity
 * IIPs can now be removed using the `removeInitial` method, which fires a `removeInitial` event instead of `removeEdge`
+* NoFlo Networks now support delayed starting
 
 ## 0.3.4 (July 5th 2013)
 

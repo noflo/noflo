@@ -63,8 +63,12 @@ class ComponentLoader
       process.nextTick =>
         @loadGraph name, callback
       return
-    implementation = require component
-    instance = implementation.getComponent()
+    if typeof component is 'function'
+      implementation = component
+      instance = new component
+    else
+      implementation = require component
+      instance = implementation.getComponent()
     instance.baseDir = @baseDir if name is 'Graph'
     callback instance
 

@@ -95,6 +95,7 @@ class ComponentLoader extends loader.ComponentLoader
         done()
 
   isGraph: (cPath) ->
+    return false unless typeof cPath is 'string'
     cPath.indexOf('.fbp') isnt -1 or cPath.indexOf('.json') isnt -1
 
   loadGraph: (name, callback) ->
@@ -145,6 +146,7 @@ class ComponentLoader extends loader.ComponentLoader
       fs.writeFile packageFile, packageData, callback
 
   registerComponent: (packageId, name, cPath, callback = ->) ->
+
     @readPackage packageId, (err, packageData) =>
       return callback err if err
       packageData.noflo = {} unless packageData.noflo

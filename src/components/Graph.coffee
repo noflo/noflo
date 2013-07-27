@@ -7,14 +7,25 @@ class Graph extends noflo.Component
   constructor: ->
     @network = null
     @ready = true
+    @started = false
     @baseDir = null
 
     @inPorts =
-      graph: new noflo.Port()
+      graph: new noflo.Port 'all'
+      start: new noflo.Port 'bang'
     @outPorts = {}
 
     @inPorts.graph.on "data", (data) =>
       @setGraph data
+    @inPorts.start.on "data", =>
+      @started = true
+      return unless @network
+      @network.connect =>
+        @network.sendInitials()
+        notReady = false
+        for name, process of @network.processes
+          notReady = true unless @checkComponent name, process
+        do @setToReady unless notReady
 
   setGraph: (graph) ->
     @ready = false
@@ -37,7 +48,13 @@ class Graph extends noflo.Component
       @createNetwork instance
 
   createNetwork: (graph) ->
+    if @inPorts.start.isAttached() and !@started
+      noflo.createNetwork graph, (@network) =>
+        @emit 'network', @network
+      , true
+      return
     noflo.createNetwork graph, (@network) =>
+      @emit 'network', @network
       notReady = false
       for name, process of @network.processes
         notReady = true unless @checkComponent name, process

@@ -72,8 +72,6 @@ module.exports = ->
       nodejs:
         src: ['spec/*.coffee']
         options:
-          grep: '@browser'
-          invert: true
           reporter: 'dot'
 
     # BDD tests on browser

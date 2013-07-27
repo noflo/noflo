@@ -27,30 +27,14 @@
     "src/lib/ComponentLoader.coffee",
     "src/lib/NoFlo.coffee",
     "src/lib/Network.coffee",
-    "src/components/Spring.coffee",
-    "src/components/Callback.coffee",
-    "src/components/Kick.coffee",
-    "src/components/Gate.coffee",
-    "src/components/Split.coffee",
-    "src/components/Merge.coffee",
-    "src/components/Graph.coffee",
-    "src/components/Output.coffee",
-    "src/components/Repeat.coffee"
+    "src/components/Graph.coffee"
   ],
   "json": [
     "component.json"
   ],
   "noflo": {
     "components": {
-      "Spring": "src/components/Spring.js",
-      "Callback": "src/components/Callback.js",
-      "Kick": "src/components/Kick.js",
-      "Gate": "src/components/Gate.js",
-      "Split": "src/components/Split.js",
-      "Merge": "src/components/Merge.js",
-      "Graph": "src/components/Graph.js",
-      "Output": "src/components/Output.js",
-      "Repeat": "src/components/Repeat.js"
+      "Graph": "src/components/Graph.js"
     }
   }
 }

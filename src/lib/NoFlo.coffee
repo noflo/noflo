@@ -15,7 +15,7 @@ if typeof process is 'object' and process.title is 'node'
 else
   componentLoader = require './ComponentLoader'
 
-exports.createNetwork = (graph, callback) ->
+exports.createNetwork = (graph, callback, delay) ->
   network = new Network graph
 
   networkReady = (network) ->
@@ -30,6 +30,9 @@ exports.createNetwork = (graph, callback) ->
 
   # Ensure components are loaded before continuing
   network.loader.listComponents ->
+    if delay
+      callback network if callback?
+      return
     network.connect ->
       networkReady network
 

@@ -44,6 +44,5 @@ exports['Read missing package data'] = (test) ->
 exports['Resolve path to a core component'] = (test) ->
   loader = new ComponentLoader projectRoot
   loader.listComponents (components) ->
-    test.ok components['Split']
-    test.ok components['Merge']
+    test.ok components['Graph']
     test.done()
