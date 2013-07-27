@@ -63,8 +63,14 @@ class ComponentLoader
         return
 
     if @isGraph component
-      process.nextTick =>
-        @loadGraph name, callback
+      if typeof process is 'object' and process.title is 'node'
+        # nextTick is faster on Node.js
+        process.nextTick =>
+          @loadGraph name, callback
+      else
+        setTimeout =>
+          @loadGraph name, callback
+        , 0
       return
     if typeof component is 'function'
       implementation = component
