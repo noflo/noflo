@@ -32,6 +32,9 @@ class ComponentLoader
     if definition.noflo.components
       for name, cPath of definition.noflo.components
         @registerComponent prefix, name, "/#{moduleName}/#{cPath}"
+    if definition.noflo.graphs
+      for name, cPath of definition.noflo.graphs
+        @registerComponent prefix, name, "/#{moduleName}/#{cPath}"
 
   listComponents: (callback) ->
     return callback @components unless @components is null
@@ -72,7 +75,9 @@ class ComponentLoader
     instance.baseDir = @baseDir if name is 'Graph'
     callback instance
 
-  isGraph: (cPath) -> false
+  isGraph: (cPath) ->
+    return false unless typeof cPath is 'string'
+    cPath.indexOf('.fbp') isnt -1 or cPath.indexOf('.json') isnt -1
 
   registerComponent: (packageId, name, cPath, callback) ->
     prefix = @getModulePrefix packageId

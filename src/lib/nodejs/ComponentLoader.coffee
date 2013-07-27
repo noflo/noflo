@@ -94,10 +94,6 @@ class ComponentLoader extends loader.ComponentLoader
         @components[name] = cPath for name, cPath of components
         done()
 
-  isGraph: (cPath) ->
-    return false unless typeof cPath is 'string'
-    cPath.indexOf('.fbp') isnt -1 or cPath.indexOf('.json') isnt -1
-
   loadGraph: (name, callback) ->
     graphImplementation = require @components['Graph']
     graphSocket = internalSocket.createSocket()
