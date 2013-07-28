@@ -1,8 +1,6 @@
 #     NoFlo - Flow-Based Programming for Node.js
 #     (c) 2011 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
-
-# # NoFlo
 #
 # NoFlo is a Flow-Based Programming environment for JavaScript. This file provides the
 # main entry point to the NoFlo network.
