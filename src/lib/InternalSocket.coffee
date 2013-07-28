@@ -6,7 +6,7 @@ if typeof process is 'object' and process.title is 'node'
 else
   EventEmitter = require 'emitter'
 
-# # Internal Sockets
+# ## Internal Sockets
 #
 # The default communications mechanism between NoFlo processes is
 # an _internal socket_, which is responsible for accepting information

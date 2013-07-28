@@ -1,3 +1,9 @@
+#     NoFlo - Flow-Based Programming for Node.js
+#     (c) 2011 Henri Bergius, Nemein
+#     NoFlo may be freely distributed under the MIT license
+#
+# ArrayPorts are similar to regular ports except that they're able to handle multiple
+# connections and even address them separately.
 port = require "./Port"
 
 class ArrayPort extends port.Port

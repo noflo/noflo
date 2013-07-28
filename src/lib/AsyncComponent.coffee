@@ -1,3 +1,9 @@
+#     NoFlo - Flow-Based Programming for Node.js
+#     (c) 2011 Henri Bergius, Nemein
+#     NoFlo may be freely distributed under the MIT license
+#
+# Baseclass for components dealing with asynchronous I/O operations. Supports
+# throttling.
 port = require "./Port"
 component = require "./Component"
 

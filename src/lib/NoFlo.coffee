@@ -23,14 +23,15 @@ exports.Network = require('./Network').Network
 #
 # The [ComponentLoader](ComponentLoader.html) is responsible for finding and loading
 # NoFlo components.
+#
+# Node.js version of the Component Loader finds components and graphs by traversing
+# the NPM dependency tree from a given root directory on the file system.
 if typeof process is 'object' and process.title is 'node'
-  # Node.js version of the Component Loader finds components and graphs by traversing
-  # the NPM dependency tree from a given root directory on the file system.
   exports.ComponentLoader = require('./nodejs/ComponentLoader').ComponentLoader
+# Browser version of the Component Loader finds components and graphs by traversing
+# the [Component](http://component.io/) dependency tree from a given Component package
+# name.
 else
-  # Browser version of the Component Loader finds components and graphs by traversing
-  # the [Component](http://component.io/) dependency tree from a given Component package
-  # name.
   exports.ComponentLoader = require('./ComponentLoader').ComponentLoader
 
 # ### Component baseclasses
@@ -79,8 +80,8 @@ exports.createNetwork = (graph, callback, delay) ->
     # Send IIPs
     network.sendInitials()
 
+  # Empty network, no need to connect it up
   if graph.nodes.length is 0
-    # Empty network, no need to connect it up
     setTimeout ->
       networkReady network
     , 0
@@ -88,13 +89,12 @@ exports.createNetwork = (graph, callback, delay) ->
 
   # Ensure components are loaded before continuing
   network.loader.listComponents ->
+    # In case of delayed execution we don't wire it up
     if delay
-      # In case of delayed execution we don't wire it up
       callback network if callback?
       return
     # Wire the network up
-    network.connect ->
-      networkReady network
+    network.connect -> networkReady network
 
   network
 

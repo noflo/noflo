@@ -1,3 +1,4 @@
+# Baseclass for components that need to write logs.
 { Component } = require "./Component"
 { Port } = require "./Port"
 if typeof process is 'object' and process.title is 'node'

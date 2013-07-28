@@ -1,3 +1,8 @@
+#     NoFlo - Flow-Based Programming for Node.js
+#     (c) 2011 Henri Bergius, Nemein
+#     NoFlo may be freely distributed under the MIT license
+#
+# NoFlo command shell.
 noflo_root = "#{__dirname}/.."
 noflo = require "./NoFlo"
 shell = require "shell"

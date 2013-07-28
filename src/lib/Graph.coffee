@@ -4,11 +4,12 @@
 #
 # NoFlo graphs are Event Emitters, providing signals when the graph
 # definition changes.
+#
+# On Node.js we use the build-in EventEmitter implementation
 if typeof process is 'object' and process.title is 'node'
-  # On Node.js we use the build-in EventEmitter implementation
   {EventEmitter} = require 'events'
+# On browser we use Component's EventEmitter implementation
 else
-  # On browser we use Component's EventEmitter implementation
   EventEmitter = require 'emitter'
 
 # This class represents an abstract NoFlo graph containing nodes

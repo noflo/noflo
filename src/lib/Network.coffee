@@ -47,13 +47,13 @@ class Network extends EventEmitter
     @initials = []
     @graph = graph
 
+    # On Node.js we default the baseDir for component loading to
+    # the current working directory
     if typeof process is 'object' and process.title is 'node'
-      # On Node.js we default the baseDir for component loading to
-      # the current working directory
       @baseDir = graph.baseDir or process.cwd()
+    # On browser we default the baseDir to the Component loading
+    # root
     else
-      # On browser we default the baseDir to the Component loading
-      # root
       @baseDir = graph.baseDir or '/'
 
     # As most NoFlo networks are long-running processes, the
@@ -97,6 +97,7 @@ class Network extends EventEmitter
     started = false
     ended = false
     timeOut = null
+    # Mark the network as started
     @on 'connect', (data) =>
       return unless data.socket.from
       clearTimeout timeOut if timeOut
@@ -105,11 +106,13 @@ class Network extends EventEmitter
           start: @startupDate
         started = true
       connections++
+    # Check all disconnections
     @on 'disconnect', (data) =>
       return unless data.socket.from
       connections--
       return unless connections <= 0
 
+      # Set a timeout to see if there are new packets. If not, mark the network as ended.
       timeOut = setTimeout =>
         return if ended
         @emit 'end',
@@ -148,12 +151,13 @@ class Network extends EventEmitter
     process =
       id: node.id
 
+    # No component defined, just register the process but don't start.
     unless node.component
       @processes[process.id] = process
       callback process if callback
       return
 
-    # Load the process for the node.
+    # Load the component for the process.
     @load node.component, (instance) =>
       instance.nodeId = node.id
       process.component = instance
@@ -166,9 +170,6 @@ class Network extends EventEmitter
 
   removeNode: (node) ->
     return unless @processes[node.id]
-
-    # TODO: Check for existing edges with this node
-
     delete @processes[node.id]
 
   renameNode: (oldId, newId) ->
