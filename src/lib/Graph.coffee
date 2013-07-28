@@ -1,15 +1,16 @@
 #     NoFlo - Flow-Based Programming for Node.js
 #     (c) 2011 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
+#
+# NoFlo graphs are Event Emitters, providing signals when the graph
+# definition changes.
 if typeof process is 'object' and process.title is 'node'
-  fs = require 'fs'
+  # On Node.js we use the build-in EventEmitter implementation
   {EventEmitter} = require 'events'
 else
+  # On browser we use Component's EventEmitter implementation
   EventEmitter = require 'emitter'
-fbp = require 'fbp'
 
-# # NoFlo network graph
-#
 # This class represents an abstract NoFlo graph containing nodes
 # connected to each other with edges.
 #
@@ -286,7 +287,7 @@ class Graph extends EventEmitter
 
   save: (file, success) ->
     json = JSON.stringify @toJSON(), null, 4
-    fs.writeFile "#{file}.json", json, "utf-8", (err, data) ->
+    require('fs').writeFile "#{file}.json", json, "utf-8", (err, data) ->
       throw err if err
       success file
 
@@ -320,7 +321,7 @@ exports.loadJSON = (definition, success) ->
   success graph
 
 exports.loadFBP = (fbpData, success) ->
-  definition = fbp.parse fbpData
+  definition = require('fbp').parse fbpData
   exports.loadJSON definition, success
 
 exports.loadFile = (file, success) ->
@@ -332,7 +333,7 @@ exports.loadFile = (file, success) ->
       # TODO: Try AJAX GET
       throw new Error "Failed to load graph #{file}"
     return
-  fs.readFile file, "utf-8", (err, data) ->
+  require('fs').readFile file, "utf-8", (err, data) ->
     throw err if err
 
     if file.split('.').pop() is 'fbp'

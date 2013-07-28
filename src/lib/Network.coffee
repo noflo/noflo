@@ -12,7 +12,7 @@ else
   componentLoader = require './ComponentLoader'
   EventEmitter = require 'emitter'
 
-# # The NoFlo network coordinator
+# ## The NoFlo network coordinator
 #
 # NoFlo networks consist of processes connected to each other
 # via sockets attached from outports to inports.
