@@ -81,12 +81,14 @@ class Graph extends EventEmitter
     node = @getNode id
 
     for edge in @edges
+      continue unless edge
       if edge.from.node is node.id
         @removeEdge edge.from.node, edge.from.port
       if edge.to.node is node.id
         @removeEdge edge.to.node, edge.to.port
 
     for initializer in @initializers
+      continue unless initializer
       if initializer.to.node is node.id
         @removeEdge initializer.to.node, initializer.to.port
 
@@ -102,6 +104,7 @@ class Graph extends EventEmitter
   #     myNode = myGraph.getNode 'Read'
   getNode: (id) ->
     for node in @nodes
+      continue unless node
       return node if node.id is id
     return null
 
@@ -114,12 +117,14 @@ class Graph extends EventEmitter
     node.id = newId
 
     for edge in @edges
+      continue unless edge
       if edge.from.node is oldId
         edge.from.node = newId
       if edge.to.node is oldId
         edge.to.node = newId
 
     for iip in @initializers
+      continue unless iip
       if iip.to.node is oldId
         iip.to.node = newId
 

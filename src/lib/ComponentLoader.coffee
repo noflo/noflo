@@ -62,7 +62,7 @@ class ComponentLoader
           break
       unless component
         # Failure to load
-        throw new Error "Component #{name} not available"
+        throw new Error "Component #{name} not available with base #{@baseDir}"
         return
 
     if @isGraph component

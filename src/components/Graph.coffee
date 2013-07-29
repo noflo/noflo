@@ -48,7 +48,7 @@ class Graph extends noflo.Component
       @createNetwork instance
 
   createNetwork: (graph) ->
-    if @inPorts.start.isAttached() and !@started
+    if @inPorts.start?.isAttached() and !@started
       noflo.createNetwork graph, (@network) =>
         @emit 'network', @network
       , true
