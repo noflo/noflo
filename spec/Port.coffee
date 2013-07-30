@@ -1,4 +1,4 @@
-if process and process.title and process.title.indexOf('node') isnt -1
+if process and process.execPath and process.execPath.indexOf('node') isnt -1
   chai = require 'chai' unless chai
   port = require '../src/lib/Port.coffee'
   socket = require '../src/lib/InternalSocket.coffee'

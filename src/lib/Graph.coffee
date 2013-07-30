@@ -6,7 +6,7 @@
 # definition changes.
 #
 # On Node.js we use the build-in EventEmitter implementation
-if process and process.title and process.title.indexOf('node') isnt -1
+if process and process.execPath and process.execPath.indexOf('node') isnt -1
   {EventEmitter} = require 'events'
 # On browser we use Component's EventEmitter implementation
 else

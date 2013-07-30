@@ -1,7 +1,7 @@
 #     NoFlo - Flow-Based Programming for Node.js
 #     (c) 2011 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
-if process and process.title and process.title.indexOf('node') isnt -1
+if process and process.execPath and process.execPath.indexOf('node') isnt -1
   {EventEmitter} = require 'events'
 else
   EventEmitter = require 'emitter'

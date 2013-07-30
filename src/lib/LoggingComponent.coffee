@@ -1,7 +1,7 @@
 # Baseclass for components that need to write logs.
 { Component } = require "./Component"
 { Port } = require "./Port"
-if process and process.title and process.title.indexOf('node') isnt -1
+if process and process.execPath and process.execPath.indexOf('node') isnt -1
   util = require "util"
 else
   util =

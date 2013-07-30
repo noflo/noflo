@@ -1,4 +1,4 @@
-if process and process.title and process.title.indexOf('node') isnt -1
+if process and process.execPath and process.execPath.indexOf('node') isnt -1
   chai = require 'chai' unless chai
   noflo = require '../src/lib/NoFlo.coffee'
   path = require 'path'
