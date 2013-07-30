@@ -331,7 +331,7 @@ exports.loadFBP = (fbpData, success) ->
   exports.loadJSON definition, success
 
 exports.loadFile = (file, success) ->
-  unless typeof process is 'object' and process.title is 'node'
+  unless process and process.execPath and process.execPath.indexOf('node') isnt -1
     try
       definition = require file
       exports.loadJSON definition, success
