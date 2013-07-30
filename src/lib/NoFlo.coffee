@@ -19,6 +19,15 @@ exports.Graph = exports.graph.Graph
 # [Network](Network.html) is used for running NoFlo graphs.
 exports.Network = require('./Network').Network
 
+# ### Platform detection
+#
+# NoFlo works on both Node.js and the browser. Because some dependencies are different,
+# we need a way to detect which we're on.
+exports.isBrowser = ->
+  if process and process.title and process.title.indexOf('node') isnt -1
+    return false
+  true
+
 # ### Component Loader
 #
 # The [ComponentLoader](ComponentLoader.html) is responsible for finding and loading
@@ -26,7 +35,7 @@ exports.Network = require('./Network').Network
 #
 # Node.js version of the Component Loader finds components and graphs by traversing
 # the NPM dependency tree from a given root directory on the file system.
-if process and process.title and process.title.indexOf('node') isnt -1
+unless exports.isBrowser()
   exports.ComponentLoader = require('./nodejs/ComponentLoader').ComponentLoader
 # Browser version of the Component Loader finds components and graphs by traversing
 # the [Component](http://component.io/) dependency tree from a given Component package
