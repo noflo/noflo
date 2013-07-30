@@ -101,7 +101,7 @@ class ComponentLoader extends loader.ComponentLoader
       return if seen.indexOf(packageData.name) isnt -1
       seen.push packageData.name
       if packageData.name is packageId
-        found = "#{packageData.realPath}/package.json"
+        found = path.resolve packageData.realPath, './package.json'
         return
       _.each packageData.dependencies, find
     reader @baseDir, (err, data) ->
