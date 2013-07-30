@@ -26,7 +26,7 @@ exports.Network = require('./Network').Network
 #
 # Node.js version of the Component Loader finds components and graphs by traversing
 # the NPM dependency tree from a given root directory on the file system.
-if typeof process is 'object' and process.title is 'node'
+if process and process.title and process.title.indexOf('node') isnt -1
   exports.ComponentLoader = require('./nodejs/ComponentLoader').ComponentLoader
 # Browser version of the Component Loader finds components and graphs by traversing
 # the [Component](http://component.io/) dependency tree from a given Component package

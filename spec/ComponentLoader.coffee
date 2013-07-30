@@ -1,4 +1,4 @@
-if typeof process is 'object' and process.title is 'node'
+if process and process.title and process.title.indexOf('node') isnt -1
   chai = require 'chai' unless chai
   loader = require '../src/lib/nodejs/ComponentLoader.coffee'
   path = require 'path'

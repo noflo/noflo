@@ -5,7 +5,7 @@ _ = require "underscore"
 internalSocket = require "./InternalSocket"
 graph = require "./Graph"
 
-if typeof process is 'object' and process.title is 'node'
+if process and process.title and process.title.indexOf('node') isnt -1
   componentLoader = require "./nodejs/ComponentLoader"
   {EventEmitter} = require 'events'
 else
@@ -49,7 +49,7 @@ class Network extends EventEmitter
 
     # On Node.js we default the baseDir for component loading to
     # the current working directory
-    if typeof process is 'object' and process.title is 'node'
+    if process and process.title and process.title.indexOf('node') isnt -1
       @baseDir = graph.baseDir or process.cwd()
     # On browser we default the baseDir to the Component loading
     # root
@@ -358,7 +358,7 @@ class Network extends EventEmitter
       @sendInitial initial for initial in @initials
       @initials = []
 
-    if typeof process is 'object' and process.title is 'node'
+    if process and process.title and process.title.indexOf('node') isnt -1
       # nextTick is faster on Node.js
       process.nextTick send
     else

@@ -6,7 +6,7 @@
 # definition changes.
 #
 # On Node.js we use the build-in EventEmitter implementation
-if typeof process is 'object' and process.title is 'node'
+if process and process.title and process.title.indexOf('node') isnt -1
   {EventEmitter} = require 'events'
 # On browser we use Component's EventEmitter implementation
 else

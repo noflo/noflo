@@ -3,7 +3,7 @@
 #     NoFlo may be freely distributed under the MIT license
 #
 # Baseclass for regular NoFlo components.
-if typeof process is 'object' and process.title is 'node'
+if process and process.title and process.title.indexOf('node') isnt -1
   {EventEmitter} = require 'events'
 else
   EventEmitter = require 'emitter'

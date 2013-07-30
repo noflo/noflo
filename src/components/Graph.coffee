@@ -1,4 +1,4 @@
-if typeof process is 'object' and process.title is 'node'
+if process and process.title and process.title.indexOf('node') isnt -1
   noflo = require "../../lib/NoFlo"
 else
   noflo = require '../lib/NoFlo'
@@ -84,7 +84,7 @@ class Graph extends noflo.Component
     return false
 
   setToReady: ->
-    if typeof process is 'object' and process.title is 'node'
+    if process and process.title and process.title.indexOf('node') isnt -1
       process.nextTick =>
         @ready = true
         @emit 'ready'
