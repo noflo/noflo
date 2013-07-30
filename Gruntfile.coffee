@@ -90,7 +90,13 @@ module.exports = ->
           max_line_length:
             value: 80
             level: 'warn'
-      components: ['src/components/*.coffee']
+      components:
+        files:
+          src: ['src/components/*.coffee']
+        options:
+          max_line_length:
+            value: 80
+            level: 'warn'
 
     # Release automation
     bumpup: ['package.json', 'component.json']
