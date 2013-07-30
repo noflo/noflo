@@ -4,8 +4,8 @@ projectRoot = path.resolve __dirname, '../'
 
 exports['Resolve root package path'] = (test) ->
   loader = new ComponentLoader projectRoot
-  loader.getPackagePath 'noflo', (err, path) ->
-    test.equal path, "#{projectRoot}/package.json"
+  loader.getPackagePath 'noflo', (err, p) ->
+    test.equal p, path.resolve projectRoot, "./package.json"
     test.done()
 
 exports['Resolve unregistered package path'] = (test) ->
