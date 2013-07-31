@@ -29,6 +29,7 @@ Internals:
 * IIPs can now be removed using the `removeInitial` method, which fires a `removeInitial` event instead of `removeEdge`
 * NoFlo Networks now support delayed starting
 * The `isBrowser` method on the main NoFlo interface tells whether NoFlo is running under browser or Node.js
+* Support for running under Node.js on Windows
 
 ## 0.3.4 (July 5th 2013)
 
