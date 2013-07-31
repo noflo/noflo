@@ -7,7 +7,7 @@
     "flow"
   ],
   "repo": "noflo/noflo",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "dependencies": {
     "component/emitter": "*",
     "component/underscore": "*",
