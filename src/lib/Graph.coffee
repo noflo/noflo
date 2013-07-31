@@ -337,7 +337,7 @@ exports.loadFile = (file, success) ->
       exports.loadJSON definition, success
     catch e
       # TODO: Try AJAX GET
-      throw new Error "Failed to load graph #{file}"
+      throw new Error "Failed to load graph #{file}: #{e.message}"
     return
   require('fs').readFile file, "utf-8", (err, data) ->
     throw err if err
