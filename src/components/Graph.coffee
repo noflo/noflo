@@ -1,4 +1,4 @@
-if process and process.execPath and process.execPath.indexOf('node') isnt -1
+if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
   noflo = require "../../lib/NoFlo"
 else
   noflo = require '../lib/NoFlo'
@@ -84,7 +84,7 @@ class Graph extends noflo.Component
     return false
 
   setToReady: ->
-    if process and process.execPath and process.execPath.indexOf('node') isnt -1
+    if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
       process.nextTick =>
         @ready = true
         @emit 'ready'

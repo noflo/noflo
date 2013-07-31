@@ -24,7 +24,7 @@ exports.Network = require('./Network').Network
 # NoFlo works on both Node.js and the browser. Because some dependencies are different,
 # we need a way to detect which we're on.
 exports.isBrowser = ->
-  if process and process.execPath and process.execPath.indexOf('node') isnt -1
+  if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
     return false
   true
 

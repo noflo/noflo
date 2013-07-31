@@ -60,7 +60,7 @@ class AsyncComponent extends component.Component
     @load--
     @outPorts.load.send @load if @outPorts.load.isAttached()
     @outPorts.load.disconnect() if @outPorts.load.isAttached()
-    if process and process.execPath and process.execPath.indexOf('node') isnt -1
+    if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
       # nextTick is faster than setTimeout on Node.js
       process.nextTick => @processQueue()
     else

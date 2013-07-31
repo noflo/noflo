@@ -1,4 +1,4 @@
-if process and process.execPath and process.execPath.indexOf('node') isnt -1
+if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
   chai = require 'chai' unless chai
   subgraph = require '../src/components/Graph.coffee'
   graph = require '../src/lib/Graph.coffee'

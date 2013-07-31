@@ -1,4 +1,4 @@
-if process and process.execPath and process.execPath.indexOf('node') isnt -1
+if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
   chai = require 'chai' unless chai
   acomponent = require '../src/lib/AsyncComponent.coffee'
   port = require '../src/lib/Port.coffee'

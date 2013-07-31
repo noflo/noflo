@@ -66,7 +66,7 @@ class ComponentLoader
         return
 
     if @isGraph component
-      if process and process.execPath and process.execPath.indexOf('node') isnt -1
+      if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
         # nextTick is faster on Node.js
         process.nextTick =>
           @loadGraph name, callback

@@ -6,7 +6,7 @@
 # definition changes.
 #
 # On Node.js we use the build-in EventEmitter implementation
-if process and process.execPath and process.execPath.indexOf('node') isnt -1
+if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
   {EventEmitter} = require 'events'
 # On browser we use Component's EventEmitter implementation
 else
@@ -331,7 +331,7 @@ exports.loadFBP = (fbpData, success) ->
   exports.loadJSON definition, success
 
 exports.loadFile = (file, success) ->
-  unless process and process.execPath and process.execPath.indexOf('node') isnt -1
+  unless typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
     try
       definition = require file
       exports.loadJSON definition, success
