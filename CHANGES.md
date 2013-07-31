@@ -1,27 +1,16 @@
 NoFlo ChangeLog
 ===============
 
-## 0.4.0 (git master)
+## 0.4.0 (July 31st 2013)
 
 Browser support:
 
 * The NoFlo engine has been made available client-side via the [Component](https://github.com/component/component) system
 * New BDD tests written with [Mocha](http://visionmedia.github.io/mocha/) that can be run on both browser and server
 
-New core components:
-
-* _Gate_ forwards packets when the OPEN port has received data, and stops when CLOSE port has received data
-* _Spring_ calculates motion of a damped spring
-
 Changes to components:
 
-* Filesystem components were moved to [noflo-filesystem](https://npmjs.org/package/noflo-filesystem)
-
-New libraries:
-
-* [noflo-dom](https://github.com/bergie/noflo-dom) for working with the Document Object Model
-* [noflo-draggabilly](https://github.com/d4tocchini/noflo-draggabilly) for drag-and-drop handling in the browser
-* [noflo-interpolator](https://github.com/d4tocchini/noflo-interpolator) for arbitrary value interpolation
+* All components have been moved to [various component libraries](http://noflojs.org/library/)
 
 Development tools:
 
@@ -39,6 +28,7 @@ Internals:
 * Graph's `removeEdge` method allows specifying both ends of the connection to prevent ambiguity
 * IIPs can now be removed using the `removeInitial` method, which fires a `removeInitial` event instead of `removeEdge`
 * NoFlo Networks now support delayed starting
+* The `isBrowser` method on the main NoFlo interface tells whether NoFlo is running under browser or Node.js
 
 ## 0.3.4 (July 5th 2013)
 
