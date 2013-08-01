@@ -1,0 +1,63 @@
+{
+    "name": "graph",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "properties": {
+            "type": "object",
+            "description": "User-defined properties attached to the graph."
+        },
+        "exports": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "private": {
+                        "type": "string",
+                        "description": "e.g. INTERNALPROCESS.PORT"
+                    },
+                    "public": {
+                        "type": "string",
+                        "description": "e.g. EXTERNALPORT"
+                    }
+                }
+            }
+        },
+        "processes": {
+            "type": "object",
+            "description": "This is a hash of package name (keys) and version constraints (values) that are required to run this package.",
+            "additionalProperties": true
+        },
+        "connections": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "src": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "process": { "type": "string" },
+                            "port": { "type": "string" }
+                        }
+                    },
+                    "tgt": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "process": { "type": "string" },
+                            "port": { "type": "string" }
+                        }
+                    },
+                    "data": {},
+                    "metadata": {
+                        "type": "object",
+                        "additionalProperties": true
+                    }
+                }
+            }
+        }
+    }
+}
