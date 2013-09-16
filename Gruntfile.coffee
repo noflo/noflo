@@ -90,6 +90,8 @@ module.exports = ->
           max_line_length:
             value: 80
             level: 'warn'
+          no_trailing_semicolons:
+            level: 'warn'
       components:
         files:
           src: ['src/components/*.coffee']

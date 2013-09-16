@@ -139,11 +139,22 @@ describe 'Graph', ->
         for edge in g.edges
           connection = edge if edge.from.node is 'Baz'
         chai.expect(connection).to.be.an 'object'
+      it 'shouldn\'t be have edges with the old name', ->
+        connection = null
+        for edge in g.edges
+          connection = edge if edge.from.node is 'Foo'
+          connection = edge if edge.to.node is 'Foo'
+        chai.expect(connection).to.be.a 'null'
       it 'should have the IIP still going to it', ->
         iip = null
         for edge in g.initializers
           iip = edge if edge.to.node is 'Baz'
         chai.expect(iip).to.be.an 'object'
+      it 'shouldn\'t have IIPs going to the old name', ->
+        iip = null
+        for edge in g.initializers
+          iip = edge if edge.to.node is 'foo'
+        chai.expect(iip).to.be.a 'null'
 
   describe 'with multiple connected ArrayPorts', ->
     g = new graph.Graph
