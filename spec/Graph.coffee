@@ -155,6 +155,23 @@ describe 'Graph', ->
         for edge in g.initializers
           iip = edge if edge.to.node is 'foo'
         chai.expect(iip).to.be.a 'null'
+    describe 'removing a node', ->
+      it 'should emit an event', (done) ->
+        g.once 'removeNode', (node) ->
+          chai.expect(node.id).to.equal 'Baz'
+          done()
+        g.removeNode 'Baz'
+      it 'shouldn\'t be have edges left behind', ->
+        connections = 0
+        for edge in g.edges
+          connections++ if edge.from.node is 'Baz'
+          connections++ if edge.to.node is 'Baz'
+        chai.expect(connections).to.equal 0
+      it 'shouldn\'t be have IIPs left behind', ->
+        connections = 0
+        for edge in g.initializers
+          connections++ if edge.to.node is 'Baz'
+        chai.expect(connections).to.equal 0
 
   describe 'with multiple connected ArrayPorts', ->
     g = new graph.Graph

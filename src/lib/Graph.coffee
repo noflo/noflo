@@ -90,7 +90,7 @@ class Graph extends EventEmitter
     for initializer in @initializers
       continue unless initializer
       if initializer.to.node is node.id
-        @removeEdge initializer.to.node, initializer.to.port
+        @removeInitial initializer.to.node, initializer.to.port
 
     @emit 'removeNode', node
 
