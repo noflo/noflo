@@ -17,4 +17,6 @@ class Component extends EventEmitter
 
   isSubgraph: -> false
 
+  shutdown: ->
+
 exports.Component = Component

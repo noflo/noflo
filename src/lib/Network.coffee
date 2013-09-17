@@ -172,6 +172,7 @@ class Network extends EventEmitter
 
   removeNode: (node) ->
     return unless @processes[node.id]
+    @processes[node.id].component.shutdown()
     delete @processes[node.id]
 
   renameNode: (oldId, newId) ->
