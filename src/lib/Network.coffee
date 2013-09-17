@@ -146,7 +146,9 @@ class Network extends EventEmitter
   addNode: (node, callback) ->
     # Processes are treated as singletons by their identifier. If
     # we already have a process with the given ID, return that.
-    return if @processes[node.id]
+    if @processes[node.id]
+      callback @processes[node.id] if callback
+      return
 
     process =
       id: node.id
