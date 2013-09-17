@@ -64,7 +64,10 @@ describe 'Graph', ->
 
   describe 'loaded from JSON', ->
     json =
-      properties: {}
+      properties:
+        name: 'Example'
+        foo: 'Baz'
+        bar: 'Foo'
       exports: []
       processes:
         Foo:
@@ -100,6 +103,12 @@ describe 'Graph', ->
         g = instance
         chai.expect(g).to.be.an 'object'
         done()
+    it 'should have a name', ->
+      chai.expect(g.name).to.equal 'Example'
+    it 'should have graph metadata intact', ->
+      chai.expect(g.properties).to.eql
+        foo: 'Baz'
+        bar: 'Foo'
     it 'should contain two nodes', ->
       chai.expect(g.nodes.length).to.equal 2
     it 'the first Node should have its metadata intact', ->

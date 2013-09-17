@@ -19,6 +19,7 @@ else
 # also are the way to start a NoFlo network.
 class Graph extends EventEmitter
   name: ''
+  properties: {}
   nodes: []
   edges: []
   initializers: []
@@ -31,6 +32,7 @@ class Graph extends EventEmitter
   #
   #     myGraph = new Graph 'My very cool graph'
   constructor: (@name = '') ->
+    @properties = {}
     @nodes = []
     @edges = []
     @initializers = []
@@ -258,6 +260,8 @@ class Graph extends EventEmitter
       processes: {}
       connections: []
 
+    for property, value of @properties
+      json.properties[property] = value
     json.properties.name = @name if @name
 
     for exported in @exports
@@ -308,6 +312,9 @@ exports.loadJSON = (definition, success) ->
   definition.connections = [] unless definition.connections
 
   graph = new Graph definition.properties.name
+  for property, value of definition.properties
+    continue if property is 'name'
+    graph.properties[property] = value
 
   for id, def of definition.processes
     def.metadata = {} unless def.metadata
