@@ -34,6 +34,8 @@ class ComponentLoader
       moduleName = moduleName.substr 1
     if definition.noflo.components
       for name, cPath of definition.noflo.components
+        if cPath.indexOf('.coffee') isnt -1
+          cPath = cPath.replace '.coffee', '.js'
         @registerComponent prefix, name, "/#{moduleName}/#{cPath}"
     if definition.noflo.graphs
       for name, cPath of definition.noflo.graphs
