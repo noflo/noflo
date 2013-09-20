@@ -94,10 +94,10 @@ class Graph extends EventEmitter
       if initializer.to.node is node.id
         @removeInitial initializer.to.node, initializer.to.port
 
-    @emit 'removeNode', node
-
     if -1 isnt @nodes.indexOf node
       @nodes.splice @nodes.indexOf(node), 1
+
+    @emit 'removeNode', node
 
   # ## Getting a node
   #
