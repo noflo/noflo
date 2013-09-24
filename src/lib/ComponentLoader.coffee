@@ -22,6 +22,8 @@ class ComponentLoader
     try
       definition = require "/#{moduleName}/component.json"
     catch e
+      if moduleName.substr(0, 1) is '/'
+        return @getModuleComponents "noflo-#{moduleName.substr(1)}"
       return
 
     for dependency of definition.dependencies
