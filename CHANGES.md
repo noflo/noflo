@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.4.1 (git master)
+## 0.4.1 (September 25th 2013)
 
 * NoFlo components can now implement a `shutdown` method which is called when they're removed from a network
 * Graphs can contain additional metadata in the `properties` key
