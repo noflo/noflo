@@ -5,6 +5,7 @@ NoFlo ChangeLog
 
 * NoFlo components can now implement a `shutdown` method which is called when they're removed from a network
 * Graphs can contain additional metadata in the `properties` key
+* NoFlo networks have now a `start` and a `stop` method for starting and stopping execution
 
 ## 0.4.0 (July 31st 2013)
 

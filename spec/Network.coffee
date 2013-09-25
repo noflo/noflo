@@ -10,6 +10,7 @@ else
 describe 'NoFlo Network', ->
   class Split extends noflo.Component
     constructor: ->
+      @stopped = false
       @inPorts =
         in: new noflo.Port
       @outPorts =
@@ -18,6 +19,8 @@ describe 'NoFlo Network', ->
         @outPorts.out.send data
       @inPorts.in.on 'disconnect', =>
         @outPorts.out.disconnect()
+    shutdown: ->
+      @stopped = true
   class Merge extends noflo.Component
     constructor: ->
       @inPorts =
@@ -93,7 +96,7 @@ describe 'NoFlo Network', ->
         nw.loader.components.Callback = Callback
         n = nw
         nw.connect ->
-          nw.sendInitials()
+          nw.start()
           done()
       , true
 
@@ -116,7 +119,7 @@ describe 'NoFlo Network', ->
       g.addInitial 'Foo', 'Merge', 'in'
 
       chai.expect(n.initials).not.to.be.empty
-      n.sendInitials()
+      n.start()
 
     describe 'with a renamed node', ->
       it 'should have the process in a new location', (done) ->
@@ -185,7 +188,7 @@ describe 'NoFlo Network', ->
         nw.loader.components.Callback = Callback
         n = nw
         nw.connect ->
-          nw.sendInitials()
+          nw.start()
           done()
       , true
 
@@ -216,7 +219,7 @@ describe 'NoFlo Network', ->
           nw.loader.components.Callback = Callback
           n = nw
           nw.connect ->
-            nw.sendInitials()
+            nw.start()
         , true
       , 10
     it 'should allow removing the IIPs', (done) ->
@@ -237,4 +240,16 @@ describe 'NoFlo Network', ->
         done()
       g.addInitial cb, 'Callback', 'callback'
       g.addInitial 'Baz', 'Repeat', 'in'
-      n.sendInitials()
+      n.start()
+
+    describe 'on stopping', ->
+      it 'processes should be running before the stop call', ->
+        chai.expect(n.processes.Repeat.component.stopped).to.equal false
+      it 'should emit the end event', (done) ->
+        # Ensure we have a connection open
+        n.stop()
+        n.once 'end', (endTimes) ->
+          chai.expect(endTimes).to.be.an 'object'
+          done()
+      it 'should have called the shutdown method of each process', ->
+        chai.expect(n.processes.Repeat.component.stopped).to.equal true

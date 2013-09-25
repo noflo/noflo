@@ -60,7 +60,6 @@ class Network extends EventEmitter
     # network coordinator marks down the start-up time. This
     # way we can calculate the uptime of the network.
     @startupDate = new Date()
-    do @handleStartEnd
 
     # A NoFlo graph may change after network initialization.
     # For this, the network subscribes to the change events from
@@ -92,36 +91,25 @@ class Network extends EventEmitter
 
   # Emit a 'start' event on the first connection, and 'end' event when
   # last connection has been closed
-  handleStartEnd: ->
-    connections = 0
-    started = false
-    ended = false
-    timeOut = null
-    # Mark the network as started
-    @on 'connect', (data) =>
-      return unless data.socket.from
-      clearTimeout timeOut if timeOut
-      if connections is 0 and not started
-        @emit 'start',
-          start: @startupDate
-        started = true
-      connections++
-    # Check all disconnections
-    @on 'disconnect', (data) =>
-      return unless data.socket.from
-      connections--
-      return unless connections <= 0
-
-      # Set a timeout to see if there are new packets. If not, mark the network as ended.
-      timeOut = setTimeout =>
-        return if ended
+  connectionCount: 0
+  increaseConnections: ->
+    if @connectionCount is 0
+      # First connection opened, execution has now started
+      @emit 'start',
+        start: @startupDate
+    @connectionCount++
+  decreaseConnections: ->
+    @connectionCount--
+    # Last connection closed, execution has now ended
+    if @connectionCount is 0
+      ender = _.debounce =>
+        return if @connectionCount
         @emit 'end',
           start: @startupDate
           end: new Date
           uptime: @uptime()
-        started = false
-        ended = true
       , 10
+      do ender
 
   # ## Loading components
   #
@@ -235,6 +223,8 @@ class Network extends EventEmitter
     return unless process.network
 
     emitSub = (type, data) =>
+      do @increaseConnections if type is 'connect'
+      do @decreaseConnections if type is 'disconnect'
       data = {} unless data
       if data.subgraph
         data.subgraph = "#{nodeName}:#{data.subgraph}"
@@ -251,6 +241,7 @@ class Network extends EventEmitter
   # Subscribe to events from all connected sockets and re-emit them
   subscribeSocket: (socket) ->
     socket.on 'connect', =>
+      do @increaseConnections
       @emit 'connect',
         id: socket.getId()
         socket: socket
@@ -270,6 +261,7 @@ class Network extends EventEmitter
         socket: socket
         group: group
     socket.on 'disconnect', =>
+      do @decreaseConnections
       @emit 'disconnect',
         id: socket.getId()
         socket: socket
@@ -366,5 +358,17 @@ class Network extends EventEmitter
       process.nextTick send
     else
       setTimeout send, 0
+
+  start: ->
+    @sendInitials()
+
+  stop: ->
+    # Disconnect all connections
+    for connection in @connections
+      continue unless connection.isConnected()
+      connection.disconnect()
+    # Tell processes to shut down
+    for id, process of @processes
+      process.component.shutdown()
 
 exports.Network = Network

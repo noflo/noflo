@@ -77,7 +77,7 @@ exports.internalSocket = require('./InternalSocket')
 #
 #     noflo.createNetwork(someGraph, function (network) {
 #       network.connect(function () {
-#         network.sendInitials();
+#         network.start();
 #         console.log('Network is now running!');
 #       })
 #     }, true);
@@ -87,7 +87,7 @@ exports.createNetwork = (graph, callback, delay) ->
   networkReady = (network) ->
     callback network if callback?
     # Send IIPs
-    network.sendInitials()
+    network.start()
 
   # Empty network, no need to connect it up
   if graph.nodes.length is 0
@@ -102,7 +102,7 @@ exports.createNetwork = (graph, callback, delay) ->
     if delay
       callback network if callback?
       return
-    # Wire the network up
+    # Wire the network up and start execution
     network.connect -> networkReady network
 
   network
