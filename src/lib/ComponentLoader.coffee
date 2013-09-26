@@ -1,4 +1,5 @@
-#     NoFlo - Flow-Based Programming for Node.js
+#     NoFlo - Flow-Based Programming for JavaScript
+#     (c) 2013 The Grid
 #     (c) 2013 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
 #

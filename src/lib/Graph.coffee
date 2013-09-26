@@ -1,5 +1,6 @@
-#     NoFlo - Flow-Based Programming for Node.js
-#     (c) 2011 Henri Bergius, Nemein
+#     NoFlo - Flow-Based Programming for JavaScript
+#     (c) 2013 The Grid
+#     (c) 2011-2012 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
 #
 # NoFlo graphs are Event Emitters, providing signals when the graph

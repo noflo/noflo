@@ -1,6 +1,6 @@
 {
   "name": "noflo",
-  "description": "Flow-Based Programming environment for Node.js",
+  "description": "Flow-Based Programming environment for JavaScript",
   "keywords": [
     "fbp",
     "workflow",
