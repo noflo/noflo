@@ -106,6 +106,15 @@ describe 'NoFlo Network', ->
       chai.expect(n.processes.Merge).to.be.an 'Object'
       chai.expect(n.processes.Callback).to.exist
       chai.expect(n.processes.Callback).to.be.an 'Object'
+    it 'the ports of the processes should know the node names', ->
+      for name, port of n.processes.Callback.component.inPorts
+        chai.expect(port.name).to.equal name
+        chai.expect(port.node).to.equal 'Callback'
+        chai.expect(port.getId()).to.equal "Callback #{name.toUpperCase()}"
+      for name, port of n.processes.Callback.component.outPorts
+        chai.expect(port.name).to.equal name
+        chai.expect(port.node).to.equal 'Callback'
+        chai.expect(port.getId()).to.equal "Callback #{name.toUpperCase()}"
 
     it 'should contain one connection', ->
       chai.expect(n.connections).to.not.be.empty
@@ -129,6 +138,15 @@ describe 'NoFlo Network', ->
         g.renameNode 'Callback', 'Func'
       it 'shouldn\'t have the process in the old location', ->
         chai.expect(n.processes.Callback).to.be.undefined
+      it 'should have informed the ports of their new node name', ->
+        for name, port of n.processes.Func.component.inPorts
+          chai.expect(port.name).to.equal name
+          chai.expect(port.node).to.equal 'Func'
+          chai.expect(port.getId()).to.equal "Func #{name.toUpperCase()}"
+        for name, port of n.processes.Func.component.outPorts
+          chai.expect(port.name).to.equal name
+          chai.expect(port.node).to.equal 'Func'
+          chai.expect(port.getId()).to.equal "Func #{name.toUpperCase()}"
 
   describe "Nodes are added first, then edges, then initializers (i.e. IIPs), and in order of definition order within each", ->
     g = null

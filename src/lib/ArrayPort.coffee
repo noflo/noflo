@@ -19,26 +19,26 @@ class ArrayPort extends port.Port
   connect: (socketId = null) ->
     if socketId is null
       unless @sockets.length
-        throw new Error "No sockets available"
+        throw new Error "#{@getId()}: No connections available"
       @sockets.forEach (socket) ->
         socket.connect()
       return
 
     unless @sockets[socketId]
-      throw new Error "No socket '#{socketId}' available"
+      throw new Error "#{@getId()}: No connection '#{socketId}' available"
 
     @sockets[socketId].connect()
 
   beginGroup: (group, socketId = null) ->
     if socketId is null
       unless @sockets.length
-        throw new Error "No sockets available"
+        throw new Error "#{@getId()}: No connections available"
       @sockets.forEach (socket, index) =>
         @beginGroup group, index
       return
 
     unless @sockets[socketId]
-      throw new Error "No socket '#{socketId}' available"
+      throw new Error "#{@getId()}: No connection '#{socketId}' available"
 
     return @sockets[socketId].beginGroup group if @isConnected socketId
 
@@ -49,13 +49,13 @@ class ArrayPort extends port.Port
   send: (data, socketId = null) ->
     if socketId is null
       unless @sockets.length
-        throw new Error "No sockets available"
+        throw new Error "#{@getId()}: No connections available"
       @sockets.forEach (socket, index) =>
         @send data, index
       return
 
     unless @sockets[socketId]
-      throw new Error "No socket '#{socketId}' available"
+      throw new Error "#{@getId()}: No connection '#{socketId}' available"
 
     return @sockets[socketId].send data if @isConnected socketId
 
@@ -66,20 +66,20 @@ class ArrayPort extends port.Port
   endGroup: (socketId = null) ->
     if socketId is null
       unless @sockets.length
-        throw new Error "No sockets available"
+        throw new Error "#{@getId()}: No connections available"
       @sockets.forEach (socket, index) =>
         @endGroup index
       return
 
     unless @sockets[socketId]
-      throw new Error "No socket '#{socketId}' available"
+      throw new Error "#{@getId()}: No connection '#{socketId}' available"
 
     do @sockets[socketId].endGroup
 
   disconnect: (socketId = null) ->
     if socketId is null
       unless @sockets.length
-        throw new Error "No sockets available"
+        throw new Error "#{@getId()}: No connections available"
       for socket in @sockets
         socket.disconnect()
       return

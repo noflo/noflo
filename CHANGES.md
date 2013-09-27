@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.4.2 (git master)
+
+* Easier debugging: port errors now contain the name of the NoFlo graph node and the port
+
 ## 0.4.1 (September 25th 2013)
 
 * NoFlo components can now implement a `shutdown` method which is called when they're removed from a network

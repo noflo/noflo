@@ -153,6 +153,14 @@ class Network extends EventEmitter
       instance.nodeId = node.id
       process.component = instance
 
+      # Inform the ports of the node name
+      for name, port of process.component.inPorts
+        port.node = node.id
+        port.name = name
+      for name, port of process.component.outPorts
+        port.node = node.id
+        port.name = name
+
       @subscribeSubgraph node.id, instance if instance.isSubgraph()
 
       # Store and return the process instance
@@ -167,7 +175,16 @@ class Network extends EventEmitter
   renameNode: (oldId, newId) ->
     process = @getNode oldId
     return unless process
+
+    # Inform the process of its ID
     process.id = newId
+
+    # Inform the ports of the node name
+    for name, port of process.component.inPorts
+      port.node = newId
+    for name, port of process.component.outPorts
+      port.node = newId
+
     @processes[newId] = process
     delete @processes[oldId]
 

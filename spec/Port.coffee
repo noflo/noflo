@@ -13,9 +13,22 @@ describe 'Untyped port instance', ->
 
 describe 'Port instance', ->
   p = null
-  it 'should retain the given type', ->
-    p = new port.Port 'string'
-    chai.expect(p.type).to.equal 'string'
+  describe 'initially', ->
+    it 'should retain the given type', ->
+      p = new port.Port 'string'
+      chai.expect(p.type).to.equal 'string'
+    it 'should not have a name', ->
+      chai.expect(p.name).to.be.a 'null'
+    it 'should not have a node name', ->
+      chai.expect(p.node).to.be.a 'null'
+    it 'should return "Port" as identifier', ->
+      chai.expect(p.getId()).to.equal 'Port'
+
+  describe 'with given name and node', ->
+    it 'should return correct ID', ->
+      p.name = 'out'
+      p.node = 'Foo'
+      chai.expect(p.getId()).to.equal 'Foo OUT'
 
   describe 'without attached socket', ->
     it 'should not be attached initially', ->

@@ -14,9 +14,16 @@ class Port extends EventEmitter
     @type = 'all' unless @type
     @socket = null
     @from = null
+    @node = null
+    @name = null
+
+  getId: ->
+    unless @node and @name
+      return 'Port'
+    "#{@node} #{@name.toUpperCase()}"
 
   attach: (socket) ->
-    throw new Error "#{@name}: Socket already attached #{@socket.getId()} - #{socket.getId()}" if @isAttached()
+    throw new Error "#{@getId()}: Socket already attached #{@socket.getId()} - #{socket.getId()}" if @isAttached()
     @socket = socket
 
     @attachSocket socket
@@ -38,11 +45,11 @@ class Port extends EventEmitter
       @emit "disconnect", socket, localId
 
   connect: ->
-    throw new Error "No connection available" unless @socket
+    throw new Error "#{@getId()}: No connection available" unless @socket
     do @socket.connect
 
   beginGroup: (group) ->
-    throw new Error "No connection available" unless @socket
+    throw new Error "#{@getId()}: No connection available" unless @socket
 
     return @socket.beginGroup group if @isConnected()
 
@@ -51,7 +58,7 @@ class Port extends EventEmitter
     do @socket.connect
 
   send: (data) ->
-    throw new Error "No connection available" unless @socket
+    throw new Error "#{@getId()}: No connection available" unless @socket
 
     return @socket.send data if @isConnected()
 
@@ -60,11 +67,11 @@ class Port extends EventEmitter
     do @socket.connect
 
   endGroup: ->
-    throw new Error "No connection available" unless @socket
+    throw new Error "#{@getId()}: No connection available" unless @socket
     do @socket.endGroup
 
   disconnect: ->
-    throw new Error "No connection available" unless @socket
+    throw new Error "#{@getId()}: No connection available" unless @socket
     @socket.disconnect()
 
   detach: (socket) ->
