@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.4.2 (git master)
+## 0.4.2 (September 28th 2013)
 
 * Easier debugging: port errors now contain the name of the NoFlo graph node and the port
 
