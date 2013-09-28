@@ -232,3 +232,12 @@ describe 'Graph', ->
         g.removeInitial 'Split', 'in'
       it 'should contain no IIPs', ->
         chai.expect(g.initializers.length).to.equal 0
+
+  describe 'with no nodes', ->
+    g = new graph.Graph
+    it 'should not allow adding edges', ->
+      g.addEdge 'Foo', 'out', 'Bar', 'in'
+      chai.expect(graph.edges).to.be.empty
+    it 'should not allow adding IIPs', ->
+      g.addInitial 'Hello', 'Bar', 'in'
+      chai.expect(graph.initializers).to.be.empty

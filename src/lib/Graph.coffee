@@ -142,6 +142,8 @@ class Graph extends EventEmitter
   #
   # Adding an edge will emit the `addEdge` event.
   addEdge: (outNode, outPort, inNode, inPort, metadata) ->
+    return unless @getNode outNode
+    return unless @getNode inNode
     metadata = {} unless metadata
     edge =
       from:
@@ -197,6 +199,7 @@ class Graph extends EventEmitter
   #
   # Adding an IIP will emit a `addInitial` event.
   addInitial: (data, node, port, metadata) ->
+    return unless @getNode node
     initializer =
       from:
         data: data
