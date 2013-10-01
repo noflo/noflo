@@ -20,6 +20,8 @@ describe 'ArrayPort instance', ->
   describe 'without attached socket', ->
     it 'should not be attached initially', ->
       chai.expect(p.isAttached()).to.equal false
+    it 'should allow connections', ->
+      chai.expect(p.canAttach()).to.equal true
     it 'should not be connected initially', ->
       chai.expect(p.isConnected()).to.equal false
     it 'should not contain a socket initially', ->
@@ -42,8 +44,10 @@ describe 'ArrayPort instance', ->
         chai.expect(sock).to.equal s
         done()
       p.attach s
-    it 'should not be marked as attached', ->
-      chai.expect(p.isAttached()).to.equal false
+    it 'should be marked as attached', ->
+      chai.expect(p.isAttached()).to.equal true
+    it 'should still allow more connections', ->
+      chai.expect(p.canAttach()).to.equal true
     it 'should not be connected initially', ->
       chai.expect(p.isConnected()).to.equal false
     it 'should have a reference to the socket', ->

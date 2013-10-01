@@ -112,4 +112,7 @@ class ArrayPort extends port.Port
     return true if @sockets[socketId]
     false
 
+  canAttach: ->
+    true
+
 exports.ArrayPort = ArrayPort

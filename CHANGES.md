@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.4.3 (git master)
+
+* ArrayPorts with attached sockets now return `true` for `isAttached` checks. There is a separate `canAttach` method for checking whether more can be added
+
 ## 0.4.2 (September 28th 2013)
 
 * Easier debugging: port errors now contain the name of the NoFlo graph node and the port

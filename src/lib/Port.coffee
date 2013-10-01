@@ -88,4 +88,9 @@ class Port extends EventEmitter
   isAttached: ->
     @socket isnt null
 
+  canAttach: ->
+    if @isAttached()
+      return false
+    true
+
 exports.Port = Port
