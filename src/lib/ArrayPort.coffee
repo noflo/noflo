@@ -106,7 +106,9 @@ class ArrayPort extends port.Port
     @sockets[socketId].isConnected()
 
   isAttached: (socketId) ->
-    return false if socketId is undefined
+    if socketId is undefined
+      return true if @sockets.length > 0
+      return false
     return true if @sockets[socketId]
     false
 
