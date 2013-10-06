@@ -44,6 +44,10 @@ class ComponentLoader extends loader.ComponentLoader
       # Handle own components
       prefix = @getModulePrefix def.name
 
+      # See if the library has a default icon
+      if def.noflo.icon
+        @libraryIcons[prefix] = def.noflo.icon
+
       if def.noflo.components
         for name, cPath of def.noflo.components
           components["#{prefix}/#{name}"] = path.resolve def.realPath, cPath

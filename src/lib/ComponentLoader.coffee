@@ -11,6 +11,7 @@ class ComponentLoader
     @components = null
     @checked = []
     @revalidate = false
+    @libraryIcons = {}
 
   getModulePrefix: (name) ->
     return '' unless name
@@ -33,6 +34,10 @@ class ComponentLoader
     return unless definition.noflo
 
     prefix = @getModulePrefix definition.name
+
+    if definition.noflo.icon
+      @libraryIcons[prefix] = definition.noflo.icon
+
     if moduleName[0] is '/'
       moduleName = moduleName.substr 1
     if definition.noflo.components
@@ -87,6 +92,7 @@ class ComponentLoader
       implementation = require component
       instance = implementation.getComponent()
     instance.baseDir = @baseDir if name is 'Graph'
+    @setIcon name, instance
     callback instance
 
   isGraph: (cPath) ->
@@ -103,7 +109,31 @@ class ComponentLoader
     graphSocket.disconnect()
     delete graph.inPorts.graph
     delete graph.inPorts.start
+    @setIcon name, graph
     callback graph
+
+  setIcon: (name, instance) ->
+    # See if component has an icon
+    return if instance.getIcon()
+
+    # See if library has an icon
+    [library, componentName] = name.split '/'
+    if componentName and @getLibraryIcon library
+      instance.setIcon @getLibraryIcon library
+      return
+
+    # See if instance is a subgraph
+    if instance.isSubgraph()
+      instance.setIcon 'sitemap'
+      return
+
+    instance.setIcon 'blank'
+    return
+
+  getLibraryIcon: (prefix) ->
+    if @libraryIcons[prefix]
+      return @libraryIcons[prefix]
+    return null
 
   registerComponent: (packageId, name, cPath, callback) ->
     prefix = @getModulePrefix packageId

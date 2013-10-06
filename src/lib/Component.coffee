@@ -10,13 +10,18 @@ else
   EventEmitter = require 'emitter'
 
 class Component extends EventEmitter
-  description: ""
+  description: ''
+  icon: null
 
   getDescription: -> @description
 
   isReady: -> true
 
   isSubgraph: -> false
+
+  setIcon: (@icon) ->
+    @emit 'icon', @icon
+  getIcon: -> @icon
 
   shutdown: ->
 

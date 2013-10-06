@@ -4,6 +4,9 @@ NoFlo ChangeLog
 ## 0.4.3 (git master)
 
 * ArrayPorts with attached sockets now return `true` for `isAttached` checks. There is a separate `canAttach` method for checking whether more can be added
+* Icon support was added for both libraries and components using the set from [Font Awesome](http://fortawesome.github.io/Font-Awesome/icons/)
+  - For libraries, register via the `noflo.icon` key in your `package.json` (Node.js libraries) or `component.json` (browser libraries)
+  - For components, provide via the `icon` attribute
 
 ## 0.4.2 (September 28th 2013)
 
