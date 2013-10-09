@@ -113,4 +113,8 @@ class Graph extends noflo.Component
   isSubgraph: ->
     true
 
+  shutdown: ->
+    return unless @network
+    @network.stop()
+
 exports.getComponent = -> new Graph
