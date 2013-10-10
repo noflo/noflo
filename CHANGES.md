@@ -7,6 +7,8 @@ NoFlo ChangeLog
 * Icon support was added for both libraries and components using the set from [Font Awesome](http://fortawesome.github.io/Font-Awesome/icons/)
   - For libraries, register via the `noflo.icon` key in your `package.json` (Node.js libraries) or `component.json` (browser libraries)
   - For components, provide via the `icon` attribute
+* Subgraphs now support closing their internal NoFlo network via the `shutdown` method
+* Component Loader is able to load arbitrary graphs outside of the normal package manifest registration via the `loadGraph` method
 
 ## 0.4.2 (September 28th 2013)
 
