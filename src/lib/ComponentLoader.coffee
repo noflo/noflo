@@ -79,10 +79,10 @@ class ComponentLoader
       if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
         # nextTick is faster on Node.js
         process.nextTick =>
-          @loadGraph name, callback
+          @loadGraph name, component, callback
       else
         setTimeout =>
-          @loadGraph name, callback
+          @loadGraph name, component, callback
         , 0
       return
     if typeof component is 'function'
@@ -99,13 +99,13 @@ class ComponentLoader
     return false unless typeof cPath is 'string'
     cPath.indexOf('.fbp') isnt -1 or cPath.indexOf('.json') isnt -1
 
-  loadGraph: (name, callback) ->
+  loadGraph: (name, component, callback) ->
     graphImplementation = require @components['Graph']
     graphSocket = internalSocket.createSocket()
     graph = graphImplementation.getComponent()
     graph.baseDir = @baseDir
     graph.inPorts.graph.attach graphSocket
-    graphSocket.send @components[name]
+    graphSocket.send component
     graphSocket.disconnect()
     delete graph.inPorts.graph
     delete graph.inPorts.start
