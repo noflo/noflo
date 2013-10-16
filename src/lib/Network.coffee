@@ -362,8 +362,12 @@ class Network extends EventEmitter
       @connections.splice @connections.indexOf(connection), 1
 
   sendInitial: (initial) ->
+    portType = initial.socket.to.process.component.inPorts[initial.socket.to.port].type
     initial.socket.connect()
-    initial.socket.send initial.data
+    if portType == 'number'
+      initial.socket.send parseInt(initial.data)
+    else
+      initial.socket.send initial.data
     initial.socket.disconnect()
 
   sendInitials: ->
