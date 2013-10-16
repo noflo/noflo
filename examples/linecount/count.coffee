@@ -20,7 +20,7 @@ graph.addEdge "Read File", "out", "Split by Lines", "in"
 graph.addEdge "Split by Lines", "out", "Count Lines", "in"
 graph.addEdge "Count Lines", "count", "Display", "in"
 
-# Kick the process of by sending filename to fileReader
+# Kick the process off by sending filename to fileReader
 graph.addInitial fileName, "Read File", "in"
 
 noflo.createNetwork graph
