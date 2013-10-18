@@ -237,7 +237,11 @@ class Graph extends EventEmitter
       dot += "    #{cleanID(node.id)} [label=#{node.id} shape=box]\n"
 
     for initializer, id in @initializers
-      dot += "    data#{id} [label=\"'#{initializer.from.data}'\" shape=plaintext]\n"
+      if typeof initializer.from.data is 'function'
+        data = 'Function'
+      else
+        data = initializer.from.data
+      dot += "    data#{id} [label=\"'#{data}'\" shape=plaintext]\n"
       dot += "    data#{id} -> #{cleanID(initializer.to.node)}[headlabel=#{cleanPort(initializer.to.port)} labelfontcolor=blue labelfontsize=8.0]\n"
 
     for edge in @edges
