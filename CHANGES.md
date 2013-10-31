@@ -9,6 +9,7 @@ NoFlo ChangeLog
   - For components, provide via the `icon` attribute
 * Subgraphs now support closing their internal NoFlo network via the `shutdown` method
 * Component Loader is able to load arbitrary graphs outside of the normal package manifest registration via the `loadGraph` method
+* Exported ports can now contain metadata
 
 ## 0.4.2 (September 28th 2013)
 

@@ -43,10 +43,11 @@ class Graph extends EventEmitter
   #
   # This allows subgraphs to expose a cleaner API by having reasonably
   # named ports shown instead of all the free ports of the graph
-  addExport: (privatePort, publicPort) ->
+  addExport: (privatePort, publicPort, metadata) ->
     @exports.push
       private: privatePort.toLowerCase()
       public: publicPort.toLowerCase()
+      metadata: metadata
 
   # ## Adding a node to the graph
   #
@@ -273,9 +274,12 @@ class Graph extends EventEmitter
     json.properties.name = @name if @name
 
     for exported in @exports
-      json.exports.push
+      exportedData =
         private: exported.private
         public: exported.public
+      if exported.metadata
+        exportedData.metadata = exported.metadata
+      json.exports.push exportedData
 
     for node in @nodes
       json.processes[node.id] =
@@ -337,7 +341,7 @@ exports.loadJSON = (definition, success) ->
 
   if definition.exports
     for exported in definition.exports
-      graph.addExport exported.private, exported.public
+      graph.addExport exported.private, exported.public, exported.metadata
 
   success graph
 

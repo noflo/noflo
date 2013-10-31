@@ -68,7 +68,16 @@ describe 'Graph', ->
         name: 'Example'
         foo: 'Baz'
         bar: 'Foo'
-      exports: []
+      exports: [
+        public: 'in'
+        private: 'foo.in'
+        metadata:
+          x: 5
+          y: 100
+      ,
+        public: 'out'
+        private: 'bar.out'
+      ]
       processes:
         Foo:
           component: 'Bar'
@@ -128,8 +137,8 @@ describe 'Graph', ->
       chai.expect(edge.metadata.route).equal 'foo'
     it 'should contain one IIP', ->
       chai.expect(g.initializers.length).to.equal 1
-    it 'should contain no exports', ->
-      chai.expect(g.exports.length).to.equal 0
+    it 'should contain two exports', ->
+      chai.expect(g.exports.length).to.equal 2
     it 'should produce same JSON when serialized', ->
       chai.expect(g.toJSON()).to.eql json
     describe 'renaming a node', ->
