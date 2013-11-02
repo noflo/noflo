@@ -40,6 +40,10 @@ class ComponentLoader
 
     if moduleName[0] is '/'
       moduleName = moduleName.substr 1
+    if definition.noflo.loader
+      # Run a custom component loader
+      loader = require definition.noflo.loader
+      loader @
     if definition.noflo.components
       for name, cPath of definition.noflo.components
         if cPath.indexOf('.coffee') isnt -1
