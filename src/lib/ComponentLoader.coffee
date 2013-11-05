@@ -42,7 +42,7 @@ class ComponentLoader
       moduleName = moduleName.substr 1
     if definition.noflo.loader
       # Run a custom component loader
-      loader = require definition.noflo.loader
+      loader = require "/#{moduleName}/#{definition.noflo.loader}"
       loader @
     if definition.noflo.components
       for name, cPath of definition.noflo.components
