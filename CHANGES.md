@@ -11,6 +11,7 @@ NoFlo ChangeLog
 * Component Loader is able to load arbitrary graphs outside of the normal package manifest registration via the `loadGraph` method
 * Libraries can provide a custom loader for their components by registering a `noflo.loader` key in the manifest pointing to a CommonJS module
 * Exported ports can now contain metadata
+* It is possible to create named groups of nodes in a NoFlo graph, which can be useful for visual editors
 
 ## 0.4.2 (September 28th 2013)
 

@@ -25,6 +25,7 @@ class Graph extends EventEmitter
   edges: []
   initializers: []
   exports: []
+  groups: []
 
   # ## Creating new graphs
   #
@@ -38,6 +39,7 @@ class Graph extends EventEmitter
     @edges = []
     @initializers = []
     @exports = []
+    @groups = []
 
   # ## Exporting a port from subgraph
   #
@@ -48,6 +50,26 @@ class Graph extends EventEmitter
       private: privatePort.toLowerCase()
       public: publicPort.toLowerCase()
       metadata: metadata
+
+  removeExport: (publicPort) ->
+    for exported in @exports
+      continue unless exported
+      continue unless exported.public is publicPort
+      @exports.splice @exports.indexOf(exported), 1
+
+  # ## Grouping nodes in a graph
+  #
+  addGroup: (group, nodes, metadata) ->
+    @groups.push
+      name: group
+      nodes: nodes
+      metadata: metadata
+
+  removeGroup: (group) ->
+    for group in @groups
+      continue unless group
+      continue unless group.name is group
+      @groups.splice @groups.indexOf(group), 1
 
   # ## Adding a node to the graph
   #
@@ -96,6 +118,18 @@ class Graph extends EventEmitter
       if initializer.to.node is node.id
         @removeInitial initializer.to.node, initializer.to.port
 
+    for exported in @exports
+      continue unless exported
+      [privateNode, privatePort] = exported.private.split '.'
+      if privateNode is id.toLowerCase()
+        @removeExport exported.public
+
+    for group in @groups
+      continue unless group
+      index = group.nodes.indexOf(id) is -1
+      continue if index is -1
+      group.nodes.splice index, 1
+
     if -1 isnt @nodes.indexOf node
       @nodes.splice @nodes.indexOf(node), 1
 
@@ -131,6 +165,18 @@ class Graph extends EventEmitter
       continue unless iip
       if iip.to.node is oldId
         iip.to.node = newId
+
+    for exported in @exports
+      continue unless exported
+      [privateNode, privatePort] = exported.private.split '.'
+      continue unless privateNode is oldId.toLowerCase()
+      exported.private = "#{newId.toLowerCase()}.#{privatePort}"
+
+    for group in @groups
+      continue unless group
+      index = group.nodes.indexOf(oldId)
+      continue if index is -1
+      group.nodes[index] = newId
 
     @emit 'renameNode', oldId, newId
 
@@ -266,20 +312,29 @@ class Graph extends EventEmitter
     json =
       properties: {}
       exports: []
+      groups: []
       processes: {}
       connections: []
 
+    json.properties.name = @name if @name
     for property, value of @properties
       json.properties[property] = value
-    json.properties.name = @name if @name
 
     for exported in @exports
       exportedData =
-        private: exported.private
         public: exported.public
+        private: exported.private
       if exported.metadata
         exportedData.metadata = exported.metadata
       json.exports.push exportedData
+
+    for group in @groups
+      groupData =
+        name: group.name
+        nodes: group.nodes
+      if group.metadata
+        groupData.metadata = group.metadata
+      json.groups.push groupData
 
     for node in @nodes
       json.processes[node.id] =
@@ -342,6 +397,10 @@ exports.loadJSON = (definition, success) ->
   if definition.exports
     for exported in definition.exports
       graph.addExport exported.private, exported.public, exported.metadata
+
+  if definition.groups
+    for group in definition.groups
+      graph.addGroup group.name, group.nodes, group.metadata
 
   success graph
 

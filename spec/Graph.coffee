@@ -78,6 +78,11 @@ describe 'Graph', ->
         public: 'out'
         private: 'bar.out'
       ]
+      groups: [
+        nodes: ['Foo', 'Bar']
+        metadata:
+          label: 'Main'
+      ]
       processes:
         Foo:
           component: 'Bar'
@@ -139,8 +144,10 @@ describe 'Graph', ->
       chai.expect(g.initializers.length).to.equal 1
     it 'should contain two exports', ->
       chai.expect(g.exports.length).to.equal 2
+    it 'should contain one group', ->
+      chai.expect(g.edges.length).to.equal 1
     it 'should produce same JSON when serialized', ->
-      chai.expect(g.toJSON()).to.eql json
+      chai.expect(g.toJSON()).to.deep.equal json
     describe 'renaming a node', ->
       it 'should emit an event', (done) ->
         g.once 'renameNode', (oldId, newId) ->
@@ -157,6 +164,17 @@ describe 'Graph', ->
         for edge in g.edges
           connection = edge if edge.from.node is 'Baz'
         chai.expect(connection).to.be.an 'object'
+      it 'should still be exported', ->
+        exports = 0
+        for exported in g.exports
+          [exportedNode, exportedPort] = exported.private.split '.'
+          exports++ if exportedNode is 'baz'
+        chai.expect(exports).to.equal 1
+      it 'should still be grouped', ->
+        groups = 0
+        for group in g.groups
+          groups++ if group.nodes.indexOf('Baz') isnt -1
+        chai.expect(groups).to.equal 1
       it 'shouldn\'t be have edges with the old name', ->
         connection = null
         for edge in g.edges
@@ -171,8 +189,19 @@ describe 'Graph', ->
       it 'shouldn\'t have IIPs going to the old name', ->
         iip = null
         for edge in g.initializers
-          iip = edge if edge.to.node is 'foo'
+          iip = edge if edge.to.node is 'Foo'
         chai.expect(iip).to.be.a 'null'
+      it 'shouldn\'t be have export going to the old name', ->
+        exports = 0
+        for exported in g.exports
+          [exportedNode, exportedPort] = exported.private.split '.'
+          exports++ if exportedNode is 'foo'
+        chai.expect(exports).to.equal 0
+      it 'shouldn\'t be grouped with the old name', ->
+        groups = 0
+        for group in g.groups
+          groups++ if group.nodes.indexOf('Foo') isnt -1
+        chai.expect(groups).to.equal 0
     describe 'removing a node', ->
       it 'should emit an event', (done) ->
         g.once 'removeNode', (node) ->
@@ -190,6 +219,17 @@ describe 'Graph', ->
         for edge in g.initializers
           connections++ if edge.to.node is 'Baz'
         chai.expect(connections).to.equal 0
+      it 'shouldn\'t be have exports left behind', ->
+        exports = 0
+        for exported in g.exports
+          [exportedNode, exportedPort] = exported.private.split '.'
+          exports++ if exportedNode is 'baz'
+        chai.expect(exports).to.equal 0
+      it 'shouldn\'t be grouped', ->
+        groups = 0
+        for group in g.groups
+          groups++ if group.nodes.indexOf('Baz') isnt -1
+        chai.expect(groups).to.equal 0
 
   describe 'with multiple connected ArrayPorts', ->
     g = new graph.Graph
