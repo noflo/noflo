@@ -5,6 +5,7 @@
 #
 # This is the browser version of the ComponentLoader.
 internalSocket = require './InternalSocket'
+graph = require './Graph'
 
 class ComponentLoader
   constructor: (@baseDir) ->
@@ -100,6 +101,7 @@ class ComponentLoader
     callback instance
 
   isGraph: (cPath) ->
+    return true if typeof cPath is 'object' and cPath instanceof graph.Graph
     return false unless typeof cPath is 'string'
     cPath.indexOf('.fbp') isnt -1 or cPath.indexOf('.json') isnt -1
 
