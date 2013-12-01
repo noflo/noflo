@@ -23,6 +23,13 @@ class Component extends EventEmitter
     @emit 'icon', @icon
   getIcon: -> @icon
 
+  error: (e) =>
+    if @outPorts.error and @outPorts.error.isAttached()
+      @outPorts.error.send e
+      @outPorts.error.disconnect()
+      return
+    throw e
+
   shutdown: ->
 
 exports.Component = Component
