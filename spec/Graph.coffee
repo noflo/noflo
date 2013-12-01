@@ -147,7 +147,7 @@ describe 'Graph', ->
     it 'should contain one group', ->
       chai.expect(g.edges.length).to.equal 1
     it 'should produce same JSON when serialized', ->
-      chai.expect(g.toJSON()).to.deep.equal json
+      chai.expect(JSON.stringify(g.toJSON())).to.equal JSON.stringify(json)
     describe 'renaming a node', ->
       it 'should emit an event', (done) ->
         g.once 'renameNode', (oldId, newId) ->
