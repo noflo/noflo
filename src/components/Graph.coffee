@@ -9,6 +9,7 @@ class Graph extends noflo.Component
     @ready = true
     @started = false
     @baseDir = null
+    @loader = null
 
     @inPorts =
       graph: new noflo.Port 'all'
@@ -37,7 +38,7 @@ class Graph extends noflo.Component
       # JSON definition of a graph
       noflo.graph.loadJSON graph, (instance) =>
         instance.baseDir = @baseDir
-        @createNetwork instance
+        @createNetwork instance, @loader
       return
 
     if graph.substr(0, 1) isnt "/"
