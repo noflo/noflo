@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.4.3 (git master)
+## 0.4.3 (December 6th 2013)
 
 * ArrayPorts with attached sockets now return `true` for `isAttached` checks. There is a separate `canAttach` method for checking whether more can be added
 * Icon support was added for both libraries and components using the set from [Font Awesome](http://fortawesome.github.io/Font-Awesome/icons/)
