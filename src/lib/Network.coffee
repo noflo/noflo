@@ -164,7 +164,8 @@ class Network extends EventEmitter
         port.node = node.id
         port.name = name
 
-      @subscribeSubgraph node.id, instance if instance.isSubgraph()
+      @subscribeSubgraph process if instance.isSubgraph()
+      @subscribeNode process
 
       # Store and return the process instance
       @processes[process.id] = process
@@ -235,29 +236,29 @@ class Network extends EventEmitter
 
     process.component.outPorts[port].attach socket
 
-  subscribeSubgraph: (nodeName, process) ->
-    unless process.isReady()
-      process.once 'ready', =>
-        @subscribeSubgraph nodeName, process
+  subscribeSubgraph: (node) ->
+    unless node.component.isReady()
+      node.component.once 'ready', =>
+        @subscribeSubgraph node
         return
 
-    return unless process.network
+    return unless node.component.network
 
     emitSub = (type, data) =>
       do @increaseConnections if type is 'connect'
       do @decreaseConnections if type is 'disconnect'
       data = {} unless data
       if data.subgraph
-        data.subgraph = "#{nodeName}:#{data.subgraph}"
+        data.subgraph = "#{node.id}:#{data.subgraph}"
       else
-        data.subgraph = nodeName
+        data.subgraph = node.id
       @emit type, data
 
-    process.network.on 'connect', (data) -> emitSub 'connect', data
-    process.network.on 'begingroup', (data) -> emitSub 'begingroup', data
-    process.network.on 'data', (data) -> emitSub 'data', data
-    process.network.on 'endgroup', (data) -> emitSub 'endgroup', data
-    process.network.on 'disconnect', (data) -> emitSub 'disconnect', data
+    node.component.network.on 'connect', (data) -> emitSub 'connect', data
+    node.component.network.on 'begingroup', (data) -> emitSub 'begingroup', data
+    node.component.network.on 'data', (data) -> emitSub 'data', data
+    node.component.network.on 'endgroup', (data) -> emitSub 'endgroup', data
+    node.component.network.on 'disconnect', (data) -> emitSub 'disconnect', data
 
   # Subscribe to events from all connected sockets and re-emit them
   subscribeSocket: (socket) ->
@@ -286,6 +287,13 @@ class Network extends EventEmitter
       @emit 'disconnect',
         id: socket.getId()
         socket: socket
+
+  subscribeNode: (node) ->
+    return unless node.component.getIcon
+    node.component.on 'icon', =>
+      @emit 'icon',
+        id: node.id
+        icon: node.component.getIcon()
 
   addEdge: (edge, callback) ->
     socket = internalSocket.createSocket()

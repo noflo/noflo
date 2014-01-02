@@ -148,6 +148,15 @@ describe 'NoFlo Network', ->
           chai.expect(port.node).to.equal 'Func'
           chai.expect(port.getId()).to.equal "Func #{name.toUpperCase()}"
 
+    describe 'with process icon change', ->
+      it 'should emit an icon event', (done) ->
+        n.once 'icon', (data) ->
+          chai.expect(data).to.be.an 'object'
+          chai.expect(data.id).to.equal 'Func'
+          chai.expect(data.icon).to.equal 'flask'
+          done()
+        n.processes.Func.component.setIcon 'flask'
+
   describe "Nodes are added first, then edges, then initializers (i.e. IIPs), and in order of definition order within each", ->
     g = null
     n = null
