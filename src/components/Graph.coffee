@@ -41,7 +41,7 @@ class Graph extends noflo.Component
         @createNetwork instance
       return
 
-    if graph.substr(0, 1) isnt "/"
+    if graph.substr(0, 1) isnt "/" and graph.substr(1, 1) isnt ":"
       graph = "#{process.cwd()}/#{graph}"
 
     graph = noflo.graph.loadFile graph, (instance) =>
