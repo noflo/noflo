@@ -48,9 +48,9 @@ class ComponentLoader extends loader.ComponentLoader
       if def.noflo.icon
         @libraryIcons[prefix] = def.noflo.icon
 
-      if definition.noflo.loader
+      if def.noflo.loader
         # Run a custom component loader
-        loader = require path.resolve def.realPath definition.noflo.loader
+        loader = require path.resolve def.realPath def.noflo.loader
         loader @
       if def.noflo.components
         for name, cPath of def.noflo.components
