@@ -70,7 +70,7 @@ describe 'ComponentLoader with no external packages installed', ->
     instance = null
     l.libraryIcons.foo = 'star'
     it 'should be available in the components list', ->
-      l.components['foo/Split'] = Split
+      l.registerComponent 'foo', 'Split', Split
       chai.expect(l.components).to.contain.keys ['foo/Split', 'Graph']
     it 'should be able to load the component', (done) ->
       l.load 'foo/Split', (split) ->

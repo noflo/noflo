@@ -48,12 +48,16 @@ class ComponentLoader extends loader.ComponentLoader
       if def.noflo.icon
         @libraryIcons[prefix] = def.noflo.icon
 
+      if definition.noflo.loader
+        # Run a custom component loader
+        loader = require path.resolve def.realPath definition.noflo.loader
+        loader @
       if def.noflo.components
         for name, cPath of def.noflo.components
-          components["#{prefix}/#{name}"] = path.resolve def.realPath, cPath
+          @registerComponent prefix, name, path.resolve def.realPath, cPath
       if moduleDef.noflo.graphs
         for name, gPath of def.noflo.graphs
-          components["#{prefix}/#{name}"] = path.resolve def.realPath, gPath
+          @registerGraph prefix, name, path.resolve def.realPath, gPath
       done()
 
     # Normally we can rely on the module data we get from read-installed, but in
@@ -135,8 +139,7 @@ class ComponentLoader extends loader.ComponentLoader
       packageData = JSON.stringify data, null, 2
       fs.writeFile packageFile, packageData, callback
 
-  registerComponent: (packageId, name, cPath, callback = ->) ->
-
+  registerComponentToDisk: (packageId, name, cPath, callback = ->) ->
     @readPackage packageId, (err, packageData) =>
       return callback err if err
       packageData.noflo = {} unless packageData.noflo
@@ -145,7 +148,7 @@ class ComponentLoader extends loader.ComponentLoader
       @clear()
       @writePackage packageId, packageData, callback
 
-  registerGraph: (packageId, name, cPath, callback = ->) ->
+  registerGraphToDisk: (packageId, name, cPath, callback = ->) ->
     @readPackage packageId, (err, packageData) =>
       return callback err if err
       packageData.noflo = {} unless packageData.noflo
