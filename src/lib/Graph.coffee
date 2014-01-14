@@ -408,15 +408,34 @@ exports.loadFBP = (fbpData, success) ->
   definition = require('fbp').parse fbpData
   exports.loadJSON definition, success
 
+exports.loadHTTP = (url, success) ->
+  req = new XMLHttpRequest
+  req.onreadystatechange = ->
+    return unless req.readyState is 4
+    return success() unless req.status is 200
+    success req.responseText
+  req.open 'GET', url, true
+  req.send()
+
 exports.loadFile = (file, success) ->
   unless typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
     try
+      # Graph exposed via Component packaging
       definition = require file
       exports.loadJSON definition, success
+      return
     catch e
-      # TODO: Try AJAX GET
-      throw new Error "Failed to load graph #{file}: #{e.message}"
+      # Graph available via HTTP
+      exports.loadHTTP file, (data) ->
+        unless data
+          throw new Error "Failed to load graph #{file}"
+          return
+        if file.split('.').pop() is 'fbp'
+          return exports.loadFBP data, success
+        definition = JSON.parse data
+        exports.loadJSON definition, success
     return
+  # Node.js graph file
   require('fs').readFile file, "utf-8", (err, data) ->
     throw err if err
 

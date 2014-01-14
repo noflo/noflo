@@ -5,12 +5,13 @@ if typeof process isnt 'undefined' and process.execPath and process.execPath.ind
   noflo = require '../src/lib/NoFlo.coffee'
   path = require 'path'
   root = path.resolve __dirname, '../'
+  urlPrefix = './'
 else
   subgraph = require 'noflo/src/components/Graph.js'
   graph = require 'noflo/src/lib/Graph.js'
   noflo = require 'noflo/src/lib/NoFlo.js'
   root = 'noflo'
-
+  urlPrefix = '/'
 
 describe 'Graph component', ->
   c = null
@@ -229,3 +230,56 @@ describe 'Graph component', ->
         c.network.loader.components.Merge = Merge
         start.send true
       g.send gr
+
+  describe 'with a FBP file', ->
+    file = "#{urlPrefix}spec/fixtures/subgraph.fbp"
+    it 'should emit a ready event after network has been loaded', (done) ->
+      c.once 'ready', ->
+        chai.expect(c.network).not.to.be.null
+        chai.expect(c.ready).to.be.true
+        done()
+      c.once 'network', ->
+        chai.expect(c.ready).to.be.false
+        chai.expect(c.network).not.to.be.null
+        c.network.loader.components.Split = Split
+        c.network.loader.components.Merge = Merge
+        start.send true
+      g.send file
+      chai.expect(c.ready).to.be.false
+    it 'should expose available ports', (done) ->
+      c.baseDir = root
+      c.once 'ready', ->
+        chai.expect(c.inPorts).to.have.keys [
+          'graph'
+          'start'
+          'merge.in'
+        ]
+        chai.expect(c.outPorts).to.have.keys [
+          'split.out'
+        ]
+        done()
+      c.once 'network', ->
+        chai.expect(c.ready).to.be.false
+        chai.expect(c.network).not.to.be.null
+        c.network.loader.components.Split = Split
+        c.network.loader.components.Merge = Merge
+        start.send true
+      g.send file
+    it 'should be able to run the graph', (done) ->
+      c.baseDir = root
+      c.once 'ready', ->
+        ins = noflo.internalSocket.createSocket()
+        out = noflo.internalSocket.createSocket()
+        c.inPorts['merge.in'].attach ins
+        c.outPorts['split.out'].attach out
+        out.on 'data', (data) ->
+          chai.expect(data).to.equal 'Foo'
+          done()
+        ins.send 'Foo'
+      c.once 'network', ->
+        chai.expect(c.ready).to.be.false
+        chai.expect(c.network).not.to.be.null
+        c.network.loader.components.Split = Split
+        c.network.loader.components.Merge = Merge
+        start.send true
+      g.send file

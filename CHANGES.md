@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.5.0 (git master)
+
+* Support for loading graph definitions via AJAX on browser-based NoFlo
+
 ## 0.4.3 (December 6th 2013)
 
 * ArrayPorts with attached sockets now return `true` for `isAttached` checks. There is a separate `canAttach` method for checking whether more can be added

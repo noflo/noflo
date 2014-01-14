@@ -74,12 +74,19 @@ module.exports = ->
         options:
           reporter: 'dot'
 
+    # Web server for the browser tests
+    connect:
+      server:
+        options:
+          port: 8000
+
     # BDD tests on browser
     mocha_phantomjs:
-      options:
-        output: 'spec/result.xml'
-        reporter: 'dot'
-      all: ['spec/runner.html']
+      all:
+        options:
+          output: 'spec/result.xml'
+          reporter: 'dot'
+          urls: ['http://localhost:8000/spec/runner.html']
 
     # Coding standards
     coffeelint:
@@ -118,6 +125,7 @@ module.exports = ->
   # Grunt plugins used for testing
   @loadNpmTasks 'grunt-contrib-watch'
   @loadNpmTasks 'grunt-contrib-nodeunit'
+  @loadNpmTasks 'grunt-contrib-connect'
   @loadNpmTasks 'grunt-cafe-mocha'
   @loadNpmTasks 'grunt-mocha-phantomjs'
   @loadNpmTasks 'grunt-coffeelint'
@@ -142,6 +150,7 @@ module.exports = ->
       @task.run 'nodeunit'
       @task.run 'cafemocha'
     if target is 'all' or target is 'browser'
+      @task.run 'connect'
       @task.run 'component'
       @task.run 'component_build'
       @task.run 'mocha_phantomjs'
