@@ -15,6 +15,7 @@ else
 entryToPrettyString = (entry) ->
   a = entry.args
   return switch entry.cmd
+    when 'initialize' then "INIT"
     when 'addNode' then "#{a.id}(#{a.component})"
     when 'removeNode' then "DEL #{a.id}(#{a.component})"
     when 'renameNode' then "RENAME #{a.oldId} #{a.newId}"
@@ -32,6 +33,8 @@ class Journal extends EventEmitter
   constructor: (graph) ->
     @graph = graph
     @entries = []
+
+    @appendCommand 'initialize'
 
     # TODO: group into an initial transaction?
     # Sync journal with current graph
