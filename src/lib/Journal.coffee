@@ -29,10 +29,12 @@ entryToPrettyString = (entry) ->
 class Journal extends EventEmitter
   graph: null
   entries: []
+  subscribed: true # Whether we should respond to graph change notifications or not
 
   constructor: (graph) ->
     @graph = graph
     @entries = []
+    @subscribed = true
 
     @appendCommand 'initialize'
 
@@ -62,17 +64,50 @@ class Journal extends EventEmitter
       @appendCommand 'removeInitial', iip
 
   appendCommand: (cmd, args) ->
+    if not @subscribed
+      return
+
     entry =
       cmd: cmd
       args: args
     @entries.push(entry)
 
-  toJSON: () ->
-    return @entries
+  executeEntry: (entry) ->
+    a = entry.args
+    switch entry.cmd
+      when 'initialize' then null
+      when 'addNode' then @graph.addNode a.id, a.component
+      when 'removeNode' then @graph.removeNode a.id
+      when 'renameNode' then @graph.renameNode a.oldId, a.newId
+      when 'addEdge' then @graph.addEdge a.from.node, a.from.port, a.to.node, a.to.port
+      when 'removeEdge' then @graph.removeEdge a.from.node, a.from.port, a.to.node, a.to.port
+      when 'addInitial' then @graph.addInitial a.from.data, a.to.node, a.to.port
+      when 'removeInitial' then @graph.removeInitial a.to.node, a.to.port
+      else throw new Error("Unknown journal entry: #{entry.cmd}")
+
+  moveToRevision: (revId) ->
+    # TODO: calculate difference between current state and desired state at revId,
+    # then generate the minimum change list to get there
+
+    @subscribed = false
+
+    # For now, clear the entire graph
+    nodes = (n for n in @graph.nodes)
+    for node in nodes
+      @graph.removeNode node.id
+
+    # Then replay journal to revId
+    for entry in @entries[0..revId]
+      @executeEntry entry
+
+    @subscribed = true
 
   toPrettyString: () ->
     lines = (entryToPrettyString entry for entry in @entries)
     return lines.join('\n')
+
+  toJSON: () ->
+    return @entries
 
   save: (file, success) ->
     json = JSON.stringify @toJSON(), null, 4

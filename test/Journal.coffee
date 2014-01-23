@@ -45,3 +45,24 @@ exports["Journal pretty output"] = (test) ->
   test.equals j.toPrettyString(), ref
 
   test.done()
+
+exports["Journal move backwards"] = (test) ->
+  g = new graph.Graph
+  j = new journal.Journal(g)
+  g.addNode 'Foo', 'Bar'
+  g.addNode 'Baz', 'Foo'
+  g.addEdge 'Foo', 'out', 'Baz', 'in'
+  g.addInitial 42, 'Foo', 'in'
+  g.removeNode 'Foo'
+
+  j.moveToRevision 0
+  test.equals g.nodes.length, 0
+
+  j.moveToRevision 2
+  test.equals g.nodes.length, 2
+
+  # FIXME: this is logically revision 5, but the removeNode caused a removeInitial and removeEdge. Introduce transactions
+  j.moveToRevision 7
+  test.equals g.nodes.length, 1
+
+  test.done()
