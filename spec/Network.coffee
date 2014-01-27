@@ -44,9 +44,13 @@ describe 'NoFlo Network', ->
         @cb data
 
   describe 'with an empty graph', ->
-    g = new noflo.Graph
-    g.baseDir = root
-    n = new noflo.Network g
+    g = null
+    n = null
+    before (done) ->
+      g = new noflo.Graph
+      g.baseDir = root
+      n = new noflo.Network g
+      n.connect done
     it 'should initially have no processes', ->
       chai.expect(n.processes).to.be.empty
     it 'should initially have to connections', ->

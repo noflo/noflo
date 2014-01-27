@@ -47,8 +47,8 @@ class Graph extends noflo.Component
     graph.componentLoader = @loader
     if @inPorts.start?.isAttached() and !@started
       noflo.createNetwork graph, (@network) =>
+        @emit 'network', @network
         @network.connect =>
-          @emit 'network', @network
           notReady = false
           for name, process of @network.processes
             notReady = true unless @checkComponent name, process
