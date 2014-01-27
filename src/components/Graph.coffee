@@ -21,12 +21,7 @@ class Graph extends noflo.Component
     @inPorts.start.on "data", =>
       @started = true
       return unless @network
-      @network.connect =>
-        @network.sendInitials()
-        notReady = false
-        for name, process of @network.processes
-          notReady = true unless @checkComponent name, process
-        do @setToReady unless notReady
+      @network.sendInitials()
 
   setGraph: (graph) ->
     @ready = false
@@ -52,7 +47,12 @@ class Graph extends noflo.Component
     graph.componentLoader = @loader
     if @inPorts.start?.isAttached() and !@started
       noflo.createNetwork graph, (@network) =>
-        @emit 'network', @network
+        @network.connect =>
+          @emit 'network', @network
+          notReady = false
+          for name, process of @network.processes
+            notReady = true unless @checkComponent name, process
+          do @setToReady unless notReady
       , true
       return
     noflo.createNetwork graph, (@network) =>

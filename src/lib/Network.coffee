@@ -62,27 +62,6 @@ class Network extends EventEmitter
     # way we can calculate the uptime of the network.
     @startupDate = new Date()
 
-    # A NoFlo graph may change after network initialization.
-    # For this, the network subscribes to the change events from
-    # the graph.
-    #
-    # In graph we talk about nodes and edges. Nodes correspond
-    # to NoFlo processes, and edges to connections between them.
-    @graph.on 'addNode', (node) =>
-      @addNode node
-    @graph.on 'removeNode', (node) =>
-      @removeNode node
-    @graph.on 'renameNode', (oldId, newId) =>
-      @renameNode oldId, newId
-    @graph.on 'addEdge', (edge) =>
-      @addEdge edge
-    @graph.on 'removeEdge', (edge) =>
-      @removeEdge edge
-    @graph.on 'addInitial', (iip) =>
-      @addInitial iip
-    @graph.on 'removeInitial', (iip) =>
-      @removeInitial iip
-
     # Initialize a Component Loader for the network
     if graph.componentLoader
       @loader = graph.componentLoader
@@ -206,8 +185,13 @@ class Network extends EventEmitter
         this["add#{type}"] add, ->
           next type
 
+    # Subscribe to graph changes when everything else is done
+    subscribeGraph = =>
+      @subscribeGraph()
+      done()
+
     # Serialize initializers then call callback when done
-    initializers = _.reduceRight @graph.initializers, serialize, done
+    initializers = _.reduceRight @graph.initializers, serialize, subscribeGraph
     # Serialize edge creators then call the initializers
     edges = _.reduceRight @graph.edges, serialize, -> initializers "Initial"
     # Serialize node creators then call the edge creators
@@ -235,6 +219,28 @@ class Network extends EventEmitter
       return
 
     process.component.outPorts[port].attach socket
+
+  subscribeGraph: ->
+    # A NoFlo graph may change after network initialization.
+    # For this, the network subscribes to the change events from
+    # the graph.
+    #
+    # In graph we talk about nodes and edges. Nodes correspond
+    # to NoFlo processes, and edges to connections between them.
+    @graph.on 'addNode', (node) =>
+      @addNode node
+    @graph.on 'removeNode', (node) =>
+      @removeNode node
+    @graph.on 'renameNode', (oldId, newId) =>
+      @renameNode oldId, newId
+    @graph.on 'addEdge', (edge) =>
+      @addEdge edge
+    @graph.on 'removeEdge', (edge) =>
+      @removeEdge edge
+    @graph.on 'addInitial', (iip) =>
+      @addInitial iip
+    @graph.on 'removeInitial', (iip) =>
+      @removeInitial iip
 
   subscribeSubgraph: (node) ->
     unless node.component.isReady()
