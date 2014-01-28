@@ -101,9 +101,6 @@ class Network extends EventEmitter
   # * As direct, instantiated JavaScript objects
   # * As filenames
   load: (component, callback) ->
-    # Direct component instance, return as is
-    if typeof component is 'object'
-      return callback component
     @loader.load component, callback
 
   # ## Add a process to the network

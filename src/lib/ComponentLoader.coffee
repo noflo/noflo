@@ -93,6 +93,9 @@ class ComponentLoader
     if typeof component is 'function'
       implementation = component
       instance = new component
+    # Direct component instance, return as is
+    if typeof component is 'object' and typeof component.getComponent is 'function'
+      instance = component.getComponent()
     else
       implementation = require component
       instance = implementation.getComponent()
