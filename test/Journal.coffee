@@ -7,40 +7,45 @@ exports["Journal connected to initialized graph"] = (test) ->
   g.addNode 'Baz', 'Foo'
   g.addEdge 'Foo', 'out', 'Baz', 'in'
   j = new journal.Journal(g)
-  test.equals j.entries.length, 1+3
+  test.equals j.lastRevision, 0
 
   test.done()
 
 exports["Journal following basic graph changes"] = (test) ->
   g = new graph.Graph
   j = new journal.Journal(g)
+  test.equals j.lastRevision, 0
   g.addNode 'Foo', 'Bar'
   g.addNode 'Baz', 'Foo'
   g.addEdge 'Foo', 'out', 'Baz', 'in'
-  test.equals j.entries.length, 1+3
-
+  test.equals j.lastRevision, 3
   g.removeNode 'Baz'
-  test.equals j.entries.length, 1+5 # edge is removed also
+  test.equals j.lastRevision, 4
 
   test.done()
 
 exports["Journal pretty output"] = (test) ->
   g = new graph.Graph
   j = new journal.Journal(g)
+  g.startTransaction 'test1'
   g.addNode 'Foo', 'Bar'
   g.addNode 'Baz', 'Foo'
   g.addEdge 'Foo', 'out', 'Baz', 'in'
   g.addInitial 42, 'Foo', 'in'
   g.removeNode 'Foo'
+  g.endTransaction 'test1'
 
-  ref = """INIT
+  ref = """>>> 0: initial
+    <<< 0: initial
+    >>> 1: test1
     Foo(Bar)
     Baz(Foo)
     Foo out -> in Baz
     '42' -> in Foo
     Foo out -X> in Baz
     '42' -X> in Foo
-    DEL Foo(Bar)"""
+    DEL Foo(Bar)
+    <<< 1: test1"""
 
   test.equals j.toPrettyString(), ref
 
@@ -61,8 +66,10 @@ exports["Journal move backwards"] = (test) ->
   j.moveToRevision 2
   test.equals g.nodes.length, 2
 
-  # FIXME: this is logically revision 5, but the removeNode caused a removeInitial and removeEdge. Introduce transactions
-  j.moveToRevision 7
+  j.moveToRevision 5
   test.equals g.nodes.length, 1
 
   test.done()
+
+# FIXME: add tests for graph.loadJSON/loadFile, and journal metadata
+

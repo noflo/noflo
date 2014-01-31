@@ -15,7 +15,6 @@ else
 entryToPrettyString = (entry) ->
   a = entry.args
   return switch entry.cmd
-    when 'initialize' then "INIT"
     when 'addNode' then "#{a.id}(#{a.component})"
     when 'removeNode' then "DEL #{a.id}(#{a.component})"
     when 'renameNode' then "RENAME #{a.oldId} #{a.newId}"
@@ -23,6 +22,8 @@ entryToPrettyString = (entry) ->
     when 'removeEdge' then "#{a.from.node} #{a.from.port} -X> #{a.to.port} #{a.to.node}"
     when 'addInitial' then "'#{a.from.data}' -> #{a.to.port} #{a.to.node}"
     when 'removeInitial' then "'#{a.from.data}' -X> #{a.to.port} #{a.to.node}"
+    when 'startTransaction' then ">>> #{entry.rev}: #{a.id}"
+    when 'endTransaction' then "<<< #{entry.rev}: #{a.id}"
     else throw new Error("Unknown journal entry: #{entry.cmd}")
 
 
@@ -35,14 +36,18 @@ class Journal extends EventEmitter
     @graph = graph
     @entries = []
     @subscribed = true
+    @lastRevision = 0
 
-    @appendCommand 'initialize'
-
-    # TODO: group into an initial transaction?
     # Sync journal with current graph
+    @appendCommand 'startTransaction',
+        id: 'initial'
+        metadata: null
     @appendCommand 'addNode', node for node in @graph.nodes
     @appendCommand 'addEdge', edge for edge in @graph.edges
     @appendCommand 'addIntitial', iip for ipp in @graph.initializers
+    @appendCommand 'endTransaction',
+      id: 'initial'
+      metadata: null
 
     # Subscribe to graph changes
     @graph.on 'addNode', (node) =>
@@ -62,7 +67,17 @@ class Journal extends EventEmitter
       @appendCommand 'addInitial', iip
     @graph.on 'removeInitial', (iip) =>
       @appendCommand 'removeInitial', iip
+    @graph.on 'startTransaction', (id, meta) =>
+      @lastRevision++
+      @appendCommand 'startTransaction',
+        id: id
+        metadata: meta
+    @graph.on 'endTransaction', (id, meta) =>
+      @appendCommand 'endTransaction',
+        id: id
+        metadata: meta
 
+  # FIXME: should be called appendEntry/addEntry
   appendCommand: (cmd, args) ->
     if not @subscribed
       return
@@ -70,12 +85,12 @@ class Journal extends EventEmitter
     entry =
       cmd: cmd
       args: args
+      rev: @lastRevision
     @entries.push(entry)
 
   executeEntry: (entry) ->
     a = entry.args
     switch entry.cmd
-      when 'initialize' then null
       when 'addNode' then @graph.addNode a.id, a.component
       when 'removeNode' then @graph.removeNode a.id
       when 'renameNode' then @graph.renameNode a.oldId, a.newId
@@ -83,6 +98,8 @@ class Journal extends EventEmitter
       when 'removeEdge' then @graph.removeEdge a.from.node, a.from.port, a.to.node, a.to.port
       when 'addInitial' then @graph.addInitial a.from.data, a.to.node, a.to.port
       when 'removeInitial' then @graph.removeInitial a.to.node, a.to.port
+      when 'startTransaction' then null
+      when 'endTransaction' then null
       else throw new Error("Unknown journal entry: #{entry.cmd}")
 
   moveToRevision: (revId) ->
@@ -97,8 +114,9 @@ class Journal extends EventEmitter
       @graph.removeNode node.id
 
     # Then replay journal to revId
-    for entry in @entries[0..revId]
-      @executeEntry entry
+    for entry in @entries
+      if entry.rev <= revId
+        @executeEntry entry
 
     @subscribed = true
 
