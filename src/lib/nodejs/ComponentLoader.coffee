@@ -13,7 +13,10 @@ loader = require '../ComponentLoader'
 internalSocket = require '../InternalSocket'
 
 # We allow components to be un-compiled CoffeeScript
-require 'coffee-script'
+CoffeeScript = require 'coffee-script'
+if typeof CoffeeScript.register != 'undefined'
+    CoffeeScript.register()
+
 
 # Disable NPM logging in normal NoFlo operation
 log = require 'npmlog'
