@@ -129,7 +129,7 @@ class ComponentLoader
 
   setIcon: (name, instance) ->
     # See if component has an icon
-    return if instance.getIcon()
+    return if not instance.getIcon or instance.getIcon()
 
     # See if library has an icon
     [library, componentName] = name.split '/'
