@@ -5,7 +5,10 @@ NoFlo ChangeLog
 
 * Support for loading graph definitions via AJAX on browser-based NoFlo
 * Support for delayed initialization of Subgraph components via ComponentLoader
-* Compatibility with CoffeeScript 1.7
+
+## 0.4.4 (February 4th 2014)
+
+* Support for CoffeeScript 1.7.x on Node.js
 
 ## 0.4.3 (December 6th 2013)
 
