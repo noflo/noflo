@@ -147,7 +147,6 @@ module.exports = ->
     @task.run 'coffeelint'
     @task.run 'coffee'
     if target is 'all' or target is 'nodejs'
-      @task.run 'nodeunit'
       @task.run 'cafemocha'
     if target is 'all' or target is 'browser'
       @task.run 'connect'
