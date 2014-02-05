@@ -180,6 +180,20 @@ class Graph extends EventEmitter
 
     @emit 'renameNode', oldId, newId
 
+  # ## Changing a node's metadata
+  #
+  # Node metadata can be set or changed by calling this method.
+  setNodeMetadata: (id, metadata) ->
+    node = @getNode id
+    return unless node
+    node.metadata = {} unless node.metadata
+
+    for item, val of metadata
+      node.metadata[item] = val
+
+    @emit 'changeNode', node
+
+
   # ## Connecting nodes
   #
   # Nodes can be connected by adding edges between a node's outport
@@ -214,7 +228,7 @@ class Graph extends EventEmitter
   #
   # or:
   #
-  #     myGraph.removeEdge 'Display', 'in', 'Foo', 'out'
+  #     myGraph.removeEdge 'Display', 'out', 'Foo', 'in'
   #
   # Removing a connection will emit the `removeEdge` event.
   removeEdge: (node, port, node2, port2) ->
@@ -232,6 +246,32 @@ class Graph extends EventEmitter
             continue
         @emit 'removeEdge', edge
         @edges.splice index, 1
+
+  # ## Getting an edge
+  #
+  # Edge objects can be retrieved from the graph by the node and port IDs:
+  #
+  #     myEdge = myGraph.getEdge 'Read', 'out', 'Write', 'in'
+  getEdge: (node, port, node2, port2) ->
+    for edge,index in @edges
+      continue unless edge
+      if edge.from.node is node and edge.from.port is port
+        if edge.to.node is node2 and edge.to.port is port2
+          return edge
+    return null
+
+  # ## Changing an edge's metadata
+  #
+  # Edge metadata can be set or changed by calling this method.
+  setEdgeMetadata: (node, port, node2, port2, metadata) ->
+    edge = @getEdge node, port, node2, port2
+    return unless edge
+    edge.metadata = {} unless edge.metadata
+
+    for item, val of metadata
+      edge.metadata[item] = val
+
+    @emit 'changeEdge', edge
 
   # ## Adding Initial Information Packets
   #
