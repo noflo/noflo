@@ -79,9 +79,13 @@ describe 'Graph', ->
         private: 'bar.out'
       ]
       groups: [
+        name: 'first'
         nodes: ['Foo', 'Bar']
         metadata:
           label: 'Main'
+      ,
+          name: 'second'
+          nodes: ['Foo2', 'Bar2']
       ]
       processes:
         Foo:
@@ -96,6 +100,10 @@ describe 'Graph', ->
             ]
         Bar:
           component: 'Baz'
+        Foo2:
+          component: 'foo'
+        Bar2:
+          component: 'bar'
       connections: [
         src:
           process: 'Foo'
@@ -123,8 +131,8 @@ describe 'Graph', ->
       chai.expect(g.properties).to.eql
         foo: 'Baz'
         bar: 'Foo'
-    it 'should contain two nodes', ->
-      chai.expect(g.nodes.length).to.equal 2
+    it 'should contain four nodes', ->
+      chai.expect(g.nodes.length).to.equal 4
     it 'the first Node should have its metadata intact', ->
       node = g.getNode 'Foo'
       chai.expect(node.metadata).to.be.an 'object'
@@ -144,8 +152,8 @@ describe 'Graph', ->
       chai.expect(g.initializers.length).to.equal 1
     it 'should contain two exports', ->
       chai.expect(g.exports.length).to.equal 2
-    it 'should contain one group', ->
-      chai.expect(g.edges.length).to.equal 1
+    it 'should contain two groups', ->
+      chai.expect(g.groups.length).to.equal 2
     it 'should produce same JSON when serialized', ->
       chai.expect(JSON.stringify(g.toJSON())).to.equal JSON.stringify(json)
     describe 'renaming a node', ->
@@ -230,6 +238,9 @@ describe 'Graph', ->
         for group in g.groups
           groups++ if group.nodes.indexOf('Baz') isnt -1
         chai.expect(groups).to.equal 0
+      it 'shouldn\'t affect other groups', ->
+        otherGroup = g.groups[1]
+        chai.expect(otherGroup.nodes.length).to.equal 2
 
   describe 'with multiple connected ArrayPorts', ->
     g = new graph.Graph
