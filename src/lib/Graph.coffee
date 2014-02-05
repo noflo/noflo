@@ -126,7 +126,7 @@ class Graph extends EventEmitter
 
     for group in @groups
       continue unless group
-      index = group.nodes.indexOf(id) is -1
+      index = group.nodes.indexOf(id)
       continue if index is -1
       group.nodes.splice index, 1
 
