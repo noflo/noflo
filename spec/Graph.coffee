@@ -142,12 +142,31 @@ describe 'Graph', ->
       chai.expect(node.metadata.routes).to.be.an 'array'
       chai.expect(node.metadata.routes).to.contain 'one'
       chai.expect(node.metadata.routes).to.contain 'two'
+    it 'should allow modifying node metadata', (done) ->
+      g.once 'changeNode', (node) ->
+        chai.expect(node.id).to.equal 'Foo'
+        chai.expect(node.metadata.routes).to.be.an 'array'
+        chai.expect(node.metadata.routes).to.contain 'one'
+        chai.expect(node.metadata.routes).to.contain 'two'
+        chai.expect(node.metadata.hello).to.equal 'World'
+        done()
+      g.setNodeMetadata 'Foo',
+        hello: 'World'
     it 'should contain one connection', ->
       chai.expect(g.edges.length).to.equal 1
     it 'the first Edge should have its metadata intact', ->
       edge = g.edges[0]
       chai.expect(edge.metadata).to.be.an 'object'
       chai.expect(edge.metadata.route).equal 'foo'
+    it 'should allow modifying edge metadata', (done) ->
+      e = g.edges[0]
+      g.once 'changeEdge', (edge) ->
+        chai.expect(edge).to.equal e
+        chai.expect(edge.metadata.route).to.equal 'foo'
+        chai.expect(edge.metadata.hello).to.equal 'World'
+        done()
+      g.setEdgeMetadata e.from.node, e.from.port, e.to.node, e.to.port,
+        hello: 'World'
     it 'should contain one IIP', ->
       chai.expect(g.initializers.length).to.equal 1
     it 'should contain two exports', ->
