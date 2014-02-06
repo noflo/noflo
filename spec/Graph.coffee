@@ -61,6 +61,22 @@ describe 'Graph', ->
         chai.expect(node).to.not.exist
         chai.expect(g.nodes.length).to.equal 0
         chai.expect(g.nodes.indexOf(n)).to.equal -1
+    describe 'New edge', ->
+      it 'should emit an event', (done) ->
+        g.addNode 'Foo', 'foo'
+        g.addNode 'Bar', 'bar'
+        g.once 'addEdge', (edge) ->
+          chai.expect(edge.from.node).to.equal 'Foo'
+          chai.expect(edge.to.port).to.equal 'in'
+          done()
+        g.addEdge('Foo', 'out', 'Bar', 'in')
+      it 'should add an edge', ->
+        g.addEdge('Foo', 'out', 'Bar', 'in2')
+        chai.expect(g.edges.length).equal 2
+      it 'should refuse to add a duplicate edge', ->
+        edge = g.edges[0]
+        g.addEdge(edge.from.node, edge.from.port, edge.to.node, edge.to.port)
+        chai.expect(g.edges.length).equal 2
 
   describe 'loaded from JSON', ->
     json =
