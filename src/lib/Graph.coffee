@@ -203,6 +203,9 @@ class Graph extends EventEmitter
   #
   # Adding an edge will emit the `addEdge` event.
   addEdge: (outNode, outPort, inNode, inPort, metadata) ->
+    for edge in @edges
+      # don't add a duplicate edge
+      return if (edge.from.node is outNode and edge.from.port is outPort and edge.to.node is inNode and edge.to.port is inPort)
     return unless @getNode outNode
     return unless @getNode inNode
     metadata = {} unless metadata
