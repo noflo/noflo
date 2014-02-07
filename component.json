@@ -27,6 +27,7 @@
     "src/lib/ComponentLoader.coffee",
     "src/lib/NoFlo.coffee",
     "src/lib/Network.coffee",
+    "src/lib/Platform.coffee",
     "src/components/Graph.coffee"
   ],
   "json": [

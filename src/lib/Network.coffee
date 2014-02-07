@@ -6,7 +6,7 @@ _ = require "underscore"
 internalSocket = require "./InternalSocket"
 graph = require "./Graph"
 
-if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
+unless require('./Platform').isBrowser()
   componentLoader = require "./nodejs/ComponentLoader"
   {EventEmitter} = require 'events'
 else

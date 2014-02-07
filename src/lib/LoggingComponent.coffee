@@ -1,7 +1,7 @@
 # Baseclass for components that need to write logs.
 { Component } = require "./Component"
 { Port } = require "./Port"
-if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
+unless require('./Platform').isBrowser()
   util = require "util"
 else
   util =

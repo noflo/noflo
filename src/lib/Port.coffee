@@ -4,7 +4,7 @@
 #     NoFlo may be freely distributed under the MIT license
 #
 # Regular port for NoFlo components.
-if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
+unless require('./Platform').isBrowser()
   {EventEmitter} = require 'events'
 else
   EventEmitter = require 'emitter'

@@ -7,7 +7,7 @@
 # definition changes.
 #
 # On Node.js we use the build-in EventEmitter implementation
-if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
+unless require('./Platform').isBrowser()
   {EventEmitter} = require 'events'
 # On browser we use Component's EventEmitter implementation
 else

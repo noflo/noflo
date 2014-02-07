@@ -2,7 +2,7 @@
 #     (c) 2013 The Grid
 #     (c) 2011-2012 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
-if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
+unless require('./Platform').isBrowser()
   {EventEmitter} = require 'events'
 else
   EventEmitter = require 'emitter'
