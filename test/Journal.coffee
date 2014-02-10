@@ -51,7 +51,7 @@ exports["Journal pretty output"] = (test) ->
 
   test.done()
 
-exports["Journal move backwards"] = (test) ->
+exports["Journal jump backwards"] = (test) ->
   g = new graph.Graph
   j = new journal.Journal(g)
   g.addNode 'Foo', 'Bar'
@@ -68,6 +68,33 @@ exports["Journal move backwards"] = (test) ->
 
   j.moveToRevision 5
   test.equals g.nodes.length, 1
+
+  test.done()
+
+exports["Journal linear undo/redo"] = (test) ->
+  g = new graph.Graph
+  j = new journal.Journal(g)
+  g.addNode 'Foo', 'Bar'
+  g.addNode 'Baz', 'Foo'
+  g.addEdge 'Foo', 'out', 'Baz', 'in'
+  g.addInitial 42, 'Foo', 'in'
+  beforeError = g.toJSON()
+  test.equals g.nodes.length, 2
+
+  g.removeNode 'Foo'
+  test.equals g.nodes.length, 1
+  j.undo()
+  test.equals g.nodes.length, 2
+  test.equals g.toJSON(), beforeError
+
+  j.redo()
+  test.equals g.nodes.length, 1
+
+  g.removeNode 'Baz'
+  j.undo()
+  j.undo()
+  test.equals g.nodes.length, 2
+  test.equals g.toJSON(), beforeError  
 
   test.done()
 

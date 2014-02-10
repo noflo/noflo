@@ -37,6 +37,7 @@ class Journal extends EventEmitter
     @entries = []
     @subscribed = true
     @lastRevision = 0
+    @currentRevision = @lastRevision
 
     # Sync journal with current graph
     @appendCommand 'startTransaction',
@@ -69,6 +70,7 @@ class Journal extends EventEmitter
       @appendCommand 'removeInitial', iip
     @graph.on 'startTransaction', (id, meta) =>
       @lastRevision++
+      @currentRevision++
       @appendCommand 'startTransaction',
         id: id
         metadata: meta
@@ -118,7 +120,16 @@ class Journal extends EventEmitter
       if entry.rev <= revId
         @executeEntry entry
 
+    @currentRevision = revId
     @subscribed = true
+
+  undo: () ->
+    return unless @currentRevision > 0
+    @moveToRevision(@currentRevision-1)
+
+  redo: () ->
+    return unless @currentRevision < @lastRevision
+    @moveToRevision(@currentRevision+1)
 
   toPrettyString: () ->
     lines = (entryToPrettyString entry for entry in @entries)
