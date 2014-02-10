@@ -30,13 +30,13 @@ class OutPort extends BasePort
         socket.send data
       socket.connect()
 
-  endGroup: ( socketId = null) ->
+  endGroup: (socketId = null) ->
     sockets = @getSockets socketId
     @checkRequired sockets
     for socket in sockets
       socket.endGroup()
 
-  disconnect: ( socketId = null) ->
+  disconnect: (socketId = null) ->
     sockets = @getSockets socketId
     @checkRequired sockets
     for socket in sockets

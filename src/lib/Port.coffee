@@ -99,6 +99,5 @@ class Port extends EventEmitter
     false
 
   canAttach: -> true
-  isPort: -> true
 
 exports.Port = Port

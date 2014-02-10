@@ -33,7 +33,7 @@ class InPort extends BasePort
     socket.on 'endgroup', (group) =>
       @handleSocketEvent 'endgroup', group, localId
     socket.on 'disconnect', =>
-      @handleSocketEvent 'connect', socket, localId
+      @handleSocketEvent 'disconnect', socket, localId
 
   handleSocketEvent: (event, payload, id) ->
     # Call the processing function

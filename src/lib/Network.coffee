@@ -134,12 +134,12 @@ class Network extends EventEmitter
 
       # Inform the ports of the node name
       for name, port of process.component.inPorts
-        continue unless port.isPort and port.isPort()
+        continue if typeof port is 'function' or not port.canAttach
         port.node = node.id
         port.nodeInstance = instance
         port.name = name
       for name, port of process.component.outPorts
-        continue unless port.isPort and port.isPort()
+        continue if typeof port is 'function' or not port.canAttach
         port.node = node.id
         port.nodeInstance = instance
         port.name = name

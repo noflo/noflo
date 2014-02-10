@@ -30,6 +30,8 @@ describe 'Graph component', ->
         in: new noflo.Port
       @outPorts =
         out: new noflo.ArrayPort
+      @inPorts.in.on 'connect', (data) =>
+        @outPorts.out.connect()
       @inPorts.in.on 'data', (data) =>
         @outPorts.out.send data
       @inPorts.in.on 'disconnect', =>
@@ -78,7 +80,6 @@ describe 'Graph component', ->
     it 'should expose available ports', (done) ->
       c.baseDir = root
       c.once 'ready', ->
-        console.log c.inPorts.ports
         chai.expect(c.inPorts.ports).to.have.keys [
           'graph'
           'start'
@@ -279,10 +280,14 @@ describe 'Graph component', ->
         out = noflo.internalSocket.createSocket()
         c.inPorts['merge.in'].attach ins
         c.outPorts['split.out'].attach out
+        out.on 'connect', ->
+          ins.send 'Foo'
         out.on 'data', (data) ->
           chai.expect(data).to.equal 'Foo'
+          ins.disconnect()
+        out.on 'disconnect', ->
           done()
-        ins.send 'Foo'
+        ins.connect()
       c.once 'network', ->
         chai.expect(c.ready).to.be.false
         chai.expect(c.network).not.to.be.null
