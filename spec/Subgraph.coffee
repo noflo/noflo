@@ -53,8 +53,8 @@ describe 'Graph component', ->
     it 'should not have a baseDir', ->
       chai.expect(c.baseDir).to.be.null
     it 'should only have the graph and start inports', ->
-      chai.expect(c.inPorts).to.have.keys ['graph', 'start']
-      chai.expect(c.outPorts).to.be.empty
+      chai.expect(c.inPorts.ports).to.have.keys ['graph', 'start']
+      chai.expect(c.outPorts.ports).to.be.empty
 
   describe 'with JSON graph definition', ->
     it 'should emit a ready event after network has been loaded', (done) ->
@@ -78,13 +78,13 @@ describe 'Graph component', ->
     it 'should expose available ports', (done) ->
       c.baseDir = root
       c.once 'ready', ->
-        chai.expect(c.inPorts).to.have.keys [
+        chai.expect(c.inPorts.ports).to.have.keys [
           'graph'
           'start'
           'merge.in'
           'split.in'
         ]
-        chai.expect(c.outPorts).to.have.keys [
+        chai.expect(c.outPorts.ports).to.have.keys [
           'split.out'
           'merge.out'
         ]
@@ -112,11 +112,11 @@ describe 'Graph component', ->
     it 'should expose only exported ports when they exist', (done) ->
       c.baseDir = root
       c.once 'ready', ->
-        chai.expect(c.inPorts).to.have.keys [
+        chai.expect(c.inPorts.ports).to.have.keys [
           'graph'
           'start'
         ]
-        chai.expect(c.outPorts).to.have.keys [
+        chai.expect(c.outPorts.ports).to.have.keys [
           'out'
         ]
         done()
@@ -198,13 +198,13 @@ describe 'Graph component', ->
     it 'should expose available ports', (done) ->
       c.baseDir = root
       c.once 'ready', ->
-        chai.expect(c.inPorts).to.have.keys [
+        chai.expect(c.inPorts.ports).to.have.keys [
           'graph'
           'start'
           'merge.in'
           'split.in'
         ]
-        chai.expect(c.outPorts).to.have.keys [
+        chai.expect(c.outPorts.ports).to.have.keys [
           'split.out'
           'merge.out'
         ]
@@ -253,13 +253,13 @@ describe 'Graph component', ->
     it 'should expose available ports', (done) ->
       c.baseDir = root
       c.once 'ready', ->
-        chai.expect(c.inPorts).to.have.keys [
+        chai.expect(c.inPorts.ports).to.have.keys [
           'graph'
           'start'
           'merge.in'
           'split.in'
         ]
-        chai.expect(c.outPorts).to.have.keys [
+        chai.expect(c.outPorts.ports).to.have.keys [
           'split.out'
           'merge.out'
         ]

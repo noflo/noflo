@@ -11,14 +11,21 @@ class Graph extends noflo.Component
     @baseDir = null
     @loader = null
 
-    @inPorts =
-      graph: new noflo.Port 'all'
-      start: new noflo.Port 'bang'
-    @outPorts = {}
+    @inPorts = new noflo.InPorts
+      graph:
+        datatype: 'all'
+        description: 'NoFlo graph definition to be used with the subgraph component'
+        required: true
+        immediate: true
+      start:
+        datatype: 'bang'
+        description: 'if attached, the network will only be started when receiving a start message'
+        required: false
+    @outPorts = new noflo.OutPorts
 
-    @inPorts.graph.on "data", (data) =>
+    @inPorts.on 'graph', 'data', (data) =>
       @setGraph data
-    @inPorts.start.on "data", =>
+    @inPorts.on 'start', 'data', =>
       @started = true
       return unless @network
       @network.sendInitials()
@@ -100,12 +107,12 @@ class Graph extends noflo.Component
     for portName, port of process.component.inPorts
       targetPortName = @isExported port, name, portName
       continue if targetPortName is false
-      @inPorts[targetPortName] = port
+      @inPorts.add targetPortName, port
 
     for portName, port of process.component.outPorts
       targetPortName = @isExported port, name, portName
       continue if targetPortName is false
-      @outPorts[targetPortName] = port
+      @outPorts.add targetPortName, port
 
     return true
 

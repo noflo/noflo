@@ -26,7 +26,7 @@ class BasePort extends EventEmitter
 
   attach: (socket, index = null) ->
     if not @isAddressable() or index is null
-      index = @sockets.length - 1
+      index = @sockets.length
     @sockets[index] = socket
     @attachSocket socket, index
     if @isAddressable()

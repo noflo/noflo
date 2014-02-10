@@ -122,8 +122,8 @@ class ComponentLoader
     graph.inPorts.graph.attach graphSocket
     graphSocket.send component
     graphSocket.disconnect()
-    delete graph.inPorts.graph
-    delete graph.inPorts.start
+    graph.inPorts.remove 'graph'
+    graph.inPorts.remove 'start'
     @setIcon name, graph
     callback graph
 
