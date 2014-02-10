@@ -9,9 +9,26 @@ unless require('./Platform').isBrowser()
 else
   EventEmitter = require 'emitter'
 
+ports = require './Ports'
+
 class Component extends EventEmitter
   description: ''
   icon: null
+
+  constructor: (options) ->
+    return unless options
+
+    if options.inPorts
+      if options.inPorts instanceof ports.InPorts
+        @inPorts = options.inPorts
+      else
+        @inPorts = new ports.InPorts options.inPorts
+
+    if options.outPorts
+      if options.outPorts instanceof ports.OutPorts
+        @outPorts = options.outPorts
+      else
+        @outPorts = new ports.OutPorts options.outPorts
 
   getDescription: -> @description
 

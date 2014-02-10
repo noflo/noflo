@@ -51,6 +51,13 @@ exports.LoggingComponent = require('./LoggingComponent').LoggingComponent
 # ### NoFlo ports
 #
 # These classes are used for instantiating ports on NoFlo components.
+ports = require './Ports'
+exports.InPorts = ports.InPorts
+exports.OutPorts = ports.OutPorts
+exports.InPort = require './InPort'
+exports.OutPort = require './OutPort'
+
+# The old Port API is available for backwards compatibility
 exports.Port = require('./Port').Port
 exports.ArrayPort = require('./ArrayPort').ArrayPort
 

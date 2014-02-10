@@ -22,6 +22,8 @@ class Port extends EventEmitter
       return 'Port'
     "#{@node} #{@name.toUpperCase()}"
 
+  getDataType: -> @type
+
   attach: (socket) ->
     throw new Error "#{@getId()}: Socket already attached #{@socket.getId()} - #{socket.getId()}" if @isAttached()
     @socket = socket

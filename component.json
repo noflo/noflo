@@ -19,6 +19,10 @@
   "scripts": [
     "src/lib/Graph.coffee",
     "src/lib/InternalSocket.coffee",
+    "src/lib/BasePort.coffee",
+    "src/lib/InPort.coffee",
+    "src/lib/OutPort.coffee",
+    "src/lib/Ports.coffee",
     "src/lib/Port.coffee",
     "src/lib/ArrayPort.coffee",
     "src/lib/Component.coffee",
