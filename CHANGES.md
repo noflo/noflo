@@ -8,6 +8,54 @@ NoFlo ChangeLog
 * New methods for manipulating Graph metadata:
   - `setNodeMetadata`
   * `setEdgeMetadata`
+* [New port API](https://github.com/noflo/noflo/issues/136) allowing better addressability and metadata
+
+With the new API component ports can be declared with:
+
+```coffeescript
+@inPorts = new noflo.Ports
+@inPorts.add 'in', new noflo.InPort
+  datatype: 'object'
+  type: 'http://schema.org/Person'
+  description: 'Persons to be processed'
+  required: true
+  buffered: true
+```
+
+The `noflo.Ports` objects emit `add` and `remove` events when ports change. They also support passing port information as options:
+
+```coffeescript
+@outPorts = new noflo.Ports
+  out: new noflo.OutPort
+    datatype: 'object'
+    type: 'http://schema.org/Person'
+    description: 'Processed person objects'
+    required: true
+    addressable: true
+```
+
+The input ports also allow passing in an optional *processing function* that gets called on information packets events.
+
+* [New component API](https://github.com/noflo/noflo/issues/97) allowing simpler component definition in both CoffeeScript and JavaScript:
+
+```js
+var noflo = require('noflo');
+
+module.exports = function() {
+  var c = new noflo.Component();
+
+  c.inPorts.add('in', function(event, payload) {
+    if (packet.event !== 'data')
+      return;
+    // Do something with the packet, then
+    c.outPorts.out.send(packet.data);
+  });
+
+  c.outPorts.add('out');
+
+  return c;
+};
+```
 
 ## 0.4.4 (February 4th 2014)
 
