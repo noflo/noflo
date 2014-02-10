@@ -93,5 +93,6 @@ describe 'Journal', ->
       chai.expect(g.toJSON()).to.deep.equal graphBeforeError
 
 
+
 # FIXME: add tests for graph.loadJSON/loadFile, and journal metadata
 

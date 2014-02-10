@@ -69,8 +69,9 @@ class Journal extends EventEmitter
     @graph.on 'removeInitial', (iip) =>
       @appendCommand 'removeInitial', iip
     @graph.on 'startTransaction', (id, meta) =>
+      return if not @subscribed
       @lastRevision++
-      @currentRevision++
+      @currentRevision = @lastRevision
       @appendCommand 'startTransaction',
         id: id
         metadata: meta
@@ -81,8 +82,7 @@ class Journal extends EventEmitter
 
   # FIXME: should be called appendEntry/addEntry
   appendCommand: (cmd, args) ->
-    if not @subscribed
-      return
+    return if not @subscribed
 
     entry =
       cmd: cmd
@@ -104,21 +104,42 @@ class Journal extends EventEmitter
       when 'endTransaction' then null
       else throw new Error("Unknown journal entry: #{entry.cmd}")
 
+  executeEntryInversed: (entry) ->
+    a = entry.args
+    switch entry.cmd
+      when 'addNode' then @graph.removeNode a.id
+      when 'removeNode' then @graph.addNode a.id, a.component
+      when 'renameNode' then @graph.renameNode a.newId, a.oldId
+      when 'addEdge' then @graph.removeEdge a.from.node, a.from.port, a.to.node, a.to.port
+      when 'removeEdge' then @graph.addEdge a.from.node, a.from.port, a.to.node, a.to.port
+      when 'addInitial' then @graph.removeInitial a.to.node, a.to.port
+      when 'removeInitial' then @graph.addInitial a.from.data, a.to.node, a.to.port
+      when 'startTransaction' then null
+      when 'endTransaction' then null
+      else throw new Error("Unknown journal entry: #{entry.cmd}")
+
   moveToRevision: (revId) ->
-    # TODO: calculate difference between current state and desired state at revId,
-    # then generate the minimum change list to get there
+    return if revId == @currentRevision
 
     @subscribed = false
 
-    # For now, clear the entire graph
-    nodes = (n for n in @graph.nodes)
-    for node in nodes
-      @graph.removeNode node.id
-
-    # Then replay journal to revId
-    for entry in @entries
-      if entry.rev <= revId
+    if revId > @currentRevision
+      # Forward replay journal to revId
+      for entry in @entries
+        continue if entry.rev <= @currentRevision
+        break if entry.rev > revId
         @executeEntry entry
+
+    else
+      # Move backwards, and apply inverse changes
+      i = @entries.length
+      while i > 0
+        i--
+        entry = @entries[i]
+        continue if entry.rev > @currentRevision
+        break if entry.rev == revId
+        @executeEntryInversed entry
+        
 
     @currentRevision = revId
     @subscribed = true
