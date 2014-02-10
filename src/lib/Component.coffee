@@ -16,19 +16,18 @@ class Component extends EventEmitter
   icon: null
 
   constructor: (options) ->
-    return unless options
+    options = {} unless options
+    options.inPorts = {} unless options.inPorts
+    if options.inPorts instanceof ports.InPorts
+      @inPorts = options.inPorts
+    else
+      @inPorts = new ports.InPorts options.inPorts
 
-    if options.inPorts
-      if options.inPorts instanceof ports.InPorts
-        @inPorts = options.inPorts
-      else
-        @inPorts = new ports.InPorts options.inPorts
-
-    if options.outPorts
-      if options.outPorts instanceof ports.OutPorts
-        @outPorts = options.outPorts
-      else
-        @outPorts = new ports.OutPorts options.outPorts
+    options.outPorts = {} unless options.outPorts
+    if options.outPorts instanceof ports.OutPorts
+      @outPorts = options.outPorts
+    else
+      @outPorts = new ports.OutPorts options.outPorts
 
   getDescription: -> @description
 

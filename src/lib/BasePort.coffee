@@ -79,4 +79,6 @@ class BasePort extends EventEmitter
 
   canAttach: -> true
 
+  isPort: -> true
+
 module.exports = BasePort

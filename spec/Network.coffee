@@ -21,6 +21,7 @@ describe 'NoFlo Network', ->
         @outPorts.out.disconnect()
     shutdown: ->
       @stopped = true
+  Split.getComponent = -> new Split
   class Merge extends noflo.Component
     constructor: ->
       @inPorts =
@@ -31,6 +32,7 @@ describe 'NoFlo Network', ->
         @outPorts.out.send data
       @inPorts.in.on 'disconnect', =>
         @outPorts.out.disconnect()
+  Merge.getComponent = -> new Merge
   class Callback extends noflo.Component
     constructor: ->
       @cb = null
@@ -42,6 +44,7 @@ describe 'NoFlo Network', ->
         @cb = data
       @inPorts.in.on 'data', (data) =>
         @cb data
+  Callback.getComponent = -> new Callback
 
   describe 'with an empty graph', ->
     g = null

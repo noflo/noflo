@@ -98,7 +98,7 @@ class Port extends EventEmitter
     return true if @sockets.length > 0
     false
 
-  canAttach: ->
-    true
+  canAttach: -> true
+  isPort: -> true
 
 exports.Port = Port

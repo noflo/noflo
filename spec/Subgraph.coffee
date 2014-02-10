@@ -34,16 +34,16 @@ describe 'Graph component', ->
         @outPorts.out.send data
       @inPorts.in.on 'disconnect', =>
         @outPorts.out.disconnect()
-  class Merge extends noflo.Component
-    constructor: ->
-      @inPorts =
-        in: new noflo.ArrayPort
-      @outPorts =
-        out: new noflo.Port
-      @inPorts.in.on 'data', (data) =>
-        @outPorts.out.send data
-      @inPorts.in.on 'disconnect', =>
-        @outPorts.out.disconnect()
+  Split.getComponent = -> new Split
+
+  SubgraphMerge = ->
+    inst = new noflo.Component
+    inst.inPorts.add 'in', (event, payload, instance) ->
+      method = event
+      method = 'send' if event is 'data'
+      instance.outPorts[method] 'out', payload
+    inst.outPorts.add 'out'
+    inst
 
   describe 'initially', ->
     it 'should be ready', ->
@@ -65,7 +65,7 @@ describe 'Graph component', ->
         done()
       c.once 'network', (network) ->
         network.loader.components.Split = Split
-        network.loader.components.Merge = Merge
+        network.loader.registerComponent '', 'Merge', SubgraphMerge
         chai.expect(c.ready).to.be.false
         chai.expect(c.network).not.to.be.null
         start.send true
@@ -78,6 +78,7 @@ describe 'Graph component', ->
     it 'should expose available ports', (done) ->
       c.baseDir = root
       c.once 'ready', ->
+        console.log c.inPorts.ports
         chai.expect(c.inPorts.ports).to.have.keys [
           'graph'
           'start'
@@ -93,7 +94,7 @@ describe 'Graph component', ->
         chai.expect(c.ready).to.be.false
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
-        c.network.loader.components.Merge = Merge
+        c.network.loader.components.Merge = SubgraphMerge
         start.send true
       g.send
         processes:
@@ -124,7 +125,7 @@ describe 'Graph component', ->
         chai.expect(c.ready).to.be.false
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
-        c.network.loader.components.Merge = Merge
+        c.network.loader.components.Merge = SubgraphMerge
         start.send true
       g.send
         exports: [
@@ -159,7 +160,7 @@ describe 'Graph component', ->
         chai.expect(c.ready).to.be.false
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
-        c.network.loader.components.Merge = Merge
+        c.network.loader.components.Merge = SubgraphMerge
         start.send true
       g.send
         processes:
@@ -191,7 +192,7 @@ describe 'Graph component', ->
         chai.expect(c.ready).to.be.false
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
-        c.network.loader.components.Merge = Merge
+        c.network.loader.components.Merge = SubgraphMerge
         start.send true
       g.send gr
       chai.expect(c.ready).to.be.false
@@ -213,7 +214,7 @@ describe 'Graph component', ->
         chai.expect(c.ready).to.be.false
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
-        c.network.loader.components.Merge = Merge
+        c.network.loader.components.Merge = SubgraphMerge
         start.send true
       g.send gr
     it 'should be able to run the graph', (done) ->
@@ -231,7 +232,7 @@ describe 'Graph component', ->
         chai.expect(c.ready).to.be.false
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
-        c.network.loader.components.Merge = Merge
+        c.network.loader.components.Merge = SubgraphMerge
         start.send true
       g.send gr
 
@@ -246,7 +247,7 @@ describe 'Graph component', ->
         chai.expect(c.ready).to.be.false
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
-        c.network.loader.components.Merge = Merge
+        c.network.loader.components.Merge = SubgraphMerge
         start.send true
       g.send file
       chai.expect(c.ready).to.be.false
@@ -268,7 +269,7 @@ describe 'Graph component', ->
         chai.expect(c.ready).to.be.false
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
-        c.network.loader.components.Merge = Merge
+        c.network.loader.components.Merge = SubgraphMerge
         start.send true
       g.send file
     it 'should be able to run the graph', (done) ->
@@ -286,6 +287,6 @@ describe 'Graph component', ->
         chai.expect(c.ready).to.be.false
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
-        c.network.loader.components.Merge = Merge
+        c.network.loader.components.Merge = SubgraphMerge
         start.send true
       g.send file

@@ -92,7 +92,10 @@ class ComponentLoader
       return
     if typeof component is 'function'
       implementation = component
-      instance = new component
+      if component.getComponent and typeof component.getComponent is 'function'
+        instance = component.getComponent()
+      else
+        instance = component()
     # Direct component instance, return as is
     else if typeof component is 'object' and typeof component.getComponent is 'function'
       instance = component.getComponent()

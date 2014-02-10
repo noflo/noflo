@@ -39,9 +39,9 @@ class InPort extends BasePort
     # Call the processing function
     if @process
       if @isAddressable()
-        @process event, payload, id, @node
+        @process event, payload, id, @nodeInstance
       else
-        @process event, payload, @node
+        @process event, payload, @nodeInstance
 
     # Emit port event
     return @emit event, payload, id if @isAddressable()

@@ -67,6 +67,7 @@ describe 'ComponentLoader with no external packages installed', ->
           in: new port.Port
         @outPorts =
           out: new port.Port
+    Split.getComponent = -> new Split
     instance = null
     l.libraryIcons.foo = 'star'
     it 'should be available in the components list', ->

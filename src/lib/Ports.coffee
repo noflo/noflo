@@ -26,7 +26,7 @@ class Ports extends EventEmitter
     # Remove previous implementation
     @remove name if @ports[name]
 
-    if typeof options is 'object' and options.getId
+    if typeof options is 'object' and options.isPort and options.isPort()
       @ports[name] = options
     else
       @ports[name] = new @model options, process
