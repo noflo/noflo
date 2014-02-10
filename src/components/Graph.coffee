@@ -105,13 +105,13 @@ class Graph extends noflo.Component
 
   findEdgePorts: (name, process) ->
     for portName, port of process.component.inPorts
-      continue if typeof port is 'function' or not port.canAttach
+      continue if not port or typeof port is 'function' or not port.canAttach
       targetPortName = @isExported port, name, portName
       continue if targetPortName is false
       @inPorts.add targetPortName, port
 
     for portName, port of process.component.outPorts
-      continue if typeof port is 'function' or not port.canAttach
+      continue if not port or typeof port is 'function' or not port.canAttach
       targetPortName = @isExported port, name, portName
       continue if targetPortName is false
       @outPorts.add targetPortName, port
