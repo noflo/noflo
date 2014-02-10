@@ -12,7 +12,7 @@ else
 class Port extends EventEmitter
   constructor: (@type) ->
     @type = 'all' unless @type
-    @socket = null
+    @sockets = []
     @from = null
     @node = null
     @name = null
@@ -25,9 +25,7 @@ class Port extends EventEmitter
   getDataType: -> @type
 
   attach: (socket) ->
-    throw new Error "#{@getId()}: Socket already attached #{@socket.getId()} - #{socket.getId()}" if @isAttached()
-    @socket = socket
-
+    @sockets.push socket
     @attachSocket socket
 
   attachSocket: (socket, localId = null) ->
@@ -47,52 +45,60 @@ class Port extends EventEmitter
       @emit "disconnect", socket, localId
 
   connect: ->
-    throw new Error "#{@getId()}: No connection available" unless @socket
-    do @socket.connect
+    if @sockets.length is 0
+      throw new Error "#{@getId()}: No connections available"
+    socket.connect() for socket in @sockets
 
   beginGroup: (group) ->
-    throw new Error "#{@getId()}: No connection available" unless @socket
+    if @sockets.length is 0
+      throw new Error "#{@getId()}: No connections available"
 
-    return @socket.beginGroup group if @isConnected()
-
-    @socket.once "connect", =>
-      @socket.beginGroup group
-    do @socket.connect
+    @sockets.forEach (socket) ->
+      return socket.beginGroup group if socket.isConnected()
+      socket.once 'connect', ->
+        socket.beginGroup group
+      do socket.connect
 
   send: (data) ->
-    throw new Error "#{@getId()}: No connection available" unless @socket
+    if @sockets.length is 0
+      throw new Error "#{@getId()}: No connections available"
 
-    return @socket.send data if @isConnected()
-
-    @socket.once "connect", =>
-      @socket.send data
-    do @socket.connect
+    @sockets.forEach (socket) ->
+      return socket.send data if socket.isConnected()
+      socket.once 'connect', ->
+        socket.send data
+      do socket.connect
 
   endGroup: ->
-    throw new Error "#{@getId()}: No connection available" unless @socket
-    do @socket.endGroup
+    if @sockets.length is 0
+      throw new Error "#{@getId()}: No connections available"
+    socket.endGroup() for socket in @sockets
 
   disconnect: ->
-    throw new Error "#{@getId()}: No connection available" unless @socket
-    @socket.disconnect()
+    if @sockets.length is 0
+      throw new Error "#{@getId()}: No connections available"
+    socket.disconnect() for socket in @sockets
 
   detach: (socket) ->
-    return unless @isAttached socket
-    @emit "detach", @socket
-    @from = null
-    @socket = null
+    return if @sockets.length is 0
+    socket = @sockets[0] unless socket
+    index = @sockets.indexOf socket
+    return if index is -1
+    @sockets.splice index, 1
+    @emit "detach", socket
 
   isConnected: ->
-    unless @socket
-      return false
-    @socket.isConnected()
+    connected = false
+    @sockets.forEach (socket) =>
+      if socket.isConnected()
+        connected = true
+    connected
 
   isAttached: ->
-    @socket isnt null
+    return true if @sockets.length > 0
+    false
 
   canAttach: ->
-    if @isAttached()
-      return false
     true
 
 exports.Port = Port

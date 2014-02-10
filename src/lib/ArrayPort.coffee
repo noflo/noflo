@@ -9,8 +9,7 @@ port = require "./Port"
 
 class ArrayPort extends port.Port
   constructor: (@type) ->
-    @type = 'all' unless @type
-    @sockets = []
+    super @type
 
   attach: (socket) ->
     @sockets.push socket
@@ -87,12 +86,6 @@ class ArrayPort extends port.Port
     return unless @sockets[socketId]
     @sockets[socketId].disconnect()
 
-  detach: (socket) ->
-    if @sockets.indexOf(socket) is -1
-      return
-    @sockets.splice @sockets.indexOf(socket), 1
-    @emit "detach", socket
-
   isConnected: (socketId = null) ->
     if socketId is null
       connected = false
@@ -111,8 +104,5 @@ class ArrayPort extends port.Port
       return false
     return true if @sockets[socketId]
     false
-
-  canAttach: ->
-    true
 
 exports.ArrayPort = ArrayPort

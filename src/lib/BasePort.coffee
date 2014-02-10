@@ -67,8 +67,8 @@ class BasePort extends EventEmitter
 
   isConnected: (socketId = null) ->
     if @isAddressable()
-      throw new Error 'Socket ID required' if socketId is null
-      throw new Error "Socket #{socketId} not available" unless @sockets[socketId]
+      throw new Error "#{@getId()}: Socket ID required" if socketId is null
+      throw new Error "#{@getId()}: Socket #{socketId} not available" unless @sockets[socketId]
       return @sockets[socketId].isConnected()
 
     connected = false

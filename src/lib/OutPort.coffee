@@ -44,12 +44,12 @@ class OutPort extends BasePort
 
   checkRequired: (sockets) ->
     unless sockets.length and @isRequired()
-      throw new Error 'No attached sockets available'
+      throw new Error "#{@getId()}: No connections available"
 
   getSockets: (socketId) ->
     # Addressable sockets affect only one connection at time
     if @isAddressable()
-      throw new Error 'Socket ID required' if socketId is null
+      throw new Error "#{@getId()} Socket ID required" if socketId is null
       return [] unless @sockets[socketId]
       return [@sockets[socketId]]
     # Regular sockets affect all outbound connections

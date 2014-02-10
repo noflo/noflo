@@ -55,6 +55,7 @@ describe 'Legacy Port', ->
 
     describe 'with attached socket', ->
       s = new socket.InternalSocket
+      s2 = new socket.InternalSocket
       it 'should emit an event', (done) ->
         p.once 'attach', (sock) ->
           chai.expect(sock).to.equal s
@@ -62,20 +63,30 @@ describe 'Legacy Port', ->
         p.attach s
       it 'should be marked as attached', ->
         chai.expect(p.isAttached()).to.equal true
-      it 'should not allow a connection', ->
-        chai.expect(p.canAttach()).to.equal false
       it 'should not be connected initially', ->
         chai.expect(p.isConnected()).to.equal false
       it 'should have a reference to the socket', ->
-        chai.expect(p.socket).to.equal s
-      it 'should not allow other sockets to be attached', ->
-        chai.expect(-> p.attach(new socket.InternalSocket)).to.throw Error
-
+        chai.expect(p.sockets.length).to.equal 1
+        chai.expect(p.sockets[0]).to.equal s
+      it 'should allow other sockets to be attached', (done) ->
+        chai.expect(p.canAttach()).to.equal true
+        p.once 'attach', (sock) ->
+          chai.expect(p.sockets.length).to.equal 2
+          chai.expect(sock).to.equal s2
+          done()
+        p.attach s2
       it 'should emit an event on detaching', (done) ->
         p.once 'detach', (sock) ->
           chai.expect(sock).to.equal s
+          chai.expect(p.sockets.length).to.equal 1
           done()
         p.detach()
+      it 'should still be attached', (done) ->
+        chai.expect(p.isAttached()).to.equal true
+        p.once 'detach', (sock) ->
+          chai.expect(sock).to.equal s2
+          done()
+        p.detach s2
       it 'should not be attached any longer', ->
         chai.expect(p.isAttached()).to.equal false
       it 'should not contain a socket any longer', ->
