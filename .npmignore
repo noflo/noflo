@@ -1,1 +1,4 @@
 .git*
+spec/browser/*.js
+spec/result.xml
+/components/
