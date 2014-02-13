@@ -85,12 +85,11 @@ class Graph extends noflo.Component
 
   isExported: (port, nodeName, portName) ->
     newPort = @portName nodeName, portName
-    return false if port.isAttached()
-    return newPort if @network.graph.exports.length is 0
-
     for exported in @network.graph.exports
       return exported.public if exported.private is newPort
-    return false
+    return false if @network.graph.exports.length
+    return false if port.isAttached()
+    return newPort
 
   setToReady: ->
     if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
