@@ -46,16 +46,26 @@ class Graph extends EventEmitter
   # This allows subgraphs to expose a cleaner API by having reasonably
   # named ports shown instead of all the free ports of the graph
   addExport: (privatePort, publicPort, metadata) ->
-    @exports.push
+    exported =
       private: privatePort.toLowerCase()
       public: publicPort.toLowerCase()
       metadata: metadata
+    @exports.push exported
+    @emit 'addExport', exported
 
   removeExport: (publicPort) ->
     for exported in @exports
       continue unless exported
       continue unless exported.public is publicPort
       @exports.splice @exports.indexOf(exported), 1
+      @emit 'removeExport', exported
+
+  renameExport: (oldPort, newPort) ->
+    for exported in @exports
+      continue unless exported
+      continue unless exported.public is oldPort
+      exported.public = newPort
+    @emit 'renameExport', oldPort, newPort
 
   # ## Grouping nodes in a graph
   #

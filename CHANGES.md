@@ -8,6 +8,7 @@ NoFlo ChangeLog
 * New methods for manipulating Graph metadata:
   - `setNodeMetadata`
   * `setEdgeMetadata`
+* Graph exports can now be renamed, and emit `addExport`, `removeExport`, and `renameExport` events
 * [New port API](https://github.com/noflo/noflo/issues/136) allowing better addressability and metadata
 
 With the new API component ports can be declared with:

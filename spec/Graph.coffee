@@ -245,6 +245,15 @@ describe 'Graph', ->
         for group in g.groups
           groups++ if group.nodes.indexOf('Foo') isnt -1
         chai.expect(groups).to.equal 0
+    describe 'renaming an export', ->
+      it 'should emit an event', (done) ->
+        g.once 'renameExport', (oldName, newName) ->
+          chai.expect(oldName).to.equal 'in'
+          chai.expect(newName).to.equal 'opt'
+          chai.expect(g.exports[0].public).to.equal newName
+          chai.expect(g.exports[0].private).to.equal 'baz.in'
+          done()
+        g.renameExport 'in', 'opt'
     describe 'removing a node', ->
       it 'should emit an event', (done) ->
         g.once 'removeNode', (node) ->
