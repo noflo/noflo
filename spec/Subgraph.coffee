@@ -84,11 +84,9 @@ describe 'Graph component', ->
           'graph'
           'start'
           'merge.in'
-          'split.in'
         ]
         chai.expect(c.outPorts.ports).to.have.keys [
           'split.out'
-          'merge.out'
         ]
         done()
       c.once 'network', ->
@@ -204,11 +202,9 @@ describe 'Graph component', ->
           'graph'
           'start'
           'merge.in'
-          'split.in'
         ]
         chai.expect(c.outPorts.ports).to.have.keys [
           'split.out'
-          'merge.out'
         ]
         done()
       c.once 'network', ->
@@ -259,11 +255,9 @@ describe 'Graph component', ->
           'graph'
           'start'
           'merge.in'
-          'split.in'
         ]
         chai.expect(c.outPorts.ports).to.have.keys [
           'split.out'
-          'merge.out'
         ]
         done()
       c.once 'network', ->

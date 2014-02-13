@@ -85,7 +85,7 @@ class Graph extends noflo.Component
 
   isExported: (port, nodeName, portName) ->
     newPort = @portName nodeName, portName
-    return false unless port.canAttach()
+    return false if port.isAttached()
     return newPort if @network.graph.exports.length is 0
 
     for exported in @network.graph.exports
