@@ -101,7 +101,10 @@ class ComponentLoader
       instance = component.getComponent()
     else
       implementation = require component
-      instance = implementation.getComponent()
+      if implementation.getComponent and typeof implementation.getComponent is 'function'
+        instance = implementation.getComponent()
+      else
+        instance = implementation()
     instance.baseDir = @baseDir if name is 'Graph'
     @setIcon name, instance
     callback instance
