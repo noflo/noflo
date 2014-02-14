@@ -93,6 +93,7 @@ class Graph extends EventEmitter
 
     @checkTransactionEnd()
 
+  # TODO in/out ambiguity
   removeExport: (publicPort) ->
     @checkTransactionStart()
 
@@ -104,6 +105,7 @@ class Graph extends EventEmitter
 
     @checkTransactionEnd()
 
+  # TODO in/out ambiguity
   renameExport: (oldPort, newPort) ->
     @checkTransactionStart()
 
@@ -114,6 +116,27 @@ class Graph extends EventEmitter
     @emit 'renameExport', oldPort, newPort
 
     @checkTransactionEnd()
+
+  getExport: (privatePort, publicPort) ->
+    for exported in @exports
+      if exported.private is privatePort.toLowerCase() and exported.public is publicPort.toLowerCase()
+        return exported
+    return null
+
+  setExportMetadata: (privatePort, publicPort, metadata) ->
+    exported = @getExport privatePort, publicPort
+    return unless exported
+
+    @checkTransactionStart()
+
+    exported.metadata = {} unless exported.metadata
+
+    for item, val of metadata
+      exported.metadata[item] = val
+
+    @emit 'changeExport', exported
+    @checkTransactionEnd()
+
 
   # ## Grouping nodes in a graph
   #
