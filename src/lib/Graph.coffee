@@ -40,12 +40,50 @@ class Graph extends EventEmitter
     @initializers = []
     @exports = []
     @groups = []
+    @transaction =
+      id: null
+      depth: 0
+
+  # ## Group graph changes into tranactions
+  #
+  # If no transaction is explicitly opened, each call to
+  # the graph API will implicitly create a transaction for that change
+  startTransaction: (id, metadata) ->
+    if @transaction.id
+      throw Error("Nested transactions not supported")
+
+    @transaction.id = id
+    @transaction.depth = 1
+    @emit 'startTransaction', id, metadata
+
+  endTransaction: (id, metadata) ->
+    if not @transaction.id
+      throw Error("Attempted to end non-existing transaction")
+
+    @transaction.id = null
+    @transaction.depth = 0
+    @emit 'endTransaction', id, metadata
+
+  # TODO: use a decorator on relevant methods to inject these, instead of manually
+  checkTransactionStart: () ->
+    if not @transaction.id
+      @startTransaction 'implicit'
+    else if @transaction.id == 'implicit'
+      @transaction.depth += 1
+
+  checkTransactionEnd: () ->
+    if @transaction.id == 'implicit'
+      @transaction.depth -= 1
+    if @transaction.depth == 0
+      @endTransaction 'implicit'
+
 
   # ## Exporting a port from subgraph
   #
   # This allows subgraphs to expose a cleaner API by having reasonably
   # named ports shown instead of all the free ports of the graph
   addExport: (privatePort, publicPort, metadata) ->
+    @checkTransactionStart()
     exported =
       private: privatePort.toLowerCase()
       public: publicPort.toLowerCase()
@@ -53,33 +91,51 @@ class Graph extends EventEmitter
     @exports.push exported
     @emit 'addExport', exported
 
+    @checkTransactionEnd()
+
   removeExport: (publicPort) ->
+    @checkTransactionStart()
+
     for exported in @exports
       continue unless exported
       continue unless exported.public is publicPort
       @exports.splice @exports.indexOf(exported), 1
       @emit 'removeExport', exported
 
+    @checkTransactionEnd()
+
   renameExport: (oldPort, newPort) ->
+    @checkTransactionStart()
+
     for exported in @exports
       continue unless exported
       continue unless exported.public is oldPort
       exported.public = newPort
     @emit 'renameExport', oldPort, newPort
 
+    @checkTransactionEnd()
+
   # ## Grouping nodes in a graph
   #
   addGroup: (group, nodes, metadata) ->
+    @checkTransactionStart()
+
     @groups.push
       name: group
       nodes: nodes
       metadata: metadata
 
+    @checkTransactionEnd()
+
   removeGroup: (group) ->
+    @checkTransactionStart()
+
     for group in @groups
       continue unless group
       continue unless group.name is group
       @groups.splice @groups.indexOf(group), 1
+
+    @checkTransactionEnd()
 
   # ## Adding a node to the graph
   #
@@ -95,6 +151,8 @@ class Graph extends EventEmitter
   #
   # Addition of a node will emit the `addNode` event.
   addNode: (id, component, metadata) ->
+    @checkTransactionStart()
+
     metadata = {} unless metadata
     node =
       id: id
@@ -102,6 +160,8 @@ class Graph extends EventEmitter
       metadata: metadata
     @nodes.push node
     @emit 'addNode', node
+
+    @checkTransactionEnd()
     node
 
   # ## Removing a node from the graph
@@ -114,6 +174,8 @@ class Graph extends EventEmitter
   # Once the node has been removed, the `removeNode` event will be
   # emitted.
   removeNode: (id) ->
+    @checkTransactionStart()
+
     node = @getNode id
 
     for edge in @edges
@@ -145,6 +207,8 @@ class Graph extends EventEmitter
 
     @emit 'removeNode', node
 
+    @checkTransactionEnd()
+
   # ## Getting a node
   #
   # Nodes objects can be retrieved from the graph by their ID:
@@ -160,6 +224,8 @@ class Graph extends EventEmitter
   #
   # Nodes IDs can be changed by calling this method.
   renameNode: (oldId, newId) ->
+    @checkTransactionStart()
+
     node = @getNode oldId
     return unless node
     node.id = newId
@@ -189,6 +255,7 @@ class Graph extends EventEmitter
       group.nodes[index] = newId
 
     @emit 'renameNode', oldId, newId
+    @checkTransactionEnd()
 
   # ## Changing a node's metadata
   #
@@ -196,13 +263,16 @@ class Graph extends EventEmitter
   setNodeMetadata: (id, metadata) ->
     node = @getNode id
     return unless node
+
+    @checkTransactionStart()
+
     node.metadata = {} unless node.metadata
 
     for item, val of metadata
       node.metadata[item] = val
 
     @emit 'changeNode', node
-
+    @checkTransactionEnd()
 
   # ## Connecting nodes
   #
@@ -219,6 +289,9 @@ class Graph extends EventEmitter
     return unless @getNode outNode
     return unless @getNode inNode
     metadata = {} unless metadata
+
+    @checkTransactionStart()
+
     edge =
       from:
         node: outNode
@@ -229,6 +302,8 @@ class Graph extends EventEmitter
       metadata: metadata
     @edges.push edge
     @emit 'addEdge', edge
+
+    @checkTransactionEnd()
     edge
 
   # ## Disconnected nodes
@@ -245,6 +320,8 @@ class Graph extends EventEmitter
   #
   # Removing a connection will emit the `removeEdge` event.
   removeEdge: (node, port, node2, port2) ->
+    @checkTransactionStart()
+
     for edge,index in @edges
       continue unless edge
       if edge.from.node is node and edge.from.port is port
@@ -259,6 +336,8 @@ class Graph extends EventEmitter
             continue
         @emit 'removeEdge', edge
         @edges.splice index, 1
+
+    @checkTransactionEnd()
 
   # ## Getting an edge
   #
@@ -279,12 +358,15 @@ class Graph extends EventEmitter
   setEdgeMetadata: (node, port, node2, port2, metadata) ->
     edge = @getEdge node, port, node2, port2
     return unless edge
+
+    @checkTransactionStart()
     edge.metadata = {} unless edge.metadata
 
     for item, val of metadata
       edge.metadata[item] = val
 
     @emit 'changeEdge', edge
+    @checkTransactionEnd()
 
   # ## Adding Initial Information Packets
   #
@@ -300,6 +382,8 @@ class Graph extends EventEmitter
   # Adding an IIP will emit a `addInitial` event.
   addInitial: (data, node, port, metadata) ->
     return unless @getNode node
+
+    @checkTransactionStart()
     initializer =
       from:
         data: data
@@ -309,6 +393,8 @@ class Graph extends EventEmitter
       metadata: metadata
     @initializers.push initializer
     @emit 'addInitial', initializer
+
+    @checkTransactionEnd()
     initializer
 
   # ## Removing Initial Information Packets
@@ -319,11 +405,15 @@ class Graph extends EventEmitter
   #
   # Remove an IIP will emit a `removeInitial` event.
   removeInitial: (node, port) ->
+    @checkTransactionStart()
+
     for edge, index in @initializers
       continue unless edge
       if edge.to.node is node and edge.to.port is port
         @emit 'removeInitial', edge
         @initializers.splice index, 1
+
+    @checkTransactionEnd()
 
   toDOT: ->
     cleanID = (id) ->
@@ -426,12 +516,15 @@ exports.Graph = Graph
 exports.createGraph = (name) ->
   new Graph name
 
-exports.loadJSON = (definition, success) ->
+exports.loadJSON = (definition, success, metadata) ->
   definition.properties = {} unless definition.properties
   definition.processes = {} unless definition.processes
   definition.connections = [] unless definition.connections
 
   graph = new Graph definition.properties.name
+
+  graph.startTransaction 'loadJSON', metadata
+  # TODO: capture properties in journal
   for property, value of definition.properties
     continue if property is 'name'
     graph.properties[property] = value
@@ -455,6 +548,8 @@ exports.loadJSON = (definition, success) ->
     for group in definition.groups
       graph.addGroup group.name, group.nodes, group.metadata
 
+  graph.endTransaction 'loadJSON'
+
   success graph
 
 exports.loadFBP = (fbpData, success) ->
@@ -475,7 +570,7 @@ exports.loadFile = (file, success) ->
     try
       # Graph exposed via Component packaging
       definition = require file
-      exports.loadJSON definition, success
+      exports.loadJSON definition, success, metadata
       return
     catch e
       # Graph available via HTTP
