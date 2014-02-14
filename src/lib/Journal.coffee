@@ -152,8 +152,10 @@ class Journal extends EventEmitter
     return unless @currentRevision < @lastRevision
     @moveToRevision(@currentRevision+1)
 
-  toPrettyString: () ->
-    lines = (entryToPrettyString entry for entry in @entries)
+  toPrettyString: (startRev, endRev) ->
+    startRev |= 0
+    endRev |= @lastRevision
+    lines = (entryToPrettyString entry for entry in @entries when entry.rev >= startRev and entry.rev < endRev)
     return lines.join('\n')
 
   toJSON: () ->
