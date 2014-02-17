@@ -83,7 +83,11 @@ class Graph extends EventEmitter
   # This allows subgraphs to expose a cleaner API by having reasonably
   # named ports shown instead of all the free ports of the graph
   addExport: (privatePort, publicPort, metadata) ->
+    # Check that export is unique
+    return if @getExportByPublic publicPort
+
     @checkTransactionStart()
+    
     exported =
       private: privatePort.toLowerCase()
       public: publicPort.toLowerCase()
@@ -120,6 +124,13 @@ class Graph extends EventEmitter
   getExport: (privatePort, publicPort) ->
     for exported in @exports
       if exported.private is privatePort.toLowerCase() and exported.public is publicPort.toLowerCase()
+        return exported
+    return null
+
+  # Export public names must be unique until we fix in/out ambiguity
+  getExportByPublic: (publicPort) ->
+    for exported in @exports
+      if exported.public is publicPort.toLowerCase()
         return exported
     return null
 
