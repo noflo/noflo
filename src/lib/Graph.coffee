@@ -539,7 +539,7 @@ exports.Graph = Graph
 exports.createGraph = (name) ->
   new Graph name
 
-exports.loadJSON = (definition, success, metadata) ->
+exports.loadJSON = (definition, success, metadata = {}) ->
   definition.properties = {} unless definition.properties
   definition.processes = {} unless definition.processes
   definition.connections = [] unless definition.connections
@@ -588,7 +588,7 @@ exports.loadHTTP = (url, success) ->
   req.open 'GET', url, true
   req.send()
 
-exports.loadFile = (file, success) ->
+exports.loadFile = (file, success, metadata = {}) ->
   unless typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
     try
       # Graph exposed via Component packaging
