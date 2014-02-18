@@ -137,6 +137,7 @@ class Graph extends EventEmitter
     if isIn is false or isIn is undefined
       for port in @exports.outports
         return port if port.nodeKey is nodeKey
+    return null
 
   removeExport: (publicPort, isIn) ->
     @checkTransactionStart()
