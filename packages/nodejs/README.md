@@ -33,6 +33,18 @@ You can either create the file by hand, or by the provided `noflo-nodejs-init` t
 $ node node_modules/.bin/noflo-nodejs-init --help
 ```
 
+### Host address autodetection
+
+There are situations where the IP address of the runtime will change. For example, when you're running a NoFlo runtime on a [Raspberry Pi](http://www.raspberrypi.org/) that you carry between home and the office. This runtime tool has rudimentary support for IP address autodetection.
+
+To enable that, run:
+
+```shell
+$ node node_modules/.bin/noflo-nodejs-init --host autodetect
+```
+
+After this the runtime will report its current IP address to your Flowhub UI whenever it is started.
+
 ## Starting the runtime
 
 Once you have configured the runtime, it is time to start it:
