@@ -98,7 +98,44 @@ describe 'Journal', ->
       chai.expect(g.nodes.length).to.equal 2
       chai.expect(g.toJSON()).to.deep.equal graphBeforeError
 
+  describe 'undo/redo of metadata changes', ->
+    g = new graph.Graph
+    j = new journal.Journal(g)
+    g.addNode 'Foo', 'Bar'
+    g.addNode 'Baz', 'Foo'
+    g.addEdge 'Foo', 'out', 'Baz', 'in'
 
+    it 'adding group', ->
+      g.addGroup 'all', ['Foo', 'Bax'], {'label': 'all nodes'}
+      chai.expect(g.groups.length).to.equal 1
+      chai.expect(g.groups[0].name).to.equal 'all'
+    it 'undoing group add', ->
+      j.undo()
+      chai.expect(g.groups.length).to.equal 0
+    it 'redoing group add', ->
+      j.redo()
+      chai.expect(g.groups[0].metadata['label']).to.equal 'all nodes'
+
+    it 'changing group metadata adds revision', ->
+      r = j.lastRevision
+      g.setGroupMetadata 'all', {'label': 'ALL NODES!'}
+      chai.expect(j.lastRevision).to.equal r+1
+    it 'undoing group metadata change', ->
+      j.undo()
+      chai.expect(g.groups[0].metadata['label']).to.equal "all nodes"
+    it 'redoing group metadata change', ->
+      j.redo()
+      chai.expect(g.groups[0].metadata['label']).to.equal "ALL NODES!"
+
+    it 'setting node metadata', ->
+      g.setNodeMetadata 'Foo', {"oneone": 11, 2: "two"}
+      chai.expect(Object.keys(g.getNode('Foo').metadata).length).to.equal 2
+    it 'undoing set node metadata', ->
+      j.undo()
+      chai.expect(Object.keys(g.getNode('Foo').metadata).length).to.equal 0
+    it 'redoing set node metadata', ->
+      j.redo()
+      chai.expect(g.getNode('Foo').metadata["oneone"]).to.equal 11
 
 # FIXME: add tests for graph.loadJSON/loadFile, and journal metadata
 
