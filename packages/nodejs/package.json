@@ -1,0 +1,17 @@
+{
+  "name": "noflo-nodejs",
+  "version": "0.0.0",
+  "description": "Node.js runtime for NoFlo",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Henri Bergius <henri.bergius@iki.fi>",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^2.1.0",
+    "flowhub-registry": "0.0.1",
+    "noflo-runtime-websocket": "^0.2.1",
+    "uuid": "^1.4.1"
+  }
+}

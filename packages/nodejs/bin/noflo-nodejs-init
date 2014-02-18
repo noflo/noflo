@@ -1,0 +1,48 @@
+#!/usr/bin/env node
+// vim: set filetype=javascript:
+var program = require('commander');
+var flowhub = require('flowhub-registry');
+var uuid = require('uuid');
+var lib = require('../index');
+
+var defaults = lib.getDefaults();
+var stored = lib.getStored();
+
+program
+  .version(lib.getLibraryConfig().version)
+  .option('--user <uuid>', 'Unique Identifier for the runtime owner.', stored.user || defaults.user)
+  .option('--host <hostname>', 'Hostname or IP for the runtime. Use "autodetect" for dynamic detection.', stored.host)
+  .option('--port <port>', 'Port for the runtime', parseInt, stored.port)
+  .option('--label <label>', 'Human-readable label for the runtime.', stored.label)
+  .option('--secret <secret>', 'Secret string to be used for the connection.', stored.secret)
+  .option('--id <uuid>', 'Unique Identifier for the runtime instance.', stored.id)
+  .parse(process.argv);
+
+if (program.user && !defaults.user) {
+  defaults.user = program.user;
+  lib.saveDefaults(defaults);
+  console.log('Saved your Flowhub user ID ' + defaults.user + ' to defaults in ' + lib.getDefaultsPath());
+  console.log();
+}
+
+var values = {
+  id: program.id || uuid.v4(),
+  user: program.user,
+  host: program.host,
+  port: program.port,
+  label: program.label,
+  secret: program.secret
+};
+
+lib.saveStored(values);
+
+console.log('Stored the following configuration to ' + lib.getStoredPath());
+console.log();
+for (var name in values) {
+  if (!values[name]) {
+    continue;
+  }
+  console.log(name + ': ' + values[name]);
+}
+console.log();
+console.log('This file will be read by noflo-nodejs on startup and registered with http://flowhub.io');
