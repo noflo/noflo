@@ -1,5 +1,6 @@
 var fs = require('fs');
 var path = require('path');
+var os = require('os');
 
 exports.getLibraryConfig = function () {
   var packagePath = path.resolve(__dirname, 'package.json');
@@ -38,4 +39,17 @@ exports.getStored = function () {
 exports.saveStored = function (values) {
   var storedPath = exports.getStoredPath();
   fs.writeFileSync(storedPath, JSON.stringify(values, null, 2), 'utf-8');
+};
+exports.discoverHost = function () {
+  var ifaces = os.networkInterfaces();
+  var address;
+  for (var device in ifaces) {
+    ifaces[device].forEach(function (connection) {
+      if (connection.family !== 'IPv4') {
+        return;
+      }
+      address = connection.address;
+    });
+  }
+  return address;
 };

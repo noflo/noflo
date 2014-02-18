@@ -42,6 +42,12 @@ for (var name in values) {
   if (!values[name]) {
     continue;
   }
+
+  if (name === 'host' && values[name] === 'autodetect') {
+    var detected = lib.discoverHost();
+    values[name] += ' (currently ' + detected + ')';
+  }
+
   console.log(name + ': ' + values[name]);
 }
 console.log();
