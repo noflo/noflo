@@ -6,8 +6,12 @@ NoFlo ChangeLog
 * Support for loading graph definitions via AJAX on browser-based NoFlo
 * Support for delayed initialization of Subgraph components via ComponentLoader
 * New methods for manipulating Graph metadata:
+  - `setProperties`
+  - `setInportMetadata`
+  - `setOutportMetadata`
+  - `setGroupMetadata`
   - `setNodeMetadata`
-  * `setEdgeMetadata`
+  - `setEdgeMetadata`
 * Graph exports can now be renamed, and emit `addExport`, `removeExport`, and `renameExport` events
 * New Graph Journaling API for keeping track of changes to graphs, including transaction support
 * [New port API](https://github.com/noflo/noflo/issues/136) allowing better addressability and metadata

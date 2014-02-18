@@ -192,6 +192,19 @@ describe 'Graph', ->
       chai.expect(g.properties).to.eql
         foo: 'Baz'
         bar: 'Foo'
+    it 'should produce same JSON when serialized', ->
+      chai.expect(JSON.stringify(g.toJSON())).to.equal JSON.stringify(json)
+    it 'should allow modifying graph metadata', (done) ->
+      g.once 'changeProperties', (properties) ->
+        chai.expect(properties).to.equal g.properties
+        chai.expect(g.properties).to.eql
+          foo: 'Baz'
+          bar: 'Bar'
+          hello: 'World'
+        done()
+      g.setProperties
+        hello: 'World'
+        bar: 'Bar'
     it 'should contain four nodes', ->
       chai.expect(g.nodes.length).to.equal 4
     it 'the first Node should have its metadata intact', ->
@@ -240,8 +253,16 @@ describe 'Graph', ->
       chai.expect(exp.metadata.y).to.equal 505
     it 'should contain two groups', ->
       chai.expect(g.groups.length).to.equal 2
-    it 'should produce same JSON when serialized', ->
-      chai.expect(JSON.stringify(g.toJSON())).to.equal JSON.stringify(json)
+    it 'should allow modifying group metadata', (done) ->
+      group = g.groups[0]
+      g.once 'changeGroup', (grp) ->
+        chai.expect(grp).to.equal group
+        chai.expect(grp.metadata.label).to.equal 'Main'
+        chai.expect(grp.metadata.foo).to.equal 'Bar'
+        chai.expect(g.groups[1].metadata).to.be.empty
+        done()
+      g.setGroupMetadata 'first',
+        foo: 'Bar'
     describe 'renaming a node', ->
       it 'should emit an event', (done) ->
         g.once 'renameNode', (oldId, newId) ->

@@ -48,7 +48,7 @@ class Graph extends EventEmitter
       id: null
       depth: 0
 
-  # ## Group graph changes into tranactions
+  # ## Group graph changes into transactions
   #
   # If no transaction is explicitly opened, each call to
   # the graph API will implicitly create a transaction for that change
@@ -81,6 +81,13 @@ class Graph extends EventEmitter
     if @transaction.depth == 0
       @endTransaction 'implicit'
 
+  # ## Modifying Graph properties
+  #
+  # This method allows changing properties of the graph.
+  setProperties: (properties) ->
+    for item, val of properties
+      @properties[item] = val
+    @emit 'changeProperties', @properties
 
   # ## Exporting a port from subgraph
   #
@@ -213,14 +220,24 @@ class Graph extends EventEmitter
 
     @checkTransactionEnd()
 
-  removeGroup: (group) ->
+  removeGroup: (groupName) ->
     @checkTransactionStart()
 
     for group in @groups
       continue unless group
-      continue unless group.name is group
+      continue unless group.name is groupName
       @groups.splice @groups.indexOf(group), 1
 
+    @checkTransactionEnd()
+
+  setGroupMetadata: (groupName, metadata) ->
+    @checkTransactionStart()
+    for group in @groups
+      continue unless group
+      continue unless group.name is groupName
+      for item, val of metadata
+        group.metadata[item] = val
+      @emit 'changeGroup', group
     @checkTransactionEnd()
 
   # ## Adding a node to the graph
