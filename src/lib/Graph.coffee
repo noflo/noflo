@@ -129,6 +129,15 @@ class Graph extends EventEmitter
         return port if port.public is publicPort
     return null
 
+  # To check if a node has exported ports
+  getExportByNode: (nodeKey, isIn) ->
+    if isIn is true or isIn is undefined
+      for port in @exports.inports
+        return port if port.process is nodeKey
+    if isIn is false or isIn is undefined
+      for port in @exports.outports
+        return port if port.nodeKey is nodeKey
+
   removeExport: (publicPort, isIn) ->
     @checkTransactionStart()
 
@@ -245,11 +254,15 @@ class Graph extends EventEmitter
       if initializer.to.node is node.id
         @removeInitial initializer.to.node, initializer.to.port
 
-    for exported in @exports
-      continue unless exported
-      [privateNode, privatePort] = exported.private.split '.'
-      if privateNode is id.toLowerCase()
-        @removeExport exported.public
+    inport = @getExportByNode id, true
+    while inport
+      @removeExport inport.public, true
+      inport = @getExportByNode id, true
+
+    outport = @getExportByNode id, false
+    while outport
+      @removeExport outport.public, false
+      outport = @getExportByNode id, false
 
     for group in @groups
       continue unless group
