@@ -133,7 +133,7 @@ class Graph extends EventEmitter
       process: nodeKey
       port: portKey
       metadata: metadata
-    @emit 'addInport', publicPort, @outports[publicPort]
+    @emit 'addInport', publicPort, @inports[publicPort]
     @checkTransactionEnd()
 
   removeInport: (publicPort) ->
