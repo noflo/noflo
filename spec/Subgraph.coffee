@@ -115,6 +115,7 @@ describe 'Graph component', ->
         chai.expect(c.inPorts.ports).to.have.keys [
           'graph'
           'start'
+          'merge.in'
         ]
         chai.expect(c.outPorts.ports).to.have.keys [
           'out'
@@ -127,10 +128,12 @@ describe 'Graph component', ->
         c.network.loader.components.Merge = SubgraphMerge
         start.send true
       g.send
-        exports: [
-          public: 'out'
-          private: 'split.out'
-        ]
+        exports:
+          outports: [
+            public: 'out'
+            process: 'Split'
+            port: 'out'
+          ]
         processes:
           Split:
             component: 'Split'

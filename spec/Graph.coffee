@@ -23,7 +23,8 @@ describe 'Graph', ->
     it 'should have no initializers initially', ->
       chai.expect(g.initializers.length).to.equal 0
     it 'should have no exports initially', ->
-      chai.expect(g.exports.length).to.equal 0
+      chai.expect(g.exports.inports.length).to.equal 0
+      chai.expect(g.exports.outports.length).to.equal 0
 
     describe 'New node', ->
       n = null
@@ -79,62 +80,107 @@ describe 'Graph', ->
         chai.expect(g.edges.length).equal 2
 
   describe 'loaded from JSON', ->
-    json =
-      properties:
-        name: 'Example'
-        foo: 'Baz'
-        bar: 'Foo'
-      exports: [
-        public: 'in'
-        private: 'foo.in'
-        metadata:
-          x: 5
-          y: 100
-      ,
-        public: 'out'
-        private: 'bar.out'
+    jsonString = """
+{
+  "properties": {
+    "name": "Example",
+    "foo": "Baz",
+    "bar": "Foo"
+  },
+  "exports": {
+    "inports": [{
+      "public": "in",
+      "process": "Foo",
+      "port": "in",
+      "metadata": {
+        "x": 5,
+        "y": 100
+      }
+    }],
+    "outports": [
+      {
+        "public": "out",
+        "process": "Bar",
+        "port": "out",
+        "metadata": {
+          "x": 500,
+          "y": 505
+        }
+      }
+    ]
+  },
+  "groups": [
+    {
+      "name": "first",
+      "nodes": [
+        "Foo"
+      ],
+      "metadata": {
+        "label": "Main"
+      }
+    },
+    {
+      "name": "second",
+      "nodes": [
+        "Foo2",
+        "Bar2"
       ]
-      groups: [
-        name: 'first'
-        nodes: ['Foo', 'Bar']
-        metadata:
-          label: 'Main'
-      ,
-          name: 'second'
-          nodes: ['Foo2', 'Bar2']
-      ]
-      processes:
-        Foo:
-          component: 'Bar'
-          metadata:
-            display:
-              x: 100
-              y: 200
-            routes: [
-              'one'
-              'two'
-            ]
-        Bar:
-          component: 'Baz'
-        Foo2:
-          component: 'foo'
-        Bar2:
-          component: 'bar'
-      connections: [
-        src:
-          process: 'Foo'
-          port: 'out'
-        tgt:
-          process: 'Bar'
-          port: 'in'
-        metadata:
-          route: 'foo'
-      ,
-        data: 'Hello, world!'
-        tgt:
-          process: 'Foo'
-          port: 'in'
-      ]
+    }
+  ],
+  "processes": {
+    "Foo": {
+      "component": "Bar",
+      "metadata": {
+        "display": {
+          "x": 100,
+          "y": 200
+        },
+        "routes": [
+          "one",
+          "two"
+        ],
+        "hello": "World"
+      }
+    },
+    "Bar": {
+      "component": "Baz",
+      "metadata": {}
+    },
+    "Foo2": {
+      "component": "foo",
+      "metadata": {}
+    },
+    "Bar2": {
+      "component": "bar",
+      "metadata": {}
+    }
+  },
+  "connections": [
+    {
+      "src": {
+        "process": "Foo",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "Bar",
+        "port": "in"
+      },
+      "metadata": {
+        "route": "foo",
+        "hello": "World"
+      }
+    },
+    {
+      "data": "Hello, world!",
+      "tgt": {
+        "process": "Foo",
+        "port": "in"
+      }
+    }
+  ]
+}
+    """
+    json = JSON.parse(jsonString)
     g = null
     it 'should produce a Graph', (done) ->
       graph.loadJSON json, (instance) ->
@@ -185,8 +231,14 @@ describe 'Graph', ->
         hello: 'World'
     it 'should contain one IIP', ->
       chai.expect(g.initializers.length).to.equal 1
-    it 'should contain two exports', ->
-      chai.expect(g.exports.length).to.equal 2
+    it 'should contain one inport exports', ->
+      chai.expect(g.exports.inports.length).to.equal 1
+    it 'should contain one outport exports', ->
+      chai.expect(g.exports.outports.length).to.equal 1
+    it 'should keep the output export metadata intact', ->
+      exp = g.exports.outports[0]
+      chai.expect(exp.metadata.x).to.equal 500
+      chai.expect(exp.metadata.y).to.equal 505
     it 'should contain two groups', ->
       chai.expect(g.groups.length).to.equal 2
     it 'should produce same JSON when serialized', ->
@@ -209,9 +261,8 @@ describe 'Graph', ->
         chai.expect(connection).to.be.an 'object'
       it 'should still be exported', ->
         exports = 0
-        for exported in g.exports
-          [exportedNode, exportedPort] = exported.private.split '.'
-          exports++ if exportedNode is 'baz'
+        for exported in g.exports.inports
+          exports++ if exported.process is 'Baz'
         chai.expect(exports).to.equal 1
       it 'should still be grouped', ->
         groups = 0
@@ -247,13 +298,16 @@ describe 'Graph', ->
         chai.expect(groups).to.equal 0
     describe 'renaming an export', ->
       it 'should emit an event', (done) ->
-        g.once 'renameExport', (oldName, newName) ->
+        g.once 'renameExport', (oldName, newName, isIn) ->
           chai.expect(oldName).to.equal 'in'
           chai.expect(newName).to.equal 'opt'
-          chai.expect(g.exports[0].public).to.equal newName
-          chai.expect(g.exports[0].private).to.equal 'baz.in'
+          chai.expect(isIn).to.equal true
+          exp = g.exports.inports[0]
+          chai.expect(exp.public).to.equal newName
+          chai.expect(exp.process).to.equal 'Baz'
+          chai.expect(exp.port).to.equal 'in'
           done()
-        g.renameExport 'in', 'opt'
+        g.renameExport 'in', 'opt', true
     describe 'removing a node', ->
       it 'should emit an event', (done) ->
         g.once 'removeNode', (node) ->
@@ -345,3 +399,46 @@ describe 'Graph', ->
     it 'should not allow adding IIPs', ->
       g.addInitial 'Hello', 'Bar', 'in'
       chai.expect(graph.initializers).to.be.empty
+
+  describe 'Legacy exports loaded via JSON', ->
+    jsonString = """
+{
+  "exports": [
+    {
+      "public": "in",
+      "private": "foo.in",
+      "metadata": {
+        "x": 5,
+        "y": 100
+      }
+    },
+    {
+      "public": "out",
+      "private": "bar.out"
+    }
+  ],
+  "processes": {
+    "Foo": {
+      "component": "Foooo"
+    },
+    "Bar": {
+      "component": "Baaar"
+    }
+  }
+}
+    """
+    json = JSON.parse(jsonString)
+    g = null
+    it 'should produce a Graph', (done) ->
+      graph.loadJSON json, (instance) ->
+        g = instance
+        chai.expect(g).to.be.an 'object'
+        done()
+    it 'should have two inport exports', (done) ->
+      chai.expect(g.exports.inports).to.be.an 'array'
+      chai.expect(g.exports.inports.length).to.equal 2
+      done()
+    it 'should fix the case of the process key', (done) ->
+      chai.expect(g.exports.inports[0].process).to.equal 'Foo'
+      chai.expect(g.exports.inports[1].process).to.equal 'Bar'
+      done()

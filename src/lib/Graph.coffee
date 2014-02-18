@@ -38,7 +38,7 @@ class Graph extends EventEmitter
     @nodes = []
     @edges = []
     @initializers = []
-    @exports = []
+    @exports = { inports:[], outports:[] }
     @groups = []
     @transaction =
       id: null
@@ -82,60 +82,81 @@ class Graph extends EventEmitter
   #
   # This allows subgraphs to expose a cleaner API by having reasonably
   # named ports shown instead of all the free ports of the graph
-  addExport: (privatePort, publicPort, metadata) ->
+  addExport: (publicPort, nodeKey, portKey, metadata = {x:0,y:0}, isIn = true) ->
+    # Check that node exists
+    return unless @getNode nodeKey
     # Check that export is unique
-    return if @getExportByPublic publicPort
+    publicPort = publicPort.toLowerCase()
+    portKey = portKey.toLowerCase()
+    return if @getExport publicPort, nodeKey, portKey, isIn
 
     @checkTransactionStart()
-    
+
     exported =
-      private: privatePort.toLowerCase()
-      public: publicPort.toLowerCase()
+      public: publicPort
+      process: nodeKey
+      port: portKey
       metadata: metadata
-    @exports.push exported
+    collection = if isIn then @exports.inports else @exports.outports
+    collection.push exported
     @emit 'addExport', exported
 
     @checkTransactionEnd()
 
-  # TODO in/out ambiguity
-  removeExport: (publicPort) ->
+  addInport: (publicPort, nodeKey, portKey, metadata) ->
+    @addExport publicPort, nodeKey, portKey, metadata, true
+
+  addOutport: (publicPort, nodeKey, portKey, metadata) ->
+    @addExport publicPort, nodeKey, portKey, metadata, false
+
+  # To check if a public or private export is already taken
+  getExport: (publicPort, nodeKey, portKey, isIn) ->
+    publicPort = publicPort.toLowerCase()
+    collection = if isIn then @exports.inports else @exports.outports
+    for port in collection
+      if port.public is publicPort or (port.process is nodeKey and port.port is portKey)
+        return port
+    return null
+
+  # To check if a public export is already taken
+  getExportByPublic: (publicPort, isIn) ->
+    publicPort = publicPort.toLowerCase()
+    if isIn is true or isIn is undefined
+      for port in @exports.inports
+        return port if port.public is publicPort
+    if isIn is false or isIn is undefined
+      for port in @exports.outports
+        return port if port.public is publicPort
+    return null
+
+  removeExport: (publicPort, isIn) ->
     @checkTransactionStart()
 
-    for exported in @exports
-      continue unless exported
-      continue unless exported.public is publicPort
-      @exports.splice @exports.indexOf(exported), 1
+    collection = if isIn then @exports.inports else @exports.outports
+    exported = @getExportByPublic publicPort, isIn
+    while exported
+      collection.splice collection.indexOf(exported), 1
       @emit 'removeExport', exported
+      exported = @getExportByPublic publicPort, isIn
 
     @checkTransactionEnd()
 
-  # TODO in/out ambiguity
-  renameExport: (oldPort, newPort) ->
+  renameExport: (oldPort, newPort, isIn) ->
+    # Check that new name is unique
+    return if @getExportByPublic newPort, isIn
+    # Find the port
+    exported = @getExportByPublic oldPort, isIn
+    return unless exported
+
     @checkTransactionStart()
 
-    for exported in @exports
-      continue unless exported
-      continue unless exported.public is oldPort
-      exported.public = newPort
-    @emit 'renameExport', oldPort, newPort
+    exported.public = newPort
+    @emit 'renameExport', oldPort, newPort, isIn
 
     @checkTransactionEnd()
 
-  getExport: (privatePort, publicPort) ->
-    for exported in @exports
-      if exported.private is privatePort.toLowerCase() and exported.public is publicPort.toLowerCase()
-        return exported
-    return null
-
-  # Export public names must be unique until we fix in/out ambiguity
-  getExportByPublic: (publicPort) ->
-    for exported in @exports
-      if exported.public is publicPort.toLowerCase()
-        return exported
-    return null
-
-  setExportMetadata: (privatePort, publicPort, metadata) ->
-    exported = @getExport privatePort, publicPort
+  setExportMetadata: (publicPort, isIn, metadata) ->
+    exported = @getExportByPublic publicPort, isIn
     return unless exported
 
     @checkTransactionStart()
@@ -276,11 +297,13 @@ class Graph extends EventEmitter
       if iip.to.node is oldId
         iip.to.node = newId
 
-    for exported in @exports
-      continue unless exported
-      [privateNode, privatePort] = exported.private.split '.'
-      continue unless privateNode is oldId.toLowerCase()
-      exported.private = "#{newId.toLowerCase()}.#{privatePort}"
+    for inport in @exports.inports
+      if inport.process is oldId
+        inport.process = newId
+
+    for outport in @exports.outports
+      if outport.process is oldId
+        outport.process = newId
 
     for group in @groups
       continue unless group
@@ -488,7 +511,7 @@ class Graph extends EventEmitter
   toJSON: ->
     json =
       properties: {}
-      exports: []
+      exports: {inports:[], outports:[]}
       groups: []
       processes: {}
       connections: []
@@ -497,13 +520,11 @@ class Graph extends EventEmitter
     for property, value of @properties
       json.properties[property] = value
 
-    for exported in @exports
-      exportedData =
-        public: exported.public
-        private: exported.private
-      if exported.metadata
-        exportedData.metadata = exported.metadata
-      json.exports.push exportedData
+    for inport in @exports.inports
+      json.exports.inports.push inport
+
+    for outport in @exports.outports
+      json.exports.outports.push outport
 
     for group in @groups
       groupData =
@@ -575,8 +596,25 @@ exports.loadJSON = (definition, success, metadata = {}) ->
     graph.addEdge conn.src.process, conn.src.port.toLowerCase(), conn.tgt.process, conn.tgt.port.toLowerCase(), metadata
 
   if definition.exports
-    for exported in definition.exports
-      graph.addExport exported.private, exported.public, exported.metadata
+    if definition.exports instanceof Array
+      # Translate legacy ports to new
+      for exported in definition.exports
+        split = exported.private.split('.')
+        continue unless split.length is 2
+        processId = split[0]
+        portId = split[1]
+        # Get properly cased process id
+        for id of definition.processes
+          if id.toLowerCase() is processId.toLowerCase()
+            processId = id
+        graph.addExport exported.public, processId, portId, exported.metadata
+    else
+      if definition.exports.inports instanceof Array
+        for exported in definition.exports.inports
+          graph.addInport exported.public, exported.process, exported.port, exported.metadata
+      if definition.exports.outports instanceof Array
+        for exported in definition.exports.outports
+          graph.addOutport exported.public, exported.process, exported.port, exported.metadata
 
   if definition.groups
     for group in definition.groups

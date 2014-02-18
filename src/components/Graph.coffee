@@ -80,16 +80,13 @@ class Graph extends noflo.Component
 
     true
 
-  portName: (nodeName, portName) ->
-    "#{nodeName.toLowerCase()}.#{portName}"
-
-  isExported: (port, nodeName, portName) ->
-    newPort = @portName nodeName, portName
-    for exported in @network.graph.exports
-      return exported.public if exported.private is newPort
-    return false if @network.graph.exports.length
+  isExported: (port, nodeName, portName, isIn) ->
+    collection = if isIn then @network.graph.exports.inports else @network.graph.exports.outports
+    for exported in collection
+      return exported.public if exported.process is nodeName and exported.port is portName
+    return false if collection.length
     return false if port.isAttached()
-    return newPort
+    return (nodeName+'.'+portName).toLowerCase()
 
   setToReady: ->
     if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
@@ -105,13 +102,13 @@ class Graph extends noflo.Component
   findEdgePorts: (name, process) ->
     for portName, port of process.component.inPorts
       continue if not port or typeof port is 'function' or not port.canAttach
-      targetPortName = @isExported port, name, portName
+      targetPortName = @isExported port, name, portName, true
       continue if targetPortName is false
       @inPorts.add targetPortName, port
 
     for portName, port of process.component.outPorts
       continue if not port or typeof port is 'function' or not port.canAttach
-      targetPortName = @isExported port, name, portName
+      targetPortName = @isExported port, name, portName, false
       continue if targetPortName is false
       @outPorts.add targetPortName, port
 
