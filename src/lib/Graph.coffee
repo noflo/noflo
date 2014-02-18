@@ -179,6 +179,8 @@ class Graph extends EventEmitter
       metadata: metadata
     @emit 'addOutport', publicPort, @outports[publicPort]
 
+    @checkTransactionEnd()
+
   removeOutport: (publicPort) ->
     publicPort = publicPort.toLowerCase()
     return unless @outports[publicPort]
