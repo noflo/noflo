@@ -7,6 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
+    "noflo-nodejs": "./bin/noflo-nodejs",
     "noflo-nodejs-init": "./bin/noflo-nodejs-init"
   },
   "author": "Henri Bergius <henri.bergius@iki.fi>",

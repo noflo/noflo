@@ -1,0 +1,28 @@
+#!/usr/bin/env node
+// vim: set filetype=javascript:
+var http = require('http');
+var lib = require('../index');
+var runtime = require('noflo-runtime-websocket');
+
+var stored = lib.getStored();
+var baseDir = process.cwd();
+
+if (Object.keys(stored).length === 0) {
+  console.error('No configuration found at ' + lib.getStoredPath() + '. Please run noflo-nodejs-init first.');
+  process.exit(1);
+}
+
+var server = http.createServer(function () {
+  console.log('req');
+});
+var rt = runtime(server, {
+  baseDir: baseDir,
+  captureOutput: false,
+  catchExceptions: true
+});
+
+server.listen(stored.port, function () {
+  console.log('NoFlo runtime listening at ws://' + stored.host + ':' + stored.port);
+  console.log('Using ' + baseDir + ' for component loading');
+  rt.startCapture();
+});
