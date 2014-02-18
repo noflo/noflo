@@ -3,18 +3,28 @@
 var http = require('http');
 var lib = require('../index');
 var runtime = require('noflo-runtime-websocket');
+var flowhub = require('flowhub-registry');
 
 var stored = lib.getStored();
 var baseDir = process.cwd();
+var interval = 10 * 60 * 1000;
 
 if (Object.keys(stored).length === 0) {
   console.error('No configuration found at ' + lib.getStoredPath() + '. Please run noflo-nodejs-init first.');
   process.exit(1);
 }
 
-var server = http.createServer(function () {
-  console.log('req');
+var flowhubRuntime = new flowhub.Runtime({
+  label: stored.label,
+  id: stored.id,
+  user: stored.user,
+  secret: stored.secret,
+  protocol: 'websocket',
+  address: 'ws://' + stored.host + ':' + stored.port,
+  type: 'noflo-nodejs'
 });
+
+var server = http.createServer(function () {});
 var rt = runtime(server, {
   baseDir: baseDir,
   captureOutput: false,
@@ -24,5 +34,22 @@ var rt = runtime(server, {
 server.listen(stored.port, function () {
   console.log('NoFlo runtime listening at ws://' + stored.host + ':' + stored.port);
   console.log('Using ' + baseDir + ' for component loading');
-  rt.startCapture();
+
+  // Register the runtime with Flowhub so that it will show up in the UI
+  flowhubRuntime.register(function (err, ok) {
+    if (err) {
+      console.log('Registration with Flowhub failed: ' + err.message);
+      return;
+    }
+
+    console.log('Registered with Flowhub. The Runtime should now be accessible in the UI');
+
+    // Ping Flowhub periodically to let the user know that the runtime is still available
+    setInterval(function () {
+      rt.ping();
+    }, interval);
+
+    // Start capturing output so that we can send it to the UI
+    rt.startCapture();
+  });
 });
