@@ -72,7 +72,7 @@ module.exports = ->
       nodejs:
         src: ['spec/*.coffee']
         options:
-          reporter: 'dot'
+          reporter: 'spec'
 
     # Web server for the browser tests
     connect:
@@ -85,7 +85,7 @@ module.exports = ->
       all:
         options:
           output: 'spec/result.xml'
-          reporter: 'dot'
+          reporter: 'spec'
           urls: ['http://localhost:8000/spec/runner.html']
 
     # Coding standards

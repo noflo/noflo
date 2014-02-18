@@ -1,0 +1,3 @@
+EXPORT=MERGE.IN:IN
+EXPORT=SPLIT.OUT:OUT
+Merge(Merge) OUT -> IN Split(Split)

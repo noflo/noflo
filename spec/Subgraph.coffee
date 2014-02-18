@@ -128,12 +128,10 @@ describe 'Graph component', ->
         c.network.loader.components.Merge = SubgraphMerge
         start.send true
       g.send
-        exports:
-          outports: [
-            public: 'out'
-            process: 'Split'
-            port: 'out'
-          ]
+        exports: [
+          public: 'out'
+          private: 'split.out'
+        ]
         processes:
           Split:
             component: 'Split'
@@ -236,7 +234,7 @@ describe 'Graph component', ->
         start.send true
       g.send gr
 
-  describe 'with a FBP file', ->
+  describe 'with a FBP file with INPORTs and OUTPORTs', ->
     file = "#{urlPrefix}spec/fixtures/subgraph.fbp"
     it 'should emit a ready event after network has been loaded', (done) ->
       c.once 'ready', ->
@@ -257,10 +255,10 @@ describe 'Graph component', ->
         chai.expect(c.inPorts.ports).to.have.keys [
           'graph'
           'start'
-          'merge.in'
+          'in'
         ]
         chai.expect(c.outPorts.ports).to.have.keys [
-          'split.out'
+          'out'
         ]
         done()
       c.once 'network', ->
@@ -275,8 +273,78 @@ describe 'Graph component', ->
       c.once 'ready', ->
         ins = noflo.internalSocket.createSocket()
         out = noflo.internalSocket.createSocket()
-        c.inPorts['merge.in'].attach ins
-        c.outPorts['split.out'].attach out
+        c.inPorts['in'].attach ins
+        c.outPorts['out'].attach out
+        out.on 'connect', ->
+          ins.send 'Foo'
+        out.on 'data', (data) ->
+          chai.expect(data).to.equal 'Foo'
+          ins.disconnect()
+        out.on 'disconnect', ->
+          done()
+        ins.connect()
+      c.once 'network', ->
+        chai.expect(c.ready).to.be.false
+        chai.expect(c.network).not.to.be.null
+        c.network.loader.components.Split = Split
+        c.network.loader.components.Merge = SubgraphMerge
+        start.send true
+      g.send file
+
+  describe 'with a FBP file with legacy EXPORTS', ->
+    file = "#{urlPrefix}spec/fixtures/subgraph_legacy.fbp"
+    it 'should emit a ready event after network has been loaded', (done) ->
+      c.once 'ready', ->
+        chai.expect(c.network).not.to.be.null
+        chai.expect(c.ready).to.be.true
+        done()
+      c.once 'network', ->
+        chai.expect(c.ready).to.be.false
+        chai.expect(c.network).not.to.be.null
+        c.network.loader.components.Split = Split
+        c.network.loader.components.Merge = SubgraphMerge
+        start.send true
+      g.send file
+      chai.expect(c.ready).to.be.false
+    it 'should expose available ports', (done) ->
+      c.baseDir = root
+      c.once 'ready', ->
+        chai.expect(c.inPorts.ports).to.have.keys [
+          'graph'
+          'start'
+          'in'
+        ]
+        chai.expect(c.outPorts.ports).to.have.keys [
+          'out'
+        ]
+        done()
+      c.once 'network', ->
+        chai.expect(c.ready).to.be.false
+        chai.expect(c.network).not.to.be.null
+        c.network.loader.components.Split = Split
+        c.network.loader.components.Merge = SubgraphMerge
+        start.send true
+      g.send file
+    it 'should have disambiguated the exported ports', (done) ->
+      c.baseDir = root
+      c.once 'ready', ->
+        chai.expect(c.network.graph.exports).to.be.empty
+        chai.expect(c.network.graph.inports).to.be.not.empty
+        chai.expect(c.network.graph.inports.in).to.be.an 'object'
+        chai.expect(c.network.graph.outports).to.be.not.empty
+        chai.expect(c.network.graph.outports.out).to.be.an 'object'
+        done()
+      c.once 'network', ->
+        c.network.loader.components.Split = Split
+        c.network.loader.components.Merge = SubgraphMerge
+      g.send file
+    it 'should be able to run the graph', (done) ->
+      c.baseDir = root
+      c.once 'ready', ->
+        ins = noflo.internalSocket.createSocket()
+        out = noflo.internalSocket.createSocket()
+        c.inPorts['in'].attach ins
+        c.outPorts['out'].attach out
         out.on 'connect', ->
           ins.send 'Foo'
         out.on 'data', (data) ->

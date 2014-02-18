@@ -80,11 +80,39 @@ class Graph extends noflo.Component
 
     true
 
-  isExported: (port, nodeName, portName, isIn) ->
-    collection = if isIn then @network.graph.exports.inports else @network.graph.exports.outports
-    for exported in collection
-      return exported.public if exported.process is nodeName and exported.port is portName
-    return false if collection.length
+  isExportedInport: (port, nodeName, portName) ->
+    # First we check disambiguated exported ports
+    for pub, priv of @network.graph.inports
+      continue unless priv.process is nodeName and priv.port is portName
+      return pub
+
+    # Then we check disambiguated ports, and if needed, fix them
+    for exported in @network.graph.exports
+      continue unless exported.process is nodeName and exported.port is portName
+      @network.graph.checkTransactionStart()
+      @network.graph.removeExport exported.public
+      @network.graph.addInport exported.public, exported.process, exported.port, exported.metadata
+      @network.graph.checkTransactionEnd()
+      return exported.public
+
+    return false if port.isAttached()
+    return (nodeName+'.'+portName).toLowerCase()
+
+  isExportedOutport: (port, nodeName, portName) ->
+    # First we check disambiguated exported ports
+    for pub, priv of @network.graph.outports
+      continue unless priv.process is nodeName and priv.port is portName
+      return pub
+
+    # Then we check disambiguated ports, and if needed, fix them
+    for exported in @network.graph.exports
+      continue unless exported.process is nodeName and exported.port is portName
+      @network.graph.checkTransactionStart()
+      @network.graph.removeExport exported.public
+      @network.graph.addOutport exported.public, exported.process, exported.port, exported.metadata
+      @network.graph.checkTransactionEnd()
+      return exported.public
+
     return false if port.isAttached()
     return (nodeName+'.'+portName).toLowerCase()
 
@@ -102,13 +130,13 @@ class Graph extends noflo.Component
   findEdgePorts: (name, process) ->
     for portName, port of process.component.inPorts
       continue if not port or typeof port is 'function' or not port.canAttach
-      targetPortName = @isExported port, name, portName, true
+      targetPortName = @isExportedInport port, name, portName
       continue if targetPortName is false
       @inPorts.add targetPortName, port
 
     for portName, port of process.component.outPorts
       continue if not port or typeof port is 'function' or not port.canAttach
-      targetPortName = @isExported port, name, portName, false
+      targetPortName = @isExportedOutport port, name, portName
       continue if targetPortName is false
       @outPorts.add targetPortName, port
 

@@ -23,8 +23,9 @@ describe 'Graph', ->
     it 'should have no initializers initially', ->
       chai.expect(g.initializers.length).to.equal 0
     it 'should have no exports initially', ->
-      chai.expect(g.exports.inports.length).to.equal 0
-      chai.expect(g.exports.outports.length).to.equal 0
+      chai.expect(g.exports.length).to.equal 0
+      chai.expect(g.inports).to.be.empty
+      chai.expect(g.outports).to.be.empty
 
     describe 'New node', ->
       n = null
@@ -87,27 +88,25 @@ describe 'Graph', ->
     "foo": "Baz",
     "bar": "Foo"
   },
-  "exports": {
-    "inports": [{
-      "public": "in",
+  "inports": {
+    "in": {
       "process": "Foo",
       "port": "in",
       "metadata": {
         "x": 5,
         "y": 100
       }
-    }],
-    "outports": [
-      {
-        "public": "out",
-        "process": "Bar",
-        "port": "out",
-        "metadata": {
-          "x": 500,
-          "y": 505
-        }
+    }
+  },
+  "outports": {
+    "out": {
+      "process": "Bar",
+      "port": "out",
+      "metadata": {
+        "x": 500,
+        "y": 505
       }
-    ]
+    }
   },
   "groups": [
     {
@@ -231,12 +230,12 @@ describe 'Graph', ->
         hello: 'World'
     it 'should contain one IIP', ->
       chai.expect(g.initializers.length).to.equal 1
-    it 'should contain one inport exports', ->
-      chai.expect(g.exports.inports.length).to.equal 1
-    it 'should contain one outport exports', ->
-      chai.expect(g.exports.outports.length).to.equal 1
+    it 'should contain one published inport', ->
+      chai.expect(g.inports).to.not.be.empty
+    it 'should contain one published outport', ->
+      chai.expect(g.outports).to.not.be.empty
     it 'should keep the output export metadata intact', ->
-      exp = g.exports.outports[0]
+      exp = g.outports.out
       chai.expect(exp.metadata.x).to.equal 500
       chai.expect(exp.metadata.y).to.equal 505
     it 'should contain two groups', ->
@@ -260,10 +259,7 @@ describe 'Graph', ->
           connection = edge if edge.from.node is 'Baz'
         chai.expect(connection).to.be.an 'object'
       it 'should still be exported', ->
-        exports = 0
-        for exported in g.exports.inports
-          exports++ if exported.process is 'Baz'
-        chai.expect(exports).to.equal 1
+        chai.expect(g.inports.in.process).to.equal 'Baz'
       it 'should still be grouped', ->
         groups = 0
         for group in g.groups
@@ -296,18 +292,28 @@ describe 'Graph', ->
         for group in g.groups
           groups++ if group.nodes.indexOf('Foo') isnt -1
         chai.expect(groups).to.equal 0
-    describe 'renaming an export', ->
+    describe 'renaming an inport', ->
       it 'should emit an event', (done) ->
-        g.once 'renameExport', (oldName, newName, isIn) ->
+        g.once 'renameInport', (oldName, newName) ->
           chai.expect(oldName).to.equal 'in'
           chai.expect(newName).to.equal 'opt'
-          chai.expect(isIn).to.equal true
-          exp = g.exports.inports[0]
-          chai.expect(exp.public).to.equal newName
-          chai.expect(exp.process).to.equal 'Baz'
-          chai.expect(exp.port).to.equal 'in'
+          chai.expect(g.inports.in).to.be.an 'undefined'
+          chai.expect(g.inports.opt).to.be.an 'object'
+          chai.expect(g.inports.opt.process).to.equal 'Baz'
+          chai.expect(g.inports.opt.port).to.equal 'in'
           done()
-        g.renameExport 'in', 'opt', true
+        g.renameInport 'in', 'opt'
+    describe 'renaming an outport', ->
+      it 'should emit an event', (done) ->
+        g.once 'renameOutport', (oldName, newName) ->
+          chai.expect(oldName).to.equal 'out'
+          chai.expect(newName).to.equal 'foo'
+          chai.expect(g.outports.out).to.be.an 'undefined'
+          chai.expect(g.outports.foo).to.be.an 'object'
+          chai.expect(g.outports.foo.process).to.equal 'Bar'
+          chai.expect(g.outports.foo.port).to.equal 'out'
+          done()
+        g.renameOutport 'out', 'foo'
     describe 'removing a node', ->
       it 'should emit an event', (done) ->
         g.once 'removeNode', (node) ->
@@ -434,11 +440,11 @@ describe 'Graph', ->
         g = instance
         chai.expect(g).to.be.an 'object'
         done()
-    it 'should have two inport exports', (done) ->
-      chai.expect(g.exports.inports).to.be.an 'array'
-      chai.expect(g.exports.inports.length).to.equal 2
+    it 'should have two legacy exports', (done) ->
+      chai.expect(g.exports).to.be.an 'array'
+      chai.expect(g.exports.length).to.equal 2
       done()
     it 'should fix the case of the process key', (done) ->
-      chai.expect(g.exports.inports[0].process).to.equal 'Foo'
-      chai.expect(g.exports.inports[1].process).to.equal 'Bar'
+      chai.expect(g.exports[0].process).to.equal 'Foo'
+      chai.expect(g.exports[1].process).to.equal 'Bar'
       done()
