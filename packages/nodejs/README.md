@@ -9,6 +9,7 @@ Start by setting up a local NoFlo Node.js project. For example:
 
 ```shell
 $ mkdir my-project
+$ cd my-project
 $ npm init
 $ npm install noflo --save
 $ npm install noflo-nodejs --save
