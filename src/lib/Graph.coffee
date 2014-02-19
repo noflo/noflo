@@ -646,10 +646,11 @@ exports.loadJSON = (definition, success, metadata = {}) ->
   graph = new Graph definition.properties.name
 
   graph.startTransaction 'loadJSON', metadata
-  # TODO: capture properties in journal
+  properties = {}
   for property, value of definition.properties
     continue if property is 'name'
-    graph.properties[property] = value
+    properties[property] = value
+  graph.setProperties properties
 
   for id, def of definition.processes
     def.metadata = {} unless def.metadata
