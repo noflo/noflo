@@ -13,6 +13,30 @@ unless require('./Platform').isBrowser()
 else
   EventEmitter = require 'emitter'
 
+# From CS cookbook
+clone = (obj) ->
+  if not obj? or typeof obj isnt 'object'
+    return obj
+
+  if obj instanceof Date
+    return new Date(obj.getTime())
+
+  if obj instanceof RegExp
+    flags = ''
+    flags += 'g' if obj.global?
+    flags += 'i' if obj.ignoreCase?
+    flags += 'm' if obj.multiline?
+    flags += 'y' if obj.sticky?
+    return new RegExp(obj.source, flags)
+
+  newInstance = new obj.constructor()
+
+  for key of obj
+    newInstance[key] = clone obj[key]
+
+  return newInstance
+
+
 # This class represents an abstract NoFlo graph containing nodes
 # connected to each other with edges.
 #
@@ -86,9 +110,10 @@ class Graph extends EventEmitter
   # This method allows changing properties of the graph.
   setProperties: (properties) ->
     @checkTransactionStart()
+    before = clone @properties
     for item, val of properties
       @properties[item] = val
-    @emit 'changeProperties', @properties
+    @emit 'changeProperties', @properties, before
     @checkTransactionEnd()
 
   # ## Exporting a port from subgraph
@@ -161,10 +186,11 @@ class Graph extends EventEmitter
     return unless @inports[publicPort]
 
     @checkTransactionStart()
+    before = clone @inports[publicPort].metadata
     @inports[publicPort].metadata = {} unless @inports[publicPort].metadata
     for item, val of metadata
       @inports[publicPort].metadata[item] = val
-    @emit 'changeInport', @inports[publicPort]
+    @emit 'changeInport', @inports[publicPort], before
     @checkTransactionEnd()
 
   addOutport: (publicPort, nodeKey, portKey, metadata) ->
@@ -206,10 +232,11 @@ class Graph extends EventEmitter
     return unless @outports[publicPort]
 
     @checkTransactionStart()
+    before = clone @outports[publicPort].metadata
     @outports[publicPort].metadata = {} unless @outports[publicPort].metadata
     for item, val of metadata
       @outports[publicPort].metadata[item] = val
-    @emit 'changeOutport', @outports[publicPort]
+    @emit 'changeOutport', @outports[publicPort], before
     @checkTransactionEnd()
 
   # ## Grouping nodes in a graph
@@ -242,9 +269,10 @@ class Graph extends EventEmitter
     for group in @groups
       continue unless group
       continue unless group.name is groupName
+      before = clone group.metadata
       for item, val of metadata
         group.metadata[item] = val
-      @emit 'changeGroup', group
+      @emit 'changeGroup', group, before
     @checkTransactionEnd()
 
   # ## Adding a node to the graph
@@ -385,12 +413,13 @@ class Graph extends EventEmitter
 
     @checkTransactionStart()
 
+    before = clone node.metadata
     node.metadata = {} unless node.metadata
 
     for item, val of metadata
       node.metadata[item] = val
 
-    @emit 'changeNode', node
+    @emit 'changeNode', node, before
     @checkTransactionEnd()
 
   # ## Connecting nodes
@@ -479,12 +508,13 @@ class Graph extends EventEmitter
     return unless edge
 
     @checkTransactionStart()
+    before = clone edge.metadata
     edge.metadata = {} unless edge.metadata
 
     for item, val of metadata
       edge.metadata[item] = val
 
-    @emit 'changeEdge', edge
+    @emit 'changeEdge', edge, before
     @checkTransactionEnd()
 
   # ## Adding Initial Information Packets
