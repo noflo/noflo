@@ -109,6 +109,25 @@ describe 'Graph component', ->
             process: 'Split'
             port: 'in'
         ]
+    it 'should update description from the graph', (done) ->
+      c.baseDir = root
+      c.once 'ready', ->
+        chai.expect(c.network).not.to.be.null
+        chai.expect(c.ready).to.be.true
+        chai.expect(c.description).to.equal 'Hello, World!'
+        done()
+      c.once 'network', (network) ->
+        network.loader.components.Split = Split
+        chai.expect(c.ready).to.be.false
+        chai.expect(c.network).not.to.be.null
+        chai.expect(c.description).to.equal 'Hello, World!'
+        start.send true
+      g.send
+        properties:
+          description: 'Hello, World!'
+        processes:
+          Split:
+            component: 'Split'
     it 'should expose only exported ports when they exist', (done) ->
       c.baseDir = root
       c.once 'ready', ->
