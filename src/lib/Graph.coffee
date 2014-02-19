@@ -217,10 +217,12 @@ class Graph extends EventEmitter
   addGroup: (group, nodes, metadata) ->
     @checkTransactionStart()
 
-    @groups.push
+    g =
       name: group
       nodes: nodes
       metadata: metadata
+    @groups.push g
+    @emit 'addGroup', g
 
     @checkTransactionEnd()
 
@@ -231,6 +233,7 @@ class Graph extends EventEmitter
       continue unless group
       continue unless group.name is groupName
       @groups.splice @groups.indexOf(group), 1
+      @emit 'removeGroup', group
 
     @checkTransactionEnd()
 
