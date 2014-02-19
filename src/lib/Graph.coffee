@@ -85,9 +85,11 @@ class Graph extends EventEmitter
   #
   # This method allows changing properties of the graph.
   setProperties: (properties) ->
+    @checkTransactionStart()
     for item, val of properties
       @properties[item] = val
     @emit 'changeProperties', @properties
+    @checkTransactionEnd()
 
   # ## Exporting a port from subgraph
   #
