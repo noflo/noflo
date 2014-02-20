@@ -33,6 +33,7 @@
     "src/lib/Network.coffee",
     "src/lib/Platform.coffee",
     "src/lib/Journal.coffee",
+    "src/lib/Utils.coffee",
     "src/components/Graph.coffee"
   ],
   "json": [
