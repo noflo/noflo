@@ -43,7 +43,7 @@ class OutPort extends BasePort
       socket.disconnect()
 
   checkRequired: (sockets) ->
-    unless sockets.length and @isRequired()
+    if sockets.length is 0 and @isRequired()
       throw new Error "#{@getId()}: No connections available"
 
   getSockets: (socketId) ->
