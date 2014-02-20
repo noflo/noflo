@@ -12,6 +12,8 @@ if typeof process isnt 'undefined' and process.execPath and process.execPath.ind
 else
   EventEmitter = require 'emitter'
 
+clone = require('./Utils').clone
+
 entryToPrettyString = (entry) ->
   a = entry.args
   return switch entry.cmd
@@ -86,7 +88,7 @@ class Journal extends EventEmitter
 
     entry =
       cmd: cmd
-      args: args
+      args: clone args
       rev: @lastRevision
     @entries.push(entry)
 
