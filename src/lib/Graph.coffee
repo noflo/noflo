@@ -168,7 +168,7 @@ class Graph extends EventEmitter
     @inports[publicPort].metadata = {} unless @inports[publicPort].metadata
     for item, val of metadata
       @inports[publicPort].metadata[item] = val
-    @emit 'changeInport', @inports[publicPort], before
+    @emit 'changeInport', publicPort, @inports[publicPort], before
     @checkTransactionEnd()
 
   addOutport: (publicPort, nodeKey, portKey, metadata) ->
@@ -214,7 +214,7 @@ class Graph extends EventEmitter
     @outports[publicPort].metadata = {} unless @outports[publicPort].metadata
     for item, val of metadata
       @outports[publicPort].metadata[item] = val
-    @emit 'changeOutport', @outports[publicPort], before
+    @emit 'changeOutport', publicPort, @outports[publicPort], before
     @checkTransactionEnd()
 
   # ## Grouping nodes in a graph
