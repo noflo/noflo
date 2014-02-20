@@ -167,7 +167,10 @@ class Graph extends EventEmitter
     before = clone @inports[publicPort].metadata
     @inports[publicPort].metadata = {} unless @inports[publicPort].metadata
     for item, val of metadata
-      @inports[publicPort].metadata[item] = val
+      if val?
+        @inports[publicPort].metadata[item] = val
+      else
+        delete @inports[publicPort].metadata[item]
     @emit 'changeInport', publicPort, @inports[publicPort], before
     @checkTransactionEnd()
 
@@ -213,7 +216,10 @@ class Graph extends EventEmitter
     before = clone @outports[publicPort].metadata
     @outports[publicPort].metadata = {} unless @outports[publicPort].metadata
     for item, val of metadata
-      @outports[publicPort].metadata[item] = val
+      if val?
+        @outports[publicPort].metadata[item] = val
+      else
+        delete @outports[publicPort].metadata[item]
     @emit 'changeOutport', publicPort, @outports[publicPort], before
     @checkTransactionEnd()
 
@@ -249,7 +255,10 @@ class Graph extends EventEmitter
       continue unless group.name is groupName
       before = clone group.metadata
       for item, val of metadata
-        group.metadata[item] = val
+        if val?
+          group.metadata[item] = val
+        else
+          delete group.metadata[item]
       @emit 'changeGroup', group, before
     @checkTransactionEnd()
 
@@ -395,7 +404,10 @@ class Graph extends EventEmitter
     node.metadata = {} unless node.metadata
 
     for item, val of metadata
-      node.metadata[item] = val
+      if val?
+        node.metadata[item] = val
+      else
+        delete node.metadata[item]
 
     @emit 'changeNode', node, before
     @checkTransactionEnd()
@@ -490,7 +502,10 @@ class Graph extends EventEmitter
     edge.metadata = {} unless edge.metadata
 
     for item, val of metadata
-      edge.metadata[item] = val
+      if val?
+        edge.metadata[item] = val
+      else
+        delete edge.metadata[item]
 
     @emit 'changeEdge', edge, before
     @checkTransactionEnd()
