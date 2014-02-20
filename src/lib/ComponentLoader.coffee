@@ -148,7 +148,7 @@ class ComponentLoader
       instance.setIcon 'sitemap'
       return
 
-    instance.setIcon 'blank'
+    instance.setIcon 'square'
     return
 
   getLibraryIcon: (prefix) ->
