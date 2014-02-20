@@ -53,4 +53,4 @@ Once you have configured the runtime, it is time to start it:
 $ node node_modules/.bin/noflo-nodejs
 ```
 
-This will start a WebSocket-based NoFlo Runtime server, and register it to your Flowhub account. It should now become available in your Flowhub UI.
+This will start a WebSocket-based NoFlo Runtime server, and register it to your Flowhub account. It should now become available in your Flowhub UI. By default the configuration will be read from the current working directory, but you can change this by setting the `PROJECT_HOME` environment variable.

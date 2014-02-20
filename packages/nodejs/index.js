@@ -27,7 +27,8 @@ exports.saveDefaults = function (values) {
   fs.writeFileSync(defaultsPath, JSON.stringify(values, null, 2), 'utf-8');
 };
 exports.getStoredPath = function () {
-  return path.resolve(process.cwd(), 'flowhub.json');
+  var root = process.env.PROJECT_HOME || process.cwd();
+  return path.resolve(root, 'flowhub.json');
 };
 exports.getStored = function () {
   var storedPath = exports.getStoredPath();

@@ -6,7 +6,7 @@ var runtime = require('noflo-runtime-websocket');
 var flowhub = require('flowhub-registry');
 
 var stored = lib.getStored();
-var baseDir = process.cwd();
+var baseDir = process.env.PROJECT_HOME || process.cwd();
 var interval = 10 * 60 * 1000;
 
 if (Object.keys(stored).length === 0) {
