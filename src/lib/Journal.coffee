@@ -52,22 +52,39 @@ calculateMeta = (oldMeta, newMeta) ->
   return setMeta
 
 
+class JournalStore extends EventEmitter
+  lastRevision: 0
+  constructor: () ->
+    @lastRevision = 0
+  putTransaction: (revId, entries) ->
+  fetchTransaction: (revId, entries) ->
+
+class MemoryJournalStore extends JournalStore
+  constructor: () ->
+    super()
+    @transactions = []
+
+  putTransaction: (revId, entries) ->
+    @lastRevision = revId if revId > @lastRevision
+    @transactions[revId] = entries
+
+  fetchTransaction: (revId) ->
+    return @transactions[revId]
+
 class Journal extends EventEmitter
   graph: null
-  entries: []
+  entries: [] # Entries added during this revision
   subscribed: true # Whether we should respond to graph change notifications or not
 
-  constructor: (graph, metadata) ->
+  constructor: (graph, metadata, store) ->
     @graph = graph
     @entries = []
     @subscribed = true
-    @lastRevision = 0
-    @currentRevision = @lastRevision
+    @store = store || new MemoryJournalStore()
+    @currentRevision = -1
 
     # Sync journal with current graph
-    @appendCommand 'startTransaction',
-        id: 'initial'
-        metadata: metadata
+    @startTransaction 'initial', metadata
     @appendCommand 'addNode', node for node in @graph.nodes
     @appendCommand 'addEdge', edge for edge in @graph.edges
     @appendCommand 'addInitial', iip for ipp in @graph.initializers
@@ -75,10 +92,7 @@ class Journal extends EventEmitter
     @appendCommand 'addInport', {name: k, port: v} for k,v of @graph.inports
     @appendCommand 'addOutport', {name: k, port: v} for k,v of @graph.outports
     @appendCommand 'addGroup', group for group in @graph.groups
-    @appendCommand 'endTransaction',
-      id: 'initial'
-      metadata: metadata
-
+    @endTransaction 'initial', metadata
 
     # Subscribe to graph changes
     @graph.on 'addNode', (node) =>
@@ -136,25 +150,34 @@ class Journal extends EventEmitter
       @appendCommand 'changeOutport', {name: name, new: port.metadata, old: oldMeta}
 
     @graph.on 'startTransaction', (id, meta) =>
-      return if not @subscribed
-      @lastRevision++
-      @currentRevision = @lastRevision
-      @appendCommand 'startTransaction',
-        id: id
-        metadata: meta
+      @startTransaction id, meta
     @graph.on 'endTransaction', (id, meta) =>
-      @appendCommand 'endTransaction',
-        id: id
-        metadata: meta
+      @endTransaction id, meta
 
-  # FIXME: should be called appendEntry/addEntry
-  appendCommand: (cmd, args) ->
+  startTransaction: (id, meta) =>
+    return if not @subscribed
+    if @entries.length > 0
+      throw Error("Inconsistent @entries")
+    @currentRevision++
+    @appendCommand 'startTransaction', {id: id, metadata: meta}, @currentRevision
+
+  endTransaction: (id, meta) =>
+    return if not @subscribed
+
+    @appendCommand 'endTransaction', {id: id, metadata: meta}, @currentRevision
+    # TODO: this would be the place to refine @entries into
+    # a minimal set of changes, like eliminating changes early in transaction
+    # which were later reverted/overwritten
+    @store.putTransaction @currentRevision, @entries
+    @entries = []
+
+  appendCommand: (cmd, args, rev) ->
     return if not @subscribed
 
     entry =
       cmd: cmd
       args: clone args
-      rev: @lastRevision
+    entry.rev = rev if rev?
     @entries.push(entry)
 
   executeEntry: (entry) ->
@@ -218,21 +241,15 @@ class Journal extends EventEmitter
 
     if revId > @currentRevision
       # Forward replay journal to revId
-      for entry in @entries
-        continue if entry.rev <= @currentRevision
-        break if entry.rev > revId
-        @executeEntry entry
+      for r in [@currentRevision+1..revId]
+        @executeEntry entry for entry in @store.fetchTransaction r
 
     else
       # Move backwards, and apply inverse changes
-      i = @entries.length
-      while i > 0
-        i--
-        entry = @entries[i]
-        continue if entry.rev > @currentRevision
-        break if entry.rev == revId
-        @executeEntryInversed entry
-        
+      for r in [@currentRevision..revId+1] by -1
+        entries = @store.fetchTransaction r
+        for i in [entries.length-1..0] by -1
+          @executeEntryInversed entries[i]
 
     @currentRevision = revId
     @subscribed = true
@@ -242,17 +259,25 @@ class Journal extends EventEmitter
     @moveToRevision(@currentRevision-1)
 
   redo: () ->
-    return unless @currentRevision < @lastRevision
+    return unless @currentRevision < @store.lastRevision
     @moveToRevision(@currentRevision+1)
 
   toPrettyString: (startRev, endRev) ->
     startRev |= 0
-    endRev |= @lastRevision
-    lines = (entryToPrettyString entry for entry in @entries when entry.rev >= startRev and entry.rev < endRev)
+    endRev |= @store.lastRevision
+    lines = []
+    for r in [startRev...endRev]
+      e = @store.fetchTransaction r
+      lines.push (entryToPrettyString entry) for entry in e
     return lines.join('\n')
 
-  toJSON: () ->
-    return @entries
+  toJSON: (startRev, endRev) ->
+    startRev |= 0
+    endRev |= @store.lastRevision
+    entries = []
+    for r in [startRev...endRev] by 1
+      entries.push (entryToPrettyString entry) for entry in @store.fetchTransaction r
+    return entries
 
   save: (file, success) ->
     json = JSON.stringify @toJSON(), null, 4

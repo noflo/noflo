@@ -14,7 +14,7 @@ describe 'Journal', ->
     g.addEdge 'Foo', 'out', 'Baz', 'in'
     j = new journal.Journal(g)
     it 'should have just the initial transaction', ->
-      chai.expect(j.lastRevision).to.equal 0
+      chai.expect(j.store.lastRevision).to.equal 0
 
   describe 'following basic graph changes', ->
     g = new graph.Graph
@@ -23,9 +23,9 @@ describe 'Journal', ->
       g.addNode 'Foo', 'Bar'
       g.addNode 'Baz', 'Foo'
       g.addEdge 'Foo', 'out', 'Baz', 'in'
-      chai.expect(j.lastRevision).to.equal 3
+      chai.expect(j.store.lastRevision).to.equal 3
       g.removeNode 'Baz'
-      chai.expect(j.lastRevision).to.equal 4
+      chai.expect(j.store.lastRevision).to.equal 4
 
   describe 'pretty printing', ->
     g = new graph.Graph
@@ -117,9 +117,9 @@ describe 'Journal', ->
       chai.expect(g.groups[0].metadata['label']).to.equal 'all nodes'
 
     it 'changing group metadata adds revision', ->
-      r = j.lastRevision
+      r = j.store.lastRevision
       g.setGroupMetadata 'all', {'label': 'ALL NODES!'}
-      chai.expect(j.lastRevision).to.equal r+1
+      chai.expect(j.store.lastRevision).to.equal r+1
     it 'undoing group metadata change', ->
       j.undo()
       chai.expect(g.groups[0].metadata['label']).to.equal "all nodes"
