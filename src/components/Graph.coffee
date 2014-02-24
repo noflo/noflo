@@ -98,6 +98,10 @@ class Graph extends noflo.Component
       @network.graph.checkTransactionEnd()
       return exported.public
 
+    # Component has exported ports and this isn't one of them
+    if Object.keys(@network.graph.inports).length > 0
+      return false
+
     return false if port.isAttached()
     return (nodeName+'.'+portName).toLowerCase()
 
@@ -115,6 +119,10 @@ class Graph extends noflo.Component
       @network.graph.addOutport exported.public, exported.process, exported.port, exported.metadata
       @network.graph.checkTransactionEnd()
       return exported.public
+
+    # Component has exported ports and this isn't one of them
+    if Object.keys(@network.graph.outports).length > 0
+      return false
 
     return false if port.isAttached()
     return (nodeName+'.'+portName).toLowerCase()
