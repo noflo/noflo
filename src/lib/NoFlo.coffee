@@ -15,6 +15,13 @@
 # [Graph](Graph.html) is used for instantiating FBP graph definitions.
 exports.graph = require('./Graph')
 exports.Graph = exports.graph.Graph
+
+# ### Graph journal
+#
+# Journal is used for keeping track of graph changes
+exports.journal = require('./Journal')
+exports.Journal = exports.journal.Journal
+
 # ## Network interface
 #
 # [Network](Network.html) is used for running NoFlo graphs.
