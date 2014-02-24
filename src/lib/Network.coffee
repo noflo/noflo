@@ -151,12 +151,13 @@ class Network extends EventEmitter
       @processes[process.id] = process
       callback process if callback
 
-  removeNode: (node) ->
+  removeNode: (node, callback) ->
     return unless @processes[node.id]
     @processes[node.id].component.shutdown()
     delete @processes[node.id]
+    do callback if callback
 
-  renameNode: (oldId, newId) ->
+  renameNode: (oldId, newId, callback) ->
     process = @getNode oldId
     return unless process
 
@@ -171,6 +172,7 @@ class Network extends EventEmitter
 
     @processes[newId] = process
     delete @processes[oldId]
+    do callback if callback
 
   # Get process by its ID.
   getNode: (id) ->
@@ -228,20 +230,48 @@ class Network extends EventEmitter
     #
     # In graph we talk about nodes and edges. Nodes correspond
     # to NoFlo processes, and edges to connections between them.
+    graphOps = []
+    processing = false
+    registerOp = (op, details) ->
+      graphOps.push
+        op: op
+        details: details
+    processOps = =>
+      unless graphOps.length
+        processing = false
+        return
+      processing = true
+      op = graphOps.shift()
+      cb = processOps
+      switch op.op
+        when 'renameNode'
+          @renameNode op.details.from, op.details.to, cb
+        else
+          @[op.op] op.details, cb
+
     @graph.on 'addNode', (node) =>
-      @addNode node
+      registerOp 'addNode', node
+      do processOps unless processing
     @graph.on 'removeNode', (node) =>
-      @removeNode node
+      registerOp 'removeNode', node
+      do processOps unless processing
     @graph.on 'renameNode', (oldId, newId) =>
-      @renameNode oldId, newId
+      registerOp 'renameNode',
+        from: oldId
+        to: newId
+      do processOps unless processing
     @graph.on 'addEdge', (edge) =>
-      @addEdge edge
+      registerOp 'renameNode', oldId, newId
+      do processOps unless processing
     @graph.on 'removeEdge', (edge) =>
-      @removeEdge edge
+      registerOp 'removeEdge', edge
+      do processOps unless processing
     @graph.on 'addInitial', (iip) =>
-      @addInitial iip
+      registerOp 'addInitial', iip
+      do processOps unless processing
     @graph.on 'removeInitial', (iip) =>
-      @removeInitial iip
+      registerOp 'removeInitial', iip
+      do processOps unless processing
 
   subscribeSubgraph: (node) ->
     unless node.component.isReady()
@@ -336,7 +366,7 @@ class Network extends EventEmitter
     @connections.push socket
     callback() if callback
 
-  removeEdge: (edge) ->
+  removeEdge: (edge, callback) ->
     for connection in @connections
       continue unless connection
       continue unless edge.to.node is connection.to.process.id and edge.to.port is connection.to.port
@@ -345,6 +375,7 @@ class Network extends EventEmitter
         if connection.from and edge.from.node is connection.from.process.id and edge.from.port is connection.from.port
           connection.from.process.component.outPorts[connection.from.port].detach connection
       @connections.splice @connections.indexOf(connection), 1
+      do callback if callback
 
   addInitial: (initializer, callback) ->
     socket = internalSocket.createSocket()
@@ -372,12 +403,13 @@ class Network extends EventEmitter
 
     callback() if callback
 
-  removeInitial: (initializer) ->
+  removeInitial: (initializer, callback) ->
     for connection in @connections
       continue unless connection
       continue unless initializer.to.node is connection.to.process.id and initializer.to.port is connection.to.port
       connection.to.process.component.inPorts[connection.to.port].detach connection
       @connections.splice @connections.indexOf(connection), 1
+    do callback if callback
 
   sendInitial: (initial) ->
     initial.socket.connect()
