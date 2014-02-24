@@ -299,9 +299,10 @@ class Graph extends EventEmitter
   # Once the node has been removed, the `removeNode` event will be
   # emitted.
   removeNode: (id) ->
-    @checkTransactionStart()
-
     node = @getNode id
+    return unless node
+
+    @checkTransactionStart()
 
     for edge in @edges
       continue unless edge
