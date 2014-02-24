@@ -261,7 +261,7 @@ class Network extends EventEmitter
         to: newId
       do processOps unless processing
     @graph.on 'addEdge', (edge) =>
-      registerOp 'renameNode', oldId, newId
+      registerOp 'addEdge', edge
       do processOps unless processing
     @graph.on 'removeEdge', (edge) =>
       registerOp 'removeEdge', edge
