@@ -23,6 +23,7 @@ class BasePort extends EventEmitter
     "#{@node} #{@name.toUpperCase()}"
 
   getDataType: -> @options.datatype
+  getDescription: -> @options.description
 
   attach: (socket, index = null) ->
     if not @isAddressable() or index is null

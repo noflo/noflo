@@ -10,6 +10,8 @@ else
   EventEmitter = require 'emitter'
 
 class Port extends EventEmitter
+  description: ''
+  required: true
   constructor: (@type) ->
     @type = 'all' unless @type
     @sockets = []
@@ -23,6 +25,7 @@ class Port extends EventEmitter
     "#{@node} #{@name.toUpperCase()}"
 
   getDataType: -> @type
+  getDescription: -> @description
 
   attach: (socket) ->
     @sockets.push socket
@@ -93,6 +96,9 @@ class Port extends EventEmitter
       if socket.isConnected()
         connected = true
     connected
+
+  isAddressable: -> false
+  isRequired: -> @required
 
   isAttached: ->
     return true if @sockets.length > 0
