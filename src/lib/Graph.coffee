@@ -70,7 +70,6 @@ class Graph extends EventEmitter
     @transaction.depth = 0
     @emit 'endTransaction', id, metadata
 
-  # TODO: use a decorator on relevant methods to inject these, instead of manually
   checkTransactionStart: () ->
     if not @transaction.id
       @startTransaction 'implicit'
