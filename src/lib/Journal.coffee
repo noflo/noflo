@@ -87,7 +87,7 @@ class Journal extends EventEmitter
     @startTransaction 'initial', metadata
     @appendCommand 'addNode', node for node in @graph.nodes
     @appendCommand 'addEdge', edge for edge in @graph.edges
-    @appendCommand 'addInitial', iip for ipp in @graph.initializers
+    @appendCommand 'addInitial', iip for iip in @graph.initializers
     @appendCommand 'changeProperties', @graph.properties, {} if Object.keys(@graph.properties).length > 0
     @appendCommand 'addInport', {name: k, port: v} for k,v of @graph.inports
     @appendCommand 'addOutport', {name: k, port: v} for k,v of @graph.outports
