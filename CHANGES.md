@@ -13,7 +13,10 @@ NoFlo ChangeLog
   - `setNodeMetadata`
   - `setEdgeMetadata`
 * Graph exports can now be renamed, and emit `addExport`, `removeExport`, and `renameExport` events
-* New Graph Journaling API for keeping track of changes to graphs, including transaction support
+* New Graph transaction API for grouping graph changes. Transactions can be observed
+  - `startTransaction`
+  - `endTransaction`
+* New Journal class, for following Graph changes and restoring earlier revisions. Currently supports `undo` and `redo`
 * [New port API](https://github.com/noflo/noflo/issues/136) allowing better addressability and metadata
 * Graph's published ports are now declared in two separate `inports` and `outports` arrays to [reduce ambiguity](https://github.com/noflo/noflo/issues/118)
 

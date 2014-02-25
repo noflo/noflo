@@ -71,6 +71,14 @@ class MemoryJournalStore extends JournalStore
   fetchTransaction: (revId) ->
     return @transactions[revId]
 
+# ## Journalling graph changes
+#
+# The Journal can follow graph changes, store them
+# and allows to recall previous revisions of the graph.
+#
+# Revisions stored in the journal follow the transactions of the graph.
+# It is not possible to operate on smaller changes than individual transactions.
+# Use startTransaction and endTransaction on Graph to structure the revisions logical changesets.
 class Journal extends EventEmitter
   graph: null
   entries: [] # Entries added during this revision
@@ -254,14 +262,27 @@ class Journal extends EventEmitter
     @currentRevision = revId
     @subscribed = true
 
+  # ## Undoing & redoing
+  # Undo the last graph change
   undo: () ->
-    return unless @currentRevision > 0
+    return unless @canUndo()
     @moveToRevision(@currentRevision-1)
 
+  # If there is something to undo
+  canUndo: () ->
+    return @currentRevision > 0
+
+  # Redo the last undo
   redo: () ->
-    return unless @currentRevision < @store.lastRevision
+    return unless @canRedo()
     @moveToRevision(@currentRevision+1)
 
+  # If there is something to redo
+  canRedo: () ->
+    return @currentRevision < @store.lastRevision
+
+  ## Serializing
+  # Render a pretty printed string of the journal. Changes are abbreviated
   toPrettyString: (startRev, endRev) ->
     startRev |= 0
     endRev |= @store.lastRevision
@@ -271,6 +292,7 @@ class Journal extends EventEmitter
       lines.push (entryToPrettyString entry) for entry in e
     return lines.join('\n')
 
+  # Serialize journal to JSON
   toJSON: (startRev, endRev) ->
     startRev |= 0
     endRev |= @store.lastRevision
