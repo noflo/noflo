@@ -687,16 +687,21 @@ exports.loadJSON = (definition, success, metadata = {}) ->
     graph.addEdge conn.src.process, conn.src.port.toLowerCase(), conn.tgt.process, conn.tgt.port.toLowerCase(), metadata
 
   if definition.exports and definition.exports.length
-    # Translate legacy ports to new
     for exported in definition.exports
-      split = exported.private.split('.')
-      continue unless split.length is 2
-      processId = split[0]
-      portId = split[1]
-      # Get properly cased process id
-      for id of definition.processes
-        if id.toLowerCase() is processId.toLowerCase()
-          processId = id
+      if exported.private
+        # Translate legacy ports to new
+        split = exported.private.split('.')
+        continue unless split.length is 2
+        processId = split[0]
+        portId = split[1]
+
+        # Get properly cased process id
+        for id of definition.processes
+          if id.toLowerCase() is processId.toLowerCase()
+            processId = id
+      else
+        processId = exported.process
+        portId = exported.port
       graph.addExport exported.public, processId, portId, exported.metadata
 
   if definition.inports
