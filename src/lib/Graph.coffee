@@ -146,6 +146,7 @@ class Graph extends EventEmitter
 
     @checkTransactionStart()
     port = @inports[publicPort]
+    @setInportMetadata publicPort, {}
     delete @inports[publicPort]
     @emit 'removeInport', publicPort, port
     @checkTransactionEnd()
@@ -194,6 +195,7 @@ class Graph extends EventEmitter
     @checkTransactionStart()
 
     port = @outports[publicPort]
+    @setOutportMetadata publicPort, {}
     delete @outports[publicPort]
     @emit 'removeOutport', publicPort, port
 
@@ -242,6 +244,7 @@ class Graph extends EventEmitter
     for group in @groups
       continue unless group
       continue unless group.name is groupName
+      @setGroupMetadata group.name, {}
       @groups.splice @groups.indexOf(group), 1
       @emit 'removeGroup', group
 
@@ -331,6 +334,8 @@ class Graph extends EventEmitter
       index = group.nodes.indexOf(id)
       continue if index is -1
       group.nodes.splice index, 1
+
+    @setNodeMetadata id, {}
 
     if -1 isnt @nodes.indexOf node
       @nodes.splice @nodes.indexOf(node), 1
@@ -466,12 +471,14 @@ class Graph extends EventEmitter
         if node2 and port2
           unless edge.to.node is node2 and edge.to.port is port2
             continue
+        @setEdgeMetadata edge.from.node, edge.from.port, edge.to.node, edge.to.port, {}
         @emit 'removeEdge', edge
         @edges.splice index, 1
       if edge.to.node is node and edge.to.port is port
         if node2 and port2
           unless edge.from.node is node2 and edge.from.port is port2
             continue
+        @setEdgeMetadata edge.from.node, edge.from.port, edge.to.node, edge.to.port, {}
         @emit 'removeEdge', edge
         @edges.splice index, 1
 

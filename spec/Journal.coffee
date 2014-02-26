@@ -51,8 +51,10 @@ describe 'Journal', ->
         Baz(Foo)
         Foo out -> in Baz
         '42' -> in Foo
+        META Foo out -> in Baz
         Foo out -X> in Baz
         '42' -X> in Foo
+        META Foo
         DEL Foo(Bar)
         <<< 1: test1"""
       chai.expect(j.toPrettyString(0,2)).to.equal ref

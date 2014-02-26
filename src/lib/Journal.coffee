@@ -20,7 +20,7 @@ entryToPrettyString = (entry) ->
     when 'addNode' then "#{a.id}(#{a.component})"
     when 'removeNode' then "DEL #{a.id}(#{a.component})"
     when 'renameNode' then "RENAME #{a.oldId} #{a.newId}"
-    when 'changeNode' then "META #{a.id}(#{a.component})"
+    when 'changeNode' then "META #{a.id}"
     when 'addEdge' then "#{a.from.node} #{a.from.port} -> #{a.to.port} #{a.to.node}"
     when 'removeEdge' then "#{a.from.node} #{a.from.port} -X> #{a.to.port} #{a.to.node}"
     when 'changeEdge' then "META #{a.from.node} #{a.from.port} -> #{a.to.port} #{a.to.node}"
