@@ -20,7 +20,7 @@ entryToPrettyString = (entry) ->
     when 'addNode' then "#{a.id}(#{a.component})"
     when 'removeNode' then "DEL #{a.id}(#{a.component})"
     when 'renameNode' then "RENAME #{a.oldId} #{a.newId}"
-    when 'changeNode' then "META #{a.id}(#{a.component})"
+    when 'changeNode' then "META #{a.id}"
     when 'addEdge' then "#{a.from.node} #{a.from.port} -> #{a.to.port} #{a.to.node}"
     when 'removeEdge' then "#{a.from.node} #{a.from.port} -X> #{a.to.port} #{a.to.node}"
     when 'changeEdge' then "META #{a.from.node} #{a.from.port} -> #{a.to.port} #{a.to.node}"
@@ -118,8 +118,8 @@ class Journal extends EventEmitter
       @appendCommand 'addEdge', edge
     @graph.on 'removeEdge', (edge) =>
       @appendCommand 'removeEdge', edge
-    @graph.on 'changeEdge', (edge) =>
-      @appendCommand 'removeEdge', edge
+    @graph.on 'changeEdge', (edge, oldMeta) =>
+      @appendCommand 'changeEdge', {from: edge.from, to: edge.to, new: edge.metadata, old: oldMeta}
     @graph.on 'addInitial', (iip) =>
       @appendCommand 'addInitial', iip
     @graph.on 'removeInitial', (iip) =>
@@ -197,6 +197,7 @@ class Journal extends EventEmitter
       when 'changeNode' then @graph.setNodeMetadata a.id, calculateMeta(a.old, a.new)
       when 'addEdge' then @graph.addEdge a.from.node, a.from.port, a.to.node, a.to.port
       when 'removeEdge' then @graph.removeEdge a.from.node, a.from.port, a.to.node, a.to.port
+      when 'changeEdge' then @graph.setEdgeMetadata a.from.node, a.from.port, a.to.node, a.to.port, calculateMeta(a.old, a.new)
       when 'addInitial' then @graph.addInitial a.from.data, a.to.node, a.to.port
       when 'removeInitial' then @graph.removeInitial a.to.node, a.to.port
       when 'startTransaction' then null
@@ -224,6 +225,7 @@ class Journal extends EventEmitter
       when 'changeNode' then @graph.setNodeMetadata a.id, calculateMeta(a.new, a.old)
       when 'addEdge' then @graph.removeEdge a.from.node, a.from.port, a.to.node, a.to.port
       when 'removeEdge' then @graph.addEdge a.from.node, a.from.port, a.to.node, a.to.port
+      when 'changeEdge' then @graph.setEdgeMetadata a.from.node, a.from.port, a.to.node, a.to.port, calculateMeta(a.new, a.old)
       when 'addInitial' then @graph.removeInitial a.to.node, a.to.port
       when 'removeInitial' then @graph.addInitial a.from.data, a.to.node, a.to.port
       when 'startTransaction' then null
