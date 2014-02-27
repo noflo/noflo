@@ -170,10 +170,31 @@ describe 'Graph', ->
       }
     },
     {
+      "src": {
+        "process": "Foo",
+        "port": "out2"
+      },
+      "tgt": {
+        "process": "Bar",
+        "port": "in2"
+      },
+      "metadata": {
+        "route": "foo",
+        "hello": "World"
+      }
+    },
+    {
       "data": "Hello, world!",
       "tgt": {
         "process": "Foo",
         "port": "in"
+      }
+    },
+    {
+      "data": "Hello, world, 2!",
+      "tgt": {
+        "process": "Foo",
+        "port": "in2"
       }
     }
   ]
@@ -226,8 +247,8 @@ describe 'Graph', ->
         done()
       g.setNodeMetadata 'Foo',
         hello: 'World'
-    it 'should contain one connection', ->
-      chai.expect(g.edges.length).to.equal 1
+    it 'should contain two connections', ->
+      chai.expect(g.edges.length).to.equal 2
     it 'the first Edge should have its metadata intact', ->
       edge = g.edges[0]
       chai.expect(edge.metadata).to.be.an 'object'
@@ -241,8 +262,8 @@ describe 'Graph', ->
         done()
       g.setEdgeMetadata e.from.node, e.from.port, e.to.node, e.to.port,
         hello: 'World'
-    it 'should contain one IIP', ->
-      chai.expect(g.initializers.length).to.equal 1
+    it 'should contain two IIPs', ->
+      chai.expect(g.initializers.length).to.equal 2
     it 'should contain one published inport', ->
       chai.expect(g.inports).to.not.be.empty
     it 'should contain one published outport', ->
@@ -341,18 +362,18 @@ describe 'Graph', ->
           chai.expect(node.id).to.equal 'Baz'
           done()
         g.removeNode 'Baz'
-      it 'shouldn\'t be have edges left behind', ->
+      it 'shouldn\'t have edges left behind', ->
         connections = 0
         for edge in g.edges
           connections++ if edge.from.node is 'Baz'
           connections++ if edge.to.node is 'Baz'
         chai.expect(connections).to.equal 0
-      it 'shouldn\'t be have IIPs left behind', ->
+      it 'shouldn\'t have IIPs left behind', ->
         connections = 0
         for edge in g.initializers
           connections++ if edge.to.node is 'Baz'
         chai.expect(connections).to.equal 0
-      it 'shouldn\'t be have exports left behind', ->
+      it 'shouldn\'t have exports left behind', ->
         exports = 0
         for exported in g.exports
           [exportedNode, exportedPort] = exported.private.split '.'
