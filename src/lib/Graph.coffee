@@ -306,28 +306,40 @@ class Graph extends EventEmitter
 
     @checkTransactionStart()
 
+    toRemove = []
     for edge in @edges
-      continue unless edge
-      if edge.from.node is node.id
-        @removeEdge edge.from.node, edge.from.port
-      if edge.to.node is node.id
-        @removeEdge edge.to.node, edge.to.port
+      if (edge.from.node is node.id) or (edge.to.node is node.id)
+        toRemove.push edge
+    for edge in toRemove
+      @removeEdge edge.from.node, edge.from.port, edge.to.node, edge.to.port
 
+    toRemove = []
     for initializer in @initializers
-      continue unless initializer
       if initializer.to.node is node.id
-        @removeInitial initializer.to.node, initializer.to.port
+        toRemove.push initializer
+    for initializer in toRemove
+      @removeInitial initializer.to.node, initializer.to.port
 
+    toRemove = []
     for exported in @exports
       if id.toLowerCase() is exported.process
-        @removeExports exported.public
+        toRemove.push exported
+    for exported in toRemove
+      @removeExports exported.public
 
+    toRemove = []
     for pub, priv of @inports
       if priv.process is id
-        @removeInport pub
+        toRemove.push pub
+    for pub in toRemove
+      @removeInport pub
+
+    toRemove = []
     for pub, priv of @outports
       if priv.process is id
-        @removeOutport pub
+        toRemove.push pub
+    for pub in toRemove
+      @removeOutport pub
 
     for group in @groups
       continue unless group
@@ -452,12 +464,7 @@ class Graph extends EventEmitter
   # ## Disconnected nodes
   #
   # Connections between nodes can be removed by providing the
-  # node and port to disconnect. The specified node and port can
-  # be either the outport or the inport of the connection:
-  #
-  #     myGraph.removeEdge 'Read', 'out'
-  #
-  # or:
+  # nodes and ports to disconnect.
   #
   #     myGraph.removeEdge 'Display', 'out', 'Foo', 'in'
   #
@@ -465,22 +472,26 @@ class Graph extends EventEmitter
   removeEdge: (node, port, node2, port2) ->
     @checkTransactionStart()
 
-    for edge,index in @edges
-      continue unless edge
-      if edge.from.node is node and edge.from.port is port
-        if node2 and port2
-          unless edge.to.node is node2 and edge.to.port is port2
-            continue
-        @setEdgeMetadata edge.from.node, edge.from.port, edge.to.node, edge.to.port, {}
-        @emit 'removeEdge', edge
-        @edges.splice index, 1
-      if edge.to.node is node and edge.to.port is port
-        if node2 and port2
-          unless edge.from.node is node2 and edge.from.port is port2
-            continue
-        @setEdgeMetadata edge.from.node, edge.from.port, edge.to.node, edge.to.port, {}
-        @emit 'removeEdge', edge
-        @edges.splice index, 1
+    toRemove = []
+    toKeep = []
+    if node2 and port2
+      for edge,index in @edges
+        if edge.from.node is node and edge.from.port is port and edge.to.node is node2 and edge.to.port is port2
+          @setEdgeMetadata edge.from.node, edge.from.port, edge.to.node, edge.to.port, {}
+          toRemove.push edge
+        else
+          toKeep.push edge
+    else
+      for edge,index in @edges
+        if (edge.from.node is node and edge.from.port is port) or (edge.to.node is node and edge.to.port is port)
+          @setEdgeMetadata edge.from.node, edge.from.port, edge.to.node, edge.to.port, {}
+          toRemove.push edge
+        else
+          toKeep.push edge
+
+    @edges = toKeep
+    for edge in toRemove
+      @emit 'removeEdge', edge
 
     @checkTransactionEnd()
 
@@ -556,11 +567,16 @@ class Graph extends EventEmitter
   removeInitial: (node, port) ->
     @checkTransactionStart()
 
+    toRemove = []
+    toKeep = []
     for edge, index in @initializers
-      continue unless edge
       if edge.to.node is node and edge.to.port is port
-        @emit 'removeInitial', edge
-        @initializers.splice index, 1
+        toRemove.push edge
+      else
+        toKeep.push edge
+    @initializers = toKeep
+    for edge in toRemove
+      @emit 'removeInitial', edge
 
     @checkTransactionEnd()
 
