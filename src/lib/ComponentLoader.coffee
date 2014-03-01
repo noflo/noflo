@@ -63,10 +63,10 @@ class ComponentLoader
 
     callback @components
 
-  load: (name, callback, delayed) ->
+  load: (name, callback, delayed, metadata) ->
     unless @components
       @listComponents (components) =>
-        @load name, callback
+        @load name, callback, delayed, metadata
       return
     component = @components[name]
     unless component
@@ -84,27 +84,27 @@ class ComponentLoader
       if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
         # nextTick is faster on Node.js
         process.nextTick =>
-          @loadGraph name, component, callback, delayed
+          @loadGraph name, component, callback, delayed, metadata
       else
         setTimeout =>
-          @loadGraph name, component, callback, delayed
+          @loadGraph name, component, callback, delayed, metadata
         , 0
       return
     if typeof component is 'function'
       implementation = component
       if component.getComponent and typeof component.getComponent is 'function'
-        instance = component.getComponent()
+        instance = component.getComponent metadata
       else
-        instance = component()
+        instance = component metadata
     # Direct component instance, return as is
     else if typeof component is 'object' and typeof component.getComponent is 'function'
-      instance = component.getComponent()
+      instance = component.getComponent metadata
     else
       implementation = require component
       if implementation.getComponent and typeof implementation.getComponent is 'function'
-        instance = implementation.getComponent()
+        instance = implementation.getComponent metadata
       else
-        instance = implementation()
+        instance = implementation metadata
     instance.baseDir = @baseDir if name is 'Graph'
     @setIcon name, instance
     callback instance
@@ -114,10 +114,10 @@ class ComponentLoader
     return false unless typeof cPath is 'string'
     cPath.indexOf('.fbp') isnt -1 or cPath.indexOf('.json') isnt -1
 
-  loadGraph: (name, component, callback, delayed) ->
+  loadGraph: (name, component, callback, delayed, metadata) ->
     graphImplementation = require @components['Graph']
     graphSocket = internalSocket.createSocket()
-    graph = graphImplementation.getComponent()
+    graph = graphImplementation.getComponent metadata
     graph.loader = @
     graph.baseDir = @baseDir
 

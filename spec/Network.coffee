@@ -79,7 +79,12 @@ describe 'NoFlo Network', ->
             chai.expect(n.processes.Graph).to.exist
             done()
           , 10
-        g.addNode 'Graph', 'Graph'
+        g.addNode 'Graph', 'Graph',
+          foo: 'Bar'
+      it 'should have transmitted the node metadata to the process', ->
+        chai.expect(n.processes.Graph.component.metadata).to.exist
+        chai.expect(n.processes.Graph.component.metadata).to.be.an.object
+        chai.expect(n.processes.Graph.component.metadata).to.eql g.getNode('Graph').metadata
       it 'should not contain the node after removal', (done) ->
         g.once 'removeNode', ->
           setTimeout ->

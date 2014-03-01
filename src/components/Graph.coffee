@@ -4,7 +4,7 @@ else
   noflo = require '../lib/NoFlo'
 
 class Graph extends noflo.Component
-  constructor: ->
+  constructor: (@metadata) ->
     @network = null
     @ready = true
     @started = false
@@ -163,4 +163,4 @@ class Graph extends noflo.Component
     return unless @network
     @network.stop()
 
-exports.getComponent = -> new Graph
+exports.getComponent = (metadata) -> new Graph metadata

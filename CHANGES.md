@@ -5,6 +5,7 @@ NoFlo ChangeLog
 
 * Support for loading graph definitions via AJAX on browser-based NoFlo
 * Support for delayed initialization of Subgraph components via ComponentLoader
+* Component instances now get the node's metadata passed to the `getComponent` function
 * New methods for manipulating Graph metadata:
   - `setProperties`
   - `setInportMetadata`
