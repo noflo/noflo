@@ -41,12 +41,13 @@ describe 'Inport Port', ->
       chai.expect(p.sockets.length).to.equal 0
 
   describe 'with processing function called with port as context', ->
-    it 'should set context to port itself', ->
-      s = new socket
+    it 'should set context to port itself', (done) ->
+      s = new socket.InternalSocket
       p = new inport
       p.on 'data', (packet, component) ->
-        chai.expect(this).toBe p
-        chai.expect(packet).toEqual 'some-data'
+        chai.expect(@).to.equal p
+        chai.expect(packet).to.equal 'some-data'
+        done()
       p.attach s
       s.send 'some-data'
 
@@ -55,16 +56,16 @@ describe 'Inport Port', ->
     beforeEach ->
       p = new inport
         default: 'default-value'
-      s = new socket
+      s = new socket.InternalSocket
       p.attach s
     it 'should send the default value as a packet, though on next tick after initialization', (done) ->
-      p.config.on 'data', (data) ->
-        chai.expect(data).toEqual 'default-value'
+      p.on 'data', (data) ->
+        chai.expect(data).to.equal 'default-value'
         done()
     it 'should send the default value before IIP', (done) ->
       received = ['default-value', 'some-iip']
-      p.config.on 'data', (data) ->
-        chai.expect(data).toEqual received.shift()
+      p.on 'data', (data) ->
+        chai.expect(data).to.equal received.shift()
         done() if received.length is 0
       s.send 'some-iip'
 
@@ -78,7 +79,7 @@ describe 'Inport Port', ->
         weNeverExpectThis: 'butWeStoreItAnyway'
       p = new inport options
       for name, option of options
-        chai.expect(p.options[name]).toEqual option
+        chai.expect(p.options[name]).to.equal option
 
   describe 'with data type information', ->
     right = 'all string number int object array'.split ' '
@@ -106,28 +107,28 @@ describe 'Inport Port', ->
     it 'should buffer incoming packets until `receive()`d', ->
       p = new inport
         buffered: true
-      s = new socket
+      s = new socket.InternalSocket
       p.attach s
 
       p.once 'data', (data) ->
         # We get notified with the packet as the parameter but it is not popped
         # off the queue. We choose not to handle the packet for now.
-        chai.expect(data).toEqual 'buffered-data-1'
+        chai.expect(data).to.equal 'buffered-data-1'
       s.send 'buffered-data-1'
 
       p.once 'data', (data) ->
         # We should still get the queued up value because it doesn't make sense
         # to "peek" into the latest packet until all preceding packets have
         # been consumed.
-        chai.expect(data).toEqual 'buffered-data-1'
+        chai.expect(data).to.equal 'buffered-data-1'
         # Now we consume it. Note that the context should be the port itself.
         _data = @receive()
-        chai.expect(data).toEqual _data
+        chai.expect(data).to.equal _data
       s.send 'buffered-data-2'
 
       p.once 'data', (data) ->
         # Now we see the second packet
-        chai.expect(data).toEqual 'buffered-data-2'
+        chai.expect(data).to.equal 'buffered-data-2'
       s.send 'buffered-data-3'
 
     it 'should always return the immediate packet even without buffering', ->
@@ -135,31 +136,31 @@ describe 'Inport Port', ->
         # Specified here simply for illustrative purpose, otherwise implied
         # `false`
         buffered: false
-      s = new socket
+      s = new socket.InternalSocket
       p.attach s
 
       p.once 'data', (data) ->
         # `receive()` returns the same thing
         _data = @receive()
-        chai.expect(data).toEqual 'data'
-        chai.expect(data).toEqual _data
+        chai.expect(data).to.equal 'data'
+        chai.expect(data).to.equal _data
       s.send 'data'
 
   describe 'with accepted enumerated values', (done) ->
     it 'should accept certain values', ->
       p = new inport
         values: 'noflo is awesome'.split ''
-      s = new socket
+      s = new socket.InternalSocket
       p.attach s
       p.on 'data', (data) ->
-        chai.expect(data).toEqual 'noflo is awesome'
+        chai.expect(data).to.equal 'noflo is awesome'
         done()
       s.send 'awesome'
 
     it 'should send to error port if value is not accepted', ->
       p = new inport
         values: 'noflo is awesome'.split ''
-      s = new socket
+      s = new socket.InternalSocket
       p.attach s
       cb = jasmine.createSpy()
       p.on 'data', cb
@@ -168,25 +169,25 @@ describe 'Inport Port', ->
 
   describe 'with processing shorthand', ->
     it 'should create a port with a callback', ->
-      s = new socket
+      s = new socket.InternalSocket
       ps = new ports
         outPorts:
           out: new outport
       ps.add 'in', (packet, component) ->
-        chai.expect(packet).toEqual 'some-data'
+        chai.expect(packet).to.equal 'some-data'
         chai.assert component.outPorts.out instanceof outport
       chai.assert ps.inPorts.in instanceof inport
       ps.inPorts.in.attach s
       s.send 'some-data'
 
     it 'should also accept metadata (i.e. options) when provided', (done) ->
-      s = new socket
+      s = new socket.InternalSocket
       ps = new ports
       ps.add 'in',
         datatype: 'string'
         required: true
       , (packet, component) ->
-        chai.expect(packet).toEqual 'some-data'
+        chai.expect(packet).to.equal 'some-data'
         done()
       ps.inPorts.in.attach s
       s.send 'some-data'

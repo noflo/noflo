@@ -8,14 +8,38 @@ unless require('./Platform').isBrowser()
 else
   EventEmitter = require 'emitter'
 
+validTypes = [
+  'all'
+  'string'
+  'number'
+  'int'
+  'object'
+  'array'
+  'boolean'
+  'color'
+  'date'
+  'bang'
+]
+
 class BasePort extends EventEmitter
-  constructor: (@options) ->
-    @options = {} unless @options
-    @options.datatype = 'all' unless @options.datatype
-    @options.required = true if @options.required is undefined
+  constructor: (options) ->
+    @handleOptions options
     @sockets = []
     @node = null
     @name = null
+
+  handleOptions: (options) ->
+    options = {} unless options
+    options.datatype = 'all' unless options.datatype
+    options.required = true if options.required is undefined
+
+    if validTypes.indexOf(options.datatype) is -1
+      throw new Error "Invalid port datatype '#{options.datatype}' specified, valid are #{validTypes.join(' ,')}"
+
+    if options.type and options.type.indexOf('/') is -1
+      throw new Error "Invalid port type '#{options.type}' specified. Should be URL or MIME type"
+
+    @options = options
 
   getId: ->
     unless @node and @name
