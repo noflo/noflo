@@ -106,34 +106,48 @@ describe 'Inport Port', ->
       chai.expect(-> f 'neither-a-url-nor-mime').to.throw()
 
   describe 'with buffering', ->
-    it 'should buffer incoming packets until `receive()`d', ->
+    it 'should buffer incoming packets until `receive()`d', (done) ->
+      expectedEvents = [
+        'connect'
+        'data'
+        'data'
+        'disconnect'
+        'connect'
+        'data'
+        'disconnect'
+      ]
+      expectedData = [
+        'buffered-data-1'
+        'buffered-data-2'
+        'buffered-data-3'
+      ]
+
       p = new inport
         buffered: true
+      , (eventName) ->
+          expectedEvent = expectedEvents.shift()
+          chai.expect(eventName).to.equal expectedEvent
+          packet = p.receive()
+          chai.expect(packet).to.be.an 'object'
+          chai.expect(packet.event).to.equal expectedEvent
+          if packet.event is 'data'
+            chai.expect(packet.payload).to.equal expectedData.shift()
+          if expectedEvents.length is 0
+            done()
       s = new socket.InternalSocket
       p.attach s
-
-      p.once 'data', (data) ->
-        # We get notified with the packet as the parameter but it is not popped
-        # off the queue. We choose not to handle the packet for now.
-        chai.expect(data).to.equal 'buffered-data-1'
       s.send 'buffered-data-1'
-
-      p.once 'data', (data) ->
-        # We should still get the queued up value because it doesn't make sense
-        # to "peek" into the latest packet until all preceding packets have
-        # been consumed.
-        chai.expect(data).to.equal 'buffered-data-1'
-        # Now we consume it. Note that the context should be the port itself.
-        _data = @receive()
-        chai.expect(data).to.equal _data
       s.send 'buffered-data-2'
-
-      p.once 'data', (data) ->
-        # Now we see the second packet
-        chai.expect(data).to.equal 'buffered-data-2'
+      s.disconnect()
       s.send 'buffered-data-3'
+      s.disconnect()
 
-    it 'should always return the immediate packet even without buffering', ->
+    it 'should return undefined when buffer is empty', ->
+      p = new inport
+        buffered: true
+      chai.expect(p.receive()).to.be.undefined
+
+    it 'shouldn\'t expose the receive method without buffering', ->
       p = new inport
         # Specified here simply for illustrative purpose, otherwise implied
         # `false`
@@ -142,10 +156,9 @@ describe 'Inport Port', ->
       p.attach s
 
       p.once 'data', (data) ->
-        # `receive()` returns the same thing
-        _data = @receive()
         chai.expect(data).to.equal 'data'
-        chai.expect(data).to.equal _data
+        # Receive is not available for non-buffering ports
+        chai.expect(-> p.receive()).to.throw()
       s.send 'data'
 
   describe 'with accepted enumerated values', (done) ->

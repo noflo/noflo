@@ -24,6 +24,7 @@ class InPort extends BasePort
     super options
 
     do @sendDefault
+    do @prepareBuffer
 
   attachSocket: (socket, localId = null) ->
     socket.on 'connect', =>
@@ -38,6 +39,22 @@ class InPort extends BasePort
       @handleSocketEvent 'disconnect', socket, localId
 
   handleSocketEvent: (event, payload, id) ->
+    # Handle buffering
+    if @isBuffered()
+      @buffer.push
+        event: event
+        payload: payload
+        id: id
+
+      # Notify receiver
+      if @isAddressable()
+        @process event, id, @nodeInstance if @process
+        @emit event, id
+      else
+        @process event, @nodeInstance if @process
+        @emit event
+      return
+
     # Call the processing function
     if @process
       if @isAddressable()
@@ -52,7 +69,18 @@ class InPort extends BasePort
   sendDefault: ->
     return if @options.default is undefined
     setTimeout =>
-      @emit 'data', @options.default
+      for socket, idx in @sockets
+        @handleSocketEvent 'data', @options.default, idx
     , 0
+
+  prepareBuffer: ->
+    return unless @isBuffered()
+    @buffer = []
+
+  # Returns the next packet in the buffer
+  receive: ->
+    unless @isBuffered()
+      throw new Error 'Receive is only possible on buffered ports'
+    @buffer.shift()
 
 module.exports = InPort
