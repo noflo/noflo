@@ -652,7 +652,7 @@ class Graph extends EventEmitter
       groupData =
         name: group.name
         nodes: group.nodes
-      if group.metadata
+      if Object.keys(group.metadata).length
         groupData.metadata = group.metadata
       json.groups.push groupData
 
