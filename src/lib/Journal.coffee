@@ -58,6 +58,8 @@ class JournalStore extends EventEmitter
   constructor: (@graph) ->
     @lastRevision = 0
   putTransaction: (revId, entries) ->
+    @lastRevision = revId if revId > @lastRevision
+    @emit 'transaction', revId
   fetchTransaction: (revId, entries) ->
 
 class MemoryJournalStore extends JournalStore
@@ -66,7 +68,7 @@ class MemoryJournalStore extends JournalStore
     @transactions = []
 
   putTransaction: (revId, entries) ->
-    @lastRevision = revId if revId > @lastRevision
+    super revId, entries
     @transactions[revId] = entries
 
   fetchTransaction: (revId) ->
