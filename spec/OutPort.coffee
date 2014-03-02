@@ -10,9 +10,9 @@ describe 'Outport Port', ->
   describe 'with addressable ports', ->
     s1 = s2 = s3 = null
     beforeEach ->
-      s1 = new socket
-      s2 = new socket
-      s3 = new socket
+      s1 = new socket.InternalSocket
+      s2 = new socket.InternalSocket
+      s3 = new socket.InternalSocket
 
     it 'should be able to send to a specific port', ->
       p = new outport
@@ -20,39 +20,20 @@ describe 'Outport Port', ->
       p.attach s1
       p.attach s2
       p.attach s3
-      cb1 = jasmine.createSpy()
-      cb2 = jasmine.createSpy()
-      cb3 = jasmine.createSpy()
-      s1.on 'data', cb1
-      s2.on 'data', cb2
-      s3.on 'data', cb3
-      p.send 'some-data', 2
-      cb1.not.toHaveBeenCalled()
-      cb2.toHaveBeenCalled()
-      cb3.not.toHaveBeenCalled()
+      s1.on 'data', ->
+        chai.expect(true).to.equal false
+      s2.on 'data', (data) ->
+        chai.expect(data).to.equal 'some-data'
+      s3.on 'data', ->
+        chai.expect(true).to.equal false
+      p.send 'some-data', 1
 
-    it 'should send to all with no specific port', ->
-      p = new outport
-        addressable: true
-      p.attach s1
-      p.attach s2
-      p.attach s3
-      cb1 = jasmine.createSpy()
-      cb2 = jasmine.createSpy()
-      cb3 = jasmine.createSpy()
-      s1.on 'data', cb1
-      s2.on 'data', cb2
-      s3.on 'data', cb3
-      p.send 'some-data'
-      cb1.toHaveBeenCalled()
-      cb2.toHaveBeenCalled()
-      cb3.toHaveBeenCalled()
+    it 'should throw an error when sent data without address', ->
+      chai.expect(-> p.send('some-data')).to.throw
 
     it 'should throw an error when a specific port is requested with non-addressable port', ->
       p = new outport
       p.attach s1
       p.attach s2
       p.attach s3
-      f ->
-        p.send 'some-data'
-      expect(f).toHaveThrown()
+      chai.expect(-> p.send('some-data', 1)).to.throw

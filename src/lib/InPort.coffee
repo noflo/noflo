@@ -16,6 +16,10 @@ class InPort extends BasePort
     if options and options.buffered is undefined
       options.buffered = false
 
+    if not process and options and options.process
+      process = options.process
+      delete options.process
+
     if process
       unless typeof process is 'function'
         throw new Error 'process must be a function'
