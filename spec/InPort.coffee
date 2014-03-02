@@ -1,10 +1,14 @@
 chai = require 'chai' unless chai
 if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
   inport = require '../src/lib/InPort'
+  outport = require '../src/lib/OutPort'
   socket = require '../src/lib/InternalSocket'
+  ports = require '../src/lib/Ports'
 else
   inport = require 'noflo/src/lib/InPort.js'
+  outport = require 'noflo/src/lib/OutPort'
   socket = require 'noflo/src/lib/InternalSocket.js'
+  ports = require 'noflo/src/lib/Ports'
 
 describe 'Inport Port', ->
   describe 'with default options', ->
@@ -150,3 +154,16 @@ describe 'Inport Port', ->
       p.on 'data', cb
       s.send 'terrific'
       chai.expect(cb).not.toHaveBeenCalled()
+
+  describe 'with processing shorthand', ->
+    it 'should create a port with a callback', ->
+      s = new socket
+      ps = new ports
+        outPorts:
+          out: new outport
+      ps.add 'in', (packet, outPorts) ->
+        chai.expect(packet).toEqual 'some-data'
+        chai.assert outPorts.out instanceof outport
+      chai.assert ps.inPorts.in instanceof inport
+      ps.inPorts.in.attach s
+      s.send 'some-data'
