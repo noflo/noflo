@@ -30,6 +30,7 @@ entryToPrettyString = (entry) ->
     when 'endTransaction' then "<<< #{entry.rev}: #{a.id}"
     when 'changeProperties' then "PROPERTIES"
     when 'addGroup' then "GROUP #{a.name}"
+    when 'renameGroup' then "RENAME GROUP #{a.oldName} #{a.newName}"
     when 'removeGroup' then "DEL GROUP #{a.name}"
     when 'changeGroup' then "META GROUP #{a.name}"
     when 'addInport' then "INPORT #{a.name}"
@@ -130,6 +131,10 @@ class Journal extends EventEmitter
 
     @graph.on 'addGroup', (group) =>
       @appendCommand 'addGroup', group
+    @graph.on 'renameGroup', (oldName, newName) =>
+      @appendCommand 'renameGroup',
+        oldName: oldName
+        newName: newName
     @graph.on 'removeGroup', (group) =>
       @appendCommand 'removeGroup', group
     @graph.on 'changeGroup', (group, oldMeta) =>
@@ -204,6 +209,7 @@ class Journal extends EventEmitter
       when 'endTransaction' then null
       when 'changeProperties' then @graph.setProperties a.new
       when 'addGroup' then @graph.addGroup a.name, a.nodes, a.metadata
+      when 'renameGroup' then @graph.renameGroup a.oldName, a.newName
       when 'removeGroup' then @graph.removeGroup a.name
       when 'changeGroup' then @graph.setGroupMetadata a.name, calculateMeta(a.old, a.new)
       when 'addInport' then @graph.addInport a.name, a.port.process, a.port.port, a.port.metadata
@@ -232,6 +238,7 @@ class Journal extends EventEmitter
       when 'endTransaction' then null
       when 'changeProperties' then @graph.setProperties a.old
       when 'addGroup' then @graph.removeGroup a.name
+      when 'renameGroup' then @graph.renameGroup a.newName, a.oldName
       when 'removeGroup' then @graph.addGroup a.name, a.nodes, a.metadata
       when 'changeGroup' then @graph.setGroupMetadata a.name, calculateMeta(a.new, a.old)
       when 'addInport' then @graph.removeInport a.name

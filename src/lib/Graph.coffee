@@ -238,6 +238,15 @@ class Graph extends EventEmitter
 
     @checkTransactionEnd()
 
+  renameGroup: (oldName, newName) ->
+    @checkTransactionStart()
+    for group in @groups
+      continue unless group
+      continue unless group.name is oldName
+      group.name = newName
+      @emit 'renameGroup', oldName, newName
+    @checkTransactionEnd()
+
   removeGroup: (groupName) ->
     @checkTransactionStart()
 

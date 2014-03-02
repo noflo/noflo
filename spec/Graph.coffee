@@ -284,6 +284,14 @@ describe 'Graph', ->
         done()
       g.setGroupMetadata 'first',
         foo: 'Bar'
+    it 'should allow renaming groups', (done) ->
+      group = g.groups[0]
+      g.once 'renameGroup', (oldName, newName) ->
+        chai.expect(oldName).to.equal 'first'
+        chai.expect(newName).to.equal 'renamed'
+        chai.expect(group.name).to.equal newName
+        done()
+      g.renameGroup 'first', 'renamed'
     describe 'renaming a node', ->
       it 'should emit an event', (done) ->
         g.once 'renameNode', (oldId, newId) ->
