@@ -129,3 +129,24 @@ describe 'Inport Port', ->
         chai.expect(data).toEqual 'data'
         chai.expect(data).toEqual _data
       s.send 'data'
+
+  describe 'with accepted enumerated values', (done) ->
+    it 'should accept certain values', ->
+      p = new inport
+        values: 'noflo is awesome'.split ''
+      s = new socket
+      p.attach s
+      p.on 'data', (data) ->
+        chai.expect(data).toEqual 'noflo is awesome'
+        done()
+      s.send 'awesome'
+
+    it 'should send to error port if value is not accepted', ->
+      p = new inport
+        values: 'noflo is awesome'.split ''
+      s = new socket
+      p.attach s
+      cb = jasmine.createSpy()
+      p.on 'data', cb
+      s.send 'terrific'
+      chai.expect(cb).not.toHaveBeenCalled()
