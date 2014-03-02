@@ -90,18 +90,22 @@ class Journal extends EventEmitter
     @entries = []
     @subscribed = true
     @store = store || new MemoryJournalStore @graph
-    @currentRevision = -1
 
-    # Sync journal with current graph
-    @startTransaction 'initial', metadata
-    @appendCommand 'addNode', node for node in @graph.nodes
-    @appendCommand 'addEdge', edge for edge in @graph.edges
-    @appendCommand 'addInitial', iip for iip in @graph.initializers
-    @appendCommand 'changeProperties', @graph.properties, {} if Object.keys(@graph.properties).length > 0
-    @appendCommand 'addInport', {name: k, port: v} for k,v of @graph.inports
-    @appendCommand 'addOutport', {name: k, port: v} for k,v of @graph.outports
-    @appendCommand 'addGroup', group for group in @graph.groups
-    @endTransaction 'initial', metadata
+    if @store.transactions.length is 0
+      # Sync journal with current graph to start transaction history
+      @currentRevision = -1
+      @startTransaction 'initial', metadata
+      @appendCommand 'addNode', node for node in @graph.nodes
+      @appendCommand 'addEdge', edge for edge in @graph.edges
+      @appendCommand 'addInitial', iip for iip in @graph.initializers
+      @appendCommand 'changeProperties', @graph.properties, {} if Object.keys(@graph.properties).length > 0
+      @appendCommand 'addInport', {name: k, port: v} for k,v of @graph.inports
+      @appendCommand 'addOutport', {name: k, port: v} for k,v of @graph.outports
+      @appendCommand 'addGroup', group for group in @graph.groups
+      @endTransaction 'initial', metadata
+    else
+      # Persistent store, start with its latest rev
+      @currentRevision = @store.lastRevision
 
     # Subscribe to graph changes
     @graph.on 'addNode', (node) =>
