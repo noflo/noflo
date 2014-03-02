@@ -86,3 +86,46 @@ describe 'Inport Port', ->
     it 'should be a URL', ->
       chai.expect(-> f 'http://schema.org/Person').to.not.throw()
       chai.expect(-> f 'not-a-url').to.throw()
+
+  describe 'with buffering', ->
+    it 'should buffer incoming packets until `receive()`d', ->
+      p = new inport
+        buffered: true
+      s = new socket
+      p.attach s
+
+      p.once 'data', (data) ->
+        # We get notified with the packet as the parameter but it is not popped
+        # off the queue. We choose not to handle the packet for now.
+        chai.expect(data).toEqual 'buffered-data-1'
+      s.send 'buffered-data-1'
+
+      p.once 'data', (data) ->
+        # We should still get the queued up value because it doesn't make sense
+        # to "peek" into the latest packet until all preceding packets have
+        # been consumed.
+        chai.expect(data).toEqual 'buffered-data-1'
+        # Now we consume it. Note that the context should the port itself.
+        _data = @receive()
+        chai.expect(data).toEqual _data
+      s.send 'buffered-data-2'
+
+      p.once 'data', (data) ->
+        # Now we see the second packet
+        chai.expect(data).toEqual 'buffered-data-2'
+      s.send 'buffered-data-3'
+
+    it 'should always return the immediate packet even without buffering', ->
+      p = new inport
+        # Specified here simply for illustrative purpose, otherwise implied
+        # `false`
+        buffered: false
+      s = new socket
+      p.attach s
+
+      p.once 'data', (data) ->
+        # `receive()` returns the same thing
+        _data = @receive()
+        chai.expect(data).toEqual 'data'
+        chai.expect(data).toEqual _data
+      s.send 'data'

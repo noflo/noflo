@@ -33,9 +33,9 @@ describe 'Component', ->
           optionalPort: new port
       c.inPorts.requiredPort.attach s1
       c.inPorts.optionalPort.attach s2
-      run = ->
+      f = ->
         s2.send 'some-data'
-      chai.expect(run).to.not.throw()
+      chai.expect(f).to.not.throw()
 
     it 'should simply forward error if error port is attached', (done) ->
       s1 = new socket
@@ -53,6 +53,6 @@ describe 'Component', ->
       s3.on 'connect', ->
         chai.assert true
         done()
-      run = ->
+      f = ->
         s2.send 'some-data'
-      chai.expect(run).to.not.throw()
+      chai.expect(f).to.not.throw()

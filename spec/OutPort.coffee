@@ -53,6 +53,6 @@ describe 'Outport Port', ->
       p.attach s1
       p.attach s2
       p.attach s3
-      send ->
+      f ->
         p.send 'some-data'
-      expect(send).toHaveThrown()
+      expect(f).toHaveThrown()
