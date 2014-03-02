@@ -67,7 +67,9 @@ describe 'Inport Port', ->
       p.on 'data', (data) ->
         chai.expect(data).to.equal received.shift()
         done() if received.length is 0
-      s.send 'some-iip'
+      setTimeout ->
+        s.send 'some-iip'
+      , 0
 
   describe 'with options stored in port', ->
     it 'should store all provided options in port, whether we expect it or not', ->

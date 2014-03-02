@@ -23,6 +23,8 @@ class InPort extends BasePort
 
     super options
 
+    do @sendDefault
+
   attachSocket: (socket, localId = null) ->
     socket.on 'connect', =>
       @handleSocketEvent 'connect', socket, localId
@@ -46,5 +48,11 @@ class InPort extends BasePort
     # Emit port event
     return @emit event, payload, id if @isAddressable()
     @emit event, payload
+
+  sendDefault: ->
+    return if @options.default is undefined
+    setTimeout =>
+      @emit 'data', @options.default
+    , 0
 
 module.exports = InPort
