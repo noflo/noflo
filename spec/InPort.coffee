@@ -153,7 +153,7 @@ describe 'Inport Port', ->
       s = new socket.InternalSocket
       p.attach s
       p.on 'data', (data) ->
-        chai.expect(data).to.equal 'noflo is awesome'
+        chai.expect(data).to.equal 'awesome'
         done()
       s.send 'awesome'
 
@@ -170,24 +170,36 @@ describe 'Inport Port', ->
   describe 'with processing shorthand', ->
     it 'should create a port with a callback', ->
       s = new socket.InternalSocket
-      ps = new ports
-        outPorts:
+      ps =
+        outPorts: new ports.OutPorts
           out: new outport
-      ps.add 'in', (packet, component) ->
-        chai.expect(packet).to.equal 'some-data'
-        chai.assert component.outPorts.out instanceof outport
+        inPorts: new ports.InPorts
+      ps.inPorts.add 'in', (event, payload) ->
+        return unless event is 'data'
+        chai.expect(payload).to.equal 'some-data'
       chai.assert ps.inPorts.in instanceof inport
       ps.inPorts.in.attach s
       s.send 'some-data'
 
     it 'should also accept metadata (i.e. options) when provided', (done) ->
       s = new socket.InternalSocket
-      ps = new ports
-      ps.add 'in',
+      expectedEvents = [
+        'connect'
+        'data'
+        'disconnect'
+      ]
+      ps =
+        outPorts: new ports.OutPorts
+          out: new outport
+        inPorts: new ports.InPorts
+      ps.inPorts.add 'in',
         datatype: 'string'
         required: true
-      , (packet, component) ->
-        chai.expect(packet).to.equal 'some-data'
+      , (event, payload) ->
+        chai.expect(event).to.equal expectedEvents.shift()
+        return unless event is 'data'
+        chai.expect(payload).to.equal 'some-data'
         done()
       ps.inPorts.in.attach s
       s.send 'some-data'
+      s.disconnect()
