@@ -177,3 +177,17 @@ describe 'Inport Port', ->
       chai.assert ps.inPorts.in instanceof inport
       ps.inPorts.in.attach s
       s.send 'some-data'
+
+    it 'should also accept metadata (i.e. options) when provided', (done) ->
+      s = new socket
+      ps = new ports
+        outPorts:
+          out: new outport
+      ps.add 'in',
+        type: 'string'
+        required: true
+      , (packet, outPorts) ->
+        chai.expect(packet).toEqual 'some-data'
+        done()
+      ps.inPorts.in.attach s
+      s.send 'some-data'
