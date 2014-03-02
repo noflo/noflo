@@ -53,3 +53,36 @@ describe 'Inport Port', ->
         chai.expect(data).toEqual received.shift()
         done() if received.length is 0
       s.send 'some-iip'
+
+  describe 'with options stored in port', ->
+    it 'should store all provided options in port, whether we expect it or not', ->
+      options =
+        datatype: 'string'
+        type: 'http://schema.org/Person'
+        description: 'Person'
+        required: true
+        weNeverExpectThis: 'butWeStoreItAnyway'
+      p = new inport options
+      for name, option of options
+        chai.expect(p.options[name]).toEqual option
+
+  describe 'with data type information', ->
+    right = 'all string number int object array'.split ' '
+    wrong = 'not valie data types'.split ' '
+    f = (datatype) ->
+      new inport
+        datatype: datatype
+    right.forEach (r) ->
+      it "should accept a '#{r}' data type", =>
+        chai.expect(-> f r).to.not.throw()
+    wrong.forEach (w) ->
+      it "should NOT accept a '#{w}' data type", =>
+        chai.expect(-> f w).to.throw()
+
+  describe 'with TYPE (i.e. ontology) information', ->
+    f = (type) ->
+      new inport
+        type: type
+    it 'should be a URL', ->
+      chai.expect(-> f 'http://schema.org/Person').to.not.throw()
+      chai.expect(-> f 'not-a-url').to.throw()
