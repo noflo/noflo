@@ -745,7 +745,7 @@ exports.loadJSON = (definition, success, metadata = {}) ->
 
   if definition.groups
     for group in definition.groups
-      graph.addGroup group.name, group.nodes, group.metadata
+      graph.addGroup group.name, group.nodes, group.metadata || {}
 
   graph.endTransaction 'loadJSON'
 
