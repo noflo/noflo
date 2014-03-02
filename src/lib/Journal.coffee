@@ -55,14 +55,14 @@ calculateMeta = (oldMeta, newMeta) ->
 
 class JournalStore extends EventEmitter
   lastRevision: 0
-  constructor: () ->
+  constructor: (@graph) ->
     @lastRevision = 0
   putTransaction: (revId, entries) ->
   fetchTransaction: (revId, entries) ->
 
 class MemoryJournalStore extends JournalStore
-  constructor: () ->
-    super()
+  constructor: (graph) ->
+    super graph
     @transactions = []
 
   putTransaction: (revId, entries) ->
@@ -89,7 +89,7 @@ class Journal extends EventEmitter
     @graph = graph
     @entries = []
     @subscribed = true
-    @store = store || new MemoryJournalStore()
+    @store = store || new MemoryJournalStore @graph
     @currentRevision = -1
 
     # Sync journal with current graph
@@ -317,3 +317,5 @@ class Journal extends EventEmitter
       success file
 
 exports.Journal = Journal
+exports.JournalStore = JournalStore
+exports.MemoryJournalStore = MemoryJournalStore
