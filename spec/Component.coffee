@@ -47,7 +47,7 @@ describe 'Component', ->
             required: true
           optionalPort: new port
         outPorts:
-          error: new.port
+          error: new port
       c.inPorts.optionalPort.attach s2
       c.outPorts.error.attach s3
       s3.on 'connect', ->
