@@ -44,7 +44,7 @@ describe 'Inport Port', ->
     it 'should set context to port itself', ->
       s = new socket
       p = new inport
-      p.on 'data', (packet, outPorts) ->
+      p.on 'data', (packet, component) ->
         chai.expect(this).toBe p
         chai.expect(packet).toEqual 'some-data'
       p.attach s
@@ -97,9 +97,10 @@ describe 'Inport Port', ->
     f = (type) ->
       new inport
         type: type
-    it 'should be a URL', ->
+    it 'should be a URL or MIME', ->
       chai.expect(-> f 'http://schema.org/Person').to.not.throw()
-      chai.expect(-> f 'not-a-url').to.throw()
+      chai.expect(-> f 'text/javascript').to.not.throw()
+      chai.expect(-> f 'neither-a-url-nor-mime').to.throw()
 
   describe 'with buffering', ->
     it 'should buffer incoming packets until `receive()`d', ->
@@ -119,7 +120,7 @@ describe 'Inport Port', ->
         # to "peek" into the latest packet until all preceding packets have
         # been consumed.
         chai.expect(data).toEqual 'buffered-data-1'
-        # Now we consume it. Note that the context should the port itself.
+        # Now we consume it. Note that the context should be the port itself.
         _data = @receive()
         chai.expect(data).toEqual _data
       s.send 'buffered-data-2'
@@ -171,9 +172,9 @@ describe 'Inport Port', ->
       ps = new ports
         outPorts:
           out: new outport
-      ps.add 'in', (packet, outPorts) ->
+      ps.add 'in', (packet, component) ->
         chai.expect(packet).toEqual 'some-data'
-        chai.assert outPorts.out instanceof outport
+        chai.assert component.outPorts.out instanceof outport
       chai.assert ps.inPorts.in instanceof inport
       ps.inPorts.in.attach s
       s.send 'some-data'
@@ -181,12 +182,10 @@ describe 'Inport Port', ->
     it 'should also accept metadata (i.e. options) when provided', (done) ->
       s = new socket
       ps = new ports
-        outPorts:
-          out: new outport
       ps.add 'in',
-        type: 'string'
+        datatype: 'string'
         required: true
-      , (packet, outPorts) ->
+      , (packet, component) ->
         chai.expect(packet).toEqual 'some-data'
         done()
       ps.inPorts.in.attach s

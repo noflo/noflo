@@ -56,3 +56,21 @@ describe 'Component', ->
       f = ->
         s2.send 'some-data'
       chai.expect(f).to.not.throw()
+
+  describe 'with component creation shorthand', ->
+    it 'should make component creation easy', ->
+      c = new component
+        inPorts:
+          in:
+            datatype: 'string'
+            required: true
+            processor: (packet, component) ->
+              chai.expect(packet).toEqual 'some-data'
+              chai.expect(component).toBe c
+
+          justProcessor: (packet, component) ->
+            chai.expect(packet).toEqual 'some-data'
+            chai.expect(component).toBe c
+
+      c.inPorts.in.send 'some-data'
+      c.inPorts.justProcessor.send 'some-data'
