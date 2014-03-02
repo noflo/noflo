@@ -40,6 +40,16 @@ describe 'Inport Port', ->
     it 'should not contain a socket initially', ->
       chai.expect(p.sockets.length).to.equal 0
 
+  describe 'with processing function called with port as context', ->
+    it 'should set context to port itself', ->
+      s = new socket
+      p = new inport
+      p.on 'data', (packet, outPorts) ->
+        chai.expect(this).toBe p
+        chai.expect(packet).toEqual 'some-data'
+      p.attach s
+      s.send 'some-data'
+
   describe 'with default value', ->
     p = s = null
     beforeEach ->
