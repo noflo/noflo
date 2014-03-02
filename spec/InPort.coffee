@@ -35,3 +35,21 @@ describe 'Inport Port', ->
       chai.expect(p.isConnected()).to.equal false
     it 'should not contain a socket initially', ->
       chai.expect(p.sockets.length).to.equal 0
+
+  describe 'with default value', ->
+    p = s = null
+    beforeEach ->
+      p = new inport
+        default: 'default-value'
+      s = new socket
+      p.attach s
+    it 'should send the default value as a packet, though on next tick after initialization', (done) ->
+      p.config.on 'data', (data) ->
+        chai.expect(data).toEqual 'default-value'
+        done()
+    it 'should send the default value before IIP', (done) ->
+      received = ['default-value', 'some-iip']
+      p.config.on 'data', (data) ->
+        chai.expect(data).toEqual received.shift()
+        done() if received.length is 0
+      s.send 'some-iip'
