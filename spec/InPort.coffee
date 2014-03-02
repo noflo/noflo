@@ -161,10 +161,10 @@ describe 'Inport Port', ->
         chai.expect(-> p.receive()).to.throw()
       s.send 'data'
 
-  describe 'with accepted enumerated values', (done) ->
-    it 'should accept certain values', ->
+  describe 'with accepted enumerated values', ->
+    it 'should accept certain values', (done) ->
       p = new inport
-        values: 'noflo is awesome'.split ''
+        values: 'noflo is awesome'.split ' '
       s = new socket.InternalSocket
       p.attach s
       p.on 'data', (data) ->
@@ -172,15 +172,16 @@ describe 'Inport Port', ->
         done()
       s.send 'awesome'
 
-    it 'should send to error port if value is not accepted', ->
+    it 'should throw an error if value is not accepted', ->
       p = new inport
-        values: 'noflo is awesome'.split ''
+        values: 'noflo is awesome'.split ' '
       s = new socket.InternalSocket
       p.attach s
-      cb = jasmine.createSpy()
-      p.on 'data', cb
-      s.send 'terrific'
-      chai.expect(cb).not.toHaveBeenCalled()
+      p.on 'data', ->
+        # Fail the test, we shouldn't have received anything
+        chai.expect(true).to.be.equal false
+
+      chai.expect(-> s.send('terrific')).to.throw
 
   describe 'with processing shorthand', ->
     it 'should create a port with a callback', ->

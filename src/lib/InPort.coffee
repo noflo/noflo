@@ -32,6 +32,7 @@ class InPort extends BasePort
     socket.on 'begingroup', (group) =>
       @handleSocketEvent 'begingroup', group, localId
     socket.on 'data', (data) =>
+      @validateData data
       @handleSocketEvent 'data', data, localId
     socket.on 'endgroup', (group) =>
       @handleSocketEvent 'endgroup', group, localId
@@ -76,6 +77,11 @@ class InPort extends BasePort
   prepareBuffer: ->
     return unless @isBuffered()
     @buffer = []
+
+  validateData: (data) ->
+    return unless @options.values
+    if @options.values.indexOf(data) is -1
+      throw new Error 'Invalid data received'
 
   # Returns the next packet in the buffer
   receive: ->
