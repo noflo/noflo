@@ -9,30 +9,50 @@ else
   socket = require 'noflo/src/lib/InternalSocket.js'
 
 describe 'Component', ->
-  describe 'with required ports', (done) ->
-    it 'should throw an error upon receiving packet with an unattached required port', (done) ->
+  describe 'with required ports', ->
+    it 'should throw an error upon receiving packet with an unattached required port', ->
       s1 = new socket
       s2 = new socket
       c = new component
         inPorts:
-          requiredPort: new inport
+          requiredPort: new port
             required: true
-          optionalPort: new inport
+          optionalPort: new port
       c.inPorts.optionalPort.attach s2
       run = ->
         s2.send 'some-data'
       chai.expect(run).to.throw()
 
-    it 'should be cool with an attached port', (done) ->
+    it 'should be cool with an attached port', ->
       s1 = new socket
       s2 = new socket
       c = new component
         inPorts:
-          requiredPort: new inport
+          requiredPort: new port
             required: true
-          optionalPort: new inport
+          optionalPort: new port
       c.inPorts.requiredPort.attach s1
       c.inPorts.optionalPort.attach s2
+      run = ->
+        s2.send 'some-data'
+      chai.expect(run).to.not.throw()
+
+    it 'should simply forward error if error port is attached', (done) ->
+      s1 = new socket
+      s2 = new socket
+      s3 = new socket
+      c = new component
+        inPorts:
+          requiredPort: new port
+            required: true
+          optionalPort: new port
+        outPorts:
+          error: new.port
+      c.inPorts.optionalPort.attach s2
+      c.outPorts.error.attach s3
+      s3.on 'connect', ->
+        chai.assert true
+        done()
       run = ->
         s2.send 'some-data'
       chai.expect(run).to.not.throw()
