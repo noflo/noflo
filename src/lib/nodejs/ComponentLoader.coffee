@@ -25,7 +25,6 @@ log.pause()
 class ComponentLoader extends loader.ComponentLoader
   getModuleComponents: (moduleDef, callback) ->
     components = {}
-    @checked.push moduleDef.name
 
     depCount = _.keys(moduleDef.dependencies).length
     done = _.after depCount + 1, =>
@@ -34,10 +33,10 @@ class ComponentLoader extends loader.ComponentLoader
     # Handle sub-modules
     _.each moduleDef.dependencies, (def) =>
       return done() unless def.name?
-      return done() unless @checked.indexOf(def.name) is -1
       @getModuleComponents def, (depComponents) ->
         return done() if _.isEmpty depComponents
-        components[name] = cPath for name, cPath of depComponents
+        # Add component only if it hasn't been added before
+        components[name] ?= cPath for name, cPath of depComponents
         done()
 
     # No need for further processing for non-NoFlo projects
