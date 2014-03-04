@@ -14,7 +14,7 @@
   "license": "MIT",
   "dependencies": {
     "commander": "^2.1.0",
-    "flowhub-registry": "0.0.1",
+    "flowhub-registry": "0.0.2",
     "noflo-runtime-websocket": "^0.2.1",
     "uuid": "^1.4.1"
   }
