@@ -45,6 +45,19 @@ $ node node_modules/.bin/noflo-nodejs-init --host autodetect
 
 After this the runtime will report its current IP address to your Flowhub UI whenever it is started.
 
+### Example flowhub.json
+
+`$ node node_modules/.bin/noflo-nodejs-init` will initialize `flowhub.json` with the `id` of the runtime. The `user` id comes from Flowhub > Home > Runtimes > Register. You'll need some more info to make the registration useful:
+```json
+{
+  "id": "runtime-id-...",
+  "user": "user-id-...",
+  "host": "autodetect",
+  "port": 3569,
+  "label": "my-runtime"
+}
+```
+
 ## Starting the runtime
 
 Once you have configured the runtime, it is time to start it:
