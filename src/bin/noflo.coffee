@@ -35,7 +35,7 @@ addDebug = (network, verbose, logSubgraph) ->
 
   identifier = (data) ->
     result = ''
-    result += "#{clc.magenta.italic(data.subgraph)} " if data.subgraph
+    result += "#{clc.magenta.italic(data.subgraph.join(':'))} " if data.subgraph
     result += clc.blue.italic data.id
     result
 

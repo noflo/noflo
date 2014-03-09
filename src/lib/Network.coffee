@@ -277,7 +277,7 @@ class Network extends EventEmitter
     unless node.component.isReady()
       node.component.once 'ready', =>
         @subscribeSubgraph node
-        return
+      return
 
     return unless node.component.network
 
@@ -286,9 +286,9 @@ class Network extends EventEmitter
       do @decreaseConnections if type is 'disconnect'
       data = {} unless data
       if data.subgraph
-        data.subgraph = "#{node.id}:#{data.subgraph}"
+        data.subgraph = data.subgraph.unshift node.id
       else
-        data.subgraph = node.id
+        data.subgraph = [node.id]
       @emit type, data
 
     node.component.network.on 'connect', (data) -> emitSub 'connect', data
