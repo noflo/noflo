@@ -105,6 +105,7 @@ class InternalSocket extends EventEmitter
     @emit 'begingroup', group
 
   endGroup: ->
+    return unless @groups.length
     @emit 'endgroup', @groups.pop()
 
   # ## Socket identifiers
