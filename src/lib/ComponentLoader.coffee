@@ -49,6 +49,8 @@ class ComponentLoader
       for name, cPath of definition.noflo.components
         if cPath.indexOf('.coffee') isnt -1
           cPath = cPath.replace '.coffee', '.js'
+        if cPath.substr(0, 2) is './'
+          cPath = cPath.substr 2
         @registerComponent prefix, name, "/#{moduleName}/#{cPath}"
     if definition.noflo.graphs
       for name, cPath of definition.noflo.graphs

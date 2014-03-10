@@ -286,6 +286,8 @@ class Network extends EventEmitter
       do @decreaseConnections if type is 'disconnect'
       data = {} unless data
       if data.subgraph
+        unless data.subgraph.unshift
+          data.subgraph = [data.subgraph]
         data.subgraph = data.subgraph.unshift node.id
       else
         data.subgraph = [node.id]
