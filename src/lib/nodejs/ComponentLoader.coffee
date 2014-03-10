@@ -90,11 +90,20 @@ class ComponentLoader extends loader.ComponentLoader
       callback coreComponents
 
   listComponents: (callback) ->
-    return callback @components unless @components is null
+    if @processing
+      @once 'ready', =>
+        callback @components
+      return
+    return callback @components if @components
 
+    @ready = false
+    @processing = true
     @components = {}
     done = _.after 2, =>
-      callback @components
+      @ready = true
+      @processing = false
+      @emit 'ready', true
+      callback @components if callback
 
     @getCoreComponents (coreComponents) =>
       @components[name] = cPath for name, cPath of coreComponents

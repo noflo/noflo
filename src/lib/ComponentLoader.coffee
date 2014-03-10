@@ -6,13 +6,19 @@
 # This is the browser version of the ComponentLoader.
 internalSocket = require './InternalSocket'
 nofloGraph = require './Graph'
+unless require('./Platform').isBrowser()
+  {EventEmitter} = require 'events'
+else
+  EventEmitter = require 'emitter'
 
-class ComponentLoader
+class ComponentLoader extends EventEmitter
   constructor: (@baseDir) ->
     @components = null
     @checked = []
     @revalidate = false
     @libraryIcons = {}
+    @processing = false
+    @ready = false
 
   getModulePrefix: (name) ->
     return '' unless name
@@ -57,19 +63,31 @@ class ComponentLoader
         @registerComponent prefix, name, "/#{moduleName}/#{cPath}"
 
   listComponents: (callback) ->
-    return callback @components unless @components is null
+    if @processing
+      @once 'ready', =>
+        callback @components
+      return
+    return callback @components if @components
 
-    @components = {}
+    @ready = false
+    @processing = true
+    setTimeout =>
+      @components = {}
 
-    @getModuleComponents @baseDir
+      @getModuleComponents @baseDir
 
-    callback @components
+      @processing = false
+      @ready = true
+      @emit 'ready', true
+      callback @components if callback
+    , 1
 
   load: (name, callback, delayed, metadata) ->
-    unless @components
-      @listComponents (components) =>
+    unless @ready
+      @listComponents =>
         @load name, callback, delayed, metadata
       return
+
     component = @components[name]
     unless component
       # Try an alias
@@ -159,6 +177,11 @@ class ComponentLoader
     return null
 
   registerComponent: (packageId, name, cPath, callback) ->
+    unless @ready
+      @listComponents =>
+        @registerComponent packageId, name, cPath, callback
+      return
+
     prefix = @getModulePrefix packageId
     fullName = "#{prefix}/#{name}"
     fullName = name unless packageId
@@ -172,5 +195,7 @@ class ComponentLoader
     @components = null
     @checked = []
     @revalidate = true
+    @ready = false
+    @processing = false
 
 exports.ComponentLoader = ComponentLoader

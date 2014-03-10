@@ -17,14 +17,26 @@ describe 'ComponentLoader with no external packages installed', ->
     chai.expect(l.components).to.be.null
   it 'should not initially require revalidation', ->
     chai.expect(l.revalidate).to.be.false
+  it 'should not initially be ready', ->
+    chai.expect(l.ready).to.be.false
+  it 'should not initially be processing', ->
+    chai.expect(l.processing).to.be.false
   it 'should not have any packages in the checked list', ->
     chai.expect(l.checked).to.be.empty
 
   it 'should be able to read a list of components', (done) ->
+    ready = false
+    l.once 'ready', ->
+      ready = true
+      chai.expect(l.ready).to.equal true
     l.listComponents (components) ->
+      chai.expect(l.processing).to.equal false
       chai.expect(l.components).not.to.be.empty
       chai.expect(components).to.equal l.components
+      chai.expect(l.ready).to.equal true
+      chai.expect(ready).to.equal true
       done()
+    chai.expect(l.processing).to.equal true
 
   describe 'after listing components', ->
     it 'should have the Graph component registered', ->
