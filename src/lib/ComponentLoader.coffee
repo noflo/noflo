@@ -176,20 +176,86 @@ class ComponentLoader extends EventEmitter
       return @libraryIcons[prefix]
     return null
 
+  normalizeName: (packageId, name) ->
+    prefix = @getModulePrefix packageId
+    fullName = "#{prefix}/#{name}"
+    fullName = name unless packageId
+    fullName
+
   registerComponent: (packageId, name, cPath, callback) ->
     unless @ready
       @listComponents =>
         @registerComponent packageId, name, cPath, callback
       return
 
-    prefix = @getModulePrefix packageId
-    fullName = "#{prefix}/#{name}"
-    fullName = name unless packageId
+    fullName = @normalizeName packageId, name
     @components[fullName] = cPath
     do callback if callback
 
   registerGraph: (packageId, name, gPath, callback) ->
     @registerComponent packageId, name, gPath, callback
+
+  setSource: (packageId, name, source, language, callback) ->
+    unless @ready
+      @listComponents =>
+        @setSource packageId, name, source, language, callback
+      return
+
+    if language is 'coffeescript'
+      unless window.CoffeeScript
+        return callback new Error 'CoffeeScript compiler not available'
+      try
+        source = CoffeeScript.compile payload.code
+          bare: true
+      catch e
+        return callback e
+
+    # We eval the contents to get a runnable component
+    try
+      # Modify require path for NoFlo since we're inside the NoFlo context
+      source = source.replace "require('noflo')", "require('./NoFlo')"
+      source = source.replace 'require("noflo")', 'require("./NoFlo")'
+
+      # Eval so we can get a function
+      implementation = eval "(function () { var exports = {}; #{source}; return exports; })()"
+    catch e
+      return callback e
+    unless implementation or implementation.getComponent
+      return callback new Error 'Provided source failed to create a runnable component'
+    @registerComponent packageId, name, implementation, ->
+      callback null
+
+  getSource: (name, callback) ->
+    unless @ready
+      @listComponents =>
+        @getSource packageId, name, callback
+      return
+
+    component = @components[name]
+    unless component
+      # Try an alias
+      for componentName of @components
+        if componentName.split('/')[1] is name
+          component = @components[componentName]
+          name = componentName
+          break
+      unless component
+        return callback new Error "Component #{name} not installed"
+
+    if typeof component isnt 'string'
+      return callback new Error "Can't provide source for #{name}. Not a file"
+
+    path = window.require.resolve component
+    unless path
+      return callback new Error "Component #{name} is not resolvable to a path"
+    nameParts = name.split '/'
+    if nameParts.length is 1
+      nameParts[1] = nameParts[0]
+      nameParts[0] = ''
+    callback null,
+      name: nameParts[1]
+      library: nameParts[0]
+      code: window.require.modules[path].toString()
 
   clear: ->
     @components = null

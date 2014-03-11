@@ -3,11 +3,13 @@ if typeof process isnt 'undefined' and process.execPath and process.execPath.ind
   loader = require '../src/lib/nodejs/ComponentLoader.coffee'
   component = require '../src/lib/Component.coffee'
   port = require '../src/lib/Port.coffee'
+  platform = require '../src/lib/Platform.coffee'
   path = require 'path'
   root = path.resolve __dirname, '../'
 else
   loader = require 'noflo/src/lib/ComponentLoader.js'
   component = require 'noflo/src/lib/Component.js'
+  platform = require 'noflo/src/lib/Platform.js'
   root = 'noflo'
 
 describe 'ComponentLoader with no external packages installed', ->
@@ -113,3 +115,57 @@ describe 'ComponentLoader with no external packages installed', ->
         done()
     it 'should not affect the original instance', ->
       chai.expect(instance.getIcon()).to.equal 'smile'
+
+  describe 'reading sources', ->
+    it 'should be able to provide source code for a component', (done) ->
+      l.getSource 'Graph', (err, component) ->
+        chai.expect(err).to.be.a 'null'
+        chai.expect(component).to.be.an 'object'
+        chai.expect(component.code).to.be.a 'string'
+        chai.expect(component.code.indexOf('noflo.Component')).to.not.equal -1
+        chai.expect(component.code.indexOf('exports.getComponent')).to.not.equal -1
+        chai.expect(component.name).to.equal 'Graph'
+        chai.expect(component.library).to.equal ''
+        done()
+    it 'should return an error for missing components', (done) ->
+      l.getSource 'foo/BarBaz', (err, src) ->
+        chai.expect(err).to.be.an 'object'
+        done()
+    it 'should return an error for non-file components', (done) ->
+      l.getSource 'foo/Split', (err, src) ->
+        chai.expect(err).to.be.an 'object'
+        done()
+
+  describe 'writing sources', ->
+    workingSource = """
+    var noflo = require('noflo');
+
+    exports.getComponent = function() {
+      var c = new noflo.Component();
+
+      c.inPorts.add('in', function(packet, outPorts) {
+        if (packet.event !== 'data') {
+          return;
+        }
+        // Do something with the packet, then
+        c.outPorts.out.send(packet.data);
+      });
+
+      c.outPorts.add('out');
+
+      return c;
+    };"""
+
+    it 'should be able to set the source', (done) ->
+      unless platform.isBrowser()
+        workingSource = workingSource.replace "'noflo'", "'./src/lib/NoFlo'"
+      l.setSource 'foo', 'RepeatData', workingSource, 'js', (err) ->
+        throw err if err
+        chai.expect(err).to.be.a 'null'
+        done()
+    it 'should be a loadable component', (done) ->
+      l.load 'foo/RepeatData', (inst) ->
+        chai.expect(inst).to.be.an 'object'
+        chai.expect(inst.inPorts).to.contain.keys ['in']
+        chai.expect(inst.outPorts).to.contain.keys ['out']
+        done()

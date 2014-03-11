@@ -29,7 +29,8 @@
     "read-installed": "0.0.x",
     "npmlog": "0.0.x",
     "coffee-script": ">=1.1.0",
-    "fbp": "1.1.x"
+    "fbp": "1.1.x",
+    "eval": "^0.1.0"
   },
   "devDependencies": {
     "grunt": "~0.4.1",

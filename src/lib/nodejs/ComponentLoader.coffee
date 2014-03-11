@@ -130,6 +130,56 @@ class ComponentLoader extends loader.ComponentLoader
       find data
       return callback null, found
 
+  setSource: (packageId, name, source, language, callback) ->
+    _eval = require 'eval'
+    if language is 'coffeescript'
+      try
+        source = CoffeeScript.compile payload.code
+          bare: true
+      catch e
+        return callback e
+
+    try
+      # Eval so we can get a function
+      implementation = _eval source, path.resolve(@baseDir, "#{name}.js"), {}, true
+    catch e
+      return callback e
+    unless implementation or implementation.getComponent
+      return callback new Error 'Provided source failed to create a runnable component'
+    @registerComponent packageId, name, implementation, ->
+      callback null
+
+  getSource: (name, callback) ->
+    unless @ready
+      @listComponents =>
+        @getSource packageId, name, callback
+      return
+
+    component = @components[name]
+    unless component
+      # Try an alias
+      for componentName of @components
+        if componentName.split('/')[1] is name
+          component = @components[componentName]
+          name = componentName
+          break
+      unless component
+        return callback new Error "Component #{name} not installed"
+
+    if typeof component isnt 'string'
+      return callback new Error "Can't provide source for #{name}. Not a file"
+
+    fs.readFile component, 'utf-8', (err, code) ->
+      return callback err if err
+      nameParts = name.split '/'
+      if nameParts.length is 1
+        nameParts[1] = nameParts[0]
+        nameParts[0] = ''
+      callback null,
+        name: nameParts[1]
+        library: nameParts[0]
+        code: code
+
   readPackage: (packageId, callback) ->
     @getPackagePath packageId, (err, packageFile) =>
       return callback err if err
