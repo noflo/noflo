@@ -134,7 +134,7 @@ class ComponentLoader extends loader.ComponentLoader
     _eval = require 'eval'
     if language is 'coffeescript'
       try
-        source = CoffeeScript.compile payload.code
+        source = CoffeeScript.compile source,
           bare: true
       catch e
         return callback e
