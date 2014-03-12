@@ -183,11 +183,6 @@ class ComponentLoader extends EventEmitter
     fullName
 
   registerComponent: (packageId, name, cPath, callback) ->
-    unless @ready
-      @listComponents =>
-        @registerComponent packageId, name, cPath, callback
-      return
-
     fullName = @normalizeName packageId, name
     @components[fullName] = cPath
     do callback if callback
