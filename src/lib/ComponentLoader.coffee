@@ -205,7 +205,7 @@ class ComponentLoader extends EventEmitter
       unless window.CoffeeScript
         return callback new Error 'CoffeeScript compiler not available'
       try
-        source = CoffeeScript.compile source
+        source = CoffeeScript.compile source,
           bare: true
       catch e
         return callback e
