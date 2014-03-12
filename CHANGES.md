@@ -68,6 +68,8 @@ module.exports = function() {
 };
 ```
 
+* Support for dealing with component source code via ComponentLoader `setSource` and `getSource` methods
+
 ## 0.4.4 (February 4th 2014)
 
 * Support for CoffeeScript 1.7.x on Node.js
