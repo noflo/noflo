@@ -41,10 +41,11 @@ class Ports extends EventEmitter
     delete @[name]
     @emit 'remove', name
 
-exports.InPorts = class InPorts extends Ports
   on: (name, event, callback) ->
     throw new Error "Port #{name} not available" unless @ports[name]
     @ports[name].on event, callback
+
+exports.InPorts = class InPorts extends Ports
   once: (name, event, callback) ->
     throw new Error "Port #{name} not available" unless @ports[name]
     @ports[name].once event, callback
