@@ -84,8 +84,13 @@ cli.main (args, options) ->
     if arg.indexOf(".json") is -1 and arg.indexOf(".fbp") is -1
       console.error "#{arg} is not a NoFlo graph file, skipping"
       continue
-    arg = path.resolve process.cwd(), arg
-    noflo.loadFile arg, (network) ->
+
+    baseDir = process.cwd()
+    if process.env.NOFLO_PROJECT_ROOT
+      baseDir = process.env.NOFLO_PROJECT_ROOT
+
+    arg = path.resolve baseDir, arg
+    noflo.loadFile arg, baseDir, (network) ->
       addDebug network, options.verbose, options.subgraph if options.debug
 
       return unless options.interactive

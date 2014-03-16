@@ -3,6 +3,7 @@ NoFlo ChangeLog
 
 ## 0.5.0 (git master)
 
+* Support for setting the default `baseDir` of Node.js NoFlo environment with `NOFLO_PROJECT_ROOT` env var (defaults to current working directory)
 * Support for loading graph definitions via AJAX on browser-based NoFlo
 * Support for delayed initialization of Subgraph components via ComponentLoader
 * Component instances now get the node's metadata passed to the `getComponent` function

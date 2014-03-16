@@ -127,8 +127,13 @@ exports.createNetwork = (graph, callback, delay) ->
 #     noflo.loadFile('somefile.json', function (network) {
 #       console.log('Network is now running!');
 #     });
-exports.loadFile = (file, callback) ->
+exports.loadFile = (file, baseDir, callback) ->
+  unless callback
+    callback = baseDir
+    baseDir = null
+
   exports.graph.loadFile file, (net) ->
+    net.baseDir = baseDir if baseDir
     exports.createNetwork net, callback
 
 # ### Saving a network definition
