@@ -51,17 +51,18 @@ class ComponentLoader extends loader.ComponentLoader
       if def.noflo.icon
         @libraryIcons[prefix] = def.noflo.icon
 
-      if def.noflo.loader
-        # Run a custom component loader
-        loader = require path.resolve def.realPath, def.noflo.loader
-        loader @
       if def.noflo.components
         for name, cPath of def.noflo.components
           @registerComponent prefix, name, path.resolve def.realPath, cPath
       if moduleDef.noflo.graphs
         for name, gPath of def.noflo.graphs
           @registerGraph prefix, name, path.resolve def.realPath, gPath
-      done()
+      if def.noflo.loader
+        # Run a custom component loader
+        loader = require path.resolve def.realPath, def.noflo.loader
+        loader @, done
+      else
+        done()
 
     # Normally we can rely on the module data we get from read-installed, but in
     # case cache has been cleared, we must re-read the file

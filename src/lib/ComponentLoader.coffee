@@ -60,7 +60,7 @@ class ComponentLoader extends EventEmitter
         @registerComponent prefix, name, "/#{moduleName}/#{cPath}"
     if definition.noflo.graphs
       for name, cPath of definition.noflo.graphs
-        @registerComponent prefix, name, "/#{moduleName}/#{cPath}"
+        @registerGraph prefix, name, "/#{moduleName}/#{cPath}"
 
   listComponents: (callback) ->
     if @processing
