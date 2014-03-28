@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.5.0 (git master)
+## 0.5.0 (March 28th 2014)
 
 * Support for setting the default `baseDir` of Node.js NoFlo environment with `NOFLO_PROJECT_ROOT` env var (defaults to current working directory)
 * Support for loading graph definitions via AJAX on browser-based NoFlo
