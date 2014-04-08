@@ -1,6 +1,6 @@
 {
   "name": "noflo-nodejs",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Node.js runtime for NoFlo",
   "main": "index.js",
   "scripts": {
@@ -15,7 +15,7 @@
   "dependencies": {
     "commander": "^2.1.0",
     "flowhub-registry": "0.0.2",
-    "noflo-runtime-websocket": "^0.2.2",
+    "noflo-runtime-websocket": "^0.2.3",
     "uuid": "^1.4.1"
   }
 }
