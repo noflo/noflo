@@ -292,3 +292,31 @@ describe 'NoFlo Network', ->
           done()
       it 'should have called the shutdown method of each process', ->
         chai.expect(n.processes.Repeat.component.stopped).to.equal true
+
+  describe 'with a very large network', ->
+    it 'should be able to connect without errors', (done) ->
+      @timeout 0
+      g = new noflo.Graph
+      g.baseDir = root
+      called = 0
+      for n in [0..10000]
+        g.addNode "Repeat#{n}", 'Split'
+      g.addNode 'Callback', 'Callback'
+      for n in [0..10000]
+        g.addEdge "Repeat#{n}", 'out', 'Callback', 'in'
+      g.addInitial ->
+        called++
+      , 'Callback', 'callback'
+      for n in [0..10000]
+        g.addInitial n, "Repeat#{n}", 'in'
+
+      nw = new noflo.Network g
+      nw.loader.listComponents ->
+        nw.loader.components.Split = Split
+        nw.loader.components.Callback = Callback
+        nw.connect ->
+          done()
+        nw.once 'end', ->
+          chai.expect(called).to.equal 10000
+          done()
+        nw.start()

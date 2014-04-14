@@ -4,6 +4,7 @@ NoFlo ChangeLog
 ## 0.5.1 (git master)
 
 * `contains` method for buffered inports returns the number of data packets the buffer has
+* [Call stack exhaustion](https://github.com/noflo/noflo/issues/156) on very large graphs has been fixed
 
 ## 0.5.0 (March 28th 2014)
 

@@ -181,11 +181,18 @@ class Network extends EventEmitter
   connect: (done = ->) ->
     # Wrap the future which will be called when done in a function and return
     # it
+    callStack = 0
     serialize = (next, add) =>
       (type) =>
         # Add either a Node, an Initial, or an Edge and move on to the next one
         # when done
         this["add#{type}"] add, ->
+          callStack++
+          if callStack % 100 is 0
+            setTimeout ->
+              next type
+            , 0
+            return
           next type
 
     # Subscribe to graph changes when everything else is done
