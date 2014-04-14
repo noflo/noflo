@@ -314,9 +314,8 @@ describe 'NoFlo Network', ->
       nw.loader.listComponents ->
         nw.loader.components.Split = Split
         nw.loader.components.Callback = Callback
-        nw.connect ->
-          done()
         nw.once 'end', ->
-          chai.expect(called).to.equal 10000
+          chai.expect(called).to.equal 10001
           done()
-        nw.start()
+        nw.connect ->
+          nw.start()
