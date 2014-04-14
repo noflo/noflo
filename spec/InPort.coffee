@@ -142,6 +142,20 @@ describe 'Inport Port', ->
       s.send 'buffered-data-3'
       s.disconnect()
 
+    it 'should be able to tell the number of contained data packets', ->
+      p = new inport
+        buffered: true
+      s = new socket.InternalSocket
+      p.attach s
+      s.send 'buffered-data-1'
+      s.beginGroup 'foo'
+      s.send 'buffered-data-2'
+      s.endGroup()
+      s.disconnect()
+      s.send 'buffered-data-3'
+      s.disconnect()
+      chai.expect(p.contains()).to.equal 3
+
     it 'should return undefined when buffer is empty', ->
       p = new inport
         buffered: true
@@ -159,6 +173,8 @@ describe 'Inport Port', ->
         chai.expect(data).to.equal 'data'
         # Receive is not available for non-buffering ports
         chai.expect(-> p.receive()).to.throw()
+        # Contains is not available for non-buffering ports
+        chai.expect(-> p.contains()).to.throw()
       s.send 'data'
 
   describe 'with accepted enumerated values', ->

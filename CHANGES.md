@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.5.1 (git master)
+
+* `contains` method for buffered inports returns the number of data packets the buffer has
+
 ## 0.5.0 (March 28th 2014)
 
 * Support for setting the default `baseDir` of Node.js NoFlo environment with `NOFLO_PROJECT_ROOT` env var (defaults to current working directory)

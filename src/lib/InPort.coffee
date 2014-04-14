@@ -93,4 +93,10 @@ class InPort extends BasePort
       throw new Error 'Receive is only possible on buffered ports'
     @buffer.shift()
 
+  # Returns the number of data packets in a buffered inport
+  contains: ->
+    unless @isBuffered()
+      throw new Error 'Contains query is only possible on buffered ports'
+    @buffer.filter((packet) -> return true if packet.event is 'data').length
+
 module.exports = InPort
