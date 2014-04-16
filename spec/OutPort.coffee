@@ -37,3 +37,15 @@ describe 'Outport Port', ->
       p.attach s2
       p.attach s3
       chai.expect(-> p.send('some-data', 1)).to.throw
+
+    it 'should give correct port index when detaching a connection', (done) ->
+      p = new outport
+        addressable: true
+      p.attach s1
+      p.attach s2
+      p.attach s3
+      p.on 'detach', (socket, index) ->
+        chai.expect(socket).to.equal s2
+        chai.expect(index).to.equal 1
+        done()
+      p.detach s2
