@@ -58,7 +58,7 @@ The input ports also allow passing in an optional *processing function* that get
 ```js
 var noflo = require('noflo');
 
-module.exports = function() {
+exports.getComponent = function() {
   var c = new noflo.Component();
 
   c.inPorts.add('in', function(event, payload) {
