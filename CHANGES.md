@@ -30,7 +30,7 @@ NoFlo ChangeLog
 With the new API component ports can be declared with:
 
 ```coffeescript
-@inPorts = new noflo.Ports
+@inPorts = new noflo.InPorts
 @inPorts.add 'in', new noflo.InPort
   datatype: 'object'
   type: 'http://schema.org/Person'
@@ -42,7 +42,7 @@ With the new API component ports can be declared with:
 The `noflo.Ports` objects emit `add` and `remove` events when ports change. They also support passing port information as options:
 
 ```coffeescript
-@outPorts = new noflo.Ports
+@outPorts = new noflo.OutPorts
   out: new noflo.OutPort
     datatype: 'object'
     type: 'http://schema.org/Person'
