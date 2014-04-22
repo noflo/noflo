@@ -18,20 +18,24 @@ class AsyncComponent extends component.Component
 
     @load = 0
     @q = []
+    @errorGroups = []
 
     @outPorts.load = new port.Port()
 
     @inPorts[@inPortName].on "begingroup", (group) =>
       return @q.push { name: "begingroup", data: group } if @load > 0
+      @errorGroups.push group
       @outPorts[@outPortName].beginGroup group
 
     @inPorts[@inPortName].on "endgroup", =>
       return @q.push { name: "endgroup" } if @load > 0
+      @errorGroups.pop()
       @outPorts[@outPortName].endGroup()
 
     @inPorts[@inPortName].on "disconnect", =>
       return @q.push { name: "disconnect" } if @load > 0
       @outPorts[@outPortName].disconnect()
+      @errorGroups = []
       @outPorts.load.disconnect() if @outPorts.load.isAttached()
 
     @inPorts[@inPortName].on "data", (data) =>
@@ -43,7 +47,9 @@ class AsyncComponent extends component.Component
     @doAsync data, (err) =>
       if err
         if @outPorts[@errPortName] and @outPorts[@errPortName].isAttached()
+          @outPorts[@errPortName].beginGroup group for group in @errorGroups
           @outPorts[@errPortName].send err
+          @outPorts[@errPortName].endGroup() for group in @errorGroups
           @outPorts[@errPortName].disconnect()
         else throw err
       @decrementLoad()
@@ -79,10 +85,12 @@ class AsyncComponent extends component.Component
         when "begingroup"
           return if processedData
           @outPorts[@outPortName].beginGroup event.data
+          @errorGroups.push event.data
           @q.shift()
         when "endgroup"
           return if processedData
           @outPorts[@outPortName].endGroup()
+          @errorGroups.pop()
           @q.shift()
         when "disconnect"
           return if processedData

@@ -30,20 +30,55 @@ describe 'AsyncComponent without a doAsync method', ->
         out: new port.Port
         error: new port.Port
       super()
-  u = new Unimplemented
-  ins = socket.createSocket()
-  u.inPorts.in.attach ins
 
   it 'should throw an error if there is no connection to the ERROR port', ->
+    u = new Unimplemented
+    ins = socket.createSocket()
+    u.inPorts.in.attach ins
     chai.expect(-> ins.send 'Foo').to.throw Error
 
   it 'should send an error to the ERROR port if connected', (done) ->
+    u = new Unimplemented
+    ins = socket.createSocket()
+    u.inPorts.in.attach ins
     err = socket.createSocket()
     u.outPorts.error.attach err
-    err.once 'data', (data) ->
+    err.on 'data', (data) ->
       chai.expect(data).to.be.an.instanceof Error
       done()
     ins.send 'Bar'
+
+  it 'should send groups and error to the ERROR port if connected', (done) ->
+    u = new Unimplemented
+    ins = socket.createSocket()
+    u.inPorts.in.attach ins
+    err = socket.createSocket()
+    groups = [
+      'one'
+      'two'
+      'three'
+      'one'
+      'two'
+      'four'
+    ]
+    u.outPorts.out.attach socket.createSocket()
+    u.outPorts.error.attach err
+    err.on 'begingroup', (group) ->
+      chai.expect(group).to.equal groups.shift()
+    received = 0
+    err.on 'data', (data) ->
+      received++
+      chai.expect(data).to.be.an.instanceof Error
+      if received is 2
+        chai.expect(groups.length).to.equal 0
+        done()
+
+    ins.beginGroup group for group in ['one', 'two', 'three']
+    ins.send 'Bar'
+    ins.endGroup()
+    ins.beginGroup 'four'
+    ins.send 'Baz'
+    ins.endGroup() for group in [0..2]
 
 describe 'Implemented AsyncComponent', ->
   class Timer extends acomponent.AsyncComponent
