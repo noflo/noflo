@@ -25,4 +25,10 @@ clone = (obj) ->
 
   return newInstance
 
+# Guess language from filename
+guessLanguageFromFilename = (filename) ->
+  return 'coffeescript' if /.*\.coffee$/.test filename
+  return 'javascript'
+
 exports.clone = clone
+exports.guessLanguageFromFilename = guessLanguageFromFilename

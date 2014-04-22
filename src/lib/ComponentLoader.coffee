@@ -6,6 +6,7 @@
 # This is the browser version of the ComponentLoader.
 internalSocket = require './InternalSocket'
 nofloGraph = require './Graph'
+utils = require './Utils'
 unless require('./Platform').isBrowser()
   {EventEmitter} = require 'events'
 else
@@ -251,6 +252,7 @@ class ComponentLoader extends EventEmitter
       name: nameParts[1]
       library: nameParts[0]
       code: window.require.modules[path].toString()
+      language: utils.guessLanguageFromFilename component
 
   clear: ->
     @components = null
