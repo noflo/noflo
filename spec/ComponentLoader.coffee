@@ -6,11 +6,13 @@ if typeof process isnt 'undefined' and process.execPath and process.execPath.ind
   platform = require '../src/lib/Platform.coffee'
   path = require 'path'
   root = path.resolve __dirname, '../'
+  shippingLanguage = 'coffeescript'
 else
   loader = require 'noflo/src/lib/ComponentLoader.js'
   component = require 'noflo/src/lib/Component.js'
   platform = require 'noflo/src/lib/Platform.js'
   root = 'noflo'
+  shippingLanguage = 'javascript'
 
 describe 'ComponentLoader with no external packages installed', ->
   l = new loader.ComponentLoader root
@@ -126,6 +128,7 @@ describe 'ComponentLoader with no external packages installed', ->
         chai.expect(component.code.indexOf('exports.getComponent')).to.not.equal -1
         chai.expect(component.name).to.equal 'Graph'
         chai.expect(component.library).to.equal ''
+        chai.expect(component.language).to.equal shippingLanguage
         done()
     it 'should return an error for missing components', (done) ->
       l.getSource 'foo/BarBaz', (err, src) ->
