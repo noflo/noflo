@@ -96,6 +96,7 @@ class AsyncComponent extends component.Component
           return if processedData
           @outPorts[@outPortName].disconnect()
           @outPorts.load.disconnect() if @outPorts.load.isAttached()
+          @errorGroups = []
           @q.shift()
         when "data"
           @processData event.data
