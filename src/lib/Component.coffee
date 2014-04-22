@@ -39,10 +39,12 @@ class Component extends EventEmitter
     @emit 'icon', @icon
   getIcon: -> @icon
 
-  error: (e) =>
-    if @outPorts.error and @outPorts.error.isAttached()
-      @outPorts.error.send e
-      @outPorts.error.disconnect()
+  error: (e, groups = [], errorPort = 'error') =>
+    if @outPorts[errorPort] and (@outPorts[errorPort].isAttached() or not @outPorts[errorPort].isRequired())
+      @outPorts[errorPort].beginGroup group for group in groups
+      @outPorts[errorPort].send e
+      @outPorts[errorPort].endGroup() for group in groups
+      @outPorts[errorPort].disconnect()
       return
     throw e
 

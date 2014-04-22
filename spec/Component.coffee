@@ -58,3 +58,100 @@ describe 'Component', ->
       c.inPorts.justProcessor.nodeInstance = c
       s1.send 'some-data'
       s2.send 'some-data'
+
+    it 'should throw errors if there is no error port', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            required: true
+            process: (event, packet, component) ->
+              return unless event is 'data'
+              chai.expect(packet).to.equal 'some-data'
+              chai.expect(component).to.equal c
+              chai.expect(-> c.error(new Error)).to.throw Error
+              done()
+
+      s1 = new socket.InternalSocket
+      c.inPorts.in.attach s1
+      c.inPorts.in.nodeInstance = c
+      s1.send 'some-data'
+
+    it 'should throw errors if there is a non-attached error port', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            required: true
+            process: (event, packet, component) ->
+              return unless event is 'data'
+              chai.expect(packet).to.equal 'some-data'
+              chai.expect(component).to.equal c
+              chai.expect(-> c.error(new Error)).to.throw Error
+              done()
+        outPorts:
+          error:
+            datatype: 'object'
+
+      s1 = new socket.InternalSocket
+      c.inPorts.in.attach s1
+      c.inPorts.in.nodeInstance = c
+      s1.send 'some-data'
+
+    it 'should not throw errors if there is a non-required error port', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            required: true
+            process: (event, packet, component) ->
+              return unless event is 'data'
+              chai.expect(packet).to.equal 'some-data'
+              chai.expect(component).to.equal c
+              c.error new Error
+              done()
+        outPorts:
+          error:
+            required: no
+
+      s1 = new socket.InternalSocket
+      c.inPorts.in.attach s1
+      c.inPorts.in.nodeInstance = c
+      s1.send 'some-data'
+
+    it 'should send errors if there is a connected error port', (done) ->
+      grps = []
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            required: true
+            process: (event, packet, component) ->
+              grps.push packet if event is 'begingroup'
+              return unless event is 'data'
+              chai.expect(packet).to.equal 'some-data'
+              chai.expect(component).to.equal c
+              c.error new Error, grps
+        outPorts:
+          error:
+            datatype: 'object'
+
+      s1 = new socket.InternalSocket
+      s2 = new socket.InternalSocket
+      groups = [
+        'foo'
+        'bar'
+      ]
+      s2.on 'begingroup', (grp) ->
+        chai.expect(grp).to.equal groups.shift()
+      s2.on 'data', (err) ->
+        chai.expect(err).to.be.an.instanceOf Error
+        chai.expect(groups.length).to.equal 0
+        done()
+
+      c.inPorts.in.attach s1
+      c.outPorts.error.attach s2
+      c.inPorts.in.nodeInstance = c
+      s1.beginGroup 'foo'
+      s1.beginGroup 'bar'
+      s1.send 'some-data'

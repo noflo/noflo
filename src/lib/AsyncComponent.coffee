@@ -45,13 +45,7 @@ class AsyncComponent extends component.Component
   processData: (data) ->
     @incrementLoad()
     @doAsync data, (err) =>
-      if err
-        if @outPorts[@errPortName] and @outPorts[@errPortName].isAttached()
-          @outPorts[@errPortName].beginGroup group for group in @errorGroups
-          @outPorts[@errPortName].send err
-          @outPorts[@errPortName].endGroup() for group in @errorGroups
-          @outPorts[@errPortName].disconnect()
-        else throw err
+      @error err, @errorGroups, @errPortName if err
       @decrementLoad()
 
   incrementLoad: ->

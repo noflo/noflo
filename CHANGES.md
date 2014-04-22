@@ -6,6 +6,7 @@ NoFlo ChangeLog
 * `contains` method for buffered inports returns the number of data packets the buffer has
 * [Call stack exhaustion](https://github.com/noflo/noflo/issues/156) on very large graphs has been fixed
 * The `error` outport of AsyncComponents now sends the group information of the original input together with the error
+* The `error` method of regular ports can now also handle groups as a second parameter
 
 ## 0.5.0 (March 28th 2014)
 
