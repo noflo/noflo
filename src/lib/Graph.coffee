@@ -14,6 +14,7 @@ else
   EventEmitter = require 'emitter'
 
 clone = require('./Utils').clone
+platform = require './Platform'
 
 # This class represents an abstract NoFlo graph containing nodes
 # connected to each other with edges.
@@ -765,7 +766,7 @@ exports.loadHTTP = (url, success) ->
   req.send()
 
 exports.loadFile = (file, success, metadata = {}) ->
-  unless typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
+  if platform.isBrowser()
     try
       # Graph exposed via Component packaging
       definition = require file
