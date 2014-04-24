@@ -11,12 +11,12 @@ path = require 'path'
 fs = require 'fs'
 loader = require '../ComponentLoader'
 internalSocket = require '../InternalSocket'
+utils = require '../Utils'
 
 # We allow components to be un-compiled CoffeeScript
 CoffeeScript = require 'coffee-script'
 if typeof CoffeeScript.register != 'undefined'
     CoffeeScript.register()
-
 
 # Disable NPM logging in normal NoFlo operation
 log = require 'npmlog'
@@ -179,6 +179,7 @@ class ComponentLoader extends loader.ComponentLoader
       callback null,
         name: nameParts[1]
         library: nameParts[0]
+        language: utils.guessLanguageFromFilename component
         code: code
 
   readPackage: (packageId, callback) ->
