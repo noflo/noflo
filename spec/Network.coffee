@@ -295,7 +295,7 @@ describe 'NoFlo Network', ->
 
   describe 'with a very large network', ->
     it 'should be able to connect without errors', (done) ->
-      @timeout 60000
+      @timeout 100000
       g = new noflo.Graph
       g.baseDir = root
       called = 0
