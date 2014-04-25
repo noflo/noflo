@@ -209,25 +209,31 @@ class Network extends EventEmitter
     # Start with node creators
     nodes "Node"
 
-  connectPort: (socket, process, port, inbound) ->
+  connectPort: (socket, process, port, index, inbound) ->
     if inbound
       socket.to =
         process: process
         port: port
+        index: index
 
       unless process.component.inPorts and process.component.inPorts[port]
         throw new Error "No inport '#{port}' defined in process #{process.id} (#{socket.getId()})"
         return
+      if process.component.inPorts[port].isAddressable()
+        return process.component.inPorts[port].attach socket, index
       return process.component.inPorts[port].attach socket
 
     socket.from =
       process: process
       port: port
+      index: index
 
     unless process.component.outPorts and process.component.outPorts[port]
       throw new Error "No outport '#{port}' defined in process #{process.id} (#{socket.getId()})"
       return
 
+    if process.component.outPorts[port].isAddressable()
+      return process.component.outPorts[port].attach socket, index
     process.component.outPorts[port].attach socket
 
   subscribeGraph: ->
@@ -366,8 +372,8 @@ class Network extends EventEmitter
 
       return
 
-    @connectPort socket, to, edge.to.port, true
-    @connectPort socket, from, edge.from.port, false
+    @connectPort socket, to, edge.to.port, edge.to.index, true
+    @connectPort socket, from, edge.from.port, edge.from.index, false
 
     # Subscribe to events from the socket
     @subscribeSocket socket
@@ -402,7 +408,7 @@ class Network extends EventEmitter
         @addInitial initializer, callback
       return
 
-    @connectPort socket, to, initializer.to.port, true
+    @connectPort socket, to, initializer.to.port, initializer.to.index, true
 
     @connections.push socket
 

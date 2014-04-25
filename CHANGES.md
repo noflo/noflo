@@ -8,6 +8,25 @@ NoFlo ChangeLog
 * The `error` outport of AsyncComponents now sends the group information of the original input together with the error
 * The `error` method of regular ports can now also handle groups as a second parameter
 * Ports can now list their attached sockets (by array index) via the `listAttached` method
+* There is now initial support for making connections to and from *addressable* ports with a specified index
+
+In the FBP format, these can be specified with the bracket syntax:
+
+```fbp
+SomeNode OUT[2] -> IN OtherNode
+'foo' -> OPTS[1] OtherNode
+```
+
+In the JSON file these are defined in connections by adding a integer to the `index` key of the `src` or `tgt` definition.
+
+The NoFlo Graph class provides these with the following methods:
+
+```
+addEdgeIndex(str outNode, str outPort, int outIndex, str inNode, str inPort, int inIndex, obj metadata)
+addInitiaIndex(mixed data, str inNode, str inPort, int inIndex, obj metadata)
+```
+
+If indexes are not specified, the fall-back behavior is to automatically index the connections based on next available slot in the port.
 
 ## 0.5.0 (March 28th 2014)
 

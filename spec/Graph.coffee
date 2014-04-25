@@ -79,6 +79,19 @@ describe 'Graph', ->
         edge = g.edges[0]
         g.addEdge(edge.from.node, edge.from.port, edge.to.node, edge.to.port)
         chai.expect(g.edges.length).equal 2
+    describe 'New edge with index', ->
+      it 'should emit an event', (done) ->
+        g.once 'addEdge', (edge) ->
+          chai.expect(edge.from.node).to.equal 'Foo'
+          chai.expect(edge.to.port).to.equal 'in'
+          chai.expect(edge.to.index).to.equal 1
+          chai.expect(edge.from.index).to.be.an 'undefined'
+          chai.expect(g.edges.length).equal 3
+          done()
+        g.addEdgeIndex('Foo', 'out', null, 'Bar', 'in', 1)
+      it 'should add an edge', ->
+        g.addEdgeIndex('Foo', 'out', 2, 'Bar', 'in2')
+        chai.expect(g.edges.length).equal 4
 
   describe 'loaded from JSON', ->
     jsonString = """
@@ -176,7 +189,8 @@ describe 'Graph', ->
       },
       "tgt": {
         "process": "Bar",
-        "port": "in2"
+        "port": "in2",
+        "index": 2
       },
       "metadata": {
         "route": "foo",

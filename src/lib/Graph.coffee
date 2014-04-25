@@ -445,15 +445,15 @@ class Graph extends EventEmitter
   # and another node's inport:
   #
   #     myGraph.addEdge 'Read', 'out', 'Display', 'in'
+  #     myGraph.addEdgeIndex 'Read', 'out', null, 'Display', 'in', 2
   #
   # Adding an edge will emit the `addEdge` event.
-  addEdge: (outNode, outPort, inNode, inPort, metadata) ->
+  addEdge: (outNode, outPort, inNode, inPort, metadata = {}) ->
     for edge in @edges
       # don't add a duplicate edge
       return if (edge.from.node is outNode and edge.from.port is outPort and edge.to.node is inNode and edge.to.port is inPort)
     return unless @getNode outNode
     return unless @getNode inNode
-    metadata = {} unless metadata
 
     @checkTransactionStart()
 
@@ -464,6 +464,32 @@ class Graph extends EventEmitter
       to:
         node: inNode
         port: inPort
+      metadata: metadata
+    @edges.push edge
+    @emit 'addEdge', edge
+
+    @checkTransactionEnd()
+    edge
+
+  # Adding an edge will emit the `addEdge` event.
+  addEdgeIndex: (outNode, outPort, outIndex, inNode, inPort, inIndex, metadata = {}) ->
+    return unless @getNode outNode
+    return unless @getNode inNode
+    inIndex = undefined if inIndex is null
+    outIndex = undefined if outIndex is null
+    metadata = {} unless metadata
+
+    @checkTransactionStart()
+
+    edge =
+      from:
+        node: outNode
+        port: outPort
+        index: outIndex
+      to:
+        node: inNode
+        port: inPort
+        index: inIndex
       metadata: metadata
     @edges.push edge
     @emit 'addEdge', edge
@@ -548,6 +574,7 @@ class Graph extends EventEmitter
   # filenames to read, or network ports to listen to.
   #
   #     myGraph.addInitial 'somefile.txt', 'Read', 'source'
+  #     myGraph.addInitialIndex 'somefile.txt', 'Read', 'source', 2
   #
   # Adding an IIP will emit a `addInitial` event.
   addInitial: (data, node, port, metadata) ->
@@ -560,6 +587,25 @@ class Graph extends EventEmitter
       to:
         node: node
         port: port
+      metadata: metadata
+    @initializers.push initializer
+    @emit 'addInitial', initializer
+
+    @checkTransactionEnd()
+    initializer
+
+  addInitialIndex: (data, node, port, index, metadata) ->
+    return unless @getNode node
+    index = undefined if index is null
+
+    @checkTransactionStart()
+    initializer =
+      from:
+        data: data
+      to:
+        node: node
+        port: port
+        index: index
       metadata: metadata
     @initializers.push initializer
     @emit 'addInitial', initializer
@@ -668,9 +714,11 @@ class Graph extends EventEmitter
         src:
           process: edge.from.node
           port: edge.from.port
+          index: edge.from.index
         tgt:
           process: edge.to.node
           port: edge.to.port
+          index: edge.to.index
       connection.metadata = edge.metadata if Object.keys(edge.metadata).length
       json.connections.push connection
 
@@ -680,6 +728,7 @@ class Graph extends EventEmitter
         tgt:
           process: initializer.to.node
           port: initializer.to.port
+          index: initializer.to.index
 
     json
 
@@ -713,10 +762,15 @@ exports.loadJSON = (definition, success, metadata = {}) ->
     graph.addNode id, def.component, def.metadata
 
   for conn in definition.connections
-    if conn.data isnt undefined
-      graph.addInitial conn.data, conn.tgt.process, conn.tgt.port.toLowerCase()
-      continue
     metadata = if conn.metadata then conn.metadata else {}
+    if conn.data isnt undefined
+      if typeof conn.tgt.index is 'number'
+        graph.addInitialIndex conn.data, conn.tgt.process, conn.tgt.port.toLowerCase(), conn.tgt.index, metadata
+      graph.addInitial conn.data, conn.tgt.process, conn.tgt.port.toLowerCase(), metadata
+      continue
+    if typeof conn.src.index is 'number' or typeof conn.tgt.index is 'number'
+      graph.addEdgeIndex conn.src.process, conn.src.port.toLowerCase(), conn.src.index, conn.tgt.process, conn.tgt.port.toLowerCase(), conn.tgt.index, metadata
+      continue
     graph.addEdge conn.src.process, conn.src.port.toLowerCase(), conn.tgt.process, conn.tgt.port.toLowerCase(), metadata
 
   if definition.exports and definition.exports.length
