@@ -101,15 +101,11 @@ exports.createNetwork = (graph, callback, delay) ->
     # Send IIPs
     network.start()
 
-  # Empty network, no need to connect it up
-  if graph.nodes.length is 0
-    setTimeout ->
-      networkReady network
-    , 0
-    return network
-
   # Ensure components are loaded before continuing
   network.loader.listComponents ->
+    # Empty network, no need to connect it up
+    return networkReady network if graph.nodes.length is 0
+
     # In case of delayed execution we don't wire it up
     if delay
       callback network if callback?
