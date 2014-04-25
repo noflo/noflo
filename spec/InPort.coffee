@@ -33,6 +33,7 @@ describe 'Inport Port', ->
     p = new inport
     it 'should not be attached', ->
       chai.expect(p.isAttached()).to.equal false
+      chai.expect(p.listAttached()).to.eql []
     it 'should allow attaching', ->
       chai.expect(p.canAttach()).to.equal true
     it 'should not be connected initially', ->
@@ -233,5 +234,6 @@ describe 'Inport Port', ->
         chai.expect(payload).to.equal 'some-data'
         done()
       ps.inPorts.in.attach s
+      chai.expect(ps.inPorts.in.listAttached()).to.eql [0]
       s.send 'some-data'
       s.disconnect()

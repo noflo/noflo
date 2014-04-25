@@ -10,12 +10,14 @@ class OutPort extends BasePort
     sockets = @getSockets socketId
     @checkRequired sockets
     for socket in sockets
+      continue unless socket
       socket.connect()
 
   beginGroup: (group, socketId = null) ->
     sockets = @getSockets socketId
     @checkRequired sockets
     sockets.forEach (socket) ->
+      return unless socket
       return socket.beginGroup group if socket.isConnected()
       socket.once 'connect', ->
         socket.beginGroup group
@@ -25,6 +27,7 @@ class OutPort extends BasePort
     sockets = @getSockets socketId
     @checkRequired sockets
     sockets.forEach (socket) ->
+      return unless socket
       return socket.send data if socket.isConnected()
       socket.once 'connect', ->
         socket.send data
@@ -34,12 +37,14 @@ class OutPort extends BasePort
     sockets = @getSockets socketId
     @checkRequired sockets
     for socket in sockets
+      continue unless socket
       socket.endGroup()
 
   disconnect: (socketId = null) ->
     sockets = @getSockets socketId
     @checkRequired sockets
     for socket in sockets
+      continue unless socket
       socket.disconnect()
 
   checkRequired: (sockets) ->

@@ -11,15 +11,17 @@ class ArrayPort extends port.Port
   constructor: (@type) ->
     super @type
 
-  attach: (socket) ->
-    @sockets.push socket
-    @attachSocket socket, @sockets.length - 1
+  attach: (socket, socketId = null) ->
+    socketId = @sockets.length if socketId is null
+    @sockets[socketId] = socket
+    @attachSocket socket, socketId
 
   connect: (socketId = null) ->
     if socketId is null
       unless @sockets.length
         throw new Error "#{@getId()}: No connections available"
       @sockets.forEach (socket) ->
+        return unless socket
         socket.connect()
       return
 
@@ -33,6 +35,7 @@ class ArrayPort extends port.Port
       unless @sockets.length
         throw new Error "#{@getId()}: No connections available"
       @sockets.forEach (socket, index) =>
+        return unless socket
         @beginGroup group, index
       return
 
@@ -50,6 +53,7 @@ class ArrayPort extends port.Port
       unless @sockets.length
         throw new Error "#{@getId()}: No connections available"
       @sockets.forEach (socket, index) =>
+        return unless socket
         @send data, index
       return
 
@@ -67,6 +71,7 @@ class ArrayPort extends port.Port
       unless @sockets.length
         throw new Error "#{@getId()}: No connections available"
       @sockets.forEach (socket, index) =>
+        return unless socket
         @endGroup index
       return
 
@@ -80,6 +85,7 @@ class ArrayPort extends port.Port
       unless @sockets.length
         throw new Error "#{@getId()}: No connections available"
       for socket in @sockets
+        return unless socket
         socket.disconnect()
       return
 
@@ -90,6 +96,7 @@ class ArrayPort extends port.Port
     if socketId is null
       connected = false
       @sockets.forEach (socket) =>
+        return unless socket
         if socket.isConnected()
           connected = true
       return connected
@@ -102,7 +109,8 @@ class ArrayPort extends port.Port
 
   isAttached: (socketId) ->
     if socketId is undefined
-      return true if @sockets.length > 0
+      for socket in @sockets
+        return true if socket
       return false
     return true if @sockets[socketId]
     false

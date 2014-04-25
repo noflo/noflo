@@ -32,7 +32,7 @@ class Port extends EventEmitter
     @attachSocket socket
 
   attachSocket: (socket, localId = null) ->
-    @emit "attach", socket
+    @emit "attach", socket, localId
 
     @from = socket.from
     socket.setMaxListeners 0 if socket.setMaxListeners
@@ -87,6 +87,10 @@ class Port extends EventEmitter
     socket = @sockets[0] unless socket
     index = @sockets.indexOf socket
     return if index is -1
+    if @isAddressable()
+      @sockets[index] = undefined
+      @emit 'detach', socket, index
+      return
     @sockets.splice index, 1
     @emit "detach", socket
 
@@ -103,6 +107,13 @@ class Port extends EventEmitter
   isAttached: ->
     return true if @sockets.length > 0
     false
+
+  listAttached: ->
+    attached = []
+    for socket, idx in @sockets
+      continue unless socket
+      attached.push idx
+    attached
 
   canAttach: -> true
 

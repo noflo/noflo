@@ -22,6 +22,7 @@ describe 'Legacy ArrayPort', ->
     describe 'without attached socket', ->
       it 'should not be attached initially', ->
         chai.expect(p.isAttached()).to.equal false
+        chai.expect(p.listAttached()).to.eql []
       it 'should allow connections', ->
         chai.expect(p.canAttach()).to.equal true
       it 'should not be connected initially', ->
@@ -48,6 +49,7 @@ describe 'Legacy ArrayPort', ->
         p.attach s
       it 'should be marked as attached', ->
         chai.expect(p.isAttached()).to.equal true
+        chai.expect(p.listAttached()).to.eql [0]
       it 'should still allow more connections', ->
         chai.expect(p.canAttach()).to.equal true
       it 'should not be connected initially', ->
@@ -57,9 +59,9 @@ describe 'Legacy ArrayPort', ->
       it 'should allow other sockets to be attached', ->
         s2 = new socket.InternalSocket
         p.attach s2
-        chai.expect(p.sockets.length).to.equal 2
+        chai.expect(p.listAttached().length).to.equal 2
         p.detach s2
-        chai.expect(p.sockets.length).to.equal 1
+        chai.expect(p.listAttached().length).to.equal 1
 
       it 'should emit an event on detaching', (done) ->
         p.once 'detach', (sock) ->
@@ -69,7 +71,7 @@ describe 'Legacy ArrayPort', ->
       it 'should not be attached any longer', ->
         chai.expect(p.isAttached()).to.equal false
       it 'should not contain the removed socket any longer', ->
-        chai.expect(p.sockets.length).to.equal 0
+        chai.expect(p.listAttached()).to.eql []
 
   describe 'Input ArrayPort', ->
     p = new aport.ArrayPort
@@ -119,6 +121,88 @@ describe 'Legacy ArrayPort', ->
           chai.expect(id).to.equal 0
           done()
       s.send 'Baz'
+
+  describe 'Input ArrayPort with specified index', ->
+    p = new aport.ArrayPort
+    s = new socket.InternalSocket
+    idx = 2
+    it 'shouldn\'t be attached initially', ->
+      chai.expect(p.isAttached()).to.equal false
+      chai.expect(p.isAttached(2)).to.equal false
+      chai.expect(p.listAttached().length).to.equal 0
+    it 'should emit attaching events', (done) ->
+      p.once 'attach', (sock, id) ->
+        chai.expect(sock).to.equal s
+        chai.expect(id).to.equal idx
+        done()
+      p.attach s, 2
+    it 'should be attached after that', ->
+      chai.expect(p.isAttached()).to.equal true
+      chai.expect(p.isAttached(2)).to.equal true
+    it 'shouldn\'t have other indexes attached after that', ->
+      chai.expect(p.isAttached(0)).to.equal false
+      chai.expect(p.isAttached(1)).to.equal false
+      chai.expect(p.isAttached(3)).to.equal false
+      chai.expect(p.listAttached()).to.eql [2]
+    it 'should emit connection events', (done) ->
+      p.once 'connect', (sock, id) ->
+        chai.expect(sock).to.equal s
+        chai.expect(id).to.equal idx
+        done()
+      s.connect()
+    it 'should be connected after that', ->
+      chai.expect(p.isConnected()).to.equal true
+      chai.expect(p.isConnected(2)).to.equal true
+    it 'shouldn\'t have other indexes connected after that', ->
+      chai.expect(p.isConnected(0)).to.equal false
+      chai.expect(p.isConnected(1)).to.equal false
+      chai.expect(p.isConnected(3)).to.equal false
+    it 'should emit begin group events', (done) ->
+      p.once 'begingroup', (group, id) ->
+        chai.expect(group).to.equal 'Foo'
+        chai.expect(id).to.equal idx
+        done()
+      s.beginGroup 'Foo'
+    it 'should emit data events', (done) ->
+      p.once 'data', (data, id) ->
+        chai.expect(data).to.equal 'Bar'
+        chai.expect(id).to.equal idx
+        done()
+      s.send 'Bar'
+    it 'should emit end group events', (done) ->
+      p.once 'endgroup', (group, id) ->
+        chai.expect(group).to.equal 'Foo'
+        chai.expect(id).to.equal idx
+        done()
+      s.endGroup()
+    it 'should emit disconnection events', (done) ->
+      p.once 'disconnect', (sock, id) ->
+        chai.expect(sock).to.equal s
+        chai.expect(id).to.equal idx
+        done()
+      s.disconnect()
+    it 'should not be connected after that', ->
+      chai.expect(p.isConnected()).to.equal false
+    it 'should connect automatically when sending', (done) ->
+      p.once 'connect', (sock, id) ->
+        chai.expect(sock).to.equal s
+        chai.expect(id).to.equal idx
+        chai.expect(p.isConnected()).to.equal true
+        p.once 'data', (data, id) ->
+          chai.expect(data).to.equal 'Baz'
+          chai.expect(id).to.equal idx
+          done()
+      s.send 'Baz'
+    it 'should emit attaching events', (done) ->
+      p.once 'detach', (sock, id) ->
+        chai.expect(sock).to.equal s
+        chai.expect(id).to.equal idx
+        done()
+      p.detach s
+    it 'shouldn\'t be attached after that', ->
+      chai.expect(p.isAttached()).to.equal false
+      chai.expect(p.isAttached(idx)).to.equal false
+      chai.expect(p.listAttached()).to.eql []
 
   describe 'Output ArrayPort', ->
     p = new aport.ArrayPort

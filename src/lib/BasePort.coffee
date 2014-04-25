@@ -65,7 +65,7 @@ class BasePort extends EventEmitter
     index = @sockets.indexOf socket
     if index is -1
       return
-    @sockets.splice index, 1
+    @sockets[index] = undefined
     if @isAddressable()
       @emit 'detach', socket, index
       return
@@ -89,6 +89,13 @@ class BasePort extends EventEmitter
       return false
     return true if @sockets.length
     false
+
+  listAttached: ->
+    attached = []
+    for socket, idx in @sockets
+      continue unless socket
+      attached.push idx
+    attached
 
   isConnected: (socketId = null) ->
     if @isAddressable()

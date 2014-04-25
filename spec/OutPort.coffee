@@ -20,6 +20,7 @@ describe 'Outport Port', ->
       p.attach s1
       p.attach s2
       p.attach s3
+      chai.expect(p.listAttached()).to.eql [0, 1, 2]
       s1.on 'data', ->
         chai.expect(true).to.equal false
       s2.on 'data', (data) ->
@@ -41,11 +42,23 @@ describe 'Outport Port', ->
     it 'should give correct port index when detaching a connection', (done) ->
       p = new outport
         addressable: true
-      p.attach s1
-      p.attach s2
-      p.attach s3
+      p.attach s1, 3
+      p.attach s2, 1
+      p.attach s3, 5
+      expectedSockets = [s2, s3]
+      expected = [1, 5]
+      expectedAttached = [
+        [3, 5]
+        [3]
+      ]
       p.on 'detach', (socket, index) ->
-        chai.expect(socket).to.equal s2
-        chai.expect(index).to.equal 1
-        done()
+        chai.expect(socket).to.equal expectedSockets.shift()
+        chai.expect(index).to.equal expected.shift()
+        chai.expect(p.isAttached(index)).to.equal false
+        atts = expectedAttached.shift()
+        chai.expect(p.listAttached()).to.eql atts
+        for att in atts
+          chai.expect(p.isAttached(att)).to.equal true
+        done() unless expected.length
       p.detach s2
+      p.detach s3
