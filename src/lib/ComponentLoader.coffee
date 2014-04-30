@@ -125,6 +125,8 @@ class ComponentLoader extends EventEmitter
       if implementation.getComponent and typeof implementation.getComponent is 'function'
         instance = implementation.getComponent metadata
       else
+        if typeof implementation isnt 'function'
+          throw new Error "Component #{name} is npt loadable"
         instance = implementation metadata
     instance.baseDir = @baseDir if name is 'Graph'
     @setIcon name, instance
