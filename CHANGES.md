@@ -3,6 +3,7 @@ NoFlo ChangeLog
 
 ## 0.5.1 (git master)
 
+* Custom component loaders can be registered programmatically using the `registerLoader` method of NoFlo's ComponentLoader
 * `contains` method for buffered inports returns the number of data packets the buffer has
 * [Call stack exhaustion](https://github.com/noflo/noflo/issues/156) on very large graphs has been fixed
 * The `error` outport of AsyncComponents now sends the group information of the original input together with the error

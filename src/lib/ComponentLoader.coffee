@@ -51,7 +51,7 @@ class ComponentLoader extends EventEmitter
     if definition.noflo.loader
       # Run a custom component loader
       loader = require "/#{moduleName}/#{definition.noflo.loader}"
-      loader @
+      @registerLoader loader, ->
     if definition.noflo.components
       for name, cPath of definition.noflo.components
         if cPath.indexOf('.coffee') isnt -1
@@ -190,6 +190,9 @@ class ComponentLoader extends EventEmitter
 
   registerGraph: (packageId, name, gPath, callback) ->
     @registerComponent packageId, name, gPath, callback
+
+  registerLoader: (loader, callback) ->
+    loader @, callback
 
   setSource: (packageId, name, source, language, callback) ->
     unless @ready

@@ -60,7 +60,7 @@ class ComponentLoader extends loader.ComponentLoader
       if def.noflo.loader
         # Run a custom component loader
         loader = require path.resolve def.realPath, def.noflo.loader
-        loader @, done
+        @registerLoader loader, done
       else
         done()
 

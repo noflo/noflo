@@ -13,6 +13,9 @@
     "component/underscore": "*",
     "noflo/fbp": "*"
   },
+  "remotes": [
+    "https://raw.githubusercontent.com"
+  ],
   "development": {},
   "license": "MIT",
   "main": "src/lib/NoFlo.js",
