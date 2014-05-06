@@ -19,6 +19,7 @@ validTypes = [
   'color'
   'date'
   'bang'
+  'function'
 ]
 
 class BasePort extends EventEmitter
