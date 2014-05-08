@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.5.1 (git master)
+## 0.5.1 (May 8th 2014)
 
 * Custom component loaders can be registered programmatically using the `registerLoader` method of NoFlo's ComponentLoader
 * `contains` method for buffered inports returns the number of data packets the buffer has

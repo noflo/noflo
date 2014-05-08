@@ -7,11 +7,7 @@
     "flow"
   ],
   "author": "Henri Bergius <henri.bergius@iki.fi>",
-  "contributors": [
-    "Jerry Jalava",
-    "Ryan Shaw"
-  ],
-  "version": "0.5.0",
+  "version": "0.5.1",
   "licenses": [
     {
       "type": "MIT",
