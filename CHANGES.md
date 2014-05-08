@@ -9,6 +9,7 @@ NoFlo ChangeLog
 * The `error` outport of AsyncComponents now sends the group information of the original input together with the error
 * The `error` method of regular ports can now also handle groups as a second parameter
 * Ports can now list their attached sockets (by array index) via the `listAttached` method
+* `function` is now an accepted datatype for ports
 * There is now initial support for making connections to and from *addressable* ports with a specified index
 
 In the FBP format, these can be specified with the bracket syntax:
