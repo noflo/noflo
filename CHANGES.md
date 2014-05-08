@@ -1,6 +1,12 @@
 NoFlo ChangeLog
 ===============
 
+## 0.5.3 (git master)
+
+## 0.5.2 (May 8th 2014)
+
+* Fixed a minor packaging issue
+
 ## 0.5.1 (May 8th 2014)
 
 * Custom component loaders can be registered programmatically using the `registerLoader` method of NoFlo's ComponentLoader
