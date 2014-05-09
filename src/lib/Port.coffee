@@ -14,6 +14,7 @@ class Port extends EventEmitter
   required: true
   constructor: (@type) ->
     @type = 'all' unless @type
+    @type = 'int' if @type is 'integer'
     @sockets = []
     @from = null
     @node = null

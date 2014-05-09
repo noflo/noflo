@@ -34,8 +34,9 @@ class BasePort extends EventEmitter
     options.datatype = 'all' unless options.datatype
     options.required = true if options.required is undefined
 
+    options.datatype = 'int' if options.datatype is 'integer'
     if validTypes.indexOf(options.datatype) is -1
-      throw new Error "Invalid port datatype '#{options.datatype}' specified, valid are #{validTypes.join(' ,')}"
+      throw new Error "Invalid port datatype '#{options.datatype}' specified, valid are #{validTypes.join(', ')}"
 
     if options.type and options.type.indexOf('/') is -1
       throw new Error "Invalid port type '#{options.type}' specified. Should be URL or MIME type"
