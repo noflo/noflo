@@ -153,7 +153,7 @@ class ComponentLoader extends loader.ComponentLoader
   getSource: (name, callback) ->
     unless @ready
       @listComponents =>
-        @getSource packageId, name, callback
+        @getSource name, callback
       return
 
     component = @components[name]
