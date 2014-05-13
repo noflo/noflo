@@ -46,6 +46,15 @@ describe 'ComponentLoader with no external packages installed', ->
     it 'should have the Graph component registered', ->
       chai.expect(l.components.Graph).not.to.be.empty
 
+  it 'should list components with uppercase port names for display', (done) ->
+    l.listComponentsForDisplay (components) ->
+      displayNames = (key for key of components)
+      componentNames = (key for key of l.components)
+      chai.expect(displayNames.length).to.equal componentNames.length
+      for name, index in componentNames
+        chai.expect(name.toUpperCase()).to.equal displayNames[index]
+      done()
+
   describe 'loading the Graph component', ->
     instance = null
     it 'should be able to load the component', (done) ->
