@@ -27,9 +27,9 @@ showComponent = (component, path, instance, callback) ->
   console.log "#{component} (#{path})"
   console.log instance.description if instance.description
   if instance.inPorts
-    console.log 'Inports:', _.keys(instance.inPorts).join(', ').toUpperCase()
+    console.log 'Inports:', _.keys(instance.inPorts).join ', '
   if instance.outPorts
-    console.log 'Outports:', _.keys(instance.outPorts).join(', ').toUpperCase()
+    console.log 'Outports:', _.keys(instance.outPorts).join ', '
 
 addDebug = (network, verbose, logSubgraph) ->
 
