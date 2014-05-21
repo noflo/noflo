@@ -4,6 +4,7 @@ NoFlo ChangeLog
 ## 0.5.3 (git master)
 
 * `integer` is accepted as an alias for the `int` datatype for ports
+* `buffer` is now an accepted port datatype
 * Fixed a bug with ComponentLoader `getSource` method when invoked early on in execution
 
 ## 0.5.2 (May 8th 2014)
