@@ -37,6 +37,7 @@
     "src/lib/Platform.coffee",
     "src/lib/Journal.coffee",
     "src/lib/Utils.coffee",
+    "src/lib/Helpers.coffee",
     "src/components/Graph.coffee"
   ],
   "json": [
