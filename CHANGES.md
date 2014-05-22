@@ -6,6 +6,21 @@ NoFlo ChangeLog
 * `integer` is accepted as an alias for the `int` datatype for ports
 * `buffer` is now an accepted port datatype
 * Fixed a bug with ComponentLoader `getSource` method when invoked early on in execution
+* New component helpers for easier authoring
+
+The `MapComponent` helper is usable for synchronous components that operate on a single inport-outport combination:
+
+```coffeescript
+c = new noflo.Component
+  inPorts:
+    in:
+      datatype: 'number'
+  outPorts:
+    out:
+      datatype: 'number'
+noflo.helpers.MapComponent = c, (data, groups, out) ->
+  out.send data * 2
+```
 
 ## 0.5.2 (May 8th 2014)
 
