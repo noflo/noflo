@@ -28,6 +28,10 @@ exports.MapComponent = (component, func, config) ->
 exports.GroupComponent = (component, func, inPorts='in', outPort='out', config={}) ->
   unless Object.prototype.toString.call(inPorts) is '[object Array]'
     inPorts = [inPorts]
+  # For async func
+  config.async = false unless 'async' of config
+  # Group requests by group ID
+  config.group = false unless 'group' of config
 
   for name in inPorts
     unless component.inPorts[name]
@@ -48,15 +52,27 @@ exports.GroupComponent = (component, func, inPorts='in', outPort='out', config={
           when 'begingroup'
             inPort.groups.push payload
           when 'data'
-            key = inPort.groups.toString()
+            key = if config.group then inPort.groups.toString() else ''
             groupedData[key] = {} unless key of groupedData
             groupedData[key][port] = payload
             # Flush the data if the tuple is complete
             if Object.keys(groupedData[key]).length is inPorts.length
-              out.beginGroup group for group in inPort.groups
-              func groupedData[key], inPort.groups, out
-              out.endGroup() for group in inPort.groups
-              out.disconnect()
-              delete groupedData[key]
+              groups = inPort.groups
+              out.beginGroup group for group in groups
+              if config.async
+                grps = groups.slice(0)
+                func groupedData[key], groups, out, (err) ->
+                  if err
+                    component.error err, groups
+                    # For use with MultiError trait
+                    component.fail if typeof component.fail is 'function'
+                  out.endGroup() for group in grps
+                  out.disconnect()
+                  delete groupedData[key]
+              else
+                func groupedData[key], inPort.groups, out
+                out.endGroup() for group in inPort.groups
+                out.disconnect()
+                delete groupedData[key]
           when 'endgroup'
             inPort.groups.pop()

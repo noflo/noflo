@@ -97,7 +97,7 @@ describe 'Component traits', ->
         chai.expect(data).to.deep.equal src[groups[0]]
         out.send data
         # done() if groups[0] is 333
-      , ['x', 'y', 'z'], 'point'
+      , ['x', 'y', 'z'], 'point', {group: true}
 
       groups = []
       count = 0
@@ -142,7 +142,7 @@ describe 'Component traits', ->
       z.send 789
       z.disconnect()
 
-    it 'should process inputs for different groups independently', (done) ->
+    it 'should process inputs for different groups independently with group: true', (done) ->
       src =
         1: {x: 1, y: 2, z: 3}
         2: {x: 4, y: 5, z: 6}
@@ -162,7 +162,7 @@ describe 'Component traits', ->
 
       helpers.GroupComponent c, (data, groups, out) ->
         out.send {x: data.x, y: data.y, z: data.z}
-      , ['x', 'y', 'z'], 'point'
+      , ['x', 'y', 'z'], 'point', {group: true}
 
       groups = []
 
@@ -190,3 +190,38 @@ describe 'Component traits', ->
         input.send src[tuple[0]][tuple[1]]
         input.endGroup()
         input.disconnect()
+
+    it 'should support asynchronous handlers', (done) ->
+      point =
+        x: 123
+        y: 456
+        z: 789
+
+      helpers.GroupComponent c, (data, groups, out, callback) ->
+        setTimeout ->
+          out.send {x: data.x, y: data.y, z: data.z}
+          callback()
+        , 100
+      , ['x', 'y', 'z'], 'point', {async: true, group: true}
+
+      p.removeAllListeners()
+      counter = 0
+      p.on 'begingroup', (grp) ->
+        counter++
+      p.on 'endgroup', ->
+        counter--
+      p.once 'data', (data) ->
+        chai.expect(data).to.deep.equal point
+      p.once 'disconnect', ->
+        chai.expect(counter).to.equal 0
+        done()
+
+      x.beginGroup 'async'
+      y.beginGroup 'async'
+      z.beginGroup 'async'
+      x.send point.x
+      y.send point.y
+      z.send point.z
+      x.endGroup()
+      y.endGroup()
+      z.endGroup()
