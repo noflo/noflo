@@ -25,6 +25,23 @@ exports.MapComponent = (component, func, config) ->
         groups = []
         outPort.disconnect()
 
+# outPort wrapper for atomic sends w/ groups
+class AtomicSender
+  constructor: (@port, @groups) ->
+  beginGroup: (group) ->
+    @port.beginGroup group
+  endGroup: ->
+    @port.endGroup()
+  connect: ->
+    @port.connect()
+  disconnect: ->
+    @port.disconnect()
+  send: (packet) ->
+    @port.beginGroup group for group in @groups
+    @port.send packet
+    @port.endGroup() for group in @groups
+
+
 exports.GroupComponent = (component, func, inPorts='in', outPort='out', config={}) ->
   unless Object.prototype.toString.call(inPorts) is '[object Array]'
     inPorts = [inPorts]
@@ -58,21 +75,18 @@ exports.GroupComponent = (component, func, inPorts='in', outPort='out', config={
             # Flush the data if the tuple is complete
             if Object.keys(groupedData[key]).length is inPorts.length
               groups = inPort.groups
-              out.beginGroup group for group in groups
-              if config.async
-                grps = groups.slice(0)
-                func groupedData[key], groups, out, (err) ->
-                  if err
-                    component.error err, groups
-                    # For use with MultiError trait
-                    component.fail if typeof component.fail is 'function'
-                  out.endGroup() for group in grps
-                  out.disconnect()
-                  delete groupedData[key]
-              else
-                func groupedData[key], inPort.groups, out
-                out.endGroup() for group in inPort.groups
+              atomicOut = new AtomicSender out, groups
+              callback = (err) ->
+                if err
+                  component.error err, groups
+                   # For use with MultiError trait
+                  component.fail if typeof component.fail is 'function'
                 out.disconnect()
                 delete groupedData[key]
+              if config.async
+                func groupedData[key], groups, atomicOut, callback
+              else
+                func groupedData[key], inPort.groups, atomicOut
+                callback()
           when 'endgroup'
             inPort.groups.pop()
