@@ -64,9 +64,9 @@ module.exports = ->
       all: ['test/*.coffee']
 
     # BDD tests on Node.js
-    cafemocha:
+    mochaTest:
       nodejs:
-        src: ['spec/*.coffee']
+        src: ['spec/*.js']
         options:
           reporter: 'spec'
 
@@ -113,7 +113,7 @@ module.exports = ->
   @loadNpmTasks 'grunt-contrib-watch'
   @loadNpmTasks 'grunt-contrib-nodeunit'
   @loadNpmTasks 'grunt-contrib-connect'
-  @loadNpmTasks 'grunt-cafe-mocha'
+  @loadNpmTasks 'grunt-mocha-test'
   @loadNpmTasks 'grunt-mocha-phantomjs'
   @loadNpmTasks 'grunt-coffeelint'
 
@@ -130,7 +130,7 @@ module.exports = ->
     @task.run 'noflo_manifest'
     @task.run 'coffee'
     if target is 'all' or target is 'nodejs'
-      @task.run 'cafemocha'
+      @task.run 'mochaTest'
     if target is 'all' or target is 'browser'
       @task.run 'connect'
       @task.run 'noflo_browser'
