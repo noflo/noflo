@@ -32,6 +32,13 @@ module.exports = ->
         dest: 'spec'
         ext: '.js'
 
+    # Updating the package manifest files
+    noflo_manifest:
+      update:
+        files:
+          'package.json': []
+          'component.json': []
+
     # Browser build of NoFlo
     noflo_browser:
       build:
@@ -96,17 +103,9 @@ module.exports = ->
             value: 80
             level: 'warn'
 
-    # Release automation
-    bumpup: ['package.json', 'component.json']
-    tagrelease:
-      file: 'package.json'
-      prefix: ''
-    exec:
-      npm_publish:
-        cmd: 'npm publish'
-
   # Grunt plugins used for building
   @loadNpmTasks 'grunt-contrib-coffee'
+  @loadNpmTasks 'grunt-noflo-manifest'
   @loadNpmTasks 'grunt-noflo-browser'
   @loadNpmTasks 'grunt-contrib-uglify'
 
@@ -118,20 +117,17 @@ module.exports = ->
   @loadNpmTasks 'grunt-mocha-phantomjs'
   @loadNpmTasks 'grunt-coffeelint'
 
-  # Grunt plugins used for release automation
-  @loadNpmTasks 'grunt-bumpup'
-  @loadNpmTasks 'grunt-tagrelease'
-  @loadNpmTasks 'grunt-exec'
-
   # Our local tasks
   @registerTask 'build', 'Build NoFlo for the chosen target platform', (target = 'all') =>
     @task.run 'coffee'
+    @task.run 'noflo_manifest'
     if target is 'all' or target is 'browser'
       @task.run 'noflo_browser'
       @task.run 'uglify'
 
   @registerTask 'test', 'Build NoFlo and run automated tests', (target = 'all') =>
     @task.run 'coffeelint'
+    @task.run 'noflo_manifest'
     @task.run 'coffee'
     if target is 'all' or target is 'nodejs'
       @task.run 'cafemocha'
@@ -141,15 +137,3 @@ module.exports = ->
       @task.run 'mocha_phantomjs'
 
   @registerTask 'default', ['test']
-
-  # Task for releasing new NoFlo versions
-  #
-  # Builds, runs tests, updates package.json, tags a release, and publishes on NPM
-  #
-  # Usage: grunt release:patch
-  @registerTask 'release', 'Build, test, tag, and release NoFlo', (type = 'patch') =>
-    @task.run 'build'
-    @task.run 'test'
-    @task.run "bumpup:#{type}"
-    @task.run 'tagrelease'
-    @task.run 'exec:npm_publish'
