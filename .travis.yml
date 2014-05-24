@@ -1,8 +1,15 @@
 language: node_js
 node_js:
-  - "0.10"
-
+- '0.10'
 script: npm test
-
 notifications:
-    irc: "irc.freenode.org#fbp"
+  irc: irc.freenode.org#fbp
+deploy:
+  provider: npm
+  email: henri.bergius@iki.fi
+  api_key:
+    secure: n6kh+2hVIrMU85enLrtaxt74B60hpmtXIAhmeMgi+b+QPk31YKxL7SvViEwO2tn0NDDd7/LTnj0v95hkfBOCVZPMFWIGblvbAU6anESd+Xr9P0j4zMJDg+TkjHZ0vXzA0NQh3dlTZ4gtTAFPQED8tOwhBMkWSScL1eedeU9yO58=
+  skip_cleanup: true
+  on:
+    tags: true
+    repo: noflo/noflo
