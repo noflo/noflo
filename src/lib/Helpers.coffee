@@ -80,7 +80,7 @@ exports.GroupComponent = (component, func, inPorts='in', outPort='out', config={
                 if err
                   component.error err, groups
                    # For use with MultiError trait
-                  component.fail if typeof component.fail is 'function'
+                  component.fail() if typeof component.fail is 'function'
                 out.disconnect()
                 delete groupedData[key]
               if config.async
