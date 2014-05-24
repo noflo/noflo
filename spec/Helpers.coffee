@@ -226,59 +226,59 @@ describe 'Component traits', ->
       y.endGroup()
       z.endGroup()
 
-      describe 'when grouping by field', ->
-        c = new component.Component
-        c.inPorts.add 'user',
-          required: true
-          datatype: 'object'
-        c.inPorts.add 'message',
-          required: true
-          datatype: 'object'
-        c.outPorts.add 'signedMessage'
-        usr = new socket.createSocket()
-        msg = new socket.createSocket()
-        umsg = new socket.createSocket()
-        c.inPorts.user.attach usr
-        c.inPorts.message.attach msg
-        c.outPorts.signedMessage.attach umsg
+    describe 'when grouping by field', ->
+      c = new component.Component
+      c.inPorts.add 'user',
+        required: true
+        datatype: 'object'
+      c.inPorts.add 'message',
+        required: true
+        datatype: 'object'
+      c.outPorts.add 'signedMessage'
+      usr = new socket.createSocket()
+      msg = new socket.createSocket()
+      umsg = new socket.createSocket()
+      c.inPorts.user.attach usr
+      c.inPorts.message.attach msg
+      c.outPorts.signedMessage.attach umsg
 
-        it 'should match objects by specific field', (done) ->
-          helpers.GroupComponent c, (data, groups, out, callback) ->
+      it 'should match objects by specific field', (done) ->
+        helpers.GroupComponent c, (data, groups, out, callback) ->
+          setTimeout ->
+            out.send
+              request: data.request
+              user: data.user.name
+              text: data.message.text
+            callback()
+          , 10
+        , ['user', 'message'], 'signedMessage', {async: true, field: 'request'}
+
+        users =
+          14: {request: 14, id: 21, name: 'Josh'}
+          12: {request: 12, id: 25, name: 'Leo'}
+          34: {request: 34, id: 84, name: 'Anica'}
+        messages =
+          34: {request: 34, id: 234, text: 'Hello world'}
+          12: {request: 12, id: 82, text: 'Aloha amigos'}
+          14: {request: 14, id: 249, text: 'Node.js ftw'}
+
+        counter = 0
+        umsg.on 'data', (data) ->
+          chai.expect(data).to.be.an 'object'
+          chai.expect(data.request).to.be.ok
+          chai.expect(data.user).to.equal users[data.request].name
+          chai.expect(data.text).to.equal messages[data.request].text
+          counter++
+          done() if counter is 3
+
+        # Send input asynchronously with mixed delays
+        for req, user of users
+          do (req, user) ->
             setTimeout ->
-              out.send
-                request: data.request
-                user: data.user.name
-                text: data.message.text
-              callback()
-            , 10
-          , ['user', 'message'], 'signedMessage', {async: true, field: 'request'}
-
-          users =
-            14: {request: 14, id: 21, name: 'Josh'}
-            12: {request: 12, id: 25, name: 'Leo'}
-            34: {request: 34, id: 84, name: 'Anica'}
-          messages =
-            34: {request: 34, id: 234, text: 'Hello world'}
-            12: {request: 12, id: 82, text: 'Aloha amigos'}
-            14: {request: 14, id: 249, text: 'Node.js ftw'}
-
-          counter = 0
-          umsg.on 'data', (data) ->
-            chai.expect(data).to.be.an 'object'
-            chai.expect(data.request).to.be.ok
-            chai.expect(data.user).to.equal users[data.request].name
-            chai.expect(data.text).to.equal messages[data.request].text
-            counter++
-            done() if counter is 3
-
-          # Send input asynchronously with mixed delays
-          for req, user of users
-            do (req, user) ->
-              setTimeout ->
-                usr.send user
-              , req
-          for req, mesg of messages
-            do (req, mesg) ->
-              setTimeout ->
-                msg.send mesg
-              , req
+              usr.send user
+            , req
+        for req, mesg of messages
+          do (req, mesg) ->
+            setTimeout ->
+              msg.send mesg
+            , req
