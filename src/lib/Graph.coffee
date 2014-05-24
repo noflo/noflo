@@ -824,8 +824,6 @@ exports.loadFile = (file, success, metadata = {}) ->
     try
       # Graph exposed via Component packaging
       definition = require file
-      exports.loadJSON definition, success, metadata
-      return
     catch e
       # Graph available via HTTP
       exports.loadHTTP file, (data) ->
@@ -833,9 +831,11 @@ exports.loadFile = (file, success, metadata = {}) ->
           throw new Error "Failed to load graph #{file}"
           return
         if file.split('.').pop() is 'fbp'
-          return exports.loadFBP data, success
+          return exports.loadFBP data, success, metadata
         definition = JSON.parse data
-        exports.loadJSON definition, success
+        exports.loadJSON definition, success, metadata
+      return
+    exports.loadJSON definition, success, metadata
     return
   # Node.js graph file
   require('fs').readFile file, "utf-8", (err, data) ->
