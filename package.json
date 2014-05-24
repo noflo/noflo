@@ -29,20 +29,20 @@
     "eval": "^0.1.0"
   },
   "devDependencies": {
-    "chai": "~1.8.0",
     "grunt": "~0.4.1",
-    "grunt-cli": "~0.1.7",
-    "grunt-coffeelint": "0.0.6",
     "grunt-contrib-coffee": "~0.6.6",
-    "grunt-contrib-connect": "~0.6.0",
+    "grunt-cli": "~0.1.7",
     "grunt-contrib-nodeunit": "~0.1.2",
+    "grunt-coffeelint": "0.0.6",
+    "grunt-cafe-mocha": "~0.1.2",
+    "chai": "~1.8.0",
+    "mocha": "~1.9.0",
+    "grunt-mocha-phantomjs": "~0.2.2",
     "grunt-contrib-uglify": "~0.2.0",
     "grunt-contrib-watch": "~0.3.1",
-    "grunt-mocha-phantomjs": "~0.2.2",
-    "grunt-mocha-test": "^0.10.2",
+    "grunt-contrib-connect": "~0.6.0",
     "grunt-noflo-browser": "^0.1.2",
-    "grunt-noflo-manifest": "^0.1.6",
-    "mocha": "~1.9.0"
+    "grunt-noflo-manifest": "^0.1.6"
   },
   "main": "./lib/NoFlo",
   "bin": {
