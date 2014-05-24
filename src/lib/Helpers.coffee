@@ -49,6 +49,8 @@ exports.GroupComponent = (component, func, inPorts='in', outPort='out', config={
   config.async = false unless 'async' of config
   # Group requests by group ID
   config.group = false unless 'group' of config
+  # Group requests by object field
+  config.field = null unless 'field' of config
 
   for name in inPorts
     unless component.inPorts[name]
@@ -69,11 +71,17 @@ exports.GroupComponent = (component, func, inPorts='in', outPort='out', config={
           when 'begingroup'
             inPort.groups.push payload
           when 'data'
-            key = if config.group then inPort.groups.toString() else ''
+            key = ''
+            if config.group and inPort.groups.length > 0
+              key = inPort.groups.toString()
+            else if config.field and typeof(payload) is 'object' and config.field of payload
+              key = payload[config.field]
             groupedData[key] = {} unless key of groupedData
+            groupedData[key][config.field] = key if config.field
             groupedData[key][port] = payload
             # Flush the data if the tuple is complete
-            if Object.keys(groupedData[key]).length is inPorts.length
+            requiredLength = if config.field then inPorts.length + 1 else inPorts.length
+            if Object.keys(groupedData[key]).length is requiredLength
               groups = inPort.groups
               atomicOut = new AtomicSender out, groups
               callback = (err) ->
