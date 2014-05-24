@@ -4,10 +4,7 @@
 #     NoFlo may be freely distributed under the MIT license
 #
 # Baseclass for regular NoFlo components.
-unless require('./Platform').isBrowser()
-  {EventEmitter} = require 'events'
-else
-  EventEmitter = require 'emitter'
+{EventEmitter} = require 'events'
 
 ports = require './Ports'
 

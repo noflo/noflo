@@ -5,12 +5,7 @@
 #     NoFlo may be freely distributed under the MIT license
 #
 
-# On Node.js we use the build-in EventEmitter implementation
-if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
-  {EventEmitter} = require 'events'
-# On browser we use Component's EventEmitter implementation
-else
-  EventEmitter = require 'emitter'
+{EventEmitter} = require 'events'
 
 clone = require('./Utils').clone
 

@@ -9,7 +9,7 @@
   "repo": "noflo/noflo",
   "version": "0.5.2",
   "dependencies": {
-    "component/emitter": "*",
+    "bergie/emitter": "*",
     "component/underscore": "*",
     "noflo/fbp": "*"
   },

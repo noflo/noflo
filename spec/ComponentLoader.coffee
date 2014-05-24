@@ -29,6 +29,7 @@ describe 'ComponentLoader with no external packages installed', ->
     chai.expect(l.checked).to.be.empty
 
   it 'should be able to read a list of components', (done) ->
+    @timeout 4000
     ready = false
     l.once 'ready', ->
       ready = true

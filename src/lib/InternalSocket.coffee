@@ -2,10 +2,7 @@
 #     (c) 2013 The Grid
 #     (c) 2011-2012 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
-unless require('./Platform').isBrowser()
-  {EventEmitter} = require 'events'
-else
-  EventEmitter = require 'emitter'
+{EventEmitter} = require 'events'
 
 # ## Internal Sockets
 #

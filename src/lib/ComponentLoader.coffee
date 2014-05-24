@@ -7,10 +7,7 @@
 internalSocket = require './InternalSocket'
 nofloGraph = require './Graph'
 utils = require './Utils'
-unless require('./Platform').isBrowser()
-  {EventEmitter} = require 'events'
-else
-  EventEmitter = require 'emitter'
+{EventEmitter} = require 'events'
 
 class ComponentLoader extends EventEmitter
   constructor: (@baseDir) ->

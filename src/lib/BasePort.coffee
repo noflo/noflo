@@ -3,10 +3,7 @@
 #     NoFlo may be freely distributed under the MIT license
 #
 # Base port type used for options normalization
-unless require('./Platform').isBrowser()
-  {EventEmitter} = require 'events'
-else
-  EventEmitter = require 'emitter'
+{EventEmitter} = require 'events'
 
 validTypes = [
   'all'

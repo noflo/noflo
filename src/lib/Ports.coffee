@@ -3,10 +3,7 @@
 #     NoFlo may be freely distributed under the MIT license
 #
 # Ports collection classes for NoFlo components
-unless require('./Platform').isBrowser()
-  {EventEmitter} = require 'events'
-else
-  EventEmitter = require 'emitter'
+{EventEmitter} = require 'events'
 
 InPort = require './InPort'
 OutPort = require './OutPort'

@@ -6,12 +6,7 @@
 # NoFlo graphs are Event Emitters, providing signals when the graph
 # definition changes.
 #
-# On Node.js we use the build-in EventEmitter implementation
-unless require('./Platform').isBrowser()
-  {EventEmitter} = require 'events'
-# On browser we use Component's EventEmitter implementation
-else
-  EventEmitter = require 'emitter'
+{EventEmitter} = require 'events'
 
 clone = require('./Utils').clone
 platform = require './Platform'

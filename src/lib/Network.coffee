@@ -5,13 +5,12 @@
 _ = require "underscore"
 internalSocket = require "./InternalSocket"
 graph = require "./Graph"
+{EventEmitter} = require 'events'
 
 unless require('./Platform').isBrowser()
   componentLoader = require "./nodejs/ComponentLoader"
-  {EventEmitter} = require 'events'
 else
   componentLoader = require './ComponentLoader'
-  EventEmitter = require 'emitter'
 
 # ## The NoFlo network coordinator
 #
