@@ -25,6 +25,23 @@ exports.MapComponent = (component, func, config) ->
         groups = []
         outPort.disconnect()
 
+# outPort wrapper for atomic sends w/ groups
+class AtomicSender
+  constructor: (@port, @groups) ->
+  beginGroup: (group) ->
+    @port.beginGroup group
+  endGroup: ->
+    @port.endGroup()
+  connect: ->
+    @port.connect()
+  disconnect: ->
+    @port.disconnect()
+  send: (packet) ->
+    @port.beginGroup group for group in @groups
+    @port.send packet
+    @port.endGroup() for group in @groups
+
+
 exports.GroupComponent = (component, func, inPorts='in', outPort='out', config={}) ->
   unless Object.prototype.toString.call(inPorts) is '[object Array]'
     inPorts = [inPorts]
@@ -32,6 +49,8 @@ exports.GroupComponent = (component, func, inPorts='in', outPort='out', config={
   config.async = false unless 'async' of config
   # Group requests by group ID
   config.group = false unless 'group' of config
+  # Group requests by object field
+  config.field = null unless 'field' of config
 
   for name in inPorts
     unless component.inPorts[name]
@@ -52,27 +71,30 @@ exports.GroupComponent = (component, func, inPorts='in', outPort='out', config={
           when 'begingroup'
             inPort.groups.push payload
           when 'data'
-            key = if config.group then inPort.groups.toString() else ''
+            key = ''
+            if config.group and inPort.groups.length > 0
+              key = inPort.groups.toString()
+            else if config.field and typeof(payload) is 'object' and config.field of payload
+              key = payload[config.field]
             groupedData[key] = {} unless key of groupedData
+            groupedData[key][config.field] = key if config.field
             groupedData[key][port] = payload
             # Flush the data if the tuple is complete
-            if Object.keys(groupedData[key]).length is inPorts.length
+            requiredLength = if config.field then inPorts.length + 1 else inPorts.length
+            if Object.keys(groupedData[key]).length is requiredLength
               groups = inPort.groups
-              out.beginGroup group for group in groups
-              if config.async
-                grps = groups.slice(0)
-                func groupedData[key], groups, out, (err) ->
-                  if err
-                    component.error err, groups
-                    # For use with MultiError trait
-                    component.fail if typeof component.fail is 'function'
-                  out.endGroup() for group in grps
-                  out.disconnect()
-                  delete groupedData[key]
-              else
-                func groupedData[key], inPort.groups, out
-                out.endGroup() for group in inPort.groups
+              atomicOut = new AtomicSender out, groups
+              callback = (err) ->
+                if err
+                  component.error err, groups
+                   # For use with MultiError trait
+                  component.fail() if typeof component.fail is 'function'
                 out.disconnect()
                 delete groupedData[key]
+              if config.async
+                func groupedData[key], groups, atomicOut, callback
+              else
+                func groupedData[key], inPort.groups, atomicOut
+                callback()
           when 'endgroup'
             inPort.groups.pop()
