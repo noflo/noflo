@@ -25,6 +25,24 @@ noflo.helpers.MapComponent = c, (data, groups, out) ->
 The `GroupComponent` helper assists in building components that need to synchronize multiple inputs by groups:
 
 ```coffeescript
+c = new noflo.Component
+  inPorts:
+    x:
+      datatype: 'number'
+    y:
+      datatype: 'number'
+  outPorts:
+    radius:
+      datatype: 'number'
+
+noflo.helpers.GroupComponent c, (data, groups, out) ->
+  out.send Math.sqrt(data.x**2 + data.y**2)
+, ['x', 'y'], 'radius'
+```
+
+`GroupComponent` can also synchronize via specific fields of object-type packets:
+
+```coffeescript
 helpers.GroupComponent c, (data, groups, out) ->
   out.send
     request: data.request
