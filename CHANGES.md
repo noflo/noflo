@@ -22,6 +22,23 @@ noflo.helpers.MapComponent = c, (data, groups, out) ->
   out.send data * 2
 ```
 
+The `GroupComponent` helper assists in building components that need to synchronize multiple inputs by groups:
+
+```coffeescript
+helpers.GroupComponent c, (data, groups, out) ->
+  out.send
+    request: data.request
+    user: data.user.name
+    text: data.message.text
+, ['user', 'message'], 'signedMessage', {field: 'request'}
+
+user.send {request: 123, id: 42, name: 'John'}
+message.send {request: 123, id: 17, text: 'Hello world'}
+
+# Result:
+{ request: 123, user: 'John', text: 'Hello world'}
+```
+
 ## 0.5.2 (May 8th 2014)
 
 * Fixed a minor packaging issue
