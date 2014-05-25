@@ -37,7 +37,7 @@ module.exports = ->
       update:
         files:
           'package.json': []
-          'component.json': []
+          'component.json': ['src/components/*.coffee']
 
     # Browser build of NoFlo
     noflo_browser:

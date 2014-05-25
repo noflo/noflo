@@ -7,7 +7,7 @@
     "flow"
   ],
   "repo": "noflo/noflo",
-  "version": "0.5.2",
+  "version": "0.5.1",
   "dependencies": {
     "bergie/emitter": "*",
     "component/underscore": "*",
@@ -45,7 +45,7 @@
   ],
   "noflo": {
     "components": {
-      "Graph": "src/components/Graph.js"
+      "Graph": "src/components/Graph.coffee"
     }
   }
 }

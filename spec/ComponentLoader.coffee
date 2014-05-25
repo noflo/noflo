@@ -44,14 +44,8 @@ describe 'ComponentLoader with no external packages installed', ->
     chai.expect(l.processing).to.equal true
 
   describe 'after listing components', ->
-    it 'should have the Graph component registered', (done) ->
-      if l.ready
-        chai.expect(l.components.Graph).not.to.be.empty
-        done()
-        return
-      l.listComponents (components) ->
-        chai.expect(l.components.Graph).not.to.be.empty
-        done()
+    it 'should have the Graph component registered', ->
+      chai.expect(l.components.Graph).not.to.be.empty
 
   describe 'loading the Graph component', ->
     instance = null
