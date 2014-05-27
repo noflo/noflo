@@ -18,7 +18,7 @@ c = new noflo.Component
   outPorts:
     out:
       datatype: 'number'
-noflo.helpers.MapComponent = c, (data, groups, out) ->
+noflo.helpers.MapComponent c, (data, groups, out) ->
   out.send data * 2
 ```
 
