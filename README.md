@@ -1,4 +1,4 @@
-NoFlo: Flow-based programming for JavaScript [![Build Status](https://secure.travis-ci.org/noflo/noflo.png?branch=master)](http://travis-ci.org/noflo/noflo)
+NoFlo: Flow-based programming for JavaScript [![Build Status](https://secure.travis-ci.org/noflo/noflo.png?branch=master)](http://travis-ci.org/noflo/noflo) [![Build status](https://ci.appveyor.com/api/projects/status/k4jbqlpohq81pvny)](https://ci.appveyor.com/project/bergie/noflo)
 =========================================
 
 NoFlo is an implementation of [flow-based programming](http://en.wikipedia.org/wiki/Flow-based_programming) for JavaScript running on both Node.js and the browser. From WikiPedia:

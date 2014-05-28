@@ -5,6 +5,7 @@ NoFlo ChangeLog
 
 * `integer` is accepted as an alias for the `int` datatype for ports
 * `buffer` is now an accepted port datatype
+* The Continuous Integration setup for NoFlo now runs on both [Linux](https://travis-ci.org/noflo/noflo) and [Windows](https://ci.appveyor.com/project/bergie/noflo)
 * Fixed a bug with ComponentLoader `getSource` method when invoked early on in execution
 * New component helpers for easier authoring
 
