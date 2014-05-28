@@ -285,11 +285,12 @@ describe 'NoFlo Network', ->
       it 'processes should be running before the stop call', ->
         chai.expect(n.processes.Repeat.component.stopped).to.equal false
       it 'should emit the end event', (done) ->
+        @timeout 5000
         # Ensure we have a connection open
-        n.stop()
         n.once 'end', (endTimes) ->
           chai.expect(endTimes).to.be.an 'object'
           done()
+        n.stop()
       it 'should have called the shutdown method of each process', ->
         chai.expect(n.processes.Repeat.component.stopped).to.equal true
 
