@@ -69,7 +69,7 @@ describe 'NoFlo Network', ->
     it 'should have transmitted the baseDir to the Component Loader', ->
       chai.expect(n.loader.baseDir).to.equal g.baseDir
     it 'should have an uptime', ->
-      chai.expect(n.uptime()).to.be.above 0
+      chai.expect(n.uptime()).to.be.at.least 0
 
     describe 'with new node', ->
       it 'should contain the node', (done) ->
