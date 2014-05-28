@@ -68,7 +68,7 @@ describe 'Component traits', ->
       s.endGroup()
       s.disconnect()
 
-  describe 'GroupComponent', ->
+  describe 'GroupedInput', ->
     describe 'when grouping by packet groups', ->
       c = new component.Component
       c.inPorts.add 'x',
@@ -95,11 +95,14 @@ describe 'Component traits', ->
           111: {x: 1, y: 2, z: 3}
           222: {x: 4, y: 5, z: 6}
           333: {x: 7, y: 8, z: 9}
-        helpers.GroupComponent c, (data, groups, out) ->
+        helpers.GroupedInput c,
+          in: ['x', 'y', 'z']
+          out: 'point'
+          group: true
+        , (data, groups, out) ->
           chai.expect(data).to.deep.equal src[groups[0]]
           out.send data
           # done() if groups[0] is 333
-        , ['x', 'y', 'z'], 'point', {group: true}
 
         groups = []
         count = 0
@@ -128,10 +131,12 @@ describe 'Component traits', ->
 
       it 'should work without a group provided', (done) ->
         p.removeAllListeners()
-        helpers.GroupComponent c, (data, groups, out) ->
+        helpers.GroupedInput c,
+          in: ['x', 'y', 'z']
+          out: 'point'
+        , (data, groups, out) ->
           chai.expect(groups.length).to.equal 0
           out.send {x: data.x, y: data.y, z: data.z}
-        , ['x', 'y', 'z'], 'point'
 
         p.once 'data', (data) ->
           chai.expect(data).to.deep.equal {x: 123, y: 456, z: 789}
@@ -162,9 +167,12 @@ describe 'Component traits', ->
         ]
         outOrder = [ 2, 1, 3 ]
 
-        helpers.GroupComponent c, (data, groups, out) ->
+        helpers.GroupedInput c,
+          in: ['x', 'y', 'z']
+          out: 'point'
+          group: true
+        , (data, groups, out) ->
           out.send {x: data.x, y: data.y, z: data.z}
-        , ['x', 'y', 'z'], 'point', {group: true}
 
         groups = []
 
@@ -199,12 +207,16 @@ describe 'Component traits', ->
           y: 456
           z: 789
 
-        helpers.GroupComponent c, (data, groups, out, callback) ->
+        helpers.GroupedInput c,
+          in: ['x', 'y', 'z']
+          out: 'point'
+          async: true
+          group: true
+        , (data, groups, out, callback) ->
           setTimeout ->
             out.send {x: data.x, y: data.y, z: data.z}
             callback()
           , 100
-        , ['x', 'y', 'z'], 'point', {async: true, group: true}
 
         p.removeAllListeners()
         counter = 0
@@ -221,6 +233,100 @@ describe 'Component traits', ->
         x.beginGroup 'async'
         y.beginGroup 'async'
         z.beginGroup 'async'
+        x.send point.x
+        y.send point.y
+        z.send point.z
+        x.endGroup()
+        y.endGroup()
+        z.endGroup()
+
+      it 'should not forward groups if grouping is off', (done) ->
+        point =
+          x: 123
+          y: 456
+        helpers.GroupedInput c,
+          in: ['x', 'y']
+          out: 'point'
+        , (data, groups, out) ->
+          chai.expect(groups.length).to.equal 0
+          out.send { x: data.x, y: data.y }
+
+        p.removeAllListeners()
+        counter = 0
+        p.on 'begingroup', (grp) ->
+          counter++
+        p.on 'data', (data) ->
+          chai.expect(data).to.deep.equal point
+        p.once 'disconnect', ->
+          chai.expect(counter).to.equal 0
+          done()
+
+        x.beginGroup 'doNotForwardMe'
+        y.beginGroup 'doNotForwardMe'
+        x.send point.x
+        y.send point.y
+        x.endGroup()
+        y.endGroup()
+
+      it 'should forward groups from a specific port only', (done) ->
+        point =
+          x: 123
+          y: 456
+          z: 789
+        refGroups = ['boo']
+        helpers.GroupedInput c,
+          in: ['x', 'y', 'z']
+          out: 'point'
+          forwardGroups: 'y'
+        , (data, groups, out) ->
+          out.send { x: data.x, y: data.y, z: data.z }
+
+        p.removeAllListeners()
+        groups = []
+        p.on 'begingroup', (grp) ->
+          groups.push grp
+        p.on 'data', (data) ->
+          chai.expect(data).to.deep.equal point
+        p.once 'disconnect', ->
+          chai.expect(groups).to.deep.equal refGroups
+          done()
+
+        x.beginGroup 'foo'
+        y.beginGroup 'boo'
+        z.beginGroup 'bar'
+        x.send point.x
+        y.send point.y
+        z.send point.z
+        x.endGroup()
+        y.endGroup()
+        z.endGroup()
+
+      it 'should forward groups from selected ports only', (done) ->
+        point =
+          x: 123
+          y: 456
+          z: 789
+        refGroups = ['foo', 'bar']
+        helpers.GroupedInput c,
+          in: ['x', 'y', 'z']
+          out: 'point'
+          forwardGroups: [ 'x', 'z' ]
+        , (data, groups, out) ->
+          out.send { x: data.x, y: data.y, z: data.z }
+
+        p.removeAllListeners()
+        groups = []
+        p.on 'begingroup', (grp) ->
+          groups.push grp
+        p.on 'data', (data) ->
+          chai.expect(data).to.deep.equal point
+        p.once 'disconnect', ->
+          chai.expect(groups).to.deep.equal refGroups
+          done()
+
+        x.beginGroup 'foo'
+        y.beginGroup 'boo'
+        z.beginGroup 'bar'
         x.send point.x
         y.send point.y
         z.send point.z
@@ -245,7 +351,12 @@ describe 'Component traits', ->
       c.outPorts.signedMessage.attach umsg
 
       it 'should match objects by specific field', (done) ->
-        helpers.GroupComponent c, (data, groups, out, callback) ->
+        helpers.GroupedInput c,
+          in: ['user', 'message']
+          out: 'signedMessage'
+          async: true
+          field: 'request'
+        , (data, groups, out, callback) ->
           setTimeout ->
             out.send
               request: data.request
@@ -253,7 +364,6 @@ describe 'Component traits', ->
               text: data.message.text
             callback()
           , 10
-        , ['user', 'message'], 'signedMessage', {async: true, field: 'request'}
 
         users =
           14: {request: 14, id: 21, name: 'Josh'}
