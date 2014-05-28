@@ -81,4 +81,4 @@ To quit thew watcher, just end the process with Ctrl-C.
 
 Flow-based programming in general, including NoFlo can be discussed on the [Flow Based Programming Google group](http://groups.google.com/group/flow-based-programming).
 
-There is also an IRC channel `#fbp` on FreeNode.
+There is also an IRC channel `#fbp` on FreeNode, and questions can be posted with the [`noflo` tag on Stack Overflow](http://stackoverflow.com/questions/tagged/noflo).
