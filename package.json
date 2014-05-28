@@ -42,7 +42,7 @@
     "grunt-contrib-watch": "~0.3.1",
     "grunt-contrib-connect": "~0.6.0",
     "grunt-noflo-browser": "^0.1.2",
-    "grunt-noflo-manifest": "^0.1.9"
+    "grunt-noflo-manifest": "^0.1.11"
   },
   "main": "./lib/NoFlo",
   "bin": {
