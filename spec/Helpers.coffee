@@ -102,7 +102,6 @@ describe 'Component traits', ->
         , (data, groups, out) ->
           chai.expect(data).to.deep.equal src[groups[0]]
           out.send data
-          # done() if groups[0] is 333
 
         groups = []
         count = 0
@@ -334,14 +333,88 @@ describe 'Component traits', ->
         y.endGroup()
         z.endGroup()
 
+    describe 'when reaction depends on external events', (done) ->
+      c = new component.Component
+      c.inPorts.add 'trigger', datatype: 'string', (event, payload) ->
+        c.resume payload if event is 'data'
+      c.inPorts.add 'x', datatype: 'int'
+      c.inPorts.add 'y', datatype: 'int'
+      c.outPorts.add 'out', datatype: 'object'
+      trigger = new socket.createSocket()
+      x = new socket.createSocket()
+      y = new socket.createSocket()
+      out = new socket.createSocket()
+      c.inPorts.trigger.attach trigger
+      c.inPorts.x.attach x
+      c.inPorts.y.attach y
+      c.outPorts.out.attach out
+
+      helpers.GroupedInput c,
+        in: ['x', 'y']
+        group: true
+        async: true
+      , (data, groups, out, complete) ->
+        task = (trigger) ->
+          data.trigger = trigger
+          out.send data
+          complete()
+        if groups.length is 1 and groups[0] is 'later'
+          c.postpone groups[0], -> task 'later'
+        else
+          task 'now'
+
+      it 'should postpone processing of a tuple', (done) ->
+        counter = 0
+
+        out.on 'data', (data) ->
+          chai.expect(data.trigger).to.equal 'now'
+          chai.expect(data.x % 2).to.equal 1
+          chai.expect(data.y % 2).to.equal 1
+          counter++
+          done() if counter is 2
+
+        x.beginGroup 'now'
+        x.send 1
+        x.endGroup()
+        y.beginGroup 'now'
+        y.send 3
+        y.endGroup()
+        x.disconnect()
+        y.disconnect()
+
+        x.beginGroup 'later'
+        x.send 2
+        x.endGroup()
+        y.beginGroup 'later'
+        y.send 4
+        y.endGroup()
+        x.disconnect()
+        y.disconnect()
+
+        x.beginGroup 'now'
+        x.send 5
+        x.endGroup()
+        y.beginGroup 'now'
+        y.send 7
+        y.endGroup()
+        x.disconnect()
+        y.disconnect()
+
+      it '... and should resume postponed task later', (done) ->
+        out.removeAllListeners()
+
+        out.once 'data', (data) ->
+          chai.expect(data.trigger).to.equal 'later'
+          chai.expect(data.x % 2).to.equal 0
+          chai.expect(data.y % 2).to.equal 0
+          done()
+
+        trigger.send 'later'
+
     describe 'when grouping by field', ->
       c = new component.Component
-      c.inPorts.add 'user',
-        required: true
-        datatype: 'object'
-      c.inPorts.add 'message',
-        required: true
-        datatype: 'object'
+      c.inPorts.add 'user', datatype: 'object'
+      c.inPorts.add 'message', datatype: 'object'
       c.outPorts.add 'signedMessage'
       usr = new socket.createSocket()
       msg = new socket.createSocket()
