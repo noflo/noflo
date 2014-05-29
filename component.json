@@ -10,7 +10,7 @@
   "version": "0.5.1",
   "dependencies": {
     "bergie/emitter": "*",
-    "component/underscore": "*",
+    "jashkenas/underscore": "*",
     "noflo/fbp": "*"
   },
   "remotes": [
