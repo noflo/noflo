@@ -2,6 +2,9 @@
 #     (c) 2014 The Grid
 #     NoFlo may be freely distributed under the MIT license
 #
+
+# MapComponent maps a single inport to a single outport, forwarding all
+# groups from in to out and calling `func` on each incoming packet
 exports.MapComponent = (component, func, config) ->
   config = {} unless config
   config.inPort = 'in' unless config.inPort
@@ -28,20 +31,50 @@ exports.MapComponent = (component, func, config) ->
 # outPort wrapper for atomic sends w/ groups
 class AtomicSender
   constructor: (@port, @groups) ->
+    @groupsSent = false
   beginGroup: (group) ->
     @port.beginGroup group
   endGroup: ->
     @port.endGroup()
   connect: ->
     @port.connect()
+    @groupsSent = false
   disconnect: ->
-    @port.disconnect()
-  send: (packet) ->
-    @port.beginGroup group for group in @groups
-    @port.send packet
     @port.endGroup() for group in @groups
+    @port.disconnect()
+    @groupsSent = false
+  send: (packet) ->
+    unless @groupsSent
+      @port.beginGroup group for group in @groups
+      @groupsSent = true
+    @port.send packet
 
-
+# GroupedInput makes your component collect data from several inports
+# and activates a handler `func` only when a tuple from all of these
+# ports is complete. The signature of handler function is:
+# ```
+# func = (combinedInputData, inputGroups, outputPort, asyncCallback) ->
+# ```
+#
+# With `config.group = true` it checks incoming group IPs and collates
+# data with matching group IPs. By default this kind of grouping is `false`.
+#
+# With `config.field = 'fieldName' it collates incoming data by specified
+# field. This kind of grouping is disabled by default.
+#
+# With `config.forwardGroups = true` it would forward group IPs from
+# inputs to the output sending them along with the data. This option also
+# accepts string or array values, if you want to forward groups from specific
+# port(s) only. By default group forwarding is `true` if `group` option is
+# enabled and is `false` otherwise.
+#
+# GroupedInput supports both sync and async `func` handlers. In latter case
+# pass `config.async = true` and make sure that `func` accepts callback as
+# 4th parameter and calls it when async operation completes or fails.
+#
+# GroupedInput sends group packets, sends data packets emitted by `func`
+# via its `outputPort` argument, then closes groups and disconnects
+# automatically.
 exports.GroupedInput = (component, config, func) ->
   # In ports
   inPorts = if 'in' of config then config.in else 'in'
@@ -77,6 +110,11 @@ exports.GroupedInput = (component, config, func) ->
   unless component.outPorts[outPort]
     throw new Error "no outPort named '#{outPort}'"
 
+  # Embed UI metadata
+  component.metadata = {} unless component.metadata
+  component.metadata.groupedInputs = inPorts if inPorts.length > 1
+  component.metadata.async = config.async
+
   groupedData = {}
   groupedDataGroups = {}
 
@@ -90,6 +128,8 @@ exports.GroupedInput = (component, config, func) ->
         switch event
           when 'begingroup'
             inPort.groups.push payload
+          when 'endgroup'
+            inPort.groups.pop()
 
           when 'data'
             key = ''
@@ -100,7 +140,10 @@ exports.GroupedInput = (component, config, func) ->
 
             groupedData[key] = {} unless key of groupedData
             groupedData[key][config.field] = key if config.field
-            groupedData[key][port] = payload
+            if inPorts.length is 1
+              groupedData[key] = payload
+            else
+              groupedData[key][port] = payload
 
             # Collect groups from multiple ports if necessary
             if Object.prototype.toString.call(forwardGroups) is '[object Array]' and forwardGroups.indexOf(port) isnt -1
@@ -110,7 +153,7 @@ exports.GroupedInput = (component, config, func) ->
 
             # Flush the data if the tuple is complete
             requiredLength = if config.field then inPorts.length + 1 else inPorts.length
-            if Object.keys(groupedData[key]).length is requiredLength
+            if requiredLength is 1 or Object.keys(groupedData[key]).length is requiredLength
               groups = []
               if forwardGroups is true
                 groups = inPort.groups
@@ -123,7 +166,7 @@ exports.GroupedInput = (component, config, func) ->
                   component.error err, groups
                 # For use with MultiError trait
                 component.fail() if typeof component.fail is 'function' and component.hasErrors
-                out.disconnect()
+                atomicOut.disconnect()
                 delete groupedData[key]
 
               if config.async
@@ -132,5 +175,16 @@ exports.GroupedInput = (component, config, func) ->
                 func groupedData[key], groups, atomicOut
                 callback()
 
-          when 'endgroup'
-            inPort.groups.pop()
+  postponedTasks = {}
+
+  # Postpones a task with a specific key
+  component.postpone = (key, callback) ->
+    postponedTasks[key] = callback
+
+  # Resumes a task by key
+  component.resume = (key) ->
+    callback = postponedTasks[key]
+    callback() if typeof callback is 'function'
+
+  # Make it chainable or usable at the end of getComponent()
+  return component
