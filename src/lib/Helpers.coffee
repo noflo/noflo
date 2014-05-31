@@ -130,7 +130,6 @@ exports.GroupedInput = (component, config, func) ->
             inPort.groups.push payload
           when 'endgroup'
             inPort.groups.pop()
-
           when 'data'
             key = ''
             if config.group and inPort.groups.length > 0
@@ -174,17 +173,6 @@ exports.GroupedInput = (component, config, func) ->
               else
                 func groupedData[key], groups, atomicOut
                 callback()
-
-  postponedTasks = {}
-
-  # Postpones a task with a specific key
-  component.postpone = (key, callback) ->
-    postponedTasks[key] = callback
-
-  # Resumes a task by key
-  component.resume = (key) ->
-    callback = postponedTasks[key]
-    callback() if typeof callback is 'function'
 
   # Make it chainable or usable at the end of getComponent()
   return component
