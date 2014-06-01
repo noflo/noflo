@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.5.3 (git master)
+## 0.5.3 (May 31st 2014)
 
 * `integer` is accepted as an alias for the `int` datatype for ports
 * `buffer` is now an accepted port datatype
