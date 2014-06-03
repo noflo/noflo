@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.5.4 (git master)
+
+* The new [noflo-api-updater](https://www.npmjs.org/package/noflo-api-updater) tool assists in updating components to the latest NoFlo API
+
 ## 0.5.3 (May 31st 2014)
 
 * `integer` is accepted as an alias for the `int` datatype for ports
