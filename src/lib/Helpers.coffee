@@ -1,7 +1,7 @@
 #     NoFlo - Flow-Based Programming for JavaScript
 #     (c) 2014 TheGrid (Rituwall Inc.)
 #     NoFlo may be freely distributed under the MIT license
-#
+StreamSender = require('./Streams').StreamSender
 
 # MapComponent maps a single inport to a single outport, forwarding all
 # groups from in to out and calling `func` on each incoming packet
@@ -27,27 +27,6 @@ exports.MapComponent = (component, func, config) ->
       when 'disconnect'
         groups = []
         outPort.disconnect()
-
-# outPort wrapper for atomic sends w/ groups
-class AtomicSender
-  constructor: (@port, @groups) ->
-    @groupsSent = false
-  beginGroup: (group) ->
-    @port.beginGroup group
-  endGroup: ->
-    @port.endGroup()
-  connect: ->
-    @port.connect()
-    @groupsSent = false
-  disconnect: ->
-    @port.endGroup() for group in @groups
-    @port.disconnect()
-    @groupsSent = false
-  send: (packet) ->
-    unless @groupsSent
-      @port.beginGroup group for group in @groups
-      @groupsSent = true
-    @port.send packet
 
 # GroupedInput makes your component collect data from several inports
 # and activates a handler `func` only when a tuple from all of these
@@ -78,12 +57,14 @@ class AtomicSender
 exports.GroupedInput = (component, config, func) ->
   # In ports
   inPorts = if 'in' of config then config.in else 'in'
-  unless Object.prototype.toString.call(inPorts) is '[object Array]'
+  unless inPorts instanceof Array
     inPorts = [inPorts]
   # Out port
   outPort = if 'out' of config then config.out else 'out'
   # For async func
   config.async = false unless 'async' of config
+  # Keep correct output order for async mode
+  config.ordered = false unless 'ordered' of config
   # Group requests by group ID
   config.group = false unless 'group' of config
   defaultForwarding = if config.group then true else false
@@ -96,13 +77,13 @@ exports.GroupedInput = (component, config, func) ->
   # - array: forward unique groups of inports in the list
   config.forwardGroups = defaultForwarding unless 'forwardGroups' of config
 
-  forwardGroups = config.forwardGroups
+  collectGroups = config.forwardGroups
   # Collect groups from each port?
-  forwardGroups = inPorts if forwardGroups is true and not config.group
+  collectGroups = inPorts if typeof collectGroups is 'boolean' and not config.group
   # Collect groups from one and only port?
-  forwardGroups = [forwardGroups] if typeof forwardGroups is 'string' and not config.group
+  collectGroups = [collectGroups] if typeof collectGroups is 'string' and not config.group
   # Collect groups from any port, as we group by them
-  forwardGroups = true if forwardGroups isnt false and config.group
+  collectGroups = true if collectGroups isnt false and config.group
 
   for name in inPorts
     unless component.inPorts[name]
@@ -120,6 +101,17 @@ exports.GroupedInput = (component, config, func) ->
 
   out = component.outPorts[outPort]
 
+  # For ordered output
+  q = []
+  processQueue = ->
+    while q.length > 0
+      stream = q[0]
+      if stream.resolved
+        stream.flush()
+        q.shift()
+      else
+        return
+
   for port in inPorts
     do (port) ->
       inPort = component.inPorts[port]
@@ -130,6 +122,7 @@ exports.GroupedInput = (component, config, func) ->
             inPort.groups.push payload
           when 'endgroup'
             inPort.groups.pop()
+
           when 'data'
             key = ''
             if config.group and inPort.groups.length > 0
@@ -145,7 +138,7 @@ exports.GroupedInput = (component, config, func) ->
               groupedData[key][port] = payload
 
             # Collect groups from multiple ports if necessary
-            if Object.prototype.toString.call(forwardGroups) is '[object Array]' and forwardGroups.indexOf(port) isnt -1
+            if collectGroups instanceof Array and collectGroups.indexOf(port) isnt -1
               groupedDataGroups[key] = [] unless key of groupedDataGroups
               for grp in inPort.groups
                 groupedDataGroups[key].push grp if groupedDataGroups[key].indexOf(grp) is -1
@@ -153,25 +146,35 @@ exports.GroupedInput = (component, config, func) ->
             # Flush the data if the tuple is complete
             requiredLength = if config.field then inPorts.length + 1 else inPorts.length
             if requiredLength is 1 or Object.keys(groupedData[key]).length is requiredLength
-              groups = []
-              if forwardGroups is true
+              if collectGroups is true
                 groups = inPort.groups
-              else if forwardGroups isnt false
+              else
                 groups = groupedDataGroups[key]
 
-              atomicOut = new AtomicSender out, groups
+              # Reset port group buffers or it may keep them for next turn
+              component.inPorts[p].groups = [] for p in inPorts
+
+              atomicOut = new StreamSender out, config.ordered and config.async
               callback = (err) ->
                 if err
                   component.error err, groups
                 # For use with MultiError trait
                 component.fail() if typeof component.fail is 'function' and component.hasErrors
+                atomicOut.endGroup() for grp in groups if config.forwardGroups isnt false
                 atomicOut.disconnect()
-                delete groupedData[key]
+                processQueue() if config.ordered
+              data = groupedData[key]
 
+              # Clean buffers
+              delete groupedData[key]
+              delete groupedDataGroups[key]
+
+              atomicOut.beginGroup grp for grp in groups if config.forwardGroups isnt false
               if config.async
-                func groupedData[key], groups, atomicOut, callback
+                q.push atomicOut if config.ordered
+                func data, groups, atomicOut, callback
               else
-                func groupedData[key], groups, atomicOut
+                func data, groups, atomicOut
                 callback()
 
   # Make it chainable or usable at the end of getComponent()
