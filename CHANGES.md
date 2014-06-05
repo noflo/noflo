@@ -4,6 +4,7 @@ NoFlo ChangeLog
 ## 0.5.4 (git master)
 
 * The new [noflo-api-updater](https://www.npmjs.org/package/noflo-api-updater) tool assists in updating components to the latest NoFlo API
+* The `GroupedInput` helper has a new `ordered` option for choosing whether the output should be in same order as the incoming packets
 
 ## 0.5.3 (May 31st 2014)
 
