@@ -247,7 +247,6 @@ describe 'Component traits', ->
           in: ['x', 'y']
           out: 'point'
         , (data, groups, out) ->
-          chai.expect(groups.length).to.equal 0
           out.send { x: data.x, y: data.y }
 
         p.removeAllListeners()
@@ -332,6 +331,107 @@ describe 'Component traits', ->
         x.endGroup()
         y.endGroup()
         z.endGroup()
+
+    describe 'when in async mode and packet order matters', ->
+      c = new component.Component
+      c.inPorts.add 'delay', datatype: 'int'
+      c.inPorts.add 'msg', datatype: 'string'
+      c.outPorts.add 'out'
+      delay = new socket.createSocket()
+      msg = new socket.createSocket()
+      out = new socket.createSocket()
+      c.inPorts.delay.attach delay
+      c.inPorts.msg.attach msg
+      c.outPorts.out.attach out
+
+      it 'should preserve input order at the output', (done) ->
+        helpers.GroupedInput c,
+          in: ['delay', 'msg']
+          async: true
+          ordered: true
+          group: false
+        , (data, groups, out, callback) ->
+          setTimeout ->
+            out.send { delay: data.delay, msg: data.msg }
+            callback()
+          , data.delay
+
+        sample = [
+          { delay: 30, msg: "one" }
+          { delay: 0, msg: "two" }
+          { delay: 20, msg: "three" }
+          { delay: 10, msg: "four" }
+        ]
+
+        out.on 'data', (data) ->
+          chai.expect(data).to.deep.equal sample.shift()
+          done() if sample.length is 0
+
+        idx = 0
+        for ip in sample
+          delay.beginGroup idx
+          delay.send ip.delay
+          delay.endGroup()
+          msg.beginGroup idx
+          msg.send ip.msg
+          msg.endGroup()
+          delay.disconnect()
+          msg.disconnect()
+          idx++
+
+      it 'should support complex substreams', (done) ->
+        out.removeAllListeners()
+        helpers.GroupedInput c,
+          in: ['delay', 'msg']
+          async: true
+          ordered: true
+          group: false
+        , (data, groups, out, callback) ->
+          setTimeout ->
+            out.beginGroup groups[0]
+            out.send groups[0]
+            out.beginGroup groups[1]
+            out.send { delay: data.delay, msg: data.msg }
+            out.endGroup()
+            out.send groups[1]
+            out.endGroup()
+            callback()
+          , data.delay
+
+        sample = [
+          { delay: 30, msg: "one" }
+          { delay: 0, msg: "two" }
+          { delay: 20, msg: "three" }
+          { delay: 10, msg: "four" }
+        ]
+
+        expected = [
+          0, 0, 10, sample[0], 10
+          1, 1, 11, sample[1], 11
+          2, 2, 12, sample[2], 12
+          3, 3, 13, sample[3], 13
+        ]
+
+        out.on 'begingroup', (grp) ->
+          chai.expect(grp).to.equal expected.shift()
+        out.on 'data', (data) ->
+          chai.expect(data).to.deep.equal expected.shift()
+        out.on 'disconnect', ->
+          done() if expected.length is 0
+
+        for i in [0..3]
+          delay.beginGroup i
+          delay.beginGroup 10 + i
+          delay.send sample[i].delay
+          delay.endGroup()
+          delay.endGroup()
+          msg.beginGroup i
+          msg.beginGroup 10 + i
+          msg.send sample[i].msg
+          msg.endGroup()
+          msg.endGroup()
+          delay.disconnect()
+          msg.disconnect()
 
     describe 'when grouping by field', ->
       c = new component.Component
