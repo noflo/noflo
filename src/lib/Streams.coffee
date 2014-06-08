@@ -14,20 +14,22 @@ class IP
     return @data
   toObject: ->
     return @data
-  toString: ->
-    return @data.toString()
 
 exports.IP = IP
 
 # Substream contains groups and data packets as a tree structure
 class Substream
-  constructor: (@key, @value) ->
-    @value = [] if @value is undefined
+  constructor: (@key) ->
+    @value = []
   push: (value) ->
     @value.push value
   sendTo: (port) ->
     port.beginGroup @key
-    ip.sendTo port for ip in @value
+    for ip in @value
+      if ip instanceof Substream or ip instanceof IP
+        ip.sendTo port
+      else
+        port.send ip
     port.endGroup()
   getKey: ->
     return @key
@@ -36,24 +38,31 @@ class Substream
       when 0
         return null
       when 1
-        return @value.getValue()
+        if typeof @value[0].getValue is 'function'
+          if @value[0] instanceof Substream
+            obj = {}
+            obj[@value[0].key] = @value[0].getValue()
+            return obj
+          else
+            return @value[0].getValue()
+        else
+          return @value[0]
       else
-        obj = {}
-        i = 0
+        res = []
         hasKeys = false
         for ip in @value
+          val = if typeof ip.getValue is 'function' then ip.getValue() else ip
           if ip instanceof Substream
+            obj = {}
             obj[ip.key] = ip.getValue()
-            hasKeys = true
+            res.push obj
           else
-            obj[i++] = ip.getValue()
-        return if hasKeys then obj else (val for own key, val of obj)
+            res.push val
+        return res
   toObject: ->
     obj = {}
     obj[@key] = @getValue()
     return obj
-  toString: ->
-    return @toObject().toString()
 
 exports.Substream = Substream
 
@@ -61,7 +70,6 @@ exports.Substream = Substream
 # Supports buffering for preordered output.
 class StreamSender
   constructor: (@port, @ordered = false) ->
-    @groupsSent = false
     @q = []
     @resetCurrent()
     @resolved = false
@@ -100,13 +108,68 @@ class StreamSender
       @resolved = true
     else
       @flush()
+    return @
   flush: ->
     # Flush the buffers
-    @port.connect()
-    for ip in @q
-      ip.sendTo @port
-    @port.disconnect()
+    res = false
+    if @q.length > 0
+      @port.connect()
+      for ip in @q
+        ip.sendTo @port
+      @port.disconnect()
+      res = true
     @q = []
-    return @
+    return res
+  isAttached: ->
+    return @port.isAttached()
 
 exports.StreamSender = StreamSender
+
+# StreamReceiver wraps an inport and reads entire
+# substreams as single objects.
+class StreamReceiver
+  constructor: (@port, @buffered = false, @process = null) ->
+    @q = []
+    @resetCurrent()
+    @port.process = (event, payload, index) =>
+      switch event
+        when 'connect'
+          @process 'connect', index if typeof @process is 'function'
+        when 'begingroup'
+          @level++
+          stream = new Substream payload
+          if @level is 1
+            @root = stream
+            @parent = null
+          else
+            @parent = @current
+          @current = stream
+        when 'endgroup'
+          @level-- if @level > 0
+          if @level is 0
+            if @buffered
+              @q.push @root
+              @process 'readable', index
+            else
+              @process 'data', @root, index if typeof @process is 'function'
+            @resetCurrent()
+          else
+            @parent.push @current
+            @current = @parent
+        when 'data'
+          if @level is 0
+            @q.push new IP payload
+          else
+            @current.push new IP payload
+        when 'disconnect'
+          @process 'disconnect', index if typeof @process is 'function'
+  resetCurrent: ->
+    @level = 0
+    @root = null
+    @current = null
+    @parent = null
+  read: ->
+    return undefined if @q.length is 0
+    return @q.shift()
+
+exports.StreamReceiver = StreamReceiver
