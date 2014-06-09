@@ -141,22 +141,18 @@ exports.GroupedInput = (component, config, proc) ->
       return unless flushed
 
   if config.async
-    # Add load outport if missing
-    unless 'load' of component.outPorts
-      component.outPorts.add 'load', datatype: 'int'
-    component.load = 0
-
+    component.load = 0 if 'load' of component.outPorts
     # Create before and after hooks
     component.beforeProcess = (outs) ->
       q.push outs if config.ordered
       component.load++
-      if component.outPorts.load.isAttached()
+      if 'load' of component.outPorts and component.outPorts.load.isAttached()
         component.outPorts.load.send component.load
         component.outPorts.load.disconnect()
     component.afterProcess = (err, outs) ->
       processQueue()
       component.load--
-      if component.outPorts.load.isAttached()
+      if 'load' of component.outPorts and component.outPorts.load.isAttached()
         component.outPorts.load.send component.load
         component.outPorts.load.disconnect()
 
