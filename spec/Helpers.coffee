@@ -616,3 +616,229 @@ describe 'Component traits', ->
           str.send numbers[i]
           str.endGroup i
           str.disconnect()
+
+  describe 'MultiError', ->
+    describe 'with simple sync processes', ->
+      c = new component.Component
+      c.inPorts.add 'form', datatype: 'object', (event, payload) ->
+        return unless event is 'data'
+        # Validate form
+        unless payload.name and payload.name.match /^\w{3,16}$/
+          c.error new helpers.CustomError 'Incorrect name',
+            type: 'form_error'
+            code: 'invalid_name'
+            param: 'name'
+        unless payload.email and payload.email.match /^\w+@\w+\.\w+$/
+          c.error new helpers.CustomError 'Incorrect email',
+            type: 'form_error'
+            code: 'invalid_email'
+            param: 'email'
+        unless payload.accept
+          c.error new helpers.CustomError 'Terms have to be accepted',
+            type: 'form_error'
+            code: 'terms_not_accepted'
+            param: 'accept'
+        # Finish validation
+        return c.fail() if c.hasErrors
+
+        # Emulating some processing logic here
+        if payload.name is 'DelayLama'
+          # oops
+          c.outPorts.saved.send false
+          c.outPorts.saved.disconnect()
+          return c.fail new helpers.CustomError 'Suspended for a meditation',
+            type: 'runtime_error'
+            code: 'delay_lama_detected'
+        else
+          c.outPorts.saved.send true
+          c.outPorts.saved.disconnect()
+
+      c.outPorts.add 'saved', datatype: 'boolean'
+      c.outPorts.add 'error', datatype: 'object'
+      form = new socket.createSocket()
+      saved = new socket.createSocket()
+      err = new socket.createSocket()
+      c.inPorts.form.attach form
+      c.outPorts.saved.attach saved
+      c.outPorts.error.attach err
+      helpers.MultiError c
+
+      it 'should support multiple customized error messages', (done) ->
+        errCount = 0
+        err.on 'data', (data) ->
+          chai.expect(data instanceof helpers.CustomError).to.be.true
+          chai.expect(data.type).to.equal 'form_error'
+          errCount++
+        err.on 'disconnect', ->
+          chai.expect(errCount).to.equal 3
+          done()
+
+        form.send
+          name: 'Bo'
+          email: 'missing'
+        form.disconnect()
+
+      it 'should pass if everything is correct', (done) ->
+        hadData = false
+        saved.removeAllListeners()
+        saved.once 'data', (data) ->
+          chai.expect(data).to.be.true
+          hadData = true
+        saved.once 'disconnect', ->
+          chai.expect(hadData).to.be.true
+          done()
+
+        err.removeAllListeners()
+        err.on 'data', (data) ->
+          done data
+
+        form.send
+          name: 'Josh'
+          email: 'josh@example.com'
+          accept: true
+        form.disconnect()
+
+      it 'should handle fatals and runtimes normally', (done) ->
+        saved.once 'data', (data) ->
+          chai.expect(data).to.be.false
+
+        err.removeAllListeners()
+        errCount = 0
+        err.once 'data', (data) ->
+          chai.expect(data instanceof helpers.CustomError).to.be.true
+          chai.expect(data.type).to.equal 'runtime_error'
+          errCount++
+        err.once 'disconnect', ->
+          chai.expect(errCount).to.equal 1
+          done()
+
+        form.send
+          name: 'DelayLama'
+          email: 'delay@lama.ti'
+          accept: true
+        form.disconnect()
+
+    describe 'with async processes and groups', ->
+      c = new component.Component
+      c.inPorts.add 'form', datatype: 'object'
+      c.outPorts.add 'saved', datatype: 'boolean'
+      c.outPorts.add 'error', datatype: 'object'
+      form = new socket.createSocket()
+      saved = new socket.createSocket()
+      err = new socket.createSocket()
+      c.inPorts.form.attach form
+      c.outPorts.saved.attach saved
+      c.outPorts.error.attach err
+      helpers.GroupedInput c,
+        in: 'form'
+        out: 'saved'
+        async: true
+        forwardGroups: true
+      , (payload, groups, out, callback) ->
+        # Validate form
+        unless payload.name and payload.name.match /^\w{3,16}$/
+          c.error new helpers.CustomError('Incorrect name',
+            type: 'form_error'
+            code: 'invalid_name'
+            param: 'name'
+          ), groups
+        unless payload.email and payload.email.match /^\w+@\w+\.\w+$/
+          c.error new helpers.CustomError('Incorrect email',
+            type: 'form_error'
+            code: 'invalid_email'
+            param: 'email'
+          ), groups
+        unless payload.accept
+          c.error new helpers.CustomError('Terms have to be accepted',
+            type: 'form_error'
+            code: 'terms_not_accepted'
+            param: 'accept'
+          ), groups
+        # Finish validation
+        return callback no if c.hasErrors
+
+        setTimeout ->
+          # Emulating some processing logic here
+          if payload.name is 'DelayLama'
+            # oops
+            out.send false
+            return callback new helpers.CustomError 'Suspended for a meditation',
+              type: 'runtime_error'
+              code: 'delay_lama_detected'
+          else
+            out.send true
+            callback()
+        , 10
+      helpers.MultiError c, 'Registration'
+
+      it 'should support multiple error messages and groups', (done) ->
+        expected = [
+          'Registration'
+          'async0'
+          'async0'
+          'async0'
+        ]
+        actual = []
+        errCount = 0
+        err.on 'begingroup', (grp) ->
+          actual.push grp
+        err.on 'data', (data) ->
+          chai.expect(data instanceof helpers.CustomError).to.be.true
+          chai.expect(data.type).to.equal 'form_error'
+          errCount++
+        err.on 'disconnect', ->
+          chai.expect(errCount).to.equal 3
+          chai.expect(actual).to.deep.equal expected
+          done()
+
+        form.beginGroup 'async0'
+        form.send
+          name: 'Bo'
+          email: 'missing'
+        form.endGroup()
+        form.disconnect()
+
+      it 'should pass if everything is correct', (done) ->
+        hadData = false
+        saved.removeAllListeners()
+        saved.once 'data', (data) ->
+          chai.expect(data).to.be.true
+          hadData = true
+        saved.once 'disconnect', ->
+          chai.expect(hadData).to.be.true
+          done()
+
+        err.removeAllListeners()
+        err.on 'data', (data) ->
+          done data
+
+        form.send
+          name: 'Josh'
+          email: 'josh@example.com'
+          accept: true
+        form.disconnect()
+
+      it 'should handle fatals and runtimes normally', (done) ->
+        saved.once 'data', (data) ->
+          chai.expect(data).to.be.false
+
+        err.removeAllListeners()
+        errCount = 0
+        grpCount = 0
+        err.on 'begingroup', (grp) ->
+          chai.expect(grp).to.equal 'Registration'
+          grpCount++
+        err.once 'data', (data) ->
+          chai.expect(data instanceof helpers.CustomError).to.be.true
+          chai.expect(data.type).to.equal 'runtime_error'
+          errCount++
+        err.once 'disconnect', ->
+          chai.expect(errCount).to.equal 1
+          chai.expect(grpCount).to.equal 1
+          done()
+
+        form.send
+          name: 'DelayLama'
+          email: 'delay@lama.ti'
+          accept: true
+        form.disconnect()

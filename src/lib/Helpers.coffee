@@ -266,3 +266,52 @@ exports.GroupedInput = (component, config, proc) ->
 
   # Make it chainable or usable at the end of getComponent()
   return component
+
+
+# `CustomError` is an error class carrying additional information provided
+# as its constructor argument.
+class CustomError extends Error
+  constructor: (message, options) ->
+    super message
+    for own key, val of options
+      @[key] = val
+
+exports.CustomError = CustomError
+
+
+# `MultiError` simplifies throwing and handling multiple error objects
+# during a single component activation.
+#
+# `group` is an optional group ID which will be used to wrap all error
+# packets emitted by the component.
+exports.MultiError = (component, group = '', errorPort = 'error') ->
+  unless errorPort of component.outPorts
+    throw new Error "Missing error port '#{errorPort}'"
+
+  component.hasErrors = false
+  component.errors = []
+
+  # Override component.error to support group information
+  component.error = (e, groups = []) ->
+    component.errors.push
+      err: e
+      groups: groups
+    component.hasErrors = true
+
+  # Fail method should be called to terminate process immediately
+  # or to flush error packets.
+  component.fail = (e = null, groups = []) ->
+    component.error e, groups if e
+    return unless component.hasErrors
+    component.outPorts[errorPort].beginGroup group if group
+    for error in component.errors
+      component.outPorts[errorPort].beginGroup grp for grp in error.groups
+      component.outPorts[errorPort].send error.err
+      component.outPorts[errorPort].endGroup() for grp in error.groups
+    component.outPorts[errorPort].endGroup() if group
+    component.outPorts[errorPort].disconnect()
+    # Clean the status for next activation
+    component.hasErrors = false
+    component.errors = []
+
+  return component
