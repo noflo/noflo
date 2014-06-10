@@ -62,3 +62,55 @@ describe 'Outport Port', ->
         done() unless expected.length
       p.detach s2
       p.detach s3
+
+  describe 'with caching ports', ->
+    s1 = s2 = s3 = null
+    beforeEach ->
+      s1 = new socket.InternalSocket
+      s2 = new socket.InternalSocket
+      s3 = new socket.InternalSocket
+
+    it 'should repeat the previously sent value on attach event', (done) ->
+      p = new outport
+        caching: true
+
+      s1.once 'data', (data) ->
+        chai.expect(data).to.equal 'foo'
+
+      s2.once 'data', (data) ->
+        chai.expect(data).to.equal 'foo'
+        # Next value should be different
+        s2.once 'data', (data) ->
+          chai.expect(data).to.equal 'bar'
+          done()
+
+      p.attach s1
+      p.send 'foo'
+      p.disconnect()
+
+      p.attach s2
+
+      p.send 'bar'
+      p.disconnect()
+
+
+    it 'should support addressable ports', (done) ->
+      p = new outport
+        addressable: true
+        caching: true
+
+      p.attach s1
+      p.attach s2
+
+      s1.on 'data', ->
+        chai.expect(true).to.equal false
+      s2.on 'data', (data) ->
+        chai.expect(data).to.equal 'some-data'
+      s3.on 'data', (data) ->
+        chai.expect(data).to.equal 'some-data'
+        done()
+
+      p.send 'some-data', 1
+      p.disconnect 1
+      p.detach s2
+      p.attach s3, 1

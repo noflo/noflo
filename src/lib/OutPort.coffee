@@ -6,6 +6,15 @@
 BasePort = require './BasePort'
 
 class OutPort extends BasePort
+  constructor: (options) ->
+    @cache = {}
+    super options
+
+  attach: (socket, index = null) ->
+    super socket, index
+    if @isCaching() and @cache[index]?
+      @send @cache[index], index
+
   connect: (socketId = null) ->
     sockets = @getSockets socketId
     @checkRequired sockets
@@ -26,6 +35,8 @@ class OutPort extends BasePort
   send: (data, socketId = null) ->
     sockets = @getSockets socketId
     @checkRequired sockets
+    if @isCaching() and data isnt @cache[socketId]
+      @cache[socketId] = data
     sockets.forEach (socket) ->
       return unless socket
       return socket.send data if socket.isConnected()
@@ -59,5 +70,9 @@ class OutPort extends BasePort
       return [@sockets[socketId]]
     # Regular sockets affect all outbound connections
     @sockets
+
+  isCaching: ->
+    return true if @options.caching
+    false
 
 module.exports = OutPort
