@@ -3,10 +3,12 @@ if typeof process isnt 'undefined' and process.execPath and process.execPath.ind
   helpers = require '../src/lib/Helpers'
   component = require '../src/lib/Component'
   socket = require '../src/lib/InternalSocket'
+  Substream = require('../src/lib/Streams').Substream
 else
   helpers = require 'noflo/src/lib/Helpers'
   component = require 'noflo/src/lib/Component'
   socket = require 'noflo/src/lib/InternalSocket'
+  Substream = require('noflo/src/lib/Streams').Substream
 
 describe 'Component traits', ->
   describe 'MapComponent', ->
@@ -99,7 +101,9 @@ describe 'Component traits', ->
           in: ['x', 'y', 'z']
           out: 'point'
           group: true
+          forwardGroups: true
         , (data, groups, out) ->
+          chai.expect(groups.length).to.be.above 0
           chai.expect(data).to.deep.equal src[groups[0]]
           out.send data
 
@@ -170,6 +174,7 @@ describe 'Component traits', ->
           in: ['x', 'y', 'z']
           out: 'point'
           group: true
+          forwardGroups: true
         , (data, groups, out) ->
           out.send {x: data.x, y: data.y, z: data.z}
 
@@ -211,6 +216,7 @@ describe 'Component traits', ->
           out: 'point'
           async: true
           group: true
+          forwardGroups: true
         , (data, groups, out, callback) ->
           setTimeout ->
             out.send {x: data.x, y: data.y, z: data.z}
@@ -219,14 +225,17 @@ describe 'Component traits', ->
 
         p.removeAllListeners()
         counter = 0
+        hadData = false
         p.on 'begingroup', (grp) ->
           counter++
         p.on 'endgroup', ->
           counter--
         p.once 'data', (data) ->
           chai.expect(data).to.deep.equal point
+          hadData = true
         p.once 'disconnect', ->
           chai.expect(counter).to.equal 0
+          chai.expect(hadData).to.be.true
           done()
 
         x.beginGroup 'async'
@@ -238,8 +247,11 @@ describe 'Component traits', ->
         x.endGroup()
         y.endGroup()
         z.endGroup()
+        x.disconnect()
+        y.disconnect()
+        z.disconnect()
 
-      it 'should not forward groups if grouping is off', (done) ->
+      it 'should not forward groups if forwarding is off', (done) ->
         point =
           x: 123
           y: 456
@@ -251,12 +263,15 @@ describe 'Component traits', ->
 
         p.removeAllListeners()
         counter = 0
+        hadData = false
         p.on 'begingroup', (grp) ->
           counter++
         p.on 'data', (data) ->
           chai.expect(data).to.deep.equal point
+          hadData = true
         p.once 'disconnect', ->
           chai.expect(counter).to.equal 0
+          chai.expect(hadData).to.be.true
           done()
 
         x.beginGroup 'doNotForwardMe'
@@ -265,6 +280,8 @@ describe 'Component traits', ->
         y.send point.y
         x.endGroup()
         y.endGroup()
+        x.disconnect()
+        y.disconnect()
 
       it 'should forward groups from a specific port only', (done) ->
         point =
@@ -298,6 +315,9 @@ describe 'Component traits', ->
         x.endGroup()
         y.endGroup()
         z.endGroup()
+        x.disconnect()
+        y.disconnect()
+        z.disconnect()
 
       it 'should forward groups from selected ports only', (done) ->
         point =
@@ -331,18 +351,24 @@ describe 'Component traits', ->
         x.endGroup()
         y.endGroup()
         z.endGroup()
+        x.disconnect()
+        y.disconnect()
+        z.disconnect()
 
     describe 'when in async mode and packet order matters', ->
       c = new component.Component
       c.inPorts.add 'delay', datatype: 'int'
       c.inPorts.add 'msg', datatype: 'string'
-      c.outPorts.add 'out'
+      c.outPorts.add 'out', datatype: 'object'
+      c.outPorts.add 'load', datatype: 'int'
       delay = new socket.createSocket()
       msg = new socket.createSocket()
       out = new socket.createSocket()
+      load = new socket.createSocket()
       c.inPorts.delay.attach delay
       c.inPorts.msg.attach msg
       c.outPorts.out.attach out
+      c.outPorts.load.attach load
 
       it 'should preserve input order at the output', (done) ->
         helpers.GroupedInput c,
@@ -350,9 +376,9 @@ describe 'Component traits', ->
           async: true
           ordered: true
           group: false
-        , (data, groups, out, callback) ->
+        , (data, groups, res, callback) ->
           setTimeout ->
-            out.send { delay: data.delay, msg: data.msg }
+            res.send { delay: data.delay, msg: data.msg }
             callback()
           , data.delay
 
@@ -365,7 +391,12 @@ describe 'Component traits', ->
 
         out.on 'data', (data) ->
           chai.expect(data).to.deep.equal sample.shift()
+        out.on 'disconnect', ->
           done() if sample.length is 0
+
+        expected = [1, 2, 3, 4, 3, 2, 1, 0]
+        load.on 'data', (data) ->
+          chai.expect(data).to.equal expected.shift()
 
         idx = 0
         for ip in sample
@@ -381,20 +412,48 @@ describe 'Component traits', ->
 
       it 'should support complex substreams', (done) ->
         out.removeAllListeners()
+        load.removeAllListeners()
+        c.cntr = 0
         helpers.GroupedInput c,
           in: ['delay', 'msg']
           async: true
           ordered: true
           group: false
-        , (data, groups, out, callback) ->
+          receiveStreams: ['delay', 'msg']
+        , (data, groups, res, callback) ->
+          # Substream to object conversion validation
+          # (the hard way)
+          chai.expect(data.delay instanceof Substream).to.be.true
+          chai.expect(data.msg instanceof Substream).to.be.true
+          delayObj = data.delay.toObject()
+          msgObj = data.msg.toObject()
+          index0 = c.cntr.toString()
+          chai.expect(Object.keys(delayObj)[0]).to.equal index0
+          chai.expect(Object.keys(msgObj)[0]).to.equal index0
+          subDelay = delayObj[index0]
+          subMsg = msgObj[index0]
+          index1 = (10 + c.cntr).toString()
+          chai.expect(Object.keys(subDelay)[0]).to.equal index1
+          chai.expect(Object.keys(subMsg)[0]).to.equal index1
+          delayData = subDelay[index1]
+          msgData = subMsg[index1]
+          chai.expect(delayData).to.equal sample[c.cntr].delay
+          chai.expect(msgData).to.equal sample[c.cntr].msg
+          c.cntr++
+
           setTimeout ->
-            out.beginGroup groups[0]
-            out.send groups[0]
-            out.beginGroup groups[1]
-            out.send { delay: data.delay, msg: data.msg }
-            out.endGroup()
-            out.send groups[1]
-            out.endGroup()
+            # Substream tree traversal (the easy way)
+            for k0, v0 of msgObj
+              res.beginGroup k0
+              res.send k0
+              for k1, v1 of v0
+                res.beginGroup k1
+                res.send
+                  delay: delayObj[k0][k1]
+                  msg: msgObj[k0][k1]
+                res.endGroup()
+                res.send k1
+              res.endGroup()
             callback()
           , data.delay
 
@@ -406,10 +465,10 @@ describe 'Component traits', ->
         ]
 
         expected = [
-          0, 0, 10, sample[0], 10
-          1, 1, 11, sample[1], 11
-          2, 2, 12, sample[2], 12
-          3, 3, 13, sample[3], 13
+          '0', '0', '10', sample[0], '10'
+          '1', '1', '11', sample[1], '11'
+          '2', '2', '12', sample[2], '12'
+          '3', '3', '13', sample[3], '13'
         ]
 
         out.on 'begingroup', (grp) ->
@@ -483,9 +542,303 @@ describe 'Component traits', ->
           do (req, user) ->
             setTimeout ->
               usr.send user
+              usr.disconnect()
             , req
         for req, mesg of messages
           do (req, mesg) ->
             setTimeout ->
               msg.send mesg
+              msg.disconnect()
             , req
+
+    describe 'when there are multiple output routes', ->
+      c = new component.Component
+      c.inPorts.add 'num', datatype: 'int'
+      c.inPorts.add 'str', datatype: 'string'
+      c.outPorts.add 'odd', datatype: 'object'
+      c.outPorts.add 'even', datatype: 'object'
+      num = new socket.createSocket()
+      str = new socket.createSocket()
+      odd = new socket.createSocket()
+      even = new socket.createSocket()
+      c.inPorts.num.attach num
+      c.inPorts.str.attach str
+      c.outPorts.odd.attach odd
+      c.outPorts.even.attach even
+
+      it 'should send output to one or more of them', (done) ->
+        numbers = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve']
+
+        helpers.GroupedInput c,
+          in: ['num', 'str']
+          out: ['odd', 'even']
+          async: true
+          ordered: true
+        , (data, groups, outs, callback) ->
+          setTimeout ->
+            if data.num % 2 is 1
+              outs.odd.beginGroup grp for grp in groups
+              outs.odd.send data
+              outs.odd.endGroup() for grp in groups
+            else
+              outs.even.beginGroup grp for grp in groups
+              outs.even.send data
+              outs.even.endGroup() for grp in groups
+            callback()
+          , 0
+
+        grpCounter = 0
+        dataCounter = 0
+
+        odd.on 'begingroup', (grp) ->
+          grpCounter++
+        odd.on 'data', (data) ->
+          chai.expect(data.num % 2).to.equal 1
+          dataCounter++
+        odd.on 'disconnect', ->
+          done() if dataCounter is 10 and grpCounter is 10
+
+        even.on 'begingroup', (grp) ->
+          grpCounter++
+        even.on 'data', (data) ->
+          chai.expect(data.num % 2).to.equal 0
+          chai.expect(data.str).to.equal numbers[data.num]
+          dataCounter++
+        even.on 'disconnect', ->
+          done() if dataCounter is 10 and grpCounter is 10
+
+        for i in [0...10]
+          num.beginGroup i
+          num.send i
+          num.endGroup i
+          num.disconnect()
+          str.beginGroup i
+          str.send numbers[i]
+          str.endGroup i
+          str.disconnect()
+
+  describe 'MultiError', ->
+    describe 'with simple sync processes', ->
+      c = new component.Component
+      c.inPorts.add 'form', datatype: 'object', (event, payload) ->
+        return unless event is 'data'
+        # Validate form
+        unless payload.name and payload.name.match /^\w{3,16}$/
+          c.error new helpers.CustomError 'Incorrect name',
+            type: 'form_error'
+            code: 'invalid_name'
+            param: 'name'
+        unless payload.email and payload.email.match /^\w+@\w+\.\w+$/
+          c.error new helpers.CustomError 'Incorrect email',
+            type: 'form_error'
+            code: 'invalid_email'
+            param: 'email'
+        unless payload.accept
+          c.error new helpers.CustomError 'Terms have to be accepted',
+            type: 'form_error'
+            code: 'terms_not_accepted'
+            param: 'accept'
+        # Finish validation
+        return c.fail() if c.hasErrors
+
+        # Emulating some processing logic here
+        if payload.name is 'DelayLama'
+          # oops
+          c.outPorts.saved.send false
+          c.outPorts.saved.disconnect()
+          return c.fail new helpers.CustomError 'Suspended for a meditation',
+            type: 'runtime_error'
+            code: 'delay_lama_detected'
+        else
+          c.outPorts.saved.send true
+          c.outPorts.saved.disconnect()
+
+      c.outPorts.add 'saved', datatype: 'boolean'
+      c.outPorts.add 'error', datatype: 'object'
+      form = new socket.createSocket()
+      saved = new socket.createSocket()
+      err = new socket.createSocket()
+      c.inPorts.form.attach form
+      c.outPorts.saved.attach saved
+      c.outPorts.error.attach err
+      helpers.MultiError c
+
+      it 'should support multiple customized error messages', (done) ->
+        errCount = 0
+        err.on 'data', (data) ->
+          chai.expect(data instanceof helpers.CustomError).to.be.true
+          chai.expect(data.type).to.equal 'form_error'
+          errCount++
+        err.on 'disconnect', ->
+          chai.expect(errCount).to.equal 3
+          done()
+
+        form.send
+          name: 'Bo'
+          email: 'missing'
+        form.disconnect()
+
+      it 'should pass if everything is correct', (done) ->
+        hadData = false
+        saved.removeAllListeners()
+        saved.once 'data', (data) ->
+          chai.expect(data).to.be.true
+          hadData = true
+        saved.once 'disconnect', ->
+          chai.expect(hadData).to.be.true
+          done()
+
+        err.removeAllListeners()
+        err.on 'data', (data) ->
+          done data
+
+        form.send
+          name: 'Josh'
+          email: 'josh@example.com'
+          accept: true
+        form.disconnect()
+
+      it 'should handle fatals and runtimes normally', (done) ->
+        saved.once 'data', (data) ->
+          chai.expect(data).to.be.false
+
+        err.removeAllListeners()
+        errCount = 0
+        err.once 'data', (data) ->
+          chai.expect(data instanceof helpers.CustomError).to.be.true
+          chai.expect(data.type).to.equal 'runtime_error'
+          errCount++
+        err.once 'disconnect', ->
+          chai.expect(errCount).to.equal 1
+          done()
+
+        form.send
+          name: 'DelayLama'
+          email: 'delay@lama.ti'
+          accept: true
+        form.disconnect()
+
+    describe 'with async processes and groups', ->
+      c = new component.Component
+      c.inPorts.add 'form', datatype: 'object'
+      c.outPorts.add 'saved', datatype: 'boolean'
+      c.outPorts.add 'error', datatype: 'object'
+      form = new socket.createSocket()
+      saved = new socket.createSocket()
+      err = new socket.createSocket()
+      c.inPorts.form.attach form
+      c.outPorts.saved.attach saved
+      c.outPorts.error.attach err
+      helpers.GroupedInput c,
+        in: 'form'
+        out: 'saved'
+        async: true
+        forwardGroups: true
+      , (payload, groups, out, callback) ->
+        # Validate form
+        unless payload.name and payload.name.match /^\w{3,16}$/
+          c.error new helpers.CustomError('Incorrect name',
+            type: 'form_error'
+            code: 'invalid_name'
+            param: 'name'
+          ), groups
+        unless payload.email and payload.email.match /^\w+@\w+\.\w+$/
+          c.error new helpers.CustomError('Incorrect email',
+            type: 'form_error'
+            code: 'invalid_email'
+            param: 'email'
+          ), groups
+        unless payload.accept
+          c.error new helpers.CustomError('Terms have to be accepted',
+            type: 'form_error'
+            code: 'terms_not_accepted'
+            param: 'accept'
+          ), groups
+        # Finish validation
+        return callback no if c.hasErrors
+
+        setTimeout ->
+          # Emulating some processing logic here
+          if payload.name is 'DelayLama'
+            # oops
+            out.send false
+            return callback new helpers.CustomError 'Suspended for a meditation',
+              type: 'runtime_error'
+              code: 'delay_lama_detected'
+          else
+            out.send true
+            callback()
+        , 10
+      helpers.MultiError c, 'Registration'
+
+      it 'should support multiple error messages and groups', (done) ->
+        expected = [
+          'Registration'
+          'async0'
+          'async0'
+          'async0'
+        ]
+        actual = []
+        errCount = 0
+        err.on 'begingroup', (grp) ->
+          actual.push grp
+        err.on 'data', (data) ->
+          chai.expect(data instanceof helpers.CustomError).to.be.true
+          chai.expect(data.type).to.equal 'form_error'
+          errCount++
+        err.on 'disconnect', ->
+          chai.expect(errCount).to.equal 3
+          chai.expect(actual).to.deep.equal expected
+          done()
+
+        form.beginGroup 'async0'
+        form.send
+          name: 'Bo'
+          email: 'missing'
+        form.endGroup()
+        form.disconnect()
+
+      it 'should pass if everything is correct', (done) ->
+        hadData = false
+        saved.removeAllListeners()
+        saved.once 'data', (data) ->
+          chai.expect(data).to.be.true
+          hadData = true
+        saved.once 'disconnect', ->
+          chai.expect(hadData).to.be.true
+          done()
+
+        err.removeAllListeners()
+        err.on 'data', (data) ->
+          done data
+
+        form.send
+          name: 'Josh'
+          email: 'josh@example.com'
+          accept: true
+        form.disconnect()
+
+      it 'should handle fatals and runtimes normally', (done) ->
+        saved.once 'data', (data) ->
+          chai.expect(data).to.be.false
+
+        err.removeAllListeners()
+        errCount = 0
+        grpCount = 0
+        err.on 'begingroup', (grp) ->
+          chai.expect(grp).to.equal 'Registration'
+          grpCount++
+        err.once 'data', (data) ->
+          chai.expect(data instanceof helpers.CustomError).to.be.true
+          chai.expect(data.type).to.equal 'runtime_error'
+          errCount++
+        err.once 'disconnect', ->
+          chai.expect(errCount).to.equal 1
+          chai.expect(grpCount).to.equal 1
+          done()
+
+        form.send
+          name: 'DelayLama'
+          email: 'delay@lama.ti'
+          accept: true
+        form.disconnect()
