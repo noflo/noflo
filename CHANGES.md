@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.5.4 (git master)
+## 0.5.4 (June 11th 2014)
 
 * The new [noflo-api-updater](https://www.npmjs.org/package/noflo-api-updater) tool assists in updating components to the latest NoFlo API
 * `GroupedInput` helper has been renamed to `WirePattern` due to a bigger collection of synchronization options.
