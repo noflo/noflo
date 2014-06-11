@@ -70,7 +70,7 @@ describe 'Component traits', ->
       s.endGroup()
       s.disconnect()
 
-  describe 'GroupedInput', ->
+  describe 'WirePattern', ->
     describe 'when grouping by packet groups', ->
       c = new component.Component
       c.inPorts.add 'x',
@@ -97,7 +97,7 @@ describe 'Component traits', ->
           111: {x: 1, y: 2, z: 3}
           222: {x: 4, y: 5, z: 6}
           333: {x: 7, y: 8, z: 9}
-        helpers.GroupedInput c,
+        helpers.WirePattern c,
           in: ['x', 'y', 'z']
           out: 'point'
           group: true
@@ -134,7 +134,7 @@ describe 'Component traits', ->
 
       it 'should work without a group provided', (done) ->
         p.removeAllListeners()
-        helpers.GroupedInput c,
+        helpers.WirePattern c,
           in: ['x', 'y', 'z']
           out: 'point'
         , (data, groups, out) ->
@@ -170,7 +170,7 @@ describe 'Component traits', ->
         ]
         outOrder = [ 2, 1, 3 ]
 
-        helpers.GroupedInput c,
+        helpers.WirePattern c,
           in: ['x', 'y', 'z']
           out: 'point'
           group: true
@@ -211,7 +211,7 @@ describe 'Component traits', ->
           y: 456
           z: 789
 
-        helpers.GroupedInput c,
+        helpers.WirePattern c,
           in: ['x', 'y', 'z']
           out: 'point'
           async: true
@@ -255,7 +255,7 @@ describe 'Component traits', ->
         point =
           x: 123
           y: 456
-        helpers.GroupedInput c,
+        helpers.WirePattern c,
           in: ['x', 'y']
           out: 'point'
         , (data, groups, out) ->
@@ -289,7 +289,7 @@ describe 'Component traits', ->
           y: 456
           z: 789
         refGroups = ['boo']
-        helpers.GroupedInput c,
+        helpers.WirePattern c,
           in: ['x', 'y', 'z']
           out: 'point'
           forwardGroups: 'y'
@@ -325,7 +325,7 @@ describe 'Component traits', ->
           y: 456
           z: 789
         refGroups = ['foo', 'bar']
-        helpers.GroupedInput c,
+        helpers.WirePattern c,
           in: ['x', 'y', 'z']
           out: 'point'
           forwardGroups: [ 'x', 'z' ]
@@ -371,7 +371,7 @@ describe 'Component traits', ->
       c.outPorts.load.attach load
 
       it 'should preserve input order at the output', (done) ->
-        helpers.GroupedInput c,
+        helpers.WirePattern c,
           in: ['delay', 'msg']
           async: true
           ordered: true
@@ -414,7 +414,7 @@ describe 'Component traits', ->
         out.removeAllListeners()
         load.removeAllListeners()
         c.cntr = 0
-        helpers.GroupedInput c,
+        helpers.WirePattern c,
           in: ['delay', 'msg']
           async: true
           ordered: true
@@ -505,7 +505,7 @@ describe 'Component traits', ->
       c.outPorts.signedMessage.attach umsg
 
       it 'should match objects by specific field', (done) ->
-        helpers.GroupedInput c,
+        helpers.WirePattern c,
           in: ['user', 'message']
           out: 'signedMessage'
           async: true
@@ -569,7 +569,7 @@ describe 'Component traits', ->
       it 'should send output to one or more of them', (done) ->
         numbers = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve']
 
-        helpers.GroupedInput c,
+        helpers.WirePattern c,
           in: ['num', 'str']
           out: ['odd', 'even']
           async: true
@@ -729,7 +729,7 @@ describe 'Component traits', ->
       c.inPorts.form.attach form
       c.outPorts.saved.attach saved
       c.outPorts.error.attach err
-      helpers.GroupedInput c,
+      helpers.WirePattern c,
         in: 'form'
         out: 'saved'
         async: true

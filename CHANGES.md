@@ -4,12 +4,13 @@ NoFlo ChangeLog
 ## 0.5.4 (git master)
 
 * The new [noflo-api-updater](https://www.npmjs.org/package/noflo-api-updater) tool assists in updating components to the latest NoFlo API
-* The `GroupedInput` helper has a new `ordered` option for choosing whether the output should be in same order as the incoming packets
-* Options `group` and `forwardGroups` of `GroupedInput` are made independent, so make sure to use `forwardGroups: true` if you need this feature together with `group: true`.
-* Added support for multiple outputs and reading/writing substreams as solid objects in `GroupedInput`.
-* Added `load` outport handing in `GroupedInput` to make it a complete replacement for `AsyncComponent`.
+* `GroupedInput` helper has been renamed to `WirePattern` due to a bigger collection of synchronization options.
+* The `WirePattern` helper has a new `ordered` option for choosing whether the output should be in same order as the incoming packets
+* Options `group` and `forwardGroups` of `WirePattern` are made independent, so make sure to use `forwardGroups: true` if you need this feature together with `group: true`.
+* Added support for multiple outputs and reading/writing substreams as solid objects in `WirePattern`.
+* Added `load` outport handing in `WirePattern` to make it a complete replacement for `AsyncComponent`.
 * Added helpers for advanced error handling, see [#185](https://github.com/noflo/noflo/issues/185).
-* Added `caching` option for OutPorts that makes them re-send their latest value to any newly-added connections
+* Added `caching` option for OutPorts that makes them re-send their latest value to any newly-added connections, see [#151](https://github.com/noflo/noflo/issues/151) for example use cases.
 
 ## 0.5.3 (May 31st 2014)
 
