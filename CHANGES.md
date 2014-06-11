@@ -9,6 +9,7 @@ NoFlo ChangeLog
 * Added support for multiple outputs and reading/writing substreams as solid objects in `GroupedInput`.
 * Added `load` outport handing in `GroupedInput` to make it a complete replacement for `AsyncComponent`.
 * Added helpers for advanced error handling, see [#185](https://github.com/noflo/noflo/issues/185).
+* Added `caching` option for OutPorts that makes them re-send their latest value to any newly-added connections
 
 ## 0.5.3 (May 31st 2014)
 
