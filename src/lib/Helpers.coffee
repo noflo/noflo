@@ -29,7 +29,7 @@ exports.MapComponent = (component, func, config) ->
         groups = []
         outPort.disconnect()
 
-# GroupedInput makes your component collect data from several inports
+# WirePattern makes your component collect data from several inports
 # and activates a handler `proc` only when a tuple from all of these
 # ports is complete. The signature of handler function is:
 # ```
@@ -62,14 +62,14 @@ exports.MapComponent = (component, func, config) ->
 # doing asynchronous processing. In fact, `sendStreams` is enabled by default
 # on all outports when `config.async` is `true`.
 #
-# GroupedInput supports both sync and async `proc` handlers. In latter case
+# WirePattern supports both sync and async `proc` handlers. In latter case
 # pass `config.async = true` and make sure that `proc` accepts callback as
 # 4th parameter and calls it when async operation completes or fails.
 #
-# GroupedInput sends group packets, sends data packets emitted by `proc`
+# WirePattern sends group packets, sends data packets emitted by `proc`
 # via its `outputPort` argument, then closes groups and disconnects
 # automatically.
-exports.GroupedInput = (component, config, proc) ->
+exports.WirePattern = (component, config, proc) ->
   # In ports
   inPorts = if 'in' of config then config.in else 'in'
   inPorts = [ inPorts ] unless inPorts instanceof Array
@@ -266,6 +266,9 @@ exports.GroupedInput = (component, config, proc) ->
 
   # Make it chainable or usable at the end of getComponent()
   return component
+
+# Alias for compatibility with 0.5.3
+exports.GroupedInput = exports.WirePattern
 
 
 # `CustomError` is an error class carrying additional information provided
