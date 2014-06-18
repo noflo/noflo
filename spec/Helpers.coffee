@@ -624,18 +624,18 @@ describe 'Component traits', ->
         return unless event is 'data'
         # Validate form
         unless payload.name and payload.name.match /^\w{3,16}$/
-          c.error new helpers.CustomError 'Incorrect name',
-            type: 'form_error'
+          c.error helpers.CustomError 'Incorrect name',
+            kind: 'form_error'
             code: 'invalid_name'
             param: 'name'
         unless payload.email and payload.email.match /^\w+@\w+\.\w+$/
-          c.error new helpers.CustomError 'Incorrect email',
-            type: 'form_error'
+          c.error helpers.CustomError 'Incorrect email',
+            kind: 'form_error'
             code: 'invalid_email'
             param: 'email'
         unless payload.accept
-          c.error new helpers.CustomError 'Terms have to be accepted',
-            type: 'form_error'
+          c.error helpers.CustomError 'Terms have to be accepted',
+            kind: 'form_error'
             code: 'terms_not_accepted'
             param: 'accept'
         # Finish validation
@@ -646,8 +646,8 @@ describe 'Component traits', ->
           # oops
           c.outPorts.saved.send false
           c.outPorts.saved.disconnect()
-          return c.fail new helpers.CustomError 'Suspended for a meditation',
-            type: 'runtime_error'
+          return c.fail helpers.CustomError 'Suspended for a meditation',
+            kind: 'runtime_error'
             code: 'delay_lama_detected'
         else
           c.outPorts.saved.send true
@@ -666,8 +666,8 @@ describe 'Component traits', ->
       it 'should support multiple customized error messages', (done) ->
         errCount = 0
         err.on 'data', (data) ->
-          chai.expect(data instanceof helpers.CustomError).to.be.true
-          chai.expect(data.type).to.equal 'form_error'
+          chai.expect(data instanceof Error).to.be.true
+          chai.expect(data.kind).to.equal 'form_error'
           errCount++
         err.on 'disconnect', ->
           chai.expect(errCount).to.equal 3
@@ -705,8 +705,8 @@ describe 'Component traits', ->
         err.removeAllListeners()
         errCount = 0
         err.once 'data', (data) ->
-          chai.expect(data instanceof helpers.CustomError).to.be.true
-          chai.expect(data.type).to.equal 'runtime_error'
+          chai.expect(data instanceof Error).to.be.true
+          chai.expect(data.kind).to.equal 'runtime_error'
           errCount++
         err.once 'disconnect', ->
           chai.expect(errCount).to.equal 1
@@ -737,20 +737,20 @@ describe 'Component traits', ->
       , (payload, groups, out, callback) ->
         # Validate form
         unless payload.name and payload.name.match /^\w{3,16}$/
-          c.error new helpers.CustomError('Incorrect name',
-            type: 'form_error'
+          c.error helpers.CustomError('Incorrect name',
+            kind: 'form_error'
             code: 'invalid_name'
             param: 'name'
           ), groups
         unless payload.email and payload.email.match /^\w+@\w+\.\w+$/
-          c.error new helpers.CustomError('Incorrect email',
-            type: 'form_error'
+          c.error helpers.CustomError('Incorrect email',
+            kind: 'form_error'
             code: 'invalid_email'
             param: 'email'
           ), groups
         unless payload.accept
-          c.error new helpers.CustomError('Terms have to be accepted',
-            type: 'form_error'
+          c.error helpers.CustomError('Terms have to be accepted',
+            kind: 'form_error'
             code: 'terms_not_accepted'
             param: 'accept'
           ), groups
@@ -762,8 +762,8 @@ describe 'Component traits', ->
           if payload.name is 'DelayLama'
             # oops
             out.send false
-            return callback new helpers.CustomError 'Suspended for a meditation',
-              type: 'runtime_error'
+            return callback helpers.CustomError 'Suspended for a meditation',
+              kind: 'runtime_error'
               code: 'delay_lama_detected'
           else
             out.send true
@@ -783,8 +783,8 @@ describe 'Component traits', ->
         err.on 'begingroup', (grp) ->
           actual.push grp
         err.on 'data', (data) ->
-          chai.expect(data instanceof helpers.CustomError).to.be.true
-          chai.expect(data.type).to.equal 'form_error'
+          chai.expect(data instanceof Error).to.be.true
+          chai.expect(data.kind).to.equal 'form_error'
           errCount++
         err.on 'disconnect', ->
           chai.expect(errCount).to.equal 3
@@ -829,8 +829,8 @@ describe 'Component traits', ->
           chai.expect(grp).to.equal 'Registration'
           grpCount++
         err.once 'data', (data) ->
-          chai.expect(data instanceof helpers.CustomError).to.be.true
-          chai.expect(data.type).to.equal 'runtime_error'
+          chai.expect(data instanceof Error).to.be.true
+          chai.expect(data.kind).to.equal 'runtime_error'
           errCount++
         err.once 'disconnect', ->
           chai.expect(errCount).to.equal 1
