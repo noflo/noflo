@@ -271,15 +271,16 @@ exports.WirePattern = (component, config, proc) ->
 exports.GroupedInput = exports.WirePattern
 
 
-# `CustomError` is an error class carrying additional information provided
-# as its constructor argument.
-class CustomError extends Error
-  constructor: (message, options) ->
-    super message
-    for own key, val of options
-      @[key] = val
+# `CustomError` returns an `Error` object carrying additional properties.
+exports.CustomError = (message, options) ->
+  err = new Error message
+  return exports.CustomizeError err, options
 
-exports.CustomError = CustomError
+# `CustomizeError` sets additional options for an `Error` object.
+exports.CustomizeError = (err, options) ->
+  for own key, val of options
+    err[key] = val
+  return err
 
 
 # `MultiError` simplifies throwing and handling multiple error objects
