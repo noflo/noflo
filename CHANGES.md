@@ -1,6 +1,23 @@
 NoFlo ChangeLog
 ===============
 
+## 0.5.5 (git master)
+
+* New `CustomizeError` helper for passing information with Error objects in NoFlo. For example:
+
+```coffeescript
+# Instantiate an error object
+err = new Error 'Something went wrong'
+
+# Add metadata to it. Usually this should include groups and other machine-readable information
+noflo.helpers.CustomizeError err,
+  groups: groups
+  foo: 'bar'
+
+# Send it to error port
+c.error err
+```
+
 ## 0.5.4 (June 11th 2014)
 
 * The new [noflo-api-updater](https://www.npmjs.org/package/noflo-api-updater) tool assists in updating components to the latest NoFlo API
