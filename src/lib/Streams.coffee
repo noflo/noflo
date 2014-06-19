@@ -75,27 +75,24 @@ class StreamSender
     @resolved = false
   resetCurrent: ->
     @level = 0
-    @root = null
     @current = null
-    @parent = null
+    @stack = []
   beginGroup: (group) ->
     @level++
     stream = new Substream group
-    if @level is 1
-      @root = stream
-      @parent = null
-    else
-      @parent = @current
+    @stack.push stream
     @current = stream
     return @
   endGroup: ->
     @level-- if @level > 0
+    value = @stack.pop()
     if @level is 0
-      @q.push @root
+      @q.push value
       @resetCurrent()
     else
-      @parent.push @current
-      @current = @parent
+      parent = @stack[@stack.length - 1]
+      parent.push value
+      @current = parent
     return @
   send: (data) ->
     if @level is 0
