@@ -1,8 +1,9 @@
 NoFlo ChangeLog
 ===============
 
-## 0.5.5 (git master)
+## 0.5.5 (June 20th 2014)
 
+* Fixed an issue with `StreamSender` affecting WirePattern components dealing with multiple levels of grouping
 * New `CustomizeError` helper for passing information with Error objects in NoFlo. For example:
 
 ```coffeescript
