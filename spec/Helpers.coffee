@@ -617,6 +617,106 @@ describe 'Component traits', ->
           str.endGroup i
           str.disconnect()
 
+    describe 'when there are parameter ports', ->
+      c = null
+      p1 = p2 = d1 = d2 = out = err = 0
+      beforeEach ->
+        c = new component.Component
+        c.inPorts.add 'param1',
+          datatype: 'string'
+          required: true
+        c.inPorts.add 'param2',
+          datatype: 'int'
+          required: false
+        c.inPorts.add 'data1',
+          datatype: 'string'
+        c.inPorts.add 'data2',
+          datatype: 'int'
+        c.outPorts.add 'out',
+          datatype: 'object'
+        c.outPorts.add 'error',
+          datatype: 'object'
+        p1 = new socket.createSocket()
+        p2 = new socket.createSocket()
+        d1 = new socket.createSocket()
+        d2 = new socket.createSocket()
+        out = new socket.createSocket()
+        err = new socket.createSocket()
+        c.inPorts.param1.attach p1
+        c.inPorts.param2.attach p2
+        c.inPorts.data1.attach d1
+        c.inPorts.data2.attach d2
+        c.outPorts.out.attach out
+        c.outPorts.error.attach err
+
+      it 'should wait for required params', (done) ->
+        helpers.WirePattern c,
+          in: ['data1', 'data2']
+          out: 'out'
+          params: ['param1', 'param2']
+        , (input, groups, out) ->
+          res =
+            p1: c.params.param1
+            p2: c.params.param2
+            d1: input.data1
+            d2: input.data2
+          out.send res
+
+        out.once 'data', (data) ->
+          chai.expect(data).to.be.an 'object'
+          chai.expect(data.p1).to.equal 'req'
+          chai.expect(data.p2).to.be.undefined
+          chai.expect(data.d1).to.equal 'foo'
+          chai.expect(data.d2).to.equal 123
+          # And later when second param arrives
+          out.once 'data', (data) ->
+            chai.expect(data).to.be.an 'object'
+            chai.expect(data.p1).to.equal 'req'
+            chai.expect(data.p2).to.equal 568
+            chai.expect(data.d1).to.equal 'bar'
+            chai.expect(data.d2).to.equal 456
+            done()
+
+        d1.send 'foo'
+        d2.send 123
+        p1.send 'req'
+        # the handler should be triggered here
+        p2.send 568
+
+        d1.send 'bar'
+        d2.send 456
+
+      it 'should work for async procs too', (done) ->
+        helpers.WirePattern c,
+          in: ['data1', 'data2']
+          out: 'out'
+          params: ['param1', 'param2']
+        , (input, groups, out) ->
+          delay = if c.params.param2 then c.params.param2 else 10
+          setTimeout ->
+            res =
+              p1: c.params.param1
+              p2: c.params.param2
+              d1: input.data1
+              d2: input.data2
+            out.send res
+          , delay
+
+        out.once 'data', (data) ->
+          chai.expect(data).to.be.an 'object'
+          chai.expect(data.p1).to.equal 'req'
+          chai.expect(data.p2).to.equal 56
+          chai.expect(data.d1).to.equal 'foo'
+          chai.expect(data.d2).to.equal 123
+          done()
+
+        p2.send 56
+        d1.send 'foo'
+        d2.send 123
+        p1.send 'req'
+        # the handler should be triggered here
+
+
   describe 'MultiError', ->
     describe 'with simple sync processes', ->
       c = new component.Component
