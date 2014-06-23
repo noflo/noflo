@@ -50,7 +50,8 @@ class Graph extends noflo.Component
 
   createNetwork: (graph) ->
     @description = graph.properties.description or ''
-
+    @icon = graph.properties.icon or @icon
+    
     graph.componentLoader = @loader
 
     noflo.createNetwork graph, (@network) =>
