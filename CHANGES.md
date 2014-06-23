@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.5.6 (git master)
+## 0.5.6 (June 23rd 2014)
 
 * Custom icon support for subgraphs via the `icon` key in graph properties
 * Parameter support for `WirePattern` components, allowing them to have configuration parameters that need to be set only once. Example:
