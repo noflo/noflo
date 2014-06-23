@@ -1,6 +1,42 @@
 NoFlo ChangeLog
 ===============
 
+## 0.5.6 (git master)
+
+* Custom icon support for subgraphs via the `icon` key in graph properties
+* Parameter support for `WirePattern` components, allowing them to have configuration parameters that need to be set only once. Example:
+
+```coffeescript
+component = new noflo.Component
+component.inPorts.add 'path',
+  datatype: 'string'
+  required: true
+component.inPorts.add 'delay',
+  datatype: 'int'
+  required: false
+component.inPorts.add 'line',
+  datatype: 'string'
+component.inPorts.add 'repeat',
+  datatype: 'int'
+component.outPorts.add 'out',
+  datatype: 'object'
+component.outPorts.add 'error',
+  datatype: 'object'
+
+noflo.WirePattern component,
+  in: ['line', 'repeat']
+  out: 'out'
+  params: ['path', 'delay']
+  async: true
+, (data, groups, out, callback) ->
+  path = component.params.path
+  delay = if component.params.delay then component.params.delay else 0
+  doSomeThing path, delay, data.line, data.repeat, (err, res) ->
+    return callback err if err
+    out.send res
+    callback()
+```
+
 ## 0.5.5 (June 20th 2014)
 
 * Fixed an issue with `StreamSender` affecting WirePattern components dealing with multiple levels of grouping
