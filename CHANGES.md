@@ -23,7 +23,7 @@ component.outPorts.add 'out',
 component.outPorts.add 'error',
   datatype: 'object'
 
-noflo.WirePattern component,
+noflo.helpers.WirePattern component,
   in: ['line', 'repeat']
   out: 'out'
   params: ['path', 'delay']
