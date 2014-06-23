@@ -99,6 +99,8 @@ exports.WirePattern = (component, config, proc) ->
   if typeof config.sendStreams is 'string'
     config.sendStreams = [ config.sendStreams ]
   config.sendStreams = outPorts if config.async
+  # Parameter ports
+  config.params = [] unless 'params' of config
 
   collectGroups = config.forwardGroups
   # Collect groups from each port?
@@ -156,6 +158,30 @@ exports.WirePattern = (component, config, proc) ->
         component.outPorts.load.send component.load
         component.outPorts.load.disconnect()
 
+  # Parameter ports
+  taskQ = []
+  component.params = {}
+  requiredParamsCount = 0
+  completeParamsCount = 0
+  for port in config.params
+    unless component.inPorts[port]
+      throw new Error "no inPort named '#{port}'"
+    requiredParamsCount++ if component.inPorts[port].isRequired()
+  for port in config.params
+    do (port) ->
+      inPort = component.inPorts[port]
+      inPort.process = (event, payload) ->
+        # Param ports only react on data
+        return unless event is 'data'
+        component.params[port] = payload
+        completeParamsCount = Object.keys(component.params).length
+        # Trigger pending procs if all params are complete
+        if completeParamsCount >= requiredParamsCount and taskQ.length > 0
+          while taskQ.length > 0
+            task = taskQ.shift()
+            task()
+
+  # Grouped ports
   for port in inPorts
     do (port) ->
       # Support for StreamReceiver ports
@@ -259,10 +285,16 @@ exports.WirePattern = (component, config, proc) ->
 
               # Call the proc function
               if config.async
-                proc data, groups, outs, whenDone
+                task = ->
+                  proc data, groups, outs, whenDone
               else
-                proc data, groups, outs
-                whenDone()
+                task = ->
+                  proc data, groups, outs
+                  whenDone()
+              if completeParamsCount >= requiredParamsCount
+                task()
+              else
+                taskQ.push task
 
   # Make it chainable or usable at the end of getComponent()
   return component
