@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.5.7 (git master)
+
+* Ports now default to *not required*. Set the port option `required: true` the port needs to be connected in order for the component to work
+
 ## 0.5.6 (June 23rd 2014)
 
 * Custom icon support for subgraphs via the `icon` key in graph properties

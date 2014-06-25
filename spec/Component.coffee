@@ -92,6 +92,7 @@ describe 'Component', ->
         outPorts:
           error:
             datatype: 'object'
+            required: true
 
       s1 = new socket.InternalSocket
       c.inPorts.in.attach s1

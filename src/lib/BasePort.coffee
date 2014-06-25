@@ -30,7 +30,7 @@ class BasePort extends EventEmitter
   handleOptions: (options) ->
     options = {} unless options
     options.datatype = 'all' unless options.datatype
-    options.required = true if options.required is undefined
+    options.required = false if options.required is undefined
 
     options.datatype = 'int' if options.datatype is 'integer'
     if validTypes.indexOf(options.datatype) is -1

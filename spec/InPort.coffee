@@ -15,8 +15,8 @@ describe 'Inport Port', ->
     p = new inport
     it 'should be of datatype "all"', ->
       chai.expect(p.getDataType()).to.equal 'all'
-    it 'should be required', ->
-      chai.expect(p.isRequired()).to.equal true
+    it 'should not be required', ->
+      chai.expect(p.isRequired()).to.equal false
     it 'should not be addressable', ->
       chai.expect(p.isAddressable()).to.equal false
     it 'should not be buffered', ->
