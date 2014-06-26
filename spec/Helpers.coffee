@@ -427,19 +427,19 @@ describe 'Component traits', ->
           chai.expect(data.msg instanceof Substream).to.be.true
           delayObj = data.delay.toObject()
           msgObj = data.msg.toObject()
-          index0 = c.cntr.toString()
+          index0 = this.cntr.toString()
           chai.expect(Object.keys(delayObj)[0]).to.equal index0
           chai.expect(Object.keys(msgObj)[0]).to.equal index0
           subDelay = delayObj[index0]
           subMsg = msgObj[index0]
-          index1 = (10 + c.cntr).toString()
+          index1 = (10 + this.cntr).toString()
           chai.expect(Object.keys(subDelay)[0]).to.equal index1
           chai.expect(Object.keys(subMsg)[0]).to.equal index1
           delayData = subDelay[index1]
           msgData = subMsg[index1]
           chai.expect(delayData).to.equal sample[c.cntr].delay
           chai.expect(msgData).to.equal sample[c.cntr].msg
-          c.cntr++
+          this.cntr++
 
           setTimeout ->
             # Substream tree traversal (the easy way)
@@ -716,6 +716,29 @@ describe 'Component traits', ->
         p1.send 'req'
         # the handler should be triggered here
 
+    describe 'without output ports', ->
+      c = new component.Component
+      c.inPorts.add 'foo'
+      foo = socket.createSocket()
+      sig = socket.createSocket()
+      c.inPorts.foo.attach foo
+      helpers.WirePattern c,
+        in: 'foo'
+        out: []
+        async: true
+      , (foo, grp, out, callback) ->
+        setTimeout ->
+          sig.send foo
+          callback()
+        , 20
+
+      it 'should be fine still', (done) ->
+        sig.on 'data', (data) ->
+          chai.expect(data).to.equal 'foo'
+          done()
+
+        foo.send 'foo'
+        foo.disconnect()
 
   describe 'MultiError', ->
     describe 'with simple sync processes', ->
@@ -837,25 +860,25 @@ describe 'Component traits', ->
       , (payload, groups, out, callback) ->
         # Validate form
         unless payload.name and payload.name.match /^\w{3,16}$/
-          c.error helpers.CustomError('Incorrect name',
+          this.error helpers.CustomError('Incorrect name',
             kind: 'form_error'
             code: 'invalid_name'
             param: 'name'
           ), groups
         unless payload.email and payload.email.match /^\w+@\w+\.\w+$/
-          c.error helpers.CustomError('Incorrect email',
+          this.error helpers.CustomError('Incorrect email',
             kind: 'form_error'
             code: 'invalid_email'
             param: 'email'
           ), groups
         unless payload.accept
-          c.error helpers.CustomError('Terms have to be accepted',
+          this.error helpers.CustomError('Terms have to be accepted',
             kind: 'form_error'
             code: 'terms_not_accepted'
             param: 'accept'
           ), groups
         # Finish validation
-        return callback no if c.hasErrors
+        return callback no if this.hasErrors
 
         setTimeout ->
           # Emulating some processing logic here

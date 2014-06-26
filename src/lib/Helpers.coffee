@@ -286,10 +286,10 @@ exports.WirePattern = (component, config, proc) ->
               # Call the proc function
               if config.async
                 task = ->
-                  proc data, groups, outs, whenDone
+                  proc.call component, data, groups, outs, whenDone
               else
                 task = ->
-                  proc data, groups, outs
+                  proc.call component, data, groups, outs
                   whenDone()
               if completeParamsCount >= requiredParamsCount
                 task()
