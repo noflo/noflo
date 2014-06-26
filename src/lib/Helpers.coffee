@@ -161,12 +161,12 @@ exports.WirePattern = (component, config, proc) ->
   # Parameter ports
   taskQ = []
   component.params = {}
-  requiredParamsCount = 0
-  completeParamsCount = 0
+  requiredParams = []
+  completeParams = []
   for port in config.params
     unless component.inPorts[port]
       throw new Error "no inPort named '#{port}'"
-    requiredParamsCount++ if component.inPorts[port].isRequired()
+    requiredParams.push port if component.inPorts[port].isRequired()
   for port in config.params
     do (port) ->
       inPort = component.inPorts[port]
@@ -174,9 +174,10 @@ exports.WirePattern = (component, config, proc) ->
         # Param ports only react on data
         return unless event is 'data'
         component.params[port] = payload
-        completeParamsCount = Object.keys(component.params).length
+        if completeParams.indexOf(port) is -1 and requiredParams.indexOf(port) > -1
+          completeParams.push port
         # Trigger pending procs if all params are complete
-        if completeParamsCount >= requiredParamsCount and taskQ.length > 0
+        if completeParams.length is requiredParams.length and taskQ.length > 0
           while taskQ.length > 0
             task = taskQ.shift()
             task()
@@ -291,7 +292,7 @@ exports.WirePattern = (component, config, proc) ->
                 task = ->
                   proc.call component, data, groups, outs
                   whenDone()
-              if completeParamsCount >= requiredParamsCount
+              if completeParams.length is requiredParams.length
                 task()
               else
                 taskQ.push task

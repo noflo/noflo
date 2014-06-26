@@ -619,7 +619,7 @@ describe 'Component traits', ->
 
     describe 'when there are parameter ports', ->
       c = null
-      p1 = p2 = d1 = d2 = out = err = 0
+      p1 = p2 = p3 = d1 = d2 = out = err = 0
       beforeEach ->
         c = new component.Component
         c.inPorts.add 'param1',
@@ -628,6 +628,10 @@ describe 'Component traits', ->
         c.inPorts.add 'param2',
           datatype: 'int'
           required: false
+        c.inPorts.add 'param3',
+          datatype: 'int'
+          required: true
+          default: 0
         c.inPorts.add 'data1',
           datatype: 'string'
         c.inPorts.add 'data2',
@@ -638,26 +642,29 @@ describe 'Component traits', ->
           datatype: 'object'
         p1 = new socket.createSocket()
         p2 = new socket.createSocket()
+        p3 = new socket.createSocket()
         d1 = new socket.createSocket()
         d2 = new socket.createSocket()
         out = new socket.createSocket()
         err = new socket.createSocket()
         c.inPorts.param1.attach p1
         c.inPorts.param2.attach p2
+        c.inPorts.param3.attach p3
         c.inPorts.data1.attach d1
         c.inPorts.data2.attach d2
         c.outPorts.out.attach out
         c.outPorts.error.attach err
 
-      it 'should wait for required params', (done) ->
+      it 'should wait for required params without default value', (done) ->
         helpers.WirePattern c,
           in: ['data1', 'data2']
           out: 'out'
-          params: ['param1', 'param2']
+          params: ['param1', 'param2', 'param3']
         , (input, groups, out) ->
           res =
             p1: c.params.param1
             p2: c.params.param2
+            p3: c.params.param3
             d1: input.data1
             d2: input.data2
           out.send res
@@ -666,6 +673,7 @@ describe 'Component traits', ->
           chai.expect(data).to.be.an 'object'
           chai.expect(data.p1).to.equal 'req'
           chai.expect(data.p2).to.be.undefined
+          chai.expect(data.p3).to.equal 0
           chai.expect(data.d1).to.equal 'foo'
           chai.expect(data.d2).to.equal 123
           # And later when second param arrives
@@ -673,6 +681,7 @@ describe 'Component traits', ->
             chai.expect(data).to.be.an 'object'
             chai.expect(data.p1).to.equal 'req'
             chai.expect(data.p2).to.equal 568
+            chai.expect(data.p3).to.equal 800
             chai.expect(data.d1).to.equal 'bar'
             chai.expect(data.d2).to.equal 456
             done()
@@ -681,22 +690,27 @@ describe 'Component traits', ->
         d2.send 123
         p1.send 'req'
         # the handler should be triggered here
-        p2.send 568
 
-        d1.send 'bar'
-        d2.send 456
+        setTimeout ->
+          p2.send 568
+          p3.send 800
+
+          d1.send 'bar'
+          d2.send 456
+        , 10
 
       it 'should work for async procs too', (done) ->
         helpers.WirePattern c,
           in: ['data1', 'data2']
           out: 'out'
-          params: ['param1', 'param2']
+          params: ['param1', 'param2', 'param3']
         , (input, groups, out) ->
           delay = if c.params.param2 then c.params.param2 else 10
           setTimeout ->
             res =
               p1: c.params.param1
               p2: c.params.param2
+              p3: c.params.param3
               d1: input.data1
               d2: input.data2
             out.send res
@@ -706,6 +720,7 @@ describe 'Component traits', ->
           chai.expect(data).to.be.an 'object'
           chai.expect(data.p1).to.equal 'req'
           chai.expect(data.p2).to.equal 56
+          chai.expect(data.p3).to.equal 0
           chai.expect(data.d1).to.equal 'foo'
           chai.expect(data.d2).to.equal 123
           done()
