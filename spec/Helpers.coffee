@@ -755,6 +755,118 @@ describe 'Component traits', ->
         foo.send 'foo'
         foo.disconnect()
 
+    describe 'when data processing is not possible at the moment', ->
+      c = new component.Component
+      c.inPorts.add 'line', datatype: 'string'
+      c.inPorts.add 'repeat', datatype: 'int'
+      c.inPorts.add 'when',
+        datatype: 'string'
+        default: 'later'
+      c.outPorts.add 'res', datatype: 'string'
+      c.outPorts.add 'error', datatype: 'object'
+      line = socket.createSocket()
+      rpt = socket.createSocket()
+      whn = socket.createSocket()
+      res = socket.createSocket()
+      err = socket.createSocket()
+      c.inPorts.line.attach line
+      c.inPorts.repeat.attach rpt
+      c.inPorts.when.attach whn
+      c.outPorts.res.attach res
+      c.outPorts.error.attach err
+
+      c.invCount = 0
+      tryAgain = null
+      helpers.WirePattern c,
+        in: ['line', 'repeat']
+        params: 'when'
+        out: 'res'
+        async: true
+      , (input, groups, out, completed, postpone, resume) ->
+        this.invCount++
+        return if this.invCount > 100 # avoid deadlocks just in case
+        switch this.params.when
+          when 'now'
+            repeated = ''
+            repeated += input.line for i in [0...input.repeat]
+            out.send repeated
+            completed()
+          when 'later'
+            postpone()
+          when 'afterTimeout'
+            postpone false
+            this.params.when = 'now' # don't recurse forever
+            setTimeout ->
+              resume()
+            , 10
+          when 'whenItell'
+            postpone false
+            this.params.when = 'now' # don't recurse forever
+            tryAgain = resume
+
+      it 'should be able to postpone it until next tuple of data', (done) ->
+
+        res.once 'data', (data) ->
+          chai.expect(data).to.equal 'opopopopopopopopopop'
+          chai.expect(c.invCount).to.equal 2
+          res.once 'data', (data) ->
+            chai.expect(data).to.equal 'gogogo'
+            chai.expect(c.invCount).to.equal 3
+            done()
+
+        line.send 'op'
+        rpt.send 10
+        line.disconnect()
+        rpt.disconnect()
+
+        # no output expected at this point
+
+        whn.send 'now'
+        whn.disconnect()
+        line.send 'go'
+        rpt.send 3
+        line.disconnect()
+        rpt.disconnect()
+
+        # this flushes the earlier stuff
+
+
+      it 'should be able to postpone and retry after timeout', (done) ->
+        c.invCount = 0
+        res.once 'data', (data) ->
+          chai.expect(data).to.equal 'dododo'
+          chai.expect(c.invCount).to.equal 2
+          done()
+
+        whn.send 'afterTimeout'
+        whn.disconnect()
+
+        line.send 'do'
+        rpt.send 3
+        line.disconnect()
+        rpt.disconnect()
+
+      it 'should be able to postpone it and resume when needed', (done) ->
+        c.invCount = 0
+        res.once 'data', (data) ->
+          chai.expect(data).to.equal 'yoyo'
+          chai.expect(c.invCount).to.equal 2
+          done()
+
+        whn.send 'whenItell'
+        whn.disconnect()
+
+        line.send 'yo'
+        rpt.send 2
+        line.disconnect()
+        rpt.disconnect()
+
+        # Here tryAgain got the resume callback
+
+        setTimeout ->
+          tryAgain()
+        , 30
+
   describe 'MultiError', ->
     describe 'with simple sync processes', ->
       c = new component.Component

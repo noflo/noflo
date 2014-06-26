@@ -101,6 +101,7 @@ exports.WirePattern = (component, config, proc) ->
   config.sendStreams = outPorts if config.async
   # Parameter ports
   config.params = [] unless 'params' of config
+  config.params = [ config.params ] if typeof config.params is 'string'
 
   collectGroups = config.forwardGroups
   # Collect groups from each port?
@@ -165,6 +166,14 @@ exports.WirePattern = (component, config, proc) ->
   component.params = {}
   requiredParams = []
   completeParams = []
+  resumeTaskQ = ->
+    if completeParams.length is requiredParams.length and taskQ.length > 0
+      # Avoid looping when feeding the queue inside the queue itself
+      temp = taskQ.slice 0
+      taskQ = []
+      while temp.length > 0
+        task = temp.shift()
+        task()
   for port in config.params
     unless component.inPorts[port]
       throw new Error "no inPort named '#{port}'"
@@ -179,10 +188,7 @@ exports.WirePattern = (component, config, proc) ->
         if completeParams.indexOf(port) is -1 and requiredParams.indexOf(port) > -1
           completeParams.push port
         # Trigger pending procs if all params are complete
-        if completeParams.length is requiredParams.length and taskQ.length > 0
-          while taskQ.length > 0
-            task = taskQ.shift()
-            task()
+        resumeTaskQ()
 
   # Grouped ports
   for port in inPorts
@@ -288,16 +294,23 @@ exports.WirePattern = (component, config, proc) ->
 
               # Call the proc function
               if config.async
+                postpone = ->
+                resume = ->
+                postponedToQ = false
                 task = ->
-                  proc.call component, data, groups, outs, whenDone
+                  proc.call component, data, groups, outs, whenDone, postpone, resume
+                postpone = (backToQueue = true) ->
+                  postponedToQ = backToQueue
+                  if backToQueue
+                    taskQ.push task
+                resume = ->
+                  if postponedToQ then resumeTaskQ() else task()
               else
                 task = ->
                   proc.call component, data, groups, outs
                   whenDone()
-              if completeParams.length is requiredParams.length
-                task()
-              else
-                taskQ.push task
+              taskQ.push task
+              resumeTaskQ()
 
   # Make it chainable or usable at the end of getComponent()
   return component
