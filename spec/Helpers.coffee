@@ -355,6 +355,68 @@ describe 'Component traits', ->
         y.disconnect()
         z.disconnect()
 
+    describe 'when `this` context is important', ->
+      c = new component.Component
+      c.inPorts.add 'x',
+        required: true
+        datatype: 'int'
+      c.inPorts.add 'y',
+        required: true
+        datatype: 'int'
+      c.inPorts.add 'z',
+        required: true
+        datatype: 'int'
+      c.outPorts.add 'point'
+      x = new socket.createSocket()
+      y = new socket.createSocket()
+      z = new socket.createSocket()
+      p = new socket.createSocket()
+      c.inPorts.x.attach x
+      c.inPorts.y.attach y
+      c.inPorts.z.attach z
+      c.outPorts.point.attach p
+
+      it 'should correctly bind component to `this` context', (done) ->
+        p.removeAllListeners()
+        helpers.WirePattern c,
+          in: ['x', 'y', 'z']
+          out: 'point'
+        , (data, groups, out) ->
+          chai.expect(this).to.deep.equal c
+          out.send {x: data.x, y: data.y, z: data.z}
+
+        p.once 'data', (data) ->
+          chai.expect(data).to.deep.equal {x: 123, y: 456, z: 789}
+          done()
+
+        x.send 123
+        x.disconnect()
+        y.send 456
+        y.disconnect()
+        z.send 789
+        z.disconnect()
+
+      it 'should correctly bind component to `this` context in async mode', (done) ->
+        p.removeAllListeners()
+        helpers.WirePattern c,
+          in: ['x', 'y', 'z']
+          async: true
+          out: 'point'
+        , (data, groups, out, callback) ->
+          chai.expect(this).to.deep.equal c
+          out.send {x: data.x, y: data.y, z: data.z}
+          callback()
+
+        p.once 'data', (data) ->
+          done()
+
+        x.send 123
+        x.disconnect()
+        y.send 456
+        y.disconnect()
+        z.send 789
+        z.disconnect()
+
     describe 'when in async mode and packet order matters', ->
       c = new component.Component
       c.inPorts.add 'delay', datatype: 'int'
