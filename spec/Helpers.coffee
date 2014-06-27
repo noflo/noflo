@@ -355,6 +355,68 @@ describe 'Component traits', ->
         y.disconnect()
         z.disconnect()
 
+    describe 'when `this` context is important', ->
+      c = new component.Component
+      c.inPorts.add 'x',
+        required: true
+        datatype: 'int'
+      c.inPorts.add 'y',
+        required: true
+        datatype: 'int'
+      c.inPorts.add 'z',
+        required: true
+        datatype: 'int'
+      c.outPorts.add 'point'
+      x = new socket.createSocket()
+      y = new socket.createSocket()
+      z = new socket.createSocket()
+      p = new socket.createSocket()
+      c.inPorts.x.attach x
+      c.inPorts.y.attach y
+      c.inPorts.z.attach z
+      c.outPorts.point.attach p
+
+      it 'should correctly bind component to `this` context', (done) ->
+        p.removeAllListeners()
+        helpers.WirePattern c,
+          in: ['x', 'y', 'z']
+          out: 'point'
+        , (data, groups, out) ->
+          chai.expect(this).to.deep.equal c
+          out.send {x: data.x, y: data.y, z: data.z}
+
+        p.once 'data', (data) ->
+          chai.expect(data).to.deep.equal {x: 123, y: 456, z: 789}
+          done()
+
+        x.send 123
+        x.disconnect()
+        y.send 456
+        y.disconnect()
+        z.send 789
+        z.disconnect()
+
+      it 'should correctly bind component to `this` context in async mode', (done) ->
+        p.removeAllListeners()
+        helpers.WirePattern c,
+          in: ['x', 'y', 'z']
+          async: true
+          out: 'point'
+        , (data, groups, out, callback) ->
+          chai.expect(this).to.deep.equal c
+          out.send {x: data.x, y: data.y, z: data.z}
+          callback()
+
+        p.once 'data', (data) ->
+          done()
+
+        x.send 123
+        x.disconnect()
+        y.send 456
+        y.disconnect()
+        z.send 789
+        z.disconnect()
+
     describe 'when in async mode and packet order matters', ->
       c = new component.Component
       c.inPorts.add 'delay', datatype: 'int'
@@ -427,19 +489,19 @@ describe 'Component traits', ->
           chai.expect(data.msg instanceof Substream).to.be.true
           delayObj = data.delay.toObject()
           msgObj = data.msg.toObject()
-          index0 = c.cntr.toString()
+          index0 = this.cntr.toString()
           chai.expect(Object.keys(delayObj)[0]).to.equal index0
           chai.expect(Object.keys(msgObj)[0]).to.equal index0
           subDelay = delayObj[index0]
           subMsg = msgObj[index0]
-          index1 = (10 + c.cntr).toString()
+          index1 = (10 + this.cntr).toString()
           chai.expect(Object.keys(subDelay)[0]).to.equal index1
           chai.expect(Object.keys(subMsg)[0]).to.equal index1
           delayData = subDelay[index1]
           msgData = subMsg[index1]
           chai.expect(delayData).to.equal sample[c.cntr].delay
           chai.expect(msgData).to.equal sample[c.cntr].msg
-          c.cntr++
+          this.cntr++
 
           setTimeout ->
             # Substream tree traversal (the easy way)
@@ -619,7 +681,7 @@ describe 'Component traits', ->
 
     describe 'when there are parameter ports', ->
       c = null
-      p1 = p2 = d1 = d2 = out = err = 0
+      p1 = p2 = p3 = d1 = d2 = out = err = 0
       beforeEach ->
         c = new component.Component
         c.inPorts.add 'param1',
@@ -628,6 +690,10 @@ describe 'Component traits', ->
         c.inPorts.add 'param2',
           datatype: 'int'
           required: false
+        c.inPorts.add 'param3',
+          datatype: 'int'
+          required: true
+          default: 0
         c.inPorts.add 'data1',
           datatype: 'string'
         c.inPorts.add 'data2',
@@ -638,26 +704,29 @@ describe 'Component traits', ->
           datatype: 'object'
         p1 = new socket.createSocket()
         p2 = new socket.createSocket()
+        p3 = new socket.createSocket()
         d1 = new socket.createSocket()
         d2 = new socket.createSocket()
         out = new socket.createSocket()
         err = new socket.createSocket()
         c.inPorts.param1.attach p1
         c.inPorts.param2.attach p2
+        c.inPorts.param3.attach p3
         c.inPorts.data1.attach d1
         c.inPorts.data2.attach d2
         c.outPorts.out.attach out
         c.outPorts.error.attach err
 
-      it 'should wait for required params', (done) ->
+      it 'should wait for required params without default value', (done) ->
         helpers.WirePattern c,
           in: ['data1', 'data2']
           out: 'out'
-          params: ['param1', 'param2']
+          params: ['param1', 'param2', 'param3']
         , (input, groups, out) ->
           res =
             p1: c.params.param1
             p2: c.params.param2
+            p3: c.params.param3
             d1: input.data1
             d2: input.data2
           out.send res
@@ -666,6 +735,7 @@ describe 'Component traits', ->
           chai.expect(data).to.be.an 'object'
           chai.expect(data.p1).to.equal 'req'
           chai.expect(data.p2).to.be.undefined
+          chai.expect(data.p3).to.equal 0
           chai.expect(data.d1).to.equal 'foo'
           chai.expect(data.d2).to.equal 123
           # And later when second param arrives
@@ -673,6 +743,7 @@ describe 'Component traits', ->
             chai.expect(data).to.be.an 'object'
             chai.expect(data.p1).to.equal 'req'
             chai.expect(data.p2).to.equal 568
+            chai.expect(data.p3).to.equal 800
             chai.expect(data.d1).to.equal 'bar'
             chai.expect(data.d2).to.equal 456
             done()
@@ -681,22 +752,27 @@ describe 'Component traits', ->
         d2.send 123
         p1.send 'req'
         # the handler should be triggered here
-        p2.send 568
 
-        d1.send 'bar'
-        d2.send 456
+        setTimeout ->
+          p2.send 568
+          p3.send 800
+
+          d1.send 'bar'
+          d2.send 456
+        , 10
 
       it 'should work for async procs too', (done) ->
         helpers.WirePattern c,
           in: ['data1', 'data2']
           out: 'out'
-          params: ['param1', 'param2']
+          params: ['param1', 'param2', 'param3']
         , (input, groups, out) ->
           delay = if c.params.param2 then c.params.param2 else 10
           setTimeout ->
             res =
               p1: c.params.param1
               p2: c.params.param2
+              p3: c.params.param3
               d1: input.data1
               d2: input.data2
             out.send res
@@ -706,6 +782,7 @@ describe 'Component traits', ->
           chai.expect(data).to.be.an 'object'
           chai.expect(data.p1).to.equal 'req'
           chai.expect(data.p2).to.equal 56
+          chai.expect(data.p3).to.equal 0
           chai.expect(data.d1).to.equal 'foo'
           chai.expect(data.d2).to.equal 123
           done()
@@ -716,6 +793,141 @@ describe 'Component traits', ->
         p1.send 'req'
         # the handler should be triggered here
 
+    describe 'without output ports', ->
+      c = new component.Component
+      c.inPorts.add 'foo'
+      foo = socket.createSocket()
+      sig = socket.createSocket()
+      c.inPorts.foo.attach foo
+      helpers.WirePattern c,
+        in: 'foo'
+        out: []
+        async: true
+      , (foo, grp, out, callback) ->
+        setTimeout ->
+          sig.send foo
+          callback()
+        , 20
+
+      it 'should be fine still', (done) ->
+        sig.on 'data', (data) ->
+          chai.expect(data).to.equal 'foo'
+          done()
+
+        foo.send 'foo'
+        foo.disconnect()
+
+    describe 'when data processing is not possible at the moment', ->
+      c = new component.Component
+      c.inPorts.add 'line', datatype: 'string'
+      c.inPorts.add 'repeat', datatype: 'int'
+      c.inPorts.add 'when',
+        datatype: 'string'
+        default: 'later'
+      c.outPorts.add 'res', datatype: 'string'
+      c.outPorts.add 'error', datatype: 'object'
+      line = socket.createSocket()
+      rpt = socket.createSocket()
+      whn = socket.createSocket()
+      res = socket.createSocket()
+      err = socket.createSocket()
+      c.inPorts.line.attach line
+      c.inPorts.repeat.attach rpt
+      c.inPorts.when.attach whn
+      c.outPorts.res.attach res
+      c.outPorts.error.attach err
+
+      c.invCount = 0
+      tryAgain = null
+      helpers.WirePattern c,
+        in: ['line', 'repeat']
+        params: 'when'
+        out: 'res'
+        async: true
+      , (input, groups, out, completed, postpone, resume) ->
+        this.invCount++
+        return if this.invCount > 100 # avoid deadlocks just in case
+        switch this.params.when
+          when 'now'
+            repeated = ''
+            repeated += input.line for i in [0...input.repeat]
+            out.send repeated
+            completed()
+          when 'later'
+            postpone()
+          when 'afterTimeout'
+            postpone false
+            this.params.when = 'now' # don't recurse forever
+            setTimeout ->
+              resume()
+            , 10
+          when 'whenItell'
+            postpone false
+            this.params.when = 'now' # don't recurse forever
+            tryAgain = resume
+
+      it 'should be able to postpone it until next tuple of data', (done) ->
+
+        res.once 'data', (data) ->
+          chai.expect(data).to.equal 'opopopopopopopopopop'
+          chai.expect(c.invCount).to.equal 2
+          res.once 'data', (data) ->
+            chai.expect(data).to.equal 'gogogo'
+            chai.expect(c.invCount).to.equal 3
+            done()
+
+        line.send 'op'
+        rpt.send 10
+        line.disconnect()
+        rpt.disconnect()
+
+        # no output expected at this point
+
+        whn.send 'now'
+        whn.disconnect()
+        line.send 'go'
+        rpt.send 3
+        line.disconnect()
+        rpt.disconnect()
+
+        # this flushes the earlier stuff
+
+
+      it 'should be able to postpone and retry after timeout', (done) ->
+        c.invCount = 0
+        res.once 'data', (data) ->
+          chai.expect(data).to.equal 'dododo'
+          chai.expect(c.invCount).to.equal 2
+          done()
+
+        whn.send 'afterTimeout'
+        whn.disconnect()
+
+        line.send 'do'
+        rpt.send 3
+        line.disconnect()
+        rpt.disconnect()
+
+      it 'should be able to postpone it and resume when needed', (done) ->
+        c.invCount = 0
+        res.once 'data', (data) ->
+          chai.expect(data).to.equal 'yoyo'
+          chai.expect(c.invCount).to.equal 2
+          done()
+
+        whn.send 'whenItell'
+        whn.disconnect()
+
+        line.send 'yo'
+        rpt.send 2
+        line.disconnect()
+        rpt.disconnect()
+
+        # Here tryAgain got the resume callback
+
+        setTimeout ->
+          tryAgain()
+        , 30
 
   describe 'MultiError', ->
     describe 'with simple sync processes', ->
@@ -837,25 +1049,25 @@ describe 'Component traits', ->
       , (payload, groups, out, callback) ->
         # Validate form
         unless payload.name and payload.name.match /^\w{3,16}$/
-          c.error helpers.CustomError('Incorrect name',
+          this.error helpers.CustomError('Incorrect name',
             kind: 'form_error'
             code: 'invalid_name'
             param: 'name'
           ), groups
         unless payload.email and payload.email.match /^\w+@\w+\.\w+$/
-          c.error helpers.CustomError('Incorrect email',
+          this.error helpers.CustomError('Incorrect email',
             kind: 'form_error'
             code: 'invalid_email'
             param: 'email'
           ), groups
         unless payload.accept
-          c.error helpers.CustomError('Terms have to be accepted',
+          this.error helpers.CustomError('Terms have to be accepted',
             kind: 'form_error'
             code: 'terms_not_accepted'
             param: 'accept'
           ), groups
         # Finish validation
-        return callback no if c.hasErrors
+        return callback no if this.hasErrors
 
         setTimeout ->
           # Emulating some processing logic here
