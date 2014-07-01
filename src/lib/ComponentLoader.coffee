@@ -123,7 +123,7 @@ class ComponentLoader extends EventEmitter
         instance = implementation.getComponent metadata
       else
         if typeof implementation isnt 'function'
-          throw new Error "Component #{name} is npt loadable"
+          throw new Error "Component #{name} is not loadable"
         instance = implementation metadata
     instance.baseDir = @baseDir if name is 'Graph'
     @setIcon name, instance
