@@ -108,26 +108,46 @@ class ComponentLoader extends EventEmitter
           @loadGraph name, component, callback, delayed, metadata
         , 0
       return
-    if typeof component is 'function'
-      implementation = component
-      if component.getComponent and typeof component.getComponent is 'function'
-        instance = component.getComponent metadata
-      else
-        instance = component metadata
-    # Direct component instance, return as is
-    else if typeof component is 'object' and typeof component.getComponent is 'function'
-      instance = component.getComponent metadata
-    else
-      implementation = require component
-      if implementation.getComponent and typeof implementation.getComponent is 'function'
-        instance = implementation.getComponent metadata
-      else
-        if typeof implementation isnt 'function'
-          throw new Error "Component #{name} is not loadable"
-        instance = implementation metadata
+
+    instance = @createComponent name, component, metadata
+
+    if not instance
+      throw new Error "Component #{name} could not be loaded."
+
     instance.baseDir = @baseDir if name is 'Graph'
     @setIcon name, instance
     callback instance
+
+  # Creates an instance of a component.
+  createComponent: (name, component, metadata) ->
+
+    implementation = component
+
+    # If a string was specified, attempt to `require` it.
+    if typeof implementation is 'string'
+      implementation = require implementation
+
+    # Attempt to create the component instance using the `getComponent` method.
+    instance = @createComponentWithGetComponent name, implementation, metadata
+
+    # A function factory might have been specified or returned from the
+    # require call.
+    if typeof instance isnt 'object'
+      implementation = instance or implementation
+      instance = @createComponentFromFactory name, implementation, metadata
+
+    return instance;
+
+  # Attempts to create a component instance using a `getComponent` function on the
+  # `implementation` object specified.
+  createComponentWithGetComponent: (name, implementation, metadata) ->
+    if implementation.getComponent and typeof implementation.getComponent is 'function'
+      return implementation.getComponent metadata
+
+  # Attempts to create a component using a factory function.
+  createComponentFromFactory: (name, fn, metadata) ->
+    if typeof fn is 'function'
+      return fn metadata
 
   isGraph: (cPath) ->
     return true if typeof cPath is 'object' and cPath instanceof nofloGraph.Graph
