@@ -76,6 +76,8 @@ exports.WirePattern = (component, config, proc) ->
   # Out ports
   outPorts = if 'out' of config then config.out else 'out'
   outPorts = [ outPorts ] unless outPorts instanceof Array
+  # Error port
+  config.error = 'error' unless 'error' of config
   # For async process
   config.async = false unless 'async' of config
   # Keep correct output order for async mode
@@ -102,6 +104,8 @@ exports.WirePattern = (component, config, proc) ->
   # Parameter ports
   config.params = [] unless 'params' of config
   config.params = [ config.params ] if typeof config.params is 'string'
+  # Node name
+  config.name = '' unless 'name' of config
 
   collectGroups = config.forwardGroups
   # Collect groups from each port?
@@ -292,6 +296,9 @@ exports.WirePattern = (component, config, proc) ->
                 for name, out of outs
                   out.beginGroup g for g in groups if config.forwardGroups
 
+              # Enforce MultiError with WirePattern (for group forwarding)
+              exports.MultiError component, config.name, config.error, groups
+
               # Call the proc function
               if config.async
                 postpone = ->
@@ -336,10 +343,7 @@ exports.CustomizeError = (err, options) ->
 #
 # `group` is an optional group ID which will be used to wrap all error
 # packets emitted by the component.
-exports.MultiError = (component, group = '', errorPort = 'error') ->
-  unless errorPort of component.outPorts
-    throw new Error "Missing error port '#{errorPort}'"
-
+exports.MultiError = (component, group = '', errorPort = 'error', forwardedGroups = []) ->
   component.hasErrors = false
   component.errors = []
 
@@ -347,7 +351,7 @@ exports.MultiError = (component, group = '', errorPort = 'error') ->
   component.error = (e, groups = []) ->
     component.errors.push
       err: e
-      groups: groups
+      groups: forwardedGroups.concat groups
     component.hasErrors = true
 
   # Fail method should be called to terminate process immediately
@@ -355,6 +359,8 @@ exports.MultiError = (component, group = '', errorPort = 'error') ->
   component.fail = (e = null, groups = []) ->
     component.error e, groups if e
     return unless component.hasErrors
+    return unless errorPort of component.outPorts
+    return unless component.outPorts[errorPort].isAttached()
     component.outPorts[errorPort].beginGroup group if group
     for error in component.errors
       component.outPorts[errorPort].beginGroup grp for grp in error.groups
