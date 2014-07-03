@@ -929,6 +929,97 @@ describe 'Component traits', ->
           tryAgain()
         , 30
 
+    describe 'with many inputs and groups', ->
+      c = new component.Component
+      c.token = null
+      c.inPorts.add 'in', datatype: 'string'
+      c.inPorts.add 'message', datatype: 'string'
+      c.inPorts.add 'repository', datatype: 'string'
+      c.inPorts.add 'path', datatype: 'string'
+      c.inPorts.add 'token', datatype: 'string', (event, payload) ->
+        c.token = payload if event is 'data'
+      c.outPorts.add 'out', datatype: 'string'
+      c.outPorts.add 'error', datatype: 'object'
+
+      helpers.WirePattern c,
+        in: ['in', 'message', 'repository', 'path']
+        out: 'out'
+        async: true
+        forwardGroups: true
+      , (data, groups, out, callback) ->
+
+        setTimeout ->
+          out.beginGroup data.path
+          out.send data.message
+          out.endGroup()
+          do callback
+        , 300
+
+      ins = socket.createSocket()
+      msg = socket.createSocket()
+      rep = socket.createSocket()
+      pth = socket.createSocket()
+      tkn = socket.createSocket()
+      out = socket.createSocket()
+      err = socket.createSocket()
+      c.inPorts.in.attach ins
+      c.inPorts.message.attach msg
+      c.inPorts.repository.attach rep
+      c.inPorts.path.attach pth
+      c.inPorts.token.attach tkn
+      c.outPorts.out.attach out
+      c.outPorts.error.attach err
+
+      it 'should handle mixed flow well', (done) ->
+        groups = []
+        refGroups = [
+          'foo'
+          'http://techcrunch.com/2013/03/26/embedly-now/'
+          'path data'
+        ]
+        ends = 0
+        packets = []
+        refData = ['message data']
+        out.on 'begingroup', (grp) ->
+          groups.push grp
+        out.on 'endgroup', ->
+          ends++
+        out.on 'data', (data) ->
+          packets.push data
+        out.on 'disconnect', ->
+          chai.expect(groups).to.deep.equal refGroups
+          chai.expect(ends).to.equal 3
+          chai.expect(packets).to.deep.equal refData
+          done()
+
+        err.on 'data', (data) ->
+          done data
+
+        rep.beginGroup 'foo'
+        rep.beginGroup 'http://techcrunch.com/2013/03/26/embedly-now/'
+        rep.send 'repo data'
+        rep.endGroup()
+        rep.endGroup()
+        ins.beginGroup 'foo'
+        ins.beginGroup 'http://techcrunch.com/2013/03/26/embedly-now/'
+        ins.send 'ins data'
+        msg.beginGroup 'foo'
+        msg.beginGroup 'http://techcrunch.com/2013/03/26/embedly-now/'
+        msg.send 'message data'
+        msg.endGroup()
+        msg.endGroup()
+        ins.endGroup()
+        ins.endGroup()
+        ins.disconnect()
+        msg.disconnect()
+        pth.beginGroup 'foo'
+        pth.beginGroup 'http://techcrunch.com/2013/03/26/embedly-now/'
+        pth.send 'path data'
+        pth.endGroup()
+        pth.endGroup()
+        pth.disconnect()
+        rep.disconnect()
+
   describe 'MultiError', ->
     describe 'with simple sync processes', ->
       c = new component.Component
@@ -1046,6 +1137,7 @@ describe 'Component traits', ->
         out: 'saved'
         async: true
         forwardGroups: true
+        name: 'Registration'
       , (payload, groups, out, callback) ->
         # Validate form
         unless payload.name and payload.name.match /^\w{3,16}$/
@@ -1053,19 +1145,19 @@ describe 'Component traits', ->
             kind: 'form_error'
             code: 'invalid_name'
             param: 'name'
-          ), groups
+          ), ['e1']
         unless payload.email and payload.email.match /^\w+@\w+\.\w+$/
           this.error helpers.CustomError('Incorrect email',
             kind: 'form_error'
             code: 'invalid_email'
             param: 'email'
-          ), groups
+          ), ['e2']
         unless payload.accept
           this.error helpers.CustomError('Terms have to be accepted',
             kind: 'form_error'
             code: 'terms_not_accepted'
             param: 'accept'
-          ), groups
+          ), ['e3']
         # Finish validation
         return callback no if this.hasErrors
 
@@ -1081,14 +1173,16 @@ describe 'Component traits', ->
             out.send true
             callback()
         , 10
-      helpers.MultiError c, 'Registration'
 
       it 'should support multiple error messages and groups', (done) ->
         expected = [
           'Registration'
           'async0'
+          'e1'
           'async0'
+          'e2'
           'async0'
+          'e3'
         ]
         actual = []
         errCount = 0
@@ -1154,94 +1248,3 @@ describe 'Component traits', ->
           email: 'delay@lama.ti'
           accept: true
         form.disconnect()
-
-    describe 'with many inputs and groups', ->
-      c = new component.Component
-      c.token = null
-      c.inPorts.add 'in', datatype: 'string'
-      c.inPorts.add 'message', datatype: 'string'
-      c.inPorts.add 'repository', datatype: 'string'
-      c.inPorts.add 'path', datatype: 'string'
-      c.inPorts.add 'token', datatype: 'string', (event, payload) ->
-        c.token = payload if event is 'data'
-      c.outPorts.add 'out', datatype: 'string'
-      c.outPorts.add 'error', datatype: 'object'
-
-      helpers.WirePattern c,
-        in: ['in', 'message', 'repository', 'path']
-        out: 'out'
-        async: true
-        forwardGroups: true
-      , (data, groups, out, callback) ->
-
-        setTimeout ->
-          out.beginGroup data.path
-          out.send data.message
-          out.endGroup()
-          do callback
-        , 300
-
-      ins = socket.createSocket()
-      msg = socket.createSocket()
-      rep = socket.createSocket()
-      pth = socket.createSocket()
-      tkn = socket.createSocket()
-      out = socket.createSocket()
-      err = socket.createSocket()
-      c.inPorts.in.attach ins
-      c.inPorts.message.attach msg
-      c.inPorts.repository.attach rep
-      c.inPorts.path.attach pth
-      c.inPorts.token.attach tkn
-      c.outPorts.out.attach out
-      c.outPorts.error.attach err
-
-      it 'should handle mixed flow well', (done) ->
-        groups = []
-        refGroups = [
-          'foo'
-          'http://techcrunch.com/2013/03/26/embedly-now/'
-          'path data'
-        ]
-        ends = 0
-        packets = []
-        refData = ['message data']
-        out.on 'begingroup', (grp) ->
-          groups.push grp
-        out.on 'endgroup', ->
-          ends++
-        out.on 'data', (data) ->
-          packets.push data
-        out.on 'disconnect', ->
-          chai.expect(groups).to.deep.equal refGroups
-          chai.expect(ends).to.equal 3
-          chai.expect(packets).to.deep.equal refData
-          done()
-
-        err.on 'data', (data) ->
-          done data
-
-        rep.beginGroup 'foo'
-        rep.beginGroup 'http://techcrunch.com/2013/03/26/embedly-now/'
-        rep.send 'repo data'
-        rep.endGroup()
-        rep.endGroup()
-        ins.beginGroup 'foo'
-        ins.beginGroup 'http://techcrunch.com/2013/03/26/embedly-now/'
-        ins.send 'ins data'
-        msg.beginGroup 'foo'
-        msg.beginGroup 'http://techcrunch.com/2013/03/26/embedly-now/'
-        msg.send 'message data'
-        msg.endGroup()
-        msg.endGroup()
-        ins.endGroup()
-        ins.endGroup()
-        ins.disconnect()
-        msg.disconnect()
-        pth.beginGroup 'foo'
-        pth.beginGroup 'http://techcrunch.com/2013/03/26/embedly-now/'
-        pth.send 'path data'
-        pth.endGroup()
-        pth.endGroup()
-        pth.disconnect()
-        rep.disconnect()
