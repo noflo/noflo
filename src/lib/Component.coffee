@@ -47,4 +47,11 @@ class Component extends EventEmitter
 
   shutdown: ->
 
+  # The startup function performs initialization for the component.
+  startup: ->
+    # Loop through each input port sending its defaults if applicable.
+    for key, port of @inPorts.ports
+      port.sendDefault() if typeof port.sendDefault is 'function'
+    return
+
 exports.Component = Component

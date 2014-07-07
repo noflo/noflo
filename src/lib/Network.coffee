@@ -137,6 +137,13 @@ class Network extends EventEmitter
         port.node = node.id
         port.nodeInstance = instance
         port.name = name
+
+        # Attach a socket to any defaulted inPorts.
+        if typeof port.hasDefault is 'function' and port.hasDefault()
+          socket = internalSocket.createSocket()
+          @subscribeSocket socket
+          port.attach socket
+
       for name, port of process.component.outPorts
         continue if not port or typeof port is 'function' or not port.canAttach
         port.node = node.id
@@ -441,7 +448,13 @@ class Network extends EventEmitter
     else
       setTimeout send, 0
 
+  startupComponents: ->
+    # Perform any startup routines necessary for every component.
+    for id, process of @processes
+      process.component.startup() if typeof process.component.startup is 'function'
+
   start: ->
+    @startupComponents()
     @sendInitials()
 
   stop: ->
