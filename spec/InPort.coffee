@@ -63,12 +63,14 @@ describe 'Inport Port', ->
       p.on 'data', (data) ->
         chai.expect(data).to.equal 'default-value'
         done()
+      p.sendDefault()
     it 'should send the default value before IIP', (done) ->
       received = ['default-value', 'some-iip']
       p.on 'data', (data) ->
         chai.expect(data).to.equal received.shift()
         done() if received.length is 0
       setTimeout ->
+        p.sendDefault()
         s.send 'some-iip'
       , 0
 
