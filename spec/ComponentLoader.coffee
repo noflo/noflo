@@ -77,6 +77,12 @@ describe 'ComponentLoader with no external packages installed', ->
     it 'should have a reference to the Component Loader\'s baseDir', ->
       chai.expect(instance.baseDir).to.equal l.baseDir
 
+  describe 'loading a component', ->
+    it 'should throw an error on an invalid component type', () ->
+      l.components['InvalidComponent'] = true
+      fn = l.load.bind l, 'InvalidComponent', (c) ->
+      chai.expect(fn).to.throw(Error, /Invalid type boolean for component InvalidComponent./)
+
   describe 'register a component at runtime', ->
     class Split extends component.Component
       constructor: ->
