@@ -54,6 +54,8 @@ describe 'NoFlo Network', ->
       g.baseDir = root
       n = new noflo.Network g
       n.connect done
+    it 'should initially be marked as stopped', ->
+      chai.expect(n.isStarted()).to.equal false
     it 'should initially have no processes', ->
       chai.expect(n.processes).to.be.empty
     it 'should initially have to connections', ->
@@ -142,6 +144,10 @@ describe 'NoFlo Network', ->
       chai.expect(n.initials).not.to.be.empty
       n.start()
 
+    describe 'once started', ->
+      it 'should be marked as started', ->
+        chai.expect(n.isStarted()).to.equal true
+
     describe 'with a renamed node', ->
       it 'should have the process in a new location', (done) ->
         g.once 'renameNode', ->
@@ -168,6 +174,12 @@ describe 'NoFlo Network', ->
           chai.expect(data.icon).to.equal 'flask'
           done()
         n.processes.Func.component.setIcon 'flask'
+
+    describe 'once stopped', ->
+      it 'should be marked as stopped', (done) ->
+        n.stop()
+        chai.expect(n.isStarted()).to.equal false
+        done()
 
   describe "Nodes are added first, then edges, then initializers (i.e. IIPs), and in order of definition order within each", ->
     g = null

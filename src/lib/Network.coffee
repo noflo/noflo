@@ -46,6 +46,7 @@ class Network extends EventEmitter
     @connections = []
     @initials = []
     @graph = graph
+    @started = false
 
     # On Node.js we default the baseDir for component loading to
     # the current working directory
@@ -441,7 +442,11 @@ class Network extends EventEmitter
     else
       setTimeout send, 0
 
+  isStarted: () ->
+    @started
+
   start: ->
+    @started = true
     @sendInitials()
 
   stop: ->
@@ -452,5 +457,6 @@ class Network extends EventEmitter
     # Tell processes to shut down
     for id, process of @processes
       process.component.shutdown()
+    @started = false
 
 exports.Network = Network
