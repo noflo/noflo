@@ -133,6 +133,8 @@ class ComponentLoader extends EventEmitter
     # Attempt to create a component using a factory function.
     else if typeof implementation is 'function'
       instance = implementation metadata
+    else
+      throw new Error "Invalid type #{typeof(implementation)} for component #{name}."
 
     return instance
 
