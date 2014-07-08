@@ -454,14 +454,14 @@ class Network extends EventEmitter
   isStarted: () ->
     @started
 
-  startupComponents: ->
+  startComponents: ->
     # Perform any startup routines necessary for every component.
     for id, process of @processes
       process.component.start()
 
   start: ->
     @started = true
-    @startupComponents()
+    @startComponents()
     @sendInitials()
 
   stop: ->
