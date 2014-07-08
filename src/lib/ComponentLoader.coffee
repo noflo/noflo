@@ -128,26 +128,13 @@ class ComponentLoader extends EventEmitter
       implementation = require implementation
 
     # Attempt to create the component instance using the `getComponent` method.
-    instance = @createComponentWithGetComponent name, implementation, metadata
+    if typeof implementation.getComponent is 'function'
+      instance = implementation.getComponent metadata
+    # Attempt to create a component using a factory function.
+    else if typeof implementation is 'function'
+      instance = implementation metadata
 
-    # A function factory might have been specified or returned from the
-    # require call.
-    if typeof instance isnt 'object'
-      implementation = instance or implementation
-      instance = @createComponentFromFactory name, implementation, metadata
-
-    return instance;
-
-  # Attempts to create a component instance using a `getComponent` function on the
-  # `implementation` object specified.
-  createComponentWithGetComponent: (name, implementation, metadata) ->
-    if implementation.getComponent and typeof implementation.getComponent is 'function'
-      return implementation.getComponent metadata
-
-  # Attempts to create a component using a factory function.
-  createComponentFromFactory: (name, fn, metadata) ->
-    if typeof fn is 'function'
-      return fn metadata
+    return instance
 
   isGraph: (cPath) ->
     return true if typeof cPath is 'object' and cPath instanceof nofloGraph.Graph
