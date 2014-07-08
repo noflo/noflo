@@ -108,26 +108,35 @@ class ComponentLoader extends EventEmitter
           @loadGraph name, component, callback, delayed, metadata
         , 0
       return
-    if typeof component is 'function'
-      implementation = component
-      if component.getComponent and typeof component.getComponent is 'function'
-        instance = component.getComponent metadata
-      else
-        instance = component metadata
-    # Direct component instance, return as is
-    else if typeof component is 'object' and typeof component.getComponent is 'function'
-      instance = component.getComponent metadata
-    else
-      implementation = require component
-      if implementation.getComponent and typeof implementation.getComponent is 'function'
-        instance = implementation.getComponent metadata
-      else
-        if typeof implementation isnt 'function'
-          throw new Error "Component #{name} is not loadable"
-        instance = implementation metadata
+
+    instance = @createComponent name, component, metadata
+
+    if not instance
+      throw new Error "Component #{name} could not be loaded."
+
     instance.baseDir = @baseDir if name is 'Graph'
     @setIcon name, instance
     callback instance
+
+  # Creates an instance of a component.
+  createComponent: (name, component, metadata) ->
+
+    implementation = component
+
+    # If a string was specified, attempt to `require` it.
+    if typeof implementation is 'string'
+      implementation = require implementation
+
+    # Attempt to create the component instance using the `getComponent` method.
+    if typeof implementation.getComponent is 'function'
+      instance = implementation.getComponent metadata
+    # Attempt to create a component using a factory function.
+    else if typeof implementation is 'function'
+      instance = implementation metadata
+    else
+      throw new Error "Invalid type #{typeof(implementation)} for component #{name}."
+
+    return instance
 
   isGraph: (cPath) ->
     return true if typeof cPath is 'object' and cPath instanceof nofloGraph.Graph
