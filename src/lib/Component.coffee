@@ -11,6 +11,7 @@ ports = require './Ports'
 class Component extends EventEmitter
   description: ''
   icon: null
+  started: false
 
   constructor: (options) ->
     options = {} unless options
@@ -46,12 +47,19 @@ class Component extends EventEmitter
     throw e
 
   shutdown: ->
+    @started = false
 
   # The startup function performs initialization for the component.
-  startup: ->
-    # Loop through each input port sending its defaults if applicable.
-    for key, port of @inPorts.ports
-      port.sendDefault() if typeof port.sendDefault is 'function'
-    return
+  start: ->
+    unless @started
+      # Loop through each input port sending its defaults if applicable.
+      for key, port of @inPorts.ports
+        # TODO: sendDefault existence check is for backwards compatibility, clean
+        #       up when legacy ports are removed.
+        port.sendDefault() if typeof port.sendDefault is 'function'
+      @started = true
+    @started
+
+  isStarted: -> @started
 
 exports.Component = Component

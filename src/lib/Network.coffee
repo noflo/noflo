@@ -138,8 +138,10 @@ class Network extends EventEmitter
         port.nodeInstance = instance
         port.name = name
 
-        # Attach a socket to any defaulted inPorts.
-        if typeof port.hasDefault is 'function' and port.hasDefault()
+        # Attach a socket to any defaulted inPorts as long as they aren't already attached.
+        # TODO: hasDefault existence check is for backwards compatibility, clean
+        #       up when legacy ports are removed.
+        if typeof port.hasDefault is 'function' and port.hasDefault() and not port.isAttached()
           socket = internalSocket.createSocket()
           @subscribeSocket socket
           port.attach socket
@@ -451,7 +453,7 @@ class Network extends EventEmitter
   startupComponents: ->
     # Perform any startup routines necessary for every component.
     for id, process of @processes
-      process.component.startup() if typeof process.component.startup is 'function'
+      process.component.start()
 
   start: ->
     @startupComponents()

@@ -748,7 +748,7 @@ describe 'Component traits', ->
             chai.expect(data.d2).to.equal 456
             done()
 
-        c.startup() # Initializes the component; sends default values.
+        c.start() # Initializes the component; sends default values.
 
         d1.send 'foo'
         d2.send 123
@@ -789,7 +789,7 @@ describe 'Component traits', ->
           chai.expect(data.d2).to.equal 123
           done()
 
-        c.startup() # Initializes the component; sends default values.
+        c.start() # Initializes the component; sends default values.
 
         p2.send 56
         d1.send 'foo'
@@ -880,7 +880,7 @@ describe 'Component traits', ->
             chai.expect(c.invCount).to.equal 3
             done()
 
-        c.startup() # Initializes the component; sends default values.
+        c.start() # Initializes the component; sends default values.
 
         line.send 'op'
         rpt.send 10

@@ -74,9 +74,9 @@ class InPort extends BasePort
     return @options.default isnt undefined
 
   sendDefault: ->
-    return if @options.default is undefined
-    for socket, idx in @sockets
-      @handleSocketEvent 'data', @options.default, idx
+    if @hasDefault()
+      for socket, idx in @sockets
+        @handleSocketEvent 'data', @options.default, idx
 
   prepareBuffer: ->
     return unless @isBuffered()
