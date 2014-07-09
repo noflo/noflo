@@ -97,4 +97,9 @@ class AsyncComponent extends component.Component
           @q.shift()
           processedData = true
 
+  shutdown: ->
+    @q = []
+    @errorGroups = []
+    @load = 0
+
 exports.AsyncComponent = AsyncComponent
