@@ -51,13 +51,7 @@ class Component extends EventEmitter
 
   # The startup function performs initialization for the component.
   start: ->
-    unless @started
-      # Loop through each input port sending its defaults if applicable.
-      for key, port of @inPorts.ports
-        # TODO: sendDefault existence check is for backwards compatibility, clean
-        #       up when legacy ports are removed.
-        port.sendDefault() if typeof port.sendDefault is 'function'
-      @started = true
+    @started = true
     @started
 
   isStarted: -> @started
