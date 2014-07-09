@@ -156,3 +156,32 @@ describe 'Component', ->
       s1.beginGroup 'foo'
       s1.beginGroup 'bar'
       s1.send 'some-data'
+
+  describe 'starting a component', ->
+
+    it 'should flag the component as started', ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            required: true
+      i = new socket.InternalSocket
+      c.inPorts.in.attach(i)
+      c.start()
+      chai.expect(c.started).to.equal(true)
+      chai.expect(c.isStarted()).to.equal(true)
+
+  describe 'shutting down a component', ->
+
+    it 'should flag the component as not started', ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            required: true
+      i = new socket.InternalSocket
+      c.inPorts.in.attach(i)
+      c.start()
+      c.shutdown()
+      chai.expect(c.started).to.equal(false)
+      chai.expect(c.isStarted()).to.equal(false)
