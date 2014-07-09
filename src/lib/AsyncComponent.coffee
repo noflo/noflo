@@ -100,6 +100,5 @@ class AsyncComponent extends component.Component
   shutdown: ->
     @q = []
     @errorGroups = []
-    @load = 0
 
 exports.AsyncComponent = AsyncComponent
