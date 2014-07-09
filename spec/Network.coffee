@@ -181,6 +181,84 @@ describe 'NoFlo Network', ->
         chai.expect(n.isStarted()).to.equal false
         done()
 
+  describe 'with nodes containing default ports', ->
+    g = null
+    testCallback = null
+    c = null
+    cb = null
+
+    beforeEach ->
+      testCallback = null
+      c = null
+      cb = null
+
+      c = new noflo.Component
+      c.inPorts.add 'in',
+        required: true
+        datatype: 'string'
+        default: 'default-value',
+        (e, data) =>
+          if e is 'data'
+            c.outPorts.out.send data
+            c.outPorts.out.disconnect()
+      c.outPorts.add 'out'
+
+      cb = new noflo.Component
+      cb.inPorts.add 'in',
+        required: true
+        datatype: 'all'
+        (e, data) =>
+          if e is 'data'
+            testCallback(data)
+
+      g = new noflo.Graph
+      g.baseDir = root
+      g.addNode 'Def', 'Def'
+      g.addNode 'Cb', 'Cb'
+      g.addEdge 'Def', 'out', 'Cb', 'in'
+
+    it 'should send default values to nodes without an edge', (done) ->
+      @timeout 5000
+      testCallback = (data) ->
+        chai.expect(data).to.equal 'default-value'
+        done()
+      noflo.createNetwork g, (nw) ->
+        nw.loader.components.Def = -> c
+        nw.loader.components.Cb = -> cb
+        nw.connect ->
+          nw.start()
+      , true
+
+    it 'should not send default values to nodes with an edge', (done) ->
+      @timeout 5000
+      testCallback = (data) ->
+        chai.expect(data).to.equal 'from-edge'
+        done()
+      g.addNode 'Merge', 'Merge'
+      g.addEdge 'Merge', 'out', 'Def', 'in'
+      g.addInitial 'from-edge', 'Merge', 'in'
+      noflo.createNetwork g, (nw) ->
+        nw.loader.components.Def = -> c
+        nw.loader.components.Cb = -> cb
+        nw.loader.components.Merge = Merge
+        nw.connect ->
+          nw.start()
+      , true
+
+    it 'should not send default values to nodes with IIP', (done) ->
+      @timeout 5000
+      testCallback = (data) ->
+        chai.expect(data).to.equal 'from-IIP'
+        done()
+      g.addInitial 'from-IIP', 'Def', 'in'
+      noflo.createNetwork g, (nw) ->
+        nw.loader.components.Def = -> c
+        nw.loader.components.Cb = -> cb
+        nw.loader.components.Merge = Merge
+        nw.connect ->
+          nw.start()
+      , true
+
   describe "Nodes are added first, then edges, then initializers (i.e. IIPs), and in order of definition order within each", ->
     g = null
     n = null

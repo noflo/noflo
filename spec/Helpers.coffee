@@ -748,10 +748,9 @@ describe 'Component traits', ->
             chai.expect(data.d2).to.equal 456
             done()
 
-        c.start() # Initializes the component; sends default values.
-
         d1.send 'foo'
         d2.send 123
+        p3.send() # Send default
         p1.send 'req'
         # the handler should be triggered here
 
@@ -789,11 +788,10 @@ describe 'Component traits', ->
           chai.expect(data.d2).to.equal 123
           done()
 
-        c.start() # Initializes the component; sends default values.
-
         p2.send 56
         d1.send 'foo'
         d2.send 123
+        p3.send() # Send default
         p1.send 'req'
         # the handler should be triggered here
 
@@ -880,8 +878,7 @@ describe 'Component traits', ->
             chai.expect(c.invCount).to.equal 3
             done()
 
-        c.start() # Initializes the component; sends default values.
-
+        whn.send() # Send defaults
         line.send 'op'
         rpt.send 10
         line.disconnect()
