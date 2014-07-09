@@ -105,16 +105,16 @@ class StreamSender
       @resolved = true
     else
       @flush()
+      @port.disconnect() if @port.isConnected()
     return @
   flush: ->
     # Flush the buffers
     res = false
     if @q.length > 0
-      @port.connect()
       for ip in @q
         ip.sendTo @port
-      @port.disconnect()
       res = true
+      @port.disconnect() if @ordered
     @q = []
     return res
   isAttached: ->

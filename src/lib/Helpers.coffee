@@ -129,6 +129,7 @@ exports.WirePattern = (component, config, proc) ->
 
   component.groupedData = {}
   component.groupedDataGroups = {}
+  component.groupedDisconnects = {}
 
   # For ordered output
   component.outputQ = []
@@ -196,6 +197,10 @@ exports.WirePattern = (component, config, proc) ->
         # Trigger pending procs if all params are complete
         resumeTaskQ()
 
+  # Disconnect event forwarding
+  component.disconnectData = []
+  component.disconnectQ = []
+
   # Grouped ports
   for port in inPorts
     do (port) ->
@@ -205,6 +210,7 @@ exports.WirePattern = (component, config, proc) ->
       else
         inPort = component.inPorts[port]
       inPort.groups = []
+      inPort.disconnected = false
 
       # Set processing callback
       inPort.process = (event, payload) ->
@@ -213,6 +219,28 @@ exports.WirePattern = (component, config, proc) ->
             inPort.groups.push payload
           when 'endgroup'
             inPort.groups.pop()
+          when 'disconnect'
+            if config.async or config.sendStreams
+              if inPorts.length is 1
+                component.disconnectQ.push true
+              else
+                foundGroup = false
+                for i in [0...component.disconnectData.length]
+                  unless port of component.disconnectData[i]
+                    foundGroup = true
+                    component.disconnectData[i][port] = true
+                    if Object.keys(component.disconnectData[i]).length is inPorts.length
+                      component.disconnectQ.push true
+                      component.disconnectData.shift()
+                    break
+                unless foundGroup
+                  obj = {}
+                  obj[port] = true
+                  component.disconnectData.push obj
+            else
+              for name in outPorts
+                if component.outPorts[name].isConnected()
+                  component.outPorts[name].disconnect()
 
           when 'data'
             key = ''
@@ -226,6 +254,8 @@ exports.WirePattern = (component, config, proc) ->
 
             component.groupedData[key] = {} unless key of component.groupedData
             component.groupedData[key][config.field] = key if config.field
+            unless key of component.groupedDisconnects
+              component.groupedDisconnects[key] = {}
             if inPorts.length is 1
               component.groupedData[key] = payload
             else
@@ -272,13 +302,17 @@ exports.WirePattern = (component, config, proc) ->
                   component.fail()
                 # Disconnect outputs if still connected,
                 # this also indicates them as resolved if pending
-                if outPorts.length is 1
-                  outs.endGroup() for g in groups if config.forwardGroups
-                  outs.disconnect()
-                else
-                  for name, out of outs
-                    out.endGroup() for g in groups if config.forwardGroups
+                outputs = if outPorts.length is 1 then port: outs else outs
+                for name, out of outputs
+                  out.endGroup() for g in groups if config.forwardGroups
+                  if config.async and config.ordered
                     out.disconnect()
+                  else if config.async or config.sendStreams
+                    if component.disconnectQ.length > 0
+                      component.disconnectQ.shift()
+                      out.disconnect()
+                    else
+                      out.flush()
                 if typeof component.afterProcess is 'function'
                   component.afterProcess err or component.hasErrors, outs
 
