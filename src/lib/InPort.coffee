@@ -27,7 +27,6 @@ class InPort extends BasePort
 
     super options
 
-    do @sendDefault
     do @prepareBuffer
 
   attachSocket: (socket, localId = null) ->
@@ -71,12 +70,13 @@ class InPort extends BasePort
     return @emit event, payload, id if @isAddressable()
     @emit event, payload
 
+  hasDefault: ->
+    return @options.default isnt undefined
+
   sendDefault: ->
-    return if @options.default is undefined
-    setTimeout =>
+    if @hasDefault()
       for socket, idx in @sockets
         @handleSocketEvent 'data', @options.default, idx
-    , 0
 
   prepareBuffer: ->
     return unless @isBuffered()
