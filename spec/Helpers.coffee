@@ -751,16 +751,23 @@ describe 'Component traits', ->
         c.start() # Initializes the component; sends default values.
 
         d1.send 'foo'
+        d1.disconnect()
         d2.send 123
+        d2.disconnect()
         p1.send 'req'
+        p1.disconnect()
         # the handler should be triggered here
 
         setTimeout ->
           p2.send 568
+          p2.disconnect()
           p3.send 800
+          p3.disconnect()
 
           d1.send 'bar'
+          d1.disconnect()
           d2.send 456
+          d2.disconnect()
         , 10
 
       it 'should work for async procs too', (done) ->
@@ -792,10 +799,42 @@ describe 'Component traits', ->
         c.start() # Initializes the component; sends default values.
 
         p2.send 56
+        p2.disconnect()
         d1.send 'foo'
+        d1.disconnect()
         d2.send 123
+        d2.disconnect()
         p1.send 'req'
+        p1.disconnect()
         # the handler should be triggered here
+
+      it 'should reset state if shutdown() is called', (done) ->
+        helpers.WirePattern c,
+          in: ['data1', 'data2']
+          out: 'out'
+          params: ['param1', 'param2', 'param3']
+        , (input, groups, out) ->
+          out.send
+            p1: c.params.param1
+            p2: c.params.param2
+            p3: c.params.param3
+            d1: input.data1
+            d2: input.data2
+
+        d1.send 'boo'
+        d1.disconnect()
+        p2.send 73
+        p2.disconnect()
+
+        chai.expect(Object.keys(c.groupedData)).to.have.length.above 0
+        chai.expect(Object.keys(c.params)).to.have.length.above 0
+
+        c.shutdown()
+        chai.expect(c.groupedData).to.deep.equal {}
+        chai.expect(c.params).to.deep.equal {}
+        chai.expect(c.taskQ).to.deep.equal []
+
+        done()
 
     describe 'without output ports', ->
       c = new component.Component
@@ -1254,3 +1293,24 @@ describe 'Component traits', ->
           email: 'delay@lama.ti'
           accept: true
         form.disconnect()
+
+      it 'should reset state if component is shut down', (done) ->
+        c2 = new component.Component
+        c2.inPorts.add 'name', datatype: 'string', (event, payload) ->
+          return unless event is 'data'
+          c2.error new Error "The name will never pass!"
+        helpers.MultiError c2
+        ins = new socket.createSocket()
+        c2.inPorts.name.attach ins
+
+        ins.send 'Norman'
+        chai.expect(c2.hasErrors).to.be.true
+        chai.expect(c2.errors).to.be.an 'array'
+        chai.expect(c2.errors).to.have.lengthOf 1
+
+        c2.shutdown()
+        chai.expect(c2.hasErrors).to.be.false
+        chai.expect(c2.errors).to.be.an 'array'
+        chai.expect(c2.errors).to.have.lengthOf 0
+
+        done()

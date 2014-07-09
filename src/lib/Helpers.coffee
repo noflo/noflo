@@ -127,33 +127,33 @@ exports.WirePattern = (component, config, proc) ->
     unless component.outPorts[name]
       throw new Error "no outPort named '#{name}'"
 
-  groupedData = {}
-  groupedDataGroups = {}
+  component.groupedData = {}
+  component.groupedDataGroups = {}
 
   # For ordered output
-  q = []
+  component.outputQ = []
   processQueue = ->
-    while q.length > 0
-      streams = q[0]
+    while component.outputQ.length > 0
+      streams = component.outputQ[0]
       # At least one of the outputs has to be resolved
       # for output streams to be flushed.
       flushed = false
       if outPorts.length is 1
         if streams.resolved
           flushed = streams.flush()
-          q.shift() if flushed
+          component.outputQ.shift() if flushed
       else
         for key, stream of streams
           if stream.resolved
             flushed = stream.flush()
-            q.shift() if flushed
+            component.outputQ.shift() if flushed
       return unless flushed
 
   if config.async
     component.load = 0 if 'load' of component.outPorts
     # Create before and after hooks
     component.beforeProcess = (outs) ->
-      q.push outs if config.ordered
+      component.outputQ.push outs if config.ordered
       component.load++
       if 'load' of component.outPorts and component.outPorts.load.isAttached()
         component.outPorts.load.send component.load
@@ -166,22 +166,23 @@ exports.WirePattern = (component, config, proc) ->
         component.outPorts.load.disconnect()
 
   # Parameter ports
-  taskQ = []
+  component.taskQ = []
   component.params = {}
-  requiredParams = []
-  completeParams = []
+  component.requiredParams = []
+  component.completeParams = []
   resumeTaskQ = ->
-    if completeParams.length is requiredParams.length and taskQ.length > 0
+    if component.completeParams.length is component.requiredParams.length and
+    component.taskQ.length > 0
       # Avoid looping when feeding the queue inside the queue itself
-      temp = taskQ.slice 0
-      taskQ = []
+      temp = component.taskQ.slice 0
+      component.taskQ = []
       while temp.length > 0
         task = temp.shift()
         task()
   for port in config.params
     unless component.inPorts[port]
       throw new Error "no inPort named '#{port}'"
-    requiredParams.push port if component.inPorts[port].isRequired()
+    component.requiredParams.push port if component.inPorts[port].isRequired()
   for port in config.params
     do (port) ->
       inPort = component.inPorts[port]
@@ -189,8 +190,9 @@ exports.WirePattern = (component, config, proc) ->
         # Param ports only react on data
         return unless event is 'data'
         component.params[port] = payload
-        if completeParams.indexOf(port) is -1 and requiredParams.indexOf(port) > -1
-          completeParams.push port
+        if component.completeParams.indexOf(port) is -1 and
+        component.requiredParams.indexOf(port) > -1
+          component.completeParams.push port
         # Trigger pending procs if all params are complete
         resumeTaskQ()
 
@@ -222,30 +224,31 @@ exports.WirePattern = (component, config, proc) ->
             config.field of payload
               key = payload[config.field]
 
-            groupedData[key] = {} unless key of groupedData
-            groupedData[key][config.field] = key if config.field
+            component.groupedData[key] = {} unless key of component.groupedData
+            component.groupedData[key][config.field] = key if config.field
             if inPorts.length is 1
-              groupedData[key] = payload
+              component.groupedData[key] = payload
             else
-              groupedData[key][port] = payload
+              component.groupedData[key][port] = payload
 
             # Collect unique groups from multiple ports if necessary
             if collectGroups instanceof Array and
             collectGroups.indexOf(port) isnt -1
-              groupedDataGroups[key] = [] unless key of groupedDataGroups
+              unless key of component.groupedDataGroups
+                component.groupedDataGroups[key] = []
               for grp in inPort.groups
-                if groupedDataGroups[key].indexOf(grp) is -1
-                  groupedDataGroups[key].push grp
+                if component.groupedDataGroups[key].indexOf(grp) is -1
+                  component.groupedDataGroups[key].push grp
 
             # Flush the data if the tuple is complete
             requiredLength = inPorts.length
             ++requiredLength if config.field
             if requiredLength is 1 or
-            Object.keys(groupedData[key]).length is requiredLength
+            Object.keys(component.groupedData[key]).length is requiredLength
               if collectGroups is true
                 groups = inPort.groups
               else
-                groups = groupedDataGroups[key]
+                groups = component.groupedDataGroups[key]
 
               # Reset port group buffers or it may keep them for next turn
               component.inPorts[p].groups = [] for p in inPorts
@@ -280,10 +283,10 @@ exports.WirePattern = (component, config, proc) ->
                   component.afterProcess err or component.hasErrors, outs
 
               # Prepare data
-              data = groupedData[key]
+              data = component.groupedData[key]
               # Clean buffers
-              delete groupedData[key]
-              delete groupedDataGroups[key]
+              delete component.groupedData[key]
+              delete component.groupedDataGroups[key]
 
               # Before hook
               if typeof component.beforeProcess is 'function'
@@ -309,15 +312,26 @@ exports.WirePattern = (component, config, proc) ->
                 postpone = (backToQueue = true) ->
                   postponedToQ = backToQueue
                   if backToQueue
-                    taskQ.push task
+                    component.taskQ.push task
                 resume = ->
                   if postponedToQ then resumeTaskQ() else task()
               else
                 task = ->
                   proc.call component, data, groups, outs
                   whenDone()
-              taskQ.push task
+              component.taskQ.push task
               resumeTaskQ()
+
+  # Overload shutdown method to clean WirePattern state
+  baseShutdown = component.shutdown
+  component.shutdown = ->
+    baseShutdown.call component
+    component.groupedData = {}
+    component.groupedDataGroups = {}
+    component.outputQ = []
+    component.taskQ = []
+    component.params = {}
+    component.completeParams = []
 
   # Make it chainable or usable at the end of getComponent()
   return component
@@ -369,6 +383,13 @@ exports.MultiError = (component, group = '', errorPort = 'error', forwardedGroup
     component.outPorts[errorPort].endGroup() if group
     component.outPorts[errorPort].disconnect()
     # Clean the status for next activation
+    component.hasErrors = false
+    component.errors = []
+
+  # Overload shutdown method to clear errors
+  baseShutdown = component.shutdown
+  component.shutdown = ->
+    baseShutdown.call component
     component.hasErrors = false
     component.errors = []
 
