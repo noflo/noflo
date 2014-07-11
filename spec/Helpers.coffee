@@ -751,16 +751,23 @@ describe 'Component traits', ->
         c.start() # Initializes the component; sends default values.
 
         d1.send 'foo'
+        d1.disconnect()
         d2.send 123
+        d2.disconnect()
         p1.send 'req'
+        p1.disconnect()
         # the handler should be triggered here
 
         setTimeout ->
           p2.send 568
+          p2.disconnect()
           p3.send 800
+          p3.disconnect()
 
           d1.send 'bar'
+          d1.disconnect()
           d2.send 456
+          d2.disconnect()
         , 10
 
       it 'should work for async procs too', (done) ->
@@ -792,10 +799,42 @@ describe 'Component traits', ->
         c.start() # Initializes the component; sends default values.
 
         p2.send 56
+        p2.disconnect()
         d1.send 'foo'
+        d1.disconnect()
         d2.send 123
+        d2.disconnect()
         p1.send 'req'
+        p1.disconnect()
         # the handler should be triggered here
+
+      it 'should reset state if shutdown() is called', (done) ->
+        helpers.WirePattern c,
+          in: ['data1', 'data2']
+          out: 'out'
+          params: ['param1', 'param2', 'param3']
+        , (input, groups, out) ->
+          out.send
+            p1: c.params.param1
+            p2: c.params.param2
+            p3: c.params.param3
+            d1: input.data1
+            d2: input.data2
+
+        d1.send 'boo'
+        d1.disconnect()
+        p2.send 73
+        p2.disconnect()
+
+        chai.expect(Object.keys(c.groupedData)).to.have.length.above 0
+        chai.expect(Object.keys(c.params)).to.have.length.above 0
+
+        c.shutdown()
+        chai.expect(c.groupedData).to.deep.equal {}
+        chai.expect(c.params).to.deep.equal {}
+        chai.expect(c.taskQ).to.deep.equal []
+
+        done()
 
     describe 'without output ports', ->
       c = new component.Component
@@ -1026,6 +1065,121 @@ describe 'Component traits', ->
         pth.disconnect()
         rep.disconnect()
 
+    describe 'for batch processing', ->
+      # Component constructors
+      newGenerator = (name) ->
+        generator = new component.Component
+        generator.inPorts.add 'count', datatype: 'int'
+        generator.outPorts.add 'seq', datatype: 'int'
+        helpers.WirePattern generator,
+          in: 'count'
+          out: 'seq'
+          async: true
+          forwardGroups: true
+        , (count, groups, seq, callback) ->
+          for i in [1..count]
+            do (i) ->
+              delay = if i > 10 then i % 10 else i
+              setTimeout ->
+                seq.send i
+                callback() if i is count
+              , delay
+      newDoubler = (name) ->
+        doubler = new component.Component
+        doubler.inPorts.add 'num', datatype: 'int'
+        doubler.outPorts.add 'out', datatype: 'int'
+        helpers.WirePattern doubler,
+          in: 'num'
+          out: 'out'
+          forwardGroups: true
+        , (num, groups, out) ->
+          dbl = 2*num
+          out.send dbl
+      newAdder = ->
+        adder = new component.Component
+        adder.inPorts.add 'num1', datatype: 'int'
+        adder.inPorts.add 'num2', datatype: 'int'
+        adder.outPorts.add 'sum', datatype: 'int'
+        helpers.WirePattern adder,
+          in: ['num1', 'num2']
+          out: 'sum'
+          forwardGroups: true
+          # async: true # TODO when it becomes possible
+          # ordered: true
+        , (args, groups, out, callback) ->
+          sum = args.num1 + args.num2
+          out.send sum
+          # setTimeout ->
+          #   out.send sum
+          #   callback()
+          # , sum % 10
+      newSeqsum = ->
+        seqsum = new component.Component
+        seqsum.sum = 0
+        seqsum.inPorts.add 'seq', datatype: 'int', (event, payload) ->
+          switch event
+            when 'data'
+              seqsum.sum += payload
+            when 'disconnect'
+              seqsum.outPorts.sum.send seqsum.sum
+              seqsum.sum = 0
+              seqsum.outPorts.sum.disconnect()
+        seqsum.outPorts.add 'sum', datatype: 'int'
+        return seqsum
+
+      # Wires
+      genA = newGenerator 'A'
+      genB = newGenerator 'B'
+      dblA = newDoubler 'A'
+      dblB = newDoubler 'B'
+      addr = newAdder()
+      sumr = newSeqsum()
+      cntA = socket.createSocket()
+      cntB = socket.createSocket()
+      gen2dblA = socket.createSocket()
+      gen2dblB = socket.createSocket()
+      dblA2add = socket.createSocket()
+      dblB2add = socket.createSocket()
+      addr2sum = socket.createSocket()
+      sum = socket.createSocket()
+
+      genA.inPorts.count.attach cntA
+      genB.inPorts.count.attach cntB
+      genA.outPorts.seq.attach gen2dblA
+      genB.outPorts.seq.attach gen2dblB
+      dblA.inPorts.num.attach gen2dblA
+      dblB.inPorts.num.attach gen2dblB
+      dblA.outPorts.out.attach dblA2add
+      dblB.outPorts.out.attach dblB2add
+      addr.inPorts.num1.attach dblA2add
+      addr.inPorts.num2.attach dblB2add
+      addr.outPorts.sum.attach addr2sum
+      sumr.inPorts.seq.attach addr2sum
+      sumr.outPorts.sum.attach sum
+
+      it 'should process sequences of packets separated by disconnects', (done) ->
+        expected = [ 24, 40 ]
+        actual = []
+        sum.on 'data', (data) ->
+          actual.push data
+        sum.on 'disconnect', ->
+          chai.expect(actual).to.have.length.above 0
+          chai.expect(expected).to.have.length.above 0
+          act = actual.shift()
+          exp = expected.shift()
+          chai.expect(act).to.equal exp
+          done() if expected.length is 0
+
+        cntA.send 3
+        cntA.disconnect()
+        cntB.send 3
+        cntB.disconnect()
+
+        cntA.send 4
+        cntB.send 4
+        cntA.disconnect()
+        cntB.disconnect()
+
   describe 'MultiError', ->
     describe 'with simple sync processes', ->
       c = new component.Component
@@ -1254,3 +1408,24 @@ describe 'Component traits', ->
           email: 'delay@lama.ti'
           accept: true
         form.disconnect()
+
+      it 'should reset state if component is shut down', (done) ->
+        c2 = new component.Component
+        c2.inPorts.add 'name', datatype: 'string', (event, payload) ->
+          return unless event is 'data'
+          c2.error new Error "The name will never pass!"
+        helpers.MultiError c2
+        ins = new socket.createSocket()
+        c2.inPorts.name.attach ins
+
+        ins.send 'Norman'
+        chai.expect(c2.hasErrors).to.be.true
+        chai.expect(c2.errors).to.be.an 'array'
+        chai.expect(c2.errors).to.have.lengthOf 1
+
+        c2.shutdown()
+        chai.expect(c2.hasErrors).to.be.false
+        chai.expect(c2.errors).to.be.an 'array'
+        chai.expect(c2.errors).to.have.lengthOf 0
+
+        done()
