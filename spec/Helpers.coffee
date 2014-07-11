@@ -1065,6 +1065,121 @@ describe 'Component traits', ->
         pth.disconnect()
         rep.disconnect()
 
+    describe 'for batch processing', ->
+      # Component constructors
+      newGenerator = (name) ->
+        generator = new component.Component
+        generator.inPorts.add 'count', datatype: 'int'
+        generator.outPorts.add 'seq', datatype: 'int'
+        helpers.WirePattern generator,
+          in: 'count'
+          out: 'seq'
+          async: true
+          forwardGroups: true
+        , (count, groups, seq, callback) ->
+          for i in [1..count]
+            do (i) ->
+              delay = if i > 10 then i % 10 else i
+              setTimeout ->
+                seq.send i
+                callback() if i is count
+              , delay
+      newDoubler = (name) ->
+        doubler = new component.Component
+        doubler.inPorts.add 'num', datatype: 'int'
+        doubler.outPorts.add 'out', datatype: 'int'
+        helpers.WirePattern doubler,
+          in: 'num'
+          out: 'out'
+          forwardGroups: true
+        , (num, groups, out) ->
+          dbl = 2*num
+          out.send dbl
+      newAdder = ->
+        adder = new component.Component
+        adder.inPorts.add 'num1', datatype: 'int'
+        adder.inPorts.add 'num2', datatype: 'int'
+        adder.outPorts.add 'sum', datatype: 'int'
+        helpers.WirePattern adder,
+          in: ['num1', 'num2']
+          out: 'sum'
+          forwardGroups: true
+          # async: true # TODO when it becomes possible
+          # ordered: true
+        , (args, groups, out, callback) ->
+          sum = args.num1 + args.num2
+          out.send sum
+          # setTimeout ->
+          #   out.send sum
+          #   callback()
+          # , sum % 10
+      newSeqsum = ->
+        seqsum = new component.Component
+        seqsum.sum = 0
+        seqsum.inPorts.add 'seq', datatype: 'int', (event, payload) ->
+          switch event
+            when 'data'
+              seqsum.sum += payload
+            when 'disconnect'
+              seqsum.outPorts.sum.send seqsum.sum
+              seqsum.sum = 0
+              seqsum.outPorts.sum.disconnect()
+        seqsum.outPorts.add 'sum', datatype: 'int'
+        return seqsum
+
+      # Wires
+      genA = newGenerator 'A'
+      genB = newGenerator 'B'
+      dblA = newDoubler 'A'
+      dblB = newDoubler 'B'
+      addr = newAdder()
+      sumr = newSeqsum()
+      cntA = socket.createSocket()
+      cntB = socket.createSocket()
+      gen2dblA = socket.createSocket()
+      gen2dblB = socket.createSocket()
+      dblA2add = socket.createSocket()
+      dblB2add = socket.createSocket()
+      addr2sum = socket.createSocket()
+      sum = socket.createSocket()
+
+      genA.inPorts.count.attach cntA
+      genB.inPorts.count.attach cntB
+      genA.outPorts.seq.attach gen2dblA
+      genB.outPorts.seq.attach gen2dblB
+      dblA.inPorts.num.attach gen2dblA
+      dblB.inPorts.num.attach gen2dblB
+      dblA.outPorts.out.attach dblA2add
+      dblB.outPorts.out.attach dblB2add
+      addr.inPorts.num1.attach dblA2add
+      addr.inPorts.num2.attach dblB2add
+      addr.outPorts.sum.attach addr2sum
+      sumr.inPorts.seq.attach addr2sum
+      sumr.outPorts.sum.attach sum
+
+      it 'should process sequences of packets separated by disconnects', (done) ->
+        expected = [ 24, 40 ]
+        actual = []
+        sum.on 'data', (data) ->
+          actual.push data
+        sum.on 'disconnect', ->
+          chai.expect(actual).to.have.length.above 0
+          chai.expect(expected).to.have.length.above 0
+          act = actual.shift()
+          exp = expected.shift()
+          chai.expect(act).to.equal exp
+          done() if expected.length is 0
+
+        cntA.send 3
+        cntA.disconnect()
+        cntB.send 3
+        cntB.disconnect()
+
+        cntA.send 4
+        cntB.send 4
+        cntA.disconnect()
+        cntB.disconnect()
+
   describe 'MultiError', ->
     describe 'with simple sync processes', ->
       c = new component.Component

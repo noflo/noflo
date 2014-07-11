@@ -100,21 +100,25 @@ class StreamSender
     else
       @current.push new IP data
     return @
-  disconnect: ->
+  done: ->
     if @ordered
       @resolved = true
     else
       @flush()
-      @port.disconnect() if @port.isConnected()
+    return @
+  disconnect: ->
+    @q.push null # disconnect packet
     return @
   flush: ->
     # Flush the buffers
     res = false
     if @q.length > 0
       for ip in @q
-        ip.sendTo @port
+        if ip is null
+          @port.disconnect() if @port.isConnected()
+        else
+          ip.sendTo @port
       res = true
-      @port.disconnect() if @ordered
     @q = []
     return res
   isAttached: ->
