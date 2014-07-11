@@ -15,6 +15,7 @@ class InternalSocket extends EventEmitter
   constructor: ->
     @connected = false
     @groups = []
+    @dataDelegate = null
 
   # ## Socket connections
   #
@@ -66,6 +67,7 @@ class InternalSocket extends EventEmitter
   # message queues can be used as additional packet relay mechanisms.
   send: (data) ->
     @connect() unless @connected
+    data = @dataDelegate() if data is undefined and typeof @dataDelegate is 'function'
     @emit 'data', data
 
   # ## Information Packet grouping
@@ -104,6 +106,16 @@ class InternalSocket extends EventEmitter
   endGroup: ->
     return unless @groups.length
     @emit 'endgroup', @groups.pop()
+
+  # ## Socket data delegation
+  #
+  # Sockets have the option to receive data from a delegate function
+  # should the `send` method receive undefined for `data`.  This
+  # helps in the case of defaulting values.
+  setDataDelegate: (delegate) ->
+    unless typeof delegate is 'function'
+      throw Error 'A data delegate must be a function.'
+    @dataDelegate = delegate
 
   # ## Socket identifiers
   #

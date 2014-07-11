@@ -28,6 +28,8 @@ class Network extends EventEmitter
   connections: []
   # Initials contains all Initial Information Packets (IIPs)
   initials: []
+  # Container to hold sockets that will be sending default data.
+  defaults: []
   # The Graph this network is instantiated with
   graph: null
   # Start-up timestamp for the network, used for calculating uptime
@@ -45,6 +47,7 @@ class Network extends EventEmitter
     @processes = {}
     @connections = []
     @initials = []
+    @defaults = []
     @graph = graph
     @started = false
 
@@ -139,14 +142,6 @@ class Network extends EventEmitter
         port.nodeInstance = instance
         port.name = name
 
-        # Attach a socket to any defaulted inPorts as long as they aren't already attached.
-        # TODO: hasDefault existence check is for backwards compatibility, clean
-        #       up when legacy ports are removed.
-        if typeof port.hasDefault is 'function' and port.hasDefault() and not port.isAttached()
-          socket = internalSocket.createSocket()
-          @subscribeSocket socket
-          port.attach socket
-
       for name, port of process.component.outPorts
         continue if not port or typeof port is 'function' or not port.canAttach
         port.node = node.id
@@ -209,10 +204,15 @@ class Network extends EventEmitter
       @subscribeGraph()
       done()
 
-    # Serialize initializers then call callback when done
-    initializers = _.reduceRight @graph.initializers, serialize, subscribeGraph
-    # Serialize edge creators then call the initializers
+    # Serialize default socket creation then call callback when done
+    setDefaults = _.reduceRight @graph.nodes, serialize, subscribeGraph
+
+    # Serialize initializers then call defaults.
+    initializers = _.reduceRight @graph.initializers, serialize, -> setDefaults "Defaults"
+
+    # Serialize edge creators then call the initializers.
     edges = _.reduceRight @graph.edges, serialize, -> initializers "Initial"
+
     # Serialize node creators then call the edge creators
     nodes = _.reduceRight @graph.nodes, serialize, -> edges "Edge"
     # Start with node creators
@@ -401,6 +401,34 @@ class Network extends EventEmitter
       @connections.splice @connections.indexOf(connection), 1
       do callback if callback
 
+  addDefaults: (node, callback) ->
+
+    process = @processes[node.id]
+
+    unless process.component.isReady()
+      process.component.setMaxListeners 0
+      process.component.once "ready", =>
+        @addDefaults process, callback
+      return
+
+    for key, port of process.component.inPorts.ports
+      # Attach a socket to any defaulted inPorts as long as they aren't already attached.
+      # TODO: hasDefault existence check is for backwards compatibility, clean
+      #       up when legacy ports are removed.
+      if typeof port.hasDefault is 'function' and port.hasDefault() and not port.isAttached()
+        socket = internalSocket.createSocket()
+
+        # Subscribe to events from the socket
+        @subscribeSocket socket
+
+        @connectPort socket, process, key, undefined, true
+
+        @connections.push socket
+
+        @defaults.push socket
+
+    callback() if callback
+
   addInitial: (initializer, callback) ->
     socket = internalSocket.createSocket()
 
@@ -459,10 +487,17 @@ class Network extends EventEmitter
     for id, process of @processes
       process.component.start()
 
+  sendDefaults: ->
+    for socket in @defaults
+      socket.connect()
+      socket.send()
+      socket.disconnect()
+
   start: ->
     @started = true
     @startComponents()
     @sendInitials()
+    @sendDefaults()
 
   stop: ->
     # Disconnect all connections

@@ -30,6 +30,12 @@ class InPort extends BasePort
     do @prepareBuffer
 
   attachSocket: (socket, localId = null) ->
+
+    # Assign a delegate for retrieving data should this inPort
+    # have a default value.
+    if @hasDefault()
+      socket.setDataDelegate => @options.default
+
     socket.on 'connect', =>
       @handleSocketEvent 'connect', socket, localId
     socket.on 'begingroup', (group) =>
@@ -72,11 +78,6 @@ class InPort extends BasePort
 
   hasDefault: ->
     return @options.default isnt undefined
-
-  sendDefault: ->
-    if @hasDefault()
-      for socket, idx in @sockets
-        @handleSocketEvent 'data', @options.default, idx
 
   prepareBuffer: ->
     return unless @isBuffered()
