@@ -656,6 +656,7 @@ describe 'Component traits', ->
           grpCounter++
         odd.on 'data', (data) ->
           chai.expect(data.num % 2).to.equal 1
+          chai.expect(data.str).to.equal numbers[data.num]
           dataCounter++
         odd.on 'disconnect', ->
           done() if dataCounter is 10 and grpCounter is 10
@@ -1075,13 +1076,17 @@ describe 'Component traits', ->
           out: 'seq'
           async: true
           forwardGroups: true
+          ordered: true
         , (count, groups, seq, callback) ->
+          sentCount = 0
           for i in [1..count]
             do (i) ->
               delay = if i > 10 then i % 10 else i
               setTimeout ->
                 seq.send i
-                callback() if i is count
+                sentCount++
+                if sentCount is count
+                  callback()
               , delay
       newDoubler = (name) ->
         doubler = new component.Component
@@ -1103,15 +1108,15 @@ describe 'Component traits', ->
           in: ['num1', 'num2']
           out: 'sum'
           forwardGroups: true
-          # async: true # TODO when it becomes possible
-          # ordered: true
+          async: true
+          ordered: true
         , (args, groups, out, callback) ->
           sum = args.num1 + args.num2
-          out.send sum
-          # setTimeout ->
-          #   out.send sum
-          #   callback()
-          # , sum % 10
+          # out.send sum
+          setTimeout ->
+            out.send sum
+            callback()
+          , sum % 10
       newSeqsum = ->
         seqsum = new component.Component
         seqsum.sum = 0
