@@ -131,21 +131,31 @@ exports.WirePattern = (component, config, proc) ->
   component.groupedGroups = {}
   component.groupedDisconnects = {}
 
+  disconnectOuts = ->
+    # Manual disconnect forwarding
+    for p in outPorts
+      component.outPorts[p].disconnect() if component.outPorts[p].isConnected()
+
   # For ordered output
   component.outputQ = []
   processQueue = ->
     while component.outputQ.length > 0
       streams = component.outputQ[0]
-      # At least one of the outputs has to be resolved
-      # for output streams to be flushed.
       flushed = false
-      if outPorts.length is 1
-        tmp = {}
-        tmp[outPorts[0]] = streams
-        streams = tmp
-      for key, stream of streams
-        if stream.resolved
-          flushed = stream.flush()
+      # Null in the queue means "disconnect all"
+      if streams is null
+        disconnectOuts()
+        flushed = true
+      else
+        # At least one of the outputs has to be resolved
+        # for output streams to be flushed.
+        if outPorts.length is 1
+          tmp = {}
+          tmp[outPorts[0]] = streams
+          streams = tmp
+        for key, stream of streams
+          if stream.resolved
+            flushed = flushed or stream.flush()
       component.outputQ.shift() if flushed
       return unless flushed
 
@@ -200,11 +210,6 @@ exports.WirePattern = (component, config, proc) ->
   component.disconnectData = []
   component.disconnectQ = []
 
-  disconnectAll = ->
-    # Manual disconnect forwarding
-    for p in outPorts
-      component.outPorts[p].disconnect() if component.outPorts[p].isConnected()
-
   # Grouped ports
   for port in inPorts
     do (port) ->
@@ -224,10 +229,13 @@ exports.WirePattern = (component, config, proc) ->
             inPort.groups.pop()
           when 'disconnect'
             if inPorts.length is 1
-              if config.async
-                component.disconnectQ.push true
+              if config.async or config.StreamSender
+                if config.ordered
+                  component.outputQ.push null
+                else
+                  component.disconnectQ.push true
               else
-                disconnectAll()
+                disconnectOuts()
             else
               foundGroup = false
               for i in [0...component.disconnectData.length]
@@ -236,10 +244,13 @@ exports.WirePattern = (component, config, proc) ->
                   component.disconnectData[i][port] = true
                   if Object.keys(component.disconnectData[i]).length is inPorts.length
                     component.disconnectData.shift()
-                    if config.async
-                      component.disconnectQ.push true
+                    if config.async or config.StreamSender
+                      if config.ordered
+                        component.outputQ.push null
+                      else
+                        component.disconnectQ.push true
                     else
-                      disconnectAll()
+                      disconnectOuts()
                   break
               unless foundGroup
                 obj = {}
@@ -282,7 +293,6 @@ exports.WirePattern = (component, config, proc) ->
                   else
                     return # need more data to continue
               unless foundGroup
-                # TODO
                 obj = {}
                 obj[config.field] = key if config.field
                 obj[port] = payload
@@ -372,6 +382,8 @@ exports.WirePattern = (component, config, proc) ->
     component.groupedData = {}
     component.groupedGroups = {}
     component.outputQ = []
+    component.disconnectData = []
+    component.disconnectQ = []
     component.taskQ = []
     component.params = {}
     component.completeParams = []
