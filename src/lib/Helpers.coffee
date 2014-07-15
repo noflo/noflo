@@ -3,6 +3,7 @@
 #     NoFlo may be freely distributed under the MIT license
 StreamSender = require('./Streams').StreamSender
 StreamReceiver = require('./Streams').StreamReceiver
+InternalSocket = require './InternalSocket'
 
 # MapComponent maps a single inport to a single outport, forwarding all
 # groups from in to out and calling `func` on each incoming packet
@@ -180,6 +181,21 @@ exports.WirePattern = (component, config, proc) ->
   component.params = {}
   component.requiredParams = []
   component.completeParams = []
+  component.receivedParams = []
+  component.defaultedParams = []
+  component.defaultsSent = false
+
+  sendDefaultParams = ->
+    if component.defaultedParams.length > 0
+      for param in component.defaultedParams
+        if component.receivedParams.indexOf(param) is -1
+          tempSocket = InternalSocket.createSocket()
+          component.inPorts[param].attach tempSocket
+          tempSocket.send()
+          tempSocket.disconnect()
+          component.inPorts[param].detach tempSocket
+    component.defaultsSent = true
+
   resumeTaskQ = ->
     if component.completeParams.length is component.requiredParams.length and
     component.taskQ.length > 0
@@ -193,6 +209,7 @@ exports.WirePattern = (component, config, proc) ->
     unless component.inPorts[port]
       throw new Error "no inPort named '#{port}'"
     component.requiredParams.push port if component.inPorts[port].isRequired()
+    component.defaultedParams.push port if component.inPorts[port].hasDefault()
   for port in config.params
     do (port) ->
       inPort = component.inPorts[port]
@@ -203,6 +220,7 @@ exports.WirePattern = (component, config, proc) ->
         if component.completeParams.indexOf(port) is -1 and
         component.requiredParams.indexOf(port) > -1
           component.completeParams.push port
+        component.receivedParams.push port
         # Trigger pending procs if all params are complete
         resumeTaskQ()
 
@@ -345,6 +363,9 @@ exports.WirePattern = (component, config, proc) ->
             if typeof component.beforeProcess is 'function'
               component.beforeProcess outs
 
+            # Sending defaults if not sent already
+            sendDefaultParams() unless component.defaultsSent
+
             # Group forwarding
             if outPorts.length is 1
               outs.beginGroup g for g in groups if config.forwardGroups
@@ -387,6 +408,8 @@ exports.WirePattern = (component, config, proc) ->
     component.taskQ = []
     component.params = {}
     component.completeParams = []
+    component.receivedParams = []
+    component.defaultsSent = false
 
   # Make it chainable or usable at the end of getComponent()
   return component

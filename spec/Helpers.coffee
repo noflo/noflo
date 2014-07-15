@@ -753,8 +753,6 @@ describe 'Component traits', ->
         d1.disconnect()
         d2.send 123
         d2.disconnect()
-        p3.send() # Send default
-        p3.disconnect()
         p1.send 'req'
         p1.disconnect()
         # the handler should be triggered here
@@ -803,8 +801,6 @@ describe 'Component traits', ->
         d1.disconnect()
         d2.send 123
         d2.disconnect()
-        p3.send() # Send default
-        p3.disconnect()
         p1.send 'req'
         p1.disconnect()
         # the handler should be triggered here
@@ -920,7 +916,6 @@ describe 'Component traits', ->
             chai.expect(c.invCount).to.equal 3
             done()
 
-        whn.send() # Send defaults
         line.send 'op'
         rpt.send 10
         line.disconnect()
@@ -936,7 +931,6 @@ describe 'Component traits', ->
         rpt.disconnect()
 
         # this flushes the earlier stuff
-
 
       it 'should be able to postpone and retry after timeout', (done) ->
         c.invCount = 0
