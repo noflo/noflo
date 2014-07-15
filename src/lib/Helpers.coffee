@@ -185,7 +185,7 @@ exports.WirePattern = (component, config, proc) ->
   component.defaultsSent = false
 
   sendDefaultParams = ->
-    if not component.defaultsSent and component.defaultedParams.length > 0
+    if component.defaultedParams.length > 0
       for param in component.defaultedParams
         tempSocket = InternalSocket.createSocket()
         component.inPorts[param].attach tempSocket
@@ -361,7 +361,7 @@ exports.WirePattern = (component, config, proc) ->
               component.beforeProcess outs
 
             # Sending defaults if not sent already
-            sendDefaultParams()
+            sendDefaultParams() unless component.defaultsSent
 
             # Group forwarding
             if outPorts.length is 1
