@@ -181,17 +181,19 @@ exports.WirePattern = (component, config, proc) ->
   component.params = {}
   component.requiredParams = []
   component.completeParams = []
+  component.receivedParams = []
   component.defaultedParams = []
   component.defaultsSent = false
 
   sendDefaultParams = ->
     if component.defaultedParams.length > 0
       for param in component.defaultedParams
-        tempSocket = InternalSocket.createSocket()
-        component.inPorts[param].attach tempSocket
-        tempSocket.send()
-        tempSocket.disconnect()
-        component.inPorts[param].detach tempSocket
+        if component.receivedParams.indexOf(param) is -1
+          tempSocket = InternalSocket.createSocket()
+          component.inPorts[param].attach tempSocket
+          tempSocket.send()
+          tempSocket.disconnect()
+          component.inPorts[param].detach tempSocket
     component.defaultsSent = true
 
   resumeTaskQ = ->
@@ -218,6 +220,7 @@ exports.WirePattern = (component, config, proc) ->
         if component.completeParams.indexOf(port) is -1 and
         component.requiredParams.indexOf(port) > -1
           component.completeParams.push port
+        component.receivedParams.push port
         # Trigger pending procs if all params are complete
         resumeTaskQ()
 
@@ -405,7 +408,7 @@ exports.WirePattern = (component, config, proc) ->
     component.taskQ = []
     component.params = {}
     component.completeParams = []
-    component.defaultedParams = []
+    component.receivedParams = []
     component.defaultsSent = false
 
   # Make it chainable or usable at the end of getComponent()
