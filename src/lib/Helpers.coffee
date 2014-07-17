@@ -185,7 +185,7 @@ exports.WirePattern = (component, config, proc) ->
   component.defaultedParams = []
   component.defaultsSent = false
 
-  sendDefaultParams = ->
+  component.sendDefaults = ->
     if component.defaultedParams.length > 0
       for param in component.defaultedParams
         if component.receivedParams.indexOf(param) is -1
@@ -364,9 +364,6 @@ exports.WirePattern = (component, config, proc) ->
             # Before hook
             if typeof component.beforeProcess is 'function'
               component.beforeProcess outs
-
-            # Sending defaults if not sent already
-            sendDefaultParams() unless component.defaultsSent
 
             # Group forwarding
             if outPorts.length is 1
