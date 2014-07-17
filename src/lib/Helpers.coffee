@@ -82,7 +82,7 @@ exports.WirePattern = (component, config, proc) ->
   # For async process
   config.async = false unless 'async' of config
   # Keep correct output order for async mode
-  config.ordered = false unless 'ordered' of config
+  config.ordered = true unless 'ordered' of config
   # Group requests by group ID
   config.group = false unless 'group' of config
   # Group requests by object field
@@ -250,6 +250,7 @@ exports.WirePattern = (component, config, proc) ->
               if config.async or config.StreamSender
                 if config.ordered
                   component.outputQ.push null
+                  processQueue()
                 else
                   component.disconnectQ.push true
               else
@@ -265,6 +266,7 @@ exports.WirePattern = (component, config, proc) ->
                     if config.async or config.StreamSender
                       if config.ordered
                         component.outputQ.push null
+                        processQueue()
                       else
                         component.disconnectQ.push true
                     else
