@@ -753,6 +753,7 @@ describe 'Component traits', ->
         d1.disconnect()
         d2.send 123
         d2.disconnect()
+        c.sendDefaults()
         p1.send 'req'
         p1.disconnect()
         # the handler should be triggered here
@@ -801,6 +802,7 @@ describe 'Component traits', ->
         d1.disconnect()
         d2.send 123
         d2.disconnect()
+        c.sendDefaults()
         p1.send 'req'
         p1.disconnect()
         # the handler should be triggered here
@@ -916,6 +918,7 @@ describe 'Component traits', ->
             chai.expect(c.invCount).to.equal 3
             done()
 
+        c.sendDefaults()
         line.send 'op'
         rpt.send 10
         line.disconnect()

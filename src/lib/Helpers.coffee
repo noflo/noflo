@@ -82,7 +82,7 @@ exports.WirePattern = (component, config, proc) ->
   # For async process
   config.async = false unless 'async' of config
   # Keep correct output order for async mode
-  config.ordered = false unless 'ordered' of config
+  config.ordered = true unless 'ordered' of config
   # Group requests by group ID
   config.group = false unless 'group' of config
   # Group requests by object field
@@ -185,7 +185,7 @@ exports.WirePattern = (component, config, proc) ->
   component.defaultedParams = []
   component.defaultsSent = false
 
-  sendDefaultParams = ->
+  component.sendDefaults = ->
     if component.defaultedParams.length > 0
       for param in component.defaultedParams
         if component.receivedParams.indexOf(param) is -1
@@ -250,6 +250,7 @@ exports.WirePattern = (component, config, proc) ->
               if config.async or config.StreamSender
                 if config.ordered
                   component.outputQ.push null
+                  processQueue()
                 else
                   component.disconnectQ.push true
               else
@@ -265,6 +266,7 @@ exports.WirePattern = (component, config, proc) ->
                     if config.async or config.StreamSender
                       if config.ordered
                         component.outputQ.push null
+                        processQueue()
                       else
                         component.disconnectQ.push true
                     else
@@ -362,9 +364,6 @@ exports.WirePattern = (component, config, proc) ->
             # Before hook
             if typeof component.beforeProcess is 'function'
               component.beforeProcess outs
-
-            # Sending defaults if not sent already
-            sendDefaultParams() unless component.defaultsSent
 
             # Group forwarding
             if outPorts.length is 1
