@@ -137,6 +137,14 @@ exports.WirePattern = (component, config, proc) ->
     for p in outPorts
       component.outPorts[p].disconnect() if component.outPorts[p].isConnected()
 
+  sendGroupToOuts = (grp) ->
+    for p in outPorts
+      component.outPorts[p].beginGroup grp
+
+  closeGroupOnOuts = (grp) ->
+    for p in outPorts
+      component.outPorts[p].endGroup grp
+
   # For ordered output
   component.outputQ = []
   processQueue = ->
@@ -228,25 +236,31 @@ exports.WirePattern = (component, config, proc) ->
   component.disconnectData = []
   component.disconnectQ = []
 
-  groupBuffers = {}
+  component.groupBuffers = {}
 
   # Grouped ports
   for port in inPorts
     do (port) ->
-      groupBuffers[port] = []
+      component.groupBuffers[port] = []
       # Support for StreamReceiver ports
       if config.receiveStreams and config.receiveStreams.indexOf(port) isnt -1
         inPort = new StreamReceiver component.inPorts[port]
       else
         inPort = component.inPorts[port]
 
+      needPortGroups = collectGroups instanceof Array and collectGroups.indexOf(port) isnt -1
+
       # Set processing callback
       inPort.process = (event, payload) ->
         switch event
           when 'begingroup'
-            groupBuffers[port].push payload
+            component.groupBuffers[port].push payload
+            if config.forwardGroups and (collectGroups is true or needPortGroups) and not config.async
+              sendGroupToOuts payload
           when 'endgroup'
-            groupBuffers[port] = groupBuffers[port].slice 0, groupBuffers[port].length - 1
+            component.groupBuffers[port] = component.groupBuffers[port].slice 0, component.groupBuffers[port].length - 1
+            if config.forwardGroups and (collectGroups is true or needPortGroups) and not config.async
+              closeGroupOnOuts payload
           when 'disconnect'
             if inPorts.length is 1
               if config.async or config.StreamSender
@@ -282,18 +296,17 @@ exports.WirePattern = (component, config, proc) ->
           when 'data'
             if inPorts.length is 1
               data = payload
-              groups = groupBuffers[port]
+              groups = component.groupBuffers[port]
             else
               key = ''
-              if config.group and groupBuffers[port].length > 0
-                key = groupBuffers[port].toString()
+              if config.group and component.groupBuffers[port].length > 0
+                key = component.groupBuffers[port].toString()
                 if config.group instanceof RegExp
                   key = '' unless config.group.test key
               else if config.field and typeof(payload) is 'object' and
               config.field of payload
                 key = payload[config.field]
 
-              needPortGroups = collectGroups instanceof Array and collectGroups.indexOf(port) isnt -1
               component.groupedData[key] = [] unless key of component.groupedData
               component.groupedGroups[key] = [] unless key of component.groupedGroups
               foundGroup = false
@@ -304,7 +317,7 @@ exports.WirePattern = (component, config, proc) ->
                   foundGroup = true
                   component.groupedData[key][i][port] = payload
                   if needPortGroups
-                    for grp in groupBuffers[port]
+                    for grp in component.groupBuffers[port]
                       if component.groupedGroups[key][i].indexOf(grp) is -1
                         component.groupedGroups[key][i].push grp
                   groupLength = Object.keys(component.groupedData[key][i]).length
@@ -320,14 +333,14 @@ exports.WirePattern = (component, config, proc) ->
                 obj[port] = payload
                 component.groupedData[key].push obj
                 if needPortGroups
-                  component.groupedGroups[key].push groupBuffers[port]
+                  component.groupedGroups[key].push component.groupBuffers[port]
                 else
                   component.groupedGroups[key].push []
                 return # need more data to continue
 
             # Flush the data if the tuple is complete
             if collectGroups is true
-              groups = groupBuffers[port]
+              groups = component.groupBuffers[port]
 
             # Prepare outputs
             outs = {}
@@ -354,7 +367,7 @@ exports.WirePattern = (component, config, proc) ->
                 component.disconnectQ.shift()
                 disconnect = true
               for name, out of outputs
-                out.endGroup() for g in whenDoneGroups if config.forwardGroups
+                out.endGroup() for i in whenDoneGroups if config.forwardGroups and config.async
                 out.disconnect() if disconnect
                 out.done() if config.async or config.StreamSender
               if typeof component.afterProcess is 'function'
@@ -365,11 +378,12 @@ exports.WirePattern = (component, config, proc) ->
               component.beforeProcess outs
 
             # Group forwarding
-            if outPorts.length is 1
-              outs.beginGroup g for g in groups if config.forwardGroups
-            else
-              for name, out of outs
-                out.beginGroup g for g in groups if config.forwardGroups
+            if config.forwardGroups and config.async
+              if outPorts.length is 1
+                outs.beginGroup g for g in groups
+              else
+                for name, out of outs
+                  out.beginGroup g for g in groups
 
             # Enforce MultiError with WirePattern (for group forwarding)
             exports.MultiError component, config.name, config.error, groups
@@ -408,6 +422,7 @@ exports.WirePattern = (component, config, proc) ->
     component.completeParams = []
     component.receivedParams = []
     component.defaultsSent = false
+    component.groupBuffers = {}
 
   # Make it chainable or usable at the end of getComponent()
   return component
