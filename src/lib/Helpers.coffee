@@ -228,23 +228,25 @@ exports.WirePattern = (component, config, proc) ->
   component.disconnectData = []
   component.disconnectQ = []
 
+  groupBuffers = {}
+
   # Grouped ports
   for port in inPorts
     do (port) ->
+      groupBuffers[port] = []
       # Support for StreamReceiver ports
       if config.receiveStreams and config.receiveStreams.indexOf(port) isnt -1
         inPort = new StreamReceiver component.inPorts[port]
       else
         inPort = component.inPorts[port]
-      inPort.groups = []
 
       # Set processing callback
       inPort.process = (event, payload) ->
         switch event
           when 'begingroup'
-            inPort.groups.push payload
+            groupBuffers[port].push payload
           when 'endgroup'
-            inPort.groups.pop()
+            groupBuffers[port] = groupBuffers[port].slice 0, groupBuffers[port].length - 1
           when 'disconnect'
             if inPorts.length is 1
               if config.async or config.StreamSender
@@ -280,11 +282,11 @@ exports.WirePattern = (component, config, proc) ->
           when 'data'
             if inPorts.length is 1
               data = payload
-              groups = inPort.groups
+              groups = groupBuffers[port]
             else
               key = ''
-              if config.group and inPort.groups.length > 0
-                key = inPort.groups.toString()
+              if config.group and groupBuffers[port].length > 0
+                key = groupBuffers[port].toString()
                 if config.group instanceof RegExp
                   key = '' unless config.group.test key
               else if config.field and typeof(payload) is 'object' and
@@ -302,7 +304,7 @@ exports.WirePattern = (component, config, proc) ->
                   foundGroup = true
                   component.groupedData[key][i][port] = payload
                   if needPortGroups
-                    for grp in inPort.groups
+                    for grp in groupBuffers[port]
                       if component.groupedGroups[key][i].indexOf(grp) is -1
                         component.groupedGroups[key][i].push grp
                   groupLength = Object.keys(component.groupedData[key][i]).length
@@ -318,17 +320,14 @@ exports.WirePattern = (component, config, proc) ->
                 obj[port] = payload
                 component.groupedData[key].push obj
                 if needPortGroups
-                  component.groupedGroups[key].push inPort.groups
+                  component.groupedGroups[key].push groupBuffers[port]
                 else
                   component.groupedGroups[key].push []
                 return # need more data to continue
 
             # Flush the data if the tuple is complete
             if collectGroups is true
-              groups = inPort.groups
-
-            # Reset port group buffers or it may keep them for next turn
-            component.inPorts[p].groups = [] for p in inPorts
+              groups = groupBuffers[port]
 
             # Prepare outputs
             outs = {}
@@ -340,10 +339,10 @@ exports.WirePattern = (component, config, proc) ->
                 outs[name] = component.outPorts[name]
 
             outs = outs[outPorts[0]] if outPorts.length is 1 # for simplicity
-
+            whenDoneGroups = groups.slice 0
             whenDone = (err) ->
               if err
-                component.error err, groups
+                component.error err, whenDoneGroups
               # For use with MultiError trait
               if typeof component.fail is 'function' and component.hasErrors
                 component.fail()
@@ -355,7 +354,7 @@ exports.WirePattern = (component, config, proc) ->
                 component.disconnectQ.shift()
                 disconnect = true
               for name, out of outputs
-                out.endGroup() for g in groups if config.forwardGroups
+                out.endGroup() for g in whenDoneGroups if config.forwardGroups
                 out.disconnect() if disconnect
                 out.done() if config.async or config.StreamSender
               if typeof component.afterProcess is 'function'
