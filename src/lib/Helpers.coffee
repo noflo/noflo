@@ -355,9 +355,8 @@ exports.WirePattern = (component, config, proc) ->
                 disconnect = true
               for name, out of outputs
                 out.endGroup() for g in whenDoneGroups if config.forwardGroups
+                out.disconnect() if disconnect
                 out.done() if config.async or config.StreamSender
-              # Reset port group buffers or it may keep them for next turn
-              component.inPorts[p].groups = [] for p in inPorts
               if typeof component.afterProcess is 'function'
                 component.afterProcess err or component.hasErrors, outs
 
