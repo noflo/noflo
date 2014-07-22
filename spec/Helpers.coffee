@@ -1187,12 +1187,15 @@ describe 'Component traits', ->
       c1.outPorts.add 'seq', datatype: 'int'
       c2 = new component.Component
       c2.inPorts.add 'num', datatype: 'int'
+      c2.outPorts.add 'out', datatype: 'int'
       cnt = socket.createSocket()
       c1c2 = socket.createSocket()
+      out = socket.createSocket()
 
       c1.inPorts.count.attach cnt
       c1.outPorts.seq.attach c1c2
       c2.inPorts.num.attach c1c2
+      c2.outPorts.out.attach out
 
       it 'should wrap entire sequence with groups', (done) ->
         helpers.WirePattern c1,
@@ -1201,19 +1204,34 @@ describe 'Component traits', ->
           async: true
           forwardGroups: true
         , (count, groups, out, callback) ->
+          for i in [0...count]
+            do (i) ->
+              setTimeout ->
+                out.send i
+              , 0
           setTimeout ->
-            for i in [0...count]
-              out.send i
             callback()
           , 3
 
         helpers.WirePattern c2,
           in: 'num'
-          out: []
+          out: 'out'
           forwardGroups: true
         , (num, groups, out) ->
           chai.expect(groups).to.deep.equal ['foo', 'bar']
-          done() if num is 2
+          out.send num
+
+        expected = ['<foo>', '<bar>', 0, 1, 2, '</bar>', '</foo>']
+        actual = []
+        out.on 'begingroup', (grp) ->
+          actual.push "<#{grp}>"
+        out.on 'endgroup', (grp) ->
+          actual.push  "</#{grp}>"
+        out.on 'data', (data) ->
+          actual.push data
+        out.on 'disconnect', ->
+          chai.expect(actual).to.deep.equal expected
+          done()
 
         cnt.beginGroup 'foo'
         cnt.beginGroup 'bar'
