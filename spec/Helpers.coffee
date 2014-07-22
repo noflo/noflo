@@ -1181,6 +1181,47 @@ describe 'Component traits', ->
         cntA.disconnect()
         cntB.disconnect()
 
+    describe 'for batch processing with groups', ->
+      c1 = new component.Component
+      c1.inPorts.add 'count', datatype: 'int'
+      c1.outPorts.add 'seq', datatype: 'int'
+      c2 = new component.Component
+      c2.inPorts.add 'num', datatype: 'int'
+      cnt = socket.createSocket()
+      c1c2 = socket.createSocket()
+
+      c1.inPorts.count.attach cnt
+      c1.outPorts.seq.attach c1c2
+      c2.inPorts.num.attach c1c2
+
+      it 'should wrap entire sequence with groups', (done) ->
+        helpers.WirePattern c1,
+          in: 'count'
+          out: 'seq'
+          async: true
+          forwardGroups: true
+        , (count, groups, out, callback) ->
+          setTimeout ->
+            for i in [0...count]
+              out.send i
+            callback()
+          , 3
+
+        helpers.WirePattern c2,
+          in: 'num'
+          out: []
+          forwardGroups: true
+        , (num, groups, out) ->
+          chai.expect(groups).to.deep.equal ['foo', 'bar']
+          done() if num is 2
+
+        cnt.beginGroup 'foo'
+        cnt.beginGroup 'bar'
+        cnt.send 3
+        cnt.endGroup()
+        cnt.endGroup()
+        cnt.disconnect()
+
   describe 'MultiError', ->
     describe 'with simple sync processes', ->
       c = new component.Component
