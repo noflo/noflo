@@ -761,7 +761,8 @@ exports.loadJSON = (definition, success, metadata = {}) ->
     if conn.data isnt undefined
       if typeof conn.tgt.index is 'number'
         graph.addInitialIndex conn.data, conn.tgt.process, conn.tgt.port.toLowerCase(), conn.tgt.index, metadata
-      graph.addInitial conn.data, conn.tgt.process, conn.tgt.port.toLowerCase(), metadata
+      else
+        graph.addInitial conn.data, conn.tgt.process, conn.tgt.port.toLowerCase(), metadata
       continue
     if typeof conn.src.index is 'number' or typeof conn.tgt.index is 'number'
       graph.addEdgeIndex conn.src.process, conn.src.port.toLowerCase(), conn.src.index, conn.tgt.process, conn.tgt.port.toLowerCase(), conn.tgt.index, metadata
