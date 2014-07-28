@@ -210,6 +210,22 @@ describe 'Graph', ->
         "process": "Foo",
         "port": "in2"
       }
+    },
+    {
+      "data": "Cheers, world!",
+      "tgt": {
+        "process": "Foo",
+        "port": "arr",
+        "index": 0
+      }
+    },
+    {
+      "data": "Cheers, world, 2!",
+      "tgt": {
+        "process": "Foo",
+        "port": "arr",
+        "index": 1
+      }
     }
   ]
 }
@@ -276,8 +292,8 @@ describe 'Graph', ->
         done()
       g.setEdgeMetadata e.from.node, e.from.port, e.to.node, e.to.port,
         hello: 'World'
-    it 'should contain two IIPs', ->
-      chai.expect(g.initializers.length).to.equal 2
+    it 'should contain four IIPs', ->
+      chai.expect(g.initializers.length).to.equal 4
     it 'should contain one published inport', ->
       chai.expect(g.inports).to.not.be.empty
     it 'should contain one published outport', ->
