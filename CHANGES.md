@@ -1,10 +1,11 @@
 NoFlo ChangeLog
 ===============
 
-## 0.5.7 (git master)
+## 0.5.7 (July 23rd 2014)
 
 * Ports now default to *not required*. Set the port option `required: true` the port needs to be connected in order for the component to work
 * `MultiError` pattern is enabled by default when using `WirePattern` and supports `forwardGroups` option for error packets.
+* `WirePattern` components now deal more consistently with groups and disconnect events
 
 ## 0.5.6 (June 23rd 2014)
 

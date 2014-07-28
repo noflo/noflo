@@ -406,7 +406,7 @@ class Network extends EventEmitter
     process = @processes[node.id]
 
     unless process.component.isReady()
-      process.component.setMaxListeners 0
+      process.component.setMaxListeners 0 if process.component.setMaxListeners
       process.component.once "ready", =>
         @addDefaults process, callback
       return
@@ -440,7 +440,7 @@ class Network extends EventEmitter
       throw new Error "No process defined for inbound node #{initializer.to.node}"
 
     unless to.component.isReady() or to.component.inPorts[initializer.to.port]
-      to.component.setMaxListeners 0
+      to.component.setMaxListeners 0 if to.component.setMaxListeners
       to.component.once "ready", =>
         @addInitial initializer, callback
       return
