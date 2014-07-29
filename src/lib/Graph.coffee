@@ -572,10 +572,10 @@ class Graph extends EventEmitter
   #     myGraph.addInitialIndex 'somefile.txt', 'Read', 'source', 2
   #
   # If inports are defined on the graph, IIPs can be applied calling
-  # the `addInportInitial` or `addInportInitialIndex` methods.
+  # the `addGraphInitial` or `addGraphInitialIndex` methods.
   #
-  #     myGraph.addInportInitial 'somefile.txt', 'file'
-  #     myGraph.addInportInitialIndex 'somefile.txt', 'file', 2
+  #     myGraph.addGraphInitial 'somefile.txt', 'file'
+  #     myGraph.addGraphInitialIndex 'somefile.txt', 'file', 2
   #
   # Adding an IIP will emit a `addInitial` event.
   addInitial: (data, node, port, metadata) ->
@@ -614,12 +614,12 @@ class Graph extends EventEmitter
     @checkTransactionEnd()
     initializer
 
-  addInportInitial: (data, node, metadata) ->
+  addGraphInitial: (data, node, metadata) ->
     inport = @inports[node]
     return unless inport
     @addInitial data, inport.process, inport.port, metadata
 
-  addInportInitialIndex: (data, node, index, metadata) ->
+  addGraphInitialIndex: (data, node, index, metadata) ->
     inport = @inports[node]
     return unless inport
     @addInitialIndex data, inport.process, inport.port, index, metadata
@@ -630,11 +630,11 @@ class Graph extends EventEmitter
   #
   #     myGraph.removeInitial 'Read', 'source'
   #
-  # If the IIP was applied via the `addInportInitial` or
-  # `addInportInitialIndex` functions, it can be removed using
-  # the `removeInportInitial` method.
+  # If the IIP was applied via the `addGraphInitial` or
+  # `addGraphInitialIndex` functions, it can be removed using
+  # the `removeGraphInitial` method.
   #
-  #     myGraph.removeInportInitial 'file'
+  #     myGraph.removeGraphInitial 'file'
   #
   # Remove an IIP will emit a `removeInitial` event.
   removeInitial: (node, port) ->
@@ -653,7 +653,7 @@ class Graph extends EventEmitter
 
     @checkTransactionEnd()
 
-  removeInportInitial: (node) ->
+  removeGraphInitial: (node) ->
     inport = @inports[node]
     return unless inport
     @removeInitial inport.process, inport.port
