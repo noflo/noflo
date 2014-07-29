@@ -481,7 +481,7 @@ describe 'Graph', ->
     g = new graph.Graph
     g.addNode 'Split', 'Split'
     g.addInport 'testinport', 'Split', 'in'
-    g.addInportInitial 'Foo', 'testinport'
+    g.addGraphInitial 'Foo', 'testinport'
     it 'should contain one node', ->
       chai.expect(g.nodes.length).to.equal 1
     it 'should contain no edges', ->
@@ -498,11 +498,11 @@ describe 'Graph', ->
           chai.expect(iip.to.node).to.equal 'Split'
           chai.expect(iip.to.port).to.equal 'in'
           done()
-        g.removeInportInitial 'testinport'
+        g.removeGraphInitial 'testinport'
       it 'should contain no IIPs', ->
         chai.expect(g.initializers.length).to.equal 0
     describe 'on adding IIP for a non-existent inport', ->
-      g.addInportInitial 'Bar', 'nonexistent'
+      g.addGraphInitial 'Bar', 'nonexistent'
       it 'should not add any IIP', ->
         chai.expect(g.initializers.length).to.equal 0
 
@@ -510,7 +510,7 @@ describe 'Graph', ->
     g = new graph.Graph
     g.addNode 'Split', 'Split'
     g.addInport 'testinport', 'Split', 'in'
-    g.addInportInitialIndex 'Foo', 'testinport', 1
+    g.addGraphInitialIndex 'Foo', 'testinport', 1
     it 'should contain one node', ->
       chai.expect(g.nodes.length).to.equal 1
     it 'should contain no edges', ->
@@ -528,11 +528,11 @@ describe 'Graph', ->
           chai.expect(iip.to.node).to.equal 'Split'
           chai.expect(iip.to.port).to.equal 'in'
           done()
-        g.removeInportInitial 'testinport'
+        g.removeGraphInitial 'testinport'
       it 'should contain no IIPs', ->
         chai.expect(g.initializers.length).to.equal 0
     describe 'on adding IIP for a non-existent inport', ->
-      g.addInportInitialIndex 'Bar', 'nonexistent', 1
+      g.addGraphInitialIndex 'Bar', 'nonexistent', 1
       it 'should not add any IIP', ->
         chai.expect(g.initializers.length).to.equal 0
 
