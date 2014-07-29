@@ -571,6 +571,12 @@ class Graph extends EventEmitter
   #     myGraph.addInitial 'somefile.txt', 'Read', 'source'
   #     myGraph.addInitialIndex 'somefile.txt', 'Read', 'source', 2
   #
+  # If inports are defined on the graph, IIPs can be applied calling
+  # the `addInportInitial` or `addInportInitialIndex` methods.
+  #
+  #     myGraph.addInportInitial 'somefile.txt', 'file'
+  #     myGraph.addInportInitialIndex 'somefile.txt', 'file', 2
+  #
   # Adding an IIP will emit a `addInitial` event.
   addInitial: (data, node, port, metadata) ->
     return unless @getNode node
@@ -608,11 +614,27 @@ class Graph extends EventEmitter
     @checkTransactionEnd()
     initializer
 
+  addInportInitial: (data, node, metadata) ->
+    inport = @inports[node]
+    return unless inport
+    @addInitial data, inport.process, inport.port, metadata
+
+  addInportInitialIndex: (data, node, index, metadata) ->
+    inport = @inports[node]
+    return unless inport
+    @addInitialIndex data, inport.process, inport.port, index, metadata
+
   # ## Removing Initial Information Packets
   #
   # IIPs can be removed by calling the `removeInitial` method.
   #
   #     myGraph.removeInitial 'Read', 'source'
+  #
+  # If the IIP was applied via the `addInportInitial` or
+  # `addInportInitialIndex` functions, it can be removed using
+  # the `removeInportInitial` method.
+  #
+  #     myGraph.removeInportInitial 'file'
   #
   # Remove an IIP will emit a `removeInitial` event.
   removeInitial: (node, port) ->
@@ -630,6 +652,11 @@ class Graph extends EventEmitter
       @emit 'removeInitial', edge
 
     @checkTransactionEnd()
+
+  removeInportInitial: (node) ->
+    inport = @inports[node]
+    return unless inport
+    @removeInitial inport.process, inport.port
 
   toDOT: ->
     cleanID = (id) ->
