@@ -381,11 +381,11 @@ class Network extends EventEmitter
 
       return
 
-    @connectPort socket, to, edge.to.port, edge.to.index, true
-    @connectPort socket, from, edge.from.port, edge.from.index, false
-
     # Subscribe to events from the socket
     @subscribeSocket socket
+
+    @connectPort socket, to, edge.to.port, edge.to.index, true
+    @connectPort socket, from, edge.from.port, edge.from.index, false
 
     @connections.push socket
     callback() if callback
