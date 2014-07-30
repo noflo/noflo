@@ -61,7 +61,7 @@ class Graph extends noflo.Component
         for name, process of @network.processes
           notReady = true unless @checkComponent name, process
         do @setToReady unless notReady
-        return if @inPorts.start?.isAttached() and !@started
+        return if !@inPorts.start or (@inPorts.start?.isAttached() and !@started)
         @start graph
     , true
 

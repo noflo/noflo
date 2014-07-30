@@ -7,12 +7,37 @@ if typeof process isnt 'undefined' and process.execPath and process.execPath.ind
   path = require 'path'
   root = path.resolve __dirname, '../'
   shippingLanguage = 'coffeescript'
+  urlPrefix = './'
 else
   loader = require 'noflo/src/lib/ComponentLoader.js'
   component = require 'noflo/src/lib/Component.js'
   platform = require 'noflo/src/lib/Platform.js'
   root = 'noflo'
   shippingLanguage = 'javascript'
+  urlPrefix = '/'
+
+class Split extends component.Component
+  constructor: ->
+    @inPorts =
+      in: new noflo.Port
+    @outPorts =
+      out: new noflo.ArrayPort
+    @inPorts.in.on 'connect', (data) =>
+      @outPorts.out.connect()
+    @inPorts.in.on 'data', (data) =>
+      @outPorts.out.send data
+    @inPorts.in.on 'disconnect', =>
+      @outPorts.out.disconnect()
+Split.getComponent = -> new Split
+
+Merge = ->
+  inst = new component.Component
+  inst.inPorts.add 'in', (event, payload, instance) ->
+    method = event
+    method = 'send' if event is 'data'
+    instance.outPorts[method] 'out', payload
+  inst.outPorts.add 'out'
+  inst
 
 describe 'ComponentLoader with no external packages installed', ->
   l = new loader.ComponentLoader root
@@ -66,6 +91,32 @@ describe 'ComponentLoader with no external packages installed', ->
     it 'should be able to provide an icon for the Graph', ->
       chai.expect(instance.getIcon()).to.be.a 'string'
       chai.expect(instance.getIcon()).to.equal 'sitemap'
+
+  describe 'loading a subgraph', ->
+    l = new loader.ComponentLoader root
+    file = "#{urlPrefix}spec/fixtures/subgraph.fbp"
+    it 'should remove `graph` and `start` ports', (done) ->
+      l.listComponents (components) ->
+        l.components.Merge = Merge
+        l.components.Subgraph = file
+        l.components.Split = Split
+        l.load 'Subgraph', (inst) ->
+          chai.expect(inst).to.be.an 'object'
+          inst.once 'ready', ->
+            chai.expect(inst.inPorts.ports).not.to.have.keys ['graph','start']
+            chai.expect(inst.inPorts.ports).to.have.keys ['in']
+            chai.expect(inst.outPorts.ports).to.have.keys ['out']
+            done()
+    it 'should not automatically start the subgraph if there is no `start` port', (done) ->
+      l.listComponents (components) ->
+        l.components.Merge = Merge
+        l.components.Subgraph = file
+        l.components.Split = Split
+        l.load 'Subgraph', (inst) ->
+          chai.expect(inst).to.be.an 'object'
+          inst.once 'ready', ->
+            chai.expect(inst.started).to.equal(false)
+            done()
 
   describe 'loading the Graph component', ->
     instance = null
