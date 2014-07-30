@@ -164,7 +164,8 @@ exports.WirePattern = (component, config, proc) ->
           streams = tmp
         for key, stream of streams
           if stream.resolved
-            flushed = flushed or stream.flush()
+            stream.flush()
+            flushed = true
       component.outputQ.shift() if flushed
       return unless flushed
 
