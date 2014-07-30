@@ -477,6 +477,65 @@ describe 'Graph', ->
       it 'should contain no IIPs', ->
         chai.expect(g.initializers.length).to.equal 0
 
+  describe 'with an Inport Initial Information Packet', ->
+    g = new graph.Graph
+    g.addNode 'Split', 'Split'
+    g.addInport 'testinport', 'Split', 'in'
+    g.addGraphInitial 'Foo', 'testinport'
+    it 'should contain one node', ->
+      chai.expect(g.nodes.length).to.equal 1
+    it 'should contain no edges', ->
+      chai.expect(g.edges.length).to.equal 0
+    it 'should contain one IIP for the correct node', ->
+      chai.expect(g.initializers.length).to.equal 1
+      chai.expect(g.initializers[0].from.data).to.equal 'Foo'
+      chai.expect(g.initializers[0].to.node).to.equal 'Split'
+      chai.expect(g.initializers[0].to.port).to.equal 'in'
+    describe 'on removing that IIP', ->
+      it 'should emit a removeInitial event', (done) ->
+        g.once 'removeInitial', (iip) ->
+          chai.expect(iip.from.data).to.equal 'Foo'
+          chai.expect(iip.to.node).to.equal 'Split'
+          chai.expect(iip.to.port).to.equal 'in'
+          done()
+        g.removeGraphInitial 'testinport'
+      it 'should contain no IIPs', ->
+        chai.expect(g.initializers.length).to.equal 0
+    describe 'on adding IIP for a non-existent inport', ->
+      g.addGraphInitial 'Bar', 'nonexistent'
+      it 'should not add any IIP', ->
+        chai.expect(g.initializers.length).to.equal 0
+
+  describe 'with an indexed Inport Initial Information Packet', ->
+    g = new graph.Graph
+    g.addNode 'Split', 'Split'
+    g.addInport 'testinport', 'Split', 'in'
+    g.addGraphInitialIndex 'Foo', 'testinport', 1
+    it 'should contain one node', ->
+      chai.expect(g.nodes.length).to.equal 1
+    it 'should contain no edges', ->
+      chai.expect(g.edges.length).to.equal 0
+    it 'should contain one IIP for the correct node', ->
+      chai.expect(g.initializers.length).to.equal 1
+      chai.expect(g.initializers[0].from.data).to.equal 'Foo'
+      chai.expect(g.initializers[0].to.node).to.equal 'Split'
+      chai.expect(g.initializers[0].to.port).to.equal 'in'
+      chai.expect(g.initializers[0].to.index).to.equal 1
+    describe 'on removing that IIP', ->
+      it 'should emit a removeInitial event', (done) ->
+        g.once 'removeInitial', (iip) ->
+          chai.expect(iip.from.data).to.equal 'Foo'
+          chai.expect(iip.to.node).to.equal 'Split'
+          chai.expect(iip.to.port).to.equal 'in'
+          done()
+        g.removeGraphInitial 'testinport'
+      it 'should contain no IIPs', ->
+        chai.expect(g.initializers.length).to.equal 0
+    describe 'on adding IIP for a non-existent inport', ->
+      g.addGraphInitialIndex 'Bar', 'nonexistent', 1
+      it 'should not add any IIP', ->
+        chai.expect(g.initializers.length).to.equal 0
+
   describe 'with no nodes', ->
     g = new graph.Graph
     it 'should not allow adding edges', ->
