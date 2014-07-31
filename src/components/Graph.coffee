@@ -68,10 +68,10 @@ class Graph extends noflo.Component
   start: (graph) ->
     @started = true
     return unless @network
-    @network.sendInitials()
+    @network.start()
     return unless graph
     graph.on 'addInitial', =>
-      @network.sendInitials()
+      @network.start()
 
   checkComponent: (name, process) ->
     unless process.component.isReady()

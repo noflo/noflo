@@ -379,3 +379,62 @@ describe 'Graph component', ->
         c.network.loader.components.Merge = SubgraphMerge
         start.send true
       g.send file
+
+  describe 'when a subgraph is used as a component', ->
+
+    createSplit = ->
+      c = new noflo.Component
+      c.inPorts.add 'in',
+        required: true
+        datatype: 'string'
+        default: 'default-value',
+        (e, data) =>
+          switch e
+            when 'connect' then c.outPorts.out.connect()
+            when 'data' then c.outPorts.out.send(data)
+            when 'disconnect' then c.outPorts.out.disconnect()
+      c.outPorts.add 'out'
+      c
+
+    grDefaults = new noflo.Graph 'Child Graph Using Defaults'
+    grDefaults.addNode 'SplitIn', 'Split'
+    grDefaults.addNode 'SplitOut', 'Split'
+    grDefaults.addInport 'in', 'SplitIn', 'in'
+    grDefaults.addOutport 'out', 'SplitOut', 'out'
+    grDefaults.addEdge 'SplitIn', 'out', 'SplitOut', 'in'
+
+    grInitials = new noflo.Graph 'Child Graph Using Initials'
+    grInitials.addNode 'SplitIn', 'Split'
+    grInitials.addNode 'SplitOut', 'Split'
+    grInitials.addInport 'in', 'SplitIn', 'in'
+    grInitials.addOutport 'out', 'SplitOut', 'out'
+    grInitials.addInitial 'initial-value', 'SplitIn', 'in'
+    grInitials.addEdge 'SplitIn', 'out', 'SplitOut', 'in'
+
+    it 'should send defaults', (done) ->
+      cl = new noflo.ComponentLoader root
+      cl.listComponents (components) ->
+        cl.components.Split = createSplit
+        cl.components.Defaults = grDefaults
+        cl.components.Initials = grInitials
+        cl.load 'Defaults', (inst) ->
+          o = noflo.internalSocket.createSocket()
+          inst.outPorts.out.attach o
+          o.once 'data', (data) ->
+            chai.expect(data).to.equal 'default-value'
+            done()
+          inst.start()
+
+    it 'should send initials', (done) ->
+      cl = new noflo.ComponentLoader root
+      cl.listComponents (components) ->
+        cl.components.Split = createSplit
+        cl.components.Defaults = grDefaults
+        cl.components.Initials = grInitials
+        cl.load 'Initials', (inst) ->
+          o = noflo.internalSocket.createSocket()
+          inst.outPorts.out.attach o
+          o.once 'data', (data) ->
+            chai.expect(data).to.equal 'initial-value'
+            done()
+          inst.start()
