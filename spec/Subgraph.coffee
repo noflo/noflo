@@ -438,3 +438,20 @@ describe 'Graph component', ->
             chai.expect(data).to.equal 'initial-value'
             done()
           inst.start()
+
+    it 'should not send defaults when an inport is attached externally', (done) ->
+      cl = new noflo.ComponentLoader root
+      cl.listComponents (components) ->
+        cl.components.Split = createSplit
+        cl.components.Defaults = grDefaults
+        cl.components.Initials = grInitials
+        cl.load 'Defaults', (inst) ->
+          i = noflo.internalSocket.createSocket()
+          o = noflo.internalSocket.createSocket()
+          inst.inPorts.in.attach i
+          inst.outPorts.out.attach o
+          o.once 'data', (data) ->
+            chai.expect(data).to.equal 'Foo'
+            done()
+          inst.start()
+          i.send 'Foo'
