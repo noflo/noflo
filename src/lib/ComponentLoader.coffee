@@ -80,6 +80,11 @@ class ComponentLoader extends EventEmitter
       callback @components if callback
     , 1
 
+  listComponentsForDisplay: (callback) ->
+    components = {}
+    components[key.toUpperCase()] = value for key, value of @components
+    callback components
+
   load: (name, callback, delayed, metadata) ->
     unless @ready
       @listComponents =>

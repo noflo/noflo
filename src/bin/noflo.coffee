@@ -71,7 +71,7 @@ cli.main (args, options) ->
   if cli.args.length is 2 and cli.args[0] is 'list'
     baseDir = path.resolve process.cwd(), cli.args[1]
     loader = new noflo.ComponentLoader baseDir
-    loader.listComponents (components) ->
+    loader.listComponentsForDisplay (components) ->
       todo = components.length
       _.each components, (path, component) ->
         instance = loader.load component, (instance) ->
