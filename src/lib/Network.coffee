@@ -489,6 +489,11 @@ class Network extends EventEmitter
 
   sendDefaults: ->
     for socket in @defaults
+      # Don't send defaults if more than one socket is present on the port.
+      # This case should only happen when a subgraph is created as a component
+      # as its network is instantiated and its inputs are serialized before
+      # a socket is attached from the "parent" graph.
+      continue unless socket.to.process.component.inPorts[socket.to.port].sockets.length is 1
       socket.connect()
       socket.send()
       socket.disconnect()

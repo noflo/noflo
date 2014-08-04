@@ -154,11 +154,13 @@ class ComponentLoader extends EventEmitter
       delaySocket = internalSocket.createSocket()
       graph.inPorts.start.attach delaySocket
 
+    # Remove `start` before sending the graph so it doesn't
+    # attempt to automatically start the graph.
+    graph.inPorts.remove 'start'
     graph.inPorts.graph.attach graphSocket
     graphSocket.send component
     graphSocket.disconnect()
     graph.inPorts.remove 'graph'
-    graph.inPorts.remove 'start'
     @setIcon name, graph
     callback graph
 
