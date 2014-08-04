@@ -122,8 +122,6 @@ exports.WirePattern = (component, config, proc) ->
   for name in inPorts
     unless component.inPorts[name]
       throw new Error "no inPort named '#{name}'"
-    # Make the port required
-    component.inPorts[name].options.required = true
   for name in outPorts
     unless component.outPorts[name]
       throw new Error "no outPort named '#{name}'"
