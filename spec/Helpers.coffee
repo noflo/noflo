@@ -1285,6 +1285,97 @@ describe 'Component traits', ->
         cnt.endGroup()
         cnt.disconnect()
 
+    describe 'with addressable ports', ->
+      c = new component.Component
+      c.inPorts.add 'p1',
+        datatype: 'int'
+        addressable: true
+        required: true
+      c.inPorts.add 'd1',
+        datatype: 'int'
+        addressable: true
+      c.inPorts.add 'd2',
+        datatype: 'string'
+      c.outPorts.add 'out',
+        datatype: 'object'
+      c.outPorts.add 'error',
+        datatype: 'object'
+      p11 = socket.createSocket()
+      p12 = socket.createSocket()
+      p13 = socket.createSocket()
+      d11 = socket.createSocket()
+      d12 = socket.createSocket()
+      d13 = socket.createSocket()
+      d2 = socket.createSocket()
+      out = socket.createSocket()
+      err = socket.createSocket()
+      c.inPorts.p1.attach p11
+      c.inPorts.p1.attach p12
+      c.inPorts.p1.attach p13
+      c.inPorts.d1.attach d11
+      c.inPorts.d1.attach d12
+      c.inPorts.d1.attach d13
+      c.inPorts.d2.attach d2
+      c.outPorts.out.attach out
+      c.outPorts.error.attach err
+
+      it 'should wait for all param and any data port values (default)', (done) ->
+        helpers.WirePattern c,
+          in: ['d1', 'd2']
+          params: 'p1'
+          out: 'out'
+          arrayPolicy: # default values
+            in: 'any'
+            params: 'all'
+        , (input, groups, out) ->
+          chai.expect(c.params.p1).to.deep.equal { 0: 1, 1: 2, 2: 3 }
+          chai.expect(input.d1).to.deep.equal {0: 1}
+          chai.expect(input.d2).to.equal 'foo'
+          done()
+
+        d2.send 'foo'
+        d2.disconnect()
+        d11.send 1
+        d11.disconnect()
+        p11.send 1
+        p11.disconnect()
+        p12.send 2
+        p12.disconnect()
+        p13.send 3
+        p13.disconnect()
+
+      it 'should wait for any param and all data values', (done) ->
+        helpers.WirePattern c,
+          in: ['d1', 'd2']
+          params: 'p1'
+          out: 'out'
+          arrayPolicy: # default values
+            in: 'all'
+            params: 'any'
+        , (input, groups, out) ->
+          chai.expect(c.params.p1).to.deep.equal {0: 1}
+          chai.expect(input.d1).to.deep.equal { 0: 1, 1: 2, 2: 3 }
+          chai.expect(input.d2).to.equal 'foo'
+          done()
+
+        out.on 'disconnect', ->
+          console.log 'disc'
+
+        d2.send 'foo'
+        d2.disconnect()
+        p11.send 1
+        p11.disconnect()
+        d11.send 1
+        d11.disconnect()
+        d12.send 2
+        d12.disconnect()
+        d13.send 3
+        d13.disconnect()
+        p12.send 2
+        p12.disconnect()
+        p13.send 3
+        p13.disconnect()
+
   describe 'MultiError', ->
     describe 'with simple sync processes', ->
       c = new component.Component
