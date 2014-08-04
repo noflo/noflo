@@ -835,6 +835,51 @@ describe 'Component traits', ->
 
         done()
 
+      it 'should drop premature data if configured to do so', (done) ->
+        helpers.WirePattern c,
+          in: ['data1', 'data2']
+          out: 'out'
+          params: ['param1', 'param2', 'param3']
+          dropInput: true
+        , (input, groups, out) ->
+          res =
+            p1: c.params.param1
+            p2: c.params.param2
+            p3: c.params.param3
+            d1: input.data1
+            d2: input.data2
+          out.send res
+
+        out.once 'data', (data) ->
+          chai.expect(data).to.be.an 'object'
+          chai.expect(data.p1).to.equal 'req'
+          chai.expect(data.p2).to.equal 568
+          chai.expect(data.p3).to.equal 800
+          chai.expect(data.d1).to.equal 'bar'
+          chai.expect(data.d2).to.equal 456
+          done()
+
+        c.sendDefaults()
+        p2.send 568
+        p2.disconnect()
+        p3.send 800
+        p3.disconnect()
+        d1.send 'foo'
+        d1.disconnect()
+        d2.send 123
+        d2.disconnect()
+        # Data is dropped at this point
+
+        setTimeout ->
+          p1.send 'req'
+          p1.disconnect()
+          d1.send 'bar'
+          d1.disconnect()
+          d2.send 456
+          d2.disconnect()
+        , 10
+
+
     describe 'without output ports', ->
       c = new component.Component
       c.inPorts.add 'foo'

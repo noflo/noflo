@@ -107,6 +107,8 @@ exports.WirePattern = (component, config, proc) ->
   config.params = [ config.params ] if typeof config.params is 'string'
   # Node name
   config.name = '' unless 'name' of config
+  # Drop premature input before all params are received
+  config.dropInput = false unless 'dropInput' of config
 
   collectGroups = config.forwardGroups
   # Collect groups from each port?
@@ -336,6 +338,9 @@ exports.WirePattern = (component, config, proc) ->
                 else
                   component.groupedGroups[key].push []
                 return # need more data to continue
+
+            # Drop premature data if configured to do so
+            return if config.dropInput and component.completeParams.length isnt component.requiredParams.length
 
             # Flush the data if the tuple is complete
             if collectGroups is true
