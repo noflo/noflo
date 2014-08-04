@@ -1,6 +1,16 @@
 NoFlo ChangeLog
 ===============
 
+## 0.5.8 (August 4th 2014)
+
+* Fixed several issues in connections and data synchronization
+* Updated `read-installed` to the latest version
+* Updated JSON Schema for NoFlo graph definition format
+* Low-level functions to add and remove graph inports at run-time, see [#242](https://github.com/noflo/noflo/pull/242)
+* Fixes for default port values and IIPs in subgraphs.
+* Added `dropInput` option for WirePattern to drop premature data while parameters not yet received. See [#239](https://github.com/noflo/noflo/issues/239)
+* Addressable ports support in WirePattern. See [details](https://github.com/noflo/noflo/issues/240#issuecomment-51094257).
+
 ## 0.5.7 (July 23rd 2014)
 
 * Ports now default to *not required*. Set the port option `required: true` the port needs to be connected in order for the component to work

@@ -107,6 +107,13 @@ exports.WirePattern = (component, config, proc) ->
   config.params = [ config.params ] if typeof config.params is 'string'
   # Node name
   config.name = '' unless 'name' of config
+  # Drop premature input before all params are received
+  config.dropInput = false unless 'dropInput' of config
+  # Firing policy for addressable ports
+  unless 'arrayPolicy' of config
+    config.arrayPolicy =
+      in: 'any'
+      params: 'all'
 
   collectGroups = config.forwardGroups
   # Collect groups from each port?
@@ -122,8 +129,6 @@ exports.WirePattern = (component, config, proc) ->
   for name in inPorts
     unless component.inPorts[name]
       throw new Error "no inPort named '#{name}'"
-    # Make the port required
-    component.inPorts[name].options.required = true
   for name in outPorts
     unless component.outPorts[name]
       throw new Error "no outPort named '#{name}'"
@@ -222,10 +227,17 @@ exports.WirePattern = (component, config, proc) ->
   for port in config.params
     do (port) ->
       inPort = component.inPorts[port]
-      inPort.process = (event, payload) ->
+      inPort.process = (event, payload, index) ->
         # Param ports only react on data
         return unless event is 'data'
-        component.params[port] = payload
+        if inPort.isAddressable()
+          component.params[port] = {} unless port of component.params
+          component.params[port][index] = payload
+          if config.arrayPolicy.params is 'all' and
+          Object.keys(component.params[port]).length < inPort.listAttached().length
+            return # Need data on all array indexes to proceed
+        else
+          component.params[port] = payload
         if component.completeParams.indexOf(port) is -1 and
         component.requiredParams.indexOf(port) > -1
           component.completeParams.push port
@@ -252,7 +264,7 @@ exports.WirePattern = (component, config, proc) ->
       needPortGroups = collectGroups instanceof Array and collectGroups.indexOf(port) isnt -1
 
       # Set processing callback
-      inPort.process = (event, payload) ->
+      inPort.process = (event, payload, index) ->
         switch event
           when 'begingroup'
             component.groupBuffers[port].push payload
@@ -296,7 +308,11 @@ exports.WirePattern = (component, config, proc) ->
 
           when 'data'
             if inPorts.length is 1
-              data = payload
+              if inPort.isAddressable()
+                data = {}
+                data[index] = payload
+              else
+                data = payload
               groups = component.groupBuffers[port]
             else
               key = ''
@@ -314,13 +330,23 @@ exports.WirePattern = (component, config, proc) ->
               requiredLength = inPorts.length
               ++requiredLength if config.field
               for i in [0...component.groupedData[key].length]
-                unless port of component.groupedData[key][i]
+                if not (port of component.groupedData[key][i]) or (component.inPorts[port].isAddressable() and config.arrayPolicy.in is 'all' and not (index of component.groupedData[key][i][port]))
                   foundGroup = true
-                  component.groupedData[key][i][port] = payload
+                  if component.inPorts[port].isAddressable()
+                    unless port of component.groupedData[key][i]
+                      component.groupedData[key][i][port] = {}
+                    component.groupedData[key][i][port][index] = payload
+                  else
+                    component.groupedData[key][i][port] = payload
                   if needPortGroups
                     for grp in component.groupBuffers[port]
                       if component.groupedGroups[key][i].indexOf(grp) is -1
                         component.groupedGroups[key][i].push grp
+                  if component.inPorts[port].isAddressable() and
+                  config.arrayPolicy.in is 'all' and
+                  Object.keys(component.groupedData[key][i][port]).length <
+                  component.inPorts[port].listAttached().length
+                    return # Need data on other array port indexes to arrive
                   groupLength = Object.keys(component.groupedData[key][i]).length
                   if groupLength is requiredLength
                     data = (component.groupedData[key].splice i, 1)[0]
@@ -338,6 +364,9 @@ exports.WirePattern = (component, config, proc) ->
                 else
                   component.groupedGroups[key].push []
                 return # need more data to continue
+
+            # Drop premature data if configured to do so
+            return if config.dropInput and component.completeParams.length isnt component.requiredParams.length
 
             # Flush the data if the tuple is complete
             if collectGroups is true

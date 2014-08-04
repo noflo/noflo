@@ -835,6 +835,51 @@ describe 'Component traits', ->
 
         done()
 
+      it 'should drop premature data if configured to do so', (done) ->
+        helpers.WirePattern c,
+          in: ['data1', 'data2']
+          out: 'out'
+          params: ['param1', 'param2', 'param3']
+          dropInput: true
+        , (input, groups, out) ->
+          res =
+            p1: c.params.param1
+            p2: c.params.param2
+            p3: c.params.param3
+            d1: input.data1
+            d2: input.data2
+          out.send res
+
+        out.once 'data', (data) ->
+          chai.expect(data).to.be.an 'object'
+          chai.expect(data.p1).to.equal 'req'
+          chai.expect(data.p2).to.equal 568
+          chai.expect(data.p3).to.equal 800
+          chai.expect(data.d1).to.equal 'bar'
+          chai.expect(data.d2).to.equal 456
+          done()
+
+        c.sendDefaults()
+        p2.send 568
+        p2.disconnect()
+        p3.send 800
+        p3.disconnect()
+        d1.send 'foo'
+        d1.disconnect()
+        d2.send 123
+        d2.disconnect()
+        # Data is dropped at this point
+
+        setTimeout ->
+          p1.send 'req'
+          p1.disconnect()
+          d1.send 'bar'
+          d1.disconnect()
+          d2.send 456
+          d2.disconnect()
+        , 10
+
+
     describe 'without output ports', ->
       c = new component.Component
       c.inPorts.add 'foo'
@@ -1239,6 +1284,97 @@ describe 'Component traits', ->
         cnt.endGroup()
         cnt.endGroup()
         cnt.disconnect()
+
+    describe 'with addressable ports', ->
+      c = new component.Component
+      c.inPorts.add 'p1',
+        datatype: 'int'
+        addressable: true
+        required: true
+      c.inPorts.add 'd1',
+        datatype: 'int'
+        addressable: true
+      c.inPorts.add 'd2',
+        datatype: 'string'
+      c.outPorts.add 'out',
+        datatype: 'object'
+      c.outPorts.add 'error',
+        datatype: 'object'
+      p11 = socket.createSocket()
+      p12 = socket.createSocket()
+      p13 = socket.createSocket()
+      d11 = socket.createSocket()
+      d12 = socket.createSocket()
+      d13 = socket.createSocket()
+      d2 = socket.createSocket()
+      out = socket.createSocket()
+      err = socket.createSocket()
+      c.inPorts.p1.attach p11
+      c.inPorts.p1.attach p12
+      c.inPorts.p1.attach p13
+      c.inPorts.d1.attach d11
+      c.inPorts.d1.attach d12
+      c.inPorts.d1.attach d13
+      c.inPorts.d2.attach d2
+      c.outPorts.out.attach out
+      c.outPorts.error.attach err
+
+      it 'should wait for all param and any data port values (default)', (done) ->
+        helpers.WirePattern c,
+          in: ['d1', 'd2']
+          params: 'p1'
+          out: 'out'
+          arrayPolicy: # default values
+            in: 'any'
+            params: 'all'
+        , (input, groups, out) ->
+          chai.expect(c.params.p1).to.deep.equal { 0: 1, 1: 2, 2: 3 }
+          chai.expect(input.d1).to.deep.equal {0: 1}
+          chai.expect(input.d2).to.equal 'foo'
+          done()
+
+        d2.send 'foo'
+        d2.disconnect()
+        d11.send 1
+        d11.disconnect()
+        p11.send 1
+        p11.disconnect()
+        p12.send 2
+        p12.disconnect()
+        p13.send 3
+        p13.disconnect()
+
+      it 'should wait for any param and all data values', (done) ->
+        helpers.WirePattern c,
+          in: ['d1', 'd2']
+          params: 'p1'
+          out: 'out'
+          arrayPolicy: # default values
+            in: 'all'
+            params: 'any'
+        , (input, groups, out) ->
+          chai.expect(c.params.p1).to.deep.equal {0: 1}
+          chai.expect(input.d1).to.deep.equal { 0: 1, 1: 2, 2: 3 }
+          chai.expect(input.d2).to.equal 'foo'
+          done()
+
+        out.on 'disconnect', ->
+          console.log 'disc'
+
+        d2.send 'foo'
+        d2.disconnect()
+        p11.send 1
+        p11.disconnect()
+        d11.send 1
+        d11.disconnect()
+        d12.send 2
+        d12.disconnect()
+        d13.send 3
+        d13.disconnect()
+        p12.send 2
+        p12.disconnect()
+        p13.send 3
+        p13.disconnect()
 
   describe 'MultiError', ->
     describe 'with simple sync processes', ->
