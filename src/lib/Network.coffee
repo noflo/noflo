@@ -484,7 +484,6 @@ class Network extends EventEmitter
 
   startComponents: ->
     # Perform any startup routines necessary for every component.
-    rest = []
     for id, process of @processes
       process.component.start()
 
