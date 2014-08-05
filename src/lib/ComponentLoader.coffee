@@ -80,10 +80,10 @@ class ComponentLoader extends EventEmitter
       callback @components if callback
     , 1
 
-  load: (name, callback, delayed, metadata) ->
+  load: (name, callback, metadata) ->
     unless @ready
       @listComponents =>
-        @load name, callback, delayed, metadata
+        @load name, callback, metadata
       return
 
     component = @components[name]
@@ -102,10 +102,10 @@ class ComponentLoader extends EventEmitter
       if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
         # nextTick is faster on Node.js
         process.nextTick =>
-          @loadGraph name, component, callback, delayed, metadata
+          @loadGraph name, component, callback, metadata
       else
         setTimeout =>
-          @loadGraph name, component, callback, delayed, metadata
+          @loadGraph name, component, callback, metadata
         , 0
       return
 
@@ -143,20 +143,12 @@ class ComponentLoader extends EventEmitter
     return false unless typeof cPath is 'string'
     cPath.indexOf('.fbp') isnt -1 or cPath.indexOf('.json') isnt -1
 
-  loadGraph: (name, component, callback, delayed, metadata) ->
+  loadGraph: (name, component, callback, metadata) ->
     graphImplementation = require @components['Graph']
     graphSocket = internalSocket.createSocket()
     graph = graphImplementation.getComponent metadata
     graph.loader = @
     graph.baseDir = @baseDir
-
-    if delayed
-      delaySocket = internalSocket.createSocket()
-      graph.inPorts.start.attach delaySocket
-
-    # Remove `start` before sending the graph so it doesn't
-    # attempt to automatically start the graph.
-    graph.inPorts.remove 'start'
     graph.inPorts.graph.attach graphSocket
     graphSocket.send component
     graphSocket.disconnect()

@@ -17,16 +17,10 @@ class Graph extends noflo.Component
         description: 'NoFlo graph definition to be used with the subgraph component'
         required: true
         immediate: true
-      start:
-        datatype: 'bang'
-        description: 'if attached, the network will only be started when receiving a start message'
-        required: false
     @outPorts = new noflo.OutPorts
 
     @inPorts.on 'graph', 'data', (data) =>
       @setGraph data
-    @inPorts.on 'start', 'data', =>
-      do @start
 
   setGraph: (graph) ->
     @ready = false
@@ -61,17 +55,17 @@ class Graph extends noflo.Component
         for name, process of @network.processes
           notReady = true unless @checkComponent name, process
         do @setToReady unless notReady
-        return if @inPorts.start?.isAttached() and !@started
-        @start graph
     , true
 
-  start: (graph) ->
-    @started = true
+  start: ->
+    unless @isReady()
+      @on 'ready', =>
+        do @start
+      return
+
     return unless @network
+    @started = true
     @network.start()
-    return unless graph
-    graph.on 'addInitial', =>
-      @network.start()
 
   checkComponent: (name, process) ->
     unless process.component.isReady()
@@ -145,6 +139,10 @@ class Graph extends noflo.Component
       targetPortName = @isExportedInport port, name, portName
       continue if targetPortName is false
       @inPorts.add targetPortName, port
+      @inPorts[targetPortName].once 'connect', =>
+        # Start the network implicitly if we're starting to get data
+        return if @isStarted()
+        do @start
 
     for portName, port of process.component.outPorts
       continue if not port or typeof port is 'function' or not port.canAttach

@@ -1,6 +1,11 @@
 NoFlo ChangeLog
 ===============
 
+## 0.5.10 (git master)
+
+* Subgraph networks are started when the main network starts, instead of automatically on their own timing. As a fallback they will also start when any of their ports receives a `connect`
+* The `start` port was removed from subgraphs
+
 ## 0.5.9 (August 5th 2014)
 
 * Hotfix reverting backwards-incompatible changes in subgraph loading, see [#229](https://github.com/noflo/noflo/issues/229).
