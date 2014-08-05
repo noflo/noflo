@@ -6,6 +6,8 @@ NoFlo ChangeLog
 * Subgraph networks are started when the main network starts, instead of automatically on their own timing. As a fallback they will also start when any of their ports receives a `connect`
 * The `start` port was removed from subgraphs
 
+These changes mean that in situations where a subgraph is used standalone without a network around it, you need to call `component.start()` manually. This is typical especially in unit tests.
+
 ## 0.5.9 (August 5th 2014)
 
 * Hotfix reverting backwards-incompatible changes in subgraph loading, see [#229](https://github.com/noflo/noflo/issues/229).
