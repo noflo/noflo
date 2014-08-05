@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.5.9 (August 5th 2014)
+
+* Hotfix reverting backwards-incompatible changes in subgraph loading, see [#229](https://github.com/noflo/noflo/issues/229).
+
 ## 0.5.8 (August 4th 2014)
 
 * Fixed several issues in connections and data synchronization
