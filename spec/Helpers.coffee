@@ -1349,7 +1349,7 @@ describe 'Component traits', ->
           in: ['d1', 'd2']
           params: 'p1'
           out: 'out'
-          arrayPolicy: # default values
+          arrayPolicy: # inversed
             in: 'all'
             params: 'any'
         , (input, groups, out) ->
@@ -1375,6 +1375,44 @@ describe 'Component traits', ->
         p12.disconnect()
         p13.send 3
         p13.disconnect()
+
+      it 'should behave normally with string output from another component', (done) ->
+        c = new component.Component
+        c.inPorts.add 'd1',
+          datatype: 'string'
+          addressable: true
+        c.outPorts.add 'out',
+          datatype: 'object'
+        d11 = socket.createSocket()
+        d12 = socket.createSocket()
+        d13 = socket.createSocket()
+        out = socket.createSocket()
+        c.inPorts.d1.attach d11
+        c.inPorts.d1.attach d12
+        c.inPorts.d1.attach d13
+        c.outPorts.out.attach out
+        c2 = new component.Component
+        c2.inPorts.add 'in', datatype: 'string'
+        c2.outPorts.add 'out', datatype: 'string'
+        helpers.WirePattern c2,
+          in: 'in'
+          out: 'out'
+          forwardGroups: true
+        , (input, groups, out) ->
+          out.send input
+        d3 = socket.createSocket()
+        c2.inPorts.in.attach d3
+        c2.outPorts.out.attach d11
+
+        helpers.WirePattern c,
+          in: 'd1'
+          out: 'out'
+        , (input, groups, out) ->
+          chai.expect(input).to.deep.equal {0: 'My string'}
+          done()
+
+        d3.send 'My string'
+        d3.disconnect()
 
   describe 'MultiError', ->
     describe 'with simple sync processes', ->
