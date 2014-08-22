@@ -3,6 +3,7 @@ NoFlo ChangeLog
 
 ## 0.5.10 (git master)
 
+* Port names are now validated to only contain lowercase alphanumeric characters or underscores
 * Subgraph networks are started when the main network starts, instead of automatically on their own timing. As a fallback they will also start when any of their ports receives a `connect`
 * The `start` port was removed from subgraphs
 

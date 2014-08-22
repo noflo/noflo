@@ -20,6 +20,9 @@ class Ports extends EventEmitter
     if name is 'add' or name is 'remove'
       throw new Error 'Add and remove are restricted port names'
 
+    unless name.match /^[a-z0-9_\.]+$/
+      throw new Error 'Port names can only contain lowercase alphanumeric characters and underscores'
+
     # Remove previous implementation
     @remove name if @ports[name]
 

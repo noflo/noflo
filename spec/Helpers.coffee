@@ -558,18 +558,18 @@ describe 'Component traits', ->
       c = new component.Component
       c.inPorts.add 'user', datatype: 'object'
       c.inPorts.add 'message', datatype: 'object'
-      c.outPorts.add 'signedMessage'
+      c.outPorts.add 'signedmessage'
       usr = new socket.createSocket()
       msg = new socket.createSocket()
       umsg = new socket.createSocket()
       c.inPorts.user.attach usr
       c.inPorts.message.attach msg
-      c.outPorts.signedMessage.attach umsg
+      c.outPorts.signedmessage.attach umsg
 
       it 'should match objects by specific field', (done) ->
         helpers.WirePattern c,
           in: ['user', 'message']
-          out: 'signedMessage'
+          out: 'signedmessage'
           async: true
           field: 'request'
         , (data, groups, out, callback) ->
