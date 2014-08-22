@@ -12,6 +12,7 @@ fs = require 'fs'
 loader = require '../ComponentLoader'
 internalSocket = require '../InternalSocket'
 utils = require '../Utils'
+nofloGraph = require '../Graph'
 
 # We allow components to be un-compiled CoffeeScript
 CoffeeScript = require 'coffee-script'
@@ -170,12 +171,23 @@ class ComponentLoader extends loader.ComponentLoader
     if typeof component isnt 'string'
       return callback new Error "Can't provide source for #{name}. Not a file"
 
+    nameParts = name.split '/'
+    if nameParts.length is 1
+      nameParts[1] = nameParts[0]
+      nameParts[0] = ''
+
+    if @isGraph component
+      nofloGraph.loadFile component, (graph) ->
+        return callback new Error 'Unable to load graph' unless graph
+        callback null,
+          name: nameParts[1]
+          library: nameParts[0]
+          code: JSON.stringify graph.toJSON()
+          language: 'json'
+      return
+
     fs.readFile component, 'utf-8', (err, code) ->
       return callback err if err
-      nameParts = name.split '/'
-      if nameParts.length is 1
-        nameParts[1] = nameParts[0]
-        nameParts[0] = ''
       callback null,
         name: nameParts[1]
         library: nameParts[0]
