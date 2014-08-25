@@ -20,6 +20,9 @@ exports.getDefaults = function () {
       defaults[name] = storedDefaults[name];
     }
   }
+  if (!defaults.user && process.env.FLOWHUB_USER_ID) {
+    defaults.user = process.env.FLOWHUB_USER_ID;
+  }
   return defaults;
 };
 exports.saveDefaults = function (values) {
