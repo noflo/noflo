@@ -15,6 +15,7 @@
   "dependencies": {
     "commander": "^2.1.0",
     "flowhub-registry": "0.0.2",
+    "noflo": "^0.5.0",
     "noflo-runtime-websocket": "^0.2.3",
     "uuid": "^1.4.1"
   }
