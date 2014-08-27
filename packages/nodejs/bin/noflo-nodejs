@@ -1,9 +1,16 @@
 #!/usr/bin/env node
 // vim: set filetype=javascript:
+var program = require('commander');
 var http = require('http');
 var lib = require('../index');
+var noflo = require('noflo');
 var runtime = require('noflo-runtime-websocket');
 var flowhub = require('flowhub-registry');
+
+program
+  .version(lib.getLibraryConfig().version)
+    .option('--graph <graph>', 'Unique Identifier for the runtime owner.', null)
+    .parse(process.argv);
 
 var stored = lib.getStored();
 var baseDir = process.env.PROJECT_HOME || process.cwd();
@@ -28,32 +35,45 @@ var flowhubRuntime = new flowhub.Runtime({
   type: 'noflo-nodejs'
 });
 
-var server = http.createServer(function () {});
-var rt = runtime(server, {
-  baseDir: baseDir,
-  captureOutput: false,
-  catchExceptions: true
-});
-
-server.listen(stored.port, function () {
-  console.log('NoFlo runtime listening at ws://' + stored.host + ':' + stored.port);
-  console.log('Using ' + baseDir + ' for component loading');
-
-  // Register the runtime with Flowhub so that it will show up in the UI
-  flowhubRuntime.register(function (err, ok) {
-    if (err) {
-      console.log('Registration with Flowhub failed: ' + err.message);
-      return;
-    }
-
-    console.log('Registered with Flowhub. The Runtime should now be accessible in the UI');
-
-    // Ping Flowhub periodically to let the user know that the runtime is still available
-    setInterval(function () {
-      flowhubRuntime.ping();
-    }, interval);
-
-    // Start capturing output so that we can send it to the UI
-    rt.startCapture();
+var startServer = function(defaultGraph) {
+  var server = http.createServer(function () {});
+  var rt = runtime(server, {
+    defaultGraph: defaultGraph,
+    baseDir: baseDir,
+    captureOutput: false,
+    catchExceptions: true
   });
-});
+
+  server.listen(stored.port, function () {
+    console.log('NoFlo runtime listening at ws://' + stored.host + ':' + stored.port);
+    console.log('Using ' + baseDir + ' for component loading');
+
+    // Register the runtime with Flowhub so that it will show up in the UI
+    flowhubRuntime.register(function (err, ok) {
+      if (err) {
+        console.log('Registration with Flowhub failed: ' + err.message);
+        return;
+      }
+
+      console.log('Registered with Flowhub. The Runtime should now be accessible in the UI');
+
+      // Ping Flowhub periodically to let the user know that the
+      // runtime is still available
+      setInterval(function () {
+        flowhubRuntime.ping();
+      }, interval);
+
+      // Start capturing output so that we can send it to the UI
+      rt.startCapture();
+    });
+  });
+};
+
+if (program.graph) {
+  console.log('Loading default graph: ' + program.graph);
+  noflo.graph.loadFile(program.graph, function(graph) {
+    startServer(graph);
+  });
+} else {
+  startServer(null);
+}
