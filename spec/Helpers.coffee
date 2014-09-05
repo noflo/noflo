@@ -1349,7 +1349,7 @@ describe 'Component traits', ->
           in: ['d1', 'd2']
           params: 'p1'
           out: 'out'
-          arrayPolicy: # default values
+          arrayPolicy: # inversed
             in: 'all'
             params: 'any'
         , (input, groups, out) ->
@@ -1375,6 +1375,147 @@ describe 'Component traits', ->
         p12.disconnect()
         p13.send 3
         p13.disconnect()
+
+      it 'should behave normally with string output from another component', (done) ->
+        c = new component.Component
+        c.inPorts.add 'd1',
+          datatype: 'string'
+          addressable: true
+        c.outPorts.add 'out',
+          datatype: 'object'
+        d11 = socket.createSocket()
+        d12 = socket.createSocket()
+        d13 = socket.createSocket()
+        out = socket.createSocket()
+        c.inPorts.d1.attach d11
+        c.inPorts.d1.attach d12
+        c.inPorts.d1.attach d13
+        c.outPorts.out.attach out
+        c2 = new component.Component
+        c2.inPorts.add 'in', datatype: 'string'
+        c2.outPorts.add 'out', datatype: 'string'
+        helpers.WirePattern c2,
+          in: 'in'
+          out: 'out'
+          forwardGroups: true
+        , (input, groups, out) ->
+          out.send input
+        d3 = socket.createSocket()
+        c2.inPorts.in.attach d3
+        c2.outPorts.out.attach d11
+
+        helpers.WirePattern c,
+          in: 'd1'
+          out: 'out'
+        , (input, groups, out) ->
+          chai.expect(input).to.deep.equal {0: 'My string'}
+          done()
+
+        d3.send 'My string'
+        d3.disconnect()
+
+    describe 'when grouping requests', ->
+      c = new component.Component
+      c.inPorts.add 'x', datatype: 'int'
+      c.inPorts.add 'y', datatype: 'int'
+      c.outPorts.add 'out', datatype: 'object'
+      x = socket.createSocket()
+      y = socket.createSocket()
+      out = socket.createSocket()
+      c.inPorts.x.attach x
+      c.inPorts.y.attach y
+      c.outPorts.out.attach out
+
+      getUuid = ->
+        'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace /[xy]/g, (c) ->
+          r = Math.random()*16|0
+          v = if c is 'x' then r else r&0x3|0x8
+          v.toString 16
+      isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+      generateRequests = (num) ->
+        reqs = {}
+        for i in [1..num]
+          req =
+            id: getUuid()
+            num: i
+          if i % 3 is 0
+            req.x = i
+          else if i % 7 is 0
+            req.y = i
+          else
+            req.x = i
+            req.y = 2*i
+          reqs[req.id] = req
+        reqs
+
+      sendRequests = (reqs, delay) ->
+        for id, req of reqs
+          do (req) ->
+            setTimeout ->
+              if 'x' of req
+                x.beginGroup req.id
+                x.beginGroup 'x'
+                x.beginGroup req.num
+                x.send req.x
+                x.endGroup()
+                x.endGroup()
+                x.endGroup()
+                x.disconnect()
+              if 'y' of req
+                y.beginGroup req.id
+                y.beginGroup 'y'
+                y.beginGroup req.num
+                y.send req.y
+                y.endGroup()
+                y.endGroup()
+                y.endGroup()
+                y.disconnect()
+            , delay*req.num
+
+      helpers.WirePattern c,
+        in: ['x', 'y']
+        out: 'out'
+        async: true
+        forwardGroups: true
+        group: isUuid
+        gcFrequency: 2 # every 2 requests
+        gcTimeout: 0.02 # older than 20ms
+      , (input, groups, out, done) ->
+        setTimeout ->
+          out.send
+            id: groups[0]
+            x: input.x
+            y: input.y
+          done()
+        , 3
+
+      it 'should group requests by outer UUID group', (done) ->
+        reqs = generateRequests 10
+        count = 0
+
+        out.on 'data', (data) ->
+          count++
+          chai.expect(data.x).to.equal reqs[data.id].x
+          chai.expect(data.y).to.equal reqs[data.id].y
+          done() if count is 6 # 6 complete requests processed
+
+        sendRequests reqs, 6
+
+      it 'should collect garbage every N requests', (done) ->
+        # GC dropped 2 timed out packets, 2 should be left
+        chai.expect(Object.keys(c.groupedData)).to.have.lengthOf 2
+        chai.expect(Object.keys(c.groupedGroups)).to.have.lengthOf 2
+        chai.expect(Object.keys(c.disconnectData)).to.have.lengthOf 2
+        done()
+
+      it 'should be able to drop a request explicitly', (done) ->
+        for key in Object.keys(c.groupedData)
+          c.dropRequest key
+        chai.expect(c.groupedData).to.deep.equal {}
+        chai.expect(c.groupedGroups).to.deep.equal {}
+        chai.expect(c.disconnectData).to.deep.equal {}
+        done()
 
   describe 'MultiError', ->
     describe 'with simple sync processes', ->

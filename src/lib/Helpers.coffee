@@ -1,6 +1,7 @@
 #     NoFlo - Flow-Based Programming for JavaScript
 #     (c) 2014 TheGrid (Rituwall Inc.)
 #     NoFlo may be freely distributed under the MIT license
+_ = require 'underscore'
 StreamSender = require('./Streams').StreamSender
 StreamReceiver = require('./Streams').StreamReceiver
 InternalSocket = require './InternalSocket'
@@ -114,6 +115,10 @@ exports.WirePattern = (component, config, proc) ->
     config.arrayPolicy =
       in: 'any'
       params: 'all'
+  # Garbage collector frequency: execute every N packets
+  config.gcFrequency = 100 unless 'gcFrequency' of config
+  # Garbage collector timeout: drop packets older than N seconds
+  config.gcTimeout = 300 unless 'gcTimeout' of config
 
   collectGroups = config.forwardGroups
   # Collect groups from each port?
@@ -246,15 +251,36 @@ exports.WirePattern = (component, config, proc) ->
         resumeTaskQ()
 
   # Disconnect event forwarding
-  component.disconnectData = []
+  component.disconnectData = {}
   component.disconnectQ = []
 
   component.groupBuffers = {}
+  component.keyBuffers = {}
+  component.gcTimestamps = {}
+
+  # Garbage collector
+  component.dropRequest = (key) ->
+    # Discard pending disconnect keys
+    delete component.disconnectData[key] if key of component.disconnectData
+    # Clean grouped data
+    delete component.groupedData[key] if key of component.groupedData
+    delete component.groupedGroups[key] if key of component.groupedGroups
+
+  component.gcCounter = 0
+  gc = ->
+    component.gcCounter++
+    if component.gcCounter % config.gcFrequency is 0
+      current = new Date().getTime()
+      for key, val of component.gcTimestamps
+        if (current - val) > (config.gcTimeout * 1000)
+          component.dropRequest key
+          delete component.gcTimestamps[key]
 
   # Grouped ports
   for port in inPorts
     do (port) ->
       component.groupBuffers[port] = []
+      component.keyBuffers[port] = null
       # Support for StreamReceiver ports
       if config.receiveStreams and config.receiveStreams.indexOf(port) isnt -1
         inPort = new StreamReceiver component.inPorts[port]
@@ -286,12 +312,14 @@ exports.WirePattern = (component, config, proc) ->
                 disconnectOuts()
             else
               foundGroup = false
-              for i in [0...component.disconnectData.length]
-                unless port of component.disconnectData[i]
+              key = component.keyBuffers[port]
+              component.disconnectData[key] = [] unless key of component.disconnectData
+              for i in [0...component.disconnectData[key].length]
+                unless port of component.disconnectData[key][i]
                   foundGroup = true
-                  component.disconnectData[i][port] = true
-                  if Object.keys(component.disconnectData[i]).length is inPorts.length
-                    component.disconnectData.shift()
+                  component.disconnectData[key][i][port] = true
+                  if Object.keys(component.disconnectData[key][i]).length is inPorts.length
+                    component.disconnectData[key].shift()
                     if config.async or config.StreamSender
                       if config.ordered
                         component.outputQ.push null
@@ -300,11 +328,12 @@ exports.WirePattern = (component, config, proc) ->
                         component.disconnectQ.push true
                     else
                       disconnectOuts()
+                    delete component.disconnectData[key] if component.disconnectData[key].length is 0
                   break
               unless foundGroup
                 obj = {}
                 obj[port] = true
-                component.disconnectData.push obj
+                component.disconnectData[key].push obj
 
           when 'data'
             if inPorts.length is 1
@@ -319,10 +348,16 @@ exports.WirePattern = (component, config, proc) ->
               if config.group and component.groupBuffers[port].length > 0
                 key = component.groupBuffers[port].toString()
                 if config.group instanceof RegExp
-                  key = '' unless config.group.test key
+                  reqId = null
+                  for grp in component.groupBuffers[port]
+                    if config.group.test grp
+                      reqId = grp
+                      break
+                  key = if reqId then reqId else ''
               else if config.field and typeof(payload) is 'object' and
               config.field of payload
                 key = payload[config.field]
+              component.keyBuffers[port] = key
 
               component.groupedData[key] = [] unless key of component.groupedData
               component.groupedGroups[key] = [] unless key of component.groupedGroups
@@ -339,9 +374,9 @@ exports.WirePattern = (component, config, proc) ->
                   else
                     component.groupedData[key][i][port] = payload
                   if needPortGroups
-                    for grp in component.groupBuffers[port]
-                      if component.groupedGroups[key][i].indexOf(grp) is -1
-                        component.groupedGroups[key][i].push grp
+                    component.groupedGroups[key][i] = _.union component.groupedGroups[key][i], component.groupBuffers[port]
+                  else if collectGroups is true
+                    component.groupedGroups[key][i][port] = component.groupBuffers[port]
                   if component.inPorts[port].isAddressable() and
                   config.arrayPolicy.in is 'all' and
                   Object.keys(component.groupedData[key][i][port]).length <
@@ -351,6 +386,12 @@ exports.WirePattern = (component, config, proc) ->
                   if groupLength is requiredLength
                     data = (component.groupedData[key].splice i, 1)[0]
                     groups = (component.groupedGroups[key].splice i, 1)[0]
+                    if collectGroups is true
+                      groups = _.intersection.apply null, _.values groups
+                    delete component.groupedData[key] if component.groupedData[key].length is 0
+                    delete component.groupedGroups[key] if component.groupedGroups[key].length is 0
+                    if config.group and key
+                      delete component.gcTimestamps[key]
                     break
                   else
                     return # need more data to continue
@@ -361,16 +402,18 @@ exports.WirePattern = (component, config, proc) ->
                 component.groupedData[key].push obj
                 if needPortGroups
                   component.groupedGroups[key].push component.groupBuffers[port]
+                else if collectGroups is true
+                  tmp = {} ; tmp[port] = component.groupBuffers[port]
+                  component.groupedGroups[key].push tmp
                 else
                   component.groupedGroups[key].push []
+                if config.group and key
+                  # Timestamp to garbage collect this request
+                  component.gcTimestamps[key] = new Date().getTime()
                 return # need more data to continue
 
             # Drop premature data if configured to do so
             return if config.dropInput and component.completeParams.length isnt component.requiredParams.length
-
-            # Flush the data if the tuple is complete
-            if collectGroups is true
-              groups = component.groupBuffers[port]
 
             # Prepare outputs
             outs = {}
@@ -438,6 +481,9 @@ exports.WirePattern = (component, config, proc) ->
             component.taskQ.push task
             resumeTaskQ()
 
+            # Call the garbage collector
+            gc()
+
   # Overload shutdown method to clean WirePattern state
   baseShutdown = component.shutdown
   component.shutdown = ->
@@ -445,7 +491,7 @@ exports.WirePattern = (component, config, proc) ->
     component.groupedData = {}
     component.groupedGroups = {}
     component.outputQ = []
-    component.disconnectData = []
+    component.disconnectData = {}
     component.disconnectQ = []
     component.taskQ = []
     component.params = {}
@@ -453,6 +499,9 @@ exports.WirePattern = (component, config, proc) ->
     component.receivedParams = []
     component.defaultsSent = false
     component.groupBuffers = {}
+    component.keyBuffers = {}
+    component.gcTimestamps = {}
+    component.gcCounter = 0
 
   # Make it chainable or usable at the end of getComponent()
   return component
