@@ -766,6 +766,7 @@ exports.createGraph = (name) ->
   new Graph name
 
 exports.loadJSON = (definition, success, metadata = {}) ->
+  definition = JSON.parse definition if typeof definition is 'string'
   definition.properties = {} unless definition.properties
   definition.processes = {} unless definition.processes
   definition.connections = [] unless definition.connections
