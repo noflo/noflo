@@ -18,6 +18,14 @@ cli.parse
   verbose: ['v', 'Log in verbose format']
   subgraph: ['s', 'Log subgraph events']
 
+showPorts = (ports) ->
+  displayPorts = []
+  ports = ports.ports if ports.ports
+  for name, implementation of ports
+    continue if name in ['_events', 'ports']
+    displayPorts.push name.toUpperCase()
+  displayPorts
+
 showComponent = (component, path, instance, callback) ->
   unless instance.isReady()
     instance.once 'ready', ->
@@ -27,9 +35,9 @@ showComponent = (component, path, instance, callback) ->
   console.log "#{component} (#{path})"
   console.log instance.description if instance.description
   if instance.inPorts
-    console.log 'Inports:', _.keys(instance.inPorts).join ', '
+    console.log 'Inports:', showPorts(instance.inPorts).join ', '
   if instance.outPorts
-    console.log 'Outports:', _.keys(instance.outPorts).join ', '
+    console.log 'Outports:', showPorts(instance.outPorts).join ', '
 
 addDebug = (network, verbose, logSubgraph) ->
 

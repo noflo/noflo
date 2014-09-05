@@ -50,6 +50,7 @@ class Network extends EventEmitter
     @defaults = []
     @graph = graph
     @started = false
+    @debug = false
 
     # On Node.js we default the baseDir for component loading to
     # the current working directory
@@ -320,6 +321,8 @@ class Network extends EventEmitter
     node.component.network.on 'data', (data) -> emitSub 'data', data
     node.component.network.on 'endgroup', (data) -> emitSub 'endgroup', data
     node.component.network.on 'disconnect', (data) -> emitSub 'disconnect', data
+    node.component.network.on 'process-error', (data) ->
+      emitSub 'process-error', data
 
   # Subscribe to events from all connected sockets and re-emit them
   subscribeSocket: (socket) ->
@@ -348,6 +351,8 @@ class Network extends EventEmitter
       @emit 'disconnect',
         id: socket.getId()
         socket: socket
+    socket.on 'error', (event) =>
+      @emit 'process-error', event
 
   subscribeNode: (node) ->
     return unless node.component.getIcon
@@ -513,5 +518,18 @@ class Network extends EventEmitter
     for id, process of @processes
       process.component.shutdown()
     @started = false
+
+  getDebug: () ->
+    @debug
+
+  setDebug: (active) ->
+    return if active == @debug
+    @debug = active
+
+    for socket in @connections
+      socket.setDebug active
+    for processId, process of @processes
+      instance = process.component
+      instance.network.setDebug active if instance.isSubgraph()
 
 exports.Network = Network

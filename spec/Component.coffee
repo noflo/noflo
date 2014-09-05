@@ -12,23 +12,24 @@ describe 'Component', ->
       s2 = new socket.InternalSocket
       c = new component.Component
         outPorts:
-          requiredPort:
+          required_port:
             required: true
-          optionalPort: {}
-      c.outPorts.optionalPort.attach s2
-      chai.expect(-> c.outPorts.requiredPorts.send('foo')).to.throw()
+          optional_port: {}
+      c.outPorts.optional_port.attach s2
+      chai.expect(-> c.outPorts.required_port.send('foo')).to.throw()
 
     it 'should be cool with an attached port', ->
       s1 = new socket.InternalSocket
       s2 = new socket.InternalSocket
       c = new component.Component
         inPorts:
-          requiredPort:
+          required_port:
             required: true
-          optionalPort: {}
-      c.inPorts.requiredPort.attach s1
-      c.inPorts.optionalPort.attach s2
+          optional_port: {}
+      c.inPorts.required_port.attach s1
+      c.inPorts.optional_port.attach s2
       f = ->
+        s1.send 'some-more-data'
         s2.send 'some-data'
       chai.expect(f).to.not.throw()
 
@@ -44,7 +45,7 @@ describe 'Component', ->
               chai.expect(packet).to.equal 'some-data'
               chai.expect(component).to.equal c
 
-          justProcessor: (event, packet, component) ->
+          just_processor: (event, packet, component) ->
             return unless event is 'data'
             chai.expect(packet).to.equal 'some-data'
             chai.expect(component).to.equal c
@@ -54,8 +55,8 @@ describe 'Component', ->
       c.inPorts.in.attach s1
       c.inPorts.in.nodeInstance = c
       s2 = new socket.InternalSocket
-      c.inPorts.justProcessor.attach s1
-      c.inPorts.justProcessor.nodeInstance = c
+      c.inPorts.just_processor.attach s1
+      c.inPorts.just_processor.nodeInstance = c
       s1.send 'some-data'
       s2.send 'some-data'
 
@@ -156,6 +157,26 @@ describe 'Component', ->
       s1.beginGroup 'foo'
       s1.beginGroup 'bar'
       s1.send 'some-data'
+
+  describe 'defining ports with invalid names', ->
+    it 'should throw an error with uppercase letters in inport', ->
+      shorthand = ->
+        c = new component.Component
+          inPorts:
+            fooPort: {}
+      chai.expect(shorthand).to.throw()
+    it 'should throw an error with uppercase letters in outport', ->
+      shorthand = ->
+        c = new component.Component
+          outPorts:
+            BarPort: {}
+      chai.expect(shorthand).to.throw()
+    it 'should throw an error with special characters in inport', ->
+      shorthand = ->
+        c = new component.Component
+          inPorts:
+            '$%^&*a': {}
+      chai.expect(shorthand).to.throw()
 
   describe 'starting a component', ->
 

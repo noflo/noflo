@@ -12,10 +12,23 @@
 # events so that the packets can be caught to the inport of the
 # connected process.
 class InternalSocket extends EventEmitter
+  regularEmitEvent: (event, data) ->
+    @emit event, data
+
+  debugEmitEvent: (event, data) ->
+    try
+      @emit event, data
+    catch error
+      @emit 'error',
+        id: @to.process.id
+        error: error
+
   constructor: ->
     @connected = false
     @groups = []
     @dataDelegate = null
+    @debug = false
+    @emitEvent = @regularEmitEvent
 
   # ## Socket connections
   #
@@ -45,12 +58,12 @@ class InternalSocket extends EventEmitter
   connect: ->
     return if @connected
     @connected = true
-    @emit 'connect', @
+    @emitEvent 'connect', @
 
   disconnect: ->
     return unless @connected
     @connected = false
-    @emit 'disconnect', @
+    @emitEvent 'disconnect', @
 
   isConnected: -> @connected
 
@@ -68,7 +81,7 @@ class InternalSocket extends EventEmitter
   send: (data) ->
     @connect() unless @connected
     data = @dataDelegate() if data is undefined and typeof @dataDelegate is 'function'
-    @emit 'data', data
+    @emitEvent 'data', data
 
   # ## Information Packet grouping
   #
@@ -101,11 +114,11 @@ class InternalSocket extends EventEmitter
   # intact through the component's processing.
   beginGroup: (group) ->
     @groups.push group
-    @emit 'begingroup', group
+    @emitEvent 'begingroup', group
 
   endGroup: ->
     return unless @groups.length
-    @emit 'endgroup', @groups.pop()
+    @emitEvent 'endgroup', @groups.pop()
 
   # ## Socket data delegation
   #
@@ -116,6 +129,15 @@ class InternalSocket extends EventEmitter
     unless typeof delegate is 'function'
       throw Error 'A data delegate must be a function.'
     @dataDelegate = delegate
+
+  # ## Socket debug mode
+  #
+  # Sockets can catch exceptions happening in processes when data is
+  # sent to them. These errors can then be reported to the network for
+  # notification to the developer.
+  setDebug: (active) ->
+    @debug = active
+    @emitEvent = if @debug then @debugEmitEvent else @regularEmitEvent
 
   # ## Socket identifiers
   #

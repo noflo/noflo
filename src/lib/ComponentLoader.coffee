@@ -246,13 +246,24 @@ class ComponentLoader extends EventEmitter
     if typeof component isnt 'string'
       return callback new Error "Can't provide source for #{name}. Not a file"
 
-    path = window.require.resolve component
-    unless path
-      return callback new Error "Component #{name} is not resolvable to a path"
     nameParts = name.split '/'
     if nameParts.length is 1
       nameParts[1] = nameParts[0]
       nameParts[0] = ''
+
+    if @isGraph component
+      nofloGraph.loadFile component, (graph) ->
+        return callback new Error 'Unable to load graph' unless graph
+        callback null,
+          name: nameParts[1]
+          library: nameParts[0]
+          code: JSON.stringify graph.toJSON()
+          language: 'json'
+      return
+
+    path = window.require.resolve component
+    unless path
+      return callback new Error "Component #{name} is not resolvable to a path"
     callback null,
       name: nameParts[1]
       library: nameParts[0]
