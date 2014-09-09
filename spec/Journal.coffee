@@ -139,5 +139,91 @@ describe 'Journal', ->
       j.redo()
       chai.expect(g.getNode('Foo').metadata["oneone"]).to.equal 11
 
+
+describe 'Journalling of graph merges', ->
+  A = """
+  {
+  "properties": { "name": "Example", "foo": "Baz", "bar": "Foo" },
+  "inports": {
+    "in": { "process": "Foo", "port": "in", "metadata": { "x": 5, "y": 100 } }
+  },
+  "outports": {
+    "out": { "process": "Bar", "port": "out", "metadata": { "x": 500, "y": 505 } }
+  },
+  "groups": [
+    { "name": "first", "nodes": [ "Foo" ], "metadata": { "label": "Main" } },
+    { "name": "second", "nodes": [ "Foo2", "Bar2" ], "metadata": {} }
+  ],
+  "processes": {
+    "Foo": { "component": "Bar", "metadata": { "display": { "x": 100, "y": 200 }, "hello": "World" } },
+    "Bar": { "component": "Baz", "metadata": {} },
+    "Foo2": { "component": "foo", "metadata": {} },
+    "Bar2": { "component": "bar", "metadata": {} }
+  },
+  "connections": [
+    { "src": { "process": "Foo", "port": "out" }, "tgt": { "process": "Bar", "port": "in" }, "metadata": { "route": "foo", "hello": "World" } },
+    { "src": { "process": "Foo", "port": "out2" }, "tgt": { "process": "Bar", "port": "in2" } },
+    { "data": "Hello, world!", "tgt": { "process": "Foo", "port": "in" } },
+    { "data": "Hello, world, 2!", "tgt": { "process": "Foo", "port": "in2" } },
+    { "data": "Cheers, world!", "tgt": { "process": "Foo", "port": "arr" } }
+  ]
+  }"""
+
+  B = """
+  {
+  "properties": { "name": "Example", "foo": "Baz", "bar": "Foo" },
+  "inports": {
+    "in": { "process": "Foo", "port": "in", "metadata": { "x": 500, "y": 1 } }
+  },
+  "outports": {
+    "out": { "process": "Bar", "port": "out", "metadata": { "x": 500, "y": 505 } }
+  },
+  "groups": [
+    { "name": "second", "nodes": [ "Foo", "Bar" ] }
+  ],
+  "processes": {
+    "Foo": { "component": "Bar", "metadata": { "display": { "x": 100, "y": 200 }, "hello": "World" } },
+    "Bar": { "component": "Baz", "metadata": {} },
+    "Bar2": { "component": "bar", "metadata": {} },
+    "Bar3": { "component": "bar2", "metadata": {} }
+  },
+  "connections": [
+    { "src": { "process": "Foo", "port": "out" }, "tgt": { "process": "Bar", "port": "in" }, "metadata": { "route": "foo", "hello": "World" } },
+    { "src": { "process": "Foo2", "port": "out2" }, "tgt": { "process": "Bar3", "port": "in2" } },
+    { "data": "Hello, world!", "tgt": { "process": "Foo", "port": "in" } },
+    { "data": "Hello, world, 2!", "tgt": { "process": "Bar3", "port": "in2" } },
+    { "data": "Cheers, world!", "tgt": { "process": "Bar2", "port": "arr" } }
+  ]
+  }"""
+  a = null
+  b = null
+  g = null # one we modify
+  j = null
+  describe 'G -> B', ->
+    it 'G starts out as A', (done) ->
+      graph.loadJSON JSON.parse(A), (instance) ->
+        a = instance
+        graph.loadJSON JSON.parse(A), (instance) ->
+          g = instance
+          chai.expect(graph.equivalent(a, g)).to.equal true
+          done()
+    it 'G and B starts out different', (done) ->
+      graph.loadJSON JSON.parse(B), (instance) ->
+        b = instance
+        chai.expect(graph.equivalent(g, b)).to.equal false
+        done()
+    it 'merge should make G equivalent to B', (done) ->
+      j = new journal.Journal(g)
+      g.startTransaction 'merge'
+      graph.mergeResolveTheirs g, b
+      g.endTransaction 'merge'
+      chai.expect(graph.equivalent(g, b)).to.equal true
+      done()
+    it 'undoing merge should make G equivalent to A again', (done) ->
+      j.undo()
+      res = graph.equivalent g, a
+      chai.expect(res).to.equal true
+      done()
+
 # FIXME: add tests for graph.loadJSON/loadFile, and journal metadata
 

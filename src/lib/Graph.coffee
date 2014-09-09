@@ -870,3 +870,57 @@ exports.loadFile = (file, success, metadata = {}) ->
 
     definition = JSON.parse data
     exports.loadJSON definition, success
+
+
+# remove everything in the graph
+resetGraph = (graph) ->
+
+  # Edges and similar first, to have control over the order
+  # If we'd do nodes first, it will implicitly delete edges
+  # Important to make journal transactions invertible
+  for group in (clone graph.groups).reverse()
+    graph.removeGroup group.name if group?
+  for port, v of clone graph.outports
+    graph.removeOutport port
+  for port, v of clone graph.inports
+    graph.removeInport port
+  for exp in clone (graph.exports).reverse()
+    graph.removeExports exp.public
+  # XXX: does this actually null the props??
+  graph.setProperties {}
+  for iip in (clone graph.initializers).reverse()
+    graph.removeInitial iip.to.node, iip.to.port
+  for edge in (clone graph.edges).reverse()
+    graph.removeEdge edge.from.node, edge.from.port, edge.to.node, edge.to.port
+  for node in (clone graph.nodes).reverse()
+    graph.removeNode node.id
+
+# Note: Caller should create transaction
+# First removes everything in @base, before building it up to mirror @to
+mergeResolveTheirsNaive = (base, to) ->
+  resetGraph base
+
+  for node in to.nodes
+    base.addNode node.id, node.component, node.metadata
+  for edge in to.edges
+    base.addEdge edge.from.node, edge.from.port, edge.to.node, edge.to.port, edge.metadata
+  for iip in to.initializers
+    base.addInitial iip.from.data, iip.to.node, iip.to.port, iip.metadata
+  for exp in to.exports
+    base.addExport exp.public, exp.node, exp.port, exp.metadata
+  base.setProperties to.properties
+  for pub, priv of to.inports
+    base.addInport pub, priv.process, priv.port, priv.metadata
+  for pub, priv of to.outports
+    base.addOutport pub, priv.process, priv.port, priv.metadata
+  for group in to.groups
+    base.addGroup group.name, group.nodes, group.metadata
+
+exports.equivalent = (a, b, options = {}) ->
+  # TODO: add option to only compare known fields
+  # TODO: add option to ignore metadata
+  A = JSON.stringify a
+  B = JSON.stringify b
+  return A == B
+
+exports.mergeResolveTheirs = mergeResolveTheirsNaive
