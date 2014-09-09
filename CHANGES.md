@@ -4,9 +4,10 @@ NoFlo ChangeLog
 ## 0.5.10 (git master)
 
 * Port names are now validated to only contain lowercase alphanumeric characters or underscores
+* Graph merging support via the graph journal
+* `getSource` now returns correct type for graphs
 * Subgraph networks are started when the main network starts, instead of automatically on their own timing. As a fallback they will also start when any of their ports receives a `connect`
 * The `start` port was removed from subgraphs
-* `getSource` now returns correct type for graphs
 
 These changes mean that in situations where a subgraph is used standalone without a network around it, you need to call `component.start()` manually. This is typical especially in unit tests.
 
