@@ -62,9 +62,6 @@ var startServer = function(defaultGraph) {
       setInterval(function () {
         flowhubRuntime.ping();
       }, interval);
-
-      // Start capturing output so that we can send it to the UI
-      rt.startCapture();
     });
   });
 };
