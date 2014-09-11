@@ -6,6 +6,7 @@ var lib = require('../index');
 var noflo = require('noflo');
 var runtime = require('noflo-runtime-websocket');
 var flowhub = require('flowhub-registry');
+var querystring = require('querystring');
 
 program
   .version(lib.getLibraryConfig().version)
@@ -45,8 +46,13 @@ var startServer = function(defaultGraph) {
   });
 
   server.listen(stored.port, function () {
-    console.log('NoFlo runtime listening at ws://' + stored.host + ':' + stored.port);
+    var address = 'ws://' + stored.host + ':' + stored.port;
+    console.log('NoFlo runtime listening at ' + address);
     console.log('Using ' + baseDir + ' for component loading');
+
+    var ide = stored.ide || 'http://app.flowhub.io';
+    var params = querystring.escape('protocol=websocket&address='+address);
+    console.log('Live IDE URL: ' + ide+'#runtime/endpoint?'+params);
 
     // Register the runtime with Flowhub so that it will show up in the UI
     flowhubRuntime.register(function (err, ok) {
