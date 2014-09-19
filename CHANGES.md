@@ -4,6 +4,7 @@ NoFlo ChangeLog
 ## 0.5.10 (git master)
 
 * Port names are now validated to only contain lowercase alphanumeric characters or underscores
+* `ComponentLoader.load` method now calls its callback with the Node.js style `error, instance` signature to allow catching component loading issues
 * Graph merging support via the graph journal
 * `getSource` now returns correct type for graphs
 * Subgraph networks are started when the main network starts, instead of automatically on their own timing. As a fallback they will also start when any of their ports receives a `connect`
