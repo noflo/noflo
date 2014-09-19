@@ -233,7 +233,6 @@ describe 'ComponentLoader with no external packages installed', ->
         done()
     it 'should be a loadable component', (done) ->
       l.load 'foo/RepeatData', (err, inst) ->
-        console.log err, inst
         chai.expect(err).to.be.a 'null'
         chai.expect(inst).to.be.an 'object'
         chai.expect(inst.inPorts).to.contain.keys ['in']
