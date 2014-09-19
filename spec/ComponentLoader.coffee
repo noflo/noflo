@@ -205,36 +205,70 @@ describe 'ComponentLoader with no external packages installed', ->
         done()
 
   describe 'writing sources', ->
-    workingSource = """
-    var noflo = require('noflo');
+    describe 'with working code', ->
+      workingSource = """
+      var noflo = require('noflo');
 
-    exports.getComponent = function() {
-      var c = new noflo.Component();
+      exports.getComponent = function() {
+        var c = new noflo.Component();
 
-      c.inPorts.add('in', function(packet, outPorts) {
-        if (packet.event !== 'data') {
-          return;
-        }
-        // Do something with the packet, then
-        c.outPorts.out.send(packet.data);
-      });
+        c.inPorts.add('in', function(packet, outPorts) {
+          if (packet.event !== 'data') {
+            return;
+          }
+          // Do something with the packet, then
+          c.outPorts.out.send(packet.data);
+        });
 
-      c.outPorts.add('out');
+        c.outPorts.add('out');
 
-      return c;
-    };"""
+        return c;
+      };"""
 
-    it 'should be able to set the source', (done) ->
-      unless platform.isBrowser()
-        workingSource = workingSource.replace "'noflo'", "'./src/lib/NoFlo'"
-      l.setSource 'foo', 'RepeatData', workingSource, 'js', (err) ->
-        throw err if err
-        chai.expect(err).to.be.a 'null'
-        done()
-    it 'should be a loadable component', (done) ->
-      l.load 'foo/RepeatData', (err, inst) ->
-        chai.expect(err).to.be.a 'null'
-        chai.expect(inst).to.be.an 'object'
-        chai.expect(inst.inPorts).to.contain.keys ['in']
-        chai.expect(inst.outPorts).to.contain.keys ['out']
-        done()
+      it 'should be able to set the source', (done) ->
+        unless platform.isBrowser()
+          workingSource = workingSource.replace "'noflo'", "'./src/lib/NoFlo'"
+        l.setSource 'foo', 'RepeatData', workingSource, 'js', (err) ->
+          throw err if err
+          chai.expect(err).to.be.a 'null'
+          done()
+      it 'should be a loadable component', (done) ->
+        l.load 'foo/RepeatData', (err, inst) ->
+          chai.expect(err).to.be.a 'null'
+          chai.expect(inst).to.be.an 'object'
+          chai.expect(inst.inPorts).to.contain.keys ['in']
+          chai.expect(inst.outPorts).to.contain.keys ['out']
+          done()
+    describe 'with non-working code', ->
+      nonWorkingSource = """
+      var noflo = require('noflo');
+      var notFound = require('./this_file_does_not_exist.js');
+
+      exports.getComponent = function() {
+        var c = new noflo.Component();
+
+        c.inPorts.add('in', function(packet, outPorts) {
+          if (packet.event !== 'data') {
+            return;
+          }
+          // Do something with the packet, then
+          c.outPorts.out.send(packet.data);
+        });
+
+        c.outPorts.add('out');
+
+        return c;
+      };"""
+
+      it 'should be able to set the source', (done) ->
+        unless platform.isBrowser()
+          nonWorkingSource = nonWorkingSource.replace "'noflo'", "'./src/lib/NoFlo'"
+        l.setSource 'foo', 'NotWorking', nonWorkingSource, 'js', (err) ->
+          chai.expect(err).to.be.an 'object'
+          done()
+      it 'should not be a loadable component', (done) ->
+        l.load 'foo/NotWorking', (err, inst) ->
+          console.log err, inst
+          chai.expect(err).to.be.an 'object'
+          chai.expect(inst).to.be.an 'undefined'
+          done()
