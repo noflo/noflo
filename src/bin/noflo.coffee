@@ -82,7 +82,10 @@ cli.main (args, options) ->
     loader.listComponents (components) ->
       todo = components.length
       _.each components, (path, component) ->
-        instance = loader.load component, (instance) ->
+        instance = loader.load component, (err, instance) ->
+          if err
+            console.log err
+            return
           showComponent component, path, instance, ->
             todo--
             process.exit 0 if todo is 0

@@ -409,7 +409,7 @@ describe 'Graph component', ->
         cl.components.Split = createSplit
         cl.components.Defaults = grDefaults
         cl.components.Initials = grInitials
-        cl.load 'Defaults', (inst) ->
+        cl.load 'Defaults', (err, inst) ->
           o = noflo.internalSocket.createSocket()
           inst.outPorts.out.attach o
           o.once 'data', (data) ->
@@ -423,7 +423,7 @@ describe 'Graph component', ->
         cl.components.Split = createSplit
         cl.components.Defaults = grDefaults
         cl.components.Initials = grInitials
-        cl.load 'Initials', (inst) ->
+        cl.load 'Initials', (err, inst) ->
           o = noflo.internalSocket.createSocket()
           inst.outPorts.out.attach o
           o.once 'data', (data) ->
@@ -437,7 +437,7 @@ describe 'Graph component', ->
         cl.components.Split = createSplit
         cl.components.Defaults = grDefaults
         cl.components.Initials = grInitials
-        cl.load 'Defaults', (inst) ->
+        cl.load 'Defaults', (err, inst) ->
           i = noflo.internalSocket.createSocket()
           o = noflo.internalSocket.createSocket()
           inst.inPorts.in.attach i

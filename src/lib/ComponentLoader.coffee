@@ -95,7 +95,7 @@ class ComponentLoader extends EventEmitter
           break
       unless component
         # Failure to load
-        throw new Error "Component #{name} not available with base #{@baseDir}"
+        callback new Error "Component #{name} not available with base #{@baseDir}"
         return
 
     if @isGraph component
@@ -109,23 +109,26 @@ class ComponentLoader extends EventEmitter
         , 0
       return
 
-    instance = @createComponent name, component, metadata
+    @createComponent name, component, metadata, (err, instance) =>
+      return callback err if err
+      if not instance
+        callback new Error "Component #{name} could not be loaded."
+        return
 
-    if not instance
-      throw new Error "Component #{name} could not be loaded."
-
-    instance.baseDir = @baseDir if name is 'Graph'
-    @setIcon name, instance
-    callback instance
+      instance.baseDir = @baseDir if name is 'Graph'
+      @setIcon name, instance
+      callback null, instance
 
   # Creates an instance of a component.
-  createComponent: (name, component, metadata) ->
-
+  createComponent: (name, component, metadata, callback) ->
     implementation = component
 
     # If a string was specified, attempt to `require` it.
     if typeof implementation is 'string'
-      implementation = require implementation
+      try
+        implementation = require implementation
+      catch e
+        return callback e
 
     # Attempt to create the component instance using the `getComponent` method.
     if typeof implementation.getComponent is 'function'
@@ -134,9 +137,10 @@ class ComponentLoader extends EventEmitter
     else if typeof implementation is 'function'
       instance = implementation metadata
     else
-      throw new Error "Invalid type #{typeof(implementation)} for component #{name}."
+      callback new Error "Invalid type #{typeof(implementation)} for component #{name}."
+      return
 
-    return instance
+    callback null, instance
 
   isGraph: (cPath) ->
     return true if typeof cPath is 'object' and cPath instanceof nofloGraph.Graph
@@ -154,7 +158,7 @@ class ComponentLoader extends EventEmitter
     graphSocket.disconnect()
     graph.inPorts.remove 'graph'
     @setIcon name, graph
-    callback graph
+    callback null, graph
 
   setIcon: (name, instance) ->
     # See if component has an icon

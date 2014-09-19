@@ -75,7 +75,8 @@ describe 'ComponentLoader with no external packages installed', ->
   describe 'loading the Graph component', ->
     instance = null
     it 'should be able to load the component', (done) ->
-      l.load 'Graph', (inst) ->
+      l.load 'Graph', (err, inst) ->
+        chai.expect(err).to.be.a 'null'
         chai.expect(inst).to.be.an 'object'
         instance = inst
         done()
@@ -121,7 +122,8 @@ describe 'ComponentLoader with no external packages installed', ->
   describe 'loading the Graph component', ->
     instance = null
     it 'should be able to load the component', (done) ->
-      l.load 'Graph', (graph) ->
+      l.load 'Graph', (err, graph) ->
+        chai.expect(err).to.be.a 'null'
         chai.expect(graph).to.be.an 'object'
         instance = graph
         done()
@@ -129,10 +131,12 @@ describe 'ComponentLoader with no external packages installed', ->
       chai.expect(instance.baseDir).to.equal l.baseDir
 
   describe 'loading a component', ->
-    it 'should throw an error on an invalid component type', () ->
+    it 'should return an error on an invalid component type', (done) ->
       l.components['InvalidComponent'] = true
-      fn = l.load.bind l, 'InvalidComponent', (c) ->
-      chai.expect(fn).to.throw(Error, /Invalid type boolean for component InvalidComponent./)
+      l.load 'InvalidComponent', (err, c) ->
+        chai.expect(err).to.be.instanceOf Error
+        chai.expect(err.message).to.equal 'Invalid type boolean for component InvalidComponent.'
+        done()
 
   describe 'register a component at runtime', ->
     class Split extends component.Component
@@ -148,7 +152,8 @@ describe 'ComponentLoader with no external packages installed', ->
       l.registerComponent 'foo', 'Split', Split
       chai.expect(l.components).to.contain.keys ['foo/Split', 'Graph']
     it 'should be able to load the component', (done) ->
-      l.load 'foo/Split', (split) ->
+      l.load 'foo/Split', (err, split) ->
+        chai.expect(err).to.be.a 'null'
         chai.expect(split).to.be.an 'object'
         instance = split
         done()
@@ -163,13 +168,15 @@ describe 'ComponentLoader with no external packages installed', ->
         done()
       instance.setIcon 'smile'
     it 'new instances should still contain the original icon', (done) ->
-      l.load 'foo/Split', (split) ->
+      l.load 'foo/Split', (err, split) ->
+        chai.expect(err).to.be.a 'null'
         chai.expect(split).to.be.an 'object'
         chai.expect(split.getIcon()).to.equal 'star'
         done()
     it 'after setting an icon for the Component class, new instances should have that', (done) ->
       Split::icon = 'trophy'
-      l.load 'foo/Split', (split) ->
+      l.load 'foo/Split', (err, split) ->
+        chai.expect(err).to.be.a 'null'
         chai.expect(split).to.be.an 'object'
         chai.expect(split.getIcon()).to.equal 'trophy'
         done()
@@ -225,7 +232,9 @@ describe 'ComponentLoader with no external packages installed', ->
         chai.expect(err).to.be.a 'null'
         done()
     it 'should be a loadable component', (done) ->
-      l.load 'foo/RepeatData', (inst) ->
+      l.load 'foo/RepeatData', (err, inst) ->
+        console.log err, inst
+        chai.expect(err).to.be.a 'null'
         chai.expect(inst).to.be.an 'object'
         chai.expect(inst.inPorts).to.contain.keys ['in']
         chai.expect(inst.outPorts).to.contain.keys ['out']

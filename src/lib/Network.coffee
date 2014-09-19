@@ -119,7 +119,7 @@ class Network extends EventEmitter
     # Processes are treated as singletons by their identifier. If
     # we already have a process with the given ID, return that.
     if @processes[node.id]
-      callback @processes[node.id] if callback
+      callback null, @processes[node.id] if callback
       return
 
     process =
@@ -128,11 +128,12 @@ class Network extends EventEmitter
     # No component defined, just register the process but don't start.
     unless node.component
       @processes[process.id] = process
-      callback process if callback
+      callback null, process if callback
       return
 
     # Load the component for the process.
-    @load node.component, node.metadata, (instance) =>
+    @load node.component, node.metadata, (err, instance) =>
+      return callback err if err
       instance.nodeId = node.id
       process.component = instance
 
@@ -154,17 +155,18 @@ class Network extends EventEmitter
 
       # Store and return the process instance
       @processes[process.id] = process
-      callback process if callback
+      callback null, process if callback
 
   removeNode: (node, callback) ->
-    return unless @processes[node.id]
+    unless @processes[node.id]
+      return callback new Error "Node #{node.id} not found"
     @processes[node.id].component.shutdown()
     delete @processes[node.id]
-    do callback if callback
+    callback null if callback
 
   renameNode: (oldId, newId, callback) ->
     process = @getNode oldId
-    return unless process
+    return callback new Error "Process #{oldId} not found" unless process
 
     # Inform the process of its ID
     process.id = newId
@@ -177,7 +179,7 @@ class Network extends EventEmitter
 
     @processes[newId] = process
     delete @processes[oldId]
-    do callback if callback
+    callback null if callback
 
   # Get process by its ID.
   getNode: (id) ->
