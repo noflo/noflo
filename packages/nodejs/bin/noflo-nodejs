@@ -7,10 +7,11 @@ var noflo = require('noflo');
 var runtime = require('noflo-runtime-websocket');
 var flowhub = require('flowhub-registry');
 var querystring = require('querystring');
+var path = require('path');
 
 program
   .version(lib.getLibraryConfig().version)
-    .option('--graph <graph>', 'Unique Identifier for the runtime owner.', null)
+    .option('--graph <graph>', 'Path to a graph file to start', null)
     .parse(process.argv);
 
 var stored = lib.getStored();
@@ -73,7 +74,8 @@ var startServer = function(defaultGraph) {
 };
 
 if (program.graph) {
-  console.log('Loading default graph: ' + program.graph);
+  program.graph = path.resolve(process.cwd(), program.graph);
+  console.log('Loading main graph: ' + program.graph);
   noflo.graph.loadFile(program.graph, function(graph) {
     startServer(graph);
   });
