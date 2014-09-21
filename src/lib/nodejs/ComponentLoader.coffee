@@ -133,6 +133,11 @@ class ComponentLoader extends loader.ComponentLoader
       return callback null, found
 
   setSource: (packageId, name, source, language, callback) ->
+    unless @ready
+      @listComponents =>
+        @setSource packageId, name, source, language, callback
+      return
+
     _eval = require 'eval'
     if language is 'coffeescript'
       try
