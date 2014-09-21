@@ -6,6 +6,10 @@ StreamSender = require('./Streams').StreamSender
 StreamReceiver = require('./Streams').StreamReceiver
 InternalSocket = require './InternalSocket'
 
+isArray = (obj) ->
+  return Array.isArray(obj) if Array.isArray
+  return Object.prototype.toString.call(arg) == '[object Array]'
+
 # MapComponent maps a single inport to a single outport, forwarding all
 # groups from in to out and calling `func` on each incoming packet
 exports.MapComponent = (component, func, config) ->
@@ -74,10 +78,10 @@ exports.MapComponent = (component, func, config) ->
 exports.WirePattern = (component, config, proc) ->
   # In ports
   inPorts = if 'in' of config then config.in else 'in'
-  inPorts = [ inPorts ] unless inPorts instanceof Array
+  inPorts = [ inPorts ] unless isArray inPorts
   # Out ports
   outPorts = if 'out' of config then config.out else 'out'
-  outPorts = [ outPorts ] unless outPorts instanceof Array
+  outPorts = [ outPorts ] unless isArray outPorts
   # Error port
   config.error = 'error' unless 'error' of config
   # For async process
