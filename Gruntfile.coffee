@@ -59,10 +59,6 @@ module.exports = ->
       files: ['spec/*.coffee', 'spec/**/*.coffee', 'test/*.coffee', 'src/**/*.coffee']
       tasks: ['test']
 
-    # Unit tests
-    nodeunit:
-      all: ['test/*.coffee']
-
     # BDD tests on Node.js
     cafemocha:
       nodejs:
@@ -111,7 +107,6 @@ module.exports = ->
 
   # Grunt plugins used for testing
   @loadNpmTasks 'grunt-contrib-watch'
-  @loadNpmTasks 'grunt-contrib-nodeunit'
   @loadNpmTasks 'grunt-contrib-connect'
   @loadNpmTasks 'grunt-cafe-mocha'
   @loadNpmTasks 'grunt-mocha-phantomjs'
