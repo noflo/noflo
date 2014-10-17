@@ -35,11 +35,15 @@ class Ports extends EventEmitter
 
     @emit 'add', name
 
+    @ # chainable
+
   remove: (name) ->
     throw new Error "Port #{name} not defined" unless @ports[name]
     delete @ports[name]
     delete @[name]
     @emit 'remove', name
+
+    @ # chainable
 
 exports.InPorts = class InPorts extends Ports
   on: (name, event, callback) ->
