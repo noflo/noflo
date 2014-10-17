@@ -76,10 +76,10 @@ describe 'Component traits', ->
       c.inPorts.add 'x',
         required: true
         datatype: 'int'
-      c.inPorts.add 'y',
+      .add 'y',
         required: true
         datatype: 'int'
-      c.inPorts.add 'z',
+      .add 'z',
         required: true
         datatype: 'int'
       c.outPorts.add 'point'
@@ -360,10 +360,10 @@ describe 'Component traits', ->
       c.inPorts.add 'x',
         required: true
         datatype: 'int'
-      c.inPorts.add 'y',
+      .add 'y',
         required: true
         datatype: 'int'
-      c.inPorts.add 'z',
+      .add 'z',
         required: true
         datatype: 'int'
       c.outPorts.add 'point'
@@ -420,9 +420,9 @@ describe 'Component traits', ->
     describe 'when in async mode and packet order matters', ->
       c = new component.Component
       c.inPorts.add 'delay', datatype: 'int'
-      c.inPorts.add 'msg', datatype: 'string'
+      .add 'msg', datatype: 'string'
       c.outPorts.add 'out', datatype: 'object'
-      c.outPorts.add 'load', datatype: 'int'
+      .add 'load', datatype: 'int'
       delay = new socket.createSocket()
       msg = new socket.createSocket()
       out = new socket.createSocket()
@@ -557,7 +557,7 @@ describe 'Component traits', ->
     describe 'when grouping by field', ->
       c = new component.Component
       c.inPorts.add 'user', datatype: 'object'
-      c.inPorts.add 'message', datatype: 'object'
+      .add 'message', datatype: 'object'
       c.outPorts.add 'signedmessage'
       usr = new socket.createSocket()
       msg = new socket.createSocket()
@@ -616,9 +616,9 @@ describe 'Component traits', ->
     describe 'when there are multiple output routes', ->
       c = new component.Component
       c.inPorts.add 'num', datatype: 'int'
-      c.inPorts.add 'str', datatype: 'string'
+      .add 'str', datatype: 'string'
       c.outPorts.add 'odd', datatype: 'object'
-      c.outPorts.add 'even', datatype: 'object'
+      .add 'even', datatype: 'object'
       num = new socket.createSocket()
       str = new socket.createSocket()
       odd = new socket.createSocket()
@@ -688,20 +688,20 @@ describe 'Component traits', ->
         c.inPorts.add 'param1',
           datatype: 'string'
           required: true
-        c.inPorts.add 'param2',
+        .add 'param2',
           datatype: 'int'
           required: false
-        c.inPorts.add 'param3',
+        .add 'param3',
           datatype: 'int'
           required: true
           default: 0
-        c.inPorts.add 'data1',
+        .add 'data1',
           datatype: 'string'
-        c.inPorts.add 'data2',
+        .add 'data2',
           datatype: 'int'
         c.outPorts.add 'out',
           datatype: 'object'
-        c.outPorts.add 'error',
+        .add 'error',
           datatype: 'object'
         p1 = new socket.createSocket()
         p2 = new socket.createSocket()
@@ -907,12 +907,12 @@ describe 'Component traits', ->
     describe 'when data processing is not possible at the moment', ->
       c = new component.Component
       c.inPorts.add 'line', datatype: 'string'
-      c.inPorts.add 'repeat', datatype: 'int'
-      c.inPorts.add 'when',
+      .add 'repeat', datatype: 'int'
+      .add 'when',
         datatype: 'string'
         default: 'later'
       c.outPorts.add 'res', datatype: 'string'
-      c.outPorts.add 'error', datatype: 'object'
+      .add 'error', datatype: 'object'
       line = socket.createSocket()
       rpt = socket.createSocket()
       whn = socket.createSocket()
@@ -1020,13 +1020,13 @@ describe 'Component traits', ->
       c = new component.Component
       c.token = null
       c.inPorts.add 'in', datatype: 'string'
-      c.inPorts.add 'message', datatype: 'string'
-      c.inPorts.add 'repository', datatype: 'string'
-      c.inPorts.add 'path', datatype: 'string'
-      c.inPorts.add 'token', datatype: 'string', (event, payload) ->
+      .add 'message', datatype: 'string'
+      .add 'repository', datatype: 'string'
+      .add 'path', datatype: 'string'
+      .add 'token', datatype: 'string', (event, payload) ->
         c.token = payload if event is 'data'
       c.outPorts.add 'out', datatype: 'string'
-      c.outPorts.add 'error', datatype: 'object'
+      .add 'error', datatype: 'object'
 
       helpers.WirePattern c,
         in: ['in', 'message', 'repository', 'path']
@@ -1291,14 +1291,14 @@ describe 'Component traits', ->
         datatype: 'int'
         addressable: true
         required: true
-      c.inPorts.add 'd1',
+      .add 'd1',
         datatype: 'int'
         addressable: true
-      c.inPorts.add 'd2',
+      .add 'd2',
         datatype: 'string'
       c.outPorts.add 'out',
         datatype: 'object'
-      c.outPorts.add 'error',
+      .add 'error',
         datatype: 'object'
       p11 = socket.createSocket()
       p12 = socket.createSocket()
@@ -1417,7 +1417,7 @@ describe 'Component traits', ->
     describe 'when grouping requests', ->
       c = new component.Component
       c.inPorts.add 'x', datatype: 'int'
-      c.inPorts.add 'y', datatype: 'int'
+      .add 'y', datatype: 'int'
       c.outPorts.add 'out', datatype: 'object'
       x = socket.createSocket()
       y = socket.createSocket()
