@@ -4,6 +4,7 @@
   "description": "Node.js runtime for NoFlo",
   "main": "index.js",
   "scripts": {
+    "lint": "jshint bin/noflo-nodejs bin/noflo-nodejs-init index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
@@ -18,5 +19,8 @@
     "noflo": "^0.5.0",
     "noflo-runtime-websocket": "^0.2.3",
     "uuid": "^1.4.1"
+  },
+  "devDependencies": {
+    "jshint": "*"
   }
 }
