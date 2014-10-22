@@ -486,8 +486,12 @@ class Network extends EventEmitter
     else
       setTimeout send, 0
 
-  isStarted: () ->
+  isStarted: ->
     @started
+
+  isRunning: ->
+    return false unless @started
+    @connectionCount > 0
 
   startComponents: ->
     # Perform any startup routines necessary for every component.
@@ -506,6 +510,7 @@ class Network extends EventEmitter
       socket.disconnect()
 
   start: ->
+    do @stop if @started
     @started = true
     @startComponents()
     @sendInitials()

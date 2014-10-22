@@ -19,6 +19,9 @@ describe 'NoFlo Network', ->
         @outPorts.out.send data
       @inPorts.in.on 'disconnect', =>
         @outPorts.out.disconnect()
+    start: ->
+      @stopped = false
+      super()
     shutdown: ->
       @stopped = true
   Split.getComponent = -> new Split
