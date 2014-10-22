@@ -54,14 +54,21 @@ exports.saveStored = function (values) {
 };
 exports.discoverHost = function () {
   var ifaces = os.networkInterfaces();
-  var address;
-  for (var device in ifaces) {
-    ifaces[device].forEach(function (connection) {
-      if (connection.family !== 'IPv4') {
-        return;
-      }
+  var address, int_address;
+  
+  var filter = function (connection) {
+    if (connection.family !== 'IPv4') {
+      return;
+    }
+    if (connection.internal) {
+      int_address = connection.address;
+    } else {
       address = connection.address;
-    });
+    }
+  };
+  
+  for (var device in ifaces) {
+    ifaces[device].forEach(filter);
   }
-  return address;
+  return address || int_address;
 };
