@@ -47,6 +47,7 @@ class Network extends EventEmitter
     @processes = {}
     @connections = []
     @initials = []
+    @nextInitials = []
     @defaults = []
     @graph = graph
     @started = false
@@ -456,9 +457,11 @@ class Network extends EventEmitter
 
     @connections.push socket
 
-    @initials.push
+    init =
       socket: socket
       data: initializer.from.data
+    @initials.push init
+    @nextInitials.push init
 
     callback() if callback
 
@@ -468,6 +471,16 @@ class Network extends EventEmitter
       continue unless initializer.to.node is connection.to.process.id and initializer.to.port is connection.to.port
       connection.to.process.component.inPorts[connection.to.port].detach connection
       @connections.splice @connections.indexOf(connection), 1
+
+      for init in @initials
+        continue unless init
+        continue unless init.socket is connection
+        @initials.splice @initials.indexOf(init), 1
+      for init in @nextInitials
+        continue unless init
+        continue unless init.socket is connection
+        @nextInitials.splice @nextInitials.indexOf(init), 1
+
     do callback if callback
 
   sendInitial: (initial) ->
@@ -512,6 +525,7 @@ class Network extends EventEmitter
   start: ->
     do @stop if @started
     @started = true
+    @initials = @nextInitials.slice 0
     @startComponents()
     @sendInitials()
     @sendDefaults()
