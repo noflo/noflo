@@ -429,6 +429,7 @@ exports.WirePattern = (component, config, proc) ->
                 outs[name] = component.outPorts[name]
 
             outs = outs[outPorts[0]] if outPorts.length is 1 # for simplicity
+            groups = [] unless groups
             whenDoneGroups = groups.slice 0
             whenDone = (err) ->
               if err
