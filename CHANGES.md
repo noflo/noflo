@@ -1,10 +1,11 @@
 NoFlo ChangeLog
 ===============
 
-## 0.5.11 (git master)
+## 0.5.11 (October 23rd 2014)
 
 * On Node.js ComponentLoader `setSource` now loads components virtually from `<baseDir>/components` to support relative module loading
 * Subgraphs don't get unattached ports implicitly exported any longer. Register in/outports in the graph to make them available from the outside
+* Added safeties for restarted networks to WirePattern
 
 ## 0.5.10 (October 23rd 2014)
 
