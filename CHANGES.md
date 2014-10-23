@@ -8,6 +8,10 @@ NoFlo ChangeLog
 * Graph merging support via the graph journal
 * `getSource` now returns correct type for graphs
 * Subgraph networks are started when the main network starts, instead of automatically on their own timing. As a fallback they will also start when any of their ports receives a `connect`
+* Networks can now be stopped and restarted at will using the `stop` and `start` methods
+* The running state of a NoFlo network can be now queried with the `isRunning` method
+* NoFlo networks support FBP protocol debugging via the `setDebug` and `getDebug` methods
+* `Ports.add` is now chainable
 * The `start` port was removed from subgraphs
 
 These changes mean that in situations where a subgraph is used standalone without a network around it, you need to call `component.start()` manually. This is typical especially in unit tests.
