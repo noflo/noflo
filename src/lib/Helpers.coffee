@@ -295,6 +295,7 @@ exports.WirePattern = (component, config, proc) ->
 
       # Set processing callback
       inPort.process = (event, payload, index) ->
+        component.groupBuffers[port] = [] unless component.groupBuffers[port]
         switch event
           when 'begingroup'
             component.groupBuffers[port].push payload
