@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.5.10 (git master)
+## 0.5.10 (October 23rd 2014)
 
 * Port names are now validated to only contain lowercase alphanumeric characters or underscores
 * `ComponentLoader.load` method now calls its callback with the Node.js style `error, instance` signature to allow catching component loading issues
