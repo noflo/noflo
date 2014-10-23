@@ -148,7 +148,7 @@ class ComponentLoader extends loader.ComponentLoader
 
     try
       # Eval so we can get a function
-      implementation = _eval source, path.resolve(@baseDir, "#{name}.js"), {}, true
+      implementation = _eval source, path.resolve(@baseDir, "./components/#{name}.js"), {}, true
     catch e
       return callback e
     unless implementation or implementation.getComponent

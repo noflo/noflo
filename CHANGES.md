@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.5.11 (git master)
+
+* On Node.js ComponentLoader `setSource` now loads components virtually from `<baseDir>/components` to support relative module loading
+
 ## 0.5.10 (October 23rd 2014)
 
 * Port names are now validated to only contain lowercase alphanumeric characters or underscores
