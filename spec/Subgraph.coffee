@@ -79,11 +79,8 @@ describe 'Graph component', ->
       c.once 'ready', ->
         chai.expect(c.inPorts.ports).to.have.keys [
           'graph'
-          'merge.in'
         ]
-        chai.expect(c.outPorts.ports).to.have.keys [
-          'split.out'
-        ]
+        chai.expect(c.outPorts.ports).to.be.empty
         done()
       c.once 'network', ->
         chai.expect(c.ready).to.be.false
@@ -129,7 +126,6 @@ describe 'Graph component', ->
       c.once 'ready', ->
         chai.expect(c.inPorts.ports).to.have.keys [
           'graph'
-          'merge.in'
         ]
         chai.expect(c.outPorts.ports).to.have.keys [
           'out'
@@ -164,8 +160,8 @@ describe 'Graph component', ->
       c.once 'ready', ->
         ins = noflo.internalSocket.createSocket()
         out = noflo.internalSocket.createSocket()
-        c.inPorts['merge.in'].attach ins
-        c.outPorts['split.out'].attach out
+        c.inPorts['in'].attach ins
+        c.outPorts['out'].attach out
         out.on 'data', (data) ->
           chai.expect(data).to.equal 'Foo'
           done()
@@ -177,6 +173,13 @@ describe 'Graph component', ->
         c.network.loader.components.Merge = SubgraphMerge
         c.start()
       g.send
+        exports: [
+          public: 'in'
+          private: 'merge.in'
+        ,
+          public: 'out'
+          private: 'split.out'
+        ]
         processes:
           Split:
             component: 'Split'
@@ -197,6 +200,8 @@ describe 'Graph component', ->
     gr.addNode 'Split', 'Split'
     gr.addNode 'Merge', 'Merge'
     gr.addEdge 'Merge', 'out', 'Split', 'in'
+    gr.addInport 'in', 'Merge', 'in'
+    gr.addOutport 'out', 'Split', 'out'
     it 'should emit a ready event after network has been loaded', (done) ->
       c.once 'ready', ->
         chai.expect(c.network).not.to.be.null
@@ -215,10 +220,10 @@ describe 'Graph component', ->
       c.once 'ready', ->
         chai.expect(c.inPorts.ports).to.have.keys [
           'graph'
-          'merge.in'
+          'in'
         ]
         chai.expect(c.outPorts.ports).to.have.keys [
-          'split.out'
+          'out'
         ]
         done()
       c.once 'network', ->
@@ -233,8 +238,8 @@ describe 'Graph component', ->
       c.once 'ready', ->
         ins = noflo.internalSocket.createSocket()
         out = noflo.internalSocket.createSocket()
-        c.inPorts['merge.in'].attach ins
-        c.outPorts['split.out'].attach out
+        c.inPorts['in'].attach ins
+        c.outPorts['out'].attach out
         out.on 'data', (data) ->
           chai.expect(data).to.equal 'Foo'
           done()

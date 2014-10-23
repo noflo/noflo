@@ -84,7 +84,7 @@ class Graph extends noflo.Component
       continue unless priv.process is nodeName and priv.port is portName
       return pub
 
-    # Then we check disambiguated ports, and if needed, fix them
+    # Then we check ambiguous ports, and if needed, fix them
     for exported in @network.graph.exports
       continue unless exported.process is nodeName and exported.port is portName
       @network.graph.checkTransactionStart()
@@ -94,11 +94,7 @@ class Graph extends noflo.Component
       return exported.public
 
     # Component has exported ports and this isn't one of them
-    if Object.keys(@network.graph.inports).length > 0
-      return false
-
-    return false if port.isAttached()
-    return (nodeName+'.'+portName).toLowerCase()
+    false
 
   isExportedOutport: (port, nodeName, portName) ->
     # First we check disambiguated exported ports
@@ -106,7 +102,7 @@ class Graph extends noflo.Component
       continue unless priv.process is nodeName and priv.port is portName
       return pub
 
-    # Then we check disambiguated ports, and if needed, fix them
+    # Then we check ambiguous ports, and if needed, fix them
     for exported in @network.graph.exports
       continue unless exported.process is nodeName and exported.port is portName
       @network.graph.checkTransactionStart()
@@ -116,11 +112,7 @@ class Graph extends noflo.Component
       return exported.public
 
     # Component has exported ports and this isn't one of them
-    if Object.keys(@network.graph.outports).length > 0
-      return false
-
-    return false if port.isAttached()
-    return (nodeName+'.'+portName).toLowerCase()
+    false
 
   setToReady: ->
     if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
