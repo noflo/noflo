@@ -23,10 +23,6 @@ if (Object.keys(stored).length === 0) {
   process.exit(1);
 }
 
-if (stored.host === 'autodetect') {
-  stored.host = lib.discoverHost();
-}
-
 var flowhubRuntime = new flowhub.Runtime({
   label: stored.label,
   id: stored.id,

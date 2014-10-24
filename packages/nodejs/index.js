@@ -7,6 +7,7 @@ exports.getLibraryConfig = function () {
   return JSON.parse(fs.readFileSync(packagePath, 'utf-8'));
 };
 
+// user settings
 exports.getDefaultsPath = function () {
   var homeDir = process.env.HOME || process.env.HOMEPATH || process.env.USERPROFILE;
   return path.resolve(homeDir, '.flowhub.json');
@@ -29,16 +30,23 @@ exports.saveDefaults = function (values) {
   var defaultsPath = exports.getDefaultsPath();
   fs.writeFileSync(defaultsPath, JSON.stringify(values, null, 2), 'utf-8');
 };
+
+// flowhub registration
 exports.getStoredPath = function () {
   var root = process.env.PROJECT_HOME || process.cwd();
   return path.resolve(root, 'flowhub.json');
 };
 exports.getStored = function () {
+  var stored = {};
   var storedPath = exports.getStoredPath();
   if (fs.existsSync(storedPath)) {
-    return JSON.parse(fs.readFileSync(storedPath));
+    stored = JSON.parse(fs.readFileSync(storedPath));
+
+    if (stored.host === 'autodetect') {
+      stored.host = exports.discoverHost();
+    }    
   }
-  return {};
+  return stored;
 };
 exports.saveStored = function (values) {
   var storedPath = exports.getStoredPath();
@@ -46,14 +54,21 @@ exports.saveStored = function (values) {
 };
 exports.discoverHost = function () {
   var ifaces = os.networkInterfaces();
-  var address;
-  for (var device in ifaces) {
-    ifaces[device].forEach(function (connection) {
-      if (connection.family !== 'IPv4') {
-        return;
-      }
+  var address, int_address;
+  
+  var filter = function (connection) {
+    if (connection.family !== 'IPv4') {
+      return;
+    }
+    if (connection.internal) {
+      int_address = connection.address;
+    } else {
       address = connection.address;
-    });
+    }
+  };
+  
+  for (var device in ifaces) {
+    ifaces[device].forEach(filter);
   }
-  return address;
+  return address || int_address;
 };
