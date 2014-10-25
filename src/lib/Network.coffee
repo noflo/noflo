@@ -463,6 +463,8 @@ class Network extends EventEmitter
     @initials.push init
     @nextInitials.push init
 
+    do @sendInitials if @isStarted()
+
     callback() if callback
 
   removeInitial: (initializer, callback) ->
