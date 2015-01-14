@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.5.12 (git master)
+
+* Add support for [io.js](https://iojs.org/)
+
 ## 0.5.11 (October 23rd 2014)
 
 * On Node.js ComponentLoader `setSource` now loads components virtually from `<baseDir>/components` to support relative module loading

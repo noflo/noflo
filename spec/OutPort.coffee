@@ -1,5 +1,5 @@
 chai = require 'chai' unless chai
-if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
+if typeof process isnt 'undefined' and process.execPath and process.execPath.match /node|iojs/
   outport = require '../src/lib/OutPort'
   socket = require '../src/lib/InternalSocket'
 else

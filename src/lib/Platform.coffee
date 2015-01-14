@@ -4,6 +4,6 @@
 #
 # Platform detection method
 exports.isBrowser = ->
-  if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
+  if typeof process isnt 'undefined' and process.execPath and process.execPath.match /node|iojs/
     return false
   true

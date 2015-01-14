@@ -1,4 +1,4 @@
-if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
+if typeof process isnt 'undefined' and process.execPath and process.execPath.match /node|iojs/
   chai = require 'chai' unless chai
   loader = require '../src/lib/nodejs/ComponentLoader.coffee'
   component = require '../src/lib/Component.coffee'
