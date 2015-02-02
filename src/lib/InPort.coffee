@@ -86,7 +86,7 @@ class InPort extends BasePort
   validateData: (data) ->
     return unless @options.values
     if @options.values.indexOf(data) is -1
-      throw new Error 'Invalid data received'
+      throw new Error "Invalid data='#{data}' received, not in [#{@options.values}]"
 
   # Returns the next packet in the buffer
   receive: ->
