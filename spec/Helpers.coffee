@@ -1376,6 +1376,23 @@ describe 'Component traits', ->
         p13.send 3
         p13.disconnect()
 
+      it 'should wait for all indexes of a single input', (done) ->
+        helpers.WirePattern c,
+          in: 'd1'
+          out: 'out'
+          arrayPolicy:
+            in: 'all'
+        , (input, groups, out) ->
+          chai.expect(input).to.deep.equal { 0: 1, 1: 2, 2: 3 }
+          done()
+
+        d11.send 1
+        d11.disconnect()
+        d12.send 2
+        d12.disconnect()
+        d13.send 3
+        d13.disconnect()
+
       it 'should behave normally with string output from another component', (done) ->
         c = new component.Component
         c.inPorts.add 'd1',
