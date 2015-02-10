@@ -341,12 +341,8 @@ exports.WirePattern = (component, config, proc) ->
                 component.disconnectData[key].push obj
 
           when 'data'
-            if inPorts.length is 1
-              if inPort.isAddressable()
-                data = {}
-                data[index] = payload
-              else
-                data = payload
+            if inPorts.length is 1 and not inPort.isAddressable()
+              data = payload
               groups = component.groupBuffers[port]
             else
               key = ''
@@ -369,27 +365,41 @@ exports.WirePattern = (component, config, proc) ->
               foundGroup = false
               requiredLength = inPorts.length
               ++requiredLength if config.field
+              # Check buffered tuples awaiting completion
               for i in [0...component.groupedData[key].length]
-                if not (port of component.groupedData[key][i]) or (component.inPorts[port].isAddressable() and config.arrayPolicy.in is 'all' and not (index of component.groupedData[key][i][port]))
+                # Check this buffered tuple if it's missing value for this port
+                if not (port of component.groupedData[key][i]) or
+                (component.inPorts[port].isAddressable() and
+                config.arrayPolicy.in is 'all' and
+                not (index of component.groupedData[key][i][port]))
                   foundGroup = true
                   if component.inPorts[port].isAddressable()
+                    # Maintain indexes for addressable ports
                     unless port of component.groupedData[key][i]
                       component.groupedData[key][i][port] = {}
                     component.groupedData[key][i][port][index] = payload
                   else
                     component.groupedData[key][i][port] = payload
                   if needPortGroups
+                    # Include port groups into the set of the unique ones
                     component.groupedGroups[key][i] = _.union component.groupedGroups[key][i], component.groupBuffers[port]
                   else if collectGroups is true
+                    # All the groups we need are here in this port
                     component.groupedGroups[key][i][port] = component.groupBuffers[port]
+                  # Addressable ports may require other indexes
                   if component.inPorts[port].isAddressable() and
                   config.arrayPolicy.in is 'all' and
                   Object.keys(component.groupedData[key][i][port]).length <
                   component.inPorts[port].listAttached().length
                     return # Need data on other array port indexes to arrive
+
                   groupLength = Object.keys(component.groupedData[key][i]).length
+                  # Check if the tuple is complete
                   if groupLength is requiredLength
                     data = (component.groupedData[key].splice i, 1)[0]
+                    # Strip port name if there's only one inport
+                    if inPorts.length is 1 and inPort.isAddressable()
+                      data = data[port]
                     groups = (component.groupedGroups[key].splice i, 1)[0]
                     if collectGroups is true
                       groups = _.intersection.apply null, _.values groups
@@ -401,21 +411,33 @@ exports.WirePattern = (component, config, proc) ->
                   else
                     return # need more data to continue
               unless foundGroup
+                # Create a new tuple
                 obj = {}
                 obj[config.field] = key if config.field
-                obj[port] = payload
-                component.groupedData[key].push obj
-                if needPortGroups
-                  component.groupedGroups[key].push component.groupBuffers[port]
-                else if collectGroups is true
-                  tmp = {} ; tmp[port] = component.groupBuffers[port]
-                  component.groupedGroups[key].push tmp
+                if component.inPorts[port].isAddressable()
+                  obj[port] = {} ; obj[port][index] = payload
                 else
-                  component.groupedGroups[key].push []
-                if config.group and key
-                  # Timestamp to garbage collect this request
-                  component.gcTimestamps[key] = new Date().getTime()
-                return # need more data to continue
+                  obj[port] = payload
+                if inPorts.length is 1 and
+                component.inPorts[port].isAddressable() and
+                (config.arrayPolicy.in is 'any' or
+                component.inPorts[port].listAttached().length is 1)
+                  # This packet is all we need
+                  data = obj[port]
+                  groups = component.groupBuffers[port]
+                else
+                  component.groupedData[key].push obj
+                  if needPortGroups
+                    component.groupedGroups[key].push component.groupBuffers[port]
+                  else if collectGroups is true
+                    tmp = {} ; tmp[port] = component.groupBuffers[port]
+                    component.groupedGroups[key].push tmp
+                  else
+                    component.groupedGroups[key].push []
+                  if config.group and key
+                    # Timestamp to garbage collect this request
+                    component.gcTimestamps[key] = new Date().getTime()
+                  return # need more data to continue
 
             # Drop premature data if configured to do so
             return if config.dropInput and component.completeParams.length isnt component.requiredParams.length
