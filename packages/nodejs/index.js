@@ -49,9 +49,12 @@ exports.getStored = function () {
     stored = JSON.parse(fs.readFileSync(storedPath));
   }
 
+  var match;
   if (!stored.host || stored.host === 'autodetect') {
     stored.host = exports.discoverHost();
-  }
+  } else if (match = /autodetect\(([a-z0-9]+)\)/.exec(stored.host)) {
+    stored.host = exports.discoverHost(match[1]);
+  }    
   if (process.env.PORT) {
     stored.port = process.env.PORT;
   }
@@ -65,7 +68,7 @@ exports.saveStored = function (values) {
   var storedPath = exports.getStoredPath();
   fs.writeFileSync(storedPath, JSON.stringify(values, null, 2), 'utf-8');
 };
-exports.discoverHost = function () {
+exports.discoverHost = function (preferred_iface) {
   var ifaces = os.networkInterfaces();
   var address, int_address;
   
@@ -79,9 +82,13 @@ exports.discoverHost = function () {
       address = connection.address;
     }
   };
-  
-  for (var device in ifaces) {
-    ifaces[device].forEach(filter);
+
+  if (typeof(preferred_iface)==='string' && preferred_iface in ifaces) {
+    ifaces[preferred_iface].forEach(filter);
+  } else {
+    for (var device in ifaces) {
+      ifaces[device].forEach(filter);
+    }
   }
   return address || int_address;
 };

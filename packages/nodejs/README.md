@@ -44,6 +44,9 @@ $ node node_modules/.bin/noflo-nodejs-init --host autodetect
 ```
 
 After this the runtime will report its current IP address to your Flowhub UI whenever it is started.
+Autodetection will prefer external interfaces over local one (e.g. the loopback interface).
+If you prefer a certain network interface you can use "autodetect(<iface>)" e.g.
+"autodetect(wlan0)" to check that interface if it is online.
 
 ### Example flowhub.json
 
