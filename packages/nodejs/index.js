@@ -9,8 +9,12 @@ exports.getLibraryConfig = function () {
 
 // user settings
 exports.getDefaultsPath = function () {
-  var homeDir = process.env.HOME || process.env.HOMEPATH || process.env.USERPROFILE;
-  return path.resolve(homeDir, '.flowhub.json');
+  var dirs = [process.env.HOME, process.env.HOMEPATH, process.env.USERPROFILE];
+  for (var i = 0; i < dirs.length; i++) {
+    if (typeof(dirs[i]) !== 'undefined' && fs.existsSync(dirs[i])) {
+      return path.resolve(dirs[i], '.flowhub.json');
+    }
+  }
 };
 exports.getDefaults = function () {
   var defaults = {};
@@ -34,7 +38,9 @@ exports.getDefaults = function () {
 };
 exports.saveDefaults = function (values) {
   var defaultsPath = exports.getDefaultsPath();
-  fs.writeFileSync(defaultsPath, JSON.stringify(values, null, 2), 'utf-8');
+  if (defaultsPath) {
+    fs.writeFileSync(defaultsPath, JSON.stringify(values, null, 2), 'utf-8');
+  }
 };
 
 // flowhub registration
