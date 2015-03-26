@@ -18,20 +18,25 @@ var stored = lib.getStored();
 var baseDir = process.env.PROJECT_HOME || process.cwd();
 var interval = 10 * 60 * 1000;
 
-if (Object.keys(stored).length === 0) {
+if (Object.keys(stored).length === 0 || !stored.id) {
   console.error('No configuration found at ' + lib.getStoredPath() + '. Please run noflo-nodejs-init first.');
   process.exit(1);
 }
 
-var flowhubRuntime = new flowhub.Runtime({
-  label: stored.label,
-  id: stored.id,
-  user: stored.user,
-  secret: stored.secret,
-  protocol: 'websocket',
-  address: 'ws://' + stored.host + ':' + stored.port,
-  type: 'noflo-nodejs'
-});
+try {
+  var flowhubRuntime = new flowhub.Runtime({
+    label: stored.label,
+    id: stored.id,
+    user: stored.user,
+    secret: stored.secret,
+    protocol: 'websocket',
+    address: 'ws://' + stored.host + ':' + stored.port,
+    type: 'noflo-nodejs'
+  });
+} catch (e) {
+  console.log("Failed to initialize runtime with configuration:", e.message);
+  process.exit(1);
+}
 
 var startServer = function(defaultGraph) {
   var server = http.createServer(function () {});
