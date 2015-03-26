@@ -24,6 +24,12 @@ exports.getDefaults = function () {
   if (!defaults.user && process.env.FLOWHUB_USER_ID) {
     defaults.user = process.env.FLOWHUB_USER_ID;
   }
+  if (!defaults.port) {
+    defaults.port = 3569;
+  }
+  if (!defaults.host) {
+    defaults.host = 'autodetect';
+  }
   return defaults;
 };
 exports.saveDefaults = function (values) {
@@ -41,12 +47,11 @@ exports.getStored = function () {
   var storedPath = exports.getStoredPath();
   if (fs.existsSync(storedPath)) {
     stored = JSON.parse(fs.readFileSync(storedPath));
-
-    if (stored.host === 'autodetect') {
-      stored.host = exports.discoverHost();
-    }    
   }
 
+  if (!stored.host || stored.host === 'autodetect') {
+    stored.host = exports.discoverHost();
+  }
   if (process.env.PORT) {
     stored.port = process.env.PORT;
   }
