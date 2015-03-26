@@ -46,6 +46,14 @@ exports.getStored = function () {
       stored.host = exports.discoverHost();
     }    
   }
+
+  if (process.env.PORT) {
+    stored.port = process.env.PORT;
+  }
+  if (!stored.port) {
+    stored.port = 3569;
+  }
+
   return stored;
 };
 exports.saveStored = function (values) {
