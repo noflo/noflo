@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 program = require 'commander'
+clc = require "cli-color"
 http = require 'http'
 lib = require '../index'
 noflo = require 'noflo'
@@ -13,6 +14,8 @@ program
   .option('--graph <graph>', 'Path to a graph file to start', null)
   .option('--capture-output [true/false]', 'Catch writes to stdout and send to the FBP protocol client (default = false)', false)
   .option('--catch-exceptions [true/false]', 'Catch exceptions and report to the FBP protocol client  (default = true)', true)
+  .option('--debug [true/false]', 'Start the runtime in debug mode (default = false)', false)
+  .option('--verbose [true/false]', 'Log in verbose format (default = false)', false)
   .option('--host <hostname>', 'Hostname or IP for the runtime. Use "autodetect" or "autodetect(<iface>)" for dynamic detection.', null)
   .option('--port <port>', 'Port for the runtime', parseInt, null)
   .option('--secret <secret>', 'Secret string to be used for the connection.', null)
@@ -42,6 +45,37 @@ else
     console.log 'Failed to initialize runtime with configuration:', e.message
     process.exit 1
 
+addDebug = (network, verbose, logSubgraph) ->
+
+  identifier = (data) ->
+    result = ''
+    result += "#{clc.magenta.italic(data.subgraph.join(':'))} " if data.subgraph
+    result += clc.blue.italic data.id
+    result
+
+  network.on 'connect', (data) ->
+    return if data.subgraph and not logSubgraph
+    console.log "#{identifier(data)} #{clc.yellow('CONN')}"
+
+  network.on 'begingroup', (data) ->
+    return if data.subgraph and not logSubgraph
+    console.log "#{identifier(data)} #{clc.cyan('< ' + data.group)}"
+
+  network.on 'data', (data) ->
+    return if data.subgraph and not logSubgraph
+    if verbose
+      console.log "#{identifier(data)} #{clc.green('DATA')}", data.data
+      return
+    console.log "#{identifier(data)} #{clc.green('DATA')}"
+
+  network.on 'endgroup', (data) ->
+    return if data.subgraph and not logSubgraph
+    console.log "#{identifier(data)} #{clc.cyan('> ' + data.group)}"
+
+  network.on 'disconnect', (data) ->
+    return if data.subgraph and not logSubgraph
+    console.log "#{identifier(data)} #{clc.yellow('DISC')}"  
+
 startServer = (program, defaultGraph) ->
   server = http.createServer ->
   rt = runtime server,
@@ -49,6 +83,10 @@ startServer = (program, defaultGraph) ->
     baseDir: baseDir
     captureOutput: program.captureOutput
     catchExceptions: program.catchExceptions
+
+  rt.network.on 'addnetwork', (network) ->
+    addDebug network, program.verbose, program.defaultGraph if program.debug
+
   server.listen stored.port, ->
     address = 'ws://' + stored.host + ':' + stored.port
     params = 'protocol=websocket&address=' + address
