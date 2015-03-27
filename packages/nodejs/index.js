@@ -66,7 +66,7 @@ exports.getStored = function (program) {
   }
 
   // Let commandline args override
-  var options = ["host", "port", "secret"];
+  var options = ["host", "port", "secret", "ide"];
   for (var i in options) {
     var name = options[i]
     if (program[name]) {
