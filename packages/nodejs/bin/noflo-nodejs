@@ -11,12 +11,15 @@ var path = require('path');
 
 program
   .version(lib.getLibraryConfig().version)
-    .option('--graph <graph>', 'Path to a graph file to start', null)
-    .option('--capture-output [true/false]', 'Catch writes to stdout and send to the FBP protocol client (default = false)', false)
-    .option('--catch-exceptions [true/false]', 'Catch exceptions and report to the FBP protocol client  (default = true)', true)
-    .parse(process.argv);
+  .option('--graph <graph>', 'Path to a graph file to start', null)
+  .option('--capture-output [true/false]', 'Catch writes to stdout and send to the FBP protocol client (default = false)', false)
+  .option('--catch-exceptions [true/false]', 'Catch exceptions and report to the FBP protocol client  (default = true)', true)
+  .option('--host <hostname>', 'Hostname or IP for the runtime. Use "autodetect" or "autodetect(<iface>)" for dynamic detection.', null)
+  .option('--port <port>', 'Port for the runtime', parseInt, null)
+  .option('--secret <secret>', 'Secret string to be used for the connection.', null)
+  .parse(process.argv);
 
-var stored = lib.getStored();
+var stored = lib.getStored(program);
 var baseDir = process.env.PROJECT_HOME || process.cwd();
 var interval = 10 * 60 * 1000;
 
