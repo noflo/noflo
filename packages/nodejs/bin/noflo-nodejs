@@ -20,24 +20,29 @@ var stored = lib.getStored();
 var baseDir = process.env.PROJECT_HOME || process.cwd();
 var interval = 10 * 60 * 1000;
 
-if (Object.keys(stored).length === 0 || !stored.id) {
-  console.error('No configuration found at ' + lib.getStoredPath() + '. Please run noflo-nodejs-init first.');
-  process.exit(1);
-}
-
-try {
-  var flowhubRuntime = new flowhub.Runtime({
-    label: stored.label,
-    id: stored.id,
-    user: stored.user,
-    secret: stored.secret,
-    protocol: 'websocket',
-    address: 'ws://' + stored.host + ':' + stored.port,
-    type: 'noflo-nodejs'
-  });
-} catch (e) {
-  console.log("Failed to initialize runtime with configuration:", e.message);
-  process.exit(1);
+if (!stored.id) {
+  console.error('No configuration found at ' + lib.getStoredPath() +
+                '. Please run noflo-nodejs-init first if you want the runtime to showup on flowhub.');
+  if (!program.graph) {
+    // Since we don't register with flowhub, we need to run a graph
+    console.error('No default graph given either. Exiting.');
+    process.exit(1);
+  }
+} else {
+  try {
+    var flowhubRuntime = new flowhub.Runtime({
+      label: stored.label,
+      id: stored.id,
+      user: stored.user,
+      secret: stored.secret,
+      protocol: 'websocket',
+      address: 'ws://' + stored.host + ':' + stored.port,
+      type: 'noflo-nodejs'
+    });
+  } catch (e) {
+    console.log("Failed to initialize runtime with configuration:", e.message);
+    process.exit(1);
+  }
 }
 
 var startServer = function(program, defaultGraph) {
@@ -51,28 +56,28 @@ var startServer = function(program, defaultGraph) {
 
   server.listen(stored.port, function () {
     var address = 'ws://' + stored.host + ':' + stored.port;
+    var params = querystring.escape('protocol=websocket&address=' + address);
     console.log('NoFlo runtime listening at ' + address);
     console.log('Using ' + baseDir + ' for component loading');
+    console.log('Live IDE URL: ' + stored.ide + '#runtime/endpoint?' + params);
 
-    var ide = stored.ide || 'http://app.flowhub.io';
-    var params = querystring.escape('protocol=websocket&address='+address);
-    console.log('Live IDE URL: ' + ide+'#runtime/endpoint?'+params);
+    if (flowhubRuntime) {
+      // Register the runtime with Flowhub so that it will show up in the UI
+      flowhubRuntime.register(function (err, ok) {
+        if (err) {
+          console.log('Registration with Flowhub failed: ' + err.message);
+          return;
+        }
 
-    // Register the runtime with Flowhub so that it will show up in the UI
-    flowhubRuntime.register(function (err, ok) {
-      if (err) {
-        console.log('Registration with Flowhub failed: ' + err.message);
-        return;
-      }
+        console.log('Registered with Flowhub. The Runtime should now be accessible in the UI');
 
-      console.log('Registered with Flowhub. The Runtime should now be accessible in the UI');
-
-      // Ping Flowhub periodically to let the user know that the
-      // runtime is still available
-      setInterval(function () {
-        flowhubRuntime.ping();
-      }, interval);
-    });
+        // Ping Flowhub periodically to let the user know that the
+        // runtime is still available
+        setInterval(function () {
+          flowhubRuntime.ping();
+        }, interval);
+      });
+    }
   });
 };
 
