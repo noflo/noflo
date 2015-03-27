@@ -25,14 +25,24 @@ exports.getDefaults = function () {
       defaults[name] = storedDefaults[name];
     }
   }
+
+  // Defaults from env vars
   if (!defaults.user && process.env.FLOWHUB_USER_ID) {
     defaults.user = process.env.FLOWHUB_USER_ID;
   }
+  if (!defaults.port && process.env.PORT) {
+    stored.port = process.env.PORT;
+  }
+
+  // Built-in defaults
   if (!defaults.port) {
     defaults.port = 3569;
   }
   if (!defaults.host) {
     defaults.host = 'autodetect';
+  }
+  if (!defaults.ide) {
+    defaults.ide = 'http://app.flowhub.io';
   }
   return defaults;
 };
@@ -48,24 +58,36 @@ exports.getStoredPath = function () {
   var root = process.env.PROJECT_HOME || process.cwd();
   return path.resolve(root, 'flowhub.json');
 };
-exports.getStored = function () {
+exports.getStored = function (program) {
   var stored = {};
   var storedPath = exports.getStoredPath();
   if (fs.existsSync(storedPath)) {
     stored = JSON.parse(fs.readFileSync(storedPath));
   }
 
+  // Let commandline args override
+  var options = ["host", "port", "secret"];
+  for (var i in options) {
+    var name = options[i]
+    if (program[name]) {
+      stored[name] = program[name];
+    }
+  }
+  
+  // Set defaults for missing values
+  var defaults = exports.getDefaults();
+  for (var name in defaults) {
+    if (!stored[name]) {
+      stored[name] = defaults[name];
+    }
+  }
+
+  // Run host autodetections
   var match;
-  if (!stored.host || stored.host === 'autodetect') {
+  if (stored.host === 'autodetect') {
     stored.host = exports.discoverHost();
   } else if (match = /autodetect\(([a-z0-9]+)\)/.exec(stored.host)) {
     stored.host = exports.discoverHost(match[1]);
-  }    
-  if (process.env.PORT) {
-    stored.port = process.env.PORT;
-  }
-  if (!stored.port) {
-    stored.port = 3569;
   }
 
   return stored;
