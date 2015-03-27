@@ -12,6 +12,8 @@ var path = require('path');
 program
   .version(lib.getLibraryConfig().version)
     .option('--graph <graph>', 'Path to a graph file to start', null)
+    .option('--capture-output [true/false]', 'Catch writes to stdout and send to the FBP protocol client (default = false)', false)
+    .option('--catch-exceptions [true/false]', 'Catch exceptions and report to the FBP protocol client  (default = true)', true)
     .parse(process.argv);
 
 var stored = lib.getStored();
@@ -38,13 +40,13 @@ try {
   process.exit(1);
 }
 
-var startServer = function(defaultGraph) {
+var startServer = function(program, defaultGraph) {
   var server = http.createServer(function () {});
   var rt = runtime(server, {
     defaultGraph: defaultGraph,
     baseDir: baseDir,
-    captureOutput: false,
-    catchExceptions: true
+    captureOutput: program.captureOutput,
+    catchExceptions: program.catchExceptions
   });
 
   server.listen(stored.port, function () {
@@ -78,8 +80,8 @@ if (program.graph) {
   program.graph = path.resolve(process.cwd(), program.graph);
   console.log('Loading main graph: ' + program.graph);
   noflo.graph.loadFile(program.graph, function(graph) {
-    startServer(graph);
+    startServer(program, graph);
   });
 } else {
-  startServer(null);
+  startServer(program, null);
 }
