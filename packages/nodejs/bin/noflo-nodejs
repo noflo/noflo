@@ -17,6 +17,7 @@ program
   .option('--host <hostname>', 'Hostname or IP for the runtime. Use "autodetect" or "autodetect(<iface>)" for dynamic detection.', null)
   .option('--port <port>', 'Port for the runtime', parseInt, null)
   .option('--secret <secret>', 'Secret string to be used for the connection.', null)
+  .option('--ide <url>', 'Url where the noflo-ui runs.', null)
   .parse(process.argv);
 
 var stored = lib.getStored(program);
@@ -59,10 +60,13 @@ var startServer = function(program, defaultGraph) {
 
   server.listen(stored.port, function () {
     var address = 'ws://' + stored.host + ':' + stored.port;
-    var params = querystring.escape('protocol=websocket&address=' + address);
+    var params = 'protocol=websocket&address=' + address;
+    if (stored.secret) {
+      params += "&secret=" + stored.secret;
+    }
     console.log('NoFlo runtime listening at ' + address);
     console.log('Using ' + baseDir + ' for component loading');
-    console.log('Live IDE URL: ' + stored.ide + '#runtime/endpoint?' + params);
+    console.log('Live IDE URL: ' + stored.ide + '#runtime/endpoint?' + querystring.escape(params));
 
     if (flowhubRuntime) {
       // Register the runtime with Flowhub so that it will show up in the UI
