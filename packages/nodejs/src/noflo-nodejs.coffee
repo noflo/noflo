@@ -16,6 +16,7 @@ program
   .option('--catch-exceptions [true/false]', 'Catch exceptions and report to the FBP protocol client  (default = true)', true)
   .option('--debug [true/false]', 'Start the runtime in debug mode (default = false)', false)
   .option('--verbose [true/false]', 'Log in verbose format (default = false)', false)
+  .option('--batch [true/false]', 'Exit when the graph finished (default = false)', false)
   .option('--host <hostname>', 'Hostname or IP for the runtime. Use "autodetect" or "autodetect(<iface>)" for dynamic detection.', null)
   .option('--port <port>', 'Port for the runtime', parseInt, null)
   .option('--secret <secret>', 'Secret string to be used for the connection.', null)
@@ -86,6 +87,9 @@ startServer = (program, defaultGraph) ->
 
   rt.network.on 'addnetwork', (network) ->
     addDebug network, program.verbose, program.defaultGraph if program.debug
+    if program.batch and program.graph
+      network.on 'end', (event) ->
+        server.close()
 
   server.listen stored.port, ->
     address = 'ws://' + stored.host + ':' + stored.port
