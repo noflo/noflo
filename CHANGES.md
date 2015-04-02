@@ -4,6 +4,7 @@ NoFlo ChangeLog
 ## 0.5.12 (git master)
 
 * Add support for [io.js](https://iojs.org/)
+* Add `componentName` property for components telling the component name
 
 ## 0.5.11 (October 23rd 2014)
 
