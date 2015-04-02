@@ -79,11 +79,24 @@ addDebug = (network, verbose, logSubgraph) ->
 
 startServer = (program, defaultGraph) ->
   server = http.createServer ->
+
+  permissions = stored?.permissions or {}
+  if stored.secret
+    permissions[stored.secret] = [
+      'protocol:graph'
+      'protocol:component'
+      'protocol:network'
+      'protocol:runtime'
+      'component:setsource'
+      'component:getsource'
+    ]
+
   rt = runtime server,
     defaultGraph: defaultGraph
     baseDir: baseDir
     captureOutput: program.captureOutput
     catchExceptions: program.catchExceptions
+    permissions: permissions
 
   rt.network.on 'addnetwork', (network) ->
     addDebug network, program.verbose, program.defaultGraph if program.debug
