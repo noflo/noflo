@@ -136,7 +136,6 @@ class Network extends EventEmitter
     @load node.component, node.metadata, (err, instance) =>
       return callback err if err
       instance.nodeId = node.id
-      instance.componentName = node.component if typeof node.component is 'string'
       process.component = instance
 
       # Inform the ports of the node name

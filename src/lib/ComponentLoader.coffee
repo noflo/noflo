@@ -140,6 +140,7 @@ class ComponentLoader extends EventEmitter
       callback new Error "Invalid type #{typeof(implementation)} for component #{name}."
       return
 
+    instance.componentName = name if typeof name is 'string'
     callback null, instance
 
   isGraph: (cPath) ->
@@ -154,6 +155,7 @@ class ComponentLoader extends EventEmitter
     graph.loader = @
     graph.baseDir = @baseDir
     graph.inPorts.graph.attach graphSocket
+    graph.componentName = name if typeof name is 'string'
     graphSocket.send component
     graphSocket.disconnect()
     graph.inPorts.remove 'graph'

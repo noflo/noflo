@@ -78,6 +78,7 @@ describe 'ComponentLoader with no external packages installed', ->
       l.load 'Graph', (err, inst) ->
         chai.expect(err).to.be.a 'null'
         chai.expect(inst).to.be.an 'object'
+        chai.expect(inst.componentName).to.equal 'Graph'
         instance = inst
         done()
     it 'should contain input ports', ->
