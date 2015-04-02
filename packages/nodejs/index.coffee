@@ -57,6 +57,20 @@ exports.getStored = (program) ->
     options = ['host', 'port', 'secret', 'ide']
     for name in options when program[name]
       stored[name] = program[name]
+    # Permissions are added and not replaced
+    if program.secret
+      stored.permissions ?= {}
+      if program.permissions
+        stored.permissions[program.secret] = program.permissions
+      else
+        stored.permissions[program.secret] = [
+          'protocol:graph'
+          'protocol:component'
+          'protocol:network'
+          'protocol:runtime'
+          'component:setsource'
+          'component:getsource'
+        ]
   # Set defaults for missing values
   defaults = exports.getDefaults()
   for name of defaults when !stored[name]

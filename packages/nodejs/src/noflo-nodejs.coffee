@@ -20,6 +20,7 @@ program
   .option('--host <hostname>', 'Hostname or IP for the runtime. Use "autodetect" or "autodetect(<iface>)" for dynamic detection.', null)
   .option('--port <port>', 'Port for the runtime', parseInt, null)
   .option('--secret <secret>', 'Secret string to be used for the connection.', null)
+  .option('--permissions <permissions>', 'Permissions', ((val) -> val.split(',')), 'protocol:component,protocol:runtime,protocol:graph,protocol:network,component:getsource,component:setsource')
   .option('--ide <url>', 'Url where the noflo-ui runs.', null)
   .parse process.argv
 
@@ -80,23 +81,12 @@ addDebug = (network, verbose, logSubgraph) ->
 startServer = (program, defaultGraph) ->
   server = http.createServer ->
 
-  permissions = stored?.permissions or {}
-  if stored.secret
-    permissions[stored.secret] = [
-      'protocol:graph'
-      'protocol:component'
-      'protocol:network'
-      'protocol:runtime'
-      'component:setsource'
-      'component:getsource'
-    ]
-
   rt = runtime server,
     defaultGraph: defaultGraph
     baseDir: baseDir
     captureOutput: program.captureOutput
     catchExceptions: program.catchExceptions
-    permissions: permissions
+    permissions: stored.permissions
 
   rt.network.on 'addnetwork', (network) ->
     addDebug network, program.verbose, program.defaultGraph if program.debug
