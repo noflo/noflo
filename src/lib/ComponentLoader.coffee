@@ -10,7 +10,7 @@ utils = require './Utils'
 {EventEmitter} = require 'events'
 
 class ComponentLoader extends EventEmitter
-  constructor: (@baseDir) ->
+  constructor: (@baseDir, @cache = false) ->
     @components = null
     @checked = []
     @revalidate = false
