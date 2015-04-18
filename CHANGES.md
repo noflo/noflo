@@ -1,11 +1,12 @@
 NoFlo ChangeLog
 ===============
 
-## 0.5.12 (git master)
+## 0.5.12 (April 19th 2015)
 
 * Add support for [io.js](https://iojs.org/)
 * Add `componentName` property for components telling the component name
 * Socket events now include edge metadata
+* Node.js: component list can be cached for faster start-up time. Cache file is stored in `$BASEDIR/.noflo.json`
 
 ## 0.5.11 (October 23rd 2014)
 

@@ -13,3 +13,4 @@ docs_tmp/
 docs/
 npm-debug.log
 .DS_Store
+.noflo.json

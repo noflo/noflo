@@ -98,8 +98,12 @@ exports.internalSocket = require('./InternalSocket')
 #         console.log('Network is now running!');
 #       })
 #     }, true);
-exports.createNetwork = (graph, callback, delay) ->
-  network = new exports.Network graph
+exports.createNetwork = (graph, callback, options) ->
+  unless typeof options is 'object'
+    options =
+      delay: options
+
+  network = new exports.Network graph, options
 
   networkReady = (network) ->
     callback network if callback?
@@ -112,7 +116,7 @@ exports.createNetwork = (graph, callback, delay) ->
     return networkReady network if graph.nodes.length is 0
 
     # In case of delayed execution we don't wire it up
-    if delay
+    if options.delay
       callback network if callback?
       return
     # Wire the network up and start execution
@@ -128,13 +132,17 @@ exports.createNetwork = (graph, callback, delay) ->
 #     noflo.loadFile('somefile.json', function (network) {
 #       console.log('Network is now running!');
 #     });
-exports.loadFile = (file, baseDir, callback) ->
+exports.loadFile = (file, options, callback) ->
   unless callback
-    callback = baseDir
+    callback = options
     baseDir = null
 
+  if callback and typeof options isnt 'object'
+    options =
+      baseDir: options
+
   exports.graph.loadFile file, (net) ->
-    net.baseDir = baseDir if baseDir
+    net.baseDir = options.baseDir if options.baseDir
     exports.createNetwork net, callback
 
 # ### Saving a network definition

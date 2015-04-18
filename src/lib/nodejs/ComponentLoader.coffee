@@ -91,6 +91,28 @@ class ComponentLoader extends loader.ComponentLoader
         coreComponents[componentName] = "#{corePath}/#{component}"
       callback coreComponents
 
+  cachePath: ->
+    path.resolve @baseDir, './.noflo.json'
+
+  writeCache: (components) ->
+    filePath = @cachePath()
+    fs.writeFile filePath, JSON.stringify(components),
+      encoding: 'utf-8'
+    , ->
+
+  readCache: (callback) ->
+    filePath = @cachePath()
+    fs.readFile filePath,
+      encoding: 'utf-8'
+    , (err, components) ->
+      return callback err if err
+      return callback new Error 'No cached components found' unless components
+      try
+        componentList = JSON.parse components
+        callback null, componentList
+      catch e
+        callback e
+
   listComponents: (callback) ->
     if @processing
       @once 'ready', =>
@@ -100,12 +122,29 @@ class ComponentLoader extends loader.ComponentLoader
 
     @ready = false
     @processing = true
+
+    if @options.cache and not @failedCache
+      @readCache (err, components) =>
+        if err
+          @failedCache = true
+          @processing = false
+          @listComponents callback
+          return
+        @components = components
+        @ready = true
+        @processing = false
+        @emit 'ready', true
+        callback @components if callback
+      return
+
     @components = {}
+
     done = _.after 2, =>
       @ready = true
       @processing = false
       @emit 'ready', true
       callback @components if callback
+      @writeCache @components if @options.cache
 
     @getCoreComponents (coreComponents) =>
       @components[name] = cPath for name, cPath of coreComponents

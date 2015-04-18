@@ -17,6 +17,7 @@ cli.parse
   debug: ['debug', 'Start NoFlo in debug mode']
   verbose: ['v', 'Log in verbose format']
   subgraph: ['s', 'Log subgraph events']
+  cache: ['cache', 'Enable cache']
 
 showPorts = (ports) ->
   displayPorts = []
@@ -74,11 +75,14 @@ cli.main (args, options) ->
   if options.interactive
     process.argv = [process.argv[0], process.argv[1]]
     shell = require "#{nofloRoot}/lib/shell"
+
+  options.cache = false unless options.cache
+
   return unless cli.args.length
 
   if cli.args.length is 2 and cli.args[0] is 'list'
     baseDir = path.resolve process.cwd(), cli.args[1]
-    loader = new noflo.ComponentLoader baseDir
+    loader = new noflo.ComponentLoader baseDir, options
     loader.listComponents (components) ->
       todo = components.length
       _.each components, (path, component) ->
@@ -101,7 +105,10 @@ cli.main (args, options) ->
       baseDir = process.env.NOFLO_PROJECT_ROOT
 
     arg = path.resolve baseDir, arg
-    noflo.loadFile arg, baseDir, (network) ->
+    noflo.loadFile arg,
+      baseDir: baseDir
+      cache: options.cache
+    , (network) ->
       addDebug network, options.verbose, options.subgraph if options.debug
 
       return unless options.interactive

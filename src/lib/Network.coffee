@@ -43,7 +43,7 @@ class Network extends EventEmitter
   # The network will also listen to graph changes and modify itself
   # accordingly, including removing connections, adding new nodes,
   # and sending new IIPs.
-  constructor: (graph) ->
+  constructor: (graph, @options = {}) ->
     @processes = {}
     @connections = []
     @initials = []
@@ -71,7 +71,7 @@ class Network extends EventEmitter
     if graph.componentLoader
       @loader = graph.componentLoader
     else
-      @loader = new componentLoader.ComponentLoader @baseDir
+      @loader = new componentLoader.ComponentLoader @baseDir, @options
 
   # The uptime of the network is the current time minus the start-up
   # time, in seconds.
