@@ -16,6 +16,7 @@ program
   .option('--catch-exceptions [true/false]', 'Catch exceptions and report to the FBP protocol client  (default = true)', true)
   .option('--debug [true/false]', 'Start the runtime in debug mode (default = false)', false)
   .option('--verbose [true/false]', 'Log in verbose format (default = false)', false)
+  .option('--cache [true/false]', 'Enable component cache (default = false)', false)
   .option('--batch [true/false]', 'Exit when the graph finished (default = false)', false)
   .option('--host <hostname>', 'Hostname or IP for the runtime. Use "autodetect" or "autodetect(<iface>)" for dynamic detection.', null)
   .option('--port <port>', 'Port for the runtime', parseInt, null)
@@ -23,6 +24,8 @@ program
   .option('--permissions <permissions>', 'Permissions', ((val) -> val.split(',')), 'protocol:component,protocol:runtime,protocol:graph,protocol:network,component:getsource,component:setsource')
   .option('--ide <url>', 'Url where the noflo-ui runs.', null)
   .parse process.argv
+
+require 'coffee-cache' if program.cache
 
 stored = lib.getStored program
 baseDir = process.env.PROJECT_HOME or process.cwd()
@@ -87,6 +90,7 @@ startServer = (program, defaultGraph) ->
     captureOutput: program.captureOutput
     catchExceptions: program.catchExceptions
     permissions: stored.permissions
+    cache: program.cache
 
   rt.network.on 'addnetwork', (network) ->
     addDebug network, program.verbose, program.defaultGraph if program.debug

@@ -14,13 +14,14 @@
   "author": "Henri Bergius <henri.bergius@iki.fi>",
   "license": "MIT",
   "dependencies": {
+    "cli-color": "~0.3.3",
+    "coffee-cache": "^1.0.2",
+    "coffee-script": "~1.9.1",
     "commander": "^2.1.0",
     "flowhub-registry": "0.0.2",
     "noflo": "^0.5.0",
     "noflo-runtime-websocket": "^0.2.3",
-    "uuid": "^1.4.1",
-    "coffee-script": "~1.9.1",
-    "cli-color": "~0.3.3"
+    "uuid": "^1.4.1"
   },
   "devDependencies": {
     "jshint": "*"
