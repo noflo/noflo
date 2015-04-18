@@ -5,7 +5,7 @@ NoFlo ChangeLog
 
 * Add support for [io.js](https://iojs.org/)
 * Add `componentName` property for components telling the component name
-* Node.js: component list can be cached for faster start-up time
+* Node.js: component list can be cached for faster start-up time. Cache file is stored in `$BASEDIR/.noflo.json`
 
 ## 0.5.11 (October 23rd 2014)
 
