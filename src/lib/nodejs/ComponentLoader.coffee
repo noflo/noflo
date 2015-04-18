@@ -122,12 +122,12 @@ class ComponentLoader extends loader.ComponentLoader
 
     @ready = false
     @processing = true
-    @components = {}
 
     if @options.cache and not @failedCache
       @readCache (err, components) =>
         if err
           @failedCache = true
+          @processing = false
           @listComponents callback
           return
         @components = components
@@ -136,6 +136,8 @@ class ComponentLoader extends loader.ComponentLoader
         @emit 'ready', true
         callback @components if callback
       return
+
+    @components = {}
 
     done = _.after 2, =>
       @ready = true
