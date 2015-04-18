@@ -334,26 +334,31 @@ class Network extends EventEmitter
       @emit 'connect',
         id: socket.getId()
         socket: socket
+        metadata: socket.metadata
     socket.on 'begingroup', (group) =>
       @emit 'begingroup',
         id: socket.getId()
         socket: socket
         group: group
+        metadata: socket.metadata
     socket.on 'data', (data) =>
       @emit 'data',
         id: socket.getId()
         socket: socket
         data: data
+        metadata: socket.metadata
     socket.on 'endgroup', (group) =>
       @emit 'endgroup',
         id: socket.getId()
         socket: socket
         group: group
+        metadata: socket.metadata
     socket.on 'disconnect', =>
       do @decreaseConnections
       @emit 'disconnect',
         id: socket.getId()
         socket: socket
+        metadata: socket.metadata
     socket.on 'error', (event) =>
       @emit 'process-error', event
 
@@ -365,7 +370,7 @@ class Network extends EventEmitter
         icon: node.component.getIcon()
 
   addEdge: (edge, callback) ->
-    socket = internalSocket.createSocket()
+    socket = internalSocket.createSocket edge.metadata
 
     from = @getNode edge.from.node
     unless from
@@ -438,7 +443,7 @@ class Network extends EventEmitter
     callback() if callback
 
   addInitial: (initializer, callback) ->
-    socket = internalSocket.createSocket()
+    socket = internalSocket.createSocket initializer.metadata
 
     # Subscribe to events from the socket
     @subscribeSocket socket

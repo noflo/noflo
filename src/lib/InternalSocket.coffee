@@ -22,8 +22,9 @@ class InternalSocket extends EventEmitter
       @emit 'error',
         id: @to.process.id
         error: error
+        metadata: @metadata
 
-  constructor: ->
+  constructor: (@metadata = {}) ->
     @connected = false
     @groups = []
     @dataDelegate = null
