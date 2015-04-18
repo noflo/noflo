@@ -124,7 +124,7 @@ class ComponentLoader extends loader.ComponentLoader
     @processing = true
     @components = {}
 
-    if @cache and not @failedCache
+    if @options.cache and not @failedCache
       @readCache (err, components) =>
         if err
           @failedCache = true
@@ -142,7 +142,7 @@ class ComponentLoader extends loader.ComponentLoader
       @processing = false
       @emit 'ready', true
       callback @components if callback
-      @writeCache @components if @cache
+      @writeCache @components if @options.cache
 
     @getCoreComponents (coreComponents) =>
       @components[name] = cPath for name, cPath of coreComponents

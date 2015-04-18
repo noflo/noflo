@@ -98,8 +98,12 @@ exports.internalSocket = require('./InternalSocket')
 #         console.log('Network is now running!');
 #       })
 #     }, true);
-exports.createNetwork = (graph, callback, delay) ->
-  network = new exports.Network graph
+exports.createNetwork = (graph, callback, options) ->
+  unless typeof options is 'object'
+    options =
+      delay: options
+
+  network = new exports.Network graph, options
 
   networkReady = (network) ->
     callback network if callback?
@@ -112,7 +116,7 @@ exports.createNetwork = (graph, callback, delay) ->
     return networkReady network if graph.nodes.length is 0
 
     # In case of delayed execution we don't wire it up
-    if delay
+    if options.delay
       callback network if callback?
       return
     # Wire the network up and start execution
