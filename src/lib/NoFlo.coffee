@@ -143,7 +143,7 @@ exports.loadFile = (file, options, callback) ->
 
   exports.graph.loadFile file, (net) ->
     net.baseDir = options.baseDir if options.baseDir
-    exports.createNetwork net, callback
+    exports.createNetwork net, callback, options
 
 # ### Saving a network definition
 #
