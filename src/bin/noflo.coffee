@@ -78,6 +78,12 @@ cli.main (args, options) ->
 
   options.cache = false unless options.cache
 
+  if options.cache
+    try
+      require 'coffee-cache'
+    catch e
+      console.log "Install 'coffee-cache' to improve start-up time"
+
   return unless cli.args.length
 
   if cli.args.length is 2 and cli.args[0] is 'list'
