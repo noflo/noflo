@@ -12,6 +12,7 @@ utils = require './Utils'
 class ComponentLoader extends EventEmitter
   constructor: (@baseDir, @options = {}) ->
     @components = null
+    @componentLoaders = []
     @checked = []
     @revalidate = false
     @libraryIcons = {}
@@ -47,7 +48,9 @@ class ComponentLoader extends EventEmitter
       moduleName = moduleName.substr 1
     if definition.noflo.loader
       # Run a custom component loader
-      loader = require "/#{moduleName}/#{definition.noflo.loader}"
+      loaderPath = "/#{moduleName}/#{definition.noflo.loader}"
+      @componentLoaders.push loaderPath
+      loader = require loaderPath
       @registerLoader loader, ->
     if definition.noflo.components
       for name, cPath of definition.noflo.components

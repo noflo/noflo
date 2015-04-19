@@ -60,7 +60,10 @@ class ComponentLoader extends loader.ComponentLoader
           @registerGraph prefix, name, path.resolve def.realPath, gPath
       if def.noflo.loader
         # Run a custom component loader
-        loader = require path.resolve def.realPath, def.noflo.loader
+        loaderPath = path.resolve def.realPath, def.noflo.loader
+        @componentLoaders = [] unless @componentLoaders
+        @componentLoaders.push loaderPath
+        loader = require loaderPath
         @registerLoader loader, done
       else
         done()
@@ -94,9 +97,17 @@ class ComponentLoader extends loader.ComponentLoader
   cachePath: ->
     path.resolve @baseDir, './.noflo.json'
 
-  writeCache: (components) ->
+  writeCache: ->
+    cacheData =
+      components: {}
+      loaders: @componentLoaders or []
+
+    for name, cPath of @components
+      continue unless typeof cPath is 'string'
+      cacheData.components[name] = cPath
+
     filePath = @cachePath()
-    fs.writeFile filePath, JSON.stringify(components),
+    fs.writeFile filePath, JSON.stringify(cacheData, null, 2),
       encoding: 'utf-8'
     , ->
 
@@ -104,14 +115,23 @@ class ComponentLoader extends loader.ComponentLoader
     filePath = @cachePath()
     fs.readFile filePath,
       encoding: 'utf-8'
-    , (err, components) ->
+    , (err, cached) =>
       return callback err if err
-      return callback new Error 'No cached components found' unless components
+      return callback new Error 'No cached components found' unless cached
       try
-        componentList = JSON.parse components
-        callback null, componentList
+        cacheData = JSON.parse cached
       catch e
         callback e
+      return callback new Error 'No components in cache' unless cacheData.components
+      @components = cacheData.components
+      unless cacheData.loaders?.length
+        callback null
+        return
+      done = _.after cacheData.loaders.length, ->
+        callback null
+      cacheData.loaders.forEach (loaderPath) =>
+        loader = require loaderPath
+        @registerLoader loader, done
 
   listComponents: (callback) ->
     if @processing
@@ -124,13 +144,12 @@ class ComponentLoader extends loader.ComponentLoader
     @processing = true
 
     if @options.cache and not @failedCache
-      @readCache (err, components) =>
+      @readCache (err) =>
         if err
           @failedCache = true
           @processing = false
           @listComponents callback
           return
-        @components = components
         @ready = true
         @processing = false
         @emit 'ready', true
@@ -144,7 +163,7 @@ class ComponentLoader extends loader.ComponentLoader
       @processing = false
       @emit 'ready', true
       callback @components if callback
-      @writeCache @components if @options.cache
+      @writeCache() if @options.cache
 
     @getCoreComponents (coreComponents) =>
       @components[name] = cPath for name, cPath of coreComponents
