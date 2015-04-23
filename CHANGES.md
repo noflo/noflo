@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.5.13 (git master)
+## 0.5.13 (April 22nd 2015)
 
 * Custom componentloader support when cache mode is enabled
 * Optional support for [coffee-cache](https://www.npmjs.com/package/coffee-cache) when using `--cache`
