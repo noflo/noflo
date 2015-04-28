@@ -46,7 +46,7 @@ if program.user and !defaults.user
 
 permissions = {}
 if program.secret and program.permissions
-  permisisons[program.secret] = program.permissions
+  permissions[program.secret] = program.permissions
 
 values =
   id: program.id or uuid.v4()
@@ -55,7 +55,7 @@ values =
   port: program.port
   label: program.label
   secret: program.secret
-  permissions: permissions
+  permissions: permissions if permissions
 lib.saveStored values
 console.log 'Stored the following configuration to ' + lib.getStoredPath() + '\n'
 
@@ -63,7 +63,7 @@ for name of values when values[name]
   if name == 'host' and values[name] == 'autodetect'
     detected = lib.discoverHost()
     values[name] += ' (currently ' + detected + ')'
-  console.log name + ': ' + values[name]
+  console.log name + ': ' + JSON.stringify values[name], null, 2
 
 console.log '\nThis file will be read by noflo-nodejs on startup and registered with http://flowhub.io'
 
