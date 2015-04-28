@@ -1,20 +1,43 @@
 #!/usr/bin/env node
-program = require 'commander'
 flowhub = require 'flowhub-registry'
 uuid = require 'uuid'
 lib = require '../index'
 
 defaults = lib.getDefaults()
 stored = lib.getStored()
-program
-  .version(lib.getLibraryConfig().version)
-  .option('--user <uuid>', 'Unique Identifier for the runtime owner.', stored.user or defaults.user)
-  .option('--host <hostname>', 'Hostname or IP for the runtime. Use "autodetect" or "autodetect(<iface>)" for dynamic detection.', stored.host or defaults.host)
-  .option('--port <port>', 'Port for the runtime', parseInt, stored.port or defaults.port).option('--label <label>', 'Human-readable label for the runtime.', stored.label)
-  .option('--secret <secret>', 'Secret string to be used for the connection.', stored.secret)
-  .option('--id <uuid>', 'Unique Identifier for the runtime instance.', stored.id)
-  .option('--permissions <permissions>', 'Permissions', ((val) -> val.split(',')), 'protocol:component,protocol:runtime,protocol:graph,protocol:network,component:getsource,component:setsource')
-  .parse process.argv
+
+program = (require 'yargs')
+  .options(
+    user:
+      default: stored.user or defaults.user
+      describe: 'Unique Identifier for the runtime owner.'
+    host:
+      default: stored.host or defaults.host
+      describe: 'Hostname or IP for the runtime. Use "autodetect" or "autodetect(<iface>)" for dynamic detection.'
+    port:
+      default: stored.port or defaults.port
+      describe: 'Port for the runtime.'
+      type: 'number'
+    label:
+      default: stored.label
+      describe: 'Human-readable label for the runtime.'
+    secret:
+      default: stored.secret
+      describe: 'Secret string to be used for the connection.'
+    id:
+      default: stored.id
+      describe: 'Unique Identifier for the runtime instance.'
+    permissions:
+      default: 'protocol:component,protocol:runtime,protocol:graph,protocol:network,component:getsource,component:setsource'
+      describe: 'Permissions'
+  )
+  .usage('Usage: $0 [options]')
+  .version(lib.getLibraryConfig().version, 'V').alias('V', 'version')
+  .help('h').alias('h', 'help')
+  .wrap(null)
+  .argv
+
+program.permissions = program.permissions.split ','
 
 if program.user and !defaults.user
   defaults.user = program.user
