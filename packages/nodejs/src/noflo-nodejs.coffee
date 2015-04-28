@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 program = require 'commander'
-clc = require "cli-color"
+clc = require 'cli-color'
 http = require 'http'
 lib = require '../index'
 noflo = require 'noflo'
@@ -79,7 +79,7 @@ addDebug = (network, verbose, logSubgraph) ->
 
   network.on 'disconnect', (data) ->
     return if data.subgraph and not logSubgraph
-    console.log "#{identifier(data)} #{clc.yellow('DISC')}"  
+    console.log "#{identifier(data)} #{clc.yellow('DISC')}"
 
 startServer = (program, defaultGraph) ->
   server = http.createServer ->
