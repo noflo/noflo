@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-program = require 'commander'
-clc = require "cli-color"
+clc = require 'cli-color'
 http = require 'http'
 lib = require '../index'
 noflo = require 'noflo'
@@ -9,21 +8,53 @@ flowhub = require 'flowhub-registry'
 querystring = require 'querystring'
 path = require 'path'
 
-program
-  .version(lib.getLibraryConfig().version)
-  .option('--graph <graph>', 'Path to a graph file to start', null)
-  .option('--capture-output [true/false]', 'Catch writes to stdout and send to the FBP protocol client (default = false)', false)
-  .option('--catch-exceptions [true/false]', 'Catch exceptions and report to the FBP protocol client  (default = true)', true)
-  .option('--debug [true/false]', 'Start the runtime in debug mode (default = false)', false)
-  .option('--verbose [true/false]', 'Log in verbose format (default = false)', false)
-  .option('--cache [true/false]', 'Enable component cache (default = false)', false)
-  .option('--batch [true/false]', 'Exit when the graph finished (default = false)', false)
-  .option('--host <hostname>', 'Hostname or IP for the runtime. Use "autodetect" or "autodetect(<iface>)" for dynamic detection.', null)
-  .option('--port <port>', 'Port for the runtime', parseInt, null)
-  .option('--secret <secret>', 'Secret string to be used for the connection.', null)
-  .option('--permissions <permissions>', 'Permissions', ((val) -> val.split(',')), 'protocol:component,protocol:runtime,protocol:graph,protocol:network,component:getsource,component:setsource')
-  .option('--ide <url>', 'Url where the noflo-ui runs.', null)
-  .parse process.argv
+program = (require 'yargs')
+  .options(
+    graph:
+      description: 'Path to a graph file to start'
+    'capture-output':
+      default: false
+      description: 'Catch writes to stdout and send to the FBP protocol client'
+      type: 'boolean'
+    'catch-exceptions':
+      default: true
+      description: 'Catch exceptions and report to the FBP protocol client'
+      type: 'boolean'
+    debug:
+      default: false
+      description: 'Start the runtime in debug mode'
+      type: 'boolean'
+    verbose:
+      default: false
+      description: 'Log in verbose format'
+      type: 'boolean'
+    cache:
+      default: false
+      description: 'Enable component cache'
+      type: 'boolean'
+    batch:
+      default: false
+      description: 'Exit when the graph finished'
+    ide:
+      description: 'Url where the noflo-ui runs.'
+    host:
+      describe: 'Hostname or IP for the runtime. Use "autodetect" or "autodetect(<iface>)" for dynamic detection.'
+    port:
+      describe: 'Port for the runtime.'
+      type: 'number'
+    secret:
+      describe: 'Secret string to be used for the connection.'
+    permissions:
+      default: 'protocol:component,protocol:runtime,protocol:graph,protocol:network,component:getsource,component:setsource'
+      describe: 'Permissions'
+  )
+  .usage('Usage: $0 [options]')
+  .version(lib.getLibraryConfig().version, 'V').alias('V', 'version')
+  .help('h').alias('h', 'help')
+  .wrap(null)
+  .argv
+
+program.permissions = program.permissions.split ','
 
 require 'coffee-cache' if program.cache
 
@@ -79,7 +110,7 @@ addDebug = (network, verbose, logSubgraph) ->
 
   network.on 'disconnect', (data) ->
     return if data.subgraph and not logSubgraph
-    console.log "#{identifier(data)} #{clc.yellow('DISC')}"  
+    console.log "#{identifier(data)} #{clc.yellow('DISC')}"
 
 startServer = (program, defaultGraph) ->
   server = http.createServer ->
