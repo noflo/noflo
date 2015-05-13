@@ -158,5 +158,5 @@ if program.graph
   noflo.graph.loadFile program.graph, (graph) ->
     startServer program, graph
 else
-  startServer program, null
+  startServer program, noflo.graph.createGraph "main"
 
