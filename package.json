@@ -8,12 +8,7 @@
   ],
   "author": "Henri Bergius <henri.bergius@iki.fi>",
   "version": "0.5.13",
-  "licenses": [
-    {
-      "type": "MIT",
-      "url": "https://github.com/noflo/noflo/raw/master/LICENSE"
-    }
-  ],
+  "license": "MIT",
   "engines": {
     "node": ">=0.6.0"
   },
