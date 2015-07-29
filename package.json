@@ -34,7 +34,7 @@
     "grunt-contrib-connect": "~0.8.0",
     "grunt-contrib-uglify": "~0.6.0",
     "grunt-contrib-watch": "~0.6.1",
-    "grunt-mocha-phantomjs": "~0.6.0",
+    "grunt-mocha-phantomjs": "~0.7.0",
     "grunt-noflo-browser": "^0.1.2",
     "grunt-noflo-manifest": "^0.1.11",
     "mocha": "~1.21.0"
