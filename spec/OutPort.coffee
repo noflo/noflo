@@ -29,6 +29,15 @@ describe 'Outport Port', ->
         chai.expect(true).to.equal false
       p.send 'some-data', 1
 
+    it 'should be able to send to index 0', (done) ->
+      p = new outport
+        addressable: true
+      p.attach s1
+      s1.on 'data', (data) ->
+        chai.expect(data).to.equal 'my-data'
+        done()
+      p.send 'my-data', 0
+
     it 'should throw an error when sent data without address', ->
       chai.expect(-> p.send('some-data')).to.throw
 
