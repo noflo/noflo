@@ -17,7 +17,7 @@
     "cli-color": "~0.3.3",
     "coffee-cache": "^1.0.2",
     "coffee-script": "~1.9.1",
-    "flowhub-registry": "0.0.2",
+    "flowhub-registry": "0.0.3",
     "noflo": "^0.5.0",
     "noflo-runtime-websocket": "^0.2.3",
     "uuid": "^1.4.1",
