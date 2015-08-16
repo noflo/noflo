@@ -37,9 +37,13 @@ program = (require 'yargs')
       description: 'Exit when the graph finished'
     ide:
       description: 'Url where the noflo-ui runs.'
+    uuid:
+      description: 'Runtime UUID'
     host:
+      default: 'autodetect'
       describe: 'Hostname or IP for the runtime. Use "autodetect" or "autodetect(<iface>)" for dynamic detection.'
     port:
+      default: 3569
       describe: 'Port for the runtime.'
       type: 'number'
     secret:
@@ -47,6 +51,10 @@ program = (require 'yargs')
     permissions:
       default: 'protocol:component,protocol:runtime,protocol:graph,protocol:network,component:getsource,component:setsource'
       describe: 'Permissions'
+    register:
+      default: true
+      description: 'Register the runtime with Flowhub'
+      type: 'boolean'
   )
   .usage('Usage: $0 [options]')
   .version(lib.getLibraryConfig().version, 'V').alias('V', 'version')
@@ -58,16 +66,17 @@ program.permissions = program.permissions.split ','
 
 require 'coffee-cache' if program.cache
 
+program.id = program.uuid if program.uuid
+delete program.uuid
+
 stored = lib.getStored program
 baseDir = process.env.PROJECT_HOME or process.cwd()
 interval = 10 * 60 * 1000
-if !stored.id
-  console.error 'No configuration found at ' + lib.getStoredPath() + '. Please run noflo-nodejs-init first if you want the runtime to showup on flowhub.'
-  if !program.graph
-    # Since we don't register with flowhub, we need to run a graph
-    console.error 'No default graph given either. Exiting.'
+flowhubRuntime = null
+if program.register
+  unless stored.id
+    console.error 'No configuration found at ' + lib.getStoredPath() + '. Please run noflo-nodejs-init first if you want the runtime to showup on flowhub. You can also pass a UUID via --uuid'
     process.exit 1
-else
   try
     flowhubRuntime = new flowhub.Runtime
       label: stored.label
