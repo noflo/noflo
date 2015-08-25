@@ -80,8 +80,20 @@ Once you have configured the runtime, it is time to start it:
 $ node node_modules/.bin/noflo-nodejs
 ```
 
-This will start a WebSocket-based NoFlo Runtime server, and register it to your Flowhub account. It should now become available in your Flowhub UI. By default the configuration will be read from the current working directory, but you can change this by setting the `PROJECT_HOME` environment variable.
+This will start a WebSocket-based NoFlo Runtime server, and register it to your Flowhub account.
+It should now become available in your Flowhub UI. By default the configuration will be read from the current working directory,
+but you can change this by setting the `PROJECT_HOME` environment variable.
+
+## Starting an existing graph
+
+If you want to run an existing graph, you can use the `--graph` option.
+
+    noflo-nodejs --graph graphs/MyMainGraph.json
+
+If you want the process to exit when the network stops, you can pass `--batch`.
+
 
 ## Usage without Flowhub registration
 
-If you don't want to register the runtime for your Flowhub account (for example, with temporary runtimes used for testing), you can skip this by starting noflo-nodejs with the `--register=false` flag.
+If you don't want to register the runtime for your Flowhub account (for example, with temporary runtimes used for testing),
+you can skip this by starting noflo-nodejs with the `--register=false` flag.
