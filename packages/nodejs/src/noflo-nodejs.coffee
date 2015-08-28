@@ -139,6 +139,11 @@ startServer = (program, defaultGraph) ->
 
   tracer = new trace.Tracer {}
 
+  process.on 'SIGUSR2', () ->
+    return console.log 'ERROR: Tracing not enabled' if not program.trace
+    tracer.dumpFile null, (err, fname) ->
+      console.log 'Wrote flowtrace to:', fname
+
   rt.network.on 'addnetwork', (network) ->
     tracer.attach network if program.trace
     addDebug network, program.verbose, program.defaultGraph if program.debug
