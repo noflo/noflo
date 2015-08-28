@@ -147,9 +147,8 @@ startServer = (program, defaultGraph) ->
         cleanup = () ->
           server.close()
         if program.trace
-          fname = 'flowtrace.json'
-          tracer.dumpFile fname, (err) ->
-            console.log 'Wrote flowtrace to', fname
+          tracer.dumpFile null, (err, fname) ->
+            console.log 'Wrote flowtrace to:', fname
             cleanup()
         else
           cleanup()

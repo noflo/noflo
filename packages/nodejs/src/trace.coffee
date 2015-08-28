@@ -90,9 +90,23 @@ class Tracer
         events: events
       return callback err, JSON.stringify trace, null, 2
 
+  # node.js only
   dumpFile: (filepath, callback) ->
     fs = require 'fs'
-    @dumpString (err, data) ->
-      fs.writeFile filepath, data, { encoding: 'utf-8' }, callback
+    temp = require 'temp'
+
+    openFile = (cb) ->
+      fs.open filepath, 'w', (err, fd) ->
+        cb err, { path: filepath, fd: fd }
+    if not filepath
+      openFile = (cb) ->
+        temp.open { suffix: '.json' }, cb
+
+    openFile (err, info) =>
+      return callback err if err
+      @dumpString (err, data) ->
+        fs.write info.fd, data, { encoding: 'utf-8' }, (err) ->
+          return callback err, info.path
+
 
 module.exports.Tracer = Tracer
