@@ -1,7 +1,11 @@
 
 # TODO: move this file into NoFlo itself, so it can be reused in all runtimes
 
-debug = console.log
+if process?.env.DEBUG
+  debug = console.log
+else
+  debug = () ->
+    # ignore
 
 class TraceBuffer
   constructor: () ->
@@ -66,7 +70,7 @@ class Tracer
       'endGroup'
       'disconnect'
     ]
-    for event in eventNames
+    eventNames.forEach (event) =>
       network.on event, (data) =>
         payload = networkToTraceEvent netId, event, data
         @buffer.add payload
