@@ -8,6 +8,8 @@ flowhub = require 'flowhub-registry'
 querystring = require 'querystring'
 path = require 'path'
 
+trace = require './trace'
+
 program = (require 'yargs')
   .options(
     graph:
@@ -35,6 +37,9 @@ program = (require 'yargs')
     batch:
       default: false
       description: 'Exit when the graph finished'
+    trace:
+      default: false
+      description: 'Record flowtrace. If batch is enabled, will'
     ide:
       description: 'Url where the noflo-ui runs.'
     uuid:
@@ -132,11 +137,22 @@ startServer = (program, defaultGraph) ->
     permissions: stored.permissions
     cache: program.cache
 
+  tracer = new trace.Tracer {}
+
   rt.network.on 'addnetwork', (network) ->
+    tracer.attach network if program.trace
     addDebug network, program.verbose, program.defaultGraph if program.debug
     if program.batch and program.graph
       network.on 'end', (event) ->
-        server.close()
+        cleanup = () ->
+          server.close()
+        if program.trace
+          fname = 'flowtrace.json'
+          tracer.dumpFile fname, (err) ->
+            console.log 'Wrote flowtrace to', fname
+            cleanup()
+        else
+          cleanup()
 
   server.listen stored.port, ->
     address = 'ws://' + stored.host + ':' + stored.port
@@ -160,6 +176,7 @@ startServer = (program, defaultGraph) ->
         return
     return
   return
+
 
 if program.graph
   program.graph = path.resolve process.cwd(), program.graph
