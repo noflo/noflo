@@ -58,6 +58,8 @@ networkToTraceEvent = (networkId, type, data) ->
 class Tracer
   constructor: (@options) ->
     @buffer = new TraceBuffer
+    @header =
+      graphs: {}
 
   attach: (network) ->
     # FIXME: graphs loaded from .fbp don't have name. Should default to basename of file, and be configurable
@@ -74,6 +76,7 @@ class Tracer
       network.on event, (data) =>
         payload = networkToTraceEvent netId, event, data
         @buffer.add payload
+    @header.graphs[netId] = network.graph.toJSON()
 
   detach: (network) ->
     # TODO: implement
@@ -84,9 +87,9 @@ class Tracer
     events = []
     consume = (e) ->
       events.push e
-    @buffer.getAll consume, (err) ->
+    @buffer.getAll consume, (err) =>
       trace =
-        header: null
+        header: @header
         events: events
       return callback err, JSON.stringify trace, null, 2
 
