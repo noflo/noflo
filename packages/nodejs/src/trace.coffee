@@ -31,6 +31,7 @@ networkToTraceEvent = (networkId, type, data) ->
     protocol: 'network'
     command: type
     payload:
+      time: new Date().toISOString()
       graph: networkId
       src:
         node: socket.from?.process.id
