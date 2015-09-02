@@ -1,6 +1,6 @@
 {
   "name": "noflo-nodejs",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Node.js runtime for NoFlo",
   "main": "index.js",
   "scripts": {
@@ -22,7 +22,7 @@
     "noflo-runtime-websocket": "^0.5.1",
     "password-maker": "^1.0.5",
     "uuid": "^1.4.1",
-    "yargs": "^3.8.0"
+    "yargs": "^3.23.0"
   },
   "devDependencies": {
     "jshint": "*"
