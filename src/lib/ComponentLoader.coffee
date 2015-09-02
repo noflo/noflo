@@ -219,6 +219,13 @@ class ComponentLoader extends EventEmitter
           bare: true
       catch e
         return callback e
+    else if language is 'es6'
+      unless window.babel
+        return callback new Error 'Babel compiler not available'
+      try
+        source = babel.transform(source).code
+      catch e
+        return callback e
 
     # We eval the contents to get a runnable component
     try
