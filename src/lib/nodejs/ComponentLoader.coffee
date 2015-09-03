@@ -18,6 +18,7 @@ nofloGraph = require '../Graph'
 CoffeeScript = require 'coffee-script'
 if typeof CoffeeScript.register != 'undefined'
     CoffeeScript.register()
+babel = require 'babel-core'
 
 # Disable NPM logging in normal NoFlo operation
 log = require 'npmlog'
@@ -201,6 +202,11 @@ class ComponentLoader extends loader.ComponentLoader
       try
         source = CoffeeScript.compile source,
           bare: true
+      catch e
+        return callback e
+    else if language is 'es6'
+      try
+        source = babel.transform(source).code
       catch e
         return callback e
 
