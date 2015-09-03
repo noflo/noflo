@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.5.14 (git master)
+
+* EcmaScript 6 support in Component Loader
+
 ## 0.5.13 (April 22nd 2015)
 
 * Custom componentloader support when cache mode is enabled
