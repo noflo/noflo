@@ -330,7 +330,7 @@ class Graph extends EventEmitter
       if id.toLowerCase() is exported.process
         toRemove.push exported
     for exported in toRemove
-      @removeExports exported.public
+      @removeExport exported.public
 
     toRemove = []
     for pub, priv of @inports
@@ -885,7 +885,7 @@ resetGraph = (graph) ->
   for port, v of clone graph.inports
     graph.removeInport port
   for exp in clone (graph.exports).reverse()
-    graph.removeExports exp.public
+    graph.removeExport exp.public
   # XXX: does this actually null the props??
   graph.setProperties {}
   for iip in (clone graph.initializers).reverse()
