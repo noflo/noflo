@@ -227,6 +227,7 @@ describe 'ComponentLoader with no external packages installed', ->
       };"""
 
       it 'should be able to set the source', (done) ->
+        @timeout 4000
         unless platform.isBrowser()
           workingSource = workingSource.replace "'noflo'", "'../lib/NoFlo.js'"
         l.setSource 'foo', 'RepeatData', workingSource, 'js', (err) ->
