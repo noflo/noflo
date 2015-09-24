@@ -66,6 +66,7 @@ module.exports = ->
         options:
           reporter: 'spec'
           require: 'coffee-script/register'
+          grep: process.env.TESTS
 
     # Web server for the browser tests
     connect:
