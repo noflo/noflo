@@ -228,7 +228,7 @@ describe 'ComponentLoader with no external packages installed', ->
 
       it 'should be able to set the source', (done) ->
         unless platform.isBrowser()
-          workingSource = workingSource.replace "'noflo'", "'../src/lib/NoFlo'"
+          workingSource = workingSource.replace "'noflo'", "'../lib/NoFlo'"
         l.setSource 'foo', 'RepeatData', workingSource, 'js', (err) ->
           throw err if err
           chai.expect(err).to.be.a 'null'
