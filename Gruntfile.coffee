@@ -17,12 +17,6 @@ module.exports = ->
         src: ['**.coffee']
         dest: 'lib/nodejs'
         ext: '.js'
-      bin:
-        expand: true
-        cwd: 'src/bin'
-        src: ['**.coffee']
-        dest: 'bin'
-        ext: '.js'
       spec:
         options:
           bare: true
@@ -85,7 +79,7 @@ module.exports = ->
     coffeelint:
       libraries:
         files:
-          src: ['src/lib/*.coffee', 'src/bin/*.coffee']
+          src: ['src/lib/*.coffee']
         options:
           max_line_length:
             value: 80

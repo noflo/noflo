@@ -21,7 +21,7 @@ Read more at <http://noflojs.org/>.
 
 NoFlo is available for Node.js [via NPM](https://npmjs.org/package/noflo), so you can install it with:
 
-    $ npm install -g noflo
+    $ npm install noflo --save
 
 You can customize and download the browser version of NoFlo at <http://noflojs.org/download/>.
 

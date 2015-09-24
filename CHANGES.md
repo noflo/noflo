@@ -3,6 +3,7 @@ NoFlo ChangeLog
 
 ## 0.5.14 (git master)
 
+* Deprecated the `noflo` command in favor of [noflo-nodejs](https://www.npmjs.com/package/noflo-nodejs)
 * EcmaScript 6 support in Component Loader
 
 ## 0.5.13 (April 22nd 2015)
