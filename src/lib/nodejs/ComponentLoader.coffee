@@ -197,14 +197,14 @@ class ComponentLoader extends loader.ComponentLoader
         @setSource packageId, name, source, language, callback
       return
 
-    _eval = require 'eval'
+    _eval = require 'eval-as-module'
     if language is 'coffeescript'
       try
         source = CoffeeScript.compile source,
           bare: true
       catch e
         return callback e
-    else if language is 'es6'
+    else if language in ['es6', 'es2015']
       try
         source = babel.transform(source).code
       catch e
@@ -212,7 +212,7 @@ class ComponentLoader extends loader.ComponentLoader
 
     try
       # Eval so we can get a function
-      implementation = _eval source, path.resolve(@baseDir, "./components/#{name}.js"), {}, true
+      implementation = _eval(source, path.resolve(@baseDir, "./components/#{name}.js")).exports
     catch e
       return callback e
     unless implementation or implementation.getComponent
