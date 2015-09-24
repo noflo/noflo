@@ -227,16 +227,15 @@ describe 'ComponentLoader with no external packages installed', ->
       };"""
 
       it 'should be able to set the source', (done) ->
-        @timeout 4000
+        @timeout 10000
         unless platform.isBrowser()
           workingSource = workingSource.replace "'noflo'", "'../lib/NoFlo.js'"
         l.setSource 'foo', 'RepeatData', workingSource, 'js', (err) ->
-          throw err if err
-          chai.expect(err).to.be.a 'null'
+          return done err if err
           done()
       it 'should be a loadable component', (done) ->
         l.load 'foo/RepeatData', (err, inst) ->
-          chai.expect(err).to.be.a 'null'
+          return done err if err
           chai.expect(inst).to.be.an 'object'
           chai.expect(inst.inPorts).to.contain.keys ['in']
           chai.expect(inst.outPorts).to.contain.keys ['out']
@@ -270,7 +269,6 @@ describe 'ComponentLoader with no external packages installed', ->
           done()
       it 'should not be a loadable component', (done) ->
         l.load 'foo/NotWorking', (err, inst) ->
-          console.log err, inst
-          chai.expect(err).to.be.an 'object'
+          return done err if err
           chai.expect(inst).to.be.an 'undefined'
           done()
