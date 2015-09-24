@@ -4,8 +4,6 @@ node_js:
 - '0.10'
 - '0.12'
 script: npm test
-notifications:
-  irc: irc.freenode.org#fbp
 deploy:
   provider: npm
   email: henri.bergius@iki.fi
