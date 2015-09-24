@@ -269,6 +269,6 @@ describe 'ComponentLoader with no external packages installed', ->
           done()
       it 'should not be a loadable component', (done) ->
         l.load 'foo/NotWorking', (err, inst) ->
-          return done err if err
+          chai.expect(err).to.be.an 'object'
           chai.expect(inst).to.be.an 'undefined'
           done()
