@@ -4,7 +4,7 @@ NoFlo ChangeLog
 ## 0.5.14 (git master)
 
 * EcmaScript 6 support in Component Loader
-* Node.js 4.x compatibility
+* Node.js 4.x compatibility (`setSource` requires `components/` directory to exist in base directory to work)
 
 ## 0.5.13 (April 22nd 2015)
 
