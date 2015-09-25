@@ -11,7 +11,7 @@
   "dependencies": {
     "bergie/emitter": "*",
     "jashkenas/underscore": "*",
-    "noflo/fbp": "*"
+    "flowbased/fbp": "*"
   },
   "remotes": [
     "https://raw.githubusercontent.com"

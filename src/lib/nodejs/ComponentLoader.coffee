@@ -17,7 +17,7 @@ nofloGraph = require '../Graph'
 # We allow components to be un-compiled CoffeeScript
 CoffeeScript = require 'coffee-script'
 if typeof CoffeeScript.register != 'undefined'
-    CoffeeScript.register()
+  CoffeeScript.register()
 babel = require 'babel-core'
 
 # Disable NPM logging in normal NoFlo operation
