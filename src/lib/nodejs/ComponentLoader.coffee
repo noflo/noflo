@@ -197,22 +197,27 @@ class ComponentLoader extends loader.ComponentLoader
         @setSource packageId, name, source, language, callback
       return
 
-    _eval = require 'eval'
+    Module = require 'module'
     if language is 'coffeescript'
       try
         source = CoffeeScript.compile source,
           bare: true
       catch e
         return callback e
-    else if language is 'es6'
+    else if language in ['es6', 'es2015']
       try
         source = babel.transform(source).code
       catch e
         return callback e
 
     try
-      # Eval so we can get a function
-      implementation = _eval source, path.resolve(@baseDir, "./components/#{name}.js"), {}, true
+      # Use the Node.js module API to evaluate in the correct directory context
+      modulePath = path.resolve @baseDir, "./components/#{name}.js"
+      moduleImpl = new Module modulePath, module
+      moduleImpl.paths = Module._nodeModulePaths path.dirname modulePath
+      moduleImpl.filename = modulePath
+      moduleImpl._compile source, modulePath
+      implementation = moduleImpl.exports
     catch e
       return callback e
     unless implementation or implementation.getComponent

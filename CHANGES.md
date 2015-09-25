@@ -4,6 +4,7 @@ NoFlo ChangeLog
 ## 0.5.14 (git master)
 
 * EcmaScript 6 support in Component Loader
+* Node.js 4.x compatibility
 
 ## 0.5.13 (April 22nd 2015)
 
