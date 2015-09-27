@@ -21,7 +21,7 @@
     "noflo": "^0.5.0",
     "noflo-runtime-websocket": "^0.5.1",
     "password-maker": "^1.0.5",
-    "uuid": "^1.4.1",
+    "uuid": "2.0.1",
     "yargs": "^3.23.0"
   },
   "devDependencies": {
