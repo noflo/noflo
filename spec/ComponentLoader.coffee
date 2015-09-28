@@ -198,11 +198,11 @@ describe 'ComponentLoader with no external packages installed', ->
         done()
     it 'should return an error for missing components', (done) ->
       l.getSource 'foo/BarBaz', (err, src) ->
-        chai.expect(err).to.be.an 'object'
+        chai.expect(err).to.be.an 'error'
         done()
     it 'should return an error for non-file components', (done) ->
       l.getSource 'foo/Split', (err, src) ->
-        chai.expect(err).to.be.an 'object'
+        chai.expect(err).to.be.an 'error'
         done()
 
   describe 'writing sources', ->
@@ -265,10 +265,10 @@ describe 'ComponentLoader with no external packages installed', ->
         unless platform.isBrowser()
           nonWorkingSource = nonWorkingSource.replace "'noflo'", "'../src/lib/NoFlo'"
         l.setSource 'foo', 'NotWorking', nonWorkingSource, 'js', (err) ->
-          chai.expect(err).to.be.an 'object'
+          chai.expect(err).to.be.an 'error'
           done()
       it 'should not be a loadable component', (done) ->
         l.load 'foo/NotWorking', (err, inst) ->
-          chai.expect(err).to.be.an 'object'
+          chai.expect(err).to.be.an 'error'
           chai.expect(inst).to.be.an 'undefined'
           done()
