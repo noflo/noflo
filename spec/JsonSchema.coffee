@@ -1,8 +1,7 @@
 if typeof process isnt 'undefined' and process.execPath and process.execPath.match /node|iojs/
   chai = require 'chai' unless chai
   fs = require 'fs'
-
-chai.use require 'chai-json-schema'
+  tv4 = require 'tv4'
 
 describe 'JSON Schema validator', ->
   schema = null
@@ -12,7 +11,8 @@ describe 'JSON Schema validator', ->
       if err
         return done err
       graph = JSON.parse json
-      chai.expect(graph).to.be.jsonSchema schema
+      result = tv4.validateResult graph, schema
+      chai.expect(result.valid).to.equal true
       done()
 
   before (done) ->
