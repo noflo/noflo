@@ -219,7 +219,7 @@ class ComponentLoader extends EventEmitter
           bare: true
       catch e
         return callback e
-    else if language is 'es6'
+    else if language in ['es6', 'es2015']
       unless window.babel
         return callback new Error 'Babel compiler not available'
       try
