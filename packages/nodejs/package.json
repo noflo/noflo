@@ -25,6 +25,6 @@
     "yargs": "^3.23.0"
   },
   "devDependencies": {
-    "jshint": "*"
+    "jshint": "2.8.0"
   }
 }
