@@ -4,8 +4,7 @@
   "description": "Node.js runtime for NoFlo",
   "main": "index.js",
   "scripts": {
-    "lint": "jshint bin/noflo-nodejs bin/noflo-nodejs-init index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "grunt test"
   },
   "bin": {
     "noflo-nodejs": "./bin/noflo-nodejs",
@@ -25,6 +24,9 @@
     "yargs": "^3.23.0"
   },
   "devDependencies": {
+    "coffeelint": "^1.13.0",
+    "grunt": "^0.4.5",
+    "grunt-coffeelint": "0.0.13",
     "jshint": "*"
   }
 }
