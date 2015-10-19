@@ -14,7 +14,7 @@
   "author": "Henri Bergius <henri.bergius@iki.fi>",
   "license": "MIT",
   "dependencies": {
-    "cli-color": "~0.3.3",
+    "cli-color": "~1.1.0",
     "coffee-cache": "^1.0.2",
     "coffee-script": "~1.9.1",
     "flowhub-registry": "0.0.3",
