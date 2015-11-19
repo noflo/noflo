@@ -1,5 +1,13 @@
 language: node_js
 node_js:
-  - "0.12"
+- '0.12'
 before_script:
-  - npm install -g grunt-cli
+- npm install -g grunt-cli
+deploy:
+  provider: npm
+  email: jononor@gmail.com
+  api_key:
+    secure: Gnd4xVuVOxRnmcyE39R2e8prNLb6UWbKiXRS5NEWtAEUWZjDzamWTEbhX8NjzUn2oAfskLAOpXBjkOp+tkwiLgn/h29A9So6Zo6egnNhBualJEzhVRkpBmijEiYtcEce/kO8NEHlmDUHSUStiDasGdAd6WlkxPWEpSUhwLPWCcA=
+  on:
+    tags: true
+    repo: noflo/noflo-nodejs
