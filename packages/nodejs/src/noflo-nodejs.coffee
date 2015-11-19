@@ -3,12 +3,11 @@ clc = require 'cli-color'
 http = require 'http'
 lib = require '../index'
 noflo = require 'noflo'
+trace = require('noflo-runtime-base').trace
 runtime = require 'noflo-runtime-websocket'
 flowhub = require 'flowhub-registry'
 querystring = require 'querystring'
 path = require 'path'
-
-trace = require './trace'
 
 program = (require 'yargs')
   .options(
