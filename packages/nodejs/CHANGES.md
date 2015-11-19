@@ -1,4 +1,9 @@
 
+## noflo-nodejs 0.6.1
+
+* Support for [Flowtrace](https://github.com/flowbased/flowtrace) when using `--trace` option.
+* For long-running programs, flowtrace dumps can be triggered via `SIGUSR2` Unix signal
+
 ## noflo-nodejs 0.5.0
 
 * Implements FBP protocol version 0.5. Use of a runtime `secret` is now enforced

@@ -92,6 +92,30 @@ If you want to run an existing graph, you can use the `--graph` option.
 
 If you want the process to exit when the network stops, you can pass `--batch`.
 
+## Debugging
+
+noflo-nodejs supports [flowtrace](https://github.com/flowbased/flowtrace) allows to trace & store the execution of the FBP program,
+so you can debug any issues that would occur. Specify `--trace` to enable tracing.
+
+    noflo-nodejs --graph graphs/MyMainGraph.json --trace
+
+If you are running in `--batch` mode, the file will be dumped to disk when the program terminates.
+Otherwise you can send the `SIGUSR2` to trigger dumping the file to disk.
+
+    kill -SIGUSR2 $PID_OF_PROCESS
+    ... Wrote flowtrace to: /tmp/1151020-12063-ami5vq.json
+
+You can now use various flowtrace tools to introspect the data.
+For instance, you can get a human readable log using `flowtrace-show`
+
+    flowtrace-show /tmp/1151020-12063-ami5vq.json
+
+    -> IN repeat CONN
+    -> IN repeat DATA hello world
+    -> IN stdout CONN
+    -> IN stdout DATA hello world
+    -> IN repeat DISC
+    -> IN stdout DISC
 
 ## Usage without Flowhub registration
 
