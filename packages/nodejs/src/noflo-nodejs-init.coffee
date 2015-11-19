@@ -44,6 +44,10 @@ if program.user and !defaults.user
   lib.saveDefaults defaults
   console.log 'Saved your Flowhub user ID ' + defaults.user + ' to defaults in ' + lib.getDefaultsPath() + '\n'
 
+unless program.secret
+  generator = require 'password-maker'
+  program.secret = generator 8
+
 permissions = {}
 if program.secret and program.permissions
   permissions[program.secret] = program.permissions
