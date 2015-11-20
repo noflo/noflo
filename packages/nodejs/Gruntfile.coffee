@@ -12,6 +12,16 @@ module.exports = ->
             value: 80
             level: 'warn'
 
-  @loadNpmTasks 'grunt-coffeelint'
+    # Tests
+    mochaTest:
+      nodejs:
+        src: ['spec/*.coffee']
+        options:
+          reporter: 'spec'
+          require: 'coffee-script/register'
+          grep: process.env.TESTS
 
-  @registerTask 'test', ['coffeelint']
+  @loadNpmTasks 'grunt-coffeelint'
+  @loadNpmTasks 'grunt-mocha-test'
+
+  @registerTask 'test', ['mochaTest', 'coffeelint']
