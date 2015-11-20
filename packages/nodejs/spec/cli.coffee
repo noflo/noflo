@@ -8,7 +8,7 @@ describe 'noflo-nodejs', ->
     stderr = null
 
     it 'should execute graph then exit', (done) ->
-      @timeout 10*1000
+      @timeout 30*1000
       graph = path.join(__dirname, './fixtures/helloworld.fbp')
       prog = path.join(__dirname, '../bin/noflo-nodejs')
       cmd = "#{prog} --graph=#{graph} --batch --trace --register=false"
