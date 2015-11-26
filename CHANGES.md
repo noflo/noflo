@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.5.15 (November 26th 2015)
+
+* Support for [scoped NPM packages](https://docs.npmjs.com/getting-started/scoped-packages)
+
 ## 0.5.14 (September 25th 2015)
 
 * EcmaScript 6 support in Component Loader

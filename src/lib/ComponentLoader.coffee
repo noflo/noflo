@@ -22,6 +22,7 @@ class ComponentLoader extends EventEmitter
   getModulePrefix: (name) ->
     return '' unless name
     return '' if name is 'noflo'
+    name = name.replace /\@[a-z\-]+\//, '' if name[0] is '@'
     name.replace 'noflo-', ''
 
   getModuleComponents: (moduleName) ->
