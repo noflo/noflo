@@ -7,7 +7,7 @@
     "flow"
   ],
   "author": "Henri Bergius <henri.bergius@iki.fi>",
-  "version": "0.5.15",
+  "version": "0.5.16",
   "license": "MIT",
   "engines": {
     "node": ">=0.6.0"
@@ -19,7 +19,7 @@
     "coffee-script": "1.10.0",
     "fbp": "1.1.4",
     "npmlog": "0.0.6",
-    "read-installed": "2.0.7",
+    "read-installed": "4.0.3",
     "shell": "0.2.10",
     "underscore": "1.8.3"
   },

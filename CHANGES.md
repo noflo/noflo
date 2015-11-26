@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.5.16 (November 27th 2015)
+
+* Update the `read-installed` package to support scoped dependencies
+
 ## 0.5.15 (November 26th 2015)
 
 * Support for [scoped NPM packages](https://docs.npmjs.com/getting-started/scoped-packages)
