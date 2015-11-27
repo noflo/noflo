@@ -42,7 +42,7 @@
   "main": "./lib/NoFlo",
   "bin": {
     "noflo": "./bin/noflo",
-    "noflo_cache_preheat": "./bin/noflo_cache_preheat"
+    "noflo-cache-preheat": "./bin/noflo-cache-preheat"
   },
   "homepage": "http://noflojs.org/",
   "repository": {
