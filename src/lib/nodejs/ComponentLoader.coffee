@@ -98,7 +98,7 @@ class ComponentLoader extends loader.ComponentLoader
   cachePath: ->
     path.resolve @baseDir, './.noflo.json'
 
-  writeCache: ->
+  writeCache: (callback) ->
     cacheData =
       components: {}
       loaders: @componentLoaders or []
@@ -110,7 +110,7 @@ class ComponentLoader extends loader.ComponentLoader
     filePath = @cachePath()
     fs.writeFile filePath, JSON.stringify(cacheData, null, 2),
       encoding: 'utf-8'
-    , ->
+    , callback
 
   readCache: (callback) ->
     filePath = @cachePath()
@@ -163,8 +163,12 @@ class ComponentLoader extends loader.ComponentLoader
       @ready = true
       @processing = false
       @emit 'ready', true
-      callback @components if callback
-      @writeCache() if @options.cache
+      unless @options.cache
+        callback @components if callback
+        return
+      @writeCache =>
+        callback @components if callback
+      return
 
     @getCoreComponents (coreComponents) =>
       @components[name] = cPath for name, cPath of coreComponents
