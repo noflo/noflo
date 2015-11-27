@@ -73,6 +73,11 @@ describe 'NoFlo Network', ->
       chai.expect(n.loader).to.be.an 'object'
     it 'should have transmitted the baseDir to the Component Loader', ->
       chai.expect(n.loader.baseDir).to.equal g.baseDir
+    it 'should be able to list components', (done) ->
+      @timeout 4000
+      n.loader.listComponents (components) ->
+        chai.expect(components).to.be.an 'object'
+        done()
     it 'should have an uptime', ->
       chai.expect(n.uptime()).to.be.at.least 0
 
@@ -102,6 +107,7 @@ describe 'NoFlo Network', ->
     g = null
     n = null
     before (done) ->
+      @timeout 4000
       g = new noflo.Graph
       g.baseDir = root
       g.addNode 'Merge', 'Merge'
