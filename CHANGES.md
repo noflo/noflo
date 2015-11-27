@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.5.17 (November 27th 2015)
+
+* Added a new `noflo_cache_preheat` tool that can be used for improving start-up times in Node.js projects with large lists of dependencies. Can be used as a `postinstall` script
+
 ## 0.5.16 (November 27th 2015)
 
 * Update the `read-installed` package to support scoped dependencies
