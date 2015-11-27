@@ -57,7 +57,7 @@ describe 'Graph component', ->
 
   describe 'with JSON graph definition', ->
     it 'should emit a ready event after network has been loaded', (done) ->
-      @timeout 4000
+      @timeout 6000
       c.baseDir = root
       c.once 'ready', ->
         chai.expect(c.network).not.to.be.null
@@ -76,7 +76,7 @@ describe 'Graph component', ->
           Merge:
             component: 'Merge'
     it 'should expose available ports', (done) ->
-      @timeout 4000
+      @timeout 6000
       c.baseDir = root
       c.once 'ready', ->
         chai.expect(c.inPorts.ports).to.have.keys [
@@ -106,7 +106,7 @@ describe 'Graph component', ->
         ]
     it 'should update description from the graph', (done) ->
       c.baseDir = root
-      @timeout 4000
+      @timeout 6000
       c.once 'ready', ->
         chai.expect(c.network).not.to.be.null
         chai.expect(c.ready).to.be.true
@@ -126,7 +126,7 @@ describe 'Graph component', ->
             component: 'Split'
     it 'should expose only exported ports when they exist', (done) ->
       c.baseDir = root
-      @timeout 4000
+      @timeout 6000
       c.once 'ready', ->
         chai.expect(c.inPorts.ports).to.have.keys [
           'graph'
@@ -161,7 +161,7 @@ describe 'Graph component', ->
         ]
     it 'should be able to run the graph', (done) ->
       c.baseDir = root
-      @timeout 4000
+      @timeout 6000
       c.once 'ready', ->
         ins = noflo.internalSocket.createSocket()
         out = noflo.internalSocket.createSocket()
@@ -208,7 +208,7 @@ describe 'Graph component', ->
     gr.addInport 'in', 'Merge', 'in'
     gr.addOutport 'out', 'Split', 'out'
     it 'should emit a ready event after network has been loaded', (done) ->
-      @timeout 4000
+      @timeout 6000
       c.once 'ready', ->
         chai.expect(c.network).not.to.be.null
         chai.expect(c.ready).to.be.true
@@ -223,7 +223,7 @@ describe 'Graph component', ->
       chai.expect(c.ready).to.be.false
     it 'should expose available ports', (done) ->
       c.baseDir = root
-      @timeout 4000
+      @timeout 6000
       c.once 'ready', ->
         chai.expect(c.inPorts.ports).to.have.keys [
           'graph'
@@ -242,7 +242,7 @@ describe 'Graph component', ->
       g.send gr
     it 'should be able to run the graph', (done) ->
       c.baseDir = root
-      @timeout 4000
+      @timeout 6000
       c.once 'ready', ->
         ins = noflo.internalSocket.createSocket()
         out = noflo.internalSocket.createSocket()
@@ -263,7 +263,7 @@ describe 'Graph component', ->
   describe 'with a FBP file with INPORTs and OUTPORTs', ->
     file = "#{urlPrefix}spec/fixtures/subgraph.fbp"
     it 'should emit a ready event after network has been loaded', (done) ->
-      @timeout 4000
+      @timeout 6000
       c.once 'ready', ->
         chai.expect(c.network).not.to.be.null
         chai.expect(c.ready).to.be.true
@@ -278,7 +278,7 @@ describe 'Graph component', ->
       chai.expect(c.ready).to.be.false
     it 'should expose available ports', (done) ->
       c.baseDir = root
-      @timeout 4000
+      @timeout 6000
       c.once 'ready', ->
         chai.expect(c.inPorts.ports).to.have.keys [
           'graph'
@@ -297,7 +297,7 @@ describe 'Graph component', ->
       g.send file
     it 'should be able to run the graph', (done) ->
       c.baseDir = root
-      @timeout 4000
+      @timeout 6000
       c.once 'ready', ->
         ins = noflo.internalSocket.createSocket()
         out = noflo.internalSocket.createSocket()
@@ -322,7 +322,7 @@ describe 'Graph component', ->
   describe 'with a FBP file with legacy EXPORTS', ->
     file = "#{urlPrefix}spec/fixtures/subgraph_legacy.fbp"
     it 'should emit a ready event after network has been loaded', (done) ->
-      @timeout 4000
+      @timeout 6000
       c.once 'ready', ->
         chai.expect(c.network).not.to.be.null
         chai.expect(c.ready).to.be.true
@@ -337,7 +337,7 @@ describe 'Graph component', ->
       chai.expect(c.ready).to.be.false
     it 'should expose available ports', (done) ->
       c.baseDir = root
-      @timeout 4000
+      @timeout 6000
       c.once 'ready', ->
         chai.expect(c.inPorts.ports).to.have.keys [
           'graph'
@@ -356,7 +356,7 @@ describe 'Graph component', ->
       g.send file
     it 'should have disambiguated the exported ports', (done) ->
       c.baseDir = root
-      @timeout 4000
+      @timeout 6000
       c.once 'ready', ->
         chai.expect(c.network.graph.exports).to.be.empty
         chai.expect(c.network.graph.inports).to.be.not.empty
@@ -370,7 +370,7 @@ describe 'Graph component', ->
       g.send file
     it 'should be able to run the graph', (done) ->
       c.baseDir = root
-      @timeout 4000
+      @timeout 6000
       c.once 'ready', ->
         ins = noflo.internalSocket.createSocket()
         out = noflo.internalSocket.createSocket()
@@ -424,7 +424,7 @@ describe 'Graph component', ->
     grInitials.addEdge 'SplitIn', 'out', 'SplitOut', 'in'
 
     it 'should send defaults', (done) ->
-      @timeout 4000
+      @timeout 6000
       cl = new noflo.ComponentLoader root
       cl.listComponents (components) ->
         cl.components.Split = createSplit
@@ -439,7 +439,7 @@ describe 'Graph component', ->
           inst.start()
 
     it 'should send initials', (done) ->
-      @timeout 4000
+      @timeout 6000
       cl = new noflo.ComponentLoader root
       cl.listComponents (components) ->
         cl.components.Split = createSplit
@@ -454,7 +454,7 @@ describe 'Graph component', ->
           inst.start()
 
     it 'should not send defaults when an inport is attached externally', (done) ->
-      @timeout 4000
+      @timeout 6000
       cl = new noflo.ComponentLoader root
       cl.listComponents (components) ->
         cl.components.Split = createSplit

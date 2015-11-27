@@ -74,7 +74,7 @@ describe 'NoFlo Network', ->
     it 'should have transmitted the baseDir to the Component Loader', ->
       chai.expect(n.loader.baseDir).to.equal g.baseDir
     it 'should be able to list components', (done) ->
-      @timeout 4000
+      @timeout 6000
       n.loader.listComponents (components) ->
         chai.expect(components).to.be.an 'object'
         done()
@@ -107,7 +107,7 @@ describe 'NoFlo Network', ->
     g = null
     n = null
     before (done) ->
-      @timeout 4000
+      @timeout 6000
       g = new noflo.Graph
       g.baseDir = root
       g.addNode 'Merge', 'Merge'
@@ -302,7 +302,7 @@ describe 'NoFlo Network', ->
 
     before (done) ->
       stub()
-      @timeout 4000
+      @timeout 6000
 
       g = new noflo.Graph
       g.baseDir = root
@@ -346,7 +346,7 @@ describe 'NoFlo Network', ->
       g.addNode 'Repeat', 'Split'
       g.addEdge 'Repeat', 'out', 'Callback', 'in'
     it 'should call the Callback with the original IIP value', (done) ->
-      @timeout 4000
+      @timeout 6000
       cb = (packet) ->
         chai.expect(packet).to.equal 'Foo'
         done()
@@ -363,7 +363,7 @@ describe 'NoFlo Network', ->
         , true
       , 10
     it 'should allow removing the IIPs', (done) ->
-      @timeout 4000
+      @timeout 6000
       removed = 0
       onRemove = ->
         removed++
