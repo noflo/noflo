@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.5.18 (git master)
+## 0.5.18 (November 30th 2015)
 
 * Make NoFlo component cache paths relative to project root
 

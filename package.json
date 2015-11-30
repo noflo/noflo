@@ -7,7 +7,7 @@
     "flow"
   ],
   "author": "Henri Bergius <henri.bergius@iki.fi>",
-  "version": "0.5.17",
+  "version": "0.5.18",
   "license": "MIT",
   "engines": {
     "node": ">=0.6.0"
