@@ -124,6 +124,7 @@ class ComponentLoader extends loader.ComponentLoader
       catch e
         callback e
       return callback new Error 'No components in cache' unless cacheData.components
+      @components = {}
       for name, cPath of cacheData.components
         @components[name] = path.resolve @baseDir, cPath
       unless cacheData.loaders?.length
