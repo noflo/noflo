@@ -105,7 +105,7 @@ class ComponentLoader extends loader.ComponentLoader
 
     for name, cPath of @components
       continue unless typeof cPath is 'string'
-      cacheData.components[name] = cPath
+      cacheData.components[name] = path.relative @baseDir, cPath
 
     filePath = @cachePath()
     fs.writeFile filePath, JSON.stringify(cacheData, null, 2),
@@ -124,7 +124,8 @@ class ComponentLoader extends loader.ComponentLoader
       catch e
         callback e
       return callback new Error 'No components in cache' unless cacheData.components
-      @components = cacheData.components
+      for name, cPath of cacheData.components
+        @components[name] = path.resolve @baseDir, cPath
       unless cacheData.loaders?.length
         callback null
         return

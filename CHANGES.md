@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.5.18 (git master)
+
+* Make NoFlo component cache paths relative to project root
+
 ## 0.5.17 (November 27th 2015)
 
 * Added a new `noflo-cache-preheat` tool that can be used for improving start-up times in Node.js projects with large lists of dependencies. Can be used as a `postinstall` script
