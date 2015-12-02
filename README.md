@@ -21,11 +21,11 @@ Read more at <http://noflojs.org/>.
 
 NoFlo itself is just a library for implementing flow-based programs in JavaScript. There is an ecosystem of tools around NoFlo and the [fbp protocol](http://noflojs.org/documentation/protocol/) that make it more powerful. Here are some of them:
 
-* [Flowhub](https://flowhub.io) -- browser-based visual programming IDE for NoFlo and other flow-based systems
-* [noflo-nodejs](https://github.com/noflo/noflo-nodejs) -- command-line interface for running NoFlo programs on Node.js
-* [MsgFlo](https://github.com/msgflo/msgflo) -- a way to connect multiple computers running NoFlo and other FBP environments in a single flow-based network
-* [fbp-spec](https://github.com/flowbased/fbp-spec) -- data-driven test runner for NoFlo and other FBP environments
-* [flowtrace](https://github.com/flowbased/flowtrace) -- tool for retroactive debugging of NoFlo programs. Supports visual replay with Flowhub
+* [Flowhub](https://flowhub.io) -- browser-based visual programming **IDE** for NoFlo and other flow-based systems
+* [noflo-nodejs](https://github.com/noflo/noflo-nodejs) -- command-line interface for running NoFlo programs on **Node.js**
+* [MsgFlo](https://github.com/msgflo/msgflo) -- for running NoFlo and other FBP runtimes as a **distributed system**
+* [fbp-spec](https://github.com/flowbased/fbp-spec) -- **data-driven tests** for NoFlo and other FBP environments
+* [flowtrace](https://github.com/flowbased/flowtrace) -- tool for **retroactive debugging** of NoFlo programs. Supports visual replay with Flowhub
 
 See also the [list of reusable NoFlo modules on NPM](https://www.npmjs.com/browse/keyword/noflo).
 
