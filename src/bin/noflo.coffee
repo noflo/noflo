@@ -115,6 +115,10 @@ cli.main (args, options) ->
       baseDir: baseDir
       cache: options.cache
     , (network) ->
+      network.on 'process-error', (err) ->
+        console.error err.id, err.error
+        process.exit 1
+
       addDebug network, options.verbose, options.subgraph if options.debug
 
       return unless options.interactive
