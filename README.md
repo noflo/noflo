@@ -33,7 +33,7 @@ See also the [list of reusable NoFlo modules on NPM](https://www.npmjs.com/brows
 
 NoFlo is available for Node.js [via NPM](https://npmjs.org/package/noflo), so you can install it with:
 
-    $ npm install -g noflo
+    $ npm install noflo --save
 
 You can make a browser build of NoFlo using component.io. The [grunt-noflo-browser](https://github.com/noflo/grunt-noflo-browser) plugin makes this easy.
 
