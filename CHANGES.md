@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.5.19
+## 0.5.20 (December 2nd 2015)
 
 * NoFlo network instances now default to `debug` mode, meaning that errors thrown by components are available via the `process-error` event
 * If there are no listeners for the network `process-error` events or socket `error` event, then they are thrown
