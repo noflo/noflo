@@ -311,7 +311,7 @@ class Network extends EventEmitter
     node.component.network.setDebug @debug
 
     emitSub = (type, data) =>
-      if type is 'process-error' and @listenerCount('process-error') is 0
+      if type is 'process-error' and @listeners('process-error').length is 0
         throw data
       do @increaseConnections if type is 'connect'
       do @decreaseConnections if type is 'disconnect'
@@ -365,7 +365,7 @@ class Network extends EventEmitter
         socket: socket
         metadata: socket.metadata
     socket.on 'error', (event) =>
-      throw event if @listenerCount('process-error') is 0
+      throw event if @listeners('process-error').length is 0
       @emit 'process-error', event
 
   subscribeNode: (node) ->
