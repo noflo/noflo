@@ -1,6 +1,13 @@
 NoFlo ChangeLog
 ===============
 
+## 0.5.19
+
+* NoFlo network instances now default to `debug` mode, meaning that errors thrown by components are available via the `process-error` event
+* If there are no listeners for the network `process-error` events or socket `error` event, then they are thrown
+* This change of behavior fixes issues with stale state in WirePattern networks caused by downstream exceptions
+* Debug mode can be disabled with `network.setDebug(false)`
+
 ## 0.5.18 (November 30th 2015)
 
 * Make NoFlo component cache paths relative to project root

@@ -153,6 +153,22 @@ describe 'NoFlo Network', ->
       chai.expect(n.initials).not.to.be.empty
       n.start()
 
+    it 'should have started in debug mode', ->
+      chai.expect(n.debug).to.equal true
+
+    it 'should emit a process-error when a component throws', (done) ->
+      g.removeInitial 'Callback', 'callback'
+      g.removeInitial 'Merge', 'in'
+      g.addInitial (data) ->
+        throw new Error 'got Foo'
+      , 'Callback', 'callback'
+      g.addInitial 'Foo', 'Merge', 'in'
+      n.once 'process-error', (err) ->
+        chai.expect(err).to.be.an 'object'
+        chai.expect(err.error.message).to.equal 'got Foo'
+        done()
+      n.sendInitials()
+
     describe 'once started', ->
       it 'should be marked as started', ->
         chai.expect(n.isStarted()).to.equal true
