@@ -101,7 +101,11 @@ class ComponentLoader extends loader.ComponentLoader
   writeCache: (callback) ->
     cacheData =
       components: {}
-      loaders: @componentLoaders or []
+      loaders: []
+
+    loaders = @componentLoaders or []
+    cacheData.loaders = loaders.map (lPath) =>
+      path.relative @baseDir, lPath
 
     for name, cPath of @components
       continue unless typeof cPath is 'string'
@@ -133,7 +137,7 @@ class ComponentLoader extends loader.ComponentLoader
       done = _.after cacheData.loaders.length, ->
         callback null
       cacheData.loaders.forEach (loaderPath) =>
-        loader = require loaderPath
+        loader = require path.resolve @baseDir, loaderPath
         @registerLoader loader, done
 
   listComponents: (callback) ->

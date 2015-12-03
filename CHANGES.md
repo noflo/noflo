@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.5.21 (December 3rd 2015)
+
+* Made NoFlo component cache keep Component Loader paths also relative
+
 ## 0.5.20 (December 2nd 2015)
 
 * NoFlo network instances now default to `debug` mode, meaning that errors thrown by components are available via the `process-error` event
