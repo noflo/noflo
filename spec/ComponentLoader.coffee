@@ -53,6 +53,23 @@ describe 'ComponentLoader with no external packages installed', ->
   it 'should not have any packages in the checked list', ->
     chai.expect(l.checked).to.be.empty
 
+  describe 'normalizing names', ->
+    it 'should return simple module names as-is', ->
+      normalized = l.getModulePrefix 'foo'
+      chai.expect(normalized).to.equal 'foo'
+    it 'should return empty for NoFlo core', ->
+      normalized = l.getModulePrefix 'noflo'
+      chai.expect(normalized).to.equal ''
+    it 'should strip noflo-', ->
+      normalized = l.getModulePrefix 'noflo-image'
+      chai.expect(normalized).to.equal 'image'
+    it 'should strip NPM scopes', ->
+      normalized = l.getModulePrefix '@noflo/foo'
+      chai.expect(normalized).to.equal 'foo'
+    it 'should strip NPM scopes and noflo-', ->
+      normalized = l.getModulePrefix '@noflo/noflo-image'
+      chai.expect(normalized).to.equal 'image'
+
   it 'should be able to read a list of components', (done) ->
     @timeout 10000
     ready = false

@@ -3,7 +3,7 @@ sudo: false
 node_js:
 - '0.10'
 - '0.12'
-- '4.1.1'
+- '4.2'
 script: npm test
 deploy:
   provider: npm

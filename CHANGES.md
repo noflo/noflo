@@ -1,6 +1,33 @@
 NoFlo ChangeLog
 ===============
 
+## 0.5.21 (December 3rd 2015)
+
+* Made NoFlo component cache keep Component Loader paths also relative
+
+## 0.5.20 (December 2nd 2015)
+
+* NoFlo network instances now default to `debug` mode, meaning that errors thrown by components are available via the `process-error` event
+* If there are no listeners for the network `process-error` events or socket `error` event, then they are thrown
+* This change of behavior fixes issues with stale state in WirePattern networks caused by downstream exceptions
+* Debug mode can be disabled with `network.setDebug(false)`
+
+## 0.5.18 (November 30th 2015)
+
+* Make NoFlo component cache paths relative to project root
+
+## 0.5.17 (November 27th 2015)
+
+* Added a new `noflo-cache-preheat` tool that can be used for improving start-up times in Node.js projects with large lists of dependencies. Can be used as a `postinstall` script
+
+## 0.5.16 (November 27th 2015)
+
+* Update the `read-installed` package to support scoped dependencies
+
+## 0.5.15 (November 26th 2015)
+
+* Support for [scoped NPM packages](https://docs.npmjs.com/getting-started/scoped-packages)
+
 ## 0.5.14 (September 25th 2015)
 
 * EcmaScript 6 support in Component Loader

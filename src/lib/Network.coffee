@@ -51,7 +51,7 @@ class Network extends EventEmitter
     @defaults = []
     @graph = graph
     @started = false
-    @debug = false
+    @debug = true
 
     # On Node.js we default the baseDir for component loading to
     # the current working directory
@@ -152,6 +152,7 @@ class Network extends EventEmitter
         port.name = name
 
       @subscribeSubgraph process if instance.isSubgraph()
+
       @subscribeNode process
 
       # Store and return the process instance
@@ -307,7 +308,11 @@ class Network extends EventEmitter
 
     return unless node.component.network
 
+    node.component.network.setDebug @debug
+
     emitSub = (type, data) =>
+      if type is 'process-error' and @listeners('process-error').length is 0
+        throw data
       do @increaseConnections if type is 'connect'
       do @decreaseConnections if type is 'disconnect'
       data = {} unless data
@@ -360,6 +365,7 @@ class Network extends EventEmitter
         socket: socket
         metadata: socket.metadata
     socket.on 'error', (event) =>
+      throw event if @listeners('process-error').length is 0
       @emit 'process-error', event
 
   subscribeNode: (node) ->
@@ -371,6 +377,7 @@ class Network extends EventEmitter
 
   addEdge: (edge, callback) ->
     socket = internalSocket.createSocket edge.metadata
+    socket.setDebug @debug
 
     from = @getNode edge.from.node
     unless from
@@ -430,6 +437,7 @@ class Network extends EventEmitter
       #       up when legacy ports are removed.
       if typeof port.hasDefault is 'function' and port.hasDefault() and not port.isAttached()
         socket = internalSocket.createSocket()
+        socket.setDebug @debug
 
         # Subscribe to events from the socket
         @subscribeSocket socket
@@ -444,6 +452,7 @@ class Network extends EventEmitter
 
   addInitial: (initializer, callback) ->
     socket = internalSocket.createSocket initializer.metadata
+    socket.setDebug @debug
 
     # Subscribe to events from the socket
     @subscribeSocket socket

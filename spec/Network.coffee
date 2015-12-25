@@ -73,6 +73,11 @@ describe 'NoFlo Network', ->
       chai.expect(n.loader).to.be.an 'object'
     it 'should have transmitted the baseDir to the Component Loader', ->
       chai.expect(n.loader.baseDir).to.equal g.baseDir
+    it 'should be able to list components', (done) ->
+      @timeout 6000
+      n.loader.listComponents (components) ->
+        chai.expect(components).to.be.an 'object'
+        done()
     it 'should have an uptime', ->
       chai.expect(n.uptime()).to.be.at.least 0
 
@@ -102,6 +107,7 @@ describe 'NoFlo Network', ->
     g = null
     n = null
     before (done) ->
+      @timeout 6000
       g = new noflo.Graph
       g.baseDir = root
       g.addNode 'Merge', 'Merge'
@@ -146,6 +152,22 @@ describe 'NoFlo Network', ->
 
       chai.expect(n.initials).not.to.be.empty
       n.start()
+
+    it 'should have started in debug mode', ->
+      chai.expect(n.debug).to.equal true
+
+    it 'should emit a process-error when a component throws', (done) ->
+      g.removeInitial 'Callback', 'callback'
+      g.removeInitial 'Merge', 'in'
+      g.addInitial (data) ->
+        throw new Error 'got Foo'
+      , 'Callback', 'callback'
+      g.addInitial 'Foo', 'Merge', 'in'
+      n.once 'process-error', (err) ->
+        chai.expect(err).to.be.an 'object'
+        chai.expect(err.error.message).to.equal 'got Foo'
+        done()
+      n.sendInitials()
 
     describe 'once started', ->
       it 'should be marked as started', ->
@@ -296,6 +318,7 @@ describe 'NoFlo Network', ->
 
     before (done) ->
       stub()
+      @timeout 6000
 
       g = new noflo.Graph
       g.baseDir = root
@@ -339,6 +362,7 @@ describe 'NoFlo Network', ->
       g.addNode 'Repeat', 'Split'
       g.addEdge 'Repeat', 'out', 'Callback', 'in'
     it 'should call the Callback with the original IIP value', (done) ->
+      @timeout 6000
       cb = (packet) ->
         chai.expect(packet).to.equal 'Foo'
         done()
@@ -355,6 +379,7 @@ describe 'NoFlo Network', ->
         , true
       , 10
     it 'should allow removing the IIPs', (done) ->
+      @timeout 6000
       removed = 0
       onRemove = ->
         removed++

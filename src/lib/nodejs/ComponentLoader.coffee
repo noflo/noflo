@@ -98,19 +98,23 @@ class ComponentLoader extends loader.ComponentLoader
   cachePath: ->
     path.resolve @baseDir, './.noflo.json'
 
-  writeCache: ->
+  writeCache: (callback) ->
     cacheData =
       components: {}
-      loaders: @componentLoaders or []
+      loaders: []
+
+    loaders = @componentLoaders or []
+    cacheData.loaders = loaders.map (lPath) =>
+      path.relative @baseDir, lPath
 
     for name, cPath of @components
       continue unless typeof cPath is 'string'
-      cacheData.components[name] = cPath
+      cacheData.components[name] = path.relative @baseDir, cPath
 
     filePath = @cachePath()
     fs.writeFile filePath, JSON.stringify(cacheData, null, 2),
       encoding: 'utf-8'
-    , ->
+    , callback
 
   readCache: (callback) ->
     filePath = @cachePath()
@@ -124,14 +128,16 @@ class ComponentLoader extends loader.ComponentLoader
       catch e
         callback e
       return callback new Error 'No components in cache' unless cacheData.components
-      @components = cacheData.components
+      @components = {}
+      for name, cPath of cacheData.components
+        @components[name] = path.resolve @baseDir, cPath
       unless cacheData.loaders?.length
         callback null
         return
       done = _.after cacheData.loaders.length, ->
         callback null
       cacheData.loaders.forEach (loaderPath) =>
-        loader = require loaderPath
+        loader = require path.resolve @baseDir, loaderPath
         @registerLoader loader, done
 
   listComponents: (callback) ->
@@ -163,8 +169,12 @@ class ComponentLoader extends loader.ComponentLoader
       @ready = true
       @processing = false
       @emit 'ready', true
-      callback @components if callback
-      @writeCache() if @options.cache
+      unless @options.cache
+        callback @components if callback
+        return
+      @writeCache =>
+        callback @components if callback
+      return
 
     @getCoreComponents (coreComponents) =>
       @components[name] = cPath for name, cPath of coreComponents
