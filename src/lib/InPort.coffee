@@ -4,6 +4,13 @@
 #
 # Input Port (inport) implementation for NoFlo components
 BasePort = require './BasePort'
+IP = require './IP'
+
+ipTypes = [
+  'data'
+  'openBracket'
+  'closeBracket'
+]
 
 class InPort extends BasePort
   constructor: (options, process) ->
@@ -24,6 +31,11 @@ class InPort extends BasePort
       unless typeof process is 'function'
         throw new Error 'process must be a function'
       @process = process
+
+    if options?.handle
+      unless typeof options.handle is 'function'
+        throw new Error 'handle must be a function'
+      @handle = options.handle
 
     super options
 
@@ -64,6 +76,27 @@ class InPort extends BasePort
         @process event, @nodeInstance if @process
         @emit event
       return
+
+    # Handle IP object
+    if @handle
+      if event is 'data' and typeof payload is 'object' and
+      ipTypes.indexOf(payload.type) isnt -1
+        ip = payload
+      else
+        # Wrap legacy event
+        switch event
+          when 'connect', 'begingroup'
+            ip = new IP 'openBracket'
+            ip.groups = [ payload ] if payload
+          when 'disconnect', 'endgroup'
+            ip = new IP 'closeBracket'
+          else
+            ip = new IP 'data', payload
+
+      if @isAddressable()
+        @handle ip, id, @nodeInstance
+      else
+        @handle ip, @nodeInstance
 
     # Call the processing function
     if @process
