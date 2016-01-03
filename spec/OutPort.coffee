@@ -123,3 +123,31 @@ describe 'Outport Port', ->
       p.disconnect 1
       p.detach s2
       p.attach s3, 1
+
+  describe 'with IP objects', ->
+    s1 = s2 = s3 = null
+    beforeEach ->
+      s1 = new socket.InternalSocket
+      s2 = new socket.InternalSocket
+      s3 = new socket.InternalSocket
+
+    it 'should send data IPs and substreams', (done) ->
+      p = new outport
+      p.attach s1
+      expectedEvents = [
+        'data'
+        'openBracket'
+        'data'
+        'closeBracket'
+      ]
+      count = 0
+      s1.on 'data', (data) ->
+        count++
+        chai.expect(data).to.be.an 'object'
+        chai.expect(data.type).to.equal expectedEvents.shift()
+        chai.expect(data.data).to.equal 'my-data' if data.type is 'data'
+        done() if count is 4
+      p.data 'my-data'
+      p.openBracket()
+      .data 'my-data'
+      .closeBracket()

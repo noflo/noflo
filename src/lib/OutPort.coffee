@@ -4,6 +4,7 @@
 #
 # Output Port (outport) implementation for NoFlo components
 BasePort = require './BasePort'
+IP = require './IP'
 
 class OutPort extends BasePort
   constructor: (options) ->
@@ -57,6 +58,26 @@ class OutPort extends BasePort
     for socket in sockets
       continue unless socket
       socket.disconnect()
+
+  sendIP: (type, data, options, socketId) ->
+    ip = new IP type, data
+    for key, val of options
+      ip[key] = val
+    sockets = @getSockets socketId
+    @checkRequired sockets
+    for socket in sockets
+      continue unless socket
+      socket.post ip
+    @
+
+  openBracket: (options, socketId = null) ->
+    @sendIP 'openBracket', null, options, socketId
+
+  data: (data, options, socketId = null) ->
+    @sendIP 'data', data, options, socketId
+
+  closeBracket: (options, socketId = null) ->
+    @sendIP 'closeBracket', null, options, socketId
 
   checkRequired: (sockets) ->
     if sockets.length is 0 and @isRequired()
