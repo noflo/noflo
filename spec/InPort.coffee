@@ -260,7 +260,7 @@ describe 'Inport Port', ->
       chai.expect(ps.inPorts.in.listAttached()).to.eql [0]
       s.send type: 'data', data: 'some-data'
 
-    it 'should translate legacy events to IPs', (done) ->
+    it 'should translate legacy events to IP objects', (done) ->
       s = new socket.InternalSocket
       expectedEvents = [
         'openBracket'
@@ -288,3 +288,26 @@ describe 'Inport Port', ->
       chai.expect(ps.inPorts.in.listAttached()).to.eql [0]
       s.send 'some-data'
       s.disconnect()
+
+    it 'should translate IP objects to legacy events', (done) ->
+      s = new socket.InternalSocket
+      expectedEvents = [
+        'connect'
+        'data'
+        'disconnect'
+      ]
+      ps =
+        outPorts: new ports.OutPorts
+          out: new outport
+        inPorts: new ports.InPorts
+      ps.inPorts.add 'in',
+        datatype: 'string'
+        required: true
+      , (event, payload) ->
+        chai.expect(event).to.equal expectedEvents.shift()
+        return unless event is 'data'
+        chai.expect(payload).to.equal 'some-data'
+        done()
+      ps.inPorts.in.attach s
+      chai.expect(ps.inPorts.in.listAttached()).to.eql [0]
+      s.post type: 'data', data: 'some-data'

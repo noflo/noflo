@@ -1,4 +1,10 @@
 module.exports = class IP
+  @types: [
+    'data'
+    'openBracket'
+    'closeBracket'
+  ]
+
   # Creates as new IP object
   # Valid types: 'data', 'openBracket', 'closeBracket'
   constructor: (@type = 'data', @data = null) ->

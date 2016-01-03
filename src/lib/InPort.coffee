@@ -6,12 +6,6 @@
 BasePort = require './BasePort'
 IP = require './IP'
 
-ipTypes = [
-  'data'
-  'openBracket'
-  'closeBracket'
-]
-
 class InPort extends BasePort
   constructor: (options, process) ->
     @process = null
@@ -80,7 +74,7 @@ class InPort extends BasePort
     # Handle IP object
     if @handle
       if event is 'data' and typeof payload is 'object' and
-      ipTypes.indexOf(payload.type) isnt -1
+      IP.types.indexOf(payload.type) isnt -1
         ip = payload
       else
         # Wrap legacy event
@@ -93,17 +87,41 @@ class InPort extends BasePort
           else
             ip = new IP 'data', payload
 
+      ip.owner = @nodeInstance
       if @isAddressable()
         @handle ip, id, @nodeInstance
       else
         @handle ip, @nodeInstance
 
     # Call the processing function
+    @braceCount = [] unless @braceCount
+    @braceCount[id] = 0 unless @braceCount[id]
+    @isUnwrapped = false
     if @process
+      if event is 'data' and typeof payload is 'object' and
+      IP.types.indexOf(payload.type) isnt -1
+        # Translate IP object to legacy event
+        switch payload.type
+          when 'openBracket'
+            event = if @braceCount[id] is 0 then 'connect' else 'begingroup'
+            payload = payload.data
+            @braceCount[id]++
+          when 'closeBracket'
+            @braceCount[id]--
+            event = if @braceCount[id] is 0 then 'disconnect' else 'endgroup'
+            payload = null
+          else
+            event = 'data'
+            payload = payload.data
+            @isUnwrapped = true if @braceCount[id] is 0
       if @isAddressable()
+        @process 'connect', null, id, @nodeInstance if @isUnwrapped
         @process event, payload, id, @nodeInstance
+        @process 'disconnect', null, id, @nodeInstance if @isUnwrapped
       else
+        @process 'connect', null, @nodeInstance if @isUnwrapped
         @process event, payload, @nodeInstance
+        @process 'disconnect', null, @nodeInstance if @isUnwrapped
 
     # Emit port event
     return @emit event, payload, id if @isAddressable()
