@@ -80,8 +80,7 @@ class InPort extends BasePort
         # Wrap legacy event
         switch event
           when 'connect', 'begingroup'
-            ip = new IP 'openBracket'
-            ip.groups = [ payload ] if payload
+            ip = new IP 'openBracket', payload
           when 'disconnect', 'endgroup'
             ip = new IP 'closeBracket'
           else

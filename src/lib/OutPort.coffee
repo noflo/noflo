@@ -70,14 +70,14 @@ class OutPort extends BasePort
       socket.post ip
     @
 
-  openBracket: (options, socketId = null) ->
-    @sendIP 'openBracket', null, options, socketId
+  openBracket: (data = null, options = {}, socketId = null) ->
+    @sendIP 'openBracket', data, options, socketId
 
-  data: (data, options, socketId = null) ->
+  data: (data, options = {}, socketId = null) ->
     @sendIP 'data', data, options, socketId
 
-  closeBracket: (options, socketId = null) ->
-    @sendIP 'closeBracket', null, options, socketId
+  closeBracket: (data = null, options = {}, socketId = null) ->
+    @sendIP 'closeBracket', data, options, socketId
 
   checkRequired: (sockets) ->
     if sockets.length is 0 and @isRequired()
