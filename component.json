@@ -7,7 +7,7 @@
     "flow"
   ],
   "repo": "noflo/noflo",
-  "version": "0.5.20",
+  "version": "0.5.22",
   "dependencies": {
     "bergie/emitter": "*",
     "jashkenas/underscore": "1.8.3",
