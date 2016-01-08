@@ -245,9 +245,8 @@ describe 'Component', ->
       c.inPorts.in.attach s1
       c.outPorts.out.attach s2
 
-      i = new IP 'data', 'some-data'
-      i.groups = ['foo']
-      s1.post i
+      s1.post new IP 'data', 'some-data',
+        groups: ['foo']
 
     it 'should support substreams', (done) ->
       c = new component.Component
