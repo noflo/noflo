@@ -31,10 +31,10 @@ describe 'IP object', ->
     chai.expect(p.scope).to.equal 'request-12345'
 
   it 'should be able to clone itself', ->
-    d1 = new IP 'data', "Trooper"
-    d1.groups = ['foo', 'bar']
-    d1.owner = 'SomeProc'
-    d1.scope = 'request-12345'
+    d1 = new IP 'data', "Trooper",
+      groups: ['foo', 'bar']
+      owner: 'SomeProc'
+      scope: 'request-12345'
     d2 = d1.clone()
     chai.expect(d2).not.to.equal d1
     chai.expect(d2.type).to.equal d1.type
