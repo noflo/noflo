@@ -60,11 +60,11 @@ class OutPort extends BasePort
       socket.disconnect()
 
   sendIP: (type, data, options, socketId) ->
-    ip = new IP type, data
-    for key, val of options
-      ip[key] = val
+    ip = new IP type, data, options
     sockets = @getSockets socketId
     @checkRequired sockets
+    if @isCaching() and data isnt @cache[socketId]?.data
+      @cache[socketId] = ip
     for socket in sockets
       continue unless socket
       socket.post ip
