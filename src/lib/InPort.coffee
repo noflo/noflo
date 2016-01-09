@@ -40,7 +40,10 @@ class InPort extends BasePort
     # Assign a delegate for retrieving data should this inPort
     # have a default value.
     if @hasDefault()
-      socket.setDataDelegate => @options.default
+      if @handle
+        socket.setDataDelegate => new IP 'data', @options.default
+      else
+        socket.setDataDelegate => @options.default
 
     socket.on 'connect', =>
       @handleSocketEvent 'connect', socket, localId
