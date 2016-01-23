@@ -184,7 +184,10 @@ startServer = (program, defaultGraph) ->
 if program.graph
   program.graph = path.resolve process.cwd(), program.graph
   console.log 'Loading main graph: ' + program.graph
-  noflo.graph.loadFile program.graph, (graph) ->
+  noflo.graph.loadFile program.graph, (err, graph) ->
+    if err
+      console.log err
+      process.exit 1
     startServer program, graph
 else
   startServer program, noflo.graph.createGraph "main"
