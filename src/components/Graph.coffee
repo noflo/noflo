@@ -38,7 +38,8 @@ class Graph extends noflo.Component
     if graph.substr(0, 1) isnt "/" and graph.substr(1, 1) isnt ":" and process and process.cwd
       graph = "#{process.cwd()}/#{graph}"
 
-    graph = noflo.graph.loadFile graph, (instance) =>
+    graph = noflo.graph.loadFile graph, (err, instance) =>
+      return @error err if err
       instance.baseDir = @baseDir
       @createNetwork instance
 

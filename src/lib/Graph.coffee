@@ -828,18 +828,23 @@ exports.loadJSON = (definition, success, metadata = {}) ->
 
   graph.endTransaction 'loadJSON'
 
-  success graph
+  success null, graph
 
 exports.loadFBP = (fbpData, success) ->
-  definition = require('fbp').parse fbpData
+  try
+    definition = require('fbp').parse fbpData
+  catch e
+    return success e
   exports.loadJSON definition, success
 
 exports.loadHTTP = (url, success) ->
   req = new XMLHttpRequest
   req.onreadystatechange = ->
     return unless req.readyState is 4
+    unless req.status is 200
+      return success new Error "Failed to load #{url}: HTTP #{req.status}"
     return success() unless req.status is 200
-    success req.responseText
+    success null, eq.responseText
   req.open 'GET', url, true
   req.send()
 
@@ -863,14 +868,13 @@ exports.loadFile = (file, success, metadata = {}) ->
     return
   # Node.js graph file
   require('fs').readFile file, "utf-8", (err, data) ->
-    throw err if err
+    retuen success err if err
 
     if file.split('.').pop() is 'fbp'
       return exports.loadFBP data, success
 
     definition = JSON.parse data
     exports.loadJSON definition, success
-
 
 # remove everything in the graph
 resetGraph = (graph) ->

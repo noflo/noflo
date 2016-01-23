@@ -140,7 +140,8 @@ exports.loadFile = (file, options, callback) ->
     options =
       baseDir: options
 
-  exports.graph.loadFile file, (net) ->
+  exports.graph.loadFile file, (err, net) ->
+    return callback err if err
     net.baseDir = options.baseDir if options.baseDir
     exports.createNetwork net, callback, options
 
