@@ -50,9 +50,11 @@ class Graph extends noflo.Component
 
     graph.componentLoader = @loader
 
-    noflo.createNetwork graph, (@network) =>
+    noflo.createNetwork graph, (err, @network) =>
+      return @error err if err
       @emit 'network', @network
-      @network.connect =>
+      @network.connect (err) =>
+        return @error err if err
         notReady = false
         for name, process of @network.processes
           notReady = true unless @checkComponent name, process

@@ -83,7 +83,7 @@ exports.internalSocket = require('./InternalSocket')
 # This function handles instantiation of NoFlo networks from a Graph object. It creates
 # the network, and then starts execution by sending the Initial Information Packets.
 #
-#     noflo.createNetwork(someGraph, function (network) {
+#     noflo.createNetwork(someGraph, function (err, network) {
 #       console.log('Network is now running!');
 #     });
 #
@@ -91,8 +91,11 @@ exports.internalSocket = require('./InternalSocket')
 # third `delay` parameter. In this case you will have to handle connecting the graph and
 # sending of IIPs manually.
 #
-#     noflo.createNetwork(someGraph, function (network) {
-#       network.connect(function () {
+#     noflo.createNetwork(someGraph, function (err, network) {
+#       if (err) {
+#         throw err;
+#       }
+#       network.connect(function (err) {
 #         network.start();
 #         console.log('Network is now running!');
 #       })
@@ -105,7 +108,7 @@ exports.createNetwork = (graph, callback, options) ->
   network = new exports.Network graph, options
 
   networkReady = (network) ->
-    callback network if callback?
+    callback null, network if callback?
     # Send IIPs
     network.start()
 
@@ -116,10 +119,12 @@ exports.createNetwork = (graph, callback, options) ->
 
     # In case of delayed execution we don't wire it up
     if options.delay
-      callback network if callback?
+      callback null, network if callback?
       return
     # Wire the network up and start execution
-    network.connect -> networkReady network
+    network.connect (err) ->
+      return callback err if err
+      networkReady network
 
   network
 
@@ -128,7 +133,10 @@ exports.createNetwork = (graph, callback, options) ->
 # It is also possible to start a NoFlo network by giving it a path to a `.json` or `.fbp` network
 # definition file.
 #
-#     noflo.loadFile('somefile.json', function (network) {
+#     noflo.loadFile('somefile.json', function (err, network) {
+#       if (err) {
+#         throw err;
+#       }
 #       console.log('Network is now running!');
 #     });
 exports.loadFile = (file, options, callback) ->
