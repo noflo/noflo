@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.6.0 (git master)
+
+* Deprecated the `noflo` command in favor of [noflo-nodejs](https://www.npmjs.com/package/noflo-nodejs)
+
 ## 0.5.21 (December 3rd 2015)
 
 * Made NoFlo component cache keep Component Loader paths also relative
@@ -30,7 +34,6 @@ NoFlo ChangeLog
 
 ## 0.5.14 (September 25th 2015)
 
-* Deprecated the `noflo` command in favor of [noflo-nodejs](https://www.npmjs.com/package/noflo-nodejs)
 * EcmaScript 6 support in Component Loader
 * Node.js 4.x compatibility (`setSource` requires `components/` directory to exist in base directory to work)
 
