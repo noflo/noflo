@@ -4,6 +4,7 @@
 #
 # Input Port (inport) implementation for NoFlo components
 BasePort = require './BasePort'
+IP = require './IP'
 
 class InPort extends BasePort
   constructor: (options, process) ->
@@ -25,6 +26,11 @@ class InPort extends BasePort
         throw new Error 'process must be a function'
       @process = process
 
+    if options?.handle
+      unless typeof options.handle is 'function'
+        throw new Error 'handle must be a function'
+      @handle = options.handle
+
     super options
 
     do @prepareBuffer
@@ -34,7 +40,10 @@ class InPort extends BasePort
     # Assign a delegate for retrieving data should this inPort
     # have a default value.
     if @hasDefault()
-      socket.setDataDelegate => @options.default
+      if @handle
+        socket.setDataDelegate => new IP 'data', @options.default
+      else
+        socket.setDataDelegate => @options.default
 
     socket.on 'connect', =>
       @handleSocketEvent 'connect', socket, localId
@@ -65,12 +74,56 @@ class InPort extends BasePort
         @emit event
       return
 
-    # Call the processing function
-    if @process
-      if @isAddressable()
-        @process event, payload, id, @nodeInstance
+    # Handle IP object
+    if @handle
+      if event is 'data' and typeof payload is 'object' and
+      IP.types.indexOf(payload.type) isnt -1
+        ip = payload
       else
+        # Wrap legacy event
+        switch event
+          when 'connect', 'begingroup'
+            ip = new IP 'openBracket', payload
+          when 'disconnect', 'endgroup'
+            ip = new IP 'closeBracket'
+          else
+            ip = new IP 'data', payload
+
+      ip.owner = @nodeInstance
+      if @isAddressable()
+        @handle ip, id, @nodeInstance
+      else
+        @handle ip, @nodeInstance
+
+    # Call the processing function
+    @braceCount = [] unless @braceCount
+    @braceCount[id] = 0 unless @braceCount[id]
+    @isUnwrapped = false
+    if @process
+      if event is 'data' and typeof payload is 'object' and
+      IP.types.indexOf(payload.type) isnt -1
+        # Translate IP object to legacy event
+        switch payload.type
+          when 'openBracket'
+            event = if @braceCount[id] is 0 then 'connect' else 'begingroup'
+            payload = payload.data
+            @braceCount[id]++
+          when 'closeBracket'
+            @braceCount[id]--
+            event = if @braceCount[id] is 0 then 'disconnect' else 'endgroup'
+            payload = null
+          else
+            event = 'data'
+            payload = payload.data
+            @isUnwrapped = true if @braceCount[id] is 0
+      if @isAddressable()
+        @process 'connect', null, id, @nodeInstance if @isUnwrapped
+        @process event, payload, id, @nodeInstance
+        @process 'disconnect', null, id, @nodeInstance if @isUnwrapped
+      else
+        @process 'connect', null, @nodeInstance if @isUnwrapped
         @process event, payload, @nodeInstance
+        @process 'disconnect', null, @nodeInstance if @isUnwrapped
 
     # Emit port event
     return @emit event, payload, id if @isAddressable()

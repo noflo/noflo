@@ -2,9 +2,11 @@ if typeof process isnt 'undefined' and process.execPath and process.execPath.mat
   chai = require 'chai' unless chai
   component = require '../src/lib/Component.coffee'
   socket = require '../src/lib/InternalSocket.coffee'
+  IP = require '../src/lib/IP.coffee'
 else
   component = require 'noflo/src/lib/Component.js'
   socket = require 'noflo/src/lib/InternalSocket.js'
+  IP = require 'noflo/src/lib/IP.js'
 
 describe 'Component', ->
   describe 'with required ports', ->
@@ -206,3 +208,102 @@ describe 'Component', ->
       c.shutdown()
       chai.expect(c.started).to.equal(false)
       chai.expect(c.isStarted()).to.equal(false)
+
+  describe 'with object-based IPs', ->
+
+    it 'should speak IP objects', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            handle: (ip, component) ->
+              chai.expect(ip).to.be.an 'object'
+              chai.expect(ip.type).to.equal 'data'
+              chai.expect(ip.groups).to.be.an 'array'
+              chai.expect(ip.groups).to.eql ['foo']
+              chai.expect(ip.data).to.be.a 'string'
+              chai.expect(ip.data).to.equal 'some-data'
+
+              c.outPorts.out.data 'bar',
+                groups: ['foo']
+        outPorts:
+          out:
+            datatype: 'string'
+
+      s1 = new socket.InternalSocket
+      s2 = new socket.InternalSocket
+
+      s2.on 'data', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.type).to.equal 'data'
+        chai.expect(ip.groups).to.be.an 'array'
+        chai.expect(ip.groups).to.eql ['foo']
+        chai.expect(ip.data).to.be.a 'string'
+        chai.expect(ip.data).to.equal 'bar'
+        done()
+
+      c.inPorts.in.attach s1
+      c.outPorts.out.attach s2
+
+      s1.post new IP 'data', 'some-data',
+        groups: ['foo']
+
+    it 'should support substreams', (done) ->
+      c = new component.Component
+        inPorts:
+          tags:
+            datatype: 'string'
+            handle: (ip) ->
+              chai.expect(ip).to.be.an 'object'
+              switch ip.type
+                when 'openBracket'
+                  c.str += "<#{ip.data}>"
+                  c.level++
+                when 'data'
+                  c.str += ip.data
+                when 'closeBracket'
+                  c.str += "</#{ip.data}>"
+                  c.level--
+                  if c.level is 0
+                    c.outPorts.html.data c.str
+                    c.str = ''
+        outPorts:
+          html:
+            datatype: 'string'
+      c.str = ''
+      c.level = 0
+
+      d = new component.Component
+        inPorts:
+          bang:
+            datatype: 'bang'
+            handle: (ip) ->
+              d.outPorts.tags.openBracket 'p'
+              .openBracket 'em'
+              .data 'Hello'
+              .closeBracket 'em'
+              .data ', '
+              .openBracket 'strong'
+              .data 'World!'
+              .closeBracket 'strong'
+              .closeBracket 'p'
+        outPorts:
+          tags:
+            datatype: 'string'
+
+      s1 = new socket.InternalSocket
+      s2 = new socket.InternalSocket
+      s3 = new socket.InternalSocket
+
+      s3.on 'data', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.type).to.equal 'data'
+        chai.expect(ip.data).to.equal '<p><em>Hello</em>, <strong>World!</strong></p>'
+        done()
+
+      d.inPorts.bang.attach s1
+      d.outPorts.tags.attach s2
+      c.inPorts.tags.attach s2
+      c.outPorts.html.attach s3
+
+      s1.post new IP 'data', 'start'

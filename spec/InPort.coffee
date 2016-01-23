@@ -239,3 +239,75 @@ describe 'Inport Port', ->
       chai.expect(ps.inPorts.in.listAttached()).to.eql [0]
       s.send 'some-data'
       s.disconnect()
+
+  describe 'with IP handle callback option', ->
+    it 'should pass IP objects to handler', (done) ->
+      s = new socket.InternalSocket
+      ps =
+        outPorts: new ports.OutPorts
+          out: new outport
+        inPorts: new ports.InPorts
+      ps.inPorts.add 'in',
+        datatype: 'string'
+        required: true
+        handle: (ip) ->
+          chai.expect(ip).to.be.an 'object'
+          return unless ip.type is 'data'
+          chai.expect(ip.data).to.equal 'some-data'
+          done()
+
+      ps.inPorts.in.attach s
+      chai.expect(ps.inPorts.in.listAttached()).to.eql [0]
+      s.send type: 'data', data: 'some-data'
+
+    it 'should translate legacy events to IP objects', (done) ->
+      s = new socket.InternalSocket
+      expectedEvents = [
+        'openBracket'
+        'data'
+        'closeBracket'
+      ]
+      ps =
+        outPorts: new ports.OutPorts
+          out: new outport
+        inPorts: new ports.InPorts
+      ps.inPorts.add 'in',
+        datatype: 'string'
+        required: true
+        handle: (ip) ->
+          chai.expect(ip).to.be.an 'object'
+          chai.expect(ip.type).to.equal expectedEvents.shift()
+          if ip.type is 'data'
+            chai.expect(ip.data).to.equal 'some-data'
+          # if ip.type is 'openBracket'
+          #   chai.expect(ip.groups).to.be.an 'array'
+          if ip.type is 'closeBracket'
+            done()
+
+      ps.inPorts.in.attach s
+      chai.expect(ps.inPorts.in.listAttached()).to.eql [0]
+      s.send 'some-data'
+      s.disconnect()
+
+    it 'should translate IP objects to legacy events', (done) ->
+      s = new socket.InternalSocket
+      expectedEvents = [
+        'connect'
+        'data'
+        'disconnect'
+      ]
+      ps =
+        outPorts: new ports.OutPorts
+          out: new outport
+        inPorts: new ports.InPorts
+      ps.inPorts.add 'in',
+        datatype: 'string'
+        required: true
+      , (event, payload) ->
+        chai.expect(event).to.equal expectedEvents.shift()
+        return unless event is 'data'
+        chai.expect(payload).to.equal 'some-data'
+        done()
+      ps.inPorts.in.attach s
+      chai.expect(ps.inPorts.in.listAttached()).to.eql [0]
+      s.post type: 'data', data: 'some-data'

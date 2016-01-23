@@ -85,6 +85,15 @@ class InternalSocket extends EventEmitter
     data = @dataDelegate() if data is undefined and typeof @dataDelegate is 'function'
     @emitEvent 'data', data
 
+  # ## Sending information packets without open bracket
+  #
+  # As _connect_ event is considered as open bracket, it needs to be followed
+  # by a _disconnect_ event or a closing bracket. In the new simplified
+  # sending semantics single IP objects can be sent without open/close brackets.
+  post: (data) ->
+    data = @dataDelegate() if data is undefined and typeof @dataDelegate is 'function'
+    @emitEvent 'data', data
+
   # ## Information Packet grouping
   #
   # Processes sending data to sockets may also group the packets
