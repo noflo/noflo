@@ -16,7 +16,7 @@
     "babel-core": "6.0.17",
     "coffee-script": "1.10.0",
     "fbp": "1.1.4",
-    "npmlog": "0.0.6",
+    "npmlog": "2.0.1",
     "read-installed": "4.0.3",
     "underscore": "1.8.3"
   },
