@@ -4,6 +4,7 @@ NoFlo ChangeLog
 ## 0.6.0 (git master)
 
 * Deprecated the `noflo` command in favor of [noflo-nodejs](https://www.npmjs.com/package/noflo-nodejs)
+* NoFlo `createNetwork` and `loadFile` methods can return errors as the first callback argument
 * New IP Objects feature allowing bundling and handling of groups and packet data together
 * Removed the deprecated `LoggingComponent` baseclass
 
