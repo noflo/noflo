@@ -4,6 +4,7 @@ NoFlo ChangeLog
 ## 0.6.0 (git master)
 
 * Deprecated the `noflo` command in favor of [noflo-nodejs](https://www.npmjs.com/package/noflo-nodejs)
+* New IP Objects feature allowing bundling and handling of groups and packet data together
 
 ## 0.5.21 (December 3rd 2015)
 
