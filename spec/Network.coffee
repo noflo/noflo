@@ -113,12 +113,14 @@ describe 'NoFlo Network', ->
       g.addNode 'Merge', 'Merge'
       g.addNode 'Callback', 'Callback'
       g.addEdge 'Merge', 'out', 'Callback', 'in'
-      noflo.createNetwork g, (nw) ->
+      noflo.createNetwork g, (err, nw) ->
+        return done err if err
         nw.loader.components.Split = Split
         nw.loader.components.Merge = Merge
         nw.loader.components.Callback = Callback
         n = nw
-        nw.connect ->
+        nw.connect (err) ->
+          return done err if err
           nw.start()
           done()
       , true
@@ -247,10 +249,12 @@ describe 'NoFlo Network', ->
       testCallback = (data) ->
         chai.expect(data).to.equal 'default-value'
         done()
-      noflo.createNetwork g, (nw) ->
+      noflo.createNetwork g, (err, nw) ->
+        return done err if err
         nw.loader.components.Def = -> c
         nw.loader.components.Cb = -> cb
-        nw.connect ->
+        nw.connect (err) ->
+          return done err if err
           nw.start()
       , true
 
@@ -262,11 +266,13 @@ describe 'NoFlo Network', ->
       g.addNode 'Merge', 'Merge'
       g.addEdge 'Merge', 'out', 'Def', 'in'
       g.addInitial 'from-edge', 'Merge', 'in'
-      noflo.createNetwork g, (nw) ->
+      noflo.createNetwork g, (err, nw) ->
+        return done err if err
         nw.loader.components.Def = -> c
         nw.loader.components.Cb = -> cb
         nw.loader.components.Merge = Merge
-        nw.connect ->
+        nw.connect (err) ->
+          return done err if err
           nw.start()
       , true
 
@@ -276,11 +282,13 @@ describe 'NoFlo Network', ->
         chai.expect(data).to.equal 'from-IIP'
         done()
       g.addInitial 'from-IIP', 'Def', 'in'
-      noflo.createNetwork g, (nw) ->
+      noflo.createNetwork g, (err, nw) ->
+        return done err if err
         nw.loader.components.Def = -> c
         nw.loader.components.Cb = -> cb
         nw.loader.components.Merge = Merge
-        nw.connect ->
+        nw.connect (err) ->
+          return done err if err
           nw.start()
       , true
 
@@ -337,12 +345,14 @@ describe 'NoFlo Network', ->
       expected[12] = g.addInitial "World", "C", "in"
       expected[8] = g.addEdge "B2", "out", "C", "in"
       expected[9] = g.addEdge "C", "out", "D", "in"
-      noflo.createNetwork g, (nw) ->
+      noflo.createNetwork g, (err, nw) ->
+        return done err if err
         nw.loader.components.Split = Split
         nw.loader.components.Merge = Merge
         nw.loader.components.Callback = Callback
         n = nw
-        nw.connect ->
+        nw.connect (err) ->
+          return done err if err
           nw.start()
           done()
       , true
@@ -369,12 +379,14 @@ describe 'NoFlo Network', ->
       g.addInitial cb, 'Callback', 'callback'
       g.addInitial 'Foo', 'Repeat', 'in'
       setTimeout ->
-        noflo.createNetwork g, (nw) ->
+        noflo.createNetwork g, (err, nw) ->
+          return done err if err
           nw.loader.components.Split = Split
           nw.loader.components.Merge = Merge
           nw.loader.components.Callback = Callback
           n = nw
-          nw.connect ->
+          nw.connect (err) ->
+            return done err if err
             nw.start()
         , true
       , 10

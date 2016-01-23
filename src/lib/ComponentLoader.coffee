@@ -269,7 +269,8 @@ class ComponentLoader extends EventEmitter
       nameParts[0] = ''
 
     if @isGraph component
-      nofloGraph.loadFile component, (graph) ->
+      nofloGraph.loadFile component, (err, graph) ->
+        return callback err if err
         return callback new Error 'Unable to load graph' unless graph
         callback null,
           name: nameParts[1]

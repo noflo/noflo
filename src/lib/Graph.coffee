@@ -754,18 +754,18 @@ class Graph extends EventEmitter
 
     json
 
-  save: (file, success) ->
+  save: (file, callback) ->
     json = JSON.stringify @toJSON(), null, 4
     require('fs').writeFile "#{file}.json", json, "utf-8", (err, data) ->
       throw err if err
-      success file
+      callback file
 
 exports.Graph = Graph
 
 exports.createGraph = (name) ->
   new Graph name
 
-exports.loadJSON = (definition, success, metadata = {}) ->
+exports.loadJSON = (definition, callback, metadata = {}) ->
   definition = JSON.parse definition if typeof definition is 'string'
   definition.properties = {} unless definition.properties
   definition.processes = {} unless definition.processes
@@ -828,22 +828,26 @@ exports.loadJSON = (definition, success, metadata = {}) ->
 
   graph.endTransaction 'loadJSON'
 
-  success graph
+  callback null, graph
 
-exports.loadFBP = (fbpData, success) ->
-  definition = require('fbp').parse fbpData
-  exports.loadJSON definition, success
+exports.loadFBP = (fbpData, callback) ->
+  try
+    definition = require('fbp').parse fbpData
+  catch e
+    return callback e
+  exports.loadJSON definition, callback
 
-exports.loadHTTP = (url, success) ->
+exports.loadHTTP = (url, callback) ->
   req = new XMLHttpRequest
   req.onreadystatechange = ->
     return unless req.readyState is 4
-    return success() unless req.status is 200
-    success req.responseText
+    unless req.status is 200
+      return callback new Error "Failed to load #{url}: HTTP #{req.status}"
+    callback null, eq.responseText
   req.open 'GET', url, true
   req.send()
 
-exports.loadFile = (file, success, metadata = {}) ->
+exports.loadFile = (file, callback, metadata = {}) ->
   if platform.isBrowser()
     try
       # Graph exposed via Component packaging
@@ -855,22 +859,21 @@ exports.loadFile = (file, success, metadata = {}) ->
           throw new Error "Failed to load graph #{file}"
           return
         if file.split('.').pop() is 'fbp'
-          return exports.loadFBP data, success, metadata
+          return exports.loadFBP data, callback, metadata
         definition = JSON.parse data
-        exports.loadJSON definition, success, metadata
+        exports.loadJSON definition, callback, metadata
       return
-    exports.loadJSON definition, success, metadata
+    exports.loadJSON definition, callback, metadata
     return
   # Node.js graph file
   require('fs').readFile file, "utf-8", (err, data) ->
-    throw err if err
+    return callback err if err
 
     if file.split('.').pop() is 'fbp'
-      return exports.loadFBP data, success
+      return exports.loadFBP data, callback
 
     definition = JSON.parse data
-    exports.loadJSON definition, success
-
+    exports.loadJSON definition, callback
 
 # remove everything in the graph
 resetGraph = (graph) ->

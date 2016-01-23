@@ -233,7 +233,8 @@ describe 'Graph', ->
     json = JSON.parse(jsonString)
     g = null
     it 'should produce a Graph', (done) ->
-      graph.loadJSON json, (instance) ->
+      graph.loadJSON json, (err, instance) ->
+        return done err if err
         g = instance
         chai.expect(g).to.be.an 'object'
         done()
@@ -575,7 +576,8 @@ describe 'Graph', ->
     json = JSON.parse(jsonString)
     g = null
     it 'should produce a Graph', (done) ->
-      graph.loadJSON json, (instance) ->
+      graph.loadJSON json, (err, instance) ->
+        return done err if err
         g = instance
         chai.expect(g).to.be.an 'object'
         done()

@@ -30,7 +30,8 @@ class Graph extends noflo.Component
         return @createNetwork graph
 
       # JSON definition of a graph
-      noflo.graph.loadJSON graph, (instance) =>
+      noflo.graph.loadJSON graph, (err, instance) =>
+        return @error err if err
         instance.baseDir = @baseDir
         @createNetwork instance
       return
@@ -38,7 +39,8 @@ class Graph extends noflo.Component
     if graph.substr(0, 1) isnt "/" and graph.substr(1, 1) isnt ":" and process and process.cwd
       graph = "#{process.cwd()}/#{graph}"
 
-    graph = noflo.graph.loadFile graph, (instance) =>
+    graph = noflo.graph.loadFile graph, (err, instance) =>
+      return @error err if err
       instance.baseDir = @baseDir
       @createNetwork instance
 
@@ -48,9 +50,11 @@ class Graph extends noflo.Component
 
     graph.componentLoader = @loader
 
-    noflo.createNetwork graph, (@network) =>
+    noflo.createNetwork graph, (err, @network) =>
+      return @error err if err
       @emit 'network', @network
-      @network.connect =>
+      @network.connect (err) =>
+        return @error err if err
         notReady = false
         for name, process of @network.processes
           notReady = true unless @checkComponent name, process

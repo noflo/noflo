@@ -201,14 +201,17 @@ describe 'Journalling of graph merges', ->
   j = null
   describe 'G -> B', ->
     it 'G starts out as A', (done) ->
-      graph.loadJSON JSON.parse(A), (instance) ->
+      graph.loadJSON JSON.parse(A), (err, instance) ->
+        return done err if err
         a = instance
-        graph.loadJSON JSON.parse(A), (instance) ->
+        graph.loadJSON JSON.parse(A), (err, instance) ->
+          return done err if err
           g = instance
           chai.expect(graph.equivalent(a, g)).to.equal true
           done()
     it 'G and B starts out different', (done) ->
-      graph.loadJSON JSON.parse(B), (instance) ->
+      graph.loadJSON JSON.parse(B), (err, instance) ->
+        return done err if err
         b = instance
         chai.expect(graph.equivalent(g, b)).to.equal false
         done()
