@@ -1,0 +1,42 @@
+#!/usr/bin/env node
+// vim: set filetype=javascript:
+var noflo = require('noflo');
+var path = require('path');
+var fs = require('fs');
+
+// Base setup
+var baseDir = process.cwd();
+var cacheFile = path.resolve(baseDir, '.noflo.json');
+
+var preheat = function (callback) {
+  console.log("Pre-heating NoFlo cache for " + baseDir);
+  var loader = new noflo.ComponentLoader(baseDir, {
+    cache: true
+  });
+  console.time('NPM traversal for NoFlo components');
+  loader.listComponents(function (components) {
+    console.timeEnd('NPM traversal for NoFlo components');
+    callback(components);
+  });
+};
+
+var reportAndVerify = function (components) {
+  console.log("Found " + (Object.keys(components).length) + " components.");
+  return setTimeout(function() {
+    return process.exit(0);
+  }, 100);
+};
+
+fs.stat(cacheFile, function (err, stats) {
+  if (err) {
+    return preheat(reportAndVerify);
+  }
+  console.log('Old cache file ' + cacheFile + ' found, clearing');
+  fs.unlink(cacheFile, function (err) {
+    if (err) {
+      console.log(err);
+      process.exit(1);
+    }
+    preheat(reportAndVerify);
+  });
+});

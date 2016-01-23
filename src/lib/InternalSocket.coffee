@@ -19,6 +19,7 @@ class InternalSocket extends EventEmitter
     try
       @emit event, data
     catch error
+      throw error if @listeners('error').length is 0
       @emit 'error',
         id: @to.process.id
         error: error

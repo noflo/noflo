@@ -17,13 +17,29 @@ NoFlo has been written in [CoffeeScript](http://jashkenas.github.com/coffee-scri
 
 Read more at <http://noflojs.org/>.
 
+## Suitability
+
+NoFlo is not a web framework or a UI toolkit. It is a way to coordinate and reorganize data flow in any JavaScript application. As such, it can be used for whatever purpose JavaScript can be used for. We know of NoFlo being used for anything from building [web servers](https://thegrid.io) and build tools, to coordinating events inside [GUI applications](https://flowhub.io), [driving](http://meemoo.org/blog/2015-01-14-turtle-power-to-the-people/) [robots](http://bergie.iki.fi/blog/noflo-ardrone/), or building Internet-connected [art installations](http://bergie.iki.fi/blog/ingress-table/).
+
+## Tools and ecosystem
+
+NoFlo itself is just a library for implementing flow-based programs in JavaScript. There is an ecosystem of tools around NoFlo and the [fbp protocol](http://noflojs.org/documentation/protocol/) that make it more powerful. Here are some of them:
+
+* [Flowhub](https://flowhub.io) -- browser-based visual programming **IDE** for NoFlo and other flow-based systems
+* [noflo-nodejs](https://github.com/noflo/noflo-nodejs) -- command-line interface for running NoFlo programs on **Node.js**
+* [MsgFlo](https://github.com/msgflo/msgflo) -- for running NoFlo and other FBP runtimes as a **distributed system**
+* [fbp-spec](https://github.com/flowbased/fbp-spec) -- **data-driven tests** for NoFlo and other FBP environments
+* [flowtrace](https://github.com/flowbased/flowtrace) -- tool for **retroactive debugging** of NoFlo programs. Supports visual replay with Flowhub
+
+See also the [list of reusable NoFlo modules on NPM](https://www.npmjs.com/browse/keyword/noflo).
+
 ## Requirements and installing
 
 NoFlo is available for Node.js [via NPM](https://npmjs.org/package/noflo), so you can install it with:
 
     $ npm install noflo --save
 
-You can customize and download the browser version of NoFlo at <http://noflojs.org/download/>.
+You can make a browser build of NoFlo using component.io. The [grunt-noflo-browser](https://github.com/noflo/grunt-noflo-browser) plugin makes this easy.
 
 ### Installing from Git
 

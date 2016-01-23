@@ -22,6 +22,7 @@ class ComponentLoader extends EventEmitter
   getModulePrefix: (name) ->
     return '' unless name
     return '' if name is 'noflo'
+    name = name.replace /\@[a-z\-]+\//, '' if name[0] is '@'
     name.replace 'noflo-', ''
 
   getModuleComponents: (moduleName) ->
@@ -219,7 +220,7 @@ class ComponentLoader extends EventEmitter
           bare: true
       catch e
         return callback e
-    else if language is 'es6'
+    else if language in ['es6', 'es2015']
       unless window.babel
         return callback new Error 'Babel compiler not available'
       try

@@ -53,8 +53,25 @@ describe 'ComponentLoader with no external packages installed', ->
   it 'should not have any packages in the checked list', ->
     chai.expect(l.checked).to.be.empty
 
+  describe 'normalizing names', ->
+    it 'should return simple module names as-is', ->
+      normalized = l.getModulePrefix 'foo'
+      chai.expect(normalized).to.equal 'foo'
+    it 'should return empty for NoFlo core', ->
+      normalized = l.getModulePrefix 'noflo'
+      chai.expect(normalized).to.equal ''
+    it 'should strip noflo-', ->
+      normalized = l.getModulePrefix 'noflo-image'
+      chai.expect(normalized).to.equal 'image'
+    it 'should strip NPM scopes', ->
+      normalized = l.getModulePrefix '@noflo/foo'
+      chai.expect(normalized).to.equal 'foo'
+    it 'should strip NPM scopes and noflo-', ->
+      normalized = l.getModulePrefix '@noflo/noflo-image'
+      chai.expect(normalized).to.equal 'image'
+
   it 'should be able to read a list of components', (done) ->
-    @timeout 4000
+    @timeout 10000
     ready = false
     l.once 'ready', ->
       ready = true
@@ -198,11 +215,11 @@ describe 'ComponentLoader with no external packages installed', ->
         done()
     it 'should return an error for missing components', (done) ->
       l.getSource 'foo/BarBaz', (err, src) ->
-        chai.expect(err).to.be.an 'object'
+        chai.expect(err).to.be.an 'error'
         done()
     it 'should return an error for non-file components', (done) ->
       l.getSource 'foo/Split', (err, src) ->
-        chai.expect(err).to.be.an 'object'
+        chai.expect(err).to.be.an 'error'
         done()
 
   describe 'writing sources', ->
@@ -227,15 +244,15 @@ describe 'ComponentLoader with no external packages installed', ->
       };"""
 
       it 'should be able to set the source', (done) ->
+        @timeout 10000
         unless platform.isBrowser()
           workingSource = workingSource.replace "'noflo'", "'../src/lib/NoFlo'"
         l.setSource 'foo', 'RepeatData', workingSource, 'js', (err) ->
-          throw err if err
-          chai.expect(err).to.be.a 'null'
+          return done err if err
           done()
       it 'should be a loadable component', (done) ->
         l.load 'foo/RepeatData', (err, inst) ->
-          chai.expect(err).to.be.a 'null'
+          return done err if err
           chai.expect(inst).to.be.an 'object'
           chai.expect(inst.inPorts).to.contain.keys ['in']
           chai.expect(inst.outPorts).to.contain.keys ['out']
@@ -265,11 +282,10 @@ describe 'ComponentLoader with no external packages installed', ->
         unless platform.isBrowser()
           nonWorkingSource = nonWorkingSource.replace "'noflo'", "'../src/lib/NoFlo'"
         l.setSource 'foo', 'NotWorking', nonWorkingSource, 'js', (err) ->
-          chai.expect(err).to.be.an 'object'
+          chai.expect(err).to.be.an 'error'
           done()
       it 'should not be a loadable component', (done) ->
         l.load 'foo/NotWorking', (err, inst) ->
-          console.log err, inst
-          chai.expect(err).to.be.an 'object'
+          chai.expect(err).to.be.an 'error'
           chai.expect(inst).to.be.an 'undefined'
           done()

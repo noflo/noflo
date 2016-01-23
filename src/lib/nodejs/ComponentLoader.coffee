@@ -17,7 +17,7 @@ nofloGraph = require '../Graph'
 # We allow components to be un-compiled CoffeeScript
 CoffeeScript = require 'coffee-script'
 if typeof CoffeeScript.register != 'undefined'
-    CoffeeScript.register()
+  CoffeeScript.register()
 babel = require 'babel-core'
 
 # Disable NPM logging in normal NoFlo operation
@@ -98,19 +98,23 @@ class ComponentLoader extends loader.ComponentLoader
   cachePath: ->
     path.resolve @baseDir, './.noflo.json'
 
-  writeCache: ->
+  writeCache: (callback) ->
     cacheData =
       components: {}
-      loaders: @componentLoaders or []
+      loaders: []
+
+    loaders = @componentLoaders or []
+    cacheData.loaders = loaders.map (lPath) =>
+      path.relative @baseDir, lPath
 
     for name, cPath of @components
       continue unless typeof cPath is 'string'
-      cacheData.components[name] = cPath
+      cacheData.components[name] = path.relative @baseDir, cPath
 
     filePath = @cachePath()
     fs.writeFile filePath, JSON.stringify(cacheData, null, 2),
       encoding: 'utf-8'
-    , ->
+    , callback
 
   readCache: (callback) ->
     filePath = @cachePath()
@@ -124,14 +128,16 @@ class ComponentLoader extends loader.ComponentLoader
       catch e
         callback e
       return callback new Error 'No components in cache' unless cacheData.components
-      @components = cacheData.components
+      @components = {}
+      for name, cPath of cacheData.components
+        @components[name] = path.resolve @baseDir, cPath
       unless cacheData.loaders?.length
         callback null
         return
       done = _.after cacheData.loaders.length, ->
         callback null
       cacheData.loaders.forEach (loaderPath) =>
-        loader = require loaderPath
+        loader = require path.resolve @baseDir, loaderPath
         @registerLoader loader, done
 
   listComponents: (callback) ->
@@ -163,8 +169,12 @@ class ComponentLoader extends loader.ComponentLoader
       @ready = true
       @processing = false
       @emit 'ready', true
-      callback @components if callback
-      @writeCache() if @options.cache
+      unless @options.cache
+        callback @components if callback
+        return
+      @writeCache =>
+        callback @components if callback
+      return
 
     @getCoreComponents (coreComponents) =>
       @components[name] = cPath for name, cPath of coreComponents
@@ -197,22 +207,27 @@ class ComponentLoader extends loader.ComponentLoader
         @setSource packageId, name, source, language, callback
       return
 
-    _eval = require 'eval'
+    Module = require 'module'
     if language is 'coffeescript'
       try
         source = CoffeeScript.compile source,
           bare: true
       catch e
         return callback e
-    else if language is 'es6'
+    else if language in ['es6', 'es2015']
       try
         source = babel.transform(source).code
       catch e
         return callback e
 
     try
-      # Eval so we can get a function
-      implementation = _eval source, path.resolve(@baseDir, "./components/#{name}.js"), {}, true
+      # Use the Node.js module API to evaluate in the correct directory context
+      modulePath = path.resolve @baseDir, "./components/#{name}.js"
+      moduleImpl = new Module modulePath, module
+      moduleImpl.paths = Module._nodeModulePaths path.dirname modulePath
+      moduleImpl.filename = modulePath
+      moduleImpl._compile source, modulePath
+      implementation = moduleImpl.exports
     catch e
       return callback e
     unless implementation or implementation.getComponent

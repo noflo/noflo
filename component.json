@@ -7,11 +7,11 @@
     "flow"
   ],
   "repo": "noflo/noflo",
-  "version": "0.5.13",
+  "version": "0.5.22",
   "dependencies": {
     "bergie/emitter": "*",
-    "jashkenas/underscore": "*",
-    "noflo/fbp": "*"
+    "jashkenas/underscore": "1.8.3",
+    "flowbased/fbp": "*"
   },
   "remotes": [
     "https://raw.githubusercontent.com"
