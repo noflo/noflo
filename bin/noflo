@@ -1,2 +1,3 @@
 #!/usr/bin/env node
-require(__dirname + "/noflo.js");
+console.log('The noflo command is deprecated. Please install noflo-nodejs');
+process.exit(1);
