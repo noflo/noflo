@@ -30,7 +30,6 @@
     "src/lib/ArrayPort.coffee",
     "src/lib/Component.coffee",
     "src/lib/AsyncComponent.coffee",
-    "src/lib/LoggingComponent.coffee",
     "src/lib/ComponentLoader.coffee",
     "src/lib/NoFlo.coffee",
     "src/lib/Network.coffee",
