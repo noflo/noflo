@@ -195,7 +195,9 @@ class Network extends EventEmitter
       (type) =>
         # Add either a Node, an Initial, or an Edge and move on to the next one
         # when done
-        this["add#{type}"] add, ->
+        this["add#{type}"] add, (err) ->
+          console.log err if err
+          return done err if err
           callStack++
           if callStack % 100 is 0
             setTimeout ->
@@ -263,7 +265,11 @@ class Network extends EventEmitter
       graphOps.push
         op: op
         details: details
-    processOps = =>
+    processOps = (err) =>
+      if err
+        throw err if @listeners('process-error').length is 0
+        @emit 'process-error', err
+
       unless graphOps.length
         processing = false
         return
@@ -381,9 +387,9 @@ class Network extends EventEmitter
 
     from = @getNode edge.from.node
     unless from
-      throw new Error "No process defined for outbound node #{edge.from.node}"
+      return callback new Error "No process defined for outbound node #{edge.from.node}"
     unless from.component
-      throw new Error "No component defined for outbound node #{edge.from.node}"
+      return callback new Error "No component defined for outbound node #{edge.from.node}"
     unless from.component.isReady()
       from.component.once "ready", =>
         @addEdge edge, callback
@@ -392,9 +398,9 @@ class Network extends EventEmitter
 
     to = @getNode edge.to.node
     unless to
-      throw new Error "No process defined for inbound node #{edge.to.node}"
+      return callback new Error "No process defined for inbound node #{edge.to.node}"
     unless to.component
-      throw new Error "No component defined for inbound node #{edge.to.node}"
+      return callback new Error "No component defined for inbound node #{edge.to.node}"
     unless to.component.isReady()
       to.component.once "ready", =>
         @addEdge edge, callback
@@ -459,7 +465,7 @@ class Network extends EventEmitter
 
     to = @getNode initializer.to.node
     unless to
-      throw new Error "No process defined for inbound node #{initializer.to.node}"
+      return callback new Error "No process defined for inbound node #{initializer.to.node}"
 
     unless to.component.isReady() or to.component.inPorts[initializer.to.port]
       to.component.setMaxListeners 0 if to.component.setMaxListeners

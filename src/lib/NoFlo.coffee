@@ -104,11 +104,14 @@ exports.createNetwork = (graph, callback, options) ->
   unless typeof options is 'object'
     options =
       delay: options
+  unless typeof callback is 'function'
+    callback = (err) ->
+      throw err if err
 
   network = new exports.Network graph, options
 
   networkReady = (network) ->
-    callback null, network if callback?
+    callback null, network
     # Send IIPs
     network.start()
 
@@ -119,7 +122,7 @@ exports.createNetwork = (graph, callback, options) ->
 
     # In case of delayed execution we don't wire it up
     if options.delay
-      callback null, network if callback?
+      callback null, network
       return
     # Wire the network up and start execution
     network.connect (err) ->
