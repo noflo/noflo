@@ -30,7 +30,8 @@ class Graph extends noflo.Component
         return @createNetwork graph
 
       # JSON definition of a graph
-      noflo.graph.loadJSON graph, (instance) =>
+      noflo.graph.loadJSON graph, (err, instance) =>
+        return @error err if err
         instance.baseDir = @baseDir
         @createNetwork instance
       return
