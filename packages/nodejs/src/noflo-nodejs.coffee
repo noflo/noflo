@@ -150,6 +150,7 @@ startServer = (program, defaultGraph) ->
     if not program.catchExceptions
       network.on 'process-error', (err) ->
         console.error err.id, err.error
+        console.log err.stack if err.stack?
         process.exit 1
 
     if program.batch and program.graph
