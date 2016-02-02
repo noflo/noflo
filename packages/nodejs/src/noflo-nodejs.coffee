@@ -146,6 +146,12 @@ startServer = (program, defaultGraph) ->
   rt.network.on 'addnetwork', (network) ->
     tracer.attach network if program.trace
     addDebug network, program.verbose, program.defaultGraph if program.debug
+
+    if not program.catchExceptions
+      network.on 'process-error', (err) ->
+        console.error err.id, err.error
+        process.exit 1
+
     if program.batch and program.graph
       network.on 'end', (event) ->
         cleanup = () ->
