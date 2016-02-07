@@ -10,7 +10,6 @@ module.exports = class IP
   constructor: (@type = 'data', @data = null, options = {}) ->
     @groups = [] # sync groups
     @scope = null # sync scope id
-    @stream = null # substream id
     @owner = null # packet owner process
     for key, val of options
       this[key] = val
@@ -34,5 +33,4 @@ module.exports = class IP
     delete @data
     delete @groups
     delete @scope
-    delete @stream
     delete @owner
