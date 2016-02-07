@@ -11,16 +11,21 @@ module.exports = class IP
     @groups = [] # sync groups
     @scope = null # sync scope id
     @owner = null # packet owner process
+    @clonable = true # cloning safety flag
     for key, val of options
       this[key] = val
 
   # Creates a new IP copying its contents by value not reference
   clone: ->
-    ip = new IP
-    ip.type = @type
-    ip.data = JSON.parse JSON.stringify @data if @data isnt null
-    ip.groups = JSON.parse JSON.stringify @groups if @groups.length > 0
-    ip.scope = @scope # sync scope is preserved
+    return @ unless @clonable
+    ip = new IP @type
+    for key, val of @
+      continue if ['owner'].indexOf(key) isnt -1
+      continue if val is null
+      if typeof(val) is 'object'
+        ip[key] = JSON.parse JSON.stringify val
+      else
+        ip[key] = val
     ip
 
   # Moves an IP to a different owner
@@ -29,8 +34,4 @@ module.exports = class IP
 
   # Frees IP contents
   drop: ->
-    delete @type
-    delete @data
-    delete @groups
-    delete @scope
-    delete @owner
+    delete this[key] for key, val of @
