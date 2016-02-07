@@ -11,13 +11,12 @@ module.exports = class IP
     @groups = [] # sync groups
     @scope = null # sync scope id
     @owner = null # packet owner process
-    @clonable = true # cloning safety flag
+    @clonable = false # cloning safety flag
     for key, val of options
       this[key] = val
 
   # Creates a new IP copying its contents by value not reference
   clone: ->
-    return @ unless @clonable
     ip = new IP @type
     for key, val of @
       continue if ['owner'].indexOf(key) isnt -1

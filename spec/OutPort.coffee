@@ -151,3 +151,66 @@ describe 'Outport Port', ->
       p.openBracket()
       .data 'my-data'
       .closeBracket()
+
+    it 'should send non-clonable objects by reference', (done) ->
+      p = new outport
+      p.attach s1
+      p.attach s2
+      p.attach s3
+
+      obj =
+        foo: 123
+        bar:
+          boo: 'baz'
+        func: -> this.foo = 456
+
+      s1.on 'data', (data) ->
+        chai.expect(data).to.be.an 'object'
+        chai.expect(data.data).to.equal obj
+        chai.expect(data.data.func).to.be.a 'function'
+        s2.on 'data', (data) ->
+          chai.expect(data).to.be.an 'object'
+          chai.expect(data.data).to.equal obj
+          chai.expect(data.data.func).to.be.a 'function'
+          s3.on 'data', (data) ->
+            chai.expect(data).to.be.an 'object'
+            chai.expect(data.data).to.equal obj
+            chai.expect(data.data.func).to.be.a 'function'
+            done()
+
+      p.data obj,
+        clonable: false # default
+
+    it 'should clone clonable objects on fan-out', (done) ->
+      p = new outport
+      p.attach s1
+      p.attach s2
+      p.attach s3
+
+      obj =
+        foo: 123
+        bar:
+          boo: 'baz'
+        func: -> this.foo = 456
+
+      s1.on 'data', (data) ->
+        chai.expect(data).to.be.an 'object'
+        # First send is non-cloning
+        chai.expect(data.data).to.equal obj
+        chai.expect(data.data.func).to.be.a 'function'
+        s2.on 'data', (data) ->
+          chai.expect(data).to.be.an 'object'
+          chai.expect(data.data).to.not.equal obj
+          chai.expect(data.data.foo).to.equal obj.foo
+          chai.expect(data.data.bar).to.eql obj.bar
+          chai.expect(data.data.func).to.be.undefined
+          s3.on 'data', (data) ->
+            chai.expect(data).to.be.an 'object'
+            chai.expect(data.data).to.not.equal obj
+            chai.expect(data.data.foo).to.equal obj.foo
+            chai.expect(data.data.bar).to.eql obj.bar
+            chai.expect(data.data.func).to.be.undefined
+            done()
+
+      p.data obj,
+        clonable: true

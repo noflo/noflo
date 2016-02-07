@@ -65,9 +65,14 @@ class OutPort extends BasePort
     @checkRequired sockets
     if @isCaching() and data isnt @cache[socketId]?.data
       @cache[socketId] = ip
+    pristine = true
     for socket in sockets
       continue unless socket
-      socket.post ip
+      if pristine
+        socket.post ip
+        pristine = false
+      else
+        socket.post if ip.clonable then ip.clone() else ip
     @
 
   openBracket: (data = null, options = {}, socketId = null) ->
