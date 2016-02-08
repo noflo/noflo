@@ -35,6 +35,7 @@ describe 'IP object', ->
       groups: ['foo', 'bar']
       owner: 'SomeProc'
       scope: 'request-12345'
+      clonable: true
     d2 = d1.clone()
     chai.expect(d2).not.to.equal d1
     chai.expect(d2.type).to.equal d1.type
