@@ -510,10 +510,14 @@ class Network extends EventEmitter
     initial.socket.send initial.data
     initial.socket.disconnect()
 
-  sendInitials: ->
+  sendInitials: (callback) ->
+    unless callback
+      callback = ->
+
     send = =>
       @sendInitial initial for initial in @initials
       @initials = []
+      do callback
 
     if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
       # nextTick is faster on Node.js
@@ -528,12 +532,19 @@ class Network extends EventEmitter
     return false unless @started
     @connectionCount > 0
 
-  startComponents: ->
+  startComponents: (callback) ->
+    unless callback
+      callback = ->
+
     # Perform any startup routines necessary for every component.
     for id, process of @processes
       process.component.start()
+    do callback
 
-  sendDefaults: ->
+  sendDefaults: (callback) ->
+    unless callback
+      callback = ->
+
     for socket in @defaults
       # Don't send defaults if more than one socket is present on the port.
       # This case should only happen when a subgraph is created as a component
@@ -543,14 +554,20 @@ class Network extends EventEmitter
       socket.connect()
       socket.send()
       socket.disconnect()
+      do callback
 
-  start: ->
+  start: (callback) ->
+    unless callback
+      callback = ->
+
     do @stop if @started
-    @started = true
     @initials = @nextInitials.slice 0
-    @startComponents()
-    @sendInitials()
-    @sendDefaults()
+    @startComponents (err) =>
+      return callback err if err
+      @sendInitials (err) =>
+        return callback err if err
+        @started = true
+        @sendDefaults callback
 
   stop: ->
     # Disconnect all connections
