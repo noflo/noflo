@@ -12,6 +12,7 @@ module.exports = class IP
     @scope = null # sync scope id
     @owner = null # packet owner process
     @clonable = false # cloning safety flag
+    @index = null # addressable port index
     for key, val of options
       this[key] = val
 
