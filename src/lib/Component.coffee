@@ -29,6 +29,8 @@ class Component extends EventEmitter
     else
       @outPorts = new ports.OutPorts options.outPorts
 
+    @description = options.description if options.description
+
   getDescription: -> @description
 
   isReady: -> true
