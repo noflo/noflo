@@ -111,9 +111,10 @@ exports.createNetwork = (graph, callback, options) ->
   network = new exports.Network graph, options
 
   networkReady = (network) ->
-    callback null, network
     # Send IIPs
-    network.start()
+    network.start (err) ->
+      return callback err if err
+      callback null, network
 
   # Ensure components are loaded before continuing
   network.loader.listComponents ->
@@ -124,6 +125,7 @@ exports.createNetwork = (graph, callback, options) ->
     if options.delay
       callback null, network
       return
+
     # Wire the network up and start execution
     network.connect (err) ->
       return callback err if err
