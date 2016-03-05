@@ -110,6 +110,7 @@ class ProcessOutput
       ip = new IP 'data', packet
     else
       ip = packet
+    ip.scope = @scope if @scope isnt null and ip.scope is null
     # TODO output buffering
     @nodeInstance.outPorts[port].sendIP ip
 

@@ -64,4 +64,77 @@ describe 'MergeObjects component', ->
     sout2.once 'data', (ip) ->
       done ip
 
-    sin3.post false
+    sin3.post new IP 'data', false
+
+  it 'should obey the overwrite control', (done) ->
+    sout1.once 'data', (ip) ->
+      chai.expect(ip).to.be.an 'object'
+      chai.expect(ip.type).to.equal 'data'
+      chai.expect(ip.data).to.be.an 'object'
+      chai.expect(ip.data.name).to.equal obj1.name
+      chai.expect(ip.data.title).to.equal obj2.title
+      chai.expect(ip.data.age).to.equal obj2.age
+      done()
+    sout2.once 'data', (ip) ->
+      done ip
+
+    sin3.post new IP 'data', true
+    sin1.post new IP 'data', obj1
+    sin2.post new IP 'data', obj2
+
+  it 'should isolate packets with different scopes', (done) ->
+    foo1 =
+      name: 'Josh'
+      age: 12
+    foo2 =
+      gender: 'male'
+    bar1 =
+      name: 'Jane'
+      age: 13
+    bar2 =
+      gender: 'female'
+
+    sout1.once 'data', (ip) ->
+      chai.expect(ip).to.be.an 'object'
+      chai.expect(ip.type).to.equal 'data'
+      chai.expect(ip.data).to.be.an 'object'
+      chai.expect(ip.scope).to.equal 'bar'
+      chai.expect(ip.data.name).to.equal bar1.name
+      chai.expect(ip.data.age).to.equal bar1.age
+      chai.expect(ip.data.gender).to.equal bar2.gender
+      sout1.once 'data', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.type).to.equal 'data'
+        chai.expect(ip.data).to.be.an 'object'
+        chai.expect(ip.scope).to.equal 'foo'
+        chai.expect(ip.data.name).to.equal foo1.name
+        chai.expect(ip.data.age).to.equal foo1.age
+        chai.expect(ip.data.gender).to.equal foo2.gender
+        sout1.once 'data', (ip) ->
+          chai.expect(ip).to.be.an 'object'
+          chai.expect(ip.type).to.equal 'data'
+          chai.expect(ip.data).to.be.an 'object'
+          chai.expect(ip.scope).to.equal 'bar'
+          chai.expect(ip.data.name).to.equal bar1.name
+          chai.expect(ip.data.age).to.equal bar1.age
+          chai.expect(ip.data.gender).to.equal bar2.gender
+          done()
+    sout2.once 'data', (ip) ->
+      done ip
+
+    sin3.post new IP 'data', false,
+      scope: 'foo'
+    sin3.post new IP 'data', false,
+      scope: 'bar'
+    sin1.post new IP 'data', foo1,
+      scope: 'foo'
+    sin1.post new IP 'data', bar1,
+      scope: 'bar'
+    sin2.post new IP 'data', bar2,
+      scope: 'bar'
+    sin2.post new IP 'data', foo2,
+      scope: 'foo'
+    sin1.post new IP 'data', bar2,
+      scope: 'bar'
+    sin2.post new IP 'data', bar1,
+      scope: 'bar'
