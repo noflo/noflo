@@ -31,6 +31,9 @@ class Component extends EventEmitter
 
     @description = options.description if options.description
 
+    if typeof options.process is 'function'
+      @process options.process
+
   getDescription: -> @description
 
   isReady: -> true
@@ -68,12 +71,14 @@ class Component extends EventEmitter
       throw new Error "Component ports must be defined before process function"
     @handle = handle
     for name, port of @inPorts.ports
+      port.name = name unless port.name
       port.on 'ip', (ip) =>
-        @handleIP ip
+        @handleIP ip, port
     @
 
-  handleIP: (ip) ->
-    input = new ProcessInput @inPorts, ip.scope
+  handleIP: (ip, port) ->
+    return unless port.options.triggering
+    input = new ProcessInput @inPorts, ip.scope, port, ip
     output = new ProcessOutput @outPorts, ip.scope, @,
       ordered: @ordered
     @load++
@@ -82,7 +87,7 @@ class Component extends EventEmitter
 exports.Component = Component
 
 class ProcessInput
-  constructor: (@ports, @scope) ->
+  constructor: (@ports, @scope, @port, @ip) ->
 
   has: ->
     res = true
@@ -95,8 +100,9 @@ class ProcessInput
 
   getData: ->
     ips = @get.apply this, arguments
-    res = (ip.data for ip in ips)
-    if arguments.length is 1 then res[0] else res
+    if arguments.length is 1
+      return ips.data
+    (ip.data for ip in ips)
 
 class ProcessOutput
   constructor: (@ports, @scope, @nodeInstance, @options) ->
