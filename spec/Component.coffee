@@ -561,3 +561,38 @@ describe 'Component', ->
         done()
 
       sin1.post new IP 'data', 'foo', scope: 'foo'
+
+    it 'should preserve order between activation and output', (done) ->
+      c = new component.Component
+        inPorts:
+          msg: datatype: 'string'
+          delay: datatype: 'int'
+        outPorts:
+          out: datatype: 'object'
+        ordered: true
+        process: (input, output) ->
+          return unless input.has 'msg', 'delay'
+          [msg, delay] = input.getData 'msg', 'delay'
+          setTimeout ->
+            output.sendDone
+              out: { msg: msg, delay: delay }
+          , delay
+
+      c.inPorts.msg.attach sin1
+      c.inPorts.delay.attach sin2
+      c.outPorts.out.attach sout1
+
+      sample = [
+        { delay: 30, msg: "one" }
+        { delay: 0, msg: "two" }
+        { delay: 20, msg: "three" }
+        { delay: 10, msg: "four" }
+      ]
+
+      sout1.on 'data', (ip) ->
+        chai.expect(ip.data).to.eql sample.shift()
+        done() if sample.length is 0
+
+      for ip in sample
+        sin1.post new IP 'data', ip.msg
+        sin2.post new IP 'data', ip.delay

@@ -14,6 +14,9 @@ class Component extends EventEmitter
   icon: null
   started: false
   load: 0
+  ordered: false
+  outputQ: []
+  activateOnInput: true
 
   constructor: (options) ->
     options = {} unless options
@@ -30,6 +33,8 @@ class Component extends EventEmitter
       @outPorts = new ports.OutPorts options.outPorts
 
     @description = options.description if options.description
+    @ordered = options.ordered if 'ordered' of options
+    @activateOnInput = options.activateOnInput if 'activateOnInput' of options
 
     if typeof options.process is 'function'
       @process options.process
@@ -78,16 +83,26 @@ class Component extends EventEmitter
 
   handleIP: (ip, port) ->
     return unless port.options.triggering
-    input = new ProcessInput @inPorts, ip.scope, port, ip
-    output = new ProcessOutput @outPorts, ip.scope, @,
-      ordered: @ordered
+    result = null
+    if @ordered
+      result =
+        __resolved: false
+    input = new ProcessInput @inPorts, ip, @, port, result
+    output = new ProcessOutput @outPorts, ip, @, result
     @load++
     @handle input, output, output.done
 
 exports.Component = Component
 
 class ProcessInput
-  constructor: (@ports, @scope, @port, @ip) ->
+  constructor: (@ports, @ip, @nodeInstance, @port, @result) ->
+    @scope = @ip.scope
+    @activated = false
+
+  activate: ->
+    @activated = true
+    if @nodeInstance.ordered
+      @nodeInstance.outputQ.push @result
 
   has: ->
     res = true
@@ -95,6 +110,8 @@ class ProcessInput
     res
 
   get: ->
+    if @nodeInstance.activateOnInput and not @activated
+      @activate()
     res = (@ports[port].get @scope for port in arguments)
     if arguments.length is 1 then res[0] else res
 
@@ -105,10 +122,8 @@ class ProcessInput
     (ip.data for ip in ips)
 
 class ProcessOutput
-  constructor: (@ports, @scope, @nodeInstance, @options) ->
-    @options ?= {}
-    @options.ordered ?= true
-    @queue = []
+  constructor: (@ports, @ip, @nodeInstance, @result) ->
+    @scope = @ip.scope
 
   sendIP: (port, packet) ->
     if typeof packet isnt 'object' or
@@ -117,8 +132,11 @@ class ProcessOutput
     else
       ip = packet
     ip.scope = @scope if @scope isnt null and ip.scope is null
-    # TODO output buffering
-    @nodeInstance.outPorts[port].sendIP ip
+    if @nodeInstance.ordered
+      @result[port] = [] unless port of @result
+      @result[port].push ip
+    else
+      @nodeInstance.outPorts[port].sendIP ip
 
   send: (outputMap) ->
     for port, packet of outputMap
@@ -129,5 +147,14 @@ class ProcessOutput
     @done()
 
   done: ->
-    # TODO Flush queue
+    if @nodeInstance.ordered
+      @result.__resolved = true
+      while @nodeInstance.outputQ.length > 0
+        item = @nodeInstance.outputQ[0]
+        break unless item.__resolved
+        for port, queue of item
+          continue if port is '__resolved'
+          for ip in queue
+            @nodeInstance.outPorts[port].sendIP ip
+        @nodeInstance.outputQ.shift()
     @nodeInstance.load--
