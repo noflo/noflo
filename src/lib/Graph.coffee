@@ -854,10 +854,8 @@ exports.loadFile = (file, callback, metadata = {}) ->
       definition = require file
     catch e
       # Graph available via HTTP
-      exports.loadHTTP file, (data) ->
-        unless data
-          throw new Error "Failed to load graph #{file}"
-          return
+      exports.loadHTTP file, (err, data) ->
+        return callback err if err
         if file.split('.').pop() is 'fbp'
           return exports.loadFBP data, callback, metadata
         definition = JSON.parse data
