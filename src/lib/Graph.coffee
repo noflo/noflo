@@ -843,7 +843,7 @@ exports.loadHTTP = (url, callback) ->
     return unless req.readyState is 4
     unless req.status is 200
       return callback new Error "Failed to load #{url}: HTTP #{req.status}"
-    callback null, eq.responseText
+    callback null, req.responseText
   req.open 'GET', url, true
   req.send()
 
