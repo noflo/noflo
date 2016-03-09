@@ -16,7 +16,10 @@
     <script src="../browser/noflo.js"></script>
     <script src="../node_modules/chai/chai.js"></script>
     <script src="../node_modules/mocha/mocha.js"></script>
-    <script>mocha.setup('bdd');</script>
+    <script>
+      window.initMochaPhantomJS();
+      mocha.setup('bdd');
+    </script>
     <script src="./ArrayPort.js"></script>
     <script src="./AsyncComponent.js"></script>
     <script src="./Component.js"></script>
