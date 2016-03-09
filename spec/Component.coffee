@@ -315,19 +315,13 @@ describe 'Component', ->
     sin3 = null
     sout1 = null
     sout2 = null
-    before (done) ->
+
+    beforeEach (done) ->
       sin1 = new socket.InternalSocket
       sin2 = new socket.InternalSocket
       sin3 = new socket.InternalSocket
       sout1 = new socket.InternalSocket
       sout2 = new socket.InternalSocket
-      done()
-    beforeEach (done) ->
-      sin1 = new socket.InternalSocket
-      sin2 = new socket.InternalSocket
-      sin3 = new socket.InternalSocket
-      sout1.removeAllListeners()
-      sout2.removeAllListeners()
       done()
 
     it 'should trigger on IPs', (done) ->
@@ -562,7 +556,7 @@ describe 'Component', ->
 
       sin1.post new IP 'data', 'foo', scope: 'foo'
 
-    it 'should preserve order between activation and output', (done) ->
+    it 'should preserve order between input and output', (done) ->
       c = new component.Component
         inPorts:
           msg: datatype: 'string'
@@ -596,3 +590,142 @@ describe 'Component', ->
       for ip in sample
         sin1.post new IP 'data', ip.msg
         sin2.post new IP 'data', ip.delay
+
+    it 'should ignore order between input and output', (done) ->
+      c = new component.Component
+        inPorts:
+          msg: datatype: 'string'
+          delay: datatype: 'int'
+        outPorts:
+          out: datatype: 'object'
+        ordered: false
+        process: (input, output) ->
+          return unless input.has 'msg', 'delay'
+          [msg, delay] = input.getData 'msg', 'delay'
+          setTimeout ->
+            output.sendDone
+              out: { msg: msg, delay: delay }
+          , delay
+
+      c.inPorts.msg.attach sin1
+      c.inPorts.delay.attach sin2
+      c.outPorts.out.attach sout1
+
+      sample = [
+        { delay: 30, msg: "one" }
+        { delay: 0, msg: "two" }
+        { delay: 20, msg: "three" }
+        { delay: 10, msg: "four" }
+      ]
+
+      count = 0
+      sout1.on 'data', (ip) ->
+        count++
+        switch count
+          when 1 then src = sample[1]
+          when 2 then src = sample[3]
+          when 3 then src = sample[2]
+          when 4 then src = sample[0]
+        chai.expect(ip.data).to.eql src
+        done() if count is 4
+
+      for ip in sample
+        sin1.post new IP 'data', ip.msg
+        sin2.post new IP 'data', ip.delay
+
+    describe 'with custom callbacks', ->
+      c = null
+      sin1 = null
+      sin2 = null
+      sin3 = null
+      sout1 = null
+      sout2 = null
+
+      beforeEach (done) ->
+        c = new component.Component
+          inPorts:
+            foo: datatype: 'string'
+            bar:
+              datatype: 'int'
+              control: true
+          outPorts:
+            baz: datatype: 'object'
+            err: datatype: 'object'
+          ordered: true
+          activateOnInput: false
+          process: (input, output, done) ->
+            return unless input.has 'foo', 'bar'
+            [foo, bar] = input.getData 'foo', 'bar'
+            if bar < 0 or bar > 1000
+              return output.sendDone
+                err: new Error "Bar is not correct: #{bar}"
+            # Start capturing output
+            input.activate()
+            output.send
+              baz: new IP 'openBracket'
+            baz =
+              foo: foo
+              bar: bar
+            output.send
+              baz: baz
+            setTimeout ->
+              output.send
+                baz: new IP 'closeBracket'
+              done()
+            , bar
+        sin1 = new socket.InternalSocket
+        sin2 = new socket.InternalSocket
+        sin3 = new socket.InternalSocket
+        sout1 = new socket.InternalSocket
+        sout2 = new socket.InternalSocket
+        c.inPorts.foo.attach sin1
+        c.inPorts.bar.attach sin2
+        c.outPorts.baz.attach sout1
+        c.outPorts.err.attach sout2
+        done()
+
+      it 'should fail on wrong input', (done) ->
+        sout1.once 'data', (ip) ->
+          done new Error 'Unexpected baz'
+        sout2.once 'data', (ip) ->
+          chai.expect(ip).to.be.an 'object'
+          chai.expect(ip.data).to.be.an.error
+          chai.expect(ip.data.message).to.contain 'Bar'
+          done()
+
+        sin1.post new IP 'data', 'fff'
+        sin2.post new IP 'data', -120
+
+      it 'should send substreams', (done) ->
+        sample = [
+          { bar: 30, foo: "one" }
+          { bar: 0, foo: "two" }
+        ]
+        expected = [
+          '<'
+          'one'
+          '>'
+          '<'
+          'two'
+          '>'
+        ]
+        actual = []
+        count = 0
+        sout1.on 'data', (ip) ->
+          count++
+          switch ip.type
+            when 'openBracket'
+              actual.push '<'
+            when 'closeBracket'
+              actual.push '>'
+            else
+              actual.push ip.data.foo
+          if count is 6
+            chai.expect(actual).to.eql expected
+            done()
+        sout2.once 'data', (ip) ->
+          done ip.data
+
+        for item in sample
+          sin2.post new IP 'data', item.bar
+          sin1.post new IP 'data', item.foo

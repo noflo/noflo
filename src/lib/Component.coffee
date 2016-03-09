@@ -83,24 +83,20 @@ class Component extends EventEmitter
 
   handleIP: (ip, port) ->
     return unless port.options.triggering
-    result = null
-    if @ordered
-      result =
-        __resolved: false
+    result = {}
     input = new ProcessInput @inPorts, ip, @, port, result
     output = new ProcessOutput @outPorts, ip, @, result
     @load++
-    @handle input, output, output.done
+    @handle input, output, -> output.done()
 
 exports.Component = Component
 
 class ProcessInput
   constructor: (@ports, @ip, @nodeInstance, @port, @result) ->
     @scope = @ip.scope
-    @activated = false
 
   activate: ->
-    @activated = true
+    @result.__resolved = false
     if @nodeInstance.ordered
       @nodeInstance.outputQ.push @result
 
@@ -110,7 +106,9 @@ class ProcessInput
     res
 
   get: ->
-    if @nodeInstance.activateOnInput and not @activated
+    if @nodeInstance.ordered and
+    @nodeInstance.activateOnInput and
+    not ('__resolved' of @result)
       @activate()
     res = (@ports[port].get @scope for port in arguments)
     if arguments.length is 1 then res[0] else res
@@ -124,6 +122,11 @@ class ProcessInput
 class ProcessOutput
   constructor: (@ports, @ip, @nodeInstance, @result) ->
     @scope = @ip.scope
+
+  activate: ->
+    @result.__resolved = false
+    if @nodeInstance.ordered
+      @nodeInstance.outputQ.push @result
 
   sendIP: (port, packet) ->
     if typeof packet isnt 'object' or
@@ -139,6 +142,9 @@ class ProcessOutput
       @nodeInstance.outPorts[port].sendIP ip
 
   send: (outputMap) ->
+    if @nodeInstance.ordered and
+    not ('__resolved' of @result)
+      @activate()
     for port, packet of outputMap
       @sendIP port, packet
 
@@ -150,11 +156,11 @@ class ProcessOutput
     if @nodeInstance.ordered
       @result.__resolved = true
       while @nodeInstance.outputQ.length > 0
-        item = @nodeInstance.outputQ[0]
-        break unless item.__resolved
-        for port, queue of item
+        result = @nodeInstance.outputQ[0]
+        break unless result.__resolved
+        for port, ips of result
           continue if port is '__resolved'
-          for ip in queue
+          for ip in ips
             @nodeInstance.outPorts[port].sendIP ip
         @nodeInstance.outputQ.shift()
     @nodeInstance.load--
