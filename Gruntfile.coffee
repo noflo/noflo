@@ -75,6 +75,7 @@ module.exports = ->
           output: 'spec/result.xml'
           reporter: 'spec'
           urls: ['http://localhost:8000/spec/runner.html']
+          failWithOutput: true
 
     # Coding standards
     coffeelint:
