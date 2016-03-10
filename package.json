@@ -13,7 +13,7 @@
     "node": ">=0.6.0"
   },
   "dependencies": {
-    "babel-core": "6.0.17",
+    "babel-core": "6.7.2",
     "coffee-script": "1.10.0",
     "fbp": "1.1.4",
     "npmlog": "0.0.6",
