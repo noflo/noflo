@@ -39,15 +39,6 @@ module.exports = ->
         files:
           'browser/noflo.js': ['component.json']
 
-    # JavaScript minification for the browser
-    uglify:
-      options:
-        banner: '/* NoFlo <%= pkg.version %> - Flow-Based Programming environment. See http://noflojs.org for more information. */'
-        report: 'min'
-      noflo:
-        files:
-          './browser/noflo.min.js': ['./browser/noflo.js']
-
     # Automated recompilation and testing when developing
     watch:
       files: ['spec/*.coffee', 'spec/**/*.coffee', 'test/*.coffee', 'src/**/*.coffee']
@@ -100,7 +91,6 @@ module.exports = ->
   @loadNpmTasks 'grunt-contrib-coffee'
   @loadNpmTasks 'grunt-noflo-manifest'
   @loadNpmTasks 'grunt-noflo-browser'
-  @loadNpmTasks 'grunt-contrib-uglify'
 
   # Grunt plugins used for testing
   @loadNpmTasks 'grunt-contrib-watch'
@@ -115,7 +105,6 @@ module.exports = ->
     @task.run 'noflo_manifest'
     if target is 'all' or target is 'browser'
       @task.run 'noflo_browser'
-      @task.run 'uglify'
 
   @registerTask 'test', 'Build NoFlo and run automated tests', (target = 'all') =>
     @task.run 'coffeelint'
