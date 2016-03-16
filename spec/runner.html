@@ -17,7 +17,9 @@
     <script src="../node_modules/chai/chai.js"></script>
     <script src="../node_modules/mocha/mocha.js"></script>
     <script>
-      window.initMochaPhantomJS();
+      if (window.mochaPhantomJS) {
+        window.initMochaPhantomJS();
+      }
       mocha.setup('bdd');
     </script>
     <script src="./ArrayPort.js"></script>
