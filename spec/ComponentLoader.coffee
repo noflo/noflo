@@ -71,7 +71,7 @@ describe 'ComponentLoader with no external packages installed', ->
       chai.expect(normalized).to.equal 'image'
 
   it 'should be able to read a list of components', (done) ->
-    @timeout 10000
+    @timeout 60 * 1000
     ready = false
     l.once 'ready', ->
       ready = true
@@ -93,7 +93,7 @@ describe 'ComponentLoader with no external packages installed', ->
     instance = null
     it 'should be able to load the component', (done) ->
       l.load 'Graph', (err, inst) ->
-        chai.expect(err).to.be.a 'null'
+        return done err if err
         chai.expect(inst).to.be.an 'object'
         chai.expect(inst.componentName).to.equal 'Graph'
         instance = inst
@@ -141,7 +141,7 @@ describe 'ComponentLoader with no external packages installed', ->
     instance = null
     it 'should be able to load the component', (done) ->
       l.load 'Graph', (err, graph) ->
-        chai.expect(err).to.be.a 'null'
+        return done err if err
         chai.expect(graph).to.be.an 'object'
         instance = graph
         done()
@@ -171,7 +171,7 @@ describe 'ComponentLoader with no external packages installed', ->
       chai.expect(l.components).to.contain.keys ['foo/Split', 'Graph']
     it 'should be able to load the component', (done) ->
       l.load 'foo/Split', (err, split) ->
-        chai.expect(err).to.be.a 'null'
+        return done err if err
         chai.expect(split).to.be.an 'object'
         instance = split
         done()
@@ -187,14 +187,14 @@ describe 'ComponentLoader with no external packages installed', ->
       instance.setIcon 'smile'
     it 'new instances should still contain the original icon', (done) ->
       l.load 'foo/Split', (err, split) ->
-        chai.expect(err).to.be.a 'null'
+        return done err if err
         chai.expect(split).to.be.an 'object'
         chai.expect(split.getIcon()).to.equal 'star'
         done()
     it 'after setting an icon for the Component class, new instances should have that', (done) ->
       Split::icon = 'trophy'
       l.load 'foo/Split', (err, split) ->
-        chai.expect(err).to.be.a 'null'
+        return done err if err
         chai.expect(split).to.be.an 'object'
         chai.expect(split.getIcon()).to.equal 'trophy'
         done()
@@ -204,7 +204,7 @@ describe 'ComponentLoader with no external packages installed', ->
   describe 'reading sources', ->
     it 'should be able to provide source code for a component', (done) ->
       l.getSource 'Graph', (err, component) ->
-        chai.expect(err).to.be.a 'null'
+        return done err if err
         chai.expect(component).to.be.an 'object'
         chai.expect(component.code).to.be.a 'string'
         chai.expect(component.code.indexOf('noflo.Component')).to.not.equal -1

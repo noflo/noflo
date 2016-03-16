@@ -74,7 +74,7 @@ describe 'NoFlo Network', ->
     it 'should have transmitted the baseDir to the Component Loader', ->
       chai.expect(n.loader.baseDir).to.equal g.baseDir
     it 'should be able to list components', (done) ->
-      @timeout 6000
+      @timeout 60 * 1000
       n.loader.listComponents (components) ->
         chai.expect(components).to.be.an 'object'
         done()
@@ -107,7 +107,7 @@ describe 'NoFlo Network', ->
     g = null
     n = null
     before (done) ->
-      @timeout 6000
+      @timeout 60 * 1000
       g = new noflo.Graph
       g.baseDir = root
       g.addNode 'Merge', 'Merge'
@@ -245,7 +245,7 @@ describe 'NoFlo Network', ->
       g.addEdge 'Def', 'out', 'Cb', 'in'
 
     it 'should send default values to nodes without an edge', (done) ->
-      @timeout 5000
+      @timeout 60 * 1000
       testCallback = (data) ->
         chai.expect(data).to.equal 'default-value'
         done()
@@ -259,7 +259,7 @@ describe 'NoFlo Network', ->
       , true
 
     it 'should not send default values to nodes with an edge', (done) ->
-      @timeout 5000
+      @timeout 60 * 1000
       testCallback = (data) ->
         chai.expect(data).to.equal 'from-edge'
         done()
@@ -277,7 +277,7 @@ describe 'NoFlo Network', ->
       , true
 
     it 'should not send default values to nodes with IIP', (done) ->
-      @timeout 5000
+      @timeout 60 * 1000
       testCallback = (data) ->
         chai.expect(data).to.equal 'from-IIP'
         done()
