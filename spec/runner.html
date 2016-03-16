@@ -17,7 +17,7 @@
     <script src="../node_modules/chai/chai.js"></script>
     <script src="../node_modules/mocha/mocha.js"></script>
     <script>
-      if (window.mochaPhantomJS) {
+      if (window.initMochaPhantomJS) {
         window.initMochaPhantomJS();
       }
       mocha.setup('bdd');
@@ -36,12 +36,7 @@
     <script src="./Port.js"></script>
     <script src="./Subgraph.js"></script>
     <script>
-      if (window.mochaPhantomJS) {
-        mochaPhantomJS.run();
-      } else {
-        mocha.checkLeaks();
-        mocha.run();
-      }
+      mocha.run();
     </script>
   </body>
 </html>
