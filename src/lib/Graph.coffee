@@ -812,15 +812,15 @@ exports.loadJSON = (definition, callback, metadata = {}) ->
             processId = id
       else
         processId = exported.process
-        portId = exported.port
+        portId = exported.port.toLowerCase()
       graph.addExport exported.public, processId, portId, exported.metadata
 
   if definition.inports
     for pub, priv of definition.inports
-      graph.addInport pub, priv.process, priv.port, priv.metadata
+      graph.addInport pub, priv.process, priv.port.toLowerCase(), priv.metadata
   if definition.outports
     for pub, priv of definition.outports
-      graph.addOutport pub, priv.process, priv.port, priv.metadata
+      graph.addOutport pub, priv.process, priv.port.toLowerCase(), priv.metadata
 
   if definition.groups
     for group in definition.groups
