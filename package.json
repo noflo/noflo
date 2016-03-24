@@ -23,7 +23,7 @@
   "devDependencies": {
     "chai": "3.5.0",
     "grunt": "0.4.5",
-    "grunt-cli": "0.1.13",
+    "grunt-cli": "1.1.0",
     "grunt-coffeelint": "0.0.15",
     "grunt-contrib-coffee": "0.11.1",
     "grunt-contrib-connect": "1.0.0",
