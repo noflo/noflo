@@ -26,7 +26,7 @@
     "grunt-cli": "1.1.0",
     "grunt-coffeelint": "0.0.15",
     "grunt-contrib-coffee": "0.11.1",
-    "grunt-contrib-connect": "1.0.0",
+    "grunt-contrib-connect": "1.0.1",
     "grunt-contrib-watch": "~1.0.0",
     "grunt-mocha-phantomjs": "3.0.0",
     "grunt-mocha-test": "^0.12.7",
