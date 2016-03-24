@@ -76,7 +76,7 @@ module.exports = ->
         options:
           max_line_length:
             value: 80
-            level: 'warn'
+            level: 'ignore'
           no_trailing_semicolons:
             level: 'warn'
       components:
@@ -85,7 +85,7 @@ module.exports = ->
         options:
           max_line_length:
             value: 80
-            level: 'warn'
+            level: 'ignore'
 
   # Grunt plugins used for building
   @loadNpmTasks 'grunt-contrib-coffee'
