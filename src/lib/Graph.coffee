@@ -103,9 +103,9 @@ class Graph extends EventEmitter
     @checkTransactionStart()
 
     exported =
-      public: publicPort
+      public: publicPort.toLowerCase()
       process: nodeKey
-      port: portKey
+      port: portKey.toLowerCase()
       metadata: metadata
     @exports.push exported
     @emit 'addExport', exported
@@ -128,10 +128,11 @@ class Graph extends EventEmitter
     # Check that node exists
     return unless @getNode nodeKey
 
+    publicPort = publicPort.toLowerCase()
     @checkTransactionStart()
     @inports[publicPort] =
       process: nodeKey
-      port: portKey
+      port: portKey.toLowerCase()
       metadata: metadata
     @emit 'addInport', publicPort, @inports[publicPort]
     @checkTransactionEnd()
@@ -148,6 +149,8 @@ class Graph extends EventEmitter
     @checkTransactionEnd()
 
   renameInport: (oldPort, newPort) ->
+    oldPort = oldPort.toLowerCase()
+    newPort = newPort.toLowerCase()
     return unless @inports[oldPort]
 
     @checkTransactionStart()
@@ -157,6 +160,7 @@ class Graph extends EventEmitter
     @checkTransactionEnd()
 
   setInportMetadata: (publicPort, metadata) ->
+    publicPort = publicPort.toLowerCase()
     return unless @inports[publicPort]
 
     @checkTransactionStart()
@@ -174,11 +178,11 @@ class Graph extends EventEmitter
     # Check that node exists
     return unless @getNode nodeKey
 
+    publicPort = publicPort.toLowerCase()
     @checkTransactionStart()
-
     @outports[publicPort] =
       process: nodeKey
-      port: portKey
+      port: portKey.toLowerCase()
       metadata: metadata
     @emit 'addOutport', publicPort, @outports[publicPort]
 
@@ -198,6 +202,8 @@ class Graph extends EventEmitter
     @checkTransactionEnd()
 
   renameOutport: (oldPort, newPort) ->
+    oldPort = oldPort.toLowerCase()
+    newPort = newPort.toLowerCase()
     return unless @outports[oldPort]
 
     @checkTransactionStart()
@@ -207,6 +213,7 @@ class Graph extends EventEmitter
     @checkTransactionEnd()
 
   setOutportMetadata: (publicPort, metadata) ->
+    publicPort = publicPort.toLowerCase()
     return unless @outports[publicPort]
 
     @checkTransactionStart()
@@ -444,6 +451,8 @@ class Graph extends EventEmitter
   #
   # Adding an edge will emit the `addEdge` event.
   addEdge: (outNode, outPort, inNode, inPort, metadata = {}) ->
+    outPort = outPort.toLowerCase()
+    inPort = inPort.toLowerCase()
     for edge in @edges
       # don't add a duplicate edge
       return if (edge.from.node is outNode and edge.from.port is outPort and edge.to.node is inNode and edge.to.port is inPort)
@@ -470,6 +479,10 @@ class Graph extends EventEmitter
   addEdgeIndex: (outNode, outPort, outIndex, inNode, inPort, inIndex, metadata = {}) ->
     return unless @getNode outNode
     return unless @getNode inNode
+
+    outPort = outPort.toLowerCase()
+    inPort = inPort.toLowerCase()
+
     inIndex = undefined if inIndex is null
     outIndex = undefined if outIndex is null
     metadata = {} unless metadata
@@ -502,7 +515,8 @@ class Graph extends EventEmitter
   # Removing a connection will emit the `removeEdge` event.
   removeEdge: (node, port, node2, port2) ->
     @checkTransactionStart()
-
+    port = port.toLowerCase()
+    port2 = port2.toLowerCase()
     toRemove = []
     toKeep = []
     if node2 and port2
@@ -532,6 +546,8 @@ class Graph extends EventEmitter
   #
   #     myEdge = myGraph.getEdge 'Read', 'out', 'Write', 'in'
   getEdge: (node, port, node2, port2) ->
+    port = port.toLowerCase()
+    port2 = port2.toLowerCase()
     for edge,index in @edges
       continue unless edge
       if edge.from.node is node and edge.from.port is port
@@ -581,6 +597,7 @@ class Graph extends EventEmitter
   addInitial: (data, node, port, metadata) ->
     return unless @getNode node
 
+    port = port.toLowerCase()
     @checkTransactionStart()
     initializer =
       from:
@@ -599,6 +616,7 @@ class Graph extends EventEmitter
     return unless @getNode node
     index = undefined if index is null
 
+    port = port.toLowerCase()
     @checkTransactionStart()
     initializer =
       from:
@@ -638,6 +656,7 @@ class Graph extends EventEmitter
   #
   # Remove an IIP will emit a `removeInitial` event.
   removeInitial: (node, port) ->
+    port = port.toLowerCase()
     @checkTransactionStart()
 
     toRemove = []
@@ -812,15 +831,15 @@ exports.loadJSON = (definition, callback, metadata = {}) ->
             processId = id
       else
         processId = exported.process
-        portId = exported.port
+        portId = exported.port.toLowerCase()
       graph.addExport exported.public, processId, portId, exported.metadata
 
   if definition.inports
     for pub, priv of definition.inports
-      graph.addInport pub, priv.process, priv.port, priv.metadata
+      graph.addInport pub, priv.process, priv.port.toLowerCase(), priv.metadata
   if definition.outports
     for pub, priv of definition.outports
-      graph.addOutport pub, priv.process, priv.port, priv.metadata
+      graph.addOutport pub, priv.process, priv.port.toLowerCase(), priv.metadata
 
   if definition.groups
     for group in definition.groups
@@ -843,7 +862,7 @@ exports.loadHTTP = (url, callback) ->
     return unless req.readyState is 4
     unless req.status is 200
       return callback new Error "Failed to load #{url}: HTTP #{req.status}"
-    callback null, eq.responseText
+    callback null, req.responseText
   req.open 'GET', url, true
   req.send()
 
@@ -854,10 +873,8 @@ exports.loadFile = (file, callback, metadata = {}) ->
       definition = require file
     catch e
       # Graph available via HTTP
-      exports.loadHTTP file, (data) ->
-        unless data
-          throw new Error "Failed to load graph #{file}"
-          return
+      exports.loadHTTP file, (err, data) ->
+        return callback err if err
         if file.split('.').pop() is 'fbp'
           return exports.loadFBP data, callback, metadata
         definition = JSON.parse data

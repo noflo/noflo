@@ -216,11 +216,11 @@ class Journal extends EventEmitter
       when 'addInport' then @graph.addInport a.name, a.port.process, a.port.port, a.port.metadata
       when 'removeInport' then @graph.removeInport a.name
       when 'renameInport' then @graph.renameInport a.oldId, a.newId
-      when 'changeInport' then @graph.setInportMetadata a.port, calculateMeta(a.old, a.new)
+      when 'changeInport' then @graph.setInportMetadata a.name, calculateMeta(a.old, a.new)
       when 'addOutport' then @graph.addOutport a.name, a.port.process, a.port.port, a.port.metadata a.name
       when 'removeOutport' then @graph.removeOutport
       when 'renameOutport' then @graph.renameOutport a.oldId, a.newId
-      when 'changeOutport' then @graph.setOutportMetadata a.port, calculateMeta(a.old, a.new)
+      when 'changeOutport' then @graph.setOutportMetadata a.name, calculateMeta(a.old, a.new)
       else throw new Error("Unknown journal entry: #{entry.cmd}")
 
   executeEntryInversed: (entry) ->
@@ -245,11 +245,11 @@ class Journal extends EventEmitter
       when 'addInport' then @graph.removeInport a.name
       when 'removeInport' then @graph.addInport a.name, a.port.process, a.port.port, a.port.metadata
       when 'renameInport' then @graph.renameInport a.newId, a.oldId
-      when 'changeInport' then @graph.setInportMetadata a.port, calculateMeta(a.new, a.old)
+      when 'changeInport' then @graph.setInportMetadata a.name, calculateMeta(a.new, a.old)
       when 'addOutport' then @graph.removeOutport a.name
       when 'removeOutport' then @graph.addOutport a.name, a.port.process, a.port.port, a.port.metadata
       when 'renameOutport' then @graph.renameOutport a.newId, a.oldId
-      when 'changeOutport' then @graph.setOutportMetadata a.port, calculateMeta(a.new, a.old)
+      when 'changeOutport' then @graph.setOutportMetadata a.name, calculateMeta(a.new, a.old)
       else throw new Error("Unknown journal entry: #{entry.cmd}")
 
   moveToRevision: (revId) ->
