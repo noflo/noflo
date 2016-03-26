@@ -633,6 +633,129 @@ describe 'Component', ->
         sin1.post new IP 'data', ip.msg
         sin2.post new IP 'data', ip.delay
 
+    it 'should throw errors if there is no error port', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            required: true
+        process: (input, output) ->
+          packet = input.get 'in'
+          chai.expect(packet.data).to.equal 'some-data'
+          chai.expect(-> output.done new Error 'Should fail').to.throw Error
+          done()
+
+      c.inPorts.in.attach sin1
+      sin1.post new IP 'data', 'some-data'
+
+    it 'should throw errors if there is a non-attached error port', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            required: true
+        outPorts:
+          error:
+            datatype: 'object'
+            required: true
+        process: (input, output) ->
+          packet = input.get 'in'
+          chai.expect(packet.data).to.equal 'some-data'
+          chai.expect(-> output.sendDone new Error 'Should fail').to.throw Error
+          done()
+
+      c.inPorts.in.attach sin1
+      sin1.post new IP 'data', 'some-data'
+
+    it 'should not throw errors if there is a non-required error port', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            required: true
+        outPorts:
+          error:
+            required: no
+        process: (input, output) ->
+          packet = input.get 'in'
+          chai.expect(packet.data).to.equal 'some-data'
+          output.sendDone new Error 'Should not fail'
+          done()
+
+      c.inPorts.in.attach sin1
+      sin1.post new IP 'data', 'some-data'
+
+    it 'should send errors if there is a connected error port', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            required: true
+        outPorts:
+          error:
+            datatype: 'object'
+        process: (input, output) ->
+          packet = input.get 'in'
+          chai.expect(packet.data).to.equal 'some-data'
+          chai.expect(packet.scope).to.equal 'some-scope'
+          output.sendDone new Error 'Should fail'
+
+      sout1.on 'data', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.data).to.be.an.instanceOf Error
+        chai.expect(ip.scope).to.equal 'some-scope'
+        done()
+
+      c.inPorts.in.attach sin1
+      c.outPorts.error.attach sout1
+      sin1.post new IP 'data', 'some-data',
+        scope: 'some-scope'
+
+    it 'should send substreams with multiple errors per activation', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            required: true
+        outPorts:
+          error:
+            datatype: 'object'
+        process: (input, output) ->
+          packet = input.get 'in'
+          chai.expect(packet.data).to.equal 'some-data'
+          chai.expect(packet.scope).to.equal 'some-scope'
+          errors = []
+          errors.push new Error 'One thing is invalid'
+          errors.push new Error 'Another thing is invalid'
+          output.sendDone errors
+
+      expected = [
+        '<'
+        'One thing is invalid'
+        'Another thing is invalid'
+        '>'
+      ]
+      actual = []
+      count = 0
+
+      sout1.on 'data', (ip) ->
+        count++
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.scope).to.equal 'some-scope'
+        actual.push '<' if ip.type is 'openBracket'
+        actual.push '>' if ip.type is 'closeBracket'
+        if ip.type is 'data'
+          chai.expect(ip.data).to.be.an.instanceOf Error
+          actual.push ip.data.message
+        if count is 4
+          chai.expect(actual).to.eql expected
+          done()
+
+      c.inPorts.in.attach sin1
+      c.outPorts.error.attach sout1
+      sin1.post new IP 'data', 'some-data',
+        scope: 'some-scope'
+
     describe 'with custom callbacks', ->
       c = null
       sin1 = null

@@ -35,8 +35,7 @@ exports.getComponent = ->
       src = JSON.parse JSON.stringify if overwrite then obj1 else obj2
       dst = JSON.parse JSON.stringify if overwrite then obj2 else obj1
     catch e
-      return output.sendDone
-        error: e
+      return output.done e
     for key, val of dst
       src[key] = val
     output.sendDone

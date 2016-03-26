@@ -128,6 +128,21 @@ class ProcessOutput
     if @nodeInstance.ordered
       @nodeInstance.outputQ.push @result
 
+  isError: (err) ->
+    err instanceof Error or
+    Array.isArray(err) and err.length > 0 and err[0] instanceof Error
+
+  error: (err) ->
+    multiple = Array.isArray err
+    err = [err] unless multiple
+    if 'error' of @ports and
+    (@ports.error.isAttached() or not @ports.error.isRequired())
+      @sendIP 'error', new IP 'openBracket' if multiple
+      @sendIP 'error', e for e in err
+      @sendIP 'error', new IP 'closeBracket' if multiple
+    else
+      throw e for e in err
+
   sendIP: (port, packet) ->
     if typeof packet isnt 'object' or
     IP.types.indexOf(packet.type) is -1
@@ -145,6 +160,7 @@ class ProcessOutput
     if @nodeInstance.ordered and
     not ('__resolved' of @result)
       @activate()
+    return @error outputMap if @isError outputMap
     for port, packet of outputMap
       @sendIP port, packet
 
@@ -152,7 +168,8 @@ class ProcessOutput
     @send outputMap
     @done()
 
-  done: ->
+  done: (error) ->
+    @error error if error
     if @nodeInstance.ordered
       @result.__resolved = true
       while @nodeInstance.outputQ.length > 0
