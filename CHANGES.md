@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.6.0 (git master)
+## 0.6.0 (March 29th 2016)
 
 * Deprecated the `noflo` command in favor of [noflo-nodejs](https://www.npmjs.com/package/noflo-nodejs)
 * NoFlo `createNetwork` and `loadFile` methods can return errors as the first callback argument
