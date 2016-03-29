@@ -7,6 +7,8 @@ NoFlo ChangeLog
 * NoFlo `createNetwork` and `loadFile` methods can return errors as the first callback argument
 * New [IP Objects](https://github.com/noflo/noflo/issues/290) feature allowing bundling and handling of groups and packet data together
 * New option to enable [cloning of packets](https://github.com/noflo/noflo/pull/375) when sending to multiple outbound connections
+* New [Process API](https://github.com/noflo/noflo/pull/392) which replaces `WirePattern` and makes NoFlo component programming closer to Classical FBP
+* Graph-level [request isolation](https://github.com/noflo/noflo/issues/373) via `IP.scope` property
 * Removed the deprecated `LoggingComponent` baseclass
 
 ## 0.5.21 (December 3rd 2015)
