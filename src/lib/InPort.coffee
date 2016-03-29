@@ -1,5 +1,5 @@
 #     NoFlo - Flow-Based Programming for JavaScript
-#     (c) 2014 TheGrid (Rituwall Inc.)
+#     (c) 2014-2016 TheGrid (Rituwall Inc.)
 #     NoFlo may be freely distributed under the MIT license
 #
 # Input Port (inport) implementation for NoFlo components

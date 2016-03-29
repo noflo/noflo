@@ -1,3 +1,6 @@
+#     NoFlo - Flow-Based Programming for JavaScript
+#     (c) 2016 TheGrid (Rituwall Inc.)
+#     NoFlo may be freely distributed under the MIT license
 module.exports = class IP
   @types: [
     'data'

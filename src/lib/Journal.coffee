@@ -1,4 +1,5 @@
 #     NoFlo - Flow-Based Programming for JavaScript
+#     (c) 2016 TheGrid (Rituwall Inc.)
 #     (c) 2014 Jon Nordby
 #     (c) 2013 TheGrid (Rituwall Inc.)
 #     (c) 2011-2012 Henri Bergius, Nemein
