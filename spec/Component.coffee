@@ -307,3 +307,548 @@ describe 'Component', ->
       c.outPorts.html.attach s3
 
       s1.post new IP 'data', 'start'
+
+  describe 'with process function', ->
+    c = null
+    sin1 = null
+    sin2 = null
+    sin3 = null
+    sout1 = null
+    sout2 = null
+
+    beforeEach (done) ->
+      sin1 = new socket.InternalSocket
+      sin2 = new socket.InternalSocket
+      sin3 = new socket.InternalSocket
+      sout1 = new socket.InternalSocket
+      sout2 = new socket.InternalSocket
+      done()
+
+    it 'should trigger on IPs', (done) ->
+      hadIPs = []
+      c = new component.Component
+        inPorts:
+          foo: datatype: 'string'
+          bar: datatype: 'string'
+        outPorts:
+          baz: datatype: 'boolean'
+        process: (input, output) ->
+          hadIPs = []
+          hadIPs.push 'foo' if input.has 'foo'
+          hadIPs.push 'bar' if input.has 'bar'
+          output.sendDone baz: true
+
+      c.inPorts.foo.attach sin1
+      c.inPorts.bar.attach sin2
+      c.outPorts.baz.attach sout1
+
+      count = 0
+      sout1.on 'data', (ip) ->
+        count++
+        if count is 1
+          chai.expect(hadIPs).to.eql ['foo']
+        if count is 2
+          chai.expect(hadIPs).to.eql ['foo', 'bar']
+          done()
+
+      sin1.post new IP 'data', 'first'
+      sin2.post new IP 'data', 'second'
+
+    it 'should not be triggered by non-triggering ports', (done) ->
+      triggered = []
+      c = new component.Component
+        inPorts:
+          foo:
+            datatype: 'string'
+            triggering: false
+          bar: datatype: 'string'
+        outPorts:
+          baz: datatype: 'boolean'
+        process: (input, output) ->
+          triggered.push input.port.name
+          output.sendDone baz: true
+
+      c.inPorts.foo.attach sin1
+      c.inPorts.bar.attach sin2
+      c.outPorts.baz.attach sout1
+
+      count = 0
+      sout1.on 'data', (ip) ->
+        count++
+        if count is 1
+          chai.expect(triggered).to.eql ['bar']
+        if count is 2
+          chai.expect(triggered).to.eql ['bar', 'bar']
+          done()
+
+      sin1.post new IP 'data', 'first'
+      sin2.post new IP 'data', 'second'
+      sin1.post new IP 'data', 'first'
+      sin2.post new IP 'data', 'second'
+
+    it 'should receive and send complete IP objects', (done) ->
+      c = new component.Component
+        inPorts:
+          foo: datatype: 'string'
+          bar: datatype: 'string'
+        outPorts:
+          baz: datatype: 'object'
+        process: (input, output) ->
+          return unless input.has 'foo', 'bar'
+          [foo, bar] = input.get 'foo', 'bar'
+          baz =
+            foo: foo.data
+            bar: bar.data
+            groups: foo.groups
+            type: bar.type
+          output.sendDone
+            baz: new IP 'data', baz,
+              groups: ['baz']
+
+      c.inPorts.foo.attach sin1
+      c.inPorts.bar.attach sin2
+      c.outPorts.baz.attach sout1
+
+      sout1.once 'data', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.type).to.equal 'data'
+        chai.expect(ip.data.foo).to.equal 'foo'
+        chai.expect(ip.data.bar).to.equal 'bar'
+        chai.expect(ip.data.groups).to.eql ['foo']
+        chai.expect(ip.data.type).to.equal 'data'
+        chai.expect(ip.groups).to.eql ['baz']
+        done()
+
+      sin1.post new IP 'data', 'foo',
+        groups: ['foo']
+      sin2.post new IP 'data', 'bar',
+        groups: ['bar']
+
+    it 'should receive and send just IP data if wanted', (done) ->
+      c = new component.Component
+        inPorts:
+          foo: datatype: 'string'
+          bar: datatype: 'string'
+        outPorts:
+          baz: datatype: 'object'
+        process: (input, output) ->
+          return unless input.has 'foo', 'bar'
+          [foo, bar] = input.getData 'foo', 'bar'
+          baz =
+            foo: foo
+            bar: bar
+          output.sendDone
+            baz: baz
+
+      c.inPorts.foo.attach sin1
+      c.inPorts.bar.attach sin2
+      c.outPorts.baz.attach sout1
+
+      sout1.once 'data', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.type).to.equal 'data'
+        chai.expect(ip.data.foo).to.equal 'foo'
+        chai.expect(ip.data.bar).to.equal 'bar'
+        done()
+
+      sin1.post new IP 'data', 'foo',
+        groups: ['foo']
+      sin2.post new IP 'data', 'bar',
+        groups: ['bar']
+
+    it 'should keep last value for controls', (done) ->
+      c = new component.Component
+        inPorts:
+          foo: datatype: 'string'
+          bar:
+            datatype: 'string'
+            control: true
+        outPorts:
+          baz: datatype: 'object'
+        process: (input, output) ->
+          return unless input.has 'foo', 'bar'
+          [foo, bar] = input.getData 'foo', 'bar'
+          baz =
+            foo: foo
+            bar: bar
+          output.sendDone
+            baz: baz
+
+      c.inPorts.foo.attach sin1
+      c.inPorts.bar.attach sin2
+      c.outPorts.baz.attach sout1
+
+      sout1.once 'data', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.type).to.equal 'data'
+        chai.expect(ip.data.foo).to.equal 'foo'
+        chai.expect(ip.data.bar).to.equal 'bar'
+        sout1.once 'data', (ip) ->
+          chai.expect(ip).to.be.an 'object'
+          chai.expect(ip.type).to.equal 'data'
+          chai.expect(ip.data.foo).to.equal 'boo'
+          chai.expect(ip.data.bar).to.equal 'bar'
+          done()
+
+      sin1.post new IP 'data', 'foo'
+      sin2.post new IP 'data', 'bar'
+      sin1.post new IP 'data', 'boo'
+
+    it 'should isolate packets with different scopes', (done) ->
+      foo1 = 'Josh'
+      bar1 = 'Laura'
+      bar2 = 'Luke'
+      foo2 = 'Jane'
+
+      c = new component.Component
+        inPorts:
+          foo: datatype: 'string'
+          bar: datatype: 'string'
+        outPorts:
+          baz: datatype: 'string'
+        process: (input, output) ->
+          return unless input.has 'foo', 'bar'
+          [foo, bar] = input.getData 'foo', 'bar'
+          output.sendDone
+            baz: "#{foo} and #{bar}"
+
+      c.inPorts.foo.attach sin1
+      c.inPorts.bar.attach sin2
+      c.outPorts.baz.attach sout1
+
+      sout1.once 'data', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.type).to.equal 'data'
+        chai.expect(ip.scope).to.equal '1'
+        chai.expect(ip.data).to.equal 'Josh and Laura'
+        sout1.once 'data', (ip) ->
+          chai.expect(ip).to.be.an 'object'
+          chai.expect(ip.type).to.equal 'data'
+          chai.expect(ip.scope).to.equal '2'
+          chai.expect(ip.data).to.equal 'Jane and Luke'
+          done()
+
+      sin1.post new IP 'data', 'Josh', scope: '1'
+      sin2.post new IP 'data', 'Luke', scope: '2'
+      sin2.post new IP 'data', 'Laura', scope: '1'
+      sin1.post new IP 'data', 'Jane', scope: '2'
+
+    it 'should be able to change scope', (done) ->
+      c = new component.Component
+        inPorts:
+          foo: datatype: 'string'
+        outPorts:
+          baz: datatype: 'string'
+        process: (input, output) ->
+          foo = input.getData 'foo'
+          output.sendDone
+            baz: new IP 'data', foo, scope: 'baz'
+
+      c.inPorts.foo.attach sin1
+      c.outPorts.baz.attach sout1
+
+      sout1.once 'data', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.type).to.equal 'data'
+        chai.expect(ip.scope).to.equal 'baz'
+        chai.expect(ip.data).to.equal 'foo'
+        done()
+
+      sin1.post new IP 'data', 'foo', scope: 'foo'
+
+    it 'should preserve order between input and output', (done) ->
+      c = new component.Component
+        inPorts:
+          msg: datatype: 'string'
+          delay: datatype: 'int'
+        outPorts:
+          out: datatype: 'object'
+        ordered: true
+        process: (input, output) ->
+          return unless input.has 'msg', 'delay'
+          [msg, delay] = input.getData 'msg', 'delay'
+          setTimeout ->
+            output.sendDone
+              out: { msg: msg, delay: delay }
+          , delay
+
+      c.inPorts.msg.attach sin1
+      c.inPorts.delay.attach sin2
+      c.outPorts.out.attach sout1
+
+      sample = [
+        { delay: 30, msg: "one" }
+        { delay: 0, msg: "two" }
+        { delay: 20, msg: "three" }
+        { delay: 10, msg: "four" }
+      ]
+
+      sout1.on 'data', (ip) ->
+        chai.expect(ip.data).to.eql sample.shift()
+        done() if sample.length is 0
+
+      for ip in sample
+        sin1.post new IP 'data', ip.msg
+        sin2.post new IP 'data', ip.delay
+
+    it 'should ignore order between input and output', (done) ->
+      c = new component.Component
+        inPorts:
+          msg: datatype: 'string'
+          delay: datatype: 'int'
+        outPorts:
+          out: datatype: 'object'
+        ordered: false
+        process: (input, output) ->
+          return unless input.has 'msg', 'delay'
+          [msg, delay] = input.getData 'msg', 'delay'
+          setTimeout ->
+            output.sendDone
+              out: { msg: msg, delay: delay }
+          , delay
+
+      c.inPorts.msg.attach sin1
+      c.inPorts.delay.attach sin2
+      c.outPorts.out.attach sout1
+
+      sample = [
+        { delay: 30, msg: "one" }
+        { delay: 0, msg: "two" }
+        { delay: 20, msg: "three" }
+        { delay: 10, msg: "four" }
+      ]
+
+      count = 0
+      sout1.on 'data', (ip) ->
+        count++
+        switch count
+          when 1 then src = sample[1]
+          when 2 then src = sample[3]
+          when 3 then src = sample[2]
+          when 4 then src = sample[0]
+        chai.expect(ip.data).to.eql src
+        done() if count is 4
+
+      for ip in sample
+        sin1.post new IP 'data', ip.msg
+        sin2.post new IP 'data', ip.delay
+
+    it 'should throw errors if there is no error port', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            required: true
+        process: (input, output) ->
+          packet = input.get 'in'
+          chai.expect(packet.data).to.equal 'some-data'
+          chai.expect(-> output.done new Error 'Should fail').to.throw Error
+          done()
+
+      c.inPorts.in.attach sin1
+      sin1.post new IP 'data', 'some-data'
+
+    it 'should throw errors if there is a non-attached error port', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            required: true
+        outPorts:
+          error:
+            datatype: 'object'
+            required: true
+        process: (input, output) ->
+          packet = input.get 'in'
+          chai.expect(packet.data).to.equal 'some-data'
+          chai.expect(-> output.sendDone new Error 'Should fail').to.throw Error
+          done()
+
+      c.inPorts.in.attach sin1
+      sin1.post new IP 'data', 'some-data'
+
+    it 'should not throw errors if there is a non-required error port', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            required: true
+        outPorts:
+          error:
+            required: no
+        process: (input, output) ->
+          packet = input.get 'in'
+          chai.expect(packet.data).to.equal 'some-data'
+          output.sendDone new Error 'Should not fail'
+          done()
+
+      c.inPorts.in.attach sin1
+      sin1.post new IP 'data', 'some-data'
+
+    it 'should send errors if there is a connected error port', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            required: true
+        outPorts:
+          error:
+            datatype: 'object'
+        process: (input, output) ->
+          packet = input.get 'in'
+          chai.expect(packet.data).to.equal 'some-data'
+          chai.expect(packet.scope).to.equal 'some-scope'
+          output.sendDone new Error 'Should fail'
+
+      sout1.on 'data', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.data).to.be.an.instanceOf Error
+        chai.expect(ip.scope).to.equal 'some-scope'
+        done()
+
+      c.inPorts.in.attach sin1
+      c.outPorts.error.attach sout1
+      sin1.post new IP 'data', 'some-data',
+        scope: 'some-scope'
+
+    it 'should send substreams with multiple errors per activation', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            required: true
+        outPorts:
+          error:
+            datatype: 'object'
+        process: (input, output) ->
+          packet = input.get 'in'
+          chai.expect(packet.data).to.equal 'some-data'
+          chai.expect(packet.scope).to.equal 'some-scope'
+          errors = []
+          errors.push new Error 'One thing is invalid'
+          errors.push new Error 'Another thing is invalid'
+          output.sendDone errors
+
+      expected = [
+        '<'
+        'One thing is invalid'
+        'Another thing is invalid'
+        '>'
+      ]
+      actual = []
+      count = 0
+
+      sout1.on 'data', (ip) ->
+        count++
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.scope).to.equal 'some-scope'
+        actual.push '<' if ip.type is 'openBracket'
+        actual.push '>' if ip.type is 'closeBracket'
+        if ip.type is 'data'
+          chai.expect(ip.data).to.be.an.instanceOf Error
+          actual.push ip.data.message
+        if count is 4
+          chai.expect(actual).to.eql expected
+          done()
+
+      c.inPorts.in.attach sin1
+      c.outPorts.error.attach sout1
+      sin1.post new IP 'data', 'some-data',
+        scope: 'some-scope'
+
+    describe 'with custom callbacks', ->
+      c = null
+      sin1 = null
+      sin2 = null
+      sin3 = null
+      sout1 = null
+      sout2 = null
+
+      beforeEach (done) ->
+        c = new component.Component
+          inPorts:
+            foo: datatype: 'string'
+            bar:
+              datatype: 'int'
+              control: true
+          outPorts:
+            baz: datatype: 'object'
+            err: datatype: 'object'
+          ordered: true
+          activateOnInput: false
+          process: (input, output, done) ->
+            return unless input.has 'foo', 'bar'
+            [foo, bar] = input.getData 'foo', 'bar'
+            if bar < 0 or bar > 1000
+              return output.sendDone
+                err: new Error "Bar is not correct: #{bar}"
+            # Start capturing output
+            input.activate()
+            output.send
+              baz: new IP 'openBracket'
+            baz =
+              foo: foo
+              bar: bar
+            output.send
+              baz: baz
+            setTimeout ->
+              output.send
+                baz: new IP 'closeBracket'
+              done()
+            , bar
+        sin1 = new socket.InternalSocket
+        sin2 = new socket.InternalSocket
+        sin3 = new socket.InternalSocket
+        sout1 = new socket.InternalSocket
+        sout2 = new socket.InternalSocket
+        c.inPorts.foo.attach sin1
+        c.inPorts.bar.attach sin2
+        c.outPorts.baz.attach sout1
+        c.outPorts.err.attach sout2
+        done()
+
+      it 'should fail on wrong input', (done) ->
+        sout1.once 'data', (ip) ->
+          done new Error 'Unexpected baz'
+        sout2.once 'data', (ip) ->
+          chai.expect(ip).to.be.an 'object'
+          chai.expect(ip.data).to.be.an.error
+          chai.expect(ip.data.message).to.contain 'Bar'
+          done()
+
+        sin1.post new IP 'data', 'fff'
+        sin2.post new IP 'data', -120
+
+      it 'should send substreams', (done) ->
+        sample = [
+          { bar: 30, foo: "one" }
+          { bar: 0, foo: "two" }
+        ]
+        expected = [
+          '<'
+          'one'
+          '>'
+          '<'
+          'two'
+          '>'
+        ]
+        actual = []
+        count = 0
+        sout1.on 'data', (ip) ->
+          count++
+          switch ip.type
+            when 'openBracket'
+              actual.push '<'
+            when 'closeBracket'
+              actual.push '>'
+            else
+              actual.push ip.data.foo
+          if count is 6
+            chai.expect(actual).to.eql expected
+            done()
+        sout2.once 'data', (ip) ->
+          done ip.data
+
+        for item in sample
+          sin2.post new IP 'data', item.bar
+          sin1.post new IP 'data', item.foo
