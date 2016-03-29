@@ -3,7 +3,7 @@ NoFlo ChangeLog
 
 ## 0.6.0 (March 29th 2016)
 
-* Deprecated the `noflo` command in favor of [noflo-nodejs](https://www.npmjs.com/package/noflo-nodejs)
+* Removed the `noflo` executable in favor of [noflo-nodejs](https://www.npmjs.com/package/noflo-nodejs)
 * NoFlo `createNetwork` and `loadFile` methods can return errors as the first callback argument
 * New [IP Objects](https://github.com/noflo/noflo/issues/290) feature allowing bundling and handling of groups and packet data together
 * New option to enable [cloning of packets](https://github.com/noflo/noflo/pull/375) when sending to multiple outbound connections
