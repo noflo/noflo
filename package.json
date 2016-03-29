@@ -37,6 +37,7 @@
   },
   "main": "./lib/NoFlo",
   "bin": {
+    "noflo": "./bin/noflo",
     "noflo-cache-preheat": "./bin/noflo-cache-preheat"
   },
   "homepage": "http://noflojs.org/",
