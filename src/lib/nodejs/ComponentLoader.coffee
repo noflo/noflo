@@ -47,7 +47,10 @@ class ComponentLoader extends loader.ComponentLoader
         @components["#{m.name}/#{c.name}"] = path.resolve @baseDir, c.path
 
     # Inject subgraph component
-    @components.Graph = path.resolve __dirname, '../../components/Graph'
+    if path.extname(__filename) is '.js'
+      @components.Graph = path.resolve __dirname, '../../components/Graph.js'
+    else
+      @components.Graph = path.resolve __dirname, '../../components/Graph.coffee'
 
   listComponents: (callback) ->
     if @processing
