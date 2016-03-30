@@ -43,6 +43,13 @@ class ComponentLoader extends loader.ComponentLoader
     compatible = modules.filter (m) -> m.runtime in ['noflo', 'noflo-nodejs']
     for m in compatible
       @libraryIcons[m.name] = m.icon if m.icon
+
+      if m.noflo?.loader
+        loaderPath = path.resolve @baseDir, m.base, m.noflo.loader
+        @componentLoaders.push loaderPath
+        loader = require loaderPath
+        @registerLoader loader, ->
+
       for c in m.components
         @components["#{m.name}/#{c.name}"] = path.resolve @baseDir, c.path
 

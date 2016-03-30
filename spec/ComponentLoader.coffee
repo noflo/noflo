@@ -325,6 +325,12 @@ describe 'ComponentLoader with a fixture project', ->
       chai.expect(instance.description).to.equal 'Forward stuff'
       chai.expect(instance.icon).to.equal 'car'
       done()
+  it 'should be able to load a dynamically registered component from a dependency', (done) ->
+    l.load 'example/Hello', (err, instance) ->
+      chai.expect(err).to.be.a 'null'
+      chai.expect(instance.description).to.equal 'Hello stuff'
+      chai.expect(instance.icon).to.equal 'bicycle'
+      done()
   it 'should be able to load core Graph component', (done) ->
     l.load 'Graph', (err, instance) ->
       chai.expect(err).to.be.a 'null'
