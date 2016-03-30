@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // vim: set filetype=javascript:
-var noflo = require('noflo');
+var noflo = require('../lib/NoFlo');
 var path = require('path');
 var fs = require('fs');
 
