@@ -17,7 +17,7 @@ exports.getDefaultsPath = ->
 exports.getDefaults = ->
   defaults = {}
   defaultsPath = exports.getDefaultsPath()
-  if fs.existsSync defaultsPath 
+  if fs.existsSync defaultsPath
     storedDefaults = JSON.parse fs.readFileSync(defaultsPath)
     for name of storedDefaults
       defaults[name] = storedDefaults[name]
@@ -25,7 +25,7 @@ exports.getDefaults = ->
   if !defaults.user and process.env.FLOWHUB_USER_ID
     defaults.user = process.env.FLOWHUB_USER_ID
   if !defaults.port and process.env.PORT
-    stored.port = process.env.PORT
+    defaults.port = process.env.PORT
   # Built-in defaults
   if !defaults.port
     defaults.port = 3569
@@ -50,7 +50,7 @@ exports.getStoredPath = ->
 exports.getStored = (program) ->
   stored = {}
   storedPath = exports.getStoredPath()
-  if fs.existsSync storedPath 
+  if fs.existsSync storedPath
     stored = JSON.parse fs.readFileSync(storedPath)
   # Let commandline args override
   if program
