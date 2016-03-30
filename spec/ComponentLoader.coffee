@@ -313,11 +313,17 @@ describe 'ComponentLoader with a fixture project', ->
       chai.expect(ready).to.equal true
       done()
     chai.expect(l.processing).to.equal true
-  it 'should be able to load the local component', (done) ->
+  it 'should be able to load a local component', (done) ->
     l.load 'componentloader/Output', (err, instance) ->
       chai.expect(err).to.be.a 'null'
       chai.expect(instance.description).to.equal 'Output stuff'
       chai.expect(instance.icon).to.equal 'cloud'
+      done()
+  it 'should be able to load a component from a dependency', (done) ->
+    l.load 'example/Forward', (err, instance) ->
+      chai.expect(err).to.be.a 'null'
+      chai.expect(instance.description).to.equal 'Forward stuff'
+      chai.expect(instance.icon).to.equal 'car'
       done()
   it 'should fail loading a missing component', (done) ->
     l.load 'componentloader/Missing', (err, instance) ->
