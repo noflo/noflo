@@ -325,6 +325,11 @@ describe 'ComponentLoader with a fixture project', ->
       chai.expect(instance.description).to.equal 'Forward stuff'
       chai.expect(instance.icon).to.equal 'car'
       done()
+  it 'should be able to load core Graph component', (done) ->
+    l.load 'Graph', (err, instance) ->
+      chai.expect(err).to.be.a 'null'
+      chai.expect(instance.icon).to.equal 'sitemap'
+      done()
   it 'should fail loading a missing component', (done) ->
     l.load 'componentloader/Missing', (err, instance) ->
       chai.expect(err).to.be.an 'error'
