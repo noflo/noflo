@@ -78,6 +78,11 @@ exports.ArrayPort = require('./ArrayPort').ArrayPort
 # different components together in a network.
 exports.internalSocket = require('./InternalSocket')
 
+# ### Information Packets
+#
+# NoFlo Information Packets are defined as "IP" objects.
+exports.IP = require './IP'
+
 # ## Network instantiation
 #
 # This function handles instantiation of NoFlo networks from a Graph object. It creates
