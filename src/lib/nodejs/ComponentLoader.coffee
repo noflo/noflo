@@ -76,7 +76,6 @@ class ComponentLoader extends loader.ComponentLoader
     @processing = true
 
     manifestOptions = @prepareManifestOptions()
-    @components = {}
 
     if @options.cache and not @failedCache
       @readCache manifestOptions, (err, modules) =>
@@ -85,6 +84,7 @@ class ComponentLoader extends loader.ComponentLoader
           @processing = false
           @listComponents callback
           return
+        @components = {}
         @readModules modules, (err) =>
           @ready = true
           @processing = false
@@ -92,6 +92,7 @@ class ComponentLoader extends loader.ComponentLoader
           callback @components if callback
       return
 
+    @components = {}
     manifest.list.list @baseDir, manifestOptions, (err, modules) =>
       @readModules modules, (err) =>
         @ready = true
