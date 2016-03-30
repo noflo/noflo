@@ -6,7 +6,7 @@ var fs = require('fs');
 
 // Base setup
 var baseDir = process.cwd();
-var cacheFile = path.resolve(baseDir, '.noflo.json');
+var cacheFile = path.resolve(baseDir, 'fbp.json');
 
 var preheat = function (callback) {
   console.log("Pre-heating NoFlo cache for " + baseDir);
