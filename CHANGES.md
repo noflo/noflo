@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.6.1 (March 20th 2016)
+
+* NoFlo's IP Objects are now available via `noflo.IP`
+
 ## 0.6.0 (March 29th 2016)
 
 * Removed the `noflo` executable in favor of [noflo-nodejs](https://www.npmjs.com/package/noflo-nodejs)
