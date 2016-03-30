@@ -19,7 +19,7 @@ Read more at <http://noflojs.org/>.
 
 ## Suitability
 
-NoFlo is not a web framework or a UI toolkit. It is a way to coordinate and reorganize data flow in any JavaScript application. As such, it can be used for whatever purpose JavaScript can be used for. We know of NoFlo being used for anything from building [web servers](https://thegrid.io) and build tools, to coordinating events inside [GUI applications](https://flowhub.io), [driving](http://meemoo.org/blog/2015-01-14-turtle-power-to-the-people/) [robots](http://bergie.iki.fi/blog/noflo-ardrone/), or building Internet-connected [art installations](http://bergie.iki.fi/blog/ingress-table/).
+NoFlo is not a web framework or a UI toolkit. It is a way to coordinate and reorganize data flow in any JavaScript application. As such, it can be used for whatever purpose JavaScript can be used for. We know of NoFlo being used for anything from building [web servers](https://thegrid.io) and build tools, to coordinating events inside [GUI applications](https://flowhub.io), [driving](http://meemoo.org/blog/2015-01-14-turtle-power-to-the-people) [robots](http://bergie.iki.fi/blog/noflo-ardrone/), or building Internet-connected [art installations](http://bergie.iki.fi/blog/ingress-table/).
 
 ## Tools and ecosystem
 
