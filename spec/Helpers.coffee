@@ -1517,13 +1517,13 @@ describe 'Component traits', ->
           chai.expect(data.y).to.equal reqs[data.id].y
           done() if count is 6 # 6 complete requests processed
 
-        sendRequests reqs, 6
+        sendRequests reqs, 10
 
       it 'should collect garbage every N requests', (done) ->
-        # GC dropped 2 timed out packets, 2 should be left
-        chai.expect(Object.keys(c.groupedData)).to.have.lengthOf 2
-        chai.expect(Object.keys(c.groupedGroups)).to.have.lengthOf 2
-        chai.expect(Object.keys(c.disconnectData)).to.have.lengthOf 2
+        # GC dropped 3 timed out packets, 1 should be left
+        chai.expect(Object.keys(c.groupedData)).to.have.lengthOf 1
+        chai.expect(Object.keys(c.groupedGroups)).to.have.lengthOf 1
+        chai.expect(Object.keys(c.disconnectData)).to.have.lengthOf 1
         done()
 
       it 'should be able to drop a request explicitly', (done) ->
