@@ -1,0 +1,12 @@
+{
+  "name": "componentloader",
+  "noflo": {
+    "icon": "cloud",
+    "components": {
+      "Output": "components/Output.coffee"
+    }
+  },
+  "dependencies": {
+    "example": ""
+  }
+}

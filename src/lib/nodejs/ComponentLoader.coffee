@@ -5,7 +5,6 @@
 #
 # This is the Node.js version of the ComponentLoader.
 
-reader = require 'read-installed'
 {_} = require 'underscore'
 path = require 'path'
 fs = require 'fs'
@@ -13,6 +12,7 @@ loader = require '../ComponentLoader'
 internalSocket = require '../InternalSocket'
 utils = require '../Utils'
 nofloGraph = require '../Graph'
+manifest = require 'fbp-manifest'
 
 # We allow components to be un-compiled CoffeeScript
 CoffeeScript = require 'coffee-script'
@@ -20,125 +20,50 @@ if typeof CoffeeScript.register != 'undefined'
   CoffeeScript.register()
 babel = require 'babel-core'
 
-# Disable NPM logging in normal NoFlo operation
-log = require 'npmlog'
-log.pause()
-
 class ComponentLoader extends loader.ComponentLoader
-  getModuleComponents: (moduleDef, callback) ->
-    components = {}
-    @checked.push moduleDef.name
-
-    depCount = _.keys(moduleDef.dependencies).length
-    done = _.after depCount + 1, =>
-      callback components
-
-    # Handle sub-modules
-    _.each moduleDef.dependencies, (def) =>
-      return done() unless def.name?
-      return done() unless @checked.indexOf(def.name) is -1
-      @getModuleComponents def, (depComponents) ->
-        return done() if _.isEmpty depComponents
-        components[name] = cPath for name, cPath of depComponents
-        done()
-
-    # No need for further processing for non-NoFlo projects
-    return done() unless moduleDef.noflo
-
-    checkOwn = (def) =>
-      # Handle own components
-      prefix = @getModulePrefix def.name
-
-      # See if the library has a default icon
-      if def.noflo.icon
-        @libraryIcons[prefix] = def.noflo.icon
-
-      if def.noflo.components
-        for name, cPath of def.noflo.components
-          @registerComponent prefix, name, path.resolve def.realPath, cPath
-      if moduleDef.noflo.graphs
-        for name, gPath of def.noflo.graphs
-          @registerGraph prefix, name, path.resolve def.realPath, gPath
-      if def.noflo.loader
-        # Run a custom component loader
-        loaderPath = path.resolve def.realPath, def.noflo.loader
-        @componentLoaders = [] unless @componentLoaders
-        @componentLoaders.push loaderPath
-        loader = require loaderPath
-        @registerLoader loader, done
-      else
-        done()
-
-    # Normally we can rely on the module data we get from read-installed, but in
-    # case cache has been cleared, we must re-read the file
-    unless @revalidate
-      return checkOwn moduleDef
-    @readPackageFile "#{moduleDef.realPath}/package.json", (err, data) ->
-      return done() if err
-      checkOwn data
-
-  getCoreComponents: (callback) ->
-    # Read core components
-    # TODO: These components should eventually be migrated to modules too
-    corePath = path.resolve __dirname, '../../src/components'
-    if path.extname(__filename) is '.coffee'
-      # Handle the non-compiled version of ComponentLoader for unit tests
-      corePath = path.resolve __dirname, '../../components'
-
-    fs.readdir corePath, (err, components) =>
-      coreComponents = {}
-      return callback coreComponents if err
-      for component in components
-        continue if component.substr(0, 1) is '.'
-        [componentName, componentExtension] = component.split '.'
-        continue unless componentExtension is 'coffee'
-        coreComponents[componentName] = "#{corePath}/#{component}"
-      callback coreComponents
-
-  cachePath: ->
-    path.resolve @baseDir, './.noflo.json'
-
-  writeCache: (callback) ->
-    cacheData =
-      components: {}
-      loaders: []
-
-    loaders = @componentLoaders or []
-    cacheData.loaders = loaders.map (lPath) =>
-      path.relative @baseDir, lPath
-
-    for name, cPath of @components
-      continue unless typeof cPath is 'string'
-      cacheData.components[name] = path.relative @baseDir, cPath
-
-    filePath = @cachePath()
-    fs.writeFile filePath, JSON.stringify(cacheData, null, 2),
+  writeCache: (options, modules, callback) ->
+    filePath = path.resolve @baseDir, options.manifest
+    fs.writeFile filePath, JSON.stringify(modules, null, 2),
       encoding: 'utf-8'
     , callback
 
-  readCache: (callback) ->
-    filePath = @cachePath()
-    fs.readFile filePath,
-      encoding: 'utf-8'
-    , (err, cached) =>
-      return callback err if err
-      return callback new Error 'No cached components found' unless cached
-      try
-        cacheData = JSON.parse cached
-      catch e
-        callback e
-      return callback new Error 'No components in cache' unless cacheData.components
-      @components = {}
-      for name, cPath of cacheData.components
-        @components[name] = path.resolve @baseDir, cPath
-      unless cacheData.loaders?.length
-        callback null
-        return
-      done = _.after cacheData.loaders.length, ->
-        callback null
-      cacheData.loaders.forEach (loaderPath) =>
-        loader = require path.resolve @baseDir, loaderPath
-        @registerLoader loader, done
+  readCache: (options, callback) ->
+    options.discover = false
+    manifest.load.load @baseDir, options, callback
+
+  prepareManifestOptions: ->
+    options = {}
+    options.runtimes = @options.runtimes or []
+    options.runtimes.push 'noflo' if options.runtimes.indexOf('noflo') is -1
+    options.recursive = if typeof @options.recursive is 'undefined' then true else @options.recursive
+    options.manifest = 'fbp.json' unless options.manifest
+    options
+
+  readModules: (modules, callback) ->
+    compatible = modules.filter (m) -> m.runtime in ['noflo', 'noflo-nodejs']
+    for m in compatible
+      @libraryIcons[m.name] = m.icon if m.icon
+
+      if m.noflo?.loader
+        loaderPath = path.resolve @baseDir, m.base, m.noflo.loader
+        @componentLoaders.push loaderPath
+
+      for c in m.components
+        @components["#{m.name}/#{c.name}"] = path.resolve @baseDir, c.path
+
+    # Inject subgraph component
+    if path.extname(__filename) is '.js'
+      @components.Graph = path.resolve __dirname, '../../components/Graph.js'
+    else
+      @components.Graph = path.resolve __dirname, '../../components/Graph.coffee'
+
+    return callback null unless @componentLoaders.length
+    done = _.after @componentLoaders.length, callback
+    @componentLoaders.forEach (loaderPath) =>
+      loader = require loaderPath
+      @registerLoader loader, (err) ->
+        return callback err if err
+        done null
 
   listComponents: (callback) ->
     if @processing
@@ -150,56 +75,32 @@ class ComponentLoader extends loader.ComponentLoader
     @ready = false
     @processing = true
 
+    manifestOptions = @prepareManifestOptions()
+
     if @options.cache and not @failedCache
-      @readCache (err) =>
+      @readCache manifestOptions, (err, modules) =>
         if err
           @failedCache = true
           @processing = false
           @listComponents callback
           return
-        @ready = true
-        @processing = false
-        @emit 'ready', true
-        callback @components if callback
+        @components = {}
+        @readModules modules, (err) =>
+          @ready = true
+          @processing = false
+          @emit 'ready', true
+          callback @components if callback
       return
 
     @components = {}
-
-    done = _.after 2, =>
-      @ready = true
-      @processing = false
-      @emit 'ready', true
-      unless @options.cache
-        callback @components if callback
-        return
-      @writeCache =>
-        callback @components if callback
-      return
-
-    @getCoreComponents (coreComponents) =>
-      @components[name] = cPath for name, cPath of coreComponents
-      done()
-
-    reader @baseDir, (err, data) =>
-      return done() if err
-      @getModuleComponents data, (components) =>
-        @components[name] = cPath for name, cPath of components
-        done()
-
-  getPackagePath: (packageId, callback) ->
-    found = null
-    seen = []
-    find = (packageData) ->
-      return if seen.indexOf(packageData.name) isnt -1
-      seen.push packageData.name
-      if packageData.name is packageId
-        found = path.resolve packageData.realPath, './package.json'
-        return
-      _.each packageData.dependencies, find
-    reader @baseDir, (err, data) ->
-      return callback err if err
-      find data
-      return callback null, found
+    manifest.list.list @baseDir, manifestOptions, (err, modules) =>
+      @readModules modules, (err) =>
+        @ready = true
+        @processing = false
+        @emit 'ready', true
+        return callback @components unless @options.cache
+        @writeCache manifestOptions, modules, =>
+          callback @components
 
   setSource: (packageId, name, source, language, callback) ->
     unless @ready
@@ -278,44 +179,5 @@ class ComponentLoader extends loader.ComponentLoader
         library: nameParts[0]
         language: utils.guessLanguageFromFilename component
         code: code
-
-  readPackage: (packageId, callback) ->
-    @getPackagePath packageId, (err, packageFile) =>
-      return callback err if err
-      return callback new Error 'no package found' unless packageFile
-      @readPackageFile packageFile, callback
-
-  readPackageFile: (packageFile, callback) ->
-    fs.readFile packageFile, 'utf-8', (err, packageData) ->
-      return callback err if err
-      data = JSON.parse packageData
-      data.realPath = path.dirname packageFile
-      callback null, data
-
-  writePackage: (packageId, data, callback) ->
-    @getPackagePath packageId, (err, packageFile) ->
-      return callback err if err
-      return callback new Error 'no package found' unless packageFile
-      delete data.realPath if data.realPath
-      packageData = JSON.stringify data, null, 2
-      fs.writeFile packageFile, packageData, callback
-
-  registerComponentToDisk: (packageId, name, cPath, callback = ->) ->
-    @readPackage packageId, (err, packageData) =>
-      return callback err if err
-      packageData.noflo = {} unless packageData.noflo
-      packageData.noflo.components = {} unless packageData.noflo.components
-      packageData.noflo.components[name] = cPath
-      @clear()
-      @writePackage packageId, packageData, callback
-
-  registerGraphToDisk: (packageId, name, cPath, callback = ->) ->
-    @readPackage packageId, (err, packageData) =>
-      return callback err if err
-      packageData.noflo = {} unless packageData.noflo
-      packageData.noflo.graphs = {} unless packageData.noflo.graphs
-      packageData.noflo.graphs[name] = cPath
-      @clear()
-      @writePackage packageId, packageData, callback
 
 exports.ComponentLoader = ComponentLoader

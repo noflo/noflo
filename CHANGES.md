@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.7.0 (git master)
+
+* Switched component discovery and caching from `read-installed` to [FBP manifest](https://github.com/flowbased/fbp-manifest). `fbp.json` files can be generated using `noflo-cache-preheat`.
+
 ## 0.6.1 (March 20th 2016)
 
 * NoFlo's IP Objects are now available via `noflo.IP`
