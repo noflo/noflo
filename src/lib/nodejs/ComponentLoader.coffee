@@ -68,9 +68,9 @@ class ComponentLoader extends loader.ComponentLoader
   listComponents: (callback) ->
     if @processing
       @once 'ready', =>
-        callback @components
+        callback null, @components
       return
-    return callback @components if @components
+    return callback null, @components if @components
 
     @ready = false
     @processing = true
@@ -82,29 +82,31 @@ class ComponentLoader extends loader.ComponentLoader
         if err
           @failedCache = true
           @processing = false
-          @listComponents callback
-          return
+          return callback err
         @components = {}
         @readModules modules, (err) =>
           @ready = true
           @processing = false
           @emit 'ready', true
-          callback @components if callback
+          callback null, @components if callback
       return
 
     @components = {}
     manifest.list.list @baseDir, manifestOptions, (err, modules) =>
       @readModules modules, (err) =>
-        @ready = true
         @processing = false
+        return callback err if err
+        @ready = true
         @emit 'ready', true
-        return callback @components unless @options.cache
-        @writeCache manifestOptions, modules, =>
-          callback @components
+        return callback null, @components unless @options.cache
+        @writeCache manifestOptions, modules, (err) =>
+          return callback err if err
+          callback null, @components
 
   setSource: (packageId, name, source, language, callback) ->
     unless @ready
-      @listComponents =>
+      @listComponents (err) =>
+        return callback err if err
         @setSource packageId, name, source, language, callback
       return
 
@@ -138,7 +140,8 @@ class ComponentLoader extends loader.ComponentLoader
 
   getSource: (name, callback) ->
     unless @ready
-      @listComponents =>
+      @listComponents (err) =>
+        return callback err if err
         @getSource name, callback
       return
 

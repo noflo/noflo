@@ -122,7 +122,8 @@ exports.createNetwork = (graph, callback, options) ->
       callback null, network
 
   # Ensure components are loaded before continuing
-  network.loader.listComponents ->
+  network.loader.listComponents (err) ->
+    return callback err if err
     # Empty network, no need to connect it up
     return networkReady network if graph.nodes.length is 0
 

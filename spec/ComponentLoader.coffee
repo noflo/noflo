@@ -76,7 +76,8 @@ describe 'ComponentLoader with no external packages installed', ->
     l.once 'ready', ->
       ready = true
       chai.expect(l.ready).to.equal true
-    l.listComponents (components) ->
+    l.listComponents (err, components) ->
+      return done err if err
       chai.expect(l.processing).to.equal false
       chai.expect(l.components).not.to.be.empty
       chai.expect(components).to.equal l.components
@@ -305,7 +306,8 @@ describe 'ComponentLoader with a fixture project', ->
     l.once 'ready', ->
       chai.expect(l.ready).to.equal true
       ready = l.ready
-    l.listComponents (components) ->
+    l.listComponents (err, components) ->
+      return done err if err
       chai.expect(l.processing).to.equal false
       chai.expect(l.components).not.to.be.empty
       chai.expect(components).to.equal l.components

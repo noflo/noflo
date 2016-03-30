@@ -14,13 +14,17 @@ var preheat = function (callback) {
     cache: true
   });
   console.time('NPM traversal for NoFlo components');
-  loader.listComponents(function (components) {
+  loader.listComponents(function (err, components) {
     console.timeEnd('NPM traversal for NoFlo components');
-    callback(components);
+    callback(err, components);
   });
 };
 
-var reportAndVerify = function (components) {
+var reportAndVerify = function (err, components) {
+  if (err) {
+    console.log(err);
+    process.exit(1);
+  }
   console.log("Found " + (Object.keys(components).length) + " components.");
   return setTimeout(function() {
     return process.exit(0);

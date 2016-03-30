@@ -67,9 +67,9 @@ class ComponentLoader extends EventEmitter
   listComponents: (callback) ->
     if @processing
       @once 'ready', =>
-        callback @components
+        callback null, @components
       return
-    return callback @components if @components
+    return callback null, @components if @components
 
     @ready = false
     @processing = true
@@ -81,12 +81,13 @@ class ComponentLoader extends EventEmitter
       @processing = false
       @ready = true
       @emit 'ready', true
-      callback @components if callback
+      callback null, @components if callback
     , 1
 
   load: (name, callback, metadata) ->
     unless @ready
-      @listComponents =>
+      @listComponents (err) =>
+        return callback err if err
         @load name, callback, metadata
       return
 
@@ -208,7 +209,8 @@ class ComponentLoader extends EventEmitter
 
   setSource: (packageId, name, source, language, callback) ->
     unless @ready
-      @listComponents =>
+      @listComponents (err) =>
+        return callback err if err
         @setSource packageId, name, source, language, callback
       return
 
@@ -245,7 +247,8 @@ class ComponentLoader extends EventEmitter
 
   getSource: (name, callback) ->
     unless @ready
-      @listComponents =>
+      @listComponents (err) =>
+        return callback err if err
         @getSource name, callback
       return
 
