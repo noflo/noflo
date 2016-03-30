@@ -12,6 +12,10 @@
   },
   "author": "Henri Bergius <henri.bergius@iki.fi>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/noflo/noflo-nodejs.git"
+  },
   "dependencies": {
     "cli-color": "~1.1.0",
     "coffee-cache": "1.0.2",
