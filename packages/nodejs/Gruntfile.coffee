@@ -24,4 +24,7 @@ module.exports = ->
   @loadNpmTasks 'grunt-coffeelint'
   @loadNpmTasks 'grunt-mocha-test'
 
-  @registerTask 'test', ['mochaTest', 'coffeelint']
+  @registerTask 'test', [
+    'coffeelint'
+    'mochaTest'
+  ]
