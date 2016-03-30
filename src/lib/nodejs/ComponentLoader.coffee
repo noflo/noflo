@@ -39,7 +39,7 @@ class ComponentLoader extends loader.ComponentLoader
     options.manifest = 'fbp.json' unless options.manifest
     options
 
-  readModules: (modules) ->
+  readModules: (modules, callback) ->
     compatible = modules.filter (m) -> m.runtime in ['noflo', 'noflo-nodejs']
     for m in compatible
       @libraryIcons[m.name] = m.icon if m.icon
@@ -47,8 +47,6 @@ class ComponentLoader extends loader.ComponentLoader
       if m.noflo?.loader
         loaderPath = path.resolve @baseDir, m.base, m.noflo.loader
         @componentLoaders.push loaderPath
-        loader = require loaderPath
-        @registerLoader loader, ->
 
       for c in m.components
         @components["#{m.name}/#{c.name}"] = path.resolve @baseDir, c.path
@@ -58,6 +56,14 @@ class ComponentLoader extends loader.ComponentLoader
       @components.Graph = path.resolve __dirname, '../../components/Graph.js'
     else
       @components.Graph = path.resolve __dirname, '../../components/Graph.coffee'
+
+    return callback null unless @componentLoaders.length
+    done = _.after @componentLoaders.length, callback
+    @componentLoaders.forEach (loaderPath) =>
+      loader = require loaderPath
+      @registerLoader loader, (err) ->
+        return callback err if err
+        done null
 
   listComponents: (callback) ->
     if @processing
@@ -79,21 +85,21 @@ class ComponentLoader extends loader.ComponentLoader
           @processing = false
           @listComponents callback
           return
-        @readModules modules
-        @ready = true
-        @processing = false
-        @emit 'ready', true
-        callback @components if callback
+        @readModules modules, (err) =>
+          @ready = true
+          @processing = false
+          @emit 'ready', true
+          callback @components if callback
       return
 
     manifest.list.list @baseDir, manifestOptions, (err, modules) =>
-      @readModules modules
-      @ready = true
-      @processing = false
-      @emit 'ready', true
-      return callback @components unless @options.cache
-      @writeCache manifestOptions, modules, =>
-        callback @components
+      @readModules modules, (err) =>
+        @ready = true
+        @processing = false
+        @emit 'ready', true
+        return callback @components unless @options.cache
+        @writeCache manifestOptions, modules, =>
+          callback @components
 
   setSource: (packageId, name, source, language, callback) ->
     unless @ready
