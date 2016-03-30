@@ -289,3 +289,37 @@ describe 'ComponentLoader with no external packages installed', ->
           chai.expect(err).to.be.an 'error'
           chai.expect(inst).to.be.an 'undefined'
           done()
+
+describe 'ComponentLoader with a fixture project', ->
+  l = null
+  before ->
+    return @skip() if platform.isBrowser()
+  it 'should be possible to instantiate', ->
+    l = new loader.ComponentLoader path.resolve __dirname, 'fixtures/componentloader'
+  it 'should initially know of no components', ->
+    chai.expect(l.components).to.be.a 'null'
+  it 'should not initially be ready', ->
+    chai.expect(l.ready).to.be.false
+  it 'should be able to read a list of components', (done) ->
+    ready = false
+    l.once 'ready', ->
+      chai.expect(l.ready).to.equal true
+      ready = l.ready
+    l.listComponents (components) ->
+      chai.expect(l.processing).to.equal false
+      chai.expect(l.components).not.to.be.empty
+      chai.expect(components).to.equal l.components
+      chai.expect(l.ready).to.equal true
+      chai.expect(ready).to.equal true
+      done()
+    chai.expect(l.processing).to.equal true
+  it 'should be able to load the local component', (done) ->
+    l.load 'componentloader/Output', (err, instance) ->
+      chai.expect(err).to.be.a 'null'
+      chai.expect(instance.description).to.equal 'Output stuff'
+      chai.expect(instance.icon).to.equal 'cloud'
+      done()
+  it 'should fail loading a missing component', (done) ->
+    l.load 'componentloader/Missing', (err, instance) ->
+      chai.expect(err).to.be.an 'error'
+      done()
