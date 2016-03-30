@@ -75,7 +75,8 @@ describe 'NoFlo Network', ->
       chai.expect(n.loader.baseDir).to.equal g.baseDir
     it 'should be able to list components', (done) ->
       @timeout 60 * 1000
-      n.loader.listComponents (components) ->
+      n.loader.listComponents (err, components) ->
+        return done err if err
         chai.expect(components).to.be.an 'object'
         done()
     it 'should have an uptime', ->
@@ -442,7 +443,8 @@ describe 'NoFlo Network', ->
         g.addInitial n, "Repeat#{n}", 'in'
 
       nw = new noflo.Network g
-      nw.loader.listComponents ->
+      nw.loader.listComponents (err) ->
+        return done err if err
         nw.loader.components.Split = Split
         nw.loader.components.Callback = Callback
         nw.once 'end', ->

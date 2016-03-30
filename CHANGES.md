@@ -4,6 +4,7 @@ NoFlo ChangeLog
 ## 0.7.0 (git master)
 
 * Switched component discovery and caching from `read-installed` to [FBP manifest](https://github.com/flowbased/fbp-manifest)
+* Component Loader `listComponents` can now return errors as first callback argument
 
 ## 0.6.1 (March 20th 2016)
 

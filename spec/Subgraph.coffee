@@ -426,7 +426,8 @@ describe 'Graph component', ->
     it 'should send defaults', (done) ->
       @timeout 6000
       cl = new noflo.ComponentLoader root
-      cl.listComponents (components) ->
+      cl.listComponents (err, components) ->
+        return done err if err
         cl.components.Split = createSplit
         cl.components.Defaults = grDefaults
         cl.components.Initials = grInitials
@@ -441,7 +442,8 @@ describe 'Graph component', ->
     it 'should send initials', (done) ->
       @timeout 6000
       cl = new noflo.ComponentLoader root
-      cl.listComponents (components) ->
+      cl.listComponents (err, components) ->
+        return done err if err
         cl.components.Split = createSplit
         cl.components.Defaults = grDefaults
         cl.components.Initials = grInitials
@@ -456,7 +458,8 @@ describe 'Graph component', ->
     it 'should not send defaults when an inport is attached externally', (done) ->
       @timeout 6000
       cl = new noflo.ComponentLoader root
-      cl.listComponents (components) ->
+      cl.listComponents (err, components) ->
+        return done err if err
         cl.components.Split = createSplit
         cl.components.Defaults = grDefaults
         cl.components.Initials = grInitials
