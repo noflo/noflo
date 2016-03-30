@@ -13,9 +13,9 @@ describe 'noflo-nodejs', ->
       prog = path.join(__dirname, '../bin/noflo-nodejs')
       cmd = "#{prog} --graph=#{graph} --batch --trace --register=false"
       exec cmd, (err, o, e) ->
+        return done err if err
         stdout = o
         stderr = e
-        chai.expect(err).to.not.exist
         chai.expect(stdout).to.contain "hello world\n"
         chai.expect(stderr).to.eql ''
         done()
