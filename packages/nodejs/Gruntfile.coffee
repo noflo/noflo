@@ -6,7 +6,10 @@ module.exports = ->
     coffeelint:
       sources:
         files:
-          src: ['src/*.coffee']
+          src: [
+            'index.coffee'
+            'src/*.coffee'
+          ]
         options:
           max_line_length:
             value: 80
