@@ -91,7 +91,7 @@ if program.register
       address: 'ws://' + stored.host + ':' + stored.port
       type: 'noflo-nodejs'
   catch e
-    console.log 'Failed to initialize runtime with configuration:', e.message
+    console.error 'Failed to initialize runtime with configuration:', e.message
     process.exit 1
 
 addDebug = (network, verbose, logSubgraph) ->
@@ -196,7 +196,7 @@ if program.graph
   console.log 'Loading main graph: ' + program.graph
   noflo.graph.loadFile program.graph, (err, graph) ->
     if err
-      console.log err
+      console.error err
       process.exit 1
     startServer program, graph
 else
