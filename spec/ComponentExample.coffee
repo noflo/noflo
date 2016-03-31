@@ -42,9 +42,9 @@ describe 'MergeObjects component', ->
     done()
 
   it 'should not trigger if input is not complete', (done) ->
-    sout1.once 'data', (ip) ->
+    sout1.once 'ip', (ip) ->
       done new Error "Premature result"
-    sout2.once 'data', (ip) ->
+    sout2.once 'ip', (ip) ->
       done new Error "Premature error"
 
     sin1.post new IP 'data', obj1
@@ -53,7 +53,7 @@ describe 'MergeObjects component', ->
     setTimeout done, 10
 
   it 'should merge objects when input is complete', (done) ->
-    sout1.once 'data', (ip) ->
+    sout1.once 'ip', (ip) ->
       chai.expect(ip).to.be.an 'object'
       chai.expect(ip.type).to.equal 'data'
       chai.expect(ip.data).to.be.an 'object'
@@ -61,13 +61,13 @@ describe 'MergeObjects component', ->
       chai.expect(ip.data.title).to.equal obj2.title
       chai.expect(ip.data.age).to.equal obj1.age
       done()
-    sout2.once 'data', (ip) ->
+    sout2.once 'ip', (ip) ->
       done ip
 
     sin3.post new IP 'data', false
 
   it 'should obey the overwrite control', (done) ->
-    sout1.once 'data', (ip) ->
+    sout1.once 'ip', (ip) ->
       chai.expect(ip).to.be.an 'object'
       chai.expect(ip.type).to.equal 'data'
       chai.expect(ip.data).to.be.an 'object'
@@ -75,7 +75,7 @@ describe 'MergeObjects component', ->
       chai.expect(ip.data.title).to.equal obj2.title
       chai.expect(ip.data.age).to.equal obj2.age
       done()
-    sout2.once 'data', (ip) ->
+    sout2.once 'ip', (ip) ->
       done ip
 
     sin3.post new IP 'data', true

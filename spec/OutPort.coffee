@@ -141,7 +141,7 @@ describe 'Outport Port', ->
         'closeBracket'
       ]
       count = 0
-      s1.on 'data', (data) ->
+      s1.on 'ip', (data) ->
         count++
         chai.expect(data).to.be.an 'object'
         chai.expect(data.type).to.equal expectedEvents.shift()
@@ -164,15 +164,15 @@ describe 'Outport Port', ->
           boo: 'baz'
         func: -> this.foo = 456
 
-      s1.on 'data', (data) ->
+      s1.on 'ip', (data) ->
         chai.expect(data).to.be.an 'object'
         chai.expect(data.data).to.equal obj
         chai.expect(data.data.func).to.be.a 'function'
-        s2.on 'data', (data) ->
+        s2.on 'ip', (data) ->
           chai.expect(data).to.be.an 'object'
           chai.expect(data.data).to.equal obj
           chai.expect(data.data.func).to.be.a 'function'
-          s3.on 'data', (data) ->
+          s3.on 'ip', (data) ->
             chai.expect(data).to.be.an 'object'
             chai.expect(data.data).to.equal obj
             chai.expect(data.data.func).to.be.a 'function'
@@ -193,18 +193,18 @@ describe 'Outport Port', ->
           boo: 'baz'
         func: -> this.foo = 456
 
-      s1.on 'data', (data) ->
+      s1.on 'ip', (data) ->
         chai.expect(data).to.be.an 'object'
         # First send is non-cloning
         chai.expect(data.data).to.equal obj
         chai.expect(data.data.func).to.be.a 'function'
-        s2.on 'data', (data) ->
+        s2.on 'ip', (data) ->
           chai.expect(data).to.be.an 'object'
           chai.expect(data.data).to.not.equal obj
           chai.expect(data.data.foo).to.equal obj.foo
           chai.expect(data.data.bar).to.eql obj.bar
           chai.expect(data.data.func).to.be.undefined
-          s3.on 'data', (data) ->
+          s3.on 'ip', (data) ->
             chai.expect(data).to.be.an 'object'
             chai.expect(data.data).to.not.equal obj
             chai.expect(data.data.foo).to.equal obj.foo

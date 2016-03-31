@@ -32,6 +32,7 @@ class InternalSocket extends EventEmitter
     @dataDelegate = null
     @debug = false
     @emitEvent = @regularEmitEvent
+    @braceCount = 0
 
   # ## Socket connections
   #
@@ -163,7 +164,7 @@ class InternalSocket extends EventEmitter
 
   legacyToIp: (event, payload) ->
     # No need to wrap modern IP Objects
-    return payload if payload and typeof payload is 'object' and payload.isIP
+    return payload if IP.isIP payload
 
     # Wrap legacy events into appropriate IP objects
     switch event
@@ -177,7 +178,8 @@ class InternalSocket extends EventEmitter
   ipToLegacy: (ip) ->
     switch ip.type
       when 'openBracket'
-        if ip.data is null
+        @braceCount++
+        if @braceCount is 1
           return legacy =
             event: 'connect'
             payload: @
@@ -189,7 +191,8 @@ class InternalSocket extends EventEmitter
           event: 'data'
           payload: ip.data
       when 'closeBracket'
-        if ip.data is null
+        @braceCount--
+        if @braceCount is 0
           return legacy =
             event: 'disconnect'
             payload: @
@@ -233,7 +236,9 @@ class InternalSocket extends EventEmitter
 
     # Emit the legacy event
     legacyEvent = @ipToLegacy ip
+    @emitEvent 'connect' if ip.type is 'data' and @braceCount is 0
     @emitEvent legacyEvent.event, legacyEvent.payload
+    @emitEvent 'disconnect' if ip.type is 'data' and @braceCount is 0
 
 exports.InternalSocket = InternalSocket
 

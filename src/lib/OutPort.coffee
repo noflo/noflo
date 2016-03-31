@@ -54,8 +54,7 @@ class OutPort extends BasePort
       socket.disconnect()
 
   sendIP: (type, data, options, socketId) ->
-    if typeof type is 'object' and
-    IP.types.indexOf(type).type isnt -1
+    if IP.isIP type
       ip = type
       socketId = ip.index
     else

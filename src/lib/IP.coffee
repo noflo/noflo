@@ -2,11 +2,17 @@
 #     (c) 2016 TheGrid (Rituwall Inc.)
 #     NoFlo may be freely distributed under the MIT license
 module.exports = class IP
+  # Valid IP types
   @types: [
     'data'
     'openBracket'
     'closeBracket'
   ]
+
+  # Detects if an arbitrary value is an IP
+  @isIP: (obj) ->
+    obj and typeof obj is 'object' and
+    obj.type and @types.indexOf(obj.type) > -1
 
   # Creates as new IP object
   # Valid types: 'data', 'openBracket', 'closeBracket'

@@ -209,7 +209,7 @@ describe 'Component', ->
       chai.expect(c.started).to.equal(false)
       chai.expect(c.isStarted()).to.equal(false)
 
-  describe 'with object-based IPs', ->
+  describe '-based IPs', ->
 
     it 'should speak IP objects', (done) ->
       c = new component.Component
@@ -233,7 +233,7 @@ describe 'Component', ->
       s1 = new socket.InternalSocket
       s2 = new socket.InternalSocket
 
-      s2.on 'data', (ip) ->
+      s2.on 'ip', (ip) ->
         chai.expect(ip).to.be.an 'object'
         chai.expect(ip.type).to.equal 'data'
         chai.expect(ip.groups).to.be.an 'array'
@@ -295,7 +295,7 @@ describe 'Component', ->
       s2 = new socket.InternalSocket
       s3 = new socket.InternalSocket
 
-      s3.on 'data', (ip) ->
+      s3.on 'ip', (ip) ->
         chai.expect(ip).to.be.an 'object'
         chai.expect(ip.type).to.equal 'data'
         chai.expect(ip.data).to.equal '<p><em>Hello</em>, <strong>World!</strong></p>'
@@ -343,7 +343,7 @@ describe 'Component', ->
       c.outPorts.baz.attach sout1
 
       count = 0
-      sout1.on 'data', (ip) ->
+      sout1.on 'ip', (ip) ->
         count++
         if count is 1
           chai.expect(hadIPs).to.eql ['foo']
@@ -373,7 +373,7 @@ describe 'Component', ->
       c.outPorts.baz.attach sout1
 
       count = 0
-      sout1.on 'data', (ip) ->
+      sout1.on 'ip', (ip) ->
         count++
         if count is 1
           chai.expect(triggered).to.eql ['bar']
@@ -409,7 +409,7 @@ describe 'Component', ->
       c.inPorts.bar.attach sin2
       c.outPorts.baz.attach sout1
 
-      sout1.once 'data', (ip) ->
+      sout1.once 'ip', (ip) ->
         chai.expect(ip).to.be.an 'object'
         chai.expect(ip.type).to.equal 'data'
         chai.expect(ip.data.foo).to.equal 'foo'
@@ -444,7 +444,7 @@ describe 'Component', ->
       c.inPorts.bar.attach sin2
       c.outPorts.baz.attach sout1
 
-      sout1.once 'data', (ip) ->
+      sout1.once 'ip', (ip) ->
         chai.expect(ip).to.be.an 'object'
         chai.expect(ip.type).to.equal 'data'
         chai.expect(ip.data.foo).to.equal 'foo'
@@ -478,12 +478,12 @@ describe 'Component', ->
       c.inPorts.bar.attach sin2
       c.outPorts.baz.attach sout1
 
-      sout1.once 'data', (ip) ->
+      sout1.once 'ip', (ip) ->
         chai.expect(ip).to.be.an 'object'
         chai.expect(ip.type).to.equal 'data'
         chai.expect(ip.data.foo).to.equal 'foo'
         chai.expect(ip.data.bar).to.equal 'bar'
-        sout1.once 'data', (ip) ->
+        sout1.once 'ip', (ip) ->
           chai.expect(ip).to.be.an 'object'
           chai.expect(ip.type).to.equal 'data'
           chai.expect(ip.data.foo).to.equal 'boo'
@@ -516,12 +516,12 @@ describe 'Component', ->
       c.inPorts.bar.attach sin2
       c.outPorts.baz.attach sout1
 
-      sout1.once 'data', (ip) ->
+      sout1.once 'ip', (ip) ->
         chai.expect(ip).to.be.an 'object'
         chai.expect(ip.type).to.equal 'data'
         chai.expect(ip.scope).to.equal '1'
         chai.expect(ip.data).to.equal 'Josh and Laura'
-        sout1.once 'data', (ip) ->
+        sout1.once 'ip', (ip) ->
           chai.expect(ip).to.be.an 'object'
           chai.expect(ip.type).to.equal 'data'
           chai.expect(ip.scope).to.equal '2'
@@ -547,7 +547,7 @@ describe 'Component', ->
       c.inPorts.foo.attach sin1
       c.outPorts.baz.attach sout1
 
-      sout1.once 'data', (ip) ->
+      sout1.once 'ip', (ip) ->
         chai.expect(ip).to.be.an 'object'
         chai.expect(ip.type).to.equal 'data'
         chai.expect(ip.scope).to.equal 'baz'
@@ -583,7 +583,7 @@ describe 'Component', ->
         { delay: 10, msg: "four" }
       ]
 
-      sout1.on 'data', (ip) ->
+      sout1.on 'ip', (ip) ->
         chai.expect(ip.data).to.eql sample.shift()
         done() if sample.length is 0
 
@@ -619,7 +619,7 @@ describe 'Component', ->
       ]
 
       count = 0
-      sout1.on 'data', (ip) ->
+      sout1.on 'ip', (ip) ->
         count++
         switch count
           when 1 then src = sample[1]
@@ -700,7 +700,7 @@ describe 'Component', ->
           chai.expect(packet.scope).to.equal 'some-scope'
           output.sendDone new Error 'Should fail'
 
-      sout1.on 'data', (ip) ->
+      sout1.on 'ip', (ip) ->
         chai.expect(ip).to.be.an 'object'
         chai.expect(ip.data).to.be.an.instanceOf Error
         chai.expect(ip.scope).to.equal 'some-scope'
@@ -738,7 +738,7 @@ describe 'Component', ->
       actual = []
       count = 0
 
-      sout1.on 'data', (ip) ->
+      sout1.on 'ip', (ip) ->
         count++
         chai.expect(ip).to.be.an 'object'
         chai.expect(ip.scope).to.equal 'some-scope'
@@ -808,9 +808,9 @@ describe 'Component', ->
         done()
 
       it 'should fail on wrong input', (done) ->
-        sout1.once 'data', (ip) ->
+        sout1.once 'ip', (ip) ->
           done new Error 'Unexpected baz'
-        sout2.once 'data', (ip) ->
+        sout2.once 'ip', (ip) ->
           chai.expect(ip).to.be.an 'object'
           chai.expect(ip.data).to.be.an.error
           chai.expect(ip.data.message).to.contain 'Bar'
@@ -834,7 +834,7 @@ describe 'Component', ->
         ]
         actual = []
         count = 0
-        sout1.on 'data', (ip) ->
+        sout1.on 'ip', (ip) ->
           count++
           switch ip.type
             when 'openBracket'
@@ -846,7 +846,7 @@ describe 'Component', ->
           if count is 6
             chai.expect(actual).to.eql expected
             done()
-        sout2.once 'data', (ip) ->
+        sout2.once 'ip', (ip) ->
           done ip.data
 
         for item in sample
