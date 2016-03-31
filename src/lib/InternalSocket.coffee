@@ -87,7 +87,9 @@ class InternalSocket extends EventEmitter
   # sending semantics single IP objects can be sent without open/close brackets.
   post: (data) ->
     data = @dataDelegate() if data is undefined and typeof @dataDelegate is 'function'
+    @emitEvent 'connect', @ if data.type is 'data' and @brackets.length is 0
     @handleSocketEvent 'data', data, false
+    @emitEvent 'disconnect', @ if data.type is 'data' and @brackets.length is 0
 
   # ## Information Packet grouping
   #
@@ -215,10 +217,9 @@ class InternalSocket extends EventEmitter
       @brackets.push ip.data
 
     if ip.type is 'closeBracket'
-      unless @brackets.length
-        # Last bracket was closed, we're disconnected
-        # If we were already disconnected, no need to disconnect again
-        return if @brackets.length is 0
+      # Last bracket was closed, we're disconnected
+      # If we were already disconnected, no need to disconnect again
+      return if @brackets.length is 0
       # Add group name to bracket
       ip.data = @brackets.pop()
 
@@ -227,9 +228,7 @@ class InternalSocket extends EventEmitter
 
     # Emit the legacy event
     legacyEvent = @ipToLegacy ip
-    @emitEvent 'connect', @ if ip.type is 'data' and @brackets.length is 0 and autoConnect
     @emitEvent legacyEvent.event, legacyEvent.payload
-    @emitEvent 'disconnect', @ if ip.type is 'data' and @brackets.length is 0 and autoConnect
 
 exports.InternalSocket = InternalSocket
 
