@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.7.1 (March 31st 2016)
+
+* Fixed NoFlo subgraph component in build
+
 ## 0.7.0 (March 31st 2016)
 
 * Switched component discovery and caching from `read-installed` to [FBP manifest](https://github.com/flowbased/fbp-manifest). `fbp.json` files can be generated using `noflo-cache-preheat`.
