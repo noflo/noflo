@@ -210,7 +210,7 @@ class InternalSocket extends EventEmitter
       if ip.data is null
         # If we're already connected, no need to connect again
         return if @brackets.length
-      if ip.data
+      else
         if @brackets.length is 0 and autoConnect
           # Connect before sending bracket
           @handleSocketEvent 'connect', null
