@@ -494,6 +494,44 @@ describe 'Component', ->
       sin2.post new IP 'data', 'bar'
       sin1.post new IP 'data', 'boo'
 
+    it 'should keep last data-typed IP packet for controls', (done) ->
+      c = new component.Component
+        inPorts:
+          foo: datatype: 'string'
+          bar:
+            datatype: 'string'
+            control: true
+        outPorts:
+          baz: datatype: 'object'
+        process: (input, output) ->
+          return unless input.has 'foo', 'bar'
+          [foo, bar] = input.getData 'foo', 'bar'
+          baz =
+            foo: foo
+            bar: bar
+          output.sendDone
+            baz: baz
+
+      c.inPorts.foo.attach sin1
+      c.inPorts.bar.attach sin2
+      c.outPorts.baz.attach sout1
+
+      sout1.once 'data', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.type).to.equal 'data'
+        chai.expect(ip.data.foo).to.equal 'foo'
+        chai.expect(ip.data.bar).to.equal 'bar'
+        sout1.once 'data', (ip) ->
+          chai.expect(ip).to.be.an 'object'
+          chai.expect(ip.type).to.equal 'data'
+          chai.expect(ip.data.foo).to.equal 'boo'
+          chai.expect(ip.data.bar).to.equal 'bar'
+          done()
+
+      sin1.post new IP 'data', 'foo'
+      sin2.send new IP 'data', 'bar'
+      sin1.post new IP 'data', 'boo'
+
     it 'should isolate packets with different scopes', (done) ->
       foo1 = 'Josh'
       bar1 = 'Laura'

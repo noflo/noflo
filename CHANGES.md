@@ -5,6 +5,7 @@ NoFlo ChangeLog
 
 * Switched component discovery and caching from `read-installed` to [FBP manifest](https://github.com/flowbased/fbp-manifest). `fbp.json` files can be generated using `noflo-cache-preheat`.
 * Component Loader `listComponents` can now return errors as first callback argument
+* Control ports don't receive bracket IPs, only data
 
 ## 0.6.1 (March 30th 2016)
 
