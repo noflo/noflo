@@ -236,9 +236,9 @@ class InternalSocket extends EventEmitter
 
     # Emit the legacy event
     legacyEvent = @ipToLegacy ip
-    @emitEvent 'connect' if ip.type is 'data' and @braceCount is 0
+    @emitEvent 'connect' if ip.type is 'data' and @braceCount is 0 and not @connected
     @emitEvent legacyEvent.event, legacyEvent.payload
-    @emitEvent 'disconnect' if ip.type is 'data' and @braceCount is 0
+    @emitEvent 'disconnect' if ip.type is 'data' and @braceCount is 0 and @connected
 
 exports.InternalSocket = InternalSocket
 
