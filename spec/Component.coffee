@@ -209,7 +209,7 @@ describe 'Component', ->
       chai.expect(c.started).to.equal(false)
       chai.expect(c.isStarted()).to.equal(false)
 
-  describe '-based IPs', ->
+  describe 'with object-based IPs', ->
 
     it 'should speak IP objects', (done) ->
       c = new component.Component
