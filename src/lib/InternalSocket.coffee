@@ -167,8 +167,6 @@ class InternalSocket extends EventEmitter
 
     # Wrap legacy events into appropriate IP objects
     switch event
-      when 'connect'
-        return new IP 'openBracket', null
       when 'connect', 'begingroup'
         return new IP 'openBracket', payload
       when 'disconnect', 'endgroup'
