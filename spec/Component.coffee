@@ -516,12 +516,12 @@ describe 'Component', ->
       c.inPorts.bar.attach sin2
       c.outPorts.baz.attach sout1
 
-      sout1.once 'data', (ip) ->
+      sout1.once 'ip', (ip) ->
         chai.expect(ip).to.be.an 'object'
         chai.expect(ip.type).to.equal 'data'
         chai.expect(ip.data.foo).to.equal 'foo'
         chai.expect(ip.data.bar).to.equal 'bar'
-        sout1.once 'data', (ip) ->
+        sout1.once 'ip', (ip) ->
           chai.expect(ip).to.be.an 'object'
           chai.expect(ip.type).to.equal 'data'
           chai.expect(ip.data.foo).to.equal 'boo'
@@ -529,7 +529,9 @@ describe 'Component', ->
           done()
 
       sin1.post new IP 'data', 'foo'
-      sin2.send new IP 'data', 'bar'
+      sin2.post new IP 'openBracket'
+      sin2.post new IP 'data', 'bar'
+      sin2.post new IP 'closeBracket'
       sin1.post new IP 'data', 'boo'
 
     it 'should isolate packets with different scopes', (done) ->

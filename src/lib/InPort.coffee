@@ -65,6 +65,7 @@ class InPort extends BasePort
 
   handleIP: (ip, id) ->
     return if @process
+    return if @options.control and ip.type isnt 'data'
     ip.owner = @nodeInstance
     ip.index = id
 
