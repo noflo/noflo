@@ -97,6 +97,7 @@ class InPort extends BasePort
 
     # Buffer IP for the component process function
     unless @process or @handle or @options.buffered
+      return if @options.control and ip.type isnt 'data'
       if ip.scope
         @scopedBuffer[ip.scope] = [] unless ip.scope of @scopedBuffer
         buf = @scopedBuffer[ip.scope]
