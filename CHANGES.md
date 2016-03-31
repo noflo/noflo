@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.7.2 (git master)
+
+* Fixed FBP manifest caching
+
 ## 0.7.1 (March 31st 2016)
 
 * Fixed NoFlo subgraph component in build

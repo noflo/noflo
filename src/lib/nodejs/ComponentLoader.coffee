@@ -82,9 +82,10 @@ class ComponentLoader extends loader.ComponentLoader
         if err
           @failedCache = true
           @processing = false
-          return callback err
+          return callback err unless @options.discover
+          return @listComponents callback
         @components = {}
-        @readModules modules, (err) =>
+        @readModules modules.modules, (err) =>
           @ready = true
           @processing = false
           @emit 'ready', true

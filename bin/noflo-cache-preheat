@@ -11,7 +11,8 @@ var cacheFile = path.resolve(baseDir, 'fbp.json');
 var preheat = function (callback) {
   console.log("Pre-heating NoFlo cache for " + baseDir);
   var loader = new noflo.ComponentLoader(baseDir, {
-    cache: true
+    cache: true,
+    discover: true
   });
   console.time('NPM traversal for NoFlo components');
   loader.listComponents(function (err, components) {
