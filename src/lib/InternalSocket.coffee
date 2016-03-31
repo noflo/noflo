@@ -3,6 +3,7 @@
 #     (c) 2011-2012 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
 {EventEmitter} = require 'events'
+IP = require './IP'
 
 # ## Internal Sockets
 #
@@ -26,8 +27,7 @@ class InternalSocket extends EventEmitter
         metadata: @metadata
 
   constructor: (@metadata = {}) ->
-    @connected = false
-    @groups = []
+    @brackets = []
     @dataDelegate = null
     @debug = false
     @emitEvent = @regularEmitEvent
@@ -58,16 +58,12 @@ class InternalSocket extends EventEmitter
   #         # Otherwise, call same method recursively
   #         @readBuffer fd, position, size, buffer
   connect: ->
-    return if @connected
-    @connected = true
-    @emitEvent 'connect', @
+    @handleSocketEvent 'connect', null
 
   disconnect: ->
-    return unless @connected
-    @connected = false
-    @emitEvent 'disconnect', @
+    @handleSocketEvent 'disconnect', null
 
-  isConnected: -> @connected
+  isConnected: -> @brackets.length > 0
 
   # ## Sending information packets
   #
@@ -81,9 +77,8 @@ class InternalSocket extends EventEmitter
   # can be constructed with more flexibility, as file buffers or
   # message queues can be used as additional packet relay mechanisms.
   send: (data) ->
-    @connect() unless @connected
     data = @dataDelegate() if data is undefined and typeof @dataDelegate is 'function'
-    @emitEvent 'data', data
+    @handleSocketEvent 'data', data
 
   # ## Sending information packets without open bracket
   #
@@ -92,7 +87,9 @@ class InternalSocket extends EventEmitter
   # sending semantics single IP objects can be sent without open/close brackets.
   post: (data) ->
     data = @dataDelegate() if data is undefined and typeof @dataDelegate is 'function'
-    @emitEvent 'data', data
+    @emitEvent 'connect', @ if data.type is 'data' and @brackets.length is 0
+    @handleSocketEvent 'data', data, false
+    @emitEvent 'disconnect', @ if data.type is 'data' and @brackets.length is 0
 
   # ## Information Packet grouping
   #
@@ -124,12 +121,10 @@ class InternalSocket extends EventEmitter
   # to pass received groupings onward if the data structures remain
   # intact through the component's processing.
   beginGroup: (group) ->
-    @groups.push group
-    @emitEvent 'begingroup', group
+    @handleSocketEvent 'begingroup', group
 
   endGroup: ->
-    return unless @groups.length
-    @emitEvent 'endgroup', @groups.pop()
+    @handleSocketEvent 'endgroup'
 
   # ## Socket data delegation
   #
@@ -166,6 +161,74 @@ class InternalSocket extends EventEmitter
     return "#{fromStr(@from)} -> ANON" if @from and not @to
     return "DATA -> #{toStr(@to)}" unless @from
     "#{fromStr(@from)} -> #{toStr(@to)}"
+
+  legacyToIp: (event, payload) ->
+    # No need to wrap modern IP Objects
+    return payload if IP.isIP payload
+
+    # Wrap legacy events into appropriate IP objects
+    switch event
+      when 'connect', 'begingroup'
+        return new IP 'openBracket', payload
+      when 'disconnect', 'endgroup'
+        return new IP 'closeBracket'
+      else
+        return new IP 'data', payload
+
+  ipToLegacy: (ip) ->
+    switch ip.type
+      when 'openBracket'
+        if @brackets.length is 1
+          return legacy =
+            event: 'connect'
+            payload: @
+        return legacy =
+          event: 'begingroup'
+          payload: ip.data
+      when 'data'
+        return legacy =
+          event: 'data'
+          payload: ip.data
+      when 'closeBracket'
+        if @brackets.length is 0
+          return legacy =
+            event: 'disconnect'
+            payload: @
+        return legacy =
+          event: 'endgroup'
+          payload: ip.data
+
+  handleSocketEvent: (event, payload, autoConnect = true) ->
+    ip = @legacyToIp event, payload
+
+    # Handle state transitions
+    if ip.type is 'data' and @brackets.length is 0 and autoConnect
+      # Connect before sending data
+      @handleSocketEvent 'connect', null
+
+    if ip.type is 'openBracket'
+      if ip.data is null
+        # If we're already connected, no need to connect again
+        return if @brackets.length
+      else
+        if @brackets.length is 0 and autoConnect
+          # Connect before sending bracket
+          @handleSocketEvent 'connect', null
+      @brackets.push ip.data
+
+    if ip.type is 'closeBracket'
+      # Last bracket was closed, we're disconnected
+      # If we were already disconnected, no need to disconnect again
+      return if @brackets.length is 0
+      # Add group name to bracket
+      ip.data = @brackets.pop()
+
+    # Emit the IP Object
+    @emitEvent 'ip', ip
+
+    # Emit the legacy event
+    legacyEvent = @ipToLegacy ip
+    @emitEvent legacyEvent.event, legacyEvent.payload
 
 exports.InternalSocket = InternalSocket
 

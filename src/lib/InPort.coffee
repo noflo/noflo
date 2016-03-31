@@ -60,6 +60,27 @@ class InPort extends BasePort
       @handleSocketEvent 'endgroup', group, localId
     socket.on 'disconnect', =>
       @handleSocketEvent 'disconnect', socket, localId
+    socket.on 'ip', (ip) =>
+      @handleIP ip, localId
+
+  handleIP: (ip, id) ->
+    return if @process
+    return if @options.control and ip.type isnt 'data'
+    ip.owner = @nodeInstance
+    ip.index = id
+
+    if ip.scope
+      @scopedBuffer[ip.scope] = [] unless ip.scope of @scopedBuffer
+      buf = @scopedBuffer[ip.scope]
+    else
+      buf = @buffer
+    buf.push ip
+    buf.shift() if @options.control and buf.length > 1
+
+    if @handle
+      @handle ip, @nodeInstance
+
+    @emit 'ip', ip, id
 
   handleSocketEvent: (event, payload, id) ->
     # Handle buffering the old way
@@ -78,73 +99,15 @@ class InPort extends BasePort
         @emit event
       return
 
-    # Prepare IP object
-    if event is 'data' and typeof payload is 'object' and
-    IP.types.indexOf(payload.type) isnt -1
-      ip = payload
-    else
-      # Wrap legacy event
-      switch event
-        when 'connect', 'begingroup'
-          ip = new IP 'openBracket', payload
-        when 'disconnect', 'endgroup'
-          ip = new IP 'closeBracket'
-        else
-          ip = new IP 'data', payload
-
-    ip.owner = @nodeInstance
-    ip.index = id
-
-    # Buffer IP for the component process function
-    unless @process or @handle or @options.buffered
-      return if @options.control and ip.type isnt 'data'
-      if ip.scope
-        @scopedBuffer[ip.scope] = [] unless ip.scope of @scopedBuffer
-        buf = @scopedBuffer[ip.scope]
-      else
-        buf = @buffer
-      buf.push ip
-      buf.shift() if @options.control and buf.length > 1
-
-
-    # Handle IP object
-    if @handle
-      @handle ip, @nodeInstance
-
     if @process
-      # Call the processing function
-      @braceCount = [] unless @braceCount
-      @braceCount[id] = 0 unless @braceCount[id]
-      @isUnwrapped = false
-      if event is 'data' and typeof payload is 'object' and
-      IP.types.indexOf(payload.type) isnt -1
-        # Translate IP object to legacy event
-        switch payload.type
-          when 'openBracket'
-            event = if @braceCount[id] is 0 then 'connect' else 'begingroup'
-            payload = payload.data
-            @braceCount[id]++
-          when 'closeBracket'
-            @braceCount[id]--
-            event = if @braceCount[id] is 0 then 'disconnect' else 'endgroup'
-            payload = null
-          else
-            event = 'data'
-            payload = payload.data
-            @isUnwrapped = true if @braceCount[id] is 0
       if @isAddressable()
-        @process 'connect', null, id, @nodeInstance if @isUnwrapped
         @process event, payload, id, @nodeInstance
-        @process 'disconnect', null, id, @nodeInstance if @isUnwrapped
       else
-        @process 'connect', null, @nodeInstance if @isUnwrapped
         @process event, payload, @nodeInstance
-        @process 'disconnect', null, @nodeInstance if @isUnwrapped
 
     # Emit port event
     return @emit event, payload, id if @isAddressable()
     @emit event, payload
-    @emit 'ip', ip
 
   hasDefault: ->
     return @options.default isnt undefined

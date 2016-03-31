@@ -28,10 +28,7 @@ class OutPort extends BasePort
     @checkRequired sockets
     sockets.forEach (socket) ->
       return unless socket
-      return socket.beginGroup group if socket.isConnected()
-      socket.once 'connect', ->
-        socket.beginGroup group
-      socket.connect()
+      return socket.beginGroup group
 
   send: (data, socketId = null) ->
     sockets = @getSockets socketId
@@ -40,10 +37,7 @@ class OutPort extends BasePort
       @cache[socketId] = data
     sockets.forEach (socket) ->
       return unless socket
-      return socket.send data if socket.isConnected()
-      socket.once 'connect', ->
-        socket.send data
-      socket.connect()
+      return socket.send data
 
   endGroup: (socketId = null) ->
     sockets = @getSockets socketId
@@ -60,8 +54,7 @@ class OutPort extends BasePort
       socket.disconnect()
 
   sendIP: (type, data, options, socketId) ->
-    if typeof type is 'object' and
-    IP.types.indexOf(type).type isnt -1
+    if IP.isIP type
       ip = type
       socketId = ip.index
     else
