@@ -23,7 +23,7 @@
     "flowhub-registry": "0.0.4",
     "noflo": "~0.7.0",
     "noflo-runtime-websocket": "~0.5.2",
-    "noflo-runtime-base": "~0.6.0",
+    "noflo-runtime-base": "~0.7.1",
     "password-maker": "1.0.5",
     "uuid": "1.4.2",
     "yargs": "^4.3.2"
