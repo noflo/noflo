@@ -386,6 +386,35 @@ describe 'Component', ->
       sin1.post new IP 'data', 'first'
       sin2.post new IP 'data', 'second'
 
+    it 'should fetch undefined for premature data', (done) ->
+      c = new component.Component
+        inPorts:
+          foo:
+            datatype: 'string'
+          bar:
+            datatype: 'boolean'
+            triggering: false
+            control: true
+          baz:
+            datatype: 'string'
+            triggering: false
+            control: true
+        process: (input, output) ->
+          return unless input.has 'foo'
+          [foo, bar, baz] = input.getData 'foo', 'bar', 'baz'
+          chai.expect(foo).to.be.a 'string'
+          chai.expect(bar).to.be.undefined
+          chai.expect(baz).to.be.undefined
+          done()
+
+      c.inPorts.foo.attach sin1
+      c.inPorts.bar.attach sin2
+      c.inPorts.baz.attach sin3
+
+      sin1.post new IP 'data', 'AZ'
+      sin2.post new IP 'data', true
+      sin3.post new IP 'data', 'first'
+
     it 'should receive and send complete IP objects', (done) ->
       c = new component.Component
         inPorts:

@@ -4,6 +4,8 @@ NoFlo ChangeLog
 ## 0.7.2 (git master)
 
 * Fixed FBP manifest caching
+* Fixed non-triggering property being applied on triggering ports
+* Fixed `input.getData()` crash on ports which have no packets yet
 
 ## 0.7.1 (March 31st 2016)
 
