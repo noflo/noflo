@@ -31,7 +31,7 @@ class Component extends EventEmitter
       @outPorts = options.outPorts
     else
       @outPorts = new ports.OutPorts options.outPorts
-    
+
     @icon = options.icon if options.icon
     @description = options.description if options.description
     @ordered = options.ordered if 'ordered' of options
@@ -77,9 +77,10 @@ class Component extends EventEmitter
       throw new Error "Component ports must be defined before process function"
     @handle = handle
     for name, port of @inPorts.ports
-      port.name = name unless port.name
-      port.on 'ip', (ip) =>
-        @handleIP ip, port
+      do (name, port) =>
+        port.name = name unless port.name
+        port.on 'ip', (ip) =>
+          @handleIP ip, port
     @
 
   handleIP: (ip, port) ->
@@ -117,8 +118,8 @@ class ProcessInput
   getData: ->
     ips = @get.apply this, arguments
     if arguments.length is 1
-      return ips.data
-    (ip.data for ip in ips)
+      return ips?.data ? undefined
+    (ip?.data ? undefined for ip in ips)
 
 class ProcessOutput
   constructor: (@ports, @ip, @nodeInstance, @result) ->
