@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.7.2 (git master)
+## 0.7.2 (April 1st 2016)
 
 * Fixed FBP manifest caching
 * Fixed non-triggering property being applied on triggering ports
