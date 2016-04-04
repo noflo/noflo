@@ -556,7 +556,8 @@ class Network extends EventEmitter
       socket.connect()
       socket.send()
       socket.disconnect()
-      do callback
+
+    do callback
 
   start: (callback) ->
     unless callback
