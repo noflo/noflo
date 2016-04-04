@@ -545,6 +545,8 @@ class Network extends EventEmitter
     unless callback
       callback = ->
 
+    return callback() unless @defaults.length
+
     for socket in @defaults
       # Don't send defaults if more than one socket is present on the port.
       # This case should only happen when a subgraph is created as a component
