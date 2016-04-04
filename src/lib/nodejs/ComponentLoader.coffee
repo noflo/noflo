@@ -94,6 +94,7 @@ class ComponentLoader extends loader.ComponentLoader
 
     @components = {}
     manifest.list.list @baseDir, manifestOptions, (err, modules) =>
+      return callback err if err
       @readModules modules, (err) =>
         @processing = false
         return callback err if err
