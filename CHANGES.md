@@ -5,6 +5,7 @@ NoFlo ChangeLog
 
 * Fixed error handling on broken FBP manifest data
 * Fixed network start callback when there are no defaults in a graph
+* Network uptime is now calculated from the first `start` event, not from initialization
 
 ## 0.7.2 (April 1st 2016)
 
