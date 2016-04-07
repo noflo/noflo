@@ -451,5 +451,7 @@ describe 'NoFlo Network', ->
         nw.once 'end', ->
           chai.expect(called).to.equal 10001
           done()
-        nw.connect ->
-          nw.start()
+        nw.connect (err) ->
+          return done err if err
+          nw.start (err) ->
+            return done err if err
