@@ -6,8 +6,9 @@ _ = require "underscore"
 internalSocket = require "./InternalSocket"
 graph = require "./Graph"
 {EventEmitter} = require 'events'
+platform = require './Platform'
 
-unless require('./Platform').isBrowser()
+unless platform.isBrowser()
   componentLoader = require "./nodejs/ComponentLoader"
 else
   componentLoader = require './ComponentLoader'
@@ -55,7 +56,7 @@ class Network extends EventEmitter
 
     # On Node.js we default the baseDir for component loading to
     # the current working directory
-    if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
+    unless platform.isBrowser()
       @baseDir = graph.baseDir or process.cwd()
     # On browser we default the baseDir to the Component loading
     # root
