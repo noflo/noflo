@@ -67,7 +67,7 @@ class Network extends EventEmitter
     # As most NoFlo networks are long-running processes, the
     # network coordinator marks down the start-up time. This
     # way we can calculate the uptime of the network.
-    @startupDate = new Date()
+    @startupDate = null
 
     # Initialize a Component Loader for the network
     if graph.componentLoader
