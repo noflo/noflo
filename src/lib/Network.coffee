@@ -53,6 +53,7 @@ class Network extends EventEmitter
     @graph = graph
     @started = false
     @debug = true
+    @connectionCount = 0
 
     # On Node.js we default the baseDir for component loading to
     # the current working directory
@@ -80,20 +81,22 @@ class Network extends EventEmitter
 
   # Emit a 'start' event on the first connection, and 'end' event when
   # last connection has been closed
-  connectionCount: 0
-  hasStarted: false
-  hasStopped: true
   increaseConnections: ->
     if @connectionCount is 0
       # First connection opened, execution has now started
       @setStarted true
     @connectionCount++
-  decreaseConnections: _.debounce =>
+  decreaseConnections: ->
     @connectionCount--
+    return if @connectionCount
     # Last connection closed, execution has now ended
-    if @connectionCount is 0
-      @setStarted false
-  , 10
+    # We do this in debounced way in case there is an in-flight operation still
+    unless @debouncedEnd
+      @debouncedEnd = _.debounce =>
+        return if @connectionCount
+        @setStarted false
+      , 50
+    do @debouncedEnd
 
   # ## Loading components
   #
