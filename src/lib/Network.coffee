@@ -570,7 +570,6 @@ class Network extends EventEmitter
       return callback err if err
       @sendInitials (err) =>
         return callback err if err
-        @started = true
         @sendDefaults (err) =>
           return callback err if err
           @setStarted true
