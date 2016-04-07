@@ -77,7 +77,9 @@ class Network extends EventEmitter
 
   # The uptime of the network is the current time minus the start-up
   # time, in seconds.
-  uptime: -> new Date() - @startupDate
+  uptime: ->
+    return 0 unless @startupDate
+    new Date() - @startupDate
 
   # Emit a 'start' event on the first connection, and 'end' event when
   # last connection has been closed
