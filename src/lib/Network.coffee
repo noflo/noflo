@@ -86,27 +86,14 @@ class Network extends EventEmitter
   increaseConnections: ->
     if @connectionCount is 0
       # First connection opened, execution has now started
-      return if @hasStarted
-      @emit 'start',
-        start: @startupDate
-      @hasStarted = true
-      @hasStopped = false
+      @setStarted true
     @connectionCount++
-  decreaseConnections: ->
+  decreaseConnections: _.debounce =>
     @connectionCount--
     # Last connection closed, execution has now ended
     if @connectionCount is 0
-      ender = _.debounce =>
-        return if @connectionCount
-        return if @hasStopped
-        @emit 'end',
-          start: @startupDate
-          end: new Date
-          uptime: @uptime()
-        @hasStarted = false
-        @hasStopped = true
-      , 100
-      do ender
+      @setStarted false
+  , 10
 
   # ## Loading components
   #
@@ -581,11 +568,7 @@ class Network extends EventEmitter
         @started = true
         @sendDefaults (err) =>
           return callback err if err
-          return callback null if @hasStarted
-          @emit 'start',
-            start: @startupDate
-          @hasStarted = true
-          @hasStopped = false
+          @setStarted true
           callback null
 
   stop: ->
@@ -596,16 +579,24 @@ class Network extends EventEmitter
     # Tell processes to shut down
     for id, process of @processes
       process.component.shutdown()
-    @started = false
-    setTimeout =>
-      return if @hasStopped
+    @setStarted false
+
+  setStarted: (started) ->
+    return if @started is started
+    unless started
+      # Ending the execution
+      @started = false
       @emit 'end',
         start: @startupDate
         end: new Date
         uptime: @uptime()
-      @hasStarted = false
-      @hasStopped = true
-    , 50
+      return
+
+    # Starting the execution
+    @startupDate = new Date unless @startupDate
+    @started = true
+    @emit 'start',
+      start: @startupDate
 
   getDebug: () ->
     @debug
