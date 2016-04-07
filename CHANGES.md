@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.7.3 (git master)
+## 0.7.3 (April 7th 2016)
 
 * Fixed error handling on broken FBP manifest data
 * Fixed network start callback when there are no defaults in a graph
