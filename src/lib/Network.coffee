@@ -6,8 +6,9 @@ _ = require "underscore"
 internalSocket = require "./InternalSocket"
 graph = require "./Graph"
 {EventEmitter} = require 'events'
+platform = require './Platform'
 
-unless require('./Platform').isBrowser()
+unless platform.isBrowser()
   componentLoader = require "./nodejs/ComponentLoader"
 else
   componentLoader = require './ComponentLoader'
@@ -52,10 +53,11 @@ class Network extends EventEmitter
     @graph = graph
     @started = false
     @debug = true
+    @connectionCount = 0
 
     # On Node.js we default the baseDir for component loading to
     # the current working directory
-    if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
+    unless platform.isBrowser()
       @baseDir = graph.baseDir or process.cwd()
     # On browser we default the baseDir to the Component loading
     # root
@@ -65,7 +67,7 @@ class Network extends EventEmitter
     # As most NoFlo networks are long-running processes, the
     # network coordinator marks down the start-up time. This
     # way we can calculate the uptime of the network.
-    @startupDate = new Date()
+    @startupDate = null
 
     # Initialize a Component Loader for the network
     if graph.componentLoader
@@ -75,29 +77,28 @@ class Network extends EventEmitter
 
   # The uptime of the network is the current time minus the start-up
   # time, in seconds.
-  uptime: -> new Date() - @startupDate
+  uptime: ->
+    return 0 unless @startupDate
+    new Date() - @startupDate
 
   # Emit a 'start' event on the first connection, and 'end' event when
   # last connection has been closed
-  connectionCount: 0
   increaseConnections: ->
     if @connectionCount is 0
       # First connection opened, execution has now started
-      @emit 'start',
-        start: @startupDate
+      @setStarted true
     @connectionCount++
   decreaseConnections: ->
     @connectionCount--
+    return if @connectionCount
     # Last connection closed, execution has now ended
-    if @connectionCount is 0
-      ender = _.debounce =>
+    # We do this in debounced way in case there is an in-flight operation still
+    unless @debouncedEnd
+      @debouncedEnd = _.debounce =>
         return if @connectionCount
-        @emit 'end',
-          start: @startupDate
-          end: new Date
-          uptime: @uptime()
-      , 10
-      do ender
+        @setStarted false
+      , 50
+    do @debouncedEnd
 
   # ## Loading components
   #
@@ -570,7 +571,10 @@ class Network extends EventEmitter
       @sendInitials (err) =>
         return callback err if err
         @started = true
-        @sendDefaults callback
+        @sendDefaults (err) =>
+          return callback err if err
+          @setStarted true
+          callback null
 
   stop: ->
     # Disconnect all connections
@@ -580,7 +584,24 @@ class Network extends EventEmitter
     # Tell processes to shut down
     for id, process of @processes
       process.component.shutdown()
-    @started = false
+    @setStarted false
+
+  setStarted: (started) ->
+    return if @started is started
+    unless started
+      # Ending the execution
+      @started = false
+      @emit 'end',
+        start: @startupDate
+        end: new Date
+        uptime: @uptime()
+      return
+
+    # Starting the execution
+    @startupDate = new Date unless @startupDate
+    @started = true
+    @emit 'start',
+      start: @startupDate
 
   getDebug: () ->
     @debug

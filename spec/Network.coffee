@@ -154,7 +154,8 @@ describe 'NoFlo Network', ->
       g.addInitial 'Foo', 'Merge', 'in'
 
       chai.expect(n.initials).not.to.be.empty
-      n.start()
+      n.start (err) ->
+        return done err if err
 
     it 'should have started in debug mode', ->
       chai.expect(n.debug).to.equal true
@@ -450,5 +451,7 @@ describe 'NoFlo Network', ->
         nw.once 'end', ->
           chai.expect(called).to.equal 10001
           done()
-        nw.connect ->
-          nw.start()
+        nw.connect (err) ->
+          return done err if err
+          nw.start (err) ->
+            return done err if err
