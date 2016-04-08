@@ -13,23 +13,23 @@
     "node": ">=0.6.0"
   },
   "dependencies": {
-    "babel-core": "6.7.6",
-    "coffee-script": "1.10.0",
-    "fbp": "1.1.4",
+    "babel-core": "~6.7.6",
+    "coffee-script": "~1.10.0",
+    "fbp": "~1.1.4",
     "fbp-manifest": "^0.1.4",
-    "underscore": "1.8.3"
+    "underscore": "~1.8.3"
   },
   "devDependencies": {
-    "chai": "3.5.0",
-    "grunt": "0.4.5",
-    "grunt-cli": "1.2.0",
-    "grunt-coffeelint": "0.0.15",
-    "grunt-contrib-coffee": "0.11.1",
-    "grunt-contrib-connect": "1.0.1",
+    "chai": "~3.5.0",
+    "grunt": "~0.4.5",
+    "grunt-cli": "~1.2.0",
+    "grunt-coffeelint": "~0.0.15",
+    "grunt-contrib-coffee": "~0.11.1",
+    "grunt-contrib-connect": "~1.0.1",
     "grunt-contrib-watch": "~1.0.0",
-    "grunt-mocha-phantomjs": "3.0.0",
+    "grunt-mocha-phantomjs": "~3.0.0",
     "grunt-mocha-test": "^0.12.7",
-    "grunt-noflo-browser": "0.1.10",
+    "grunt-noflo-browser": "~0.1.10",
     "grunt-noflo-manifest": "^0.1.11",
     "mocha": "^2.4.5",
     "tv4": "^1.2.7"
