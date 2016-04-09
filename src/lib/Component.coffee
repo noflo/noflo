@@ -17,6 +17,9 @@ class Component extends EventEmitter
   ordered: false
   outputQ: []
   activateOnInput: true
+  forwardBrackets:
+    in: ['out', 'error']
+  bracketBuffer: {}
 
   constructor: (options) ->
     options = {} unless options
@@ -69,12 +72,28 @@ class Component extends EventEmitter
 
   isStarted: -> @started
 
+  # Ensures braket forwarding map is correct for the existing ports
+  prepareForwarding: ->
+    for inPort, outPorts of @forwardBrackets
+      unless inPort of @inPorts.ports
+        delete @forwardBrackets[inPort]
+        continue
+      tmp = []
+      for outPort in outPorts
+        tmp.push outPort if outPort of @outPorts.ports
+      if tmp.length is 0
+        delete @forwardBrackets[inPort]
+      else
+        @forwardBrackets[inPort] = tmp
+        @bracketBuffer[inPort] = []
+
   # Sets process handler function
   process: (handle) ->
     unless typeof handle is 'function'
       throw new Error "Process handler must be a function"
     unless @inPorts
       throw new Error "Component ports must be defined before process function"
+    @prepareForwarding()
     @handle = handle
     for name, port of @inPorts.ports
       do (name, port) =>
@@ -83,7 +102,12 @@ class Component extends EventEmitter
           @handleIP ip, port
     @
 
+  # Handles an incoming IP object
   handleIP: (ip, port) ->
+    if port.name of @forwardBrackets and
+    (ip.type is 'openBracket' or ip.type is 'closeBracket')
+      @bracketBuffer[port.name].push port.buffer.pop()
+      return
     return unless port.options.triggering
     result = {}
     input = new ProcessInput @inPorts, ip, @, port, result
@@ -97,17 +121,20 @@ class ProcessInput
   constructor: (@ports, @ip, @nodeInstance, @port, @result) ->
     @scope = @ip.scope
 
+  # Sets component state to `activated`
   activate: ->
     @result.__resolved = false
     if @nodeInstance.ordered
       @nodeInstance.outputQ.push @result
 
-  has: ->
+  # Returns true if a port (or ports joined by logical AND) has a new IP
+  has: (port = 'in') ->
     res = true
     res and= @ports[port].ready @scope for port in arguments
     res
 
-  get: ->
+  # Fetches IP object(s) for port(s)
+  get: (port = 'in') ->
     if @nodeInstance.ordered and
     @nodeInstance.activateOnInput and
     not ('__resolved' of @result)
@@ -115,7 +142,8 @@ class ProcessInput
     res = (@ports[port].get @scope for port in arguments)
     if arguments.length is 1 then res[0] else res
 
-  getData: ->
+  # Fetches `data` property of IP object(s) for given port(s)
+  getData: (port = 'in') ->
     ips = @get.apply this, arguments
     if arguments.length is 1
       return ips?.data ? undefined
@@ -125,15 +153,18 @@ class ProcessOutput
   constructor: (@ports, @ip, @nodeInstance, @result) ->
     @scope = @ip.scope
 
+  # Sets component state to `activated`
   activate: ->
     @result.__resolved = false
     if @nodeInstance.ordered
       @nodeInstance.outputQ.push @result
 
+  # Checks if a value is an Error
   isError: (err) ->
     err instanceof Error or
     Array.isArray(err) and err.length > 0 and err[0] instanceof Error
 
+  # Sends an error object
   error: (err) ->
     multiple = Array.isArray err
     err = [err] unless multiple
@@ -145,6 +176,7 @@ class ProcessOutput
     else
       throw e for e in err
 
+  # Sends a single IP object to a port
   sendIP: (port, packet) ->
     if typeof packet isnt 'object' or
     IP.types.indexOf(packet.type) is -1
@@ -158,6 +190,8 @@ class ProcessOutput
     else
       @nodeInstance.outPorts[port].sendIP ip
 
+  # Sends packets for each port as a key in the map
+  # or sends Error or a list of Errors if passed such
   send: (outputMap) ->
     if @nodeInstance.ordered and
     not ('__resolved' of @result)
@@ -166,10 +200,28 @@ class ProcessOutput
     for port, packet of outputMap
       @sendIP port, packet
 
+  # Alias for `complete()`
   sendDone: (outputMap) ->
+    @complete outputMap
+
+  # Sends the argument via `send()` and marks activation as `done()`
+  complete: (outputMap) ->
     @send outputMap
     @done()
 
+  # Makes a map-style component pass a result value to `out`
+  # keeping all IP metadata received from `in`,
+  # or modifying it if `options` is provided
+  pass: (data, options = {}) ->
+    unless 'out' of @ports
+      throw new Error 'output.pass() requires port "out" to be present'
+    for key, val of options
+      @ip[key] = val
+    @ip.data = data
+    @sendIP 'out', @ip
+    @done()
+
+  # Finishes process activation gracefully
   done: (error) ->
     @error error if error
     if @nodeInstance.ordered
