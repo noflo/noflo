@@ -825,6 +825,50 @@ describe 'Component', ->
       sin1.post new IP 'data', 'some-data',
         scope: 'some-scope'
 
+    it 'should forward brackets for map-style components', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+        outPorts:
+          out:
+            datatype: 'string'
+          error:
+            datatype: 'object'
+        process: (input, output) ->
+          str = input.getData()
+          if typeof str isnt 'string'
+            return output.complete new Error 'Input is not string'
+          output.pass str.toUpperCase()
+
+      c.inPorts.in.attach sin1
+      c.outPorts.out.attach sout1
+      c.outPorts.error.attach sout2
+
+      source = [
+        '<'
+        'foo'
+        'bar'
+        '>'
+      ]
+      actual = []
+      count = 0
+
+      sout1.on 'ip', (ip) ->
+        data = switch ip.type
+          when 'openBracket' then '<'
+          when 'closeBracket' then '>'
+          else ip.data
+        chai.expect(data).to.equal source[count].toUpperCase()
+        count++
+        done() if count is 4
+
+      for data in source
+        switch data
+          when '<' then sin1.post new IP 'openBracket'
+          when '>' then sin1.post new IP 'closeBracket'
+          else sin1.post new IP 'data', data
+
     describe 'with custom callbacks', ->
       c = null
       sin1 = null

@@ -15,11 +15,11 @@ class Component extends EventEmitter
   started: false
   load: 0
   ordered: false
+  autoOrdering: false
   outputQ: []
   activateOnInput: true
-  forwardBrackets:
-    in: ['out', 'error']
-  bracketBuffer: {}
+  forwardBrackets: {}
+  bracketCounter: {}
 
   constructor: (options) ->
     options = {} unless options
@@ -39,6 +39,12 @@ class Component extends EventEmitter
     @description = options.description if options.description
     @ordered = options.ordered if 'ordered' of options
     @activateOnInput = options.activateOnInput if 'activateOnInput' of options
+
+    if 'forwardBrackets' of options
+      @forwardBrackets = options.forwardBrackets
+    else
+      @forwardBrackets =
+        in: ['out', 'error']
 
     if typeof options.process is 'function'
       @process options.process
@@ -85,7 +91,7 @@ class Component extends EventEmitter
         delete @forwardBrackets[inPort]
       else
         @forwardBrackets[inPort] = tmp
-        @bracketBuffer[inPort] = []
+        @bracketCounter[inPort] = 0
 
   # Sets process handler function
   process: (handle) ->
@@ -106,7 +112,20 @@ class Component extends EventEmitter
   handleIP: (ip, port) ->
     if port.name of @forwardBrackets and
     (ip.type is 'openBracket' or ip.type is 'closeBracket')
-      @bracketBuffer[port.name].push port.buffer.pop()
+      # Bracket forwarding
+      if ip.type is 'openBracket'
+        @autoOrdering = true unless @autoOrdering
+        @bracketCounter[port.name]++
+      else
+        @bracketCounter[port.name]--
+        @autoOrdering = false if @bracketCounter[port.name] is 0
+      outputEntry =
+        __resolved: true
+      for outPort in @forwardBrackets[port.name]
+        outputEntry[outPort] = [] unless outPort of outputEntry
+        outputEntry[outPort].push port.buffer.pop()
+      @outputQ.push outputEntry
+      @processOutputQueue()
       return
     return unless port.options.triggering
     result = {}
@@ -114,6 +133,16 @@ class Component extends EventEmitter
     output = new ProcessOutput @outPorts, ip, @, result
     @load++
     @handle input, output, -> output.done()
+
+  processOutputQueue: ->
+    while @outputQ.length > 0
+      result = @outputQ[0]
+      break unless result.__resolved
+      for port, ips of result
+        continue if port is '__resolved'
+        for ip in ips
+          @outPorts[port].sendIP ip
+      @outputQ.shift()
 
 exports.Component = Component
 
@@ -124,28 +153,31 @@ class ProcessInput
   # Sets component state to `activated`
   activate: ->
     @result.__resolved = false
-    if @nodeInstance.ordered
+    if @nodeInstance.ordered or @nodeInstance.autoOrdering
       @nodeInstance.outputQ.push @result
 
   # Returns true if a port (or ports joined by logical AND) has a new IP
   has: (port = 'in') ->
+    args = if arguments.length is 0 then [port] else arguments
     res = true
-    res and= @ports[port].ready @scope for port in arguments
+    res and= @ports[port].ready @scope for port in args
     res
 
   # Fetches IP object(s) for port(s)
   get: (port = 'in') ->
-    if @nodeInstance.ordered and
+    args = if arguments.length is 0 then [port] else arguments
+    if (@nodeInstance.ordered or @nodeInstance.autoOrdering) and
     @nodeInstance.activateOnInput and
     not ('__resolved' of @result)
       @activate()
-    res = (@ports[port].get @scope for port in arguments)
-    if arguments.length is 1 then res[0] else res
+    res = (@ports[port].get @scope for port in args)
+    if args.length is 1 then res[0] else res
 
   # Fetches `data` property of IP object(s) for given port(s)
   getData: (port = 'in') ->
-    ips = @get.apply this, arguments
-    if arguments.length is 1
+    args = if arguments.length is 0 then [port] else arguments
+    ips = @get.apply this, args
+    if args.length is 1
       return ips?.data ? undefined
     (ip?.data ? undefined for ip in ips)
 
@@ -156,7 +188,7 @@ class ProcessOutput
   # Sets component state to `activated`
   activate: ->
     @result.__resolved = false
-    if @nodeInstance.ordered
+    if @nodeInstance.ordered or @nodeInstance.autoOrdering
       @nodeInstance.outputQ.push @result
 
   # Checks if a value is an Error
@@ -184,7 +216,7 @@ class ProcessOutput
     else
       ip = packet
     ip.scope = @scope if @scope isnt null and ip.scope is null
-    if @nodeInstance.ordered
+    if @nodeInstance.ordered or @nodeInstance.autoOrdering
       @result[port] = [] unless port of @result
       @result[port].push ip
     else
@@ -193,7 +225,7 @@ class ProcessOutput
   # Sends packets for each port as a key in the map
   # or sends Error or a list of Errors if passed such
   send: (outputMap) ->
-    if @nodeInstance.ordered and
+    if (@nodeInstance.ordered or @nodeInstance.autoOrdering) and
     not ('__resolved' of @result)
       @activate()
     return @error outputMap if @isError outputMap
@@ -224,14 +256,7 @@ class ProcessOutput
   # Finishes process activation gracefully
   done: (error) ->
     @error error if error
-    if @nodeInstance.ordered
+    if @nodeInstance.ordered or @nodeInstance.autoOrdering
       @result.__resolved = true
-      while @nodeInstance.outputQ.length > 0
-        result = @nodeInstance.outputQ[0]
-        break unless result.__resolved
-        for port, ips of result
-          continue if port is '__resolved'
-          for ip in ips
-            @nodeInstance.outPorts[port].sendIP ip
-        @nodeInstance.outputQ.shift()
+      @nodeInstance.processOutputQueue()
     @nodeInstance.load--
