@@ -110,20 +110,18 @@ class Component extends EventEmitter
 
   # Handles an incoming IP object
   handleIP: (ip, port) ->
+    if ip.type is 'openBracket'
+      @autoOrdering = true unless @autoOrdering
+      @bracketCounter[port.name]++
     if port.name of @forwardBrackets and
     (ip.type is 'openBracket' or ip.type is 'closeBracket')
       # Bracket forwarding
-      if ip.type is 'openBracket'
-        @autoOrdering = true unless @autoOrdering
-        @bracketCounter[port.name]++
-      else
-        @bracketCounter[port.name]--
-        @autoOrdering = false if @bracketCounter[port.name] is 0
       outputEntry =
         __resolved: true
       for outPort in @forwardBrackets[port.name]
         outputEntry[outPort] = [] unless outPort of outputEntry
-        outputEntry[outPort].push port.buffer.pop()
+        outputEntry[outPort].push ip
+      port.buffer.pop()
       @outputQ.push outputEntry
       @processOutputQueue()
       return
@@ -141,8 +139,15 @@ class Component extends EventEmitter
       for port, ips of result
         continue if port is '__resolved'
         for ip in ips
+          @bracketCounter[port]-- if ip.type is 'closeBracket'
           @outPorts[port].sendIP ip
       @outputQ.shift()
+    bracketsClosed = true
+    for name, port of @outPorts.ports
+      if @bracketCounter[port] isnt 0
+        bracketsClosed = false
+        break
+    @autoOrdering = false if bracketsClosed
 
 exports.Component = Component
 
