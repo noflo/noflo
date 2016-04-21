@@ -97,6 +97,10 @@ class Component extends EventEmitter
       else
         @forwardBrackets[inPort] = tmp
         @bracketCounter[inPort] = 0
+    tmp = []
+    for outPort in @dropEmptyBrackets
+      tmp.push outPort if outPort of @outPorts.ports
+    @dropEmptyBrackets = tmp
 
   # Sets process handler function
   process: (handle) ->
@@ -122,7 +126,7 @@ class Component extends EventEmitter
     (ip.type is 'openBracket' or ip.type is 'closeBracket')
       # Bracket forwarding
       outputEntry =
-        __resolved: ip.type is 'closeBracket'
+        __resolved: ip.type is 'closeBracket' or not @dropEmptyBrackets.length
         __forwarded: true
         __type: ip.type
         __scope: ip.scope
@@ -131,7 +135,7 @@ class Component extends EventEmitter
         outputEntry[outPort].push ip
       port.buffer.pop()
       # Drop empty brackets if needed
-      if ip.type is 'closeBracket'
+      if ip.type is 'closeBracket' and @dropEmptyBrackets.length
         haveData = []
         for i in [@outputQ.length - 1..0]
           entry = @outputQ[i]
