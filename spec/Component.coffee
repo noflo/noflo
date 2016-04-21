@@ -863,6 +863,10 @@ describe 'Component', ->
         count++
         done() if count is 4
 
+      sout2.on 'ip', (ip) ->
+        console.log 'Unexpected error', ip
+        done ip.data
+
       for data in source
         switch data
           when '<' then sin1.post new IP 'openBracket'

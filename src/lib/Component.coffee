@@ -20,6 +20,7 @@ class Component extends EventEmitter
   activateOnInput: true
   forwardBrackets: {}
   bracketCounter: {}
+  dropEmptyBrackets: []
 
   constructor: (options) ->
     options = {} unless options
@@ -45,6 +46,10 @@ class Component extends EventEmitter
     else
       @forwardBrackets =
         in: ['out', 'error']
+    if 'dropEmptyBrackets' of options
+      @dropEmptyBrackets = options.dropEmptyBrackets
+    else
+      @dropEmptyBrackets = ['error']
 
     if typeof options.process is 'function'
       @process options.process
@@ -117,11 +122,36 @@ class Component extends EventEmitter
     (ip.type is 'openBracket' or ip.type is 'closeBracket')
       # Bracket forwarding
       outputEntry =
-        __resolved: true
+        __resolved: ip.type is 'closeBracket'
+        __forwarded: true
+        __type: ip.type
+        __scope: ip.scope
       for outPort in @forwardBrackets[port.name]
         outputEntry[outPort] = [] unless outPort of outputEntry
         outputEntry[outPort].push ip
       port.buffer.pop()
+      # Drop empty brackets if needed
+      if ip.type is 'closeBracket'
+        haveData = []
+        for i in [@outputQ.length - 1..0]
+          entry = @outputQ[i]
+          if '__forwarded' of entry
+            if entry.__type is 'openBracket' and not entry.__resolved and
+            entry.__scope is ip.scope
+              for port, ips of entry
+                if haveData.indexOf(port) is -1 and
+                @dropEmptyBrackets.indexOf(port) isnt -1
+                  delete entry[port]
+                  delete outputEntry[port]
+              entry.__resolved = true
+              break
+          else
+            for port, ips of entry
+              continue if port.indexOf('__') is 0 or haveData.indexOf(port) >= 0
+              for _ip in ips
+                if _ip.scope is ip.scope
+                  haveData.push port
+                  break
       @outputQ.push outputEntry
       @processOutputQueue()
       return
@@ -137,7 +167,7 @@ class Component extends EventEmitter
       result = @outputQ[0]
       break unless result.__resolved
       for port, ips of result
-        continue if port is '__resolved'
+        continue if port.indexOf('__') is 0
         for ip in ips
           @bracketCounter[port]-- if ip.type is 'closeBracket'
           @outPorts[port].sendIP ip
