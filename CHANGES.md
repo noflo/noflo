@@ -1,6 +1,12 @@
 NoFlo ChangeLog
 ===============
 
+## 0.7.5 (master)
+
+* Added automatic bracket forwarding via `forwardBrackets` option. Enabled from `in` port to `out` and `error` ports by default.
+* Empty brackets are not forwarded to ports in `dropEmptyBrackets` list (defaults to `['error']`).
+* IP metadata can easily be forwarded in simple components by using `output.pass()` instead of `output.sendDone()`.
+
 ## 0.7.4 (April 7th 2016)
 
 * Minor network starting improvement
