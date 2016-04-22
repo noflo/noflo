@@ -838,7 +838,7 @@ describe 'Component', ->
         process: (input, output) ->
           str = input.getData()
           if typeof str isnt 'string'
-            return output.complete new Error 'Input is not string'
+            return output.sendDone new Error 'Input is not string'
           output.pass str.toUpperCase()
 
       c.inPorts.in.attach sin1
@@ -892,9 +892,9 @@ describe 'Component', ->
           return unless input.has 'msg', 'delay'
           [msg, delay] = input.getData 'msg', 'delay'
           if delay < 0
-            return output.complete new Error 'Delay is negative'
+            return output.sendDone new Error 'Delay is negative'
           setTimeout ->
-            output.complete
+            output.sendDone
               out: { msg: msg, delay: delay }
           , delay
 
@@ -970,7 +970,7 @@ describe 'Component', ->
         process: (input, output) ->
           str = input.getData()
           if typeof str isnt 'string'
-            return output.complete new Error 'Input is not string'
+            return output.sendDone new Error 'Input is not string'
           output.pass str.toUpperCase()
 
       c.inPorts.in.attach sin1

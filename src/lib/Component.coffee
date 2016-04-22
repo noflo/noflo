@@ -268,12 +268,8 @@ class ProcessOutput
     for port, packet of outputMap
       @sendIP port, packet
 
-  # Alias for `complete()`
-  sendDone: (outputMap) ->
-    @complete outputMap
-
   # Sends the argument via `send()` and marks activation as `done()`
-  complete: (outputMap) ->
+  sendDone: (outputMap) ->
     @send outputMap
     @done()
 
