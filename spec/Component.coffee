@@ -957,6 +957,51 @@ describe 'Component', ->
       sin1.post new IP 'closeBracket', 'msg'
       sin2.post new IP 'closeBracket', 'delay'
 
+    it 'should forward IP metadata for map-style components', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+        outPorts:
+          out:
+            datatype: 'string'
+          error:
+            datatype: 'object'
+        process: (input, output) ->
+          str = input.getData()
+          if typeof str isnt 'string'
+            return output.complete new Error 'Input is not string'
+          output.pass str.toUpperCase()
+
+      c.inPorts.in.attach sin1
+      c.outPorts.out.attach sout1
+      c.outPorts.error.attach sout2
+
+      source = [
+        'foo'
+        'bar'
+        'baz'
+      ]
+      count = 0
+      sout1.on 'ip', (ip) ->
+        chai.expect(ip.type).to.equal 'data'
+        chai.expect(ip.count).to.be.a 'number'
+        chai.expect(ip.length).to.be.a 'number'
+        chai.expect(ip.data).to.equal source[ip.count].toUpperCase()
+        chai.expect(ip.length).to.equal source.length
+        count++
+        done() if count is source.length
+
+      sout2.on 'ip', (ip) ->
+        console.log 'Unexpected error', ip
+        done ip.data
+
+      n = 0
+      for str in source
+        sin1.post new IP 'data', str,
+          count: n++
+          length: source.length
+
     describe 'with custom callbacks', ->
 
       beforeEach (done) ->
