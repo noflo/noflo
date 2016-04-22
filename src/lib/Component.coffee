@@ -12,15 +12,6 @@ IP = require './IP'
 class Component extends EventEmitter
   description: ''
   icon: null
-  started: false
-  load: 0
-  ordered: false
-  autoOrdering: false
-  outputQ: []
-  activateOnInput: true
-  forwardBrackets: {}
-  bracketCounter: {}
-  dropEmptyBrackets: []
 
   constructor: (options) ->
     options = {} unless options
@@ -38,18 +29,24 @@ class Component extends EventEmitter
 
     @icon = options.icon if options.icon
     @description = options.description if options.description
+
+    @started = false
+    @load = 0
+    @ordered = false
+    @autoOrdering = false
+    @outputQ = []
+    @activateOnInput = true
+    @forwardBrackets = in: ['out', 'error']
+    @bracketCounter = {}
+    @dropEmptyBrackets = ['error']
+
     @ordered = options.ordered if 'ordered' of options
     @activateOnInput = options.activateOnInput if 'activateOnInput' of options
 
     if 'forwardBrackets' of options
       @forwardBrackets = options.forwardBrackets
-    else
-      @forwardBrackets =
-        in: ['out', 'error']
     if 'dropEmptyBrackets' of options
       @dropEmptyBrackets = options.dropEmptyBrackets
-    else
-      @dropEmptyBrackets = ['error']
 
     if typeof options.process is 'function'
       @process options.process
