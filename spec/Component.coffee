@@ -825,13 +825,184 @@ describe 'Component', ->
       sin1.post new IP 'data', 'some-data',
         scope: 'some-scope'
 
+    it 'should forward brackets for map-style components', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+        outPorts:
+          out:
+            datatype: 'string'
+          error:
+            datatype: 'object'
+        process: (input, output) ->
+          str = input.getData()
+          if typeof str isnt 'string'
+            return output.sendDone new Error 'Input is not string'
+          output.pass str.toUpperCase()
+
+      c.inPorts.in.attach sin1
+      c.outPorts.out.attach sout1
+      c.outPorts.error.attach sout2
+
+      source = [
+        '<'
+        'foo'
+        'bar'
+        '>'
+      ]
+      actual = []
+      count = 0
+
+      sout1.on 'ip', (ip) ->
+        data = switch ip.type
+          when 'openBracket' then '<'
+          when 'closeBracket' then '>'
+          else ip.data
+        chai.expect(data).to.equal source[count].toUpperCase()
+        count++
+        done() if count is 4
+
+      sout2.on 'ip', (ip) ->
+        console.log 'Unexpected error', ip
+        done ip.data
+
+      for data in source
+        switch data
+          when '<' then sin1.post new IP 'openBracket'
+          when '>' then sin1.post new IP 'closeBracket'
+          else sin1.post new IP 'data', data
+
+    it 'should support custom bracket forwarding mappings with auto-ordering', (done) ->
+      c = new component.Component
+        inPorts:
+          msg:
+            datatype: 'string'
+          delay:
+            datatype: 'int'
+        outPorts:
+          out:
+            datatype: 'string'
+          error:
+            datatype: 'object'
+        forwardBrackets:
+          msg: ['out', 'error']
+          delay: ['error']
+        process: (input, output) ->
+          return unless input.has 'msg', 'delay'
+          [msg, delay] = input.getData 'msg', 'delay'
+          if delay < 0
+            return output.sendDone new Error 'Delay is negative'
+          setTimeout ->
+            output.sendDone
+              out: { msg: msg, delay: delay }
+          , delay
+
+      c.inPorts.msg.attach sin1
+      c.inPorts.delay.attach sin2
+      c.outPorts.out.attach sout1
+      c.outPorts.error.attach sout2
+
+      sample = [
+        { delay: 30, msg: "one" }
+        { delay: 0, msg: "two" }
+        { delay: 20, msg: "three" }
+        { delay: 10, msg: "four" }
+        { delay: -40, msg: 'five'}
+      ]
+
+      count = 0
+      errCount = 0
+      sout1.on 'ip', (ip) ->
+        src = null
+        switch count
+          when 0
+            chai.expect(ip.type).to.equal 'openBracket'
+            chai.expect(ip.data).to.equal 'msg'
+          when 5
+            chai.expect(ip.type).to.equal 'closeBracket'
+            chai.expect(ip.data).to.equal 'msg'
+          else src = sample[count - 1]
+        chai.expect(ip.data).to.eql src if src
+        count++
+        # done() if count is 6
+
+      sout2.on 'ip', (ip) ->
+        switch errCount
+          when 0
+            chai.expect(ip.type).to.equal 'openBracket'
+            chai.expect(ip.data).to.equal 'msg'
+          when 1
+            chai.expect(ip.type).to.equal 'openBracket'
+            chai.expect(ip.data).to.equal 'delay'
+          when 2
+            chai.expect(ip.type).to.equal 'data'
+            chai.expect(ip.data).to.be.an.error
+          when 3
+            chai.expect(ip.type).to.equal 'closeBracket'
+            chai.expect(ip.data).to.equal 'delay'
+          when 4
+            chai.expect(ip.type).to.equal 'closeBracket'
+            chai.expect(ip.data).to.equal 'msg'
+        errCount++
+        done() if errCount is 5
+
+      sin1.post new IP 'openBracket', 'msg'
+      sin2.post new IP 'openBracket', 'delay'
+
+      for ip in sample
+        sin1.post new IP 'data', ip.msg
+        sin2.post new IP 'data', ip.delay
+
+      sin1.post new IP 'closeBracket', 'msg'
+      sin2.post new IP 'closeBracket', 'delay'
+
+    it 'should forward IP metadata for map-style components', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+        outPorts:
+          out:
+            datatype: 'string'
+          error:
+            datatype: 'object'
+        process: (input, output) ->
+          str = input.getData()
+          if typeof str isnt 'string'
+            return output.sendDone new Error 'Input is not string'
+          output.pass str.toUpperCase()
+
+      c.inPorts.in.attach sin1
+      c.outPorts.out.attach sout1
+      c.outPorts.error.attach sout2
+
+      source = [
+        'foo'
+        'bar'
+        'baz'
+      ]
+      count = 0
+      sout1.on 'ip', (ip) ->
+        chai.expect(ip.type).to.equal 'data'
+        chai.expect(ip.count).to.be.a 'number'
+        chai.expect(ip.length).to.be.a 'number'
+        chai.expect(ip.data).to.equal source[ip.count].toUpperCase()
+        chai.expect(ip.length).to.equal source.length
+        count++
+        done() if count is source.length
+
+      sout2.on 'ip', (ip) ->
+        console.log 'Unexpected error', ip
+        done ip.data
+
+      n = 0
+      for str in source
+        sin1.post new IP 'data', str,
+          count: n++
+          length: source.length
+
     describe 'with custom callbacks', ->
-      c = null
-      sin1 = null
-      sin2 = null
-      sin3 = null
-      sout1 = null
-      sout2 = null
 
       beforeEach (done) ->
         c = new component.Component
@@ -865,11 +1036,6 @@ describe 'Component', ->
                 baz: new IP 'closeBracket'
               done()
             , bar
-        sin1 = new socket.InternalSocket
-        sin2 = new socket.InternalSocket
-        sin3 = new socket.InternalSocket
-        sout1 = new socket.InternalSocket
-        sout2 = new socket.InternalSocket
         c.inPorts.foo.attach sin1
         c.inPorts.bar.attach sin2
         c.outPorts.baz.attach sout1
