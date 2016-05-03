@@ -22,8 +22,8 @@
     "coffee-script": "~1.10.0",
     "flowhub-registry": "~0.0.4",
     "noflo": "~0.7.5",
-    "noflo-runtime-websocket": "~0.6.1",
-    "noflo-runtime-base": "~0.7.2",
+    "noflo-runtime-websocket": "~0.6.2",
+    "noflo-runtime-base": "~0.7.3",
     "password-maker": "~1.0.5",
     "uuid": "~2.0.2",
     "yargs": "~4.3.2"
