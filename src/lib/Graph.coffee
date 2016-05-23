@@ -18,6 +18,7 @@ platform = require './Platform'
 # also are the way to start a NoFlo network.
 class Graph extends EventEmitter
   name: ''
+  caseSensitive: false
   properties: {}
   nodes: []
   edges: []
@@ -33,7 +34,7 @@ class Graph extends EventEmitter
   # and giving it a name:
   #
   #     myGraph = new Graph 'My very cool graph'
-  constructor: (@name = '') ->
+  constructor: (@name = '', @caseSensitive = false) ->
     @properties = {}
     @nodes = []
     @edges = []
@@ -45,6 +46,9 @@ class Graph extends EventEmitter
     @transaction =
       id: null
       depth: 0
+
+  getPortName: (port) ->
+    if @caseSensitive then port else port.toLowerCase()
 
   # ## Group graph changes into transactions
   #
@@ -103,9 +107,9 @@ class Graph extends EventEmitter
     @checkTransactionStart()
 
     exported =
-      public: publicPort.toLowerCase()
+      public: @getPortName publicPort
       process: nodeKey
-      port: portKey.toLowerCase()
+      port: @getPortName portKey
       metadata: metadata
     @exports.push exported
     @emit 'addExport', exported
@@ -113,7 +117,7 @@ class Graph extends EventEmitter
     @checkTransactionEnd()
 
   removeExport: (publicPort) ->
-    publicPort = publicPort.toLowerCase()
+    publicPort = @getPortName publicPort
     found = null
     for exported, idx in @exports
       found = exported if exported.public is publicPort
@@ -128,17 +132,17 @@ class Graph extends EventEmitter
     # Check that node exists
     return unless @getNode nodeKey
 
-    publicPort = publicPort.toLowerCase()
+    publicPort = @getPortName publicPort
     @checkTransactionStart()
     @inports[publicPort] =
       process: nodeKey
-      port: portKey.toLowerCase()
+      port: @getPortName portKey
       metadata: metadata
     @emit 'addInport', publicPort, @inports[publicPort]
     @checkTransactionEnd()
 
   removeInport: (publicPort) ->
-    publicPort = publicPort.toLowerCase()
+    publicPort = @getPortName publicPort
     return unless @inports[publicPort]
 
     @checkTransactionStart()
@@ -149,8 +153,8 @@ class Graph extends EventEmitter
     @checkTransactionEnd()
 
   renameInport: (oldPort, newPort) ->
-    oldPort = oldPort.toLowerCase()
-    newPort = newPort.toLowerCase()
+    oldPort = @getPortName oldPort
+    newPort = @getPortName newPort
     return unless @inports[oldPort]
 
     @checkTransactionStart()
@@ -160,7 +164,7 @@ class Graph extends EventEmitter
     @checkTransactionEnd()
 
   setInportMetadata: (publicPort, metadata) ->
-    publicPort = publicPort.toLowerCase()
+    publicPort = @getPortName publicPort
     return unless @inports[publicPort]
 
     @checkTransactionStart()
@@ -178,18 +182,18 @@ class Graph extends EventEmitter
     # Check that node exists
     return unless @getNode nodeKey
 
-    publicPort = publicPort.toLowerCase()
+    publicPort = @getPortName publicPort
     @checkTransactionStart()
     @outports[publicPort] =
       process: nodeKey
-      port: portKey.toLowerCase()
+      port: @getPortName portKey
       metadata: metadata
     @emit 'addOutport', publicPort, @outports[publicPort]
 
     @checkTransactionEnd()
 
   removeOutport: (publicPort) ->
-    publicPort = publicPort.toLowerCase()
+    publicPort = @getPortName publicPort
     return unless @outports[publicPort]
 
     @checkTransactionStart()
@@ -202,8 +206,8 @@ class Graph extends EventEmitter
     @checkTransactionEnd()
 
   renameOutport: (oldPort, newPort) ->
-    oldPort = oldPort.toLowerCase()
-    newPort = newPort.toLowerCase()
+    oldPort = @getPortName oldPort
+    newPort = @getPortName newPort
     return unless @outports[oldPort]
 
     @checkTransactionStart()
@@ -213,7 +217,7 @@ class Graph extends EventEmitter
     @checkTransactionEnd()
 
   setOutportMetadata: (publicPort, metadata) ->
-    publicPort = publicPort.toLowerCase()
+    publicPort = @getPortName publicPort
     return unless @outports[publicPort]
 
     @checkTransactionStart()
@@ -334,7 +338,7 @@ class Graph extends EventEmitter
 
     toRemove = []
     for exported in @exports
-      if id.toLowerCase() is exported.process
+      if @getPortName(id) is exported.process
         toRemove.push exported
     for exported in toRemove
       @removeExport exported.public
@@ -451,8 +455,8 @@ class Graph extends EventEmitter
   #
   # Adding an edge will emit the `addEdge` event.
   addEdge: (outNode, outPort, inNode, inPort, metadata = {}) ->
-    outPort = outPort.toLowerCase()
-    inPort = inPort.toLowerCase()
+    outPort = @getPortName outPort
+    inPort = @getPortName inPort
     for edge in @edges
       # don't add a duplicate edge
       return if (edge.from.node is outNode and edge.from.port is outPort and edge.to.node is inNode and edge.to.port is inPort)
@@ -480,8 +484,8 @@ class Graph extends EventEmitter
     return unless @getNode outNode
     return unless @getNode inNode
 
-    outPort = outPort.toLowerCase()
-    inPort = inPort.toLowerCase()
+    outPort = @getPortName outPort
+    inPort = @getPortName inPort
 
     inIndex = undefined if inIndex is null
     outIndex = undefined if outIndex is null
@@ -515,8 +519,8 @@ class Graph extends EventEmitter
   # Removing a connection will emit the `removeEdge` event.
   removeEdge: (node, port, node2, port2) ->
     @checkTransactionStart()
-    port = port.toLowerCase()
-    port2 = port2.toLowerCase()
+    port = @getPortName port
+    port2 = @getPortName port2
     toRemove = []
     toKeep = []
     if node2 and port2
@@ -546,8 +550,8 @@ class Graph extends EventEmitter
   #
   #     myEdge = myGraph.getEdge 'Read', 'out', 'Write', 'in'
   getEdge: (node, port, node2, port2) ->
-    port = port.toLowerCase()
-    port2 = port2.toLowerCase()
+    port = @getPortName port
+    port2 = @getPortName port2
     for edge,index in @edges
       continue unless edge
       if edge.from.node is node and edge.from.port is port
@@ -597,7 +601,7 @@ class Graph extends EventEmitter
   addInitial: (data, node, port, metadata) ->
     return unless @getNode node
 
-    port = port.toLowerCase()
+    port = @getPortName port
     @checkTransactionStart()
     initializer =
       from:
@@ -616,7 +620,7 @@ class Graph extends EventEmitter
     return unless @getNode node
     index = undefined if index is null
 
-    port = port.toLowerCase()
+    port = @getPortName port
     @checkTransactionStart()
     initializer =
       from:
@@ -656,7 +660,7 @@ class Graph extends EventEmitter
   #
   # Remove an IIP will emit a `removeInitial` event.
   removeInitial: (node, port) ->
-    port = port.toLowerCase()
+    port = @getPortName port
     @checkTransactionStart()
 
     toRemove = []
@@ -715,6 +719,7 @@ class Graph extends EventEmitter
 
   toJSON: ->
     json =
+      caseSensitive: @caseSensitive
       properties: {}
       inports: {}
       outports: {}
@@ -789,8 +794,9 @@ exports.loadJSON = (definition, callback, metadata = {}) ->
   definition.properties = {} unless definition.properties
   definition.processes = {} unless definition.processes
   definition.connections = [] unless definition.connections
+  caseSensitive = definition.caseSensitive or false
 
-  graph = new Graph definition.properties.name
+  graph = new Graph definition.properties.name, caseSensitive
 
   graph.startTransaction 'loadJSON', metadata
   properties = {}
@@ -807,14 +813,14 @@ exports.loadJSON = (definition, callback, metadata = {}) ->
     metadata = if conn.metadata then conn.metadata else {}
     if conn.data isnt undefined
       if typeof conn.tgt.index is 'number'
-        graph.addInitialIndex conn.data, conn.tgt.process, conn.tgt.port.toLowerCase(), conn.tgt.index, metadata
+        graph.addInitialIndex conn.data, conn.tgt.process, graph.getPortName(conn.tgt.port), conn.tgt.index, metadata
       else
-        graph.addInitial conn.data, conn.tgt.process, conn.tgt.port.toLowerCase(), metadata
+        graph.addInitial conn.data, conn.tgt.process, graph.getPortName(conn.tgt.port), metadata
       continue
     if typeof conn.src.index is 'number' or typeof conn.tgt.index is 'number'
-      graph.addEdgeIndex conn.src.process, conn.src.port.toLowerCase(), conn.src.index, conn.tgt.process, conn.tgt.port.toLowerCase(), conn.tgt.index, metadata
+      graph.addEdgeIndex conn.src.process, graph.getPortName(conn.src.port), conn.src.index, conn.tgt.process, graph.getPortName(conn.tgt.port), conn.tgt.index, metadata
       continue
-    graph.addEdge conn.src.process, conn.src.port.toLowerCase(), conn.tgt.process, conn.tgt.port.toLowerCase(), metadata
+    graph.addEdge conn.src.process, graph.getPortName(conn.src.port), conn.tgt.process, graph.getPortName(conn.tgt.port), metadata
 
   if definition.exports and definition.exports.length
     for exported in definition.exports
@@ -827,19 +833,19 @@ exports.loadJSON = (definition, callback, metadata = {}) ->
 
         # Get properly cased process id
         for id of definition.processes
-          if id.toLowerCase() is processId.toLowerCase()
+          if graph.getPortName(id) is graph.getPortName(processId)
             processId = id
       else
         processId = exported.process
-        portId = exported.port.toLowerCase()
+        portId = graph.getPortName exported.port
       graph.addExport exported.public, processId, portId, exported.metadata
 
   if definition.inports
     for pub, priv of definition.inports
-      graph.addInport pub, priv.process, priv.port.toLowerCase(), priv.metadata
+      graph.addInport pub, priv.process, graph.getPortName(priv.port), priv.metadata
   if definition.outports
     for pub, priv of definition.outports
-      graph.addOutport pub, priv.process, priv.port.toLowerCase(), priv.metadata
+      graph.addOutport pub, priv.process, graph.getPortName(priv.port), priv.metadata
 
   if definition.groups
     for group in definition.groups
@@ -849,12 +855,12 @@ exports.loadJSON = (definition, callback, metadata = {}) ->
 
   callback null, graph
 
-exports.loadFBP = (fbpData, callback) ->
+exports.loadFBP = (fbpData, callback, metadata = {}, caseSensitive = false) ->
   try
-    definition = require('fbp').parse fbpData
+    definition = require('fbp').parse fbpData, caseSensitive: caseSensitive
   catch e
     return callback e
-  exports.loadJSON definition, callback
+  exports.loadJSON definition, callback, metadata
 
 exports.loadHTTP = (url, callback) ->
   req = new XMLHttpRequest
@@ -866,7 +872,7 @@ exports.loadHTTP = (url, callback) ->
   req.open 'GET', url, true
   req.send()
 
-exports.loadFile = (file, callback, metadata = {}) ->
+exports.loadFile = (file, callback, metadata = {}, caseSensitive = false) ->
   if platform.isBrowser()
     try
       # Graph exposed via Component packaging
@@ -887,10 +893,10 @@ exports.loadFile = (file, callback, metadata = {}) ->
     return callback err if err
 
     if file.split('.').pop() is 'fbp'
-      return exports.loadFBP data, callback
+      return exports.loadFBP data, callback, {}, caseSensitive
 
     definition = JSON.parse data
-    exports.loadJSON definition, callback
+    exports.loadJSON definition, callback, {}
 
 # remove everything in the graph
 resetGraph = (graph) ->
