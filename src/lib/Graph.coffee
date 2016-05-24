@@ -34,7 +34,7 @@ class Graph extends EventEmitter
   # and giving it a name:
   #
   #     myGraph = new Graph 'My very cool graph'
-  constructor: (@name = '', @caseSensitive = false) ->
+  constructor: (@name = '', options = {}) ->
     @properties = {}
     @nodes = []
     @edges = []
@@ -46,6 +46,8 @@ class Graph extends EventEmitter
     @transaction =
       id: null
       depth: 0
+
+    @caseSensitive = options.caseSensitive or false
 
   getPortName: (port) ->
     if @caseSensitive then port else port.toLowerCase()
@@ -786,8 +788,8 @@ class Graph extends EventEmitter
 
 exports.Graph = Graph
 
-exports.createGraph = (name) ->
-  new Graph name
+exports.createGraph = (name, options) ->
+  new Graph name, options
 
 exports.loadJSON = (definition, callback, metadata = {}) ->
   definition = JSON.parse definition if typeof definition is 'string'
@@ -796,7 +798,7 @@ exports.loadJSON = (definition, callback, metadata = {}) ->
   definition.connections = [] unless definition.connections
   caseSensitive = definition.caseSensitive or false
 
-  graph = new Graph definition.properties.name, caseSensitive
+  graph = new Graph definition.properties.name, {caseSensitive}
 
   graph.startTransaction 'loadJSON', metadata
   properties = {}
@@ -857,7 +859,7 @@ exports.loadJSON = (definition, callback, metadata = {}) ->
 
 exports.loadFBP = (fbpData, callback, metadata = {}, caseSensitive = false) ->
   try
-    definition = require('fbp').parse fbpData, caseSensitive: caseSensitive
+    definition = require('fbp').parse fbpData, {caseSensitive}
   catch e
     return callback e
   exports.loadJSON definition, callback, metadata

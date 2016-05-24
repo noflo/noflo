@@ -13,7 +13,7 @@ describe 'Graph', ->
   describe 'with new instance', ->
     g = null
     it 'should get a name from constructor', ->
-      g = new graph.Graph 'Foo bar', true
+      g = new graph.Graph 'Foo bar', caseSensitive: true
       chai.expect(g.name).to.equal 'Foo bar'
 
     it 'should have no nodes initially', ->
