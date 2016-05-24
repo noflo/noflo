@@ -18,6 +18,7 @@ class ComponentLoader extends EventEmitter
     @libraryIcons = {}
     @processing = false
     @ready = false
+    @setMaxListeners 0
 
   getModulePrefix: (name) ->
     return '' unless name
