@@ -21,9 +21,9 @@ if typeof CoffeeScript.register != 'undefined'
 babel = require 'babel-core'
 
 class ComponentLoader extends loader.ComponentLoader
-  writeCache: (options, modules, callback) ->
+  writeCache: (options, manifest, callback) ->
     filePath = path.resolve @baseDir, options.manifest
-    fs.writeFile filePath, JSON.stringify(modules, null, 2),
+    fs.writeFile filePath, JSON.stringify(manifest, null, 2),
       encoding: 'utf-8'
     , callback
 
@@ -78,14 +78,14 @@ class ComponentLoader extends loader.ComponentLoader
     manifestOptions = @prepareManifestOptions()
 
     if @options.cache and not @failedCache
-      @readCache manifestOptions, (err, modules) =>
+      @readCache manifestOptions, (err, manifest) =>
         if err
           @failedCache = true
           @processing = false
           return callback err unless @options.discover
           return @listComponents callback
         @components = {}
-        @readModules modules.modules, (err) =>
+        @readModules manifest.modules, (err) =>
           @ready = true
           @processing = false
           @emit 'ready', true
@@ -101,7 +101,10 @@ class ComponentLoader extends loader.ComponentLoader
         @ready = true
         @emit 'ready', true
         return callback null, @components unless @options.cache
-        @writeCache manifestOptions, modules, (err) =>
+        @writeCache manifestOptions,
+          version: 1
+          modules: modules
+        , (err) =>
           return callback err if err
           callback null, @components
 
