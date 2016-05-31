@@ -60,8 +60,8 @@ class ComponentLoader extends loader.ComponentLoader
     return callback null unless @componentLoaders.length
     done = _.after @componentLoaders.length, callback
     @componentLoaders.forEach (loaderPath) =>
-      loader = require loaderPath
-      @registerLoader loader, (err) ->
+      cLoader = require loaderPath
+      @registerLoader cLoader, (err) ->
         return callback err if err
         done null
 
