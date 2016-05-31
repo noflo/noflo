@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.7.6
+
+* Fixed ComponentLoader caching on Node.js
+
 ## 0.7.5 (May 2nd 2016)
 
 * Added automatic bracket forwarding via `forwardBrackets` option. Enabled from `in` port to `out` and `error` ports by default.
