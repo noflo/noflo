@@ -192,8 +192,8 @@ class ProcessInput
   # Returns true if a port (or ports joined by logical AND) has a new IP
   # Passing a validation callback as a last argument allows more selective
   # checking of packets.
-  has: (port = 'in') ->
-    args = if arguments.length is 0 then [port] else Array.prototype.slice.call(arguments)
+  has: (args...) ->
+    args = ['in'] unless args.length
     if typeof args[args.length - 1] is 'function'
       validate = args.pop()
       for port in ports
@@ -204,8 +204,8 @@ class ProcessInput
     res
 
   # Fetches IP object(s) for port(s)
-  get: (port = 'in') ->
-    args = if arguments.length is 0 then [port] else arguments
+  get: (args...) ->
+    args = ['in'] unless args.length
     if (@nodeInstance.ordered or @nodeInstance.autoOrdering) and
     @nodeInstance.activateOnInput and
     not ('__resolved' of @result)
@@ -214,8 +214,8 @@ class ProcessInput
     if args.length is 1 then res[0] else res
 
   # Fetches `data` property of IP object(s) for given port(s)
-  getData: (port = 'in') ->
-    args = if arguments.length is 0 then [port] else arguments
+  getData: (args...) ->
+    args = ['in'] unless args.length
     ips = @get.apply this, args
     if args.length is 1
       return ips?.data ? undefined
