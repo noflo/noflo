@@ -190,8 +190,15 @@ class ProcessInput
       @nodeInstance.outputQ.push @result
 
   # Returns true if a port (or ports joined by logical AND) has a new IP
+  # Passing a validation callback as a last argument allows more selective
+  # checking of packets.
   has: (port = 'in') ->
-    args = if arguments.length is 0 then [port] else arguments
+    args = if arguments.length is 0 then [port] else Array.prototype.slice.call(arguments)
+    if typeof args[args.length - 1] is 'function'
+      validate = args.pop()
+      for port in ports
+        return false unless @ports[port].has @scope, validate
+      return true
     res = true
     res and= @ports[port].ready @scope for port in args
     res
