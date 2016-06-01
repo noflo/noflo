@@ -1,9 +1,10 @@
 NoFlo ChangeLog
 ===============
 
-## 0.7.6
+## 0.7.6 (git master)
 
 * Fixed ComponentLoader caching on Node.js
+* Added support for `stream` datatype in ports
 
 ## 0.7.5 (May 2nd 2016)
 

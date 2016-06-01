@@ -18,6 +18,7 @@ validTypes = [
   'bang'
   'function'
   'buffer'
+  'stream'
 ]
 
 class BasePort extends EventEmitter
