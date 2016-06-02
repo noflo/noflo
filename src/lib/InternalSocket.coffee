@@ -227,6 +227,7 @@ class InternalSocket extends EventEmitter
     @emitEvent 'ip', ip
 
     # Emit the legacy event
+    return unless ip and ip.type
     legacyEvent = @ipToLegacy ip
     @emitEvent legacyEvent.event, legacyEvent.payload
 
