@@ -485,6 +485,47 @@ describe 'Component', ->
       sin2.post new IP 'data', 'bar',
         groups: ['bar']
 
+    it 'should receive IPs and be able to selectively find them', (done) ->
+      called = 0
+      c = new component.Component
+        inPorts:
+          foo: datatype: 'string'
+          bar: datatype: 'string'
+        outPorts:
+          baz: datatype: 'object'
+        process: (input, output) ->
+          validate = (ip) ->
+            called++
+            ip.type is 'data' and ip.data is 'hello'
+          unless input.has 'foo', 'bar', validate
+            return
+          foo = input.get 'foo'
+          while foo?.type isnt 'data'
+            foo = input.get 'foo'
+          bar = input.getData 'bar'
+          output.sendDone
+            baz: "#{foo.data}:#{bar}"
+
+      c.inPorts.foo.attach sin1
+      c.inPorts.bar.attach sin2
+      c.outPorts.baz.attach sout1
+
+      shouldHaveSent = false
+
+      sout1.on 'ip', (ip) ->
+        chai.expect(shouldHaveSent, 'Should not sent before its time').to.equal true
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.type).to.equal 'data'
+        chai.expect(ip.data).to.equal 'hello:hello'
+        chai.expect(called).to.equal 10
+        done()
+
+      sin1.post new IP 'openBracket', 'a'
+      sin1.post new IP 'data', 'hello',
+      sin1.post new IP 'closeBracket', 'a'
+      shouldHaveSent = true
+      sin2.post new IP 'data', 'hello'
+
     it 'should keep last value for controls', (done) ->
       c = new component.Component
         inPorts:
