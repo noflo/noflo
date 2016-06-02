@@ -36,6 +36,8 @@ NoFlo ChangeLog
 ## 0.7.0 (March 31st 2016)
 
 * Switched component discovery and caching from `read-installed` to [FBP manifest](https://github.com/flowbased/fbp-manifest). `fbp.json` files can be generated using `noflo-cache-preheat`.
+  This also changes behavior related to components or graphs in custom locations. The fbp-manifest tool only finds them from the default `components/` and `graphs/` subdirectories of the project
+  base directory.
 * Component Loader `listComponents` can now return errors as first callback argument
 * Control ports don't receive bracket IPs, only data
 * NoFlo's InternalSocket now always handles information packets as IP Objects, with conversion to/from legacy packet events done automatically. Use `socket.on('ip', function (ip) {})` to receive IP object
