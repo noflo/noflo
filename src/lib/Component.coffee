@@ -196,7 +196,7 @@ class ProcessInput
     args = ['in'] unless args.length
     if typeof args[args.length - 1] is 'function'
       validate = args.pop()
-      for port in ports
+      for port in args
         return false unless @ports[port].has @scope, validate
       return true
     res = true
