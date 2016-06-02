@@ -5,6 +5,7 @@ NoFlo ChangeLog
 
 * Fixed ComponentLoader caching on Node.js
 * Added support for `stream` datatype in ports, allowing streams to be passed as data packets
+* NoFlo Graphs now support case sensitive mode, which is possible to trigger via options
 
 ## 0.7.5 (May 2nd 2016)
 
