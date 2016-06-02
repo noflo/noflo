@@ -873,6 +873,49 @@ describe 'Component', ->
           when '>' then sin1.post new IP 'closeBracket'
           else sin1.post new IP 'data', data
 
+    it 'should forward brackets to error port in async components', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+        outPorts:
+          out:
+            datatype: 'string'
+          error:
+            datatype: 'object'
+        process: (input, output) ->
+          str = input.getData()
+          setTimeout ->
+            if typeof str isnt 'string'
+              return output.sendDone new Error 'Input is not string'
+            output.pass str.toUpperCase()
+          , 10
+
+      c.inPorts.in.attach sin1
+      c.outPorts.out.attach sout1
+      c.outPorts.error.attach sout2
+
+      cnt = 0
+      sout1.on 'ip', (ip) ->
+        # done new Error "Unexpectd IP: #{ip.type} #{ip.data}"
+
+      count = 0
+      sout2.on 'ip', (ip) ->
+        count++
+        switch count
+          when 1
+            chai.expect(ip.type).to.equal 'openBracket'
+          when 2
+            chai.expect(ip.type).to.equal 'data'
+            chai.expect(ip.data).to.be.an 'error'
+          when 3
+            chai.expect(ip.type).to.equal 'closeBracket'
+        done() if count is 3
+
+      sin1.post new IP 'openBracket', 'foo'
+      sin1.post new IP 'data', { bar: 'baz' }
+      sin1.post new IP 'closeBracket', 'foo'
+
     it 'should support custom bracket forwarding mappings with auto-ordering', (done) ->
       c = new component.Component
         inPorts:
