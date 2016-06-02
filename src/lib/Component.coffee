@@ -32,16 +32,13 @@ class Component extends EventEmitter
 
     @started = false
     @load = 0
-    @ordered = false
-    @autoOrdering = false
+    @ordered = options.ordered ? false
+    @autoOrdering = options.autoOrdering ? null
     @outputQ = []
-    @activateOnInput = true
+    @activateOnInput = options.activateOnInput ? true
     @forwardBrackets = in: ['out', 'error']
     @bracketCounter = {}
     @dropEmptyBrackets = ['error']
-
-    @ordered = options.ordered if 'ordered' of options
-    @activateOnInput = options.activateOnInput if 'activateOnInput' of options
 
     if 'forwardBrackets' of options
       @forwardBrackets = options.forwardBrackets
@@ -117,7 +114,7 @@ class Component extends EventEmitter
   # Handles an incoming IP object
   handleIP: (ip, port) ->
     if ip.type is 'openBracket'
-      @autoOrdering = true unless @autoOrdering
+      @autoOrdering = true if @autoOrdering is null
       @bracketCounter[port.name]++
     if port.name of @forwardBrackets and
     (ip.type is 'openBracket' or ip.type is 'closeBracket')
@@ -178,7 +175,7 @@ class Component extends EventEmitter
       if @bracketCounter[port] isnt 0
         bracketsClosed = false
         break
-    @autoOrdering = false if bracketsClosed
+    @autoOrdering = null if bracketsClosed
 
 exports.Component = Component
 
