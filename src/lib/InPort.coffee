@@ -145,9 +145,10 @@ class InPort extends BasePort
   # Returns true if port contains packet(s) matching the validator
   has: (scope, validate) ->
     if scope
-      return undefined unless scope of @scopedBuffer
+      return false unless scope of @scopedBuffer
       buf = @scopedBuffer[scope]
     else
+      return false unless @buffer.length
       buf = @buffer
     return true if validate packet for packet in buf
     false
