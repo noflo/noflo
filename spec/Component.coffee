@@ -1002,6 +1002,32 @@ describe 'Component', ->
           count: n++
           length: source.length
 
+    it 'should be safe dropping IPs', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+        outPorts:
+          out:
+            datatype: 'string'
+          error:
+            datatype: 'object'
+        process: (input, output) ->
+          data = input.get 'in'
+          data.drop()
+          output.done()
+          done()
+
+      c.inPorts.in.attach sin1
+      c.outPorts.out.attach sout1
+      c.outPorts.error.attach sout2
+
+      sout1.on 'ip', (ip) ->
+        done ip
+
+      sin1.post new IP 'data', 'foo',
+        meta: 'bar'
+
     describe 'with custom callbacks', ->
 
       beforeEach (done) ->
