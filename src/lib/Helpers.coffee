@@ -100,12 +100,16 @@ exports.WirePattern = (component, config, proc) ->
   config.forwardGroups = false unless 'forwardGroups' of config
   # Receive streams feature
   config.receiveStreams = false unless 'receiveStreams' of config
-  if typeof config.receiveStreams is 'string'
-    config.receiveStreams = [ config.receiveStreams ]
+  if config.receiveStreams
+    throw new Error 'WirePattern receiveStreams is deprecated'
+  # if typeof config.receiveStreams is 'string'
+  #   config.receiveStreams = [ config.receiveStreams ]
   # Send streams feature
   config.sendStreams = false unless 'sendStreams' of config
-  if typeof config.sendStreams is 'string'
-    config.sendStreams = [ config.sendStreams ]
+  if config.sendStreams
+    throw new Error 'WirePattern sendStreams is deprecated'
+  # if typeof config.sendStreams is 'string'
+  #   config.sendStreams = [ config.sendStreams ]
   config.sendStreams = outPorts if config.async
   # Parameter ports
   config.params = [] unless 'params' of config
@@ -286,59 +290,61 @@ exports.WirePattern = (component, config, proc) ->
       component.groupBuffers[port] = []
       component.keyBuffers[port] = null
       # Support for StreamReceiver ports
-      if config.receiveStreams and config.receiveStreams.indexOf(port) isnt -1
-        inPort = new StreamReceiver component.inPorts[port]
-      else
-        inPort = component.inPorts[port]
+      # if config.receiveStreams and config.receiveStreams.indexOf(port) isnt -1
+      #   inPort = new StreamReceiver component.inPorts[port]
+      inPort = component.inPorts[port]
 
       needPortGroups = collectGroups instanceof Array and collectGroups.indexOf(port) isnt -1
 
       # Set processing callback
-      inPort.process = (event, payload, index) ->
+      inPort.handle = (ip) ->
         component.groupBuffers[port] = [] unless component.groupBuffers[port]
-        switch event
-          when 'begingroup'
+        index = ip.index
+        payload = ip.data
+        switch ip.type
+          when 'openBracket'
             component.groupBuffers[port].push payload
             if config.forwardGroups and (collectGroups is true or needPortGroups) and not config.async
               sendGroupToOuts payload
-          when 'endgroup'
+          when 'closeBracket'
             component.groupBuffers[port] = component.groupBuffers[port].slice 0, component.groupBuffers[port].length - 1
             if config.forwardGroups and (collectGroups is true or needPortGroups) and not config.async
               closeGroupOnOuts payload
-          when 'disconnect'
-            if inPorts.length is 1
-              if config.async or config.StreamSender
-                if config.ordered
-                  component.outputQ.push null
-                  processQueue()
+            # Disconnect
+            if component.groupBuffers[port].length is 0
+              if inPorts.length is 1
+                if config.async or config.StreamSender
+                  if config.ordered
+                    component.outputQ.push null
+                    processQueue()
+                  else
+                    component.disconnectQ.push true
                 else
-                  component.disconnectQ.push true
+                  disconnectOuts()
               else
-                disconnectOuts()
-            else
-              foundGroup = false
-              key = component.keyBuffers[port]
-              component.disconnectData[key] = [] unless key of component.disconnectData
-              for i in [0...component.disconnectData[key].length]
-                unless port of component.disconnectData[key][i]
-                  foundGroup = true
-                  component.disconnectData[key][i][port] = true
-                  if Object.keys(component.disconnectData[key][i]).length is inPorts.length
-                    component.disconnectData[key].shift()
-                    if config.async or config.StreamSender
-                      if config.ordered
-                        component.outputQ.push null
-                        processQueue()
+                foundGroup = false
+                key = component.keyBuffers[port]
+                component.disconnectData[key] = [] unless key of component.disconnectData
+                for i in [0...component.disconnectData[key].length]
+                  unless port of component.disconnectData[key][i]
+                    foundGroup = true
+                    component.disconnectData[key][i][port] = true
+                    if Object.keys(component.disconnectData[key][i]).length is inPorts.length
+                      component.disconnectData[key].shift()
+                      if config.async or config.StreamSender
+                        if config.ordered
+                          component.outputQ.push null
+                          processQueue()
+                        else
+                          component.disconnectQ.push true
                       else
-                        component.disconnectQ.push true
-                    else
-                      disconnectOuts()
-                    delete component.disconnectData[key] if component.disconnectData[key].length is 0
-                  break
-              unless foundGroup
-                obj = {}
-                obj[port] = true
-                component.disconnectData[key].push obj
+                        disconnectOuts()
+                      delete component.disconnectData[key] if component.disconnectData[key].length is 0
+                    break
+                unless foundGroup
+                  obj = {}
+                  obj[port] = true
+                  component.disconnectData[key].push obj
 
           when 'data'
             if inPorts.length is 1 and not inPort.isAddressable()
@@ -453,6 +459,8 @@ exports.WirePattern = (component, config, proc) ->
 
             outs = outs[outPorts[0]] if outPorts.length is 1 # for simplicity
             groups = [] unless groups
+            # Filter empty connect/disconnect groups
+            groups = (g for g in groups when g isnt null)
             whenDoneGroups = groups.slice 0
             whenDone = (err) ->
               if err

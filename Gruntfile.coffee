@@ -53,7 +53,7 @@ module.exports = ->
     # BDD tests on Node.js
     mochaTest:
       nodejs:
-        src: ['spec/*.coffee']
+        src: ['spec/Helpers.coffee']
         options:
           reporter: 'spec'
           require: 'coffee-script/register'

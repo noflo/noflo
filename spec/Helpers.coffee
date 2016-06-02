@@ -472,87 +472,115 @@ describe 'Component traits', ->
           msg.disconnect()
           idx++
 
-      it 'should support complex substreams', (done) ->
-        out.removeAllListeners()
-        load.removeAllListeners()
-        c.cntr = 0
-        helpers.WirePattern c,
-          in: ['delay', 'msg']
-          async: true
-          ordered: true
-          group: false
-          receiveStreams: ['delay', 'msg']
-        , (data, groups, res, callback) ->
-          # Substream to object conversion validation
-          # (the hard way)
-          chai.expect(data.delay instanceof Substream).to.be.true
-          chai.expect(data.msg instanceof Substream).to.be.true
-          delayObj = data.delay.toObject()
-          msgObj = data.msg.toObject()
-          index0 = this.cntr.toString()
-          chai.expect(Object.keys(delayObj)[0]).to.equal index0
-          chai.expect(Object.keys(msgObj)[0]).to.equal index0
-          subDelay = delayObj[index0]
-          subMsg = msgObj[index0]
-          index1 = (10 + this.cntr).toString()
-          chai.expect(Object.keys(subDelay)[0]).to.equal index1
-          chai.expect(Object.keys(subMsg)[0]).to.equal index1
-          delayData = subDelay[index1]
-          msgData = subMsg[index1]
-          chai.expect(delayData).to.equal sample[c.cntr].delay
-          chai.expect(msgData).to.equal sample[c.cntr].msg
-          this.cntr++
-
-          setTimeout ->
-            # Substream tree traversal (the easy way)
-            for k0, v0 of msgObj
-              res.beginGroup k0
-              res.send k0
-              for k1, v1 of v0
-                res.beginGroup k1
-                res.send
-                  delay: delayObj[k0][k1]
-                  msg: msgObj[k0][k1]
-                res.endGroup()
-                res.send k1
-              res.endGroup()
+      it 'should throw if receiveStreams is used', (done) ->
+        f = ->
+          helpers.WirePattern c,
+            in: ['delay', 'msg']
+            async: true
+            ordered: true
+            group: false
+            receiveStreams: ['delay', 'msg']
+          , (data, groups, res, callback) ->
             callback()
-          , data.delay
 
-        sample = [
-          { delay: 30, msg: "one" }
-          { delay: 0, msg: "two" }
-          { delay: 20, msg: "three" }
-          { delay: 10, msg: "four" }
-        ]
+        chai.expect(f).to.throw Error
+        done()
 
-        expected = [
-          '0', '0', '10', sample[0], '10'
-          '1', '1', '11', sample[1], '11'
-          '2', '2', '12', sample[2], '12'
-          '3', '3', '13', sample[3], '13'
-        ]
+      it 'should throw if sendStreams is used', (done) ->
+        f = ->
+          helpers.WirePattern c,
+            in: ['delay', 'msg']
+            async: true
+            ordered: true
+            group: false
+            sendStreams: ['out']
+          , (data, groups, res, callback) ->
+            callback()
 
-        out.on 'begingroup', (grp) ->
-          chai.expect(grp).to.equal expected.shift()
-        out.on 'data', (data) ->
-          chai.expect(data).to.deep.equal expected.shift()
-        out.on 'disconnect', ->
-          done() if expected.length is 0
+        chai.expect(f).to.throw Error
+        done()
 
-        for i in [0..3]
-          delay.beginGroup i
-          delay.beginGroup 10 + i
-          delay.send sample[i].delay
-          delay.endGroup()
-          delay.endGroup()
-          msg.beginGroup i
-          msg.beginGroup 10 + i
-          msg.send sample[i].msg
-          msg.endGroup()
-          msg.endGroup()
-          delay.disconnect()
-          msg.disconnect()
+      # it 'should support complex substreams', (done) ->
+      #   out.removeAllListeners()
+      #   load.removeAllListeners()
+      #   c.cntr = 0
+      #   helpers.WirePattern c,
+      #     in: ['delay', 'msg']
+      #     async: true
+      #     ordered: true
+      #     group: false
+      #     receiveStreams: ['delay', 'msg']
+      #   , (data, groups, res, callback) ->
+      #     # Substream to object conversion validation
+      #     # (the hard way)
+      #     chai.expect(data.delay instanceof Substream).to.be.true
+      #     chai.expect(data.msg instanceof Substream).to.be.true
+      #     delayObj = data.delay.toObject()
+      #     msgObj = data.msg.toObject()
+      #     index0 = this.cntr.toString()
+      #     chai.expect(Object.keys(delayObj)[0]).to.equal index0
+      #     chai.expect(Object.keys(msgObj)[0]).to.equal index0
+      #     subDelay = delayObj[index0]
+      #     subMsg = msgObj[index0]
+      #     index1 = (10 + this.cntr).toString()
+      #     chai.expect(Object.keys(subDelay)[0]).to.equal index1
+      #     chai.expect(Object.keys(subMsg)[0]).to.equal index1
+      #     delayData = subDelay[index1]
+      #     msgData = subMsg[index1]
+      #     chai.expect(delayData).to.equal sample[c.cntr].delay
+      #     chai.expect(msgData).to.equal sample[c.cntr].msg
+      #     this.cntr++
+
+      #     setTimeout ->
+      #       # Substream tree traversal (the easy way)
+      #       for k0, v0 of msgObj
+      #         res.beginGroup k0
+      #         res.send k0
+      #         for k1, v1 of v0
+      #           res.beginGroup k1
+      #           res.send
+      #             delay: delayObj[k0][k1]
+      #             msg: msgObj[k0][k1]
+      #           res.endGroup()
+      #           res.send k1
+      #         res.endGroup()
+      #       callback()
+      #     , data.delay
+
+      #   sample = [
+      #     { delay: 30, msg: "one" }
+      #     { delay: 0, msg: "two" }
+      #     { delay: 20, msg: "three" }
+      #     { delay: 10, msg: "four" }
+      #   ]
+
+      #   expected = [
+      #     '0', '0', '10', sample[0], '10'
+      #     '1', '1', '11', sample[1], '11'
+      #     '2', '2', '12', sample[2], '12'
+      #     '3', '3', '13', sample[3], '13'
+      #   ]
+
+      #   out.on 'begingroup', (grp) ->
+      #     chai.expect(grp).to.equal expected.shift()
+      #   out.on 'data', (data) ->
+      #     chai.expect(data).to.deep.equal expected.shift()
+      #   out.on 'disconnect', ->
+      #     done() if expected.length is 0
+
+      #   for i in [0..3]
+      #     delay.beginGroup i
+      #     delay.beginGroup 10 + i
+      #     delay.send sample[i].delay
+      #     delay.endGroup()
+      #     delay.endGroup()
+      #     msg.beginGroup i
+      #     msg.beginGroup 10 + i
+      #     msg.send sample[i].msg
+      #     msg.endGroup()
+      #     msg.endGroup()
+      #     delay.disconnect()
+      #     msg.disconnect()
 
     describe 'when grouping by field', ->
       c = new component.Component
