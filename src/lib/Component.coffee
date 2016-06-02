@@ -175,7 +175,7 @@ class Component extends EventEmitter
       if @bracketCounter[port] isnt 0
         bracketsClosed = false
         break
-    @autoOrdering = null if bracketsClosed
+    @autoOrdering = null if bracketsClosed and @autoOrdering is true
 
 exports.Component = Component
 
