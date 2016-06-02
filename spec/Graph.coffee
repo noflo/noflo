@@ -13,7 +13,7 @@ describe 'Graph', ->
   describe 'with new instance', ->
     g = null
     it 'should get a name from constructor', ->
-      g = new graph.Graph 'Foo bar'
+      g = new graph.Graph 'Foo bar', caseSensitive: true
       chai.expect(g.name).to.equal 'Foo bar'
 
     it 'should have no nodes initially', ->
@@ -69,9 +69,9 @@ describe 'Graph', ->
         g.addNode 'Bar', 'bar'
         g.once 'addEdge', (edge) ->
           chai.expect(edge.from.node).to.equal 'Foo'
-          chai.expect(edge.to.port).to.equal 'in'
+          chai.expect(edge.to.port).to.equal 'In'
           done()
-        g.addEdge('Foo', 'out', 'Bar', 'in')
+        g.addEdge('Foo', 'Out', 'Bar', 'In')
       it 'should add an edge', ->
         g.addEdge('Foo', 'out', 'Bar', 'in2')
         chai.expect(g.edges.length).equal 2
@@ -93,18 +93,19 @@ describe 'Graph', ->
         g.addEdgeIndex('Foo', 'out', 2, 'Bar', 'in2')
         chai.expect(g.edges.length).equal 4
 
-  describe 'loaded from JSON', ->
+  describe 'loaded from JSON (with case sensitive port names)', ->
     jsonString = """
 {
+  "caseSensitive": true,
   "properties": {
     "name": "Example",
     "foo": "Baz",
     "bar": "Foo"
   },
   "inports": {
-    "in": {
+    "inPut": {
       "process": "Foo",
-      "port": "in",
+      "port": "inPut",
       "metadata": {
         "x": 5,
         "y": 100
@@ -112,9 +113,9 @@ describe 'Graph', ->
     }
   },
   "outports": {
-    "out": {
+    "outPut": {
       "process": "Bar",
-      "port": "out",
+      "port": "outPut",
       "metadata": {
         "x": 500,
         "y": 505
@@ -171,11 +172,11 @@ describe 'Graph', ->
     {
       "src": {
         "process": "Foo",
-        "port": "out"
+        "port": "outPut"
       },
       "tgt": {
         "process": "Bar",
-        "port": "in"
+        "port": "inPut"
       },
       "metadata": {
         "route": "foo",
@@ -201,7 +202,7 @@ describe 'Graph', ->
       "data": "Hello, world!",
       "tgt": {
         "process": "Foo",
-        "port": "in"
+        "port": "inPut"
       }
     },
     {
@@ -300,7 +301,7 @@ describe 'Graph', ->
     it 'should contain one published outport', ->
       chai.expect(g.outports).to.not.be.empty
     it 'should keep the output export metadata intact', ->
-      exp = g.outports.out
+      exp = g.outports.outPut
       chai.expect(exp.metadata.x).to.equal 500
       chai.expect(exp.metadata.y).to.equal 505
     it 'should contain two groups', ->
@@ -340,7 +341,7 @@ describe 'Graph', ->
           connection = edge if edge.from.node is 'Baz'
         chai.expect(connection).to.be.an 'object'
       it 'should still be exported', ->
-        chai.expect(g.inports.in.process).to.equal 'Baz'
+        chai.expect(g.inports.inPut.process).to.equal 'Baz'
       it 'should still be grouped', ->
         groups = 0
         for group in g.groups
@@ -376,25 +377,25 @@ describe 'Graph', ->
     describe 'renaming an inport', ->
       it 'should emit an event', (done) ->
         g.once 'renameInport', (oldName, newName) ->
-          chai.expect(oldName).to.equal 'in'
+          chai.expect(oldName).to.equal 'inPut'
           chai.expect(newName).to.equal 'opt'
-          chai.expect(g.inports.in).to.be.an 'undefined'
+          chai.expect(g.inports.inPut).to.be.an 'undefined'
           chai.expect(g.inports.opt).to.be.an 'object'
           chai.expect(g.inports.opt.process).to.equal 'Baz'
-          chai.expect(g.inports.opt.port).to.equal 'in'
+          chai.expect(g.inports.opt.port).to.equal 'inPut'
           done()
-        g.renameInport 'in', 'opt'
+        g.renameInport 'inPut', 'opt'
     describe 'renaming an outport', ->
       it 'should emit an event', (done) ->
         g.once 'renameOutport', (oldName, newName) ->
-          chai.expect(oldName).to.equal 'out'
+          chai.expect(oldName).to.equal 'outPut'
           chai.expect(newName).to.equal 'foo'
-          chai.expect(g.outports.out).to.be.an 'undefined'
+          chai.expect(g.outports.outPut).to.be.an 'undefined'
           chai.expect(g.outports.foo).to.be.an 'object'
           chai.expect(g.outports.foo.process).to.equal 'Bar'
-          chai.expect(g.outports.foo.port).to.equal 'out'
+          chai.expect(g.outports.foo.port).to.equal 'outPut'
           done()
-        g.renameOutport 'out', 'foo'
+        g.renameOutport 'outPut', 'foo'
     describe 'removing a node', ->
       it 'should emit an event', (done) ->
         g.once 'removeNode', (node) ->
@@ -549,10 +550,11 @@ describe 'Graph', ->
   describe 'Legacy exports loaded via JSON', ->
     jsonString = """
 {
+  "caseSensitive": true,
   "exports": [
     {
       "public": "in",
-      "private": "foo.in",
+      "private": "Foo.in",
       "metadata": {
         "x": 5,
         "y": 100
@@ -560,7 +562,7 @@ describe 'Graph', ->
     },
     {
       "public": "out",
-      "private": "bar.out"
+      "private": "Bar.out"
     }
   ],
   "processes": {
@@ -581,6 +583,7 @@ describe 'Graph', ->
         g = instance
         chai.expect(g).to.be.an 'object'
         done()
+
     it 'should have two legacy exports', (done) ->
       chai.expect(g.exports).to.be.an 'array'
       chai.expect(g.exports.length).to.equal 2
@@ -589,3 +592,78 @@ describe 'Graph', ->
       chai.expect(g.exports[0].process).to.equal 'Foo'
       chai.expect(g.exports[1].process).to.equal 'Bar'
       done()
+
+describe 'Case Insensitive Graph', ->
+
+  describe 'Graph operations should convert port names to lowercase', ->
+    g = null
+    beforeEach ->
+      g = new graph.Graph 'Hola'
+
+    it 'should have case sensitive property set to false', ->
+      chai.expect(g.caseSensitive).to.equal false
+
+    it 'should have case insensitive ports on edges', (done) ->
+      g.addNode 'Foo', 'foo'
+      g.addNode 'Bar', 'bar'
+      g.once 'addEdge', (edge) ->
+        chai.expect(edge.from.node).to.equal 'Foo'
+        chai.expect(edge.to.port).to.equal 'input'
+        chai.expect(edge.from.port).to.equal 'output'
+
+        g.once 'removeEdge', (edge) ->
+          chai.expect(g.edges.length).to.equal 0
+          done()
+
+        g.removeEdge 'Foo', 'outPut', 'Bar', 'inPut'
+
+      g.addEdge 'Foo', 'outPut', 'Bar', 'inPut'
+
+  describe 'Legacy exports loaded via JSON', ->
+    jsonString = """
+      {
+        "exports": [
+          {
+            "public": "in",
+            "private": "foo.in",
+            "metadata": {
+              "x": 5,
+              "y": 100
+            }
+          },
+          {
+            "public": "out",
+            "private": "bar.out"
+          }
+        ],
+        "processes": {
+          "Foo": {
+            "component": "Foooo"
+          },
+          "Bar": {
+            "component": "Baaar"
+          }
+        }
+      }
+    """
+    json = JSON.parse(jsonString)
+    g = null
+
+    it 'should produce a Graph', (done) ->
+      graph.loadJSON json, (err, instance) ->
+        return done err if err
+        g = instance
+        chai.expect(g).to.be.an 'object'
+        chai.expect(g.caseSensitive).to.equal false
+        done()
+
+    describe 'legacy exports with case sensitivity turned off', ->
+      it 'should have two legacy exports', (done) ->
+        chai.expect(g.exports).to.be.an 'array'
+        chai.expect(g.exports.length).to.equal 2
+        done()
+      it 'should fix the case of the process key', (done) ->
+        chai.expect(g.exports[0].process).to.equal 'Foo'
+        chai.expect(g.exports[1].process).to.equal 'Bar'
+        done()
+
