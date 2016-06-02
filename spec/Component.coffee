@@ -957,6 +957,57 @@ describe 'Component', ->
       sin1.post new IP 'closeBracket', 'msg'
       sin2.post new IP 'closeBracket', 'delay'
 
+    it 'should not apply auto-ordering if that option is false', (done) ->
+      c = new component.Component
+        inPorts:
+          msg: datatype: 'string'
+          delay: datatype: 'int'
+        outPorts:
+          out: datatype: 'object'
+        ordered: false
+        autoOrdering: false
+        process: (input, output) ->
+          # Skip brackets
+          return input.get input.port.name if input.ip.type isnt 'data'
+          return unless input.has 'msg', 'delay'
+          [msg, delay] = input.getData 'msg', 'delay'
+          setTimeout ->
+            output.sendDone
+              out: { msg: msg, delay: delay }
+          , delay
+
+      c.inPorts.msg.attach sin1
+      c.inPorts.delay.attach sin2
+      c.outPorts.out.attach sout1
+
+      sample = [
+        { delay: 30, msg: "one" }
+        { delay: 0, msg: "two" }
+        { delay: 20, msg: "three" }
+        { delay: 10, msg: "four" }
+      ]
+
+      count = 0
+      sout1.on 'ip', (ip) ->
+        count++
+        switch count
+          when 1 then src = sample[1]
+          when 2 then src = sample[3]
+          when 3 then src = sample[2]
+          when 4 then src = sample[0]
+        chai.expect(ip.data).to.eql src
+        done() if count is 4
+
+      sin1.post new IP 'openBracket', 'msg'
+      sin2.post new IP 'openBracket', 'delay'
+
+      for ip in sample
+        sin1.post new IP 'data', ip.msg
+        sin2.post new IP 'data', ip.delay
+
+      sin1.post new IP 'closeBracket', 'msg'
+      sin2.post new IP 'closeBracket', 'delay'
+
     it 'should forward IP metadata for map-style components', (done) ->
       c = new component.Component
         inPorts:
