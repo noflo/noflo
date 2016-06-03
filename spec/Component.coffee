@@ -864,6 +864,7 @@ describe 'Component', ->
         done() if count is 4
 
       sout2.on 'ip', (ip) ->
+        return if ip.type isnt 'data'
         console.log 'Unexpected error', ip
         done ip.data
 
