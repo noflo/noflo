@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.7.7 (git master)
+
+* `input.has` now accepts a validation callback function as the last argument. All packets in buffer will be passed to this function, and `has` will return false only if something returns true for each port specified
+
 ## 0.7.6 (June 2nd 2016)
 
 * Fixed ComponentLoader caching on Node.js

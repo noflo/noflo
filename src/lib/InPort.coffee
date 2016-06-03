@@ -142,6 +142,17 @@ class InPort extends BasePort
       buf = @buffer
     return if @options.control then buf[buf.length - 1] else buf.shift()
 
+  # Returns true if port contains packet(s) matching the validator
+  has: (scope, validate) ->
+    if scope
+      return false unless scope of @scopedBuffer
+      buf = @scopedBuffer[scope]
+    else
+      return false unless @buffer.length
+      buf = @buffer
+    return true if validate packet for packet in buf
+    false
+
   # Returns the number of data packets in an inport
   length: (scope) ->
     if scope
