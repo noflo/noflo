@@ -4,6 +4,7 @@ NoFlo ChangeLog
 ## 0.7.7 (git master)
 
 * `input.has` now accepts a validation callback function as the last argument. All packets in buffer will be passed to this function, and `has` will return false only if something returns true for each port specified
+* Removed `dropEmptyBrackets` option which was conflicting with asynchronous components. This results into empty brackets being forwarded to `error` outport, so make sure error handling components don't make false alerts on those.
 
 ## 0.7.6 (June 2nd 2016)
 
