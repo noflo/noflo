@@ -38,12 +38,9 @@ class Component extends EventEmitter
     @activateOnInput = options.activateOnInput ? true
     @forwardBrackets = in: ['out', 'error']
     @bracketCounter = {}
-    @dropEmptyBrackets = ['error']
 
     if 'forwardBrackets' of options
       @forwardBrackets = options.forwardBrackets
-    if 'dropEmptyBrackets' of options
-      @dropEmptyBrackets = options.dropEmptyBrackets
 
     if typeof options.process is 'function'
       @process options.process
@@ -97,10 +94,6 @@ class Component extends EventEmitter
       else
         @forwardBrackets[inPort] = tmp
         @bracketCounter[inPort] = 0
-    tmp = []
-    for outPort in @dropEmptyBrackets
-      tmp.push outPort if outPort of @outPorts.ports
-    @dropEmptyBrackets = tmp
 
   # Sets process handler function
   process: (handle) ->
@@ -126,7 +119,7 @@ class Component extends EventEmitter
     (ip.type is 'openBracket' or ip.type is 'closeBracket')
       # Bracket forwarding
       outputEntry =
-        __resolved: ip.type is 'closeBracket' or not @dropEmptyBrackets.length
+        __resolved: true
         __forwarded: true
         __type: ip.type
         __scope: ip.scope
@@ -134,28 +127,6 @@ class Component extends EventEmitter
         outputEntry[outPort] = [] unless outPort of outputEntry
         outputEntry[outPort].push ip
       port.buffer.pop()
-      # Drop empty brackets if needed
-      if ip.type is 'closeBracket' and @dropEmptyBrackets.length
-        haveData = []
-        for i in [@outputQ.length - 1..0]
-          entry = @outputQ[i]
-          if '__forwarded' of entry
-            if entry.__type is 'openBracket' and not entry.__resolved and
-            entry.__scope is ip.scope
-              for port, ips of entry
-                if haveData.indexOf(port) is -1 and
-                @dropEmptyBrackets.indexOf(port) isnt -1
-                  delete entry[port]
-                  delete outputEntry[port]
-              entry.__resolved = true
-              break
-          else
-            for port, ips of entry
-              continue if port.indexOf('__') is 0 or haveData.indexOf(port) >= 0
-              for _ip in ips
-                if _ip.scope is ip.scope
-                  haveData.push port
-                  break
       @outputQ.push outputEntry
       @processOutputQueue()
       return
