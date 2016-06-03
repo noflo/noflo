@@ -69,9 +69,15 @@ class Component extends EventEmitter
 
   shutdown: ->
     @started = false
+    if @load > 0
+      @on 'deactivate', ->
+        @emit 'end' if @load is 0
+    else
+      @emit 'end'
 
   # The startup function performs initialization for the component.
   start: ->
+    @emit 'start'
     @started = true
     @started
 
@@ -158,6 +164,7 @@ class Component extends EventEmitter
     input = new ProcessInput @inPorts, ip, @, port, result
     output = new ProcessOutput @outPorts, ip, @, result
     @load++
+    @emit 'activate', @load
     @handle input, output, -> output.done()
 
   processOutputQueue: ->
@@ -176,6 +183,12 @@ class Component extends EventEmitter
         bracketsClosed = false
         break
     @autoOrdering = null if bracketsClosed and @autoOrdering is true
+
+  done: ->
+    if @ordered or @autoOrdering
+      @processOutputQueue()
+    @load--
+    @emit 'deactivate', @load
 
 exports.Component = Component
 
@@ -292,7 +305,5 @@ class ProcessOutput
   # Finishes process activation gracefully
   done: (error) ->
     @error error if error
-    if @nodeInstance.ordered or @nodeInstance.autoOrdering
-      @result.__resolved = true
-      @nodeInstance.processOutputQueue()
-    @nodeInstance.load--
+    @result.__resolved = true
+    @nodeInstance.done()
