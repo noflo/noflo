@@ -795,6 +795,48 @@ describe 'Component', ->
       c.inPorts.in.attach sin1
       sin1.post new IP 'data', 'some-data'
 
+    it 'should send out other port if there is only one component aside from error', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            required: true
+        outPorts:
+          out:
+            required: no
+          error:
+            required: no
+        process: (input, output) ->
+          packet = input.get 'in'
+          chai.expect(packet.data).to.equal 'some-data'
+          output.sendDone new Error 'Should not fail'
+          done()
+
+      c.inPorts.in.attach sin1
+      sin1.post new IP 'data', 'some-data'
+
+    it 'should throw an error if sending without specifying a port and there are multiple ports', (done) ->
+      try
+        c = new component.Component
+          inPorts:
+            in:
+              datatype: 'string'
+              required: true
+          outPorts:
+            out:
+              datatype: 'all'
+            eh:
+              required: no
+            error:
+              required: no
+          process: (input, output) ->
+            output.sendDone 'test'
+
+        c.inPorts.in.attach sin1
+        sin1.post new IP 'data', 'some-data'
+      catch e
+        done()
+
     it 'should send errors if there is a connected error port', (done) ->
       c = new component.Component
         inPorts:
