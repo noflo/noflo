@@ -242,22 +242,23 @@ class ProcessOutput
     return @error outputMap if @isError outputMap
 
     # filter out all built in ports
-    componentPorts = Object.keys @nodeInstance.outPorts
+    componentPorts = Object.keys @ports.ports
     if componentPorts.length > 0
       componentPorts = componentPorts.filter (port) ->
-        return true unless port is 'erorr' or port is 'ports'
+        return true unless port is 'error' or port is 'ports' or port is '_callbacks'
 
       if componentPorts.length is 1
         # compare all of the kes in outputMap to the keys in componentPorts
         # if the key exists, send it out to the specified ports
         # if not, send to the port that is not error
-        for key in Object.keys outputMap
-          if key in componentPorts
-            for port, packet of outputMap
-              @sendIP port, packet
-            return
+        if typeof outputMap is 'object'
+          for key in Object.keys outputMap
+            if key in componentPorts
+              for port, packet of outputMap
+                @sendIP port, packet
+              return
 
-        @sendIP p[0], outputMap
+        @sendIP componentPorts[0], outputMap
         return
 
     for port, packet of outputMap

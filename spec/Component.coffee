@@ -795,7 +795,7 @@ describe 'Component', ->
       c.inPorts.in.attach sin1
       sin1.post new IP 'data', 'some-data'
 
-    it 'should send out other port if there is only one component aside from error', (done) ->
+    it 'should send out string other port if there is only one port aside from error', (done) ->
       c = new component.Component
         inPorts:
           in:
@@ -808,8 +808,26 @@ describe 'Component', ->
             required: no
         process: (input, output) ->
           packet = input.get 'in'
-          chai.expect(packet.data).to.equal 'some-data'
-          output.sendDone new Error 'Should not fail'
+          output.sendDone 'some data'
+          done()
+
+      c.inPorts.in.attach sin1
+      sin1.post new IP 'data', 'some-data'
+
+    it 'should send object out other port if there is only one port aside from error', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            required: true
+        outPorts:
+          out:
+            required: no
+          error:
+            required: no
+        process: (input, output) ->
+          packet = input.get 'in'
+          output.sendDone some: 'data'
           done()
 
       c.inPorts.in.attach sin1
