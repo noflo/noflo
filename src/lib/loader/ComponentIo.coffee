@@ -20,7 +20,7 @@ customLoader =
     try
       definition = require "/#{moduleName}/component.json"
     catch e
-      if moduleName.substr(0, 1) is '/'
+      if moduleName.substr(0, 1) is '/' and moduleName.length > 1
         return @getModuleComponents loader, "noflo-#{moduleName.substr(1)}", callback
       return callback e
 
