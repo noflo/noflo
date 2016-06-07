@@ -153,6 +153,7 @@ exports.Component = Component
 class ProcessInput
   constructor: (@ports, @ip, @nodeInstance, @port, @result) ->
     @scope = @ip.scope
+    @buffer = new PortBuffer(@)
 
   # Sets component state to `activated`
   activate: ->
@@ -191,6 +192,45 @@ class ProcessInput
     if args.length is 1
       return ips?.data ? undefined
     (ip?.data ? undefined for ip in ips)
+
+class PortBuffer
+  constructor: (@context) ->
+
+  # Get a buffer (scoped or not) for a given port
+  # if name is optional, use the current port
+  get: (name = null) ->
+    if @context.scope isnt null
+      if name?
+        return @context.ports[name].scopedBuffer[@context.scope]
+      return @context.port.scopedBuffer[@context.scope]
+
+    if name?
+      return @context.ports[name].buffer
+    return @context.port.buffer
+
+  # Find packets matching a callback and return them without modifying the buffer
+  find: (name, cb) ->
+    b = @get name
+    b.filter cb
+
+  # Find packets and modify the original buffer
+  # cb is a function with 2 arguments (ip, index)
+  filter: (name, cb) ->
+    if typeof name is 'function'
+      cb = name
+      name = null
+
+    if @context.scope isnt null
+      if name?
+        @context.port[name].scopedBuffer[@context.scope] = @context.ports[name].scopedBuffer[@context.scope].filter cb
+        return
+      @context.ports.scopedBuffer[@context.scope] = @context.ports.scopedBuffer[@context.scope].filter cb
+      return
+
+    if name?
+      @context.ports[name].buffer = @context.ports[name].buffer.filter cb
+      return
+    return @context.port.buffer = @context.port.buffer.filter cb
 
 class ProcessOutput
   constructor: (@ports, @ip, @nodeInstance, @result) ->
