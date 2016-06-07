@@ -796,6 +796,8 @@ describe 'Component', ->
       sin1.post new IP 'data', 'some-data'
 
     it 'should send out string other port if there is only one port aside from error', (done) ->
+      someDataOut = new socket.InternalSocket
+
       c = new component.Component
         inPorts:
           in:
@@ -811,10 +813,17 @@ describe 'Component', ->
           output.sendDone 'some data'
           done()
 
+      someDataOut.on 'ip', (ip) ->
+        chai.expect(ip).to.eql 'some data'
+        done()
+
+      c.outPorts.error.attach someDataOut
       c.inPorts.in.attach sin1
       sin1.post new IP 'data', 'some-data'
 
     it 'should send object out other port if there is only one port aside from error', (done) ->
+      someDataOut = new socket.InternalSocket
+
       c = new component.Component
         inPorts:
           in:
@@ -830,6 +839,11 @@ describe 'Component', ->
           output.sendDone some: 'data'
           done()
 
+      someDataOut.on 'ip', (ip) ->
+        chai.expect(ip).to.eql some: 'data'
+        done()
+
+      c.outPorts.error.attach someDataOut
       c.inPorts.in.attach sin1
       sin1.post new IP 'data', 'some-data'
 

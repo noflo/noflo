@@ -221,8 +221,7 @@ class ProcessOutput
 
   # Sends a single IP object to a port
   sendIP: (port, packet) ->
-    if typeof packet isnt 'object' or
-    IP.types.indexOf(packet.type) is -1
+    if typeof packet isnt 'object' or IP.types.indexOf(packet.type) is -1
       ip = new IP 'data', packet
     else
       ip = packet
@@ -243,23 +242,18 @@ class ProcessOutput
 
     # filter out all built in ports
     componentPorts = Object.keys @ports.ports
-    if componentPorts.length > 0
-      componentPorts = componentPorts.filter (port) ->
-        return true unless port is 'error' or port is 'ports' or port is '_callbacks'
+    componentPorts = componentPorts.filter (port) ->
+      return true unless port is 'error' or port is 'ports' or port is '_callbacks'
 
-      if componentPorts.length is 1
-        # compare all of the kes in outputMap to the keys in componentPorts
-        # if the key exists, send it out to the specified ports
-        # if not, send to the port that is not error
-        if typeof outputMap is 'object'
-          for key in Object.keys outputMap
-            if key in componentPorts
-              for port, packet of outputMap
-                @sendIP port, packet
-              return
+    mapIsInPorts = false
+    if typeof outputMap is 'object'
+      for key in Object.keys outputMap
+        if componentPorts.indexOf(key) isnt -1
+          mapIsInPorts = true
 
-        @sendIP componentPorts[0], outputMap
-        return
+    if componentPorts.length is 1 and mapIsInPorts is false
+      @sendIP componentPorts[0], outputMap
+      return
 
     for port, packet of outputMap
       @sendIP port, packet
