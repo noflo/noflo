@@ -58,6 +58,7 @@ customLoader =
       do callback
 
 exports.register = (loader, callback) ->
+  customLoader.checked = []
   # Start discovery from baseDir
   setTimeout ->
     customLoader.getModuleComponents loader, loader.baseDir, callback
