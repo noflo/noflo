@@ -98,8 +98,8 @@ exports.setSource = (loader, packageId, name, source, language, callback) ->
   # We eval the contents to get a runnable component
   try
     # Modify require path for NoFlo since we're inside the NoFlo context
-    source = source.replace "require('noflo')", "require('./NoFlo')"
-    source = source.replace 'require("noflo")', 'require("./NoFlo")'
+    source = source.replace "require('noflo')", "require('../NoFlo')"
+    source = source.replace 'require("noflo")', 'require("../NoFlo")'
 
     # Eval so we can get a function
     implementation = eval "(function () { var exports = {}; #{source}; return exports; })()"
