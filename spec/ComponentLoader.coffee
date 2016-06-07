@@ -44,8 +44,6 @@ describe 'ComponentLoader with no external packages installed', ->
 
   it 'should initially know of no components', ->
     chai.expect(l.components).to.be.null
-  it 'should not initially require revalidation', ->
-    chai.expect(l.revalidate).to.be.false
   it 'should not initially be ready', ->
     chai.expect(l.ready).to.be.false
   it 'should not initially be processing', ->
