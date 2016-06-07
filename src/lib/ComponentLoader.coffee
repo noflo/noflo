@@ -113,20 +113,17 @@ class ComponentLoader extends EventEmitter
     cPath.indexOf('.fbp') isnt -1 or cPath.indexOf('.json') isnt -1
 
   loadGraph: (name, component, callback, metadata) ->
-    graphImplementation = @components['Graph']
-    unless graphImplementation
-      return callback "Subgraph support not available"
-    graphSocket = internalSocket.createSocket()
-    graph = graphImplementation.getComponent metadata
-    graph.loader = @
-    graph.baseDir = @baseDir
-    graph.inPorts.graph.attach graphSocket
-    graph.componentName = name if typeof name is 'string'
-    graphSocket.send component
-    graphSocket.disconnect()
-    graph.inPorts.remove 'graph'
-    @setIcon name, graph
-    callback null, graph
+    @createComponent name, @components['Graph'], metadata, (err, graph) =>
+      return callback err if err
+      graphSocket = internalSocket.createSocket()
+      graph.loader = @
+      graph.baseDir = @baseDir
+      graph.inPorts.graph.attach graphSocket
+      graphSocket.send component
+      graphSocket.disconnect()
+      graph.inPorts.remove 'graph'
+      @setIcon name, graph
+      callback null, graph
 
   setIcon: (name, instance) ->
     # See if component has an icon
