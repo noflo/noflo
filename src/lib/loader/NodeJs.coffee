@@ -56,19 +56,23 @@ manifestLoader =
       if err
         return callback err unless loader.options.discover
         dynamicLoader.listComponents loader, manifestOptions, (err, modules) =>
-          @writeCache manifestOptions,
+          return callback err if err
+          @writeCache loader, manifestOptions,
             version: 1
             modules: modules
           , (err) ->
             return callback err if err
             callback null, modules
+        return
       registerModules loader, manifest.modules, (err) ->
         return callback err if err
-        callback null, modules
+        callback null, manifest.modules
 
 dynamicLoader =
   listComponents: (loader, manifestOptions, callback) ->
+    manifestOptions.discover = true
     manifest.list.list loader.baseDir, manifestOptions, (err, modules) =>
+      return callback err if err
       registerModules loader, modules, (err) ->
         return callback err if err
         callback null, modules
@@ -84,7 +88,7 @@ registerSubgraph = (loader) ->
 exports.register = (loader, callback) ->
   manifestOptions = manifestLoader.prepareManifestOptions loader
 
-  if loader.cache
+  if loader.options?.cache
     manifestLoader.listComponents loader, manifestOptions, (err, modules) ->
       return callback err if err
       registerSubgraph loader
