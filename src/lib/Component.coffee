@@ -240,18 +240,14 @@ class ProcessOutput
       @activate()
     return @error outputMap if @isError outputMap
 
-    # filter out all built in ports
-    componentPorts = Object.keys @ports.ports
-    componentPorts = componentPorts.filter (port) ->
-      return true unless port is 'error' or port is 'ports' or port is '_callbacks'
-
+    componentPorts = []
     mapIsInPorts = false
-    if typeof outputMap is 'object'
-      for key in Object.keys outputMap
-        if componentPorts.indexOf(key) isnt -1
-          mapIsInPorts = true
+    for port in Object.keys @ports.ports
+      componentPorts.push port if port isnt 'error' and port isnt 'ports' and port isnt '_callbacks'
+      if not mapIsInPorts and typeof outputMap is 'object' and Object.keys(outputMap).indexOf(port) isnt -1
+        mapIsInPorts = true
 
-    if componentPorts.length is 1 and mapIsInPorts is false
+    if componentPorts.length is 1 and not mapIsInPorts
       @sendIP componentPorts[0], outputMap
       return
 
