@@ -104,7 +104,7 @@ exports.dynamicLoad = (name, cPath, metadata, callback) ->
   instance.componentName = name if typeof name is 'string'
   callback null, instance
 
-exports.setSource = (loader, packageId, source, language, callback) ->
+exports.setSource = (loader, packageId, name, source, language, callback) ->
   Module = require 'module'
   if language is 'coffeescript'
     try
