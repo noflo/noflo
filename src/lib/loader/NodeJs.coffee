@@ -73,7 +73,7 @@ dynamicLoader =
         return callback err if err
         callback null, modules
 
-exports.register = (loader, callback) ->
+registerSubgraph = (loader) ->
   # Inject subgraph component
   if path.extname(__filename) is '.js'
     graphPath = path.resolve __dirname, '../../src/components/Graph.coffee'
@@ -81,13 +81,20 @@ exports.register = (loader, callback) ->
     graphPath = path.resolve __dirname, '../../components/Graph.coffee'
   loader.registerComponent null, 'Graph', graphPath
 
+exports.register = (loader, callback) ->
   manifestOptions = manifestLoader.prepareManifestOptions loader
 
   if loader.cache
-    manifestLoader.listComponents loader, manifestOptions, callback
+    manifestLoader.listComponents loader, manifestOptions, (err, modules) ->
+      return callback err if err
+      registerSubgraph loader
+      callback null, modules
     return
 
-  dynamicLoader.listComponents loader, manifestOptions, callback
+  dynamicLoader.listComponents loader, manifestOptions, (err, modules) ->
+    return callback err if err
+    registerSubgraph loader
+    callback null, modules
 
 exports.dynamicLoad = (name, cPath, metadata, callback) ->
   try
