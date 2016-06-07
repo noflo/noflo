@@ -8,46 +8,41 @@ else
   root = 'noflo'
 
 describe 'NoFlo Network', ->
-  class Split extends noflo.Component
-    constructor: ->
-      @stopped = false
-      @inPorts =
-        in: new noflo.Port
-      @outPorts =
-        out: new noflo.ArrayPort
-      @inPorts.in.on 'data', (data) =>
-        @outPorts.out.send data
-      @inPorts.in.on 'disconnect', =>
-        @outPorts.out.disconnect()
-    start: ->
-      @stopped = false
-      super()
-    shutdown: ->
-      @stopped = true
-  Split.getComponent = -> new Split
-  class Merge extends noflo.Component
-    constructor: ->
-      @inPorts =
-        in: new noflo.ArrayPort
-      @outPorts =
-        out: new noflo.Port
-      @inPorts.in.on 'data', (data) =>
-        @outPorts.out.send data
-      @inPorts.in.on 'disconnect', =>
-        @outPorts.out.disconnect()
-  Merge.getComponent = -> new Merge
-  class Callback extends noflo.Component
-    constructor: ->
-      @cb = null
-      @inPorts =
-        in: new noflo.Port
-        callback: new noflo.Port
-      @outPorts = {}
-      @inPorts.callback.on 'data', (data) =>
-        @cb = data
-      @inPorts.in.on 'data', (data) =>
-        @cb data
-  Callback.getComponent = -> new Callback
+  Split = ->
+    new noflo.Component
+      inPorts:
+        in: datatype: 'all'
+      outPorts:
+        out: datatype: 'all'
+      process: (input, output) ->
+        output.sendDone
+          out: input.get 'in'
+  Merge = ->
+    new noflo.Component
+      inPorts:
+        in: datatype: 'all'
+      outPorts:
+        out: datatype: 'all'
+      process: (input, output) ->
+        output.sendDone
+          out: input.get 'in'
+  Callback = ->
+    new noflo.Component
+      inPorts:
+        in: datatype: 'all'
+        callback:
+          datatype: 'all'
+          control: true
+      process: (input, output) ->
+        # Drop brackets
+        if input.ip.type isnt 'data'
+          buf = if input.scope then input.port.scopedBuffer[input.scope] else input.port.buffer
+          return buf.pop()
+        return unless input.has 'callback', 'in'
+        cb = input.getData 'callback'
+        data = input.getData 'in'
+        cb data
+        output.done()
 
   describe 'with an empty graph', ->
     g = null
@@ -107,6 +102,7 @@ describe 'NoFlo Network', ->
   describe 'with a simple graph', ->
     g = null
     n = null
+    cb = null
     before (done) ->
       @timeout 60 * 1000
       g = new noflo.Graph
@@ -114,6 +110,11 @@ describe 'NoFlo Network', ->
       g.addNode 'Merge', 'Merge'
       g.addNode 'Callback', 'Callback'
       g.addEdge 'Merge', 'out', 'Callback', 'in'
+      g.addInitial (data) ->
+        chai.expect(data).to.equal 'Foo'
+        cb()
+      , 'Callback', 'callback'
+      g.addInitial 'Foo', 'Merge', 'in'
       noflo.createNetwork g, (err, nw) ->
         return done err if err
         nw.loader.components.Split = Split
@@ -122,9 +123,13 @@ describe 'NoFlo Network', ->
         n = nw
         nw.connect (err) ->
           return done err if err
-          nw.start()
           done()
       , true
+
+    it 'should send some initials when started', (done) ->
+      chai.expect(n.initials).not.to.be.empty
+      cb = done
+      n.start()
 
     it 'should contain two processes', ->
       chai.expect(n.processes).to.not.be.empty
@@ -133,29 +138,18 @@ describe 'NoFlo Network', ->
       chai.expect(n.processes.Callback).to.exist
       chai.expect(n.processes.Callback).to.be.an 'Object'
     it 'the ports of the processes should know the node names', ->
-      for name, port of n.processes.Callback.component.inPorts
+      for name, port of n.processes.Callback.component.inPorts.ports
         chai.expect(port.name).to.equal name
         chai.expect(port.node).to.equal 'Callback'
         chai.expect(port.getId()).to.equal "Callback #{name.toUpperCase()}"
-      for name, port of n.processes.Callback.component.outPorts
+      for name, port of n.processes.Callback.component.outPorts.ports
         chai.expect(port.name).to.equal name
         chai.expect(port.node).to.equal 'Callback'
         chai.expect(port.getId()).to.equal "Callback #{name.toUpperCase()}"
 
-    it 'should contain one connection', ->
+    it 'should contain 1 connection between processes and 2 for IIPs', ->
       chai.expect(n.connections).to.not.be.empty
-      chai.expect(n.connections.length).to.equal 1
-
-    it 'should call callback when receiving data', (done) ->
-      g.addInitial (data) ->
-        chai.expect(data).to.equal 'Foo'
-        done()
-      , 'Callback', 'callback'
-      g.addInitial 'Foo', 'Merge', 'in'
-
-      chai.expect(n.initials).not.to.be.empty
-      n.start (err) ->
-        return done err if err
+      chai.expect(n.connections.length).to.equal 3
 
     it 'should have started in debug mode', ->
       chai.expect(n.debug).to.equal true
@@ -186,11 +180,11 @@ describe 'NoFlo Network', ->
       it 'shouldn\'t have the process in the old location', ->
         chai.expect(n.processes.Callback).to.be.undefined
       it 'should have informed the ports of their new node name', ->
-        for name, port of n.processes.Func.component.inPorts
+        for name, port of n.processes.Func.component.inPorts.ports
           chai.expect(port.name).to.equal name
           chai.expect(port.node).to.equal 'Func'
           chai.expect(port.getId()).to.equal "Func #{name.toUpperCase()}"
-        for name, port of n.processes.Func.component.outPorts
+        for name, port of n.processes.Func.component.outPorts.ports
           chai.expect(port.name).to.equal name
           chai.expect(port.node).to.equal 'Func'
           chai.expect(port.getId()).to.equal "Func #{name.toUpperCase()}"
@@ -206,9 +200,9 @@ describe 'NoFlo Network', ->
 
     describe 'once stopped', ->
       it 'should be marked as stopped', (done) ->
-        n.stop()
-        chai.expect(n.isStarted()).to.equal false
-        done()
+        n.stop ->
+          chai.expect(n.isStarted()).to.equal false
+          done()
 
   describe 'with nodes containing default ports', ->
     g = null
@@ -355,8 +349,7 @@ describe 'NoFlo Network', ->
         n = nw
         nw.connect (err) ->
           return done err if err
-          nw.start()
-          done()
+          nw.start done
       , true
 
     after restore
@@ -415,7 +408,8 @@ describe 'NoFlo Network', ->
 
     describe 'on stopping', ->
       it 'processes should be running before the stop call', ->
-        chai.expect(n.processes.Repeat.component.stopped).to.equal false
+        chai.expect(n.started).to.be.true
+        chai.expect(n.processes.Repeat.component.started).to.equal true
       it 'should emit the end event', (done) ->
         @timeout 5000
         # Ensure we have a connection open
@@ -424,7 +418,7 @@ describe 'NoFlo Network', ->
           done()
         n.stop()
       it 'should have called the shutdown method of each process', ->
-        chai.expect(n.processes.Repeat.component.stopped).to.equal true
+        chai.expect(n.processes.Repeat.component.started).to.equal false
 
   describe 'with a very large network', ->
     it 'should be able to connect without errors', (done) ->

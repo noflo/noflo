@@ -65,12 +65,15 @@ class Component extends EventEmitter
     throw e
 
   shutdown: ->
-    @started = false
-    if @load > 0
-      @on 'deactivate', ->
-        @emit 'end' if @load is 0
-    else
+    return unless @started
+    callback = =>
+      @started = false
       @emit 'end'
+    if @load > 0
+      @on 'deactivate', =>
+        callback() if @load is 0
+    else
+      callback()
 
   # The startup function performs initialization for the component.
   start: ->
@@ -132,11 +135,14 @@ class Component extends EventEmitter
       return
     return unless port.options.triggering
     result = {}
-    input = new ProcessInput @inPorts, ip, @, port, result
-    output = new ProcessOutput @outPorts, ip, @, result
-    @load++
-    @emit 'activate', @load
-    @handle input, output, -> output.done()
+    context = new ProcessContext ip, @, port, result
+    input = new ProcessInput @inPorts, context
+    output = new ProcessOutput @outPorts, context
+    try
+      @handle input, output, -> output.done()
+    catch e
+      @deactivate context
+      output.sendDone e
 
   processOutputQueue: ->
     while @outputQ.length > 0
@@ -155,7 +161,17 @@ class Component extends EventEmitter
         break
     @autoOrdering = null if bracketsClosed and @autoOrdering is true
 
-  done: ->
+  activate: (context) ->
+    return if context.activated # prevent double activation
+    context.activated = true
+    @load++
+    @emit 'activate', @load
+    if @ordered or @autoOrdering
+      @outputQ.push context.result
+
+  deactivate: (context) ->
+    return if context.deactivated # prevent double deactivation
+    context.deactivated = true
     if @ordered or @autoOrdering
       @processOutputQueue()
     @load--
@@ -163,15 +179,23 @@ class Component extends EventEmitter
 
 exports.Component = Component
 
-class ProcessInput
-  constructor: (@ports, @ip, @nodeInstance, @port, @result) ->
+class ProcessContext
+  constructor: (@ip, @nodeInstance, @port, @result) ->
     @scope = @ip.scope
+    @activated = false
+    @deactivated = false
+
+class ProcessInput
+  constructor: (@ports, @context) ->
+    @nodeInstance = @context.nodeInstance
+    @ip = @context.ip
+    @port = @context.port
+    @result = @context.result
+    @scope = @context.scope
 
   # Sets component state to `activated`
   activate: ->
-    @result.__resolved = false
-    if @nodeInstance.ordered or @nodeInstance.autoOrdering
-      @nodeInstance.outputQ.push @result
+    @nodeInstance.activate @context
 
   # Returns true if a port (or ports joined by logical AND) has a new IP
   # Passing a validation callback as a last argument allows more selective
@@ -206,14 +230,15 @@ class ProcessInput
     (ip?.data ? undefined for ip in ips)
 
 class ProcessOutput
-  constructor: (@ports, @ip, @nodeInstance, @result) ->
-    @scope = @ip.scope
+  constructor: (@ports, @context) ->
+    @nodeInstance = @context.nodeInstance
+    @ip = @context.ip
+    @result = @context.result
+    @scope = @context.scope
 
   # Sets component state to `activated`
   activate: ->
-    @result.__resolved = false
-    if @nodeInstance.ordered or @nodeInstance.autoOrdering
-      @nodeInstance.outputQ.push @result
+    @nodeInstance.activate @context
 
   # Checks if a value is an Error
   isError: (err) ->
@@ -275,6 +300,7 @@ class ProcessOutput
 
   # Finishes process activation gracefully
   done: (error) ->
-    @error error if error
     @result.__resolved = true
-    @nodeInstance.done()
+    @nodeInstance.activate @context
+    @error error if error
+    @nodeInstance.deactivate @context

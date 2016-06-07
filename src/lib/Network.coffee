@@ -175,9 +175,9 @@ class Network extends EventEmitter
     process.id = newId
 
     # Inform the ports of the node name
-    for name, port of process.component.inPorts
+    for name, port of process.component.inPorts.ports
       port.node = newId
-    for name, port of process.component.outPorts
+    for name, port of process.component.outPorts.ports
       port.node = newId
 
     @processes[newId] = process
@@ -537,10 +537,18 @@ class Network extends EventEmitter
     unless callback
       callback = ->
 
+    # Emit start event when all processes are started
+    count = 0
+    length = if @processes then Object.keys(@processes).length else 0
+    onProcessStart = ->
+      count++
+      callback() if count is length
+
     # Perform any startup routines necessary for every component.
+    return callback() unless @processes and Object.keys(@processes).length
     for id, process of @processes
+      process.component.on 'start', onProcessStart
       process.component.start()
-    do callback
 
   sendDefaults: (callback) ->
     unless callback
@@ -575,15 +583,28 @@ class Network extends EventEmitter
           @setStarted true
           callback null
 
-  stop: ->
+  stop: (callback) ->
+    unless callback
+      callback = ->
     # Disconnect all connections
     for connection in @connections
       continue unless connection.isConnected()
       connection.disconnect()
+    # Emit start event when all processes are started
+    count = 0
+    length = if @processes then Object.keys(@processes).length else 0
+    onProcessEnd = =>
+      count++
+      if count is length
+        @setStarted false
+        callback()
+    unless @processes and Object.keys(@processes).length
+      @setStarted false
+      return callback()
     # Tell processes to shut down
     for id, process of @processes
+      process.component.on 'end', onProcessEnd
       process.component.shutdown()
-    @setStarted false
 
   setStarted: (started) ->
     return if @started is started
