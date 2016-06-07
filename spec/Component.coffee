@@ -812,7 +812,8 @@ describe 'Component', ->
           done()
 
       sout1.on 'ip', (ip) ->
-        chai.expect(ip).to.eql 'some data'
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.data).to.equal 'some data'
         done()
 
       c.outPorts.error.attach sout1
@@ -836,7 +837,8 @@ describe 'Component', ->
           done()
 
       sout1.on 'ip', (ip) ->
-        chai.expect(ip).to.eql some: 'data'
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.data).to.equal 'some data'
         done()
 
       c.outPorts.error.attach sout1
