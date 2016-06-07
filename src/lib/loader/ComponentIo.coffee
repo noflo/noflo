@@ -59,7 +59,7 @@ customLoader =
 
 exports.register = (loader, callback) ->
   # Start discovery from baseDir
-  customLoader loader, loader.baseDir, callback
+  customLoader.getModuleComponents loader, loader.baseDir, callback
 
 exports.dynamicLoad = (name, cPath, metadata, callback) ->
   try
