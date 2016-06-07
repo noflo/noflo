@@ -799,51 +799,51 @@ describe 'Component', ->
       c = new component.Component
         inPorts:
           in:
-            datatype: 'string'
+            datatype: 'all'
             required: true
         outPorts:
           out:
-            required: no
+            required: true
           error:
-            required: no
+            required: false
         process: (input, output) ->
           packet = input.get 'in'
           output.sendDone 'some data'
-          done()
 
       sout1.on 'ip', (ip) ->
         chai.expect(ip).to.be.an 'object'
         chai.expect(ip.data).to.equal 'some data'
         done()
 
-      c.outPorts.error.attach sout1
       c.inPorts.in.attach sin1
-      sin1.post new IP 'data', 'some-data'
+      c.outPorts.out.attach sout1
+
+      sin1.post new IP 'data', 'first'
 
     it 'should send object out other port if there is only one port aside from error', (done) ->
       c = new component.Component
         inPorts:
           in:
-            datatype: 'string'
+            datatype: 'all'
             required: true
         outPorts:
           out:
-            required: no
+            required: true
           error:
-            required: no
+            required: false
         process: (input, output) ->
           packet = input.get 'in'
           output.sendDone some: 'data'
-          done()
 
       sout1.on 'ip', (ip) ->
         chai.expect(ip).to.be.an 'object'
-        chai.expect(ip.data).to.equal 'some data'
+        chai.expect(ip.data).to.eql some: 'data'
         done()
 
-      c.outPorts.error.attach sout1
       c.inPorts.in.attach sin1
-      sin1.post new IP 'data', 'some-data'
+      c.outPorts.out.attach sout1
+
+      sin1.post new IP 'data', 'first'
 
     it 'should throw an error if sending without specifying a port and there are multiple ports', (done) ->
       try
