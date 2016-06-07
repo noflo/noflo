@@ -36,7 +36,7 @@ class ComponentLoader extends EventEmitter
     @components = {}
     registerLoader.register @, (err) =>
       if err
-        return callback err if err and callback
+        return callback err if callback
         throw err
       @processing = false
       @ready = true
