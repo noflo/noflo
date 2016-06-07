@@ -2,6 +2,8 @@ path = require 'path'
 fs = require 'fs'
 manifest = require 'fbp-manifest'
 {_} = require 'underscore'
+utils = require '../Utils'
+nofloGraph = require '../Graph'
 
 # We allow components to be un-compiled CoffeeScript
 CoffeeScript = require 'coffee-script'
@@ -19,7 +21,7 @@ registerModules = (loader, modules, callback) ->
       componentLoaders.push loaderPath
 
     for c in m.components
-      loader.registerComponent m.name, c.name, require path.resolve loader.baseDir, c.path
+      loader.registerComponent m.name, c.name, path.resolve loader.baseDir, c.path
 
   return callback null unless componentLoaders.length
   done = _.after componentLoaders.length, callback
@@ -77,7 +79,7 @@ exports.register = (loader, callback) ->
     graphPath = path.resolve __dirname, '../../components/Graph.js'
   else
     graphPath = path.resolve __dirname, '../../components/Graph.coffee'
-  loader.registerComponent null, 'Graph', require graphPath
+  loader.registerComponent null, 'Graph', graphPath
 
   manifestOptions = manifestLoader.prepareManifestOptions loader
 
@@ -133,3 +135,42 @@ exports.setSource = (loader, packageId, name, source, language, callback) ->
     return callback new Error 'Provided source failed to create a runnable component'
 
   loader.registerComponent packageId, name, implementation, callback
+
+exports.getSource = (loader, name, callback) ->
+  component = loader.components[name]
+  unless component
+    # Try an alias
+    for componentName of loader.components
+      if componentName.split('/')[1] is name
+        component = loader.components[componentName]
+        name = componentName
+        break
+    unless component
+      return callback new Error "Component #{name} not installed"
+
+  if typeof component isnt 'string'
+    return callback new Error "Can't provide source for #{name}. Not a file"
+
+  nameParts = name.split '/'
+  if nameParts.length is 1
+    nameParts[1] = nameParts[0]
+    nameParts[0] = ''
+
+  if loader.isGraph component
+    nofloGraph.loadFile component, (err, graph) ->
+      return callback err if err
+      return callback new Error 'Unable to load graph' unless graph
+      callback null,
+        name: nameParts[1]
+        library: nameParts[0]
+        code: JSON.stringify graph.toJSON()
+        language: 'json'
+    return
+
+  fs.readFile component, 'utf-8', (err, code) ->
+    return callback err if err
+    callback null,
+      name: nameParts[1]
+      library: nameParts[0]
+      language: utils.guessLanguageFromFilename component
+      code: code

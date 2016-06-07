@@ -6,7 +6,6 @@
 # This is the browser version of the ComponentLoader.
 internalSocket = require './InternalSocket'
 nofloGraph = require './Graph'
-utils = require './Utils'
 {EventEmitter} = require 'events'
 registerLoader = require './loader/register'
 

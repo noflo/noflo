@@ -1,3 +1,6 @@
+utils = require '../Utils'
+nofloGraph = require '../Graph'
+
 customLoader =
   checked: []
 
@@ -40,10 +43,10 @@ customLoader =
             cPath = cPath.replace '.coffee', '.js'
           if cPath.substr(0, 2) is './'
             cPath = cPath.substr 2
-          loader.registerComponent prefix, name, require "/#{moduleName}/#{cPath}"
+          loader.registerComponent prefix, name, "/#{moduleName}/#{cPath}"
       if definition.noflo.graphs
         for name, cPath of definition.noflo.graphs
-          loader.registerGraph prefix, name, require "/#{moduleName}/#{cPath}"
+          loader.registerGraph prefix, name, "/#{moduleName}/#{cPath}"
 
       if definition.noflo.loader
         # Run a custom component loader
@@ -106,3 +109,43 @@ exports.setSource = (loader, packageId, name, source, language, callback) ->
     return callback new Error 'Provided source failed to create a runnable component'
 
   loader.registerComponent packageId, name, implementation, callback
+
+exports.getSource = (loader, name, callback) ->
+  component = loader.components[name]
+  unless component
+    # Try an alias
+    for componentName of loader.components
+      if componentName.split('/')[1] is name
+        component = loader.components[componentName]
+        name = componentName
+        break
+    unless component
+      return callback new Error "Component #{name} not installed"
+
+  if typeof component isnt 'string'
+    return callback new Error "Can't provide source for #{name}. Not a file"
+
+  nameParts = name.split '/'
+  if nameParts.length is 1
+    nameParts[1] = nameParts[0]
+    nameParts[0] = ''
+
+  if loader.isGraph component
+    nofloGraph.loadFile component, (err, graph) ->
+      return callback err if err
+      return callback new Error 'Unable to load graph' unless graph
+      callback null,
+        name: nameParts[1]
+        library: nameParts[0]
+        code: JSON.stringify graph.toJSON()
+        language: 'json'
+    return
+
+  path = window.require.resolve component
+  unless path
+    return callback new Error "Component #{name} is not resolvable to a path"
+  callback null,
+    name: nameParts[1]
+    library: nameParts[0]
+    code: window.require.modules[path].toString()
+    language: utils.guessLanguageFromFilename component
