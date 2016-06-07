@@ -7,11 +7,7 @@ internalSocket = require "./InternalSocket"
 graph = require "./Graph"
 {EventEmitter} = require 'events'
 platform = require './Platform'
-
-unless platform.isBrowser()
-  componentLoader = require "./nodejs/ComponentLoader"
-else
-  componentLoader = require './ComponentLoader'
+componentLoader = require './ComponentLoader'
 
 # ## The NoFlo network coordinator
 #

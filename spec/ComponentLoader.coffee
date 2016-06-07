@@ -1,6 +1,6 @@
 if typeof process isnt 'undefined' and process.execPath and process.execPath.match /node|iojs/
   chai = require 'chai' unless chai
-  loader = require '../src/lib/nodejs/ComponentLoader.coffee'
+  loader = require '../src/lib/ComponentLoader.coffee'
   component = require '../src/lib/Component.coffee'
   port = require '../src/lib/Port.coffee'
   platform = require '../src/lib/Platform.coffee'
@@ -116,7 +116,7 @@ describe 'ComponentLoader with no external packages installed', ->
   #   l = new loader.ComponentLoader root
   #   file = "#{urlPrefix}spec/fixtures/subgraph.fbp"
   #   it 'should remove `graph` and `start` ports', (done) ->
-  #     l.listComponents (components) ->
+  #     l.listComponents (err, components) ->
   #       l.components.Merge = Merge
   #       l.components.Subgraph = file
   #       l.components.Split = Split
@@ -128,7 +128,7 @@ describe 'ComponentLoader with no external packages installed', ->
   #           chai.expect(inst.outPorts.ports).to.have.keys ['out']
   #           done()
   #   it 'should not automatically start the subgraph if there is no `start` port', (done) ->
-  #     l.listComponents (components) ->
+  #     l.listComponents (err, components) ->
   #       l.components.Merge = Merge
   #       l.components.Subgraph = file
   #       l.components.Split = Split

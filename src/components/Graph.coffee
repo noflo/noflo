@@ -24,13 +24,15 @@ class Graph extends noflo.Component
     if typeof graph is 'object'
       if typeof graph.addNode is 'function'
         # Existing Graph object
-        return @createNetwork graph
+        return @createNetwork graph, (err) =>
+          return @error err if err
 
       # JSON definition of a graph
       noflo.graph.loadJSON graph, (err, instance) =>
         return @error err if err
         instance.baseDir = @baseDir
-        @createNetwork instance
+        @createNetwork instance, (err) =>
+          return @error err if err
       return
 
     if graph.substr(0, 1) isnt "/" and graph.substr(1, 1) isnt ":" and process and process.cwd
@@ -39,7 +41,8 @@ class Graph extends noflo.Component
     graph = noflo.graph.loadFile graph, (err, instance) =>
       return @error err if err
       instance.baseDir = @baseDir
-      @createNetwork instance
+      @createNetwork instance, (err) =>
+        return @error err if err
 
   createNetwork: (graph) ->
     @description = graph.properties.description or ''
