@@ -86,6 +86,8 @@ class ComponentLoader extends EventEmitter
   # Creates an instance of a component.
   createComponent: (name, component, metadata, callback) ->
     implementation = component
+    unless implementation
+      return callback new Error "Component #{name} not available"
 
     # If a string was specified, attempt to `require` it.
     if typeof implementation is 'string'
