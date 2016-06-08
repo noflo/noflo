@@ -1261,10 +1261,10 @@ describe 'Component', ->
               datatype: 'string'
           process: (input, output) ->
             return unless input.has 'in', (ip) -> ip.type is 'data'
-            data = input.buffer.get 'in', (ip) -> ip.type is 'data'
+            buf = input.buffer.get 'in', (ip) -> ip.type is 'data'
 
-            chai.expect(data[0].data).to.eql 'foo'
-            chai.expect(data).to.eql input.ports.in.buffer
+            chai.expect(buf[0].data).to.eql 'foo'
+            chai.expect(buf).to.eql input.ports.in.buffer
             done()
 
         c.inPorts.in.attach sin1
@@ -1293,6 +1293,31 @@ describe 'Component', ->
         c.inPorts.in.attach sin1
         sin1.post new IP 'data', 'foo'
 
+      it 'should filter everything from the scoped buffer using no name', (done) ->
+        c = new component.Component
+          inPorts:
+            in:
+              datatype: 'string'
+          outPorts:
+            out:
+              datatype: 'string'
+            error:
+              datatype: 'object'
+          process: (input, output) ->
+            return unless input.has 'in', (ip) -> ip.type is 'data'
+            originalBuffer = input.buffer.get()
+            input.buffer.filter (ip) -> false
+            buffer = input.buffer.get()
+
+            chai.expect(originalBuffer.length).to.eql 1
+            chai.expect(buffer).to.eql []
+            done()
+
+        c.inPorts.in.attach sin1
+        ip = new IP 'data', 'foo'
+        ip.scope = 'eh'
+        sin1.post ip
+
       it 'should find from the buffer using a name', (done) ->
         c = new component.Component
           inPorts:
@@ -1305,7 +1330,7 @@ describe 'Component', ->
               datatype: 'object'
           process: (input, output) ->
             return unless input.has 'in', (ip) -> ip.type is 'data'
-            bufferedData = input.buffer.find 'in', (ip) -> ip.data
+            bufferedData = input.buffer.find 'in', (ip) -> return if ip.data? then true else false
 
             chai.expect(bufferedData[0].data).to.eql 'foo'
             done()
@@ -1323,8 +1348,86 @@ describe 'Component', ->
               datatype: 'string'
           process: (input, output) ->
             return unless input.has 'in', (ip) -> ip.type is 'data'
-            data = input.buffer.get 'in'
-            chai.expect(data).to.eql input.ports.in.scopedBuffer.eh
+            buf = input.buffer.get 'in'
+            chai.expect(buf).to.eql input.ports.in.scopedBuffer.eh
+            done()
+
+        c.inPorts.in.attach sin1
+        ip = new IP 'data', 'foo'
+        ip.scope = 'eh'
+        sin1.post ip
+
+      it 'should set a buffer using a name', (done) ->
+        c = new component.Component
+          inPorts:
+            in:
+              datatype: 'string'
+          outPorts:
+            out:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.has 'in', (ip) -> ip.type is 'data'
+            input.buffer.set 'in', []
+            bufferedData = input.buffer.get 'in'
+
+            chai.expect(bufferedData).to.eql []
+            done()
+
+        c.inPorts.in.attach sin1
+        sin1.post new IP 'data', 'foo'
+
+      it 'should set a buffer without a name', (done) ->
+        c = new component.Component
+          inPorts:
+            in:
+              datatype: 'string'
+          outPorts:
+            out:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.has 'in', (ip) -> ip.type is 'data'
+            input.buffer.set []
+            bufferedData = input.buffer.get()
+
+            chai.expect(bufferedData).to.eql []
+            done()
+
+        c.inPorts.in.attach sin1
+        sin1.post new IP 'data', 'foo'
+
+      it 'should set a scoped buffer using a name', (done) ->
+        c = new component.Component
+          inPorts:
+            in:
+              datatype: 'string'
+          outPorts:
+            out:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.has 'in', (ip) -> ip.type is 'data'
+            input.buffer.set 'in', []
+            bufferedData = input.buffer.get 'in'
+            chai.expect(bufferedData).to.eql []
+            done()
+
+        c.inPorts.in.attach sin1
+        ip = new IP 'data', 'foo'
+        ip.scope = 'eh'
+        sin1.post ip
+
+      it 'should set a scoped buffer without a name', (done) ->
+        c = new component.Component
+          inPorts:
+            in:
+              datatype: 'string'
+          outPorts:
+            out:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.has 'in', (ip) -> ip.type is 'data'
+            input.buffer.set []
+            bufferedData = input.buffer.get()
+            chai.expect(bufferedData).to.eql []
             done()
 
         c.inPorts.in.attach sin1

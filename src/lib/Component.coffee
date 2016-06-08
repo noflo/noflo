@@ -196,10 +196,29 @@ class ProcessInput
 class PortBuffer
   constructor: (@context) ->
 
+  set: (name, buffer) ->
+    if name? and typeof name isnt 'string'
+      buffer = name
+      name = null
+
+    if @context.scope?
+      if name?
+        @context.ports[name].scopedBuffer[@context.scope] = buffer
+        return @context.ports[name].scopedBuffer[@context.scope]
+      @context.port.scopedBuffer[@context.scope] = buffer
+      return @context.port.scopedBuffer[@context.scope]
+
+    if name?
+      @context.ports[name].buffer = buffer
+      return @context.ports[name].buffer
+
+    @context.port.buffer = buffer
+    return @context.port.buffer
+
   # Get a buffer (scoped or not) for a given port
   # if name is optional, use the current port
   get: (name = null) ->
-    if @context.scope isnt null
+    if @context.scope?
       if name?
         return @context.ports[name].scopedBuffer[@context.scope]
       return @context.port.scopedBuffer[@context.scope]
@@ -216,21 +235,14 @@ class PortBuffer
   # Find packets and modify the original buffer
   # cb is a function with 2 arguments (ip, index)
   filter: (name, cb) ->
-    if typeof name is 'function'
+    if name? and typeof name isnt 'string'
       cb = name
       name = null
 
-    if @context.scope isnt null
-      if name?
-        @context.port[name].scopedBuffer[@context.scope] = @context.ports[name].scopedBuffer[@context.scope].filter cb
-        return
-      @context.ports.scopedBuffer[@context.scope] = @context.ports.scopedBuffer[@context.scope].filter cb
-      return
+    b = @get name
+    b = b.filter cb
 
-    if name?
-      @context.ports[name].buffer = @context.ports[name].buffer.filter cb
-      return
-    return @context.port.buffer = @context.port.buffer.filter cb
+    @set name, b
 
 class ProcessOutput
   constructor: (@ports, @ip, @nodeInstance, @result) ->
