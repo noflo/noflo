@@ -7,7 +7,7 @@
     "flow"
   ],
   "repo": "noflo/noflo",
-  "version": "0.7.6",
+  "version": "0.7.7",
   "dependencies": {
     "bergie/emitter": "*",
     "jashkenas/underscore": "1.8.3",
@@ -39,6 +39,8 @@
     "src/lib/Utils.coffee",
     "src/lib/Helpers.coffee",
     "src/lib/Streams.coffee",
+    "src/lib/loader/register.coffee",
+    "src/lib/loader/ComponentIo.coffee",
     "src/components/Graph.coffee"
   ],
   "json": [

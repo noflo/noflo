@@ -209,6 +209,7 @@ describe 'Graph component', ->
     gr.addOutport 'out', 'Split', 'out'
     it 'should emit a ready event after network has been loaded', (done) ->
       @timeout 6000
+      c.baseDir = root
       c.once 'ready', ->
         chai.expect(c.network).not.to.be.null
         chai.expect(c.ready).to.be.true
@@ -264,6 +265,7 @@ describe 'Graph component', ->
     file = "#{urlPrefix}spec/fixtures/subgraph.fbp"
     it 'should emit a ready event after network has been loaded', (done) ->
       @timeout 6000
+      c.baseDir = root
       c.once 'ready', ->
         chai.expect(c.network).not.to.be.null
         chai.expect(c.ready).to.be.true
@@ -277,8 +279,8 @@ describe 'Graph component', ->
       g.send file
       chai.expect(c.ready).to.be.false
     it 'should expose available ports', (done) ->
-      c.baseDir = root
       @timeout 6000
+      c.baseDir = root
       c.once 'ready', ->
         chai.expect(c.inPorts.ports).to.have.keys [
           'graph'
@@ -323,6 +325,7 @@ describe 'Graph component', ->
     file = "#{urlPrefix}spec/fixtures/subgraph_legacy.fbp"
     it 'should emit a ready event after network has been loaded', (done) ->
       @timeout 6000
+      c.baseDir = root
       c.once 'ready', ->
         chai.expect(c.network).not.to.be.null
         chai.expect(c.ready).to.be.true
