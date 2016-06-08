@@ -77,8 +77,8 @@ class Component extends EventEmitter
 
   # The startup function performs initialization for the component.
   start: ->
-    @emit 'start'
     @started = true
+    @emit 'start'
     @started
 
   isStarted: -> @started
@@ -139,7 +139,7 @@ class Component extends EventEmitter
     input = new ProcessInput @inPorts, context
     output = new ProcessOutput @outPorts, context
     try
-      @handle input, output, -> output.done()
+      @handle input, output, context
     catch e
       @deactivate context
       output.sendDone e
@@ -164,6 +164,7 @@ class Component extends EventEmitter
   activate: (context) ->
     return if context.activated # prevent double activation
     context.activated = true
+    context.deactivated = false
     @load++
     @emit 'activate', @load
     if @ordered or @autoOrdering
@@ -172,6 +173,7 @@ class Component extends EventEmitter
   deactivate: (context) ->
     return if context.deactivated # prevent double deactivation
     context.deactivated = true
+    context.activated = false
     if @ordered or @autoOrdering
       @processOutputQueue()
     @load--
@@ -184,6 +186,14 @@ class ProcessContext
     @scope = @ip.scope
     @activated = false
     @deactivated = false
+  activate: ->
+    # Push a new result value if previous has been sent already
+    if @result.__resolved or @nodeInstance.outputQ.indexOf(@result) is -1
+      @result = {}
+    @nodeInstance.activate @
+  deactivate: ->
+    @result.__resolved = true unless @result.__resolved
+    @nodeInstance.deactivate @
 
 class ProcessInput
   constructor: (@ports, @context) ->
