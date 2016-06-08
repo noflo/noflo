@@ -40,13 +40,11 @@ exports.isBrowser = require('./Platform').isBrowser
 #
 # Node.js version of the Component Loader finds components and graphs by traversing
 # the NPM dependency tree from a given root directory on the file system.
-unless exports.isBrowser()
-  exports.ComponentLoader = require('./nodejs/ComponentLoader').ComponentLoader
+#
 # Browser version of the Component Loader finds components and graphs by traversing
 # the [Component](http://component.io/) dependency tree from a given Component package
 # name.
-else
-  exports.ComponentLoader = require('./ComponentLoader').ComponentLoader
+exports.ComponentLoader = require('./ComponentLoader').ComponentLoader
 
 # ### Component baseclasses
 #

@@ -9,7 +9,7 @@ var baseDir = process.cwd();
 var cacheFile = path.resolve(baseDir, 'fbp.json');
 
 var preheat = function (callback) {
-  console.log("Pre-heating NoFlo cache for " + baseDir);
+  console.log("Pre-heating NoFlo cache with manifest for " + baseDir);
   var loader = new noflo.ComponentLoader(baseDir, {
     cache: true,
     discover: true
@@ -27,9 +27,13 @@ var reportAndVerify = function (err, components) {
     process.exit(1);
   }
   console.log("Found " + (Object.keys(components).length) + " components.");
-  return setTimeout(function() {
+  fs.stat(cacheFile, function (err, stats) {
+    if (err) {
+      console.log(err.message);
+      process.exit(1);
+    }
     return process.exit(0);
-  }, 100);
+  });
 };
 
 fs.stat(cacheFile, function (err, stats) {

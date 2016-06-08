@@ -39,6 +39,8 @@
     "src/lib/Utils.coffee",
     "src/lib/Helpers.coffee",
     "src/lib/Streams.coffee",
+    "src/lib/loader/register.coffee",
+    "src/lib/loader/ComponentIo.coffee",
     "src/components/Graph.coffee"
   ],
   "json": [

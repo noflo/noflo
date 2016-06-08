@@ -6,15 +6,12 @@
 # This is the browser version of the ComponentLoader.
 internalSocket = require './InternalSocket'
 nofloGraph = require './Graph'
-utils = require './Utils'
 {EventEmitter} = require 'events'
+registerLoader = require './loader/register'
 
 class ComponentLoader extends EventEmitter
   constructor: (@baseDir, @options = {}) ->
     @components = null
-    @componentLoaders = []
-    @checked = []
-    @revalidate = false
     @libraryIcons = {}
     @processing = false
     @ready = false
@@ -26,45 +23,6 @@ class ComponentLoader extends EventEmitter
     name = name.replace /\@[a-z\-]+\//, '' if name[0] is '@'
     name.replace 'noflo-', ''
 
-  getModuleComponents: (moduleName) ->
-    return unless @checked.indexOf(moduleName) is -1
-    @checked.push moduleName
-    try
-      definition = require "/#{moduleName}/component.json"
-    catch e
-      if moduleName.substr(0, 1) is '/'
-        return @getModuleComponents "noflo-#{moduleName.substr(1)}"
-      return
-
-    for dependency of definition.dependencies
-      @getModuleComponents dependency.replace '/', '-'
-
-    return unless definition.noflo
-
-    prefix = @getModulePrefix definition.name
-
-    if definition.noflo.icon
-      @libraryIcons[prefix] = definition.noflo.icon
-
-    if moduleName[0] is '/'
-      moduleName = moduleName.substr 1
-    if definition.noflo.loader
-      # Run a custom component loader
-      loaderPath = "/#{moduleName}/#{definition.noflo.loader}"
-      @componentLoaders.push loaderPath
-      loader = require loaderPath
-      @registerLoader loader, ->
-    if definition.noflo.components
-      for name, cPath of definition.noflo.components
-        if cPath.indexOf('.coffee') isnt -1
-          cPath = cPath.replace '.coffee', '.js'
-        if cPath.substr(0, 2) is './'
-          cPath = cPath.substr 2
-        @registerComponent prefix, name, "/#{moduleName}/#{cPath}"
-    if definition.noflo.graphs
-      for name, cPath of definition.noflo.graphs
-        @registerGraph prefix, name, "/#{moduleName}/#{cPath}"
-
   listComponents: (callback) ->
     if @processing
       @once 'ready', =>
@@ -74,16 +32,16 @@ class ComponentLoader extends EventEmitter
 
     @ready = false
     @processing = true
-    setTimeout =>
-      @components = {}
 
-      @getModuleComponents @baseDir
-
+    @components = {}
+    registerLoader.register @, (err) =>
+      if err
+        return callback err if callback
+        throw err
       @processing = false
       @ready = true
       @emit 'ready', true
       callback null, @components if callback
-    , 1
 
   load: (name, callback, metadata) ->
     unless @ready
@@ -128,13 +86,15 @@ class ComponentLoader extends EventEmitter
   # Creates an instance of a component.
   createComponent: (name, component, metadata, callback) ->
     implementation = component
+    unless implementation
+      return callback new Error "Component #{name} not available"
 
     # If a string was specified, attempt to `require` it.
     if typeof implementation is 'string'
-      try
-        implementation = require implementation
-      catch e
-        return callback e
+      if typeof registerLoader.dynamicLoad is 'function'
+        registerLoader.dynamicLoad name, implementation, metadata, callback
+        return
+      return callback Error "Dynamic loading of #{implementation} for component #{name} not available on this platform."
 
     # Attempt to create the component instance using the `getComponent` method.
     if typeof implementation.getComponent is 'function'
@@ -150,23 +110,26 @@ class ComponentLoader extends EventEmitter
     callback null, instance
 
   isGraph: (cPath) ->
+    # Live graph instance
     return true if typeof cPath is 'object' and cPath instanceof nofloGraph.Graph
+    # Graph JSON definition
+    return true if typeof cPath is 'object' and cPath.processes and cPath.connections
     return false unless typeof cPath is 'string'
+    # Graph file path
     cPath.indexOf('.fbp') isnt -1 or cPath.indexOf('.json') isnt -1
 
   loadGraph: (name, component, callback, metadata) ->
-    graphImplementation = require @components['Graph']
-    graphSocket = internalSocket.createSocket()
-    graph = graphImplementation.getComponent metadata
-    graph.loader = @
-    graph.baseDir = @baseDir
-    graph.inPorts.graph.attach graphSocket
-    graph.componentName = name if typeof name is 'string'
-    graphSocket.send component
-    graphSocket.disconnect()
-    graph.inPorts.remove 'graph'
-    @setIcon name, graph
-    callback null, graph
+    @createComponent name, @components['Graph'], metadata, (err, graph) =>
+      return callback err if err
+      graphSocket = internalSocket.createSocket()
+      graph.loader = @
+      graph.baseDir = @baseDir
+      graph.inPorts.graph.attach graphSocket
+      graphSocket.send component
+      graphSocket.disconnect()
+      graph.inPorts.remove 'graph'
+      @setIcon name, graph
+      callback null, graph
 
   setIcon: (name, instance) ->
     # See if component has an icon
@@ -191,6 +154,9 @@ class ComponentLoader extends EventEmitter
       return @libraryIcons[prefix]
     return null
 
+  setLibraryIcon: (prefix, icon) ->
+    @libraryIcons[prefix] = icon
+
   normalizeName: (packageId, name) ->
     prefix = @getModulePrefix packageId
     fullName = "#{prefix}/#{name}"
@@ -209,93 +175,30 @@ class ComponentLoader extends EventEmitter
     loader @, callback
 
   setSource: (packageId, name, source, language, callback) ->
+    unless registerLoader.setSource
+      return callback new Error 'setSource not allowed'
+
     unless @ready
       @listComponents (err) =>
         return callback err if err
         @setSource packageId, name, source, language, callback
       return
 
-    if language is 'coffeescript'
-      unless window.CoffeeScript
-        return callback new Error 'CoffeeScript compiler not available'
-      try
-        source = CoffeeScript.compile source,
-          bare: true
-      catch e
-        return callback e
-    else if language in ['es6', 'es2015']
-      unless window.babel
-        return callback new Error 'Babel compiler not available'
-      try
-        source = babel.transform(source).code
-      catch e
-        return callback e
-
-    # We eval the contents to get a runnable component
-    try
-      # Modify require path for NoFlo since we're inside the NoFlo context
-      source = source.replace "require('noflo')", "require('./NoFlo')"
-      source = source.replace 'require("noflo")', 'require("./NoFlo")'
-
-      # Eval so we can get a function
-      implementation = eval "(function () { var exports = {}; #{source}; return exports; })()"
-    catch e
-      return callback e
-    unless implementation or implementation.getComponent
-      return callback new Error 'Provided source failed to create a runnable component'
-    @registerComponent packageId, name, implementation, ->
-      callback null
+    registerLoader.setSource @, packageId, name, source, language, callback
 
   getSource: (name, callback) ->
+    unless registerLoader.getSource
+      return callback new Error 'getSource not allowed'
     unless @ready
       @listComponents (err) =>
         return callback err if err
         @getSource name, callback
       return
 
-    component = @components[name]
-    unless component
-      # Try an alias
-      for componentName of @components
-        if componentName.split('/')[1] is name
-          component = @components[componentName]
-          name = componentName
-          break
-      unless component
-        return callback new Error "Component #{name} not installed"
-
-    if typeof component isnt 'string'
-      return callback new Error "Can't provide source for #{name}. Not a file"
-
-    nameParts = name.split '/'
-    if nameParts.length is 1
-      nameParts[1] = nameParts[0]
-      nameParts[0] = ''
-
-    if @isGraph component
-      nofloGraph.loadFile component, (err, graph) ->
-        return callback err if err
-        return callback new Error 'Unable to load graph' unless graph
-        callback null,
-          name: nameParts[1]
-          library: nameParts[0]
-          code: JSON.stringify graph.toJSON()
-          language: 'json'
-      return
-
-    path = window.require.resolve component
-    unless path
-      return callback new Error "Component #{name} is not resolvable to a path"
-    callback null,
-      name: nameParts[1]
-      library: nameParts[0]
-      code: window.require.modules[path].toString()
-      language: utils.guessLanguageFromFilename component
+    registerLoader.getSource @, name, callback
 
   clear: ->
     @components = null
-    @checked = []
-    @revalidate = true
     @ready = false
     @processing = false
 
