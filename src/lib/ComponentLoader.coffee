@@ -108,8 +108,12 @@ class ComponentLoader extends EventEmitter
     callback null, instance
 
   isGraph: (cPath) ->
+    # Live graph instance
     return true if typeof cPath is 'object' and cPath instanceof nofloGraph.Graph
+    # Graph JSON definition
+    return true if typeof cPath is 'object' and cPath.processes and cPath.connections
     return false unless typeof cPath is 'string'
+    # Graph file path
     cPath.indexOf('.fbp') isnt -1 or cPath.indexOf('.json') isnt -1
 
   loadGraph: (name, component, callback, metadata) ->
