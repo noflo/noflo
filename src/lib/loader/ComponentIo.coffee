@@ -11,7 +11,6 @@ customLoader =
     dependency = dependencies.shift()
     dependency = dependency.replace '/', '-'
     @getModuleComponents loader, dependency, (err) =>
-      return callback err if err
       @getModuleDependencies loader, dependencies, callback
 
   getModuleComponents: (loader, moduleName, callback) ->
@@ -26,7 +25,7 @@ customLoader =
 
     return callback() unless definition.noflo
 
-    @getModuleDependencies loader, definition.dependencies, (err) ->
+    @getModuleDependencies loader, Object.keys(definition.dependencies), (err) ->
       return callback err if err
 
       prefix = loader.getModulePrefix definition.name
@@ -46,7 +45,8 @@ customLoader =
           loader.registerComponent prefix, name, "/#{moduleName}/#{cPath}"
       if definition.noflo.graphs
         for name, cPath of definition.noflo.graphs
-          loader.registerGraph prefix, name, "/#{moduleName}/#{cPath}"
+          def = require "/#{moduleName}/#{cPath}"
+          loader.registerGraph prefix, name, def
 
       if definition.noflo.loader
         # Run a custom component loader
