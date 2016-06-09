@@ -792,7 +792,7 @@ describe 'Component', ->
       sin1.post new noflo.IP 'data', 'some-data'
 
     it 'should send out string other port if there is only one port aside from error', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           in:
             datatype: 'all'
@@ -814,10 +814,10 @@ describe 'Component', ->
       c.inPorts.in.attach sin1
       c.outPorts.out.attach sout1
 
-      sin1.post new IP 'data', 'first'
+      sin1.post new noflo.IP 'data', 'first'
 
     it 'should send object out other port if there is only one port aside from error', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           in:
             datatype: 'all'
@@ -839,11 +839,11 @@ describe 'Component', ->
       c.inPorts.in.attach sin1
       c.outPorts.out.attach sout1
 
-      sin1.post new IP 'data', 'first'
+      sin1.post new noflo.IP 'data', 'first'
 
     it 'should throw an error if sending without specifying a port and there are multiple ports', (done) ->
       try
-        c = new component.Component
+        c = new noflo.Component
           inPorts:
             in:
               datatype: 'string'
@@ -859,7 +859,7 @@ describe 'Component', ->
             output.sendDone 'test'
 
         c.inPorts.in.attach sin1
-        sin1.post new IP 'data', 'some-data'
+        sin1.post new noflo.IP 'data', 'some-data'
       catch e
         done()
 
