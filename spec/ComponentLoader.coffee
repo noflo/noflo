@@ -196,7 +196,8 @@ describe 'ComponentLoader with no external packages installed', ->
       chai.expect(instance.getIcon()).to.equal 'smile'
 
   describe 'reading sources', ->
-    return @skip() if noflo.isBrowser()
+    before ->
+      return @skip() if noflo.isBrowser()
     it 'should be able to provide source code for a component', (done) ->
       l.getSource 'Graph', (err, component) ->
         return done err if err
@@ -218,7 +219,8 @@ describe 'ComponentLoader with no external packages installed', ->
         done()
 
   describe 'writing sources', ->
-    return @skip() if noflo.isBrowser()
+    before ->
+      return @skip() if noflo.isBrowser()
     describe 'with working code', ->
       workingSource = """
       var noflo = require('noflo');
