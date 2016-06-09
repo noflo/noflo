@@ -41,6 +41,8 @@ module.exports = ->
 
     # Browser build of NoFlo
     noflo_browser:
+      options:
+        baseDir: './'
       build:
         files:
           'browser/noflo.js': ['spec/fixtures/entry.js']
