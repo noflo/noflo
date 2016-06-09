@@ -200,6 +200,7 @@ describe 'ComponentLoader with no external packages installed', ->
 
   describe 'reading sources', ->
     before ->
+      # getSource not implemented in webpack loader yet
       return @skip() if noflo.isBrowser()
     it 'should be able to provide source code for a component', (done) ->
       l.getSource 'Graph', (err, component) ->
@@ -223,6 +224,7 @@ describe 'ComponentLoader with no external packages installed', ->
 
   describe 'writing sources', ->
     before ->
+      # setSource not implemented in webpack loader yet
       return @skip() if noflo.isBrowser()
     describe 'with working code', ->
       workingSource = """
