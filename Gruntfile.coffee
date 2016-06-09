@@ -43,7 +43,7 @@ module.exports = ->
     noflo_browser:
       build:
         files:
-          'browser/noflo.js': ['component.json']
+          'browser/noflo.js': ['spec/fixtures/entry.js']
 
     # Automated recompilation and testing when developing
     watch:
