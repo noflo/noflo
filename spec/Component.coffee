@@ -1026,7 +1026,7 @@ describe 'Component', ->
       sin1.post new noflo.IP 'closeBracket', 'foo'
 
     it 'should not forward brackets if error port is not connected', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           in:
             datatype: 'string'
@@ -1056,9 +1056,9 @@ describe 'Component', ->
         done new Error "Unexpected error IP: #{ip.type} #{ip.data}"
 
       chai.expect ->
-        sin1.post new IP 'openBracket', 'foo'
-        sin1.post new IP 'data', 'bar'
-        sin1.post new IP 'closeBracket', 'foo'
+        sin1.post new noflo.IP 'openBracket', 'foo'
+        sin1.post new noflo.IP 'data', 'bar'
+        sin1.post new noflo.IP 'closeBracket', 'foo'
       .to.not.throw()
 
     it 'should support custom bracket forwarding mappings with auto-ordering', (done) ->
