@@ -4,7 +4,7 @@ if typeof process isnt 'undefined' and process.execPath and process.execPath.mat
   path = require 'path'
   root = path.resolve __dirname, '../'
 else
-  noflo = require 'noflo/src/lib/NoFlo.js'
+  noflo = require 'noflo'
   root = 'noflo'
 
 describe 'NoFlo Network', ->
