@@ -205,9 +205,9 @@ describe 'Component', ->
       chai.expect(c.started).to.equal(false)
       chai.expect(c.isStarted()).to.equal(false)
 
-  describe 'with object-based noflo.IPs', ->
+  describe 'with object-based IPs', ->
 
-    it 'should speak noflo.IP objects', (done) ->
+    it 'should speak IP objects', (done) ->
       c = new noflo.Component
         inPorts:
           in:
@@ -320,7 +320,7 @@ describe 'Component', ->
       sout2 = new noflo.internalSocket.InternalSocket
       done()
 
-    it 'should trigger on noflo.IPs', (done) ->
+    it 'should trigger on IPs', (done) ->
       hadIPs = []
       c = new noflo.Component
         inPorts:
@@ -481,7 +481,7 @@ describe 'Component', ->
       sin2.post new noflo.IP 'data', 'bar',
         groups: ['bar']
 
-    it 'should receive noflo.IPs and be able to selectively find them', (done) ->
+    it 'should receive IPs and be able to selectively find them', (done) ->
       called = 0
       c = new noflo.Component
         inPorts:
@@ -1206,7 +1206,7 @@ describe 'Component', ->
           count: n++
           length: source.length
 
-    it 'should be safe dropping noflo.IPs', (done) ->
+    it 'should be safe dropping IPs', (done) ->
       c = new noflo.Component
         inPorts:
           in:
