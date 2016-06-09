@@ -68,16 +68,16 @@ describe 'ComponentLoader with no external packages installed', ->
     ready = false
     l.once 'ready', ->
       ready = true
-      chai.expect(l.ready).to.equal true
+      chai.expect(l.ready, 'should have the ready bit').to.equal true
     l.listComponents (err, components) ->
       return done err if err
-      chai.expect(l.processing).to.equal false
-      chai.expect(l.components).not.to.be.empty
-      chai.expect(components).to.equal l.components
-      chai.expect(l.ready).to.equal true
-      chai.expect(ready).to.equal true
+      chai.expect(l.processing, 'should have stopped processing').to.equal false
+      chai.expect(l.components, 'should contain components').not.to.be.empty
+      chai.expect(components, 'should have returned the full list').to.equal l.components
+      chai.expect(l.ready, 'should have been set ready').to.equal true
+      chai.expect(ready, 'should have emitted ready').to.equal true
       done()
-    chai.expect(l.processing).to.equal true
+    chai.expect(l.processing, 'should have started processing').to.equal true
 
   describe 'after listing components', ->
     it 'should have the Graph component registered', ->
