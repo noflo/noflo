@@ -1,55 +1,49 @@
 if typeof process isnt 'undefined' and process.execPath and process.execPath.match /node|iojs/
   chai = require 'chai' unless chai
-  helpers = require '../src/lib/Helpers'
-  component = require '../src/lib/Component'
-  socket = require '../src/lib/InternalSocket'
-  Substream = require('../src/lib/Streams').Substream
+  noflo = require '../src/lib/NoFlo.coffee'
 else
-  helpers = require 'noflo/src/lib/Helpers'
-  component = require 'noflo/src/lib/Component'
-  socket = require 'noflo/src/lib/InternalSocket'
-  Substream = require('noflo/src/lib/Streams').Substream
+  noflo = require 'noflo'
 
 describe 'Component traits', ->
   describe 'MapComponent', ->
     c = null
     it 'should pass data to the callback', ->
-      c = new component.Component
+      c = new noflo.Component
       c.inPorts.add 'in'
       c.outPorts.add 'out',
         required: false
-      helpers.MapComponent c, (data) ->
+      noflo.helpers.MapComponent c, (data) ->
         chai.expect(data).to.equal 1
-      s = new socket.createSocket()
+      s = new noflo.internalSocket.createSocket()
       c.inPorts.in.attach s
       s.send 1
     it 'should pass groups to the callback', ->
-      c = new component.Component
+      c = new noflo.Component
       c.inPorts.add 'in'
       c.outPorts.add 'out',
         required: false
-      helpers.MapComponent c, (data, groups) ->
+      noflo.helpers.MapComponent c, (data, groups) ->
         chai.expect(groups).to.eql [
           'one'
           'two'
         ]
         chai.expect(data).to.equal 1
-      s = new socket.createSocket()
+      s = new noflo.internalSocket.createSocket()
       c.inPorts.in.attach s
       s.beginGroup 'one'
       s.beginGroup 'two'
       s.send 1
     it 'should send groups and disconnect through', (done) ->
-      c = new component.Component
+      c = new noflo.Component
       c.inPorts.add 'in'
       c.outPorts.add 'out',
         required: false
-      helpers.MapComponent c, (data, groups, out) ->
+      noflo.helpers.MapComponent c, (data, groups, out) ->
         out.send data * 2
 
-      s = new socket.createSocket()
+      s = new noflo.internalSocket.createSocket()
       c.inPorts.in.attach s
-      s2 = new socket.createSocket()
+      s2 = new noflo.internalSocket.createSocket()
       c.outPorts.out.attach s2
 
       groups = []
@@ -72,7 +66,7 @@ describe 'Component traits', ->
 
   describe 'WirePattern', ->
     describe 'when grouping by packet groups', ->
-      c = new component.Component
+      c = new noflo.Component
       c.inPorts.add 'x',
         required: true
         datatype: 'int'
@@ -83,10 +77,10 @@ describe 'Component traits', ->
         required: true
         datatype: 'int'
       c.outPorts.add 'point'
-      x = new socket.createSocket()
-      y = new socket.createSocket()
-      z = new socket.createSocket()
-      p = new socket.createSocket()
+      x = new noflo.internalSocket.createSocket()
+      y = new noflo.internalSocket.createSocket()
+      z = new noflo.internalSocket.createSocket()
+      p = new noflo.internalSocket.createSocket()
       c.inPorts.x.attach x
       c.inPorts.y.attach y
       c.inPorts.z.attach z
@@ -97,7 +91,7 @@ describe 'Component traits', ->
           111: {x: 1, y: 2, z: 3}
           222: {x: 4, y: 5, z: 6}
           333: {x: 7, y: 8, z: 9}
-        helpers.WirePattern c,
+        noflo.helpers.WirePattern c,
           in: ['x', 'y', 'z']
           out: 'point'
           group: true
@@ -134,7 +128,7 @@ describe 'Component traits', ->
 
       it 'should work without a group provided', (done) ->
         p.removeAllListeners()
-        helpers.WirePattern c,
+        noflo.helpers.WirePattern c,
           in: ['x', 'y', 'z']
           out: 'point'
         , (data, groups, out) ->
@@ -170,7 +164,7 @@ describe 'Component traits', ->
         ]
         outOrder = [ 2, 1, 3 ]
 
-        helpers.WirePattern c,
+        noflo.helpers.WirePattern c,
           in: ['x', 'y', 'z']
           out: 'point'
           group: true
@@ -211,7 +205,7 @@ describe 'Component traits', ->
           y: 456
           z: 789
 
-        helpers.WirePattern c,
+        noflo.helpers.WirePattern c,
           in: ['x', 'y', 'z']
           out: 'point'
           async: true
@@ -255,7 +249,7 @@ describe 'Component traits', ->
         point =
           x: 123
           y: 456
-        helpers.WirePattern c,
+        noflo.helpers.WirePattern c,
           in: ['x', 'y']
           out: 'point'
         , (data, groups, out) ->
@@ -289,7 +283,7 @@ describe 'Component traits', ->
           y: 456
           z: 789
         refGroups = ['boo']
-        helpers.WirePattern c,
+        noflo.helpers.WirePattern c,
           in: ['x', 'y', 'z']
           out: 'point'
           forwardGroups: 'y'
@@ -325,7 +319,7 @@ describe 'Component traits', ->
           y: 456
           z: 789
         refGroups = ['foo', 'bar']
-        helpers.WirePattern c,
+        noflo.helpers.WirePattern c,
           in: ['x', 'y', 'z']
           out: 'point'
           forwardGroups: [ 'x', 'z' ]
@@ -356,7 +350,7 @@ describe 'Component traits', ->
         z.disconnect()
 
     describe 'when `this` context is important', ->
-      c = new component.Component
+      c = new noflo.Component
       c.inPorts.add 'x',
         required: true
         datatype: 'int'
@@ -367,10 +361,10 @@ describe 'Component traits', ->
         required: true
         datatype: 'int'
       c.outPorts.add 'point'
-      x = new socket.createSocket()
-      y = new socket.createSocket()
-      z = new socket.createSocket()
-      p = new socket.createSocket()
+      x = new noflo.internalSocket.createSocket()
+      y = new noflo.internalSocket.createSocket()
+      z = new noflo.internalSocket.createSocket()
+      p = new noflo.internalSocket.createSocket()
       c.inPorts.x.attach x
       c.inPorts.y.attach y
       c.inPorts.z.attach z
@@ -378,7 +372,7 @@ describe 'Component traits', ->
 
       it 'should correctly bind component to `this` context', (done) ->
         p.removeAllListeners()
-        helpers.WirePattern c,
+        noflo.helpers.WirePattern c,
           in: ['x', 'y', 'z']
           out: 'point'
         , (data, groups, out) ->
@@ -398,7 +392,7 @@ describe 'Component traits', ->
 
       it 'should correctly bind component to `this` context in async mode', (done) ->
         p.removeAllListeners()
-        helpers.WirePattern c,
+        noflo.helpers.WirePattern c,
           in: ['x', 'y', 'z']
           async: true
           out: 'point'
@@ -418,22 +412,22 @@ describe 'Component traits', ->
         z.disconnect()
 
     describe 'when in async mode and packet order matters', ->
-      c = new component.Component
+      c = new noflo.Component
       c.inPorts.add 'delay', datatype: 'int'
       .add 'msg', datatype: 'string'
       c.outPorts.add 'out', datatype: 'object'
       .add 'load', datatype: 'int'
-      delay = new socket.createSocket()
-      msg = new socket.createSocket()
-      out = new socket.createSocket()
-      load = new socket.createSocket()
+      delay = new noflo.internalSocket.createSocket()
+      msg = new noflo.internalSocket.createSocket()
+      out = new noflo.internalSocket.createSocket()
+      load = new noflo.internalSocket.createSocket()
       c.inPorts.delay.attach delay
       c.inPorts.msg.attach msg
       c.outPorts.out.attach out
       c.outPorts.load.attach load
 
       it 'should preserve input order at the output', (done) ->
-        helpers.WirePattern c,
+        noflo.helpers.WirePattern c,
           in: ['delay', 'msg']
           async: true
           ordered: true
@@ -474,7 +468,7 @@ describe 'Component traits', ->
 
       it 'should throw if receiveStreams is used', (done) ->
         f = ->
-          helpers.WirePattern c,
+          noflo.helpers.WirePattern c,
             in: ['delay', 'msg']
             async: true
             ordered: true
@@ -488,7 +482,7 @@ describe 'Component traits', ->
 
       it 'should throw if sendStreams is used', (done) ->
         f = ->
-          helpers.WirePattern c,
+          noflo.helpers.WirePattern c,
             in: ['delay', 'msg']
             async: true
             ordered: true
@@ -583,19 +577,19 @@ describe 'Component traits', ->
       #     msg.disconnect()
 
     describe 'when grouping by field', ->
-      c = new component.Component
+      c = new noflo.Component
       c.inPorts.add 'user', datatype: 'object'
       .add 'message', datatype: 'object'
       c.outPorts.add 'signedmessage'
-      usr = new socket.createSocket()
-      msg = new socket.createSocket()
-      umsg = new socket.createSocket()
+      usr = new noflo.internalSocket.createSocket()
+      msg = new noflo.internalSocket.createSocket()
+      umsg = new noflo.internalSocket.createSocket()
       c.inPorts.user.attach usr
       c.inPorts.message.attach msg
       c.outPorts.signedmessage.attach umsg
 
       it 'should match objects by specific field', (done) ->
-        helpers.WirePattern c,
+        noflo.helpers.WirePattern c,
           in: ['user', 'message']
           out: 'signedmessage'
           async: true
@@ -642,15 +636,15 @@ describe 'Component traits', ->
             , req
 
     describe 'when there are multiple output routes', ->
-      c = new component.Component
+      c = new noflo.Component
       c.inPorts.add 'num', datatype: 'int'
       .add 'str', datatype: 'string'
       c.outPorts.add 'odd', datatype: 'object'
       .add 'even', datatype: 'object'
-      num = new socket.createSocket()
-      str = new socket.createSocket()
-      odd = new socket.createSocket()
-      even = new socket.createSocket()
+      num = new noflo.internalSocket.createSocket()
+      str = new noflo.internalSocket.createSocket()
+      odd = new noflo.internalSocket.createSocket()
+      even = new noflo.internalSocket.createSocket()
       c.inPorts.num.attach num
       c.inPorts.str.attach str
       c.outPorts.odd.attach odd
@@ -659,7 +653,7 @@ describe 'Component traits', ->
       it 'should send output to one or more of them', (done) ->
         numbers = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve']
 
-        helpers.WirePattern c,
+        noflo.helpers.WirePattern c,
           in: ['num', 'str']
           out: ['odd', 'even']
           async: true
@@ -712,7 +706,7 @@ describe 'Component traits', ->
       c = null
       p1 = p2 = p3 = d1 = d2 = out = err = 0
       beforeEach ->
-        c = new component.Component
+        c = new noflo.Component
         c.inPorts.add 'param1',
           datatype: 'string'
           required: true
@@ -731,13 +725,13 @@ describe 'Component traits', ->
           datatype: 'object'
         .add 'error',
           datatype: 'object'
-        p1 = new socket.createSocket()
-        p2 = new socket.createSocket()
-        p3 = new socket.createSocket()
-        d1 = new socket.createSocket()
-        d2 = new socket.createSocket()
-        out = new socket.createSocket()
-        err = new socket.createSocket()
+        p1 = new noflo.internalSocket.createSocket()
+        p2 = new noflo.internalSocket.createSocket()
+        p3 = new noflo.internalSocket.createSocket()
+        d1 = new noflo.internalSocket.createSocket()
+        d2 = new noflo.internalSocket.createSocket()
+        out = new noflo.internalSocket.createSocket()
+        err = new noflo.internalSocket.createSocket()
         c.inPorts.param1.attach p1
         c.inPorts.param2.attach p2
         c.inPorts.param3.attach p3
@@ -747,7 +741,7 @@ describe 'Component traits', ->
         c.outPorts.error.attach err
 
       it 'should wait for required params without default value', (done) ->
-        helpers.WirePattern c,
+        noflo.helpers.WirePattern c,
           in: ['data1', 'data2']
           out: 'out'
           params: ['param1', 'param2', 'param3']
@@ -799,7 +793,7 @@ describe 'Component traits', ->
         , 10
 
       it 'should work for async procs too', (done) ->
-        helpers.WirePattern c,
+        noflo.helpers.WirePattern c,
           in: ['data1', 'data2']
           out: 'out'
           params: ['param1', 'param2', 'param3']
@@ -836,7 +830,7 @@ describe 'Component traits', ->
         # the handler should be triggered here
 
       it 'should reset state if shutdown() is called', (done) ->
-        helpers.WirePattern c,
+        noflo.helpers.WirePattern c,
           in: ['data1', 'data2']
           out: 'out'
           params: ['param1', 'param2', 'param3']
@@ -864,7 +858,7 @@ describe 'Component traits', ->
         done()
 
       it 'should drop premature data if configured to do so', (done) ->
-        helpers.WirePattern c,
+        noflo.helpers.WirePattern c,
           in: ['data1', 'data2']
           out: 'out'
           params: ['param1', 'param2', 'param3']
@@ -909,12 +903,12 @@ describe 'Component traits', ->
 
 
     describe 'without output ports', ->
-      c = new component.Component
+      c = new noflo.Component
       c.inPorts.add 'foo'
-      foo = socket.createSocket()
-      sig = socket.createSocket()
+      foo = noflo.internalSocket.createSocket()
+      sig = noflo.internalSocket.createSocket()
       c.inPorts.foo.attach foo
-      helpers.WirePattern c,
+      noflo.helpers.WirePattern c,
         in: 'foo'
         out: []
         async: true
@@ -933,7 +927,7 @@ describe 'Component traits', ->
         foo.disconnect()
 
     describe 'when data processing is not possible at the moment', ->
-      c = new component.Component
+      c = new noflo.Component
       c.inPorts.add 'line', datatype: 'string'
       .add 'repeat', datatype: 'int'
       .add 'when',
@@ -941,11 +935,11 @@ describe 'Component traits', ->
         default: 'later'
       c.outPorts.add 'res', datatype: 'string'
       .add 'error', datatype: 'object'
-      line = socket.createSocket()
-      rpt = socket.createSocket()
-      whn = socket.createSocket()
-      res = socket.createSocket()
-      err = socket.createSocket()
+      line = noflo.internalSocket.createSocket()
+      rpt = noflo.internalSocket.createSocket()
+      whn = noflo.internalSocket.createSocket()
+      res = noflo.internalSocket.createSocket()
+      err = noflo.internalSocket.createSocket()
       c.inPorts.line.attach line
       c.inPorts.repeat.attach rpt
       c.inPorts.when.attach whn
@@ -954,7 +948,7 @@ describe 'Component traits', ->
 
       c.invCount = 0
       tryAgain = null
-      helpers.WirePattern c,
+      noflo.helpers.WirePattern c,
         in: ['line', 'repeat']
         params: 'when'
         out: 'res'
@@ -1045,7 +1039,7 @@ describe 'Component traits', ->
         , 30
 
     describe 'with many inputs and groups', ->
-      c = new component.Component
+      c = new noflo.Component
       c.token = null
       c.inPorts.add 'in', datatype: 'string'
       .add 'message', datatype: 'string'
@@ -1056,7 +1050,7 @@ describe 'Component traits', ->
       c.outPorts.add 'out', datatype: 'string'
       .add 'error', datatype: 'object'
 
-      helpers.WirePattern c,
+      noflo.helpers.WirePattern c,
         in: ['in', 'message', 'repository', 'path']
         out: 'out'
         async: true
@@ -1070,13 +1064,13 @@ describe 'Component traits', ->
           do callback
         , 300
 
-      ins = socket.createSocket()
-      msg = socket.createSocket()
-      rep = socket.createSocket()
-      pth = socket.createSocket()
-      tkn = socket.createSocket()
-      out = socket.createSocket()
-      err = socket.createSocket()
+      ins = noflo.internalSocket.createSocket()
+      msg = noflo.internalSocket.createSocket()
+      rep = noflo.internalSocket.createSocket()
+      pth = noflo.internalSocket.createSocket()
+      tkn = noflo.internalSocket.createSocket()
+      out = noflo.internalSocket.createSocket()
+      err = noflo.internalSocket.createSocket()
       c.inPorts.in.attach ins
       c.inPorts.message.attach msg
       c.inPorts.repository.attach rep
@@ -1138,10 +1132,10 @@ describe 'Component traits', ->
     describe 'for batch processing', ->
       # Component constructors
       newGenerator = (name) ->
-        generator = new component.Component
+        generator = new noflo.Component
         generator.inPorts.add 'count', datatype: 'int'
         generator.outPorts.add 'seq', datatype: 'int'
-        helpers.WirePattern generator,
+        noflo.helpers.WirePattern generator,
           in: 'count'
           out: 'seq'
           async: true
@@ -1159,10 +1153,10 @@ describe 'Component traits', ->
                   callback()
               , delay
       newDoubler = (name) ->
-        doubler = new component.Component
+        doubler = new noflo.Component
         doubler.inPorts.add 'num', datatype: 'int'
         doubler.outPorts.add 'out', datatype: 'int'
-        helpers.WirePattern doubler,
+        noflo.helpers.WirePattern doubler,
           in: 'num'
           out: 'out'
           forwardGroups: true
@@ -1170,11 +1164,11 @@ describe 'Component traits', ->
           dbl = 2*num
           out.send dbl
       newAdder = ->
-        adder = new component.Component
+        adder = new noflo.Component
         adder.inPorts.add 'num1', datatype: 'int'
         adder.inPorts.add 'num2', datatype: 'int'
         adder.outPorts.add 'sum', datatype: 'int'
-        helpers.WirePattern adder,
+        noflo.helpers.WirePattern adder,
           in: ['num1', 'num2']
           out: 'sum'
           forwardGroups: true
@@ -1188,7 +1182,7 @@ describe 'Component traits', ->
             callback()
           , sum % 10
       newSeqsum = ->
-        seqsum = new component.Component
+        seqsum = new noflo.Component
         seqsum.sum = 0
         seqsum.inPorts.add 'seq', datatype: 'int', (event, payload) ->
           switch event
@@ -1208,14 +1202,14 @@ describe 'Component traits', ->
       dblB = newDoubler 'B'
       addr = newAdder()
       sumr = newSeqsum()
-      cntA = socket.createSocket()
-      cntB = socket.createSocket()
-      gen2dblA = socket.createSocket()
-      gen2dblB = socket.createSocket()
-      dblA2add = socket.createSocket()
-      dblB2add = socket.createSocket()
-      addr2sum = socket.createSocket()
-      sum = socket.createSocket()
+      cntA = noflo.internalSocket.createSocket()
+      cntB = noflo.internalSocket.createSocket()
+      gen2dblA = noflo.internalSocket.createSocket()
+      gen2dblB = noflo.internalSocket.createSocket()
+      dblA2add = noflo.internalSocket.createSocket()
+      dblB2add = noflo.internalSocket.createSocket()
+      addr2sum = noflo.internalSocket.createSocket()
+      sum = noflo.internalSocket.createSocket()
 
       genA.inPorts.count.attach cntA
       genB.inPorts.count.attach cntB
@@ -1255,15 +1249,15 @@ describe 'Component traits', ->
         cntB.disconnect()
 
     describe 'for batch processing with groups', ->
-      c1 = new component.Component
+      c1 = new noflo.Component
       c1.inPorts.add 'count', datatype: 'int'
       c1.outPorts.add 'seq', datatype: 'int'
-      c2 = new component.Component
+      c2 = new noflo.Component
       c2.inPorts.add 'num', datatype: 'int'
       c2.outPorts.add 'out', datatype: 'int'
-      cnt = socket.createSocket()
-      c1c2 = socket.createSocket()
-      out = socket.createSocket()
+      cnt = noflo.internalSocket.createSocket()
+      c1c2 = noflo.internalSocket.createSocket()
+      out = noflo.internalSocket.createSocket()
 
       c1.inPorts.count.attach cnt
       c1.outPorts.seq.attach c1c2
@@ -1271,7 +1265,7 @@ describe 'Component traits', ->
       c2.outPorts.out.attach out
 
       it 'should wrap entire sequence with groups', (done) ->
-        helpers.WirePattern c1,
+        noflo.helpers.WirePattern c1,
           in: 'count'
           out: 'seq'
           async: true
@@ -1286,7 +1280,7 @@ describe 'Component traits', ->
             callback()
           , 3
 
-        helpers.WirePattern c2,
+        noflo.helpers.WirePattern c2,
           in: 'num'
           out: 'out'
           forwardGroups: true
@@ -1314,7 +1308,7 @@ describe 'Component traits', ->
         cnt.disconnect()
 
     describe 'with addressable ports', ->
-      c = new component.Component
+      c = new noflo.Component
       c.inPorts.add 'p1',
         datatype: 'int'
         addressable: true
@@ -1328,15 +1322,15 @@ describe 'Component traits', ->
         datatype: 'object'
       .add 'error',
         datatype: 'object'
-      p11 = socket.createSocket()
-      p12 = socket.createSocket()
-      p13 = socket.createSocket()
-      d11 = socket.createSocket()
-      d12 = socket.createSocket()
-      d13 = socket.createSocket()
-      d2 = socket.createSocket()
-      out = socket.createSocket()
-      err = socket.createSocket()
+      p11 = noflo.internalSocket.createSocket()
+      p12 = noflo.internalSocket.createSocket()
+      p13 = noflo.internalSocket.createSocket()
+      d11 = noflo.internalSocket.createSocket()
+      d12 = noflo.internalSocket.createSocket()
+      d13 = noflo.internalSocket.createSocket()
+      d2 = noflo.internalSocket.createSocket()
+      out = noflo.internalSocket.createSocket()
+      err = noflo.internalSocket.createSocket()
       c.inPorts.p1.attach p11
       c.inPorts.p1.attach p12
       c.inPorts.p1.attach p13
@@ -1348,7 +1342,7 @@ describe 'Component traits', ->
       c.outPorts.error.attach err
 
       it 'should wait for all param and any data port values (default)', (done) ->
-        helpers.WirePattern c,
+        noflo.helpers.WirePattern c,
           in: ['d1', 'd2']
           params: 'p1'
           out: 'out'
@@ -1373,7 +1367,7 @@ describe 'Component traits', ->
         p13.disconnect()
 
       it 'should wait for any param and all data values', (done) ->
-        helpers.WirePattern c,
+        noflo.helpers.WirePattern c,
           in: ['d1', 'd2']
           params: 'p1'
           out: 'out'
@@ -1405,7 +1399,7 @@ describe 'Component traits', ->
         p13.disconnect()
 
       it 'should wait for all indexes of a single input', (done) ->
-        helpers.WirePattern c,
+        noflo.helpers.WirePattern c,
           in: 'd1'
           out: 'out'
           arrayPolicy:
@@ -1422,34 +1416,34 @@ describe 'Component traits', ->
         d13.disconnect()
 
       it 'should behave normally with string output from another component', (done) ->
-        c = new component.Component
+        c = new noflo.Component
         c.inPorts.add 'd1',
           datatype: 'string'
           addressable: true
         c.outPorts.add 'out',
           datatype: 'object'
-        d11 = socket.createSocket()
-        d12 = socket.createSocket()
-        d13 = socket.createSocket()
-        out = socket.createSocket()
+        d11 = noflo.internalSocket.createSocket()
+        d12 = noflo.internalSocket.createSocket()
+        d13 = noflo.internalSocket.createSocket()
+        out = noflo.internalSocket.createSocket()
         c.inPorts.d1.attach d11
         c.inPorts.d1.attach d12
         c.inPorts.d1.attach d13
         c.outPorts.out.attach out
-        c2 = new component.Component
+        c2 = new noflo.Component
         c2.inPorts.add 'in', datatype: 'string'
         c2.outPorts.add 'out', datatype: 'string'
-        helpers.WirePattern c2,
+        noflo.helpers.WirePattern c2,
           in: 'in'
           out: 'out'
           forwardGroups: true
         , (input, groups, out) ->
           out.send input
-        d3 = socket.createSocket()
+        d3 = noflo.internalSocket.createSocket()
         c2.inPorts.in.attach d3
         c2.outPorts.out.attach d11
 
-        helpers.WirePattern c,
+        noflo.helpers.WirePattern c,
           in: 'd1'
           out: 'out'
         , (input, groups, out) ->
@@ -1460,13 +1454,13 @@ describe 'Component traits', ->
         d3.disconnect()
 
     describe 'when grouping requests', ->
-      c = new component.Component
+      c = new noflo.Component
       c.inPorts.add 'x', datatype: 'int'
       .add 'y', datatype: 'int'
       c.outPorts.add 'out', datatype: 'object'
-      x = socket.createSocket()
-      y = socket.createSocket()
-      out = socket.createSocket()
+      x = noflo.internalSocket.createSocket()
+      y = noflo.internalSocket.createSocket()
+      out = noflo.internalSocket.createSocket()
       c.inPorts.x.attach x
       c.inPorts.y.attach y
       c.outPorts.out.attach out
@@ -1518,7 +1512,7 @@ describe 'Component traits', ->
                 y.disconnect()
             , delay*req.num
 
-      helpers.WirePattern c,
+      noflo.helpers.WirePattern c,
         in: ['x', 'y']
         out: 'out'
         async: true
@@ -1564,22 +1558,22 @@ describe 'Component traits', ->
 
   describe 'MultiError', ->
     describe 'with simple sync processes', ->
-      c = new component.Component
+      c = new noflo.Component
       c.inPorts.add 'form', datatype: 'object', (event, payload) ->
         return unless event is 'data'
         # Validate form
         unless payload.name and payload.name.match /^\w{3,16}$/
-          c.error helpers.CustomError 'Incorrect name',
+          c.error noflo.helpers.CustomError 'Incorrect name',
             kind: 'form_error'
             code: 'invalid_name'
             param: 'name'
         unless payload.email and payload.email.match /^\w+@\w+\.\w+$/
-          c.error helpers.CustomError 'Incorrect email',
+          c.error noflo.helpers.CustomError 'Incorrect email',
             kind: 'form_error'
             code: 'invalid_email'
             param: 'email'
         unless payload.accept
-          c.error helpers.CustomError 'Terms have to be accepted',
+          c.error noflo.helpers.CustomError 'Terms have to be accepted',
             kind: 'form_error'
             code: 'terms_not_accepted'
             param: 'accept'
@@ -1591,7 +1585,7 @@ describe 'Component traits', ->
           # oops
           c.outPorts.saved.send false
           c.outPorts.saved.disconnect()
-          return c.fail helpers.CustomError 'Suspended for a meditation',
+          return c.fail noflo.helpers.CustomError 'Suspended for a meditation',
             kind: 'runtime_error'
             code: 'delay_lama_detected'
         else
@@ -1600,13 +1594,13 @@ describe 'Component traits', ->
 
       c.outPorts.add 'saved', datatype: 'boolean'
       c.outPorts.add 'error', datatype: 'object'
-      form = new socket.createSocket()
-      saved = new socket.createSocket()
-      err = new socket.createSocket()
+      form = new noflo.internalSocket.createSocket()
+      saved = new noflo.internalSocket.createSocket()
+      err = new noflo.internalSocket.createSocket()
       c.inPorts.form.attach form
       c.outPorts.saved.attach saved
       c.outPorts.error.attach err
-      helpers.MultiError c
+      noflo.helpers.MultiError c
 
       it 'should support multiple customized error messages', (done) ->
         errCount = 0
@@ -1664,17 +1658,17 @@ describe 'Component traits', ->
         form.disconnect()
 
     describe 'with async processes and groups', ->
-      c = new component.Component
+      c = new noflo.Component
       c.inPorts.add 'form', datatype: 'object'
       c.outPorts.add 'saved', datatype: 'boolean'
       c.outPorts.add 'error', datatype: 'object'
-      form = new socket.createSocket()
-      saved = new socket.createSocket()
-      err = new socket.createSocket()
+      form = new noflo.internalSocket.createSocket()
+      saved = new noflo.internalSocket.createSocket()
+      err = new noflo.internalSocket.createSocket()
       c.inPorts.form.attach form
       c.outPorts.saved.attach saved
       c.outPorts.error.attach err
-      helpers.WirePattern c,
+      noflo.helpers.WirePattern c,
         in: 'form'
         out: 'saved'
         async: true
@@ -1683,19 +1677,19 @@ describe 'Component traits', ->
       , (payload, groups, out, callback) ->
         # Validate form
         unless payload.name and payload.name.match /^\w{3,16}$/
-          this.error helpers.CustomError('Incorrect name',
+          this.error noflo.helpers.CustomError('Incorrect name',
             kind: 'form_error'
             code: 'invalid_name'
             param: 'name'
           ), ['e1']
         unless payload.email and payload.email.match /^\w+@\w+\.\w+$/
-          this.error helpers.CustomError('Incorrect email',
+          this.error noflo.helpers.CustomError('Incorrect email',
             kind: 'form_error'
             code: 'invalid_email'
             param: 'email'
           ), ['e2']
         unless payload.accept
-          this.error helpers.CustomError('Terms have to be accepted',
+          this.error noflo.helpers.CustomError('Terms have to be accepted',
             kind: 'form_error'
             code: 'terms_not_accepted'
             param: 'accept'
@@ -1708,7 +1702,7 @@ describe 'Component traits', ->
           if payload.name is 'DelayLama'
             # oops
             out.send false
-            return callback helpers.CustomError 'Suspended for a meditation',
+            return callback noflo.helpers.CustomError 'Suspended for a meditation',
               kind: 'runtime_error'
               code: 'delay_lama_detected'
           else
@@ -1792,12 +1786,12 @@ describe 'Component traits', ->
         form.disconnect()
 
       it 'should reset state if component is shut down', (done) ->
-        c2 = new component.Component
+        c2 = new noflo.Component
         c2.inPorts.add 'name', datatype: 'string', (event, payload) ->
           return unless event is 'data'
           c2.error new Error "The name will never pass!"
-        helpers.MultiError c2
-        ins = new socket.createSocket()
+        noflo.helpers.MultiError c2
+        ins = new noflo.internalSocket.createSocket()
         c2.inPorts.name.attach ins
 
         ins.send 'Norman'

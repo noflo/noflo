@@ -1,25 +1,28 @@
 if typeof process isnt 'undefined' and process.execPath and process.execPath.match /node|iojs/
   chai = require 'chai' unless chai
-  subgraph = require '../src/components/Graph.coffee'
-  graph = require '../src/lib/Graph.coffee'
   noflo = require '../src/lib/NoFlo.coffee'
   path = require 'path'
   root = path.resolve __dirname, '../'
   urlPrefix = './'
 else
-  subgraph = require 'noflo/src/components/Graph.js'
-  graph = require 'noflo/src/lib/Graph.js'
-  noflo = require 'noflo/src/lib/NoFlo.js'
+  noflo = require 'noflo'
   root = 'noflo'
   urlPrefix = '/'
 
 describe 'Graph component', ->
   c = null
   g = null
-  beforeEach ->
-    c = subgraph.getComponent()
-    g = noflo.internalSocket.createSocket()
-    c.inPorts.graph.attach g
+  loader = null
+  before (done) ->
+    loader = new noflo.ComponentLoader root
+    loader.listComponents done
+  beforeEach (done) ->
+    loader.load 'Graph', (err, instance) ->
+      return done err if err
+      c = instance
+      g = noflo.internalSocket.createSocket()
+      c.inPorts.graph.attach g
+      done()
 
   class Split extends noflo.Component
     constructor: ->
@@ -49,8 +52,8 @@ describe 'Graph component', ->
       chai.expect(c.ready).to.be.true
     it 'should not contain a network', ->
       chai.expect(c.network).to.be.null
-    it 'should not have a baseDir', ->
-      chai.expect(c.baseDir).to.be.null
+    it 'should have a baseDir', ->
+      chai.expect(c.baseDir).to.equal root
     it 'should only have the graph inport', ->
       chai.expect(c.inPorts.ports).to.have.keys ['graph']
       chai.expect(c.outPorts.ports).to.be.empty
@@ -200,7 +203,7 @@ describe 'Graph component', ->
         ]
 
   describe 'with a Graph instance', ->
-    gr = new graph.Graph 'Hello, world'
+    gr = new noflo.Graph 'Hello, world'
     gr.baseDir = root
     gr.addNode 'Split', 'Split'
     gr.addNode 'Merge', 'Merge'
