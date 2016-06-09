@@ -21,6 +21,12 @@ class InternalSocket extends EventEmitter
       @emit event, data
     catch error
       throw error if @listeners('error').length is 0
+
+      if error.id and error.metadata
+        # Wrapped debuggable error coming from downstream, no need to wrap
+        @emit 'error', error
+        return
+
       @emit 'error',
         id: @to.process.id
         error: error
@@ -227,6 +233,7 @@ class InternalSocket extends EventEmitter
     @emitEvent 'ip', ip
 
     # Emit the legacy event
+    return unless ip and ip.type
     legacyEvent = @ipToLegacy ip
     @emitEvent legacyEvent.event, legacyEvent.payload
 

@@ -1,7 +1,13 @@
 NoFlo ChangeLog
 ===============
 
-## 0.7.6 (git master)
+## 0.7.7 (June 8th 2016)
+
+* `input.has` now accepts a validation callback function as the last argument. All packets in buffer will be passed to this function, and `has` will return false only if something returns true for each port specified
+* Removed `dropEmptyBrackets` option which was conflicting with asynchronous components. This results into empty brackets being forwarded to `error` outport, so make sure error handling components don't make false alerts on those.
+* ComponentLoader was refactored to allow easier injection of custom loaders when dealing with bundling tools like Browserify and Webpack
+
+## 0.7.6 (June 2nd 2016)
 
 * Fixed ComponentLoader caching on Node.js
 * Added support for `stream` datatype in ports, allowing streams to be passed as data packets
@@ -36,6 +42,8 @@ NoFlo ChangeLog
 ## 0.7.0 (March 31st 2016)
 
 * Switched component discovery and caching from `read-installed` to [FBP manifest](https://github.com/flowbased/fbp-manifest). `fbp.json` files can be generated using `noflo-cache-preheat`.
+  This also changes behavior related to components or graphs in custom locations. The fbp-manifest tool only finds them from the default `components/` and `graphs/` subdirectories of the project
+  base directory.
 * Component Loader `listComponents` can now return errors as first callback argument
 * Control ports don't receive bracket IPs, only data
 * NoFlo's InternalSocket now always handles information packets as IP Objects, with conversion to/from legacy packet events done automatically. Use `socket.on('ip', function (ip) {})` to receive IP object

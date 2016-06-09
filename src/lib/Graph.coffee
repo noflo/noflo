@@ -781,6 +781,9 @@ class Graph extends EventEmitter
     json
 
   save: (file, callback) ->
+    if platform.isBrowser()
+      return callback new Error "Saving graphs not supported on browser"
+
     json = JSON.stringify @toJSON(), null, 4
     require('fs').writeFile "#{file}.json", json, "utf-8", (err, data) ->
       throw err if err
@@ -876,19 +879,13 @@ exports.loadHTTP = (url, callback) ->
 
 exports.loadFile = (file, callback, metadata = {}, caseSensitive = false) ->
   if platform.isBrowser()
-    try
-      # Graph exposed via Component packaging
-      definition = require file
-    catch e
-      # Graph available via HTTP
-      exports.loadHTTP file, (err, data) ->
-        return callback err if err
-        if file.split('.').pop() is 'fbp'
-          return exports.loadFBP data, callback, metadata
-        definition = JSON.parse data
-        exports.loadJSON definition, callback, metadata
-      return
-    exports.loadJSON definition, callback, metadata
+    # On browser we can try getting the file via AJAX
+    exports.loadHTTP file, (err, data) ->
+      return callback err if err
+      if file.split('.').pop() is 'fbp'
+        return exports.loadFBP data, callback, metadata
+      definition = JSON.parse data
+      exports.loadJSON definition, callback, metadata
     return
   # Node.js graph file
   require('fs').readFile file, "utf-8", (err, data) ->

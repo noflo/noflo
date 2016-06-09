@@ -17,11 +17,11 @@ module.exports = ->
         src: ['**.coffee']
         dest: 'components'
         ext: '.js'
-      libraries_nodejs:
+      libraries_loaders:
         expand: true
-        cwd: 'src/lib/nodejs'
+        cwd: 'src/lib/loader'
         src: ['**.coffee']
-        dest: 'lib/nodejs'
+        dest: 'lib/loader'
         ext: '.js'
       spec:
         options:

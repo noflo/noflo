@@ -32,21 +32,15 @@ class Component extends EventEmitter
 
     @started = false
     @load = 0
-    @ordered = false
-    @autoOrdering = false
+    @ordered = options.ordered ? false
+    @autoOrdering = options.autoOrdering ? null
     @outputQ = []
-    @activateOnInput = true
+    @activateOnInput = options.activateOnInput ? true
     @forwardBrackets = in: ['out', 'error']
     @bracketCounter = {}
-    @dropEmptyBrackets = ['error']
-
-    @ordered = options.ordered if 'ordered' of options
-    @activateOnInput = options.activateOnInput if 'activateOnInput' of options
 
     if 'forwardBrackets' of options
       @forwardBrackets = options.forwardBrackets
-    if 'dropEmptyBrackets' of options
-      @dropEmptyBrackets = options.dropEmptyBrackets
 
     if typeof options.process is 'function'
       @process options.process
@@ -94,10 +88,6 @@ class Component extends EventEmitter
       else
         @forwardBrackets[inPort] = tmp
         @bracketCounter[inPort] = 0
-    tmp = []
-    for outPort in @dropEmptyBrackets
-      tmp.push outPort if outPort of @outPorts.ports
-    @dropEmptyBrackets = tmp
 
   # Sets process handler function
   process: (handle) ->
@@ -117,13 +107,13 @@ class Component extends EventEmitter
   # Handles an incoming IP object
   handleIP: (ip, port) ->
     if ip.type is 'openBracket'
-      @autoOrdering = true unless @autoOrdering
+      @autoOrdering = true if @autoOrdering is null
       @bracketCounter[port.name]++
     if port.name of @forwardBrackets and
     (ip.type is 'openBracket' or ip.type is 'closeBracket')
       # Bracket forwarding
       outputEntry =
-        __resolved: ip.type is 'closeBracket' or not @dropEmptyBrackets.length
+        __resolved: true
         __forwarded: true
         __type: ip.type
         __scope: ip.scope
@@ -131,28 +121,6 @@ class Component extends EventEmitter
         outputEntry[outPort] = [] unless outPort of outputEntry
         outputEntry[outPort].push ip
       port.buffer.pop()
-      # Drop empty brackets if needed
-      if ip.type is 'closeBracket' and @dropEmptyBrackets.length
-        haveData = []
-        for i in [@outputQ.length - 1..0]
-          entry = @outputQ[i]
-          if '__forwarded' of entry
-            if entry.__type is 'openBracket' and not entry.__resolved and
-            entry.__scope is ip.scope
-              for port, ips of entry
-                if haveData.indexOf(port) is -1 and
-                @dropEmptyBrackets.indexOf(port) isnt -1
-                  delete entry[port]
-                  delete outputEntry[port]
-              entry.__resolved = true
-              break
-          else
-            for port, ips of entry
-              continue if port.indexOf('__') is 0 or haveData.indexOf(port) >= 0
-              for _ip in ips
-                if _ip.scope is ip.scope
-                  haveData.push port
-                  break
       @outputQ.push outputEntry
       @processOutputQueue()
       return
@@ -178,13 +146,14 @@ class Component extends EventEmitter
       if @bracketCounter[port] isnt 0
         bracketsClosed = false
         break
-    @autoOrdering = false if bracketsClosed
+    @autoOrdering = null if bracketsClosed and @autoOrdering is true
 
 exports.Component = Component
 
 class ProcessInput
   constructor: (@ports, @ip, @nodeInstance, @port, @result) ->
     @scope = @ip.scope
+    @buffer = new PortBuffer(@)
 
   # Sets component state to `activated`
   activate: ->
@@ -193,15 +162,22 @@ class ProcessInput
       @nodeInstance.outputQ.push @result
 
   # Returns true if a port (or ports joined by logical AND) has a new IP
-  has: (port = 'in') ->
-    args = if arguments.length is 0 then [port] else arguments
+  # Passing a validation callback as a last argument allows more selective
+  # checking of packets.
+  has: (args...) ->
+    args = ['in'] unless args.length
+    if typeof args[args.length - 1] is 'function'
+      validate = args.pop()
+      for port in args
+        return false unless @ports[port].has @scope, validate
+      return true
     res = true
     res and= @ports[port].ready @scope for port in args
     res
 
   # Fetches IP object(s) for port(s)
-  get: (port = 'in') ->
-    args = if arguments.length is 0 then [port] else arguments
+  get: (args...) ->
+    args = ['in'] unless args.length
     if (@nodeInstance.ordered or @nodeInstance.autoOrdering) and
     @nodeInstance.activateOnInput and
     not ('__resolved' of @result)
@@ -210,12 +186,63 @@ class ProcessInput
     if args.length is 1 then res[0] else res
 
   # Fetches `data` property of IP object(s) for given port(s)
-  getData: (port = 'in') ->
-    args = if arguments.length is 0 then [port] else arguments
+  getData: (args...) ->
+    args = ['in'] unless args.length
     ips = @get.apply this, args
     if args.length is 1
       return ips?.data ? undefined
     (ip?.data ? undefined for ip in ips)
+
+class PortBuffer
+  constructor: (@context) ->
+
+  set: (name, buffer) ->
+    if name? and typeof name isnt 'string'
+      buffer = name
+      name = null
+
+    if @context.scope?
+      if name?
+        @context.ports[name].scopedBuffer[@context.scope] = buffer
+        return @context.ports[name].scopedBuffer[@context.scope]
+      @context.port.scopedBuffer[@context.scope] = buffer
+      return @context.port.scopedBuffer[@context.scope]
+
+    if name?
+      @context.ports[name].buffer = buffer
+      return @context.ports[name].buffer
+
+    @context.port.buffer = buffer
+    return @context.port.buffer
+
+  # Get a buffer (scoped or not) for a given port
+  # if name is optional, use the current port
+  get: (name = null) ->
+    if @context.scope?
+      if name?
+        return @context.ports[name].scopedBuffer[@context.scope]
+      return @context.port.scopedBuffer[@context.scope]
+
+    if name?
+      return @context.ports[name].buffer
+    return @context.port.buffer
+
+  # Find packets matching a callback and return them without modifying the buffer
+  find: (name, cb) ->
+    b = @get name
+    b.filter cb
+
+  # Find packets and modify the original buffer
+  # cb is a function with 2 arguments (ip, index)
+  filter: (name, cb) ->
+    if name? and typeof name isnt 'string'
+      cb = name
+      name = null
+
+    b = @get name
+    b = b.filter cb
+
+    @set name, b
 
 class ProcessOutput
   constructor: (@ports, @ip, @nodeInstance, @result) ->
@@ -246,8 +273,7 @@ class ProcessOutput
 
   # Sends a single IP object to a port
   sendIP: (port, packet) ->
-    if typeof packet isnt 'object' or
-    IP.types.indexOf(packet.type) is -1
+    if typeof packet isnt 'object' or IP.types.indexOf(packet.type) is -1
       ip = new IP 'data', packet
     else
       ip = packet
@@ -265,6 +291,18 @@ class ProcessOutput
     not ('__resolved' of @result)
       @activate()
     return @error outputMap if @isError outputMap
+
+    componentPorts = []
+    mapIsInPorts = false
+    for port in Object.keys @ports.ports
+      componentPorts.push port if port isnt 'error' and port isnt 'ports' and port isnt '_callbacks'
+      if not mapIsInPorts and typeof outputMap is 'object' and Object.keys(outputMap).indexOf(port) isnt -1
+        mapIsInPorts = true
+
+    if componentPorts.length is 1 and not mapIsInPorts
+      @sendIP componentPorts[0], outputMap
+      return
+
     for port, packet of outputMap
       @sendIP port, packet
 
