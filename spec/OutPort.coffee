@@ -1,21 +1,19 @@
-chai = require 'chai' unless chai
 if typeof process isnt 'undefined' and process.execPath and process.execPath.match /node|iojs/
-  outport = require '../src/lib/OutPort'
-  socket = require '../src/lib/InternalSocket'
+  chai = require 'chai' unless chai
+  noflo = require '../src/lib/NoFlo.coffee'
 else
-  outport = require 'noflo/src/lib/OutPort.js'
-  socket = require 'noflo/src/lib/InternalSocket.js'
+  noflo = require 'noflo'
 
 describe 'Outport Port', ->
   describe 'with addressable ports', ->
     s1 = s2 = s3 = null
     beforeEach ->
-      s1 = new socket.InternalSocket
-      s2 = new socket.InternalSocket
-      s3 = new socket.InternalSocket
+      s1 = new noflo.internalSocket.InternalSocket
+      s2 = new noflo.internalSocket.InternalSocket
+      s3 = new noflo.internalSocket.InternalSocket
 
     it 'should be able to send to a specific port', ->
-      p = new outport
+      p = new noflo.OutPort
         addressable: true
       p.attach s1
       p.attach s2
@@ -30,7 +28,7 @@ describe 'Outport Port', ->
       p.send 'some-data', 1
 
     it 'should be able to send to index 0', (done) ->
-      p = new outport
+      p = new noflo.OutPort
         addressable: true
       p.attach s1
       s1.on 'data', (data) ->
@@ -42,14 +40,14 @@ describe 'Outport Port', ->
       chai.expect(-> p.send('some-data')).to.throw
 
     it 'should throw an error when a specific port is requested with non-addressable port', ->
-      p = new outport
+      p = new noflo.OutPort
       p.attach s1
       p.attach s2
       p.attach s3
       chai.expect(-> p.send('some-data', 1)).to.throw
 
     it 'should give correct port index when detaching a connection', (done) ->
-      p = new outport
+      p = new noflo.OutPort
         addressable: true
       p.attach s1, 3
       p.attach s2, 1
@@ -75,12 +73,12 @@ describe 'Outport Port', ->
   describe 'with caching ports', ->
     s1 = s2 = s3 = null
     beforeEach ->
-      s1 = new socket.InternalSocket
-      s2 = new socket.InternalSocket
-      s3 = new socket.InternalSocket
+      s1 = new noflo.internalSocket.InternalSocket
+      s2 = new noflo.internalSocket.InternalSocket
+      s3 = new noflo.internalSocket.InternalSocket
 
     it 'should repeat the previously sent value on attach event', (done) ->
-      p = new outport
+      p = new noflo.OutPort
         caching: true
 
       s1.once 'data', (data) ->
@@ -104,7 +102,7 @@ describe 'Outport Port', ->
 
 
     it 'should support addressable ports', (done) ->
-      p = new outport
+      p = new noflo.OutPort
         addressable: true
         caching: true
 
@@ -127,12 +125,12 @@ describe 'Outport Port', ->
   describe 'with IP objects', ->
     s1 = s2 = s3 = null
     beforeEach ->
-      s1 = new socket.InternalSocket
-      s2 = new socket.InternalSocket
-      s3 = new socket.InternalSocket
+      s1 = new noflo.internalSocket.InternalSocket
+      s2 = new noflo.internalSocket.InternalSocket
+      s3 = new noflo.internalSocket.InternalSocket
 
     it 'should send data IPs and substreams', (done) ->
-      p = new outport
+      p = new noflo.OutPort
       p.attach s1
       expectedEvents = [
         'data'
@@ -153,7 +151,7 @@ describe 'Outport Port', ->
       .closeBracket()
 
     it 'should send non-clonable objects by reference', (done) ->
-      p = new outport
+      p = new noflo.OutPort
       p.attach s1
       p.attach s2
       p.attach s3
@@ -182,7 +180,7 @@ describe 'Outport Port', ->
         clonable: false # default
 
     it 'should clone clonable objects on fan-out', (done) ->
-      p = new outport
+      p = new noflo.OutPort
       p.attach s1
       p.attach s2
       p.attach s3

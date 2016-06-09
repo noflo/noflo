@@ -56,6 +56,7 @@ exports.AsyncComponent = require('./AsyncComponent').AsyncComponent
 #
 # These helpers aid in providing specific behavior in components with minimal overhead.
 exports.helpers = require './Helpers'
+exports.streams = require './Streams'
 
 # ### NoFlo ports
 #

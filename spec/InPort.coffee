@@ -1,18 +1,12 @@
-chai = require 'chai' unless chai
 if typeof process isnt 'undefined' and process.execPath and process.execPath.match /node|iojs/
-  inport = require '../src/lib/InPort'
-  outport = require '../src/lib/OutPort'
-  socket = require '../src/lib/InternalSocket'
-  ports = require '../src/lib/Ports'
+  chai = require 'chai' unless chai
+  noflo = require '../src/lib/NoFlo.coffee'
 else
-  inport = require 'noflo/src/lib/InPort.js'
-  outport = require 'noflo/src/lib/OutPort'
-  socket = require 'noflo/src/lib/InternalSocket.js'
-  ports = require 'noflo/src/lib/Ports'
+  noflo = require 'noflo'
 
 describe 'Inport Port', ->
   describe 'with default options', ->
-    p = new inport
+    p = new noflo.InPort
     it 'should be of datatype "all"', ->
       chai.expect(p.getDataType()).to.equal 'all'
     it 'should not be required', ->
@@ -22,7 +16,7 @@ describe 'Inport Port', ->
     it 'should not be buffered', ->
       chai.expect(p.isBuffered()).to.equal false
   describe 'with custom type', ->
-    p = new inport
+    p = new noflo.InPort
       datatype: 'string'
       type: 'text/url'
     it 'should retain the type', ->
@@ -30,7 +24,7 @@ describe 'Inport Port', ->
       chai.expect(p.options.type).to.equal 'text/url'
 
   describe 'without attached sockets', ->
-    p = new inport
+    p = new noflo.InPort
     it 'should not be attached', ->
       chai.expect(p.isAttached()).to.equal false
       chai.expect(p.listAttached()).to.eql []
@@ -43,8 +37,8 @@ describe 'Inport Port', ->
 
   describe 'with processing function called with port as context', ->
     it 'should set context to port itself', (done) ->
-      s = new socket.InternalSocket
-      p = new inport
+      s = new noflo.internalSocket.InternalSocket
+      p = new noflo.InPort
       p.on 'data', (packet, component) ->
         chai.expect(@).to.equal p
         chai.expect(packet).to.equal 'some-data'
@@ -55,9 +49,9 @@ describe 'Inport Port', ->
   describe 'with default value', ->
     p = s = null
     beforeEach ->
-      p = new inport
+      p = new noflo.InPort
         default: 'default-value'
-      s = new socket.InternalSocket
+      s = new noflo.internalSocket.InternalSocket
       p.attach s
     it 'should send the default value as a packet, though on next tick after initialization', (done) ->
       p.on 'data', (data) ->
@@ -82,7 +76,7 @@ describe 'Inport Port', ->
         description: 'Person'
         required: true
         weNeverExpectThis: 'butWeStoreItAnyway'
-      p = new inport options
+      p = new noflo.InPort options
       for name, option of options
         chai.expect(p.options[name]).to.equal option
 
@@ -90,7 +84,7 @@ describe 'Inport Port', ->
     right = 'all string number int object array'.split ' '
     wrong = 'not valie data types'.split ' '
     f = (datatype) ->
-      new inport
+      new noflo.InPort
         datatype: datatype
     right.forEach (r) ->
       it "should accept a '#{r}' data type", =>
@@ -101,7 +95,7 @@ describe 'Inport Port', ->
 
   describe 'with TYPE (i.e. ontology) information', ->
     f = (type) ->
-      new inport
+      new noflo.InPort
         type: type
     it 'should be a URL or MIME', ->
       chai.expect(-> f 'http://schema.org/Person').to.not.throw()
@@ -125,7 +119,7 @@ describe 'Inport Port', ->
         'buffered-data-3'
       ]
 
-      p = new inport
+      p = new noflo.InPort
         buffered: true
       , (eventName) ->
           expectedEvent = expectedEvents.shift()
@@ -137,7 +131,7 @@ describe 'Inport Port', ->
             chai.expect(packet.payload).to.equal expectedData.shift()
           if expectedEvents.length is 0
             done()
-      s = new socket.InternalSocket
+      s = new noflo.internalSocket.InternalSocket
       p.attach s
       s.send 'buffered-data-1'
       s.send 'buffered-data-2'
@@ -146,9 +140,9 @@ describe 'Inport Port', ->
       s.disconnect()
 
     it 'should be able to tell the number of contained data packets', ->
-      p = new inport
+      p = new noflo.InPort
         buffered: true
-      s = new socket.InternalSocket
+      s = new noflo.internalSocket.InternalSocket
       p.attach s
       s.send 'buffered-data-1'
       s.beginGroup 'foo'
@@ -160,16 +154,16 @@ describe 'Inport Port', ->
       chai.expect(p.contains()).to.equal 3
 
     it 'should return undefined when buffer is empty', ->
-      p = new inport
+      p = new noflo.InPort
         buffered: true
       chai.expect(p.receive()).to.be.undefined
 
     it 'shouldn\'t expose the receive method without buffering', ->
-      p = new inport
+      p = new noflo.InPort
         # Specified here simply for illustrative purpose, otherwise implied
         # `false`
         buffered: false
-      s = new socket.InternalSocket
+      s = new noflo.internalSocket.InternalSocket
       p.attach s
 
       p.once 'data', (data) ->
@@ -182,9 +176,9 @@ describe 'Inport Port', ->
 
   describe 'with accepted enumerated values', ->
     it 'should accept certain values', (done) ->
-      p = new inport
+      p = new noflo.InPort
         values: 'noflo is awesome'.split ' '
-      s = new socket.InternalSocket
+      s = new noflo.internalSocket.InternalSocket
       p.attach s
       p.on 'data', (data) ->
         chai.expect(data).to.equal 'awesome'
@@ -192,9 +186,9 @@ describe 'Inport Port', ->
       s.send 'awesome'
 
     it 'should throw an error if value is not accepted', ->
-      p = new inport
+      p = new noflo.InPort
         values: 'noflo is awesome'.split ' '
-      s = new socket.InternalSocket
+      s = new noflo.internalSocket.InternalSocket
       p.attach s
       p.on 'data', ->
         # Fail the test, we shouldn't have received anything
@@ -204,29 +198,29 @@ describe 'Inport Port', ->
 
   describe 'with processing shorthand', ->
     it 'should create a port with a callback', ->
-      s = new socket.InternalSocket
+      s = new noflo.internalSocket.InternalSocket
       ps =
-        outPorts: new ports.OutPorts
-          out: new outport
-        inPorts: new ports.InPorts
+        outPorts: new noflo.OutPorts
+          out: new noflo.OutPort
+        inPorts: new noflo.InPorts
       ps.inPorts.add 'in', (event, payload) ->
         return unless event is 'data'
         chai.expect(payload).to.equal 'some-data'
-      chai.assert ps.inPorts.in instanceof inport
+      chai.assert ps.inPorts.in instanceof noflo.InPort
       ps.inPorts.in.attach s
       s.send 'some-data'
 
     it 'should also accept metadata (i.e. options) when provided', (done) ->
-      s = new socket.InternalSocket
+      s = new noflo.internalSocket.InternalSocket
       expectedEvents = [
         'connect'
         'data'
         'disconnect'
       ]
       ps =
-        outPorts: new ports.OutPorts
-          out: new outport
-        inPorts: new ports.InPorts
+        outPorts: new noflo.OutPorts
+          out: new noflo.OutPort
+        inPorts: new noflo.InPorts
       ps.inPorts.add 'in',
         datatype: 'string'
         required: true
@@ -242,11 +236,11 @@ describe 'Inport Port', ->
 
   describe 'with IP handle callback option', ->
     it 'should pass IP objects to handler', (done) ->
-      s = new socket.InternalSocket
+      s = new noflo.internalSocket.InternalSocket
       ps =
-        outPorts: new ports.OutPorts
-          out: new outport
-        inPorts: new ports.InPorts
+        outPorts: new noflo.OutPorts
+          out: new noflo.OutPort
+        inPorts: new noflo.InPorts
       ps.inPorts.add 'in',
         datatype: 'string'
         required: true
@@ -261,16 +255,16 @@ describe 'Inport Port', ->
       s.send type: 'data', data: 'some-data'
 
     it 'should translate legacy events to IP objects', (done) ->
-      s = new socket.InternalSocket
+      s = new noflo.internalSocket.InternalSocket
       expectedEvents = [
         'openBracket'
         'data'
         'closeBracket'
       ]
       ps =
-        outPorts: new ports.OutPorts
-          out: new outport
-        inPorts: new ports.InPorts
+        outPorts: new noflo.OutPorts
+          out: new noflo.OutPort
+        inPorts: new noflo.InPorts
       ps.inPorts.add 'in',
         datatype: 'string'
         required: true
@@ -290,16 +284,16 @@ describe 'Inport Port', ->
       s.disconnect()
 
     it 'should translate IP objects to legacy events', (done) ->
-      s = new socket.InternalSocket
+      s = new noflo.internalSocket.InternalSocket
       expectedEvents = [
         'connect'
         'data'
         'disconnect'
       ]
       ps =
-        outPorts: new ports.OutPorts
-          out: new outport
-        inPorts: new ports.InPorts
+        outPorts: new noflo.OutPorts
+          out: new noflo.OutPort
+        inPorts: new noflo.InPorts
       ps.inPorts.add 'in',
         datatype: 'string'
         required: true

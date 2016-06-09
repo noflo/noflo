@@ -3,7 +3,7 @@ if typeof process isnt 'undefined' and process.execPath and process.execPath.mat
   noflo = require '../src/lib/NoFlo.coffee'
   browser = false
 else
-  noflo = require 'noflo/src/lib/NoFlo.js'
+  noflo = require 'noflo'
   browser = true
 
 describe 'NoFlo interface', ->
