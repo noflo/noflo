@@ -77,7 +77,10 @@ describe 'ComponentLoader with no external packages installed', ->
       chai.expect(l.ready, 'should have been set ready').to.equal true
       chai.expect(ready, 'should have emitted ready').to.equal true
       done()
-    chai.expect(l.processing, 'should have started processing').to.equal true
+
+    unless noflo.isBrowser()
+      # Browser component registry can be synchronous
+      chai.expect(l.processing, 'should have started processing').to.equal true
 
   describe 'after listing components', ->
     it 'should have the Graph component registered', ->
