@@ -1,24 +1,22 @@
 if typeof process isnt 'undefined' and process.execPath and process.execPath.match /node|iojs/
   chai = require 'chai' unless chai
-  graph = require '../src/lib/Graph.coffee'
-  journal = require '../src/lib/Journal.coffee'
+  noflo = require '../src/lib/NoFlo.coffee'
 else
-  graph = require 'noflo/src/lib/Graph.js'
-  journal = require 'noflo/src/lib/Journal.js'
+  noflo = require 'noflo'
 
 describe 'Journal', ->
   describe 'connected to initialized graph', ->
-    g = new graph.Graph
+    g = new noflo.graph.Graph
     g.addNode 'Foo', 'Bar'
     g.addNode 'Baz', 'Foo'
     g.addEdge 'Foo', 'out', 'Baz', 'in'
-    j = new journal.Journal(g)
+    j = new noflo.journal.Journal(g)
     it 'should have just the initial transaction', ->
       chai.expect(j.store.lastRevision).to.equal 0
 
   describe 'following basic graph changes', ->
-    g = new graph.Graph
-    j = new journal.Journal(g)
+    g = new noflo.graph.Graph
+    j = new noflo.journal.Journal(g)
     it 'should create one transaction per change', ->
       g.addNode 'Foo', 'Bar'
       g.addNode 'Baz', 'Foo'
@@ -28,8 +26,8 @@ describe 'Journal', ->
       chai.expect(j.store.lastRevision).to.equal 4
 
   describe 'pretty printing', ->
-    g = new graph.Graph
-    j = new journal.Journal(g)
+    g = new noflo.graph.Graph
+    j = new noflo.journal.Journal(g)
 
     g.startTransaction 'test1'
     g.addNode 'Foo', 'Bar'
@@ -60,8 +58,8 @@ describe 'Journal', ->
       chai.expect(j.toPrettyString(0,2)).to.equal ref
 
   describe 'jumping to revision', ->
-    g = new graph.Graph
-    j = new journal.Journal(g)
+    g = new noflo.graph.Graph
+    j = new noflo.journal.Journal(g)
     g.addNode 'Foo', 'Bar'
     g.addNode 'Baz', 'Foo'
     g.addEdge 'Foo', 'out', 'Baz', 'in'
@@ -76,8 +74,8 @@ describe 'Journal', ->
       chai.expect(g.nodes.length).to.equal 1
 
   describe 'linear undo/redo', ->
-    g = new graph.Graph
-    j = new journal.Journal(g)
+    g = new noflo.graph.Graph
+    j = new noflo.journal.Journal(g)
     g.addNode 'Foo', 'Bar'
     g.addNode 'Baz', 'Foo'
     g.addEdge 'Foo', 'out', 'Baz', 'in'
@@ -101,8 +99,8 @@ describe 'Journal', ->
       chai.expect(g.toJSON()).to.deep.equal graphBeforeError
 
   describe 'undo/redo of metadata changes', ->
-    g = new graph.Graph
-    j = new journal.Journal(g)
+    g = new noflo.graph.Graph
+    j = new noflo.journal.Journal(g)
     g.addNode 'Foo', 'Bar'
     g.addNode 'Baz', 'Foo'
     g.addEdge 'Foo', 'out', 'Baz', 'in'
@@ -201,32 +199,32 @@ describe 'Journalling of graph merges', ->
   j = null
   describe 'G -> B', ->
     it 'G starts out as A', (done) ->
-      graph.loadJSON JSON.parse(A), (err, instance) ->
+      noflo.graph.loadJSON JSON.parse(A), (err, instance) ->
         return done err if err
         a = instance
-        graph.loadJSON JSON.parse(A), (err, instance) ->
+        noflo.graph.loadJSON JSON.parse(A), (err, instance) ->
           return done err if err
           g = instance
-          chai.expect(graph.equivalent(a, g)).to.equal true
+          chai.expect(noflo.graph.equivalent(a, g)).to.equal true
           done()
     it 'G and B starts out different', (done) ->
-      graph.loadJSON JSON.parse(B), (err, instance) ->
+      noflo.graph.loadJSON JSON.parse(B), (err, instance) ->
         return done err if err
         b = instance
-        chai.expect(graph.equivalent(g, b)).to.equal false
+        chai.expect(noflo.graph.equivalent(g, b)).to.equal false
         done()
     it 'merge should make G equivalent to B', (done) ->
-      j = new journal.Journal(g)
+      j = new noflo.journal.Journal(g)
       g.startTransaction 'merge'
-      graph.mergeResolveTheirs g, b
+      noflo.graph.mergeResolveTheirs g, b
       g.endTransaction 'merge'
-      chai.expect(graph.equivalent(g, b)).to.equal true
+      chai.expect(noflo.graph.equivalent(g, b)).to.equal true
       done()
     it 'undoing merge should make G equivalent to A again', (done) ->
       j.undo()
-      res = graph.equivalent g, a
+      res = noflo.graph.equivalent g, a
       chai.expect(res).to.equal true
       done()
 
-# FIXME: add tests for graph.loadJSON/loadFile, and journal metadata
+# FIXME: add tests for noflo.graph.loadJSON/loadFile, and journal metadata
 

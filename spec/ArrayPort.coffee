@@ -1,22 +1,20 @@
 if typeof process isnt 'undefined' and process.execPath and process.execPath.match /node|iojs/
   chai = require 'chai' unless chai
-  aport = require '../src/lib/ArrayPort.coffee'
-  socket = require '../src/lib/InternalSocket.coffee'
+  noflo = require '../src/lib/NoFlo.coffee'
 else
-  aport = require 'noflo/src/lib/ArrayPort.js'
-  socket = require 'noflo/src/lib/InternalSocket.js'
+  noflo = require 'noflo'
 
 describe 'Legacy ArrayPort', ->
 
   describe 'Untyped ArrayPort instance', ->
     it 'should be of type "all"', ->
-      p = new aport.ArrayPort
+      p = new noflo.ArrayPort
       chai.expect(p.type).to.equal 'all'
 
   describe 'ArrayPort instance', ->
     p = null
     it 'should retain the given type', ->
-      p = new aport.ArrayPort 'string'
+      p = new noflo.ArrayPort 'string'
       chai.expect(p.type).to.equal 'string'
 
     describe 'without attached socket', ->
@@ -41,7 +39,7 @@ describe 'Legacy ArrayPort', ->
         chai.expect(-> p.disconnect()).to.throw Error
 
     describe 'with attached socket', ->
-      s = new socket.InternalSocket
+      s = new noflo.internalSocket.InternalSocket
       it 'should emit an event', (done) ->
         p.once 'attach', (sock) ->
           chai.expect(sock).to.equal s
@@ -57,7 +55,7 @@ describe 'Legacy ArrayPort', ->
       it 'should have a reference to the socket', ->
         chai.expect(p.sockets.indexOf(s)).to.equal 0
       it 'should allow other sockets to be attached', ->
-        s2 = new socket.InternalSocket
+        s2 = new noflo.internalSocket.InternalSocket
         p.attach s2
         chai.expect(p.listAttached().length).to.equal 2
         p.detach s2
@@ -74,8 +72,8 @@ describe 'Legacy ArrayPort', ->
         chai.expect(p.listAttached()).to.eql []
 
   describe 'Input ArrayPort', ->
-    p = new aport.ArrayPort
-    s = new socket.InternalSocket
+    p = new noflo.ArrayPort
+    s = new noflo.internalSocket.InternalSocket
     p.attach s
     it 'should emit connection events', (done) ->
       p.once 'connect', (sock, id) ->
@@ -123,8 +121,8 @@ describe 'Legacy ArrayPort', ->
       s.send 'Baz'
 
   describe 'Input ArrayPort with specified index', ->
-    p = new aport.ArrayPort
-    s = new socket.InternalSocket
+    p = new noflo.ArrayPort
+    s = new noflo.internalSocket.InternalSocket
     idx = 2
     it 'shouldn\'t be attached initially', ->
       chai.expect(p.isAttached()).to.equal false
@@ -205,8 +203,8 @@ describe 'Legacy ArrayPort', ->
       chai.expect(p.listAttached()).to.eql []
 
   describe 'Output ArrayPort', ->
-    p = new aport.ArrayPort
-    s = new socket.InternalSocket
+    p = new noflo.ArrayPort
+    s = new noflo.internalSocket.InternalSocket
     p.attach s
     it 'should connect the socket', (done) ->
       s.once 'connect', ->
