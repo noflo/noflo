@@ -795,6 +795,78 @@ describe 'Component', ->
       c.inPorts.in.attach sin1
       sin1.post new IP 'data', 'some-data'
 
+    it 'should send out string other port if there is only one port aside from error', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'all'
+            required: true
+        outPorts:
+          out:
+            required: true
+          error:
+            required: false
+        process: (input, output) ->
+          packet = input.get 'in'
+          output.sendDone 'some data'
+
+      sout1.on 'ip', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.data).to.equal 'some data'
+        done()
+
+      c.inPorts.in.attach sin1
+      c.outPorts.out.attach sout1
+
+      sin1.post new IP 'data', 'first'
+
+    it 'should send object out other port if there is only one port aside from error', (done) ->
+      c = new component.Component
+        inPorts:
+          in:
+            datatype: 'all'
+            required: true
+        outPorts:
+          out:
+            required: true
+          error:
+            required: false
+        process: (input, output) ->
+          packet = input.get 'in'
+          output.sendDone some: 'data'
+
+      sout1.on 'ip', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.data).to.eql some: 'data'
+        done()
+
+      c.inPorts.in.attach sin1
+      c.outPorts.out.attach sout1
+
+      sin1.post new IP 'data', 'first'
+
+    it 'should throw an error if sending without specifying a port and there are multiple ports', (done) ->
+      try
+        c = new component.Component
+          inPorts:
+            in:
+              datatype: 'string'
+              required: true
+          outPorts:
+            out:
+              datatype: 'all'
+            eh:
+              required: no
+            error:
+              required: no
+          process: (input, output) ->
+            output.sendDone 'test'
+
+        c.inPorts.in.attach sin1
+        sin1.post new IP 'data', 'some-data'
+      catch e
+        done()
+
     it 'should send errors if there is a connected error port', (done) ->
       c = new component.Component
         inPorts:

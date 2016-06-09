@@ -39,9 +39,8 @@ class InPort extends BasePort
 
     @prepareBuffer()
 
+  # Assign a delegate for retrieving data should this inPort
   attachSocket: (socket, localId = null) ->
-
-    # Assign a delegate for retrieving data should this inPort
     # have a default value.
     if @hasDefault()
       if @handle
