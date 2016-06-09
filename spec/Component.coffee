@@ -449,7 +449,7 @@ describe 'Component', ->
       sin2.post new noflo.IP 'data', 'bar',
         groups: ['bar']
 
-    it 'should receive and send just noflo.IP data if wanted', (done) ->
+    it 'should receive and send just IP data if wanted', (done) ->
       c = new noflo.Component
         inPorts:
           foo: datatype: 'string'
@@ -560,7 +560,7 @@ describe 'Component', ->
       sin2.post new noflo.IP 'data', 'bar'
       sin1.post new noflo.IP 'data', 'boo'
 
-    it 'should keep last data-typed noflo.IP packet for controls', (done) ->
+    it 'should keep last data-typed IP packet for controls', (done) ->
       c = new noflo.Component
         inPorts:
           foo: datatype: 'string'
@@ -1007,7 +1007,7 @@ describe 'Component', ->
 
       cnt = 0
       sout1.on 'ip', (ip) ->
-        # done new Error "Unexpectd noflo.IP: #{ip.type} #{ip.data}"
+        # done new Error "Unexpected IP: #{ip.type} #{ip.data}"
 
       count = 0
       sout2.on 'ip', (ip) ->
