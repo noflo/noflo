@@ -601,11 +601,6 @@ describe 'Component', ->
       sin1.post new noflo.IP 'data', 'boo'
 
     it 'should isolate packets with different scopes', (done) ->
-      foo1 = 'Josh'
-      bar1 = 'Laura'
-      bar2 = 'Luke'
-      foo2 = 'Jane'
-
       c = new noflo.Component
         inPorts:
           foo: datatype: 'string'
@@ -661,6 +656,47 @@ describe 'Component', ->
         done()
 
       sin1.post new noflo.IP 'data', 'foo', scope: 'foo'
+
+    it 'should support integer scopes', (done) ->
+      c = new noflo.Component
+        inPorts:
+          foo: datatype: 'string'
+          bar: datatype: 'string'
+        outPorts:
+          baz: datatype: 'string'
+        process: (input, output) ->
+          return unless input.has 'foo', 'bar'
+          [foo, bar] = input.getData 'foo', 'bar'
+          output.sendDone
+            baz: "#{foo} and #{bar}"
+
+      c.inPorts.foo.attach sin1
+      c.inPorts.bar.attach sin2
+      c.outPorts.baz.attach sout1
+
+      sout1.once 'ip', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.type).to.equal 'data'
+        chai.expect(ip.scope).to.equal 1
+        chai.expect(ip.data).to.equal 'Josh and Laura'
+        sout1.once 'ip', (ip) ->
+          chai.expect(ip).to.be.an 'object'
+          chai.expect(ip.type).to.equal 'data'
+          chai.expect(ip.scope).to.equal 0
+          chai.expect(ip.data).to.equal 'Jane and Luke'
+          sout1.once 'ip', (ip) ->
+            chai.expect(ip).to.be.an 'object'
+            chai.expect(ip.type).to.equal 'data'
+            chai.expect(ip.scope).to.be.null
+            chai.expect(ip.data).to.equal 'Tom and Anna'
+            done()
+
+      sin1.post new noflo.IP 'data', 'Tom'
+      sin1.post new noflo.IP 'data', 'Josh', scope: 1
+      sin2.post new noflo.IP 'data', 'Luke', scope: 0
+      sin2.post new noflo.IP 'data', 'Laura', scope: 1
+      sin1.post new noflo.IP 'data', 'Jane', scope: 0
+      sin2.post new noflo.IP 'data', 'Anna'
 
     it 'should preserve order between input and output', (done) ->
       c = new noflo.Component
@@ -1005,7 +1041,6 @@ describe 'Component', ->
       c.outPorts.out.attach sout1
       c.outPorts.error.attach sout2
 
-      cnt = 0
       sout1.on 'ip', (ip) ->
         # done new Error "Unexpected IP: #{ip.type} #{ip.data}"
 
@@ -1025,6 +1060,42 @@ describe 'Component', ->
       sin1.post new noflo.IP 'openBracket', 'foo'
       sin1.post new noflo.IP 'data', { bar: 'baz' }
       sin1.post new noflo.IP 'closeBracket', 'foo'
+
+    it 'should not forward brackets if error port is not connected', (done) ->
+      c = new noflo.Component
+        inPorts:
+          in:
+            datatype: 'string'
+        outPorts:
+          out:
+            datatype: 'string'
+            required: true
+          error:
+            datatype: 'object'
+            required: true
+        process: (input, output) ->
+          str = input.getData()
+          setTimeout ->
+            if typeof str isnt 'string'
+              return output.sendDone new Error 'Input is not string'
+            output.pass str.toUpperCase()
+          , 10
+
+      c.inPorts.in.attach sin1
+      c.outPorts.out.attach sout1
+      # c.outPorts.error.attach sout2
+
+      sout1.on 'ip', (ip) ->
+        done() if ip.type is 'closeBracket'
+
+      sout2.on 'ip', (ip) ->
+        done new Error "Unexpected error IP: #{ip.type} #{ip.data}"
+
+      chai.expect ->
+        sin1.post new noflo.IP 'openBracket', 'foo'
+        sin1.post new noflo.IP 'data', 'bar'
+        sin1.post new noflo.IP 'closeBracket', 'foo'
+      .to.not.throw()
 
     it 'should support custom bracket forwarding mappings with auto-ordering', (done) ->
       c = new noflo.Component

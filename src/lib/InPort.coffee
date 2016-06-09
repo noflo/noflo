@@ -68,7 +68,7 @@ class InPort extends BasePort
     ip.owner = @nodeInstance
     ip.index = id
 
-    if ip.scope
+    if ip.scope?
       @scopedBuffer[ip.scope] = [] unless ip.scope of @scopedBuffer
       buf = @scopedBuffer[ip.scope]
     else
@@ -134,7 +134,7 @@ class InPort extends BasePort
 
   # Fetches a packet from the port
   get: (scope) ->
-    if scope
+    if scope?
       return undefined unless scope of @scopedBuffer
       buf = @scopedBuffer[scope]
     else
@@ -143,7 +143,7 @@ class InPort extends BasePort
 
   # Returns true if port contains packet(s) matching the validator
   has: (scope, validate) ->
-    if scope
+    if scope?
       return false unless scope of @scopedBuffer
       buf = @scopedBuffer[scope]
     else
@@ -154,7 +154,7 @@ class InPort extends BasePort
 
   # Returns the number of data packets in an inport
   length: (scope) ->
-    if scope
+    if scope?
       return 0 unless scope of @scopedBuffer
       return @scopedBuffer[scope].length
     return @buffer.length
