@@ -1,37 +1,37 @@
 if typeof process isnt 'undefined' and process.execPath and process.execPath.match /node|iojs/
   chai = require 'chai' unless chai
-  IP = require '../src/lib/IP'
+  noflo = require '../src/lib/NoFlo.coffee'
 else
-  IP = require 'noflo/src/lib/IP'
+  noflo = require 'noflo'
 
 describe 'IP object', ->
   it 'should create IPs of different types', ->
-    open = new IP 'openBracket'
-    data = new IP 'data', "Payload"
-    close = new IP 'closeBracket'
+    open = new noflo.IP 'openBracket'
+    data = new noflo.IP 'data', "Payload"
+    close = new noflo.IP 'closeBracket'
     chai.expect(open.type).to.equal 'openBracket'
     chai.expect(close.type).to.equal 'closeBracket'
     chai.expect(data.type).to.equal 'data'
 
   it 'should attach data groups explicitly', ->
-    data = new IP 'data', "Payload"
+    data = new noflo.IP 'data', "Payload"
     chai.expect(data.groups).to.be.an.instanceof Array
     chai.expect(data.groups).to.have.lengthOf 0
     data.groups = ['foo', 'bar']
     chai.expect(data.groups).to.have.lengthOf 2
 
   it 'should be moved to an owner', ->
-    p = new IP 'data', "Token"
+    p = new noflo.IP 'data', "Token"
     p.move 'SomeProc'
     chai.expect(p.owner).to.equal 'SomeProc'
 
   it 'should support sync context scoping', ->
-    p = new IP 'data', "Request-specific"
+    p = new noflo.IP 'data', "Request-specific"
     p.scope = 'request-12345'
     chai.expect(p.scope).to.equal 'request-12345'
 
   it 'should be able to clone itself', ->
-    d1 = new IP 'data', "Trooper",
+    d1 = new noflo.IP 'data', "Trooper",
       groups: ['foo', 'bar']
       owner: 'SomeProc'
       scope: 'request-12345'
@@ -45,7 +45,7 @@ describe 'IP object', ->
     chai.expect(d2.scope).to.equal d1.scope
 
   it 'should dispose its contents when dropped', ->
-    p = new IP 'data', "Garbage"
+    p = new noflo.IP 'data', "Garbage"
     p.groups = ['foo', 'bar']
     p.drop()
     chai.expect(Object.keys(p)).to.have.lengthOf 0
