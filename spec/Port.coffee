@@ -1,16 +1,14 @@
 if typeof process isnt 'undefined' and process.execPath and process.execPath.match /node|iojs/
   chai = require 'chai' unless chai
-  port = require '../src/lib/Port.coffee'
-  socket = require '../src/lib/InternalSocket.coffee'
+  noflo = require '../src/lib/NoFlo.coffee'
 else
-  port = require 'noflo/src/lib/Port.js'
-  socket = require 'noflo/src/lib/InternalSocket.js'
+  noflo = require 'noflo'
 
 describe 'Legacy Port', ->
 
   describe 'Untyped port instance', ->
     it 'should be of type "all"', ->
-      p = new port.Port
+      p = new noflo.Port
       chai.expect(p.type).to.equal 'all'
       chai.expect(p.getDataType()).to.equal 'all'
 
@@ -18,7 +16,7 @@ describe 'Legacy Port', ->
     p = null
     describe 'initially', ->
       it 'should retain the given type', ->
-        p = new port.Port 'string'
+        p = new noflo.Port 'string'
         chai.expect(p.type).to.equal 'string'
       it 'should not have a name', ->
         chai.expect(p.name).to.be.a 'null'
@@ -54,8 +52,8 @@ describe 'Legacy Port', ->
         chai.expect(-> p.disconnect()).to.throw Error
 
     describe 'with attached socket', ->
-      s = new socket.InternalSocket
-      s2 = new socket.InternalSocket
+      s = new noflo.internalSocket.InternalSocket
+      s2 = new noflo.internalSocket.InternalSocket
       it 'should emit an event', (done) ->
         p.once 'attach', (sock) ->
           chai.expect(sock).to.equal s
@@ -93,8 +91,8 @@ describe 'Legacy Port', ->
         chai.expect(p.socket).to.not.exist
 
   describe 'Input port', ->
-    p = new port.Port
-    s = new socket.InternalSocket
+    p = new noflo.Port
+    s = new noflo.internalSocket.InternalSocket
     p.attach s
     it 'should emit connection events', (done) ->
       p.once 'connect', (sock, id) ->
@@ -142,8 +140,8 @@ describe 'Legacy Port', ->
       s.send 'Baz'
 
   describe 'Output port', ->
-    p = new port.Port
-    s = new socket.InternalSocket
+    p = new noflo.Port
+    s = new noflo.internalSocket.InternalSocket
     p.attach s
     it 'should connect the socket', (done) ->
       s.once 'connect', ->

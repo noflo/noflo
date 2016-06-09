@@ -1,18 +1,14 @@
 if typeof process isnt 'undefined' and process.execPath and process.execPath.match /node|iojs/
   chai = require 'chai' unless chai
-  component = require '../src/lib/Component.coffee'
-  socket = require '../src/lib/InternalSocket.coffee'
-  IP = require '../src/lib/IP.coffee'
+  noflo = require '../src/lib/NoFlo.coffee'
 else
-  component = require 'noflo/src/lib/Component.js'
-  socket = require 'noflo/src/lib/InternalSocket.js'
-  IP = require 'noflo/src/lib/IP.js'
+  noflo = require 'noflo'
 
 describe 'Component', ->
   describe 'with required ports', ->
     it 'should throw an error upon sending packet to an unattached required port', ->
-      s2 = new socket.InternalSocket
-      c = new component.Component
+      s2 = new noflo.internalSocket.InternalSocket
+      c = new noflo.Component
         outPorts:
           required_port:
             required: true
@@ -21,9 +17,9 @@ describe 'Component', ->
       chai.expect(-> c.outPorts.required_port.send('foo')).to.throw()
 
     it 'should be cool with an attached port', ->
-      s1 = new socket.InternalSocket
-      s2 = new socket.InternalSocket
-      c = new component.Component
+      s1 = new noflo.internalSocket.InternalSocket
+      s2 = new noflo.internalSocket.InternalSocket
+      c = new noflo.Component
         inPorts:
           required_port:
             required: true
@@ -37,7 +33,7 @@ describe 'Component', ->
 
   describe 'with component creation shorthand', ->
     it 'should make component creation easy', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           in:
             datatype: 'string'
@@ -53,17 +49,17 @@ describe 'Component', ->
             chai.expect(component).to.equal c
             done()
 
-      s1 = new socket.InternalSocket
+      s1 = new noflo.internalSocket.InternalSocket
       c.inPorts.in.attach s1
       c.inPorts.in.nodeInstance = c
-      s2 = new socket.InternalSocket
+      s2 = new noflo.internalSocket.InternalSocket
       c.inPorts.just_processor.attach s1
       c.inPorts.just_processor.nodeInstance = c
       s1.send 'some-data'
       s2.send 'some-data'
 
     it 'should throw errors if there is no error port', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           in:
             datatype: 'string'
@@ -75,13 +71,13 @@ describe 'Component', ->
               chai.expect(-> c.error(new Error)).to.throw Error
               done()
 
-      s1 = new socket.InternalSocket
+      s1 = new noflo.internalSocket.InternalSocket
       c.inPorts.in.attach s1
       c.inPorts.in.nodeInstance = c
       s1.send 'some-data'
 
     it 'should throw errors if there is a non-attached error port', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           in:
             datatype: 'string'
@@ -97,13 +93,13 @@ describe 'Component', ->
             datatype: 'object'
             required: true
 
-      s1 = new socket.InternalSocket
+      s1 = new noflo.internalSocket.InternalSocket
       c.inPorts.in.attach s1
       c.inPorts.in.nodeInstance = c
       s1.send 'some-data'
 
     it 'should not throw errors if there is a non-required error port', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           in:
             datatype: 'string'
@@ -118,14 +114,14 @@ describe 'Component', ->
           error:
             required: no
 
-      s1 = new socket.InternalSocket
+      s1 = new noflo.internalSocket.InternalSocket
       c.inPorts.in.attach s1
       c.inPorts.in.nodeInstance = c
       s1.send 'some-data'
 
     it 'should send errors if there is a connected error port', (done) ->
       grps = []
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           in:
             datatype: 'string'
@@ -140,8 +136,8 @@ describe 'Component', ->
           error:
             datatype: 'object'
 
-      s1 = new socket.InternalSocket
-      s2 = new socket.InternalSocket
+      s1 = new noflo.internalSocket.InternalSocket
+      s2 = new noflo.internalSocket.InternalSocket
       groups = [
         'foo'
         'bar'
@@ -163,19 +159,19 @@ describe 'Component', ->
   describe 'defining ports with invalid names', ->
     it 'should throw an error with uppercase letters in inport', ->
       shorthand = ->
-        c = new component.Component
+        c = new noflo.Component
           inPorts:
             fooPort: {}
       chai.expect(shorthand).to.throw()
     it 'should throw an error with uppercase letters in outport', ->
       shorthand = ->
-        c = new component.Component
+        c = new noflo.Component
           outPorts:
             BarPort: {}
       chai.expect(shorthand).to.throw()
     it 'should throw an error with special characters in inport', ->
       shorthand = ->
-        c = new component.Component
+        c = new noflo.Component
           inPorts:
             '$%^&*a': {}
       chai.expect(shorthand).to.throw()
@@ -183,12 +179,12 @@ describe 'Component', ->
   describe 'starting a component', ->
 
     it 'should flag the component as started', ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           in:
             datatype: 'string'
             required: true
-      i = new socket.InternalSocket
+      i = new noflo.internalSocket.InternalSocket
       c.inPorts.in.attach(i)
       c.start()
       chai.expect(c.started).to.equal(true)
@@ -197,12 +193,12 @@ describe 'Component', ->
   describe 'shutting down a component', ->
 
     it 'should flag the component as not started', ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           in:
             datatype: 'string'
             required: true
-      i = new socket.InternalSocket
+      i = new noflo.internalSocket.InternalSocket
       c.inPorts.in.attach(i)
       c.start()
       c.shutdown()
@@ -212,7 +208,7 @@ describe 'Component', ->
   describe 'with object-based IPs', ->
 
     it 'should speak IP objects', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           in:
             datatype: 'string'
@@ -230,8 +226,8 @@ describe 'Component', ->
           out:
             datatype: 'string'
 
-      s1 = new socket.InternalSocket
-      s2 = new socket.InternalSocket
+      s1 = new noflo.internalSocket.InternalSocket
+      s2 = new noflo.internalSocket.InternalSocket
 
       s2.on 'ip', (ip) ->
         chai.expect(ip).to.be.an 'object'
@@ -245,11 +241,11 @@ describe 'Component', ->
       c.inPorts.in.attach s1
       c.outPorts.out.attach s2
 
-      s1.post new IP 'data', 'some-data',
+      s1.post new noflo.IP 'data', 'some-data',
         groups: ['foo']
 
     it 'should support substreams', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           tags:
             datatype: 'string'
@@ -273,7 +269,7 @@ describe 'Component', ->
       c.str = ''
       c.level = 0
 
-      d = new component.Component
+      d = new noflo.Component
         inPorts:
           bang:
             datatype: 'bang'
@@ -291,9 +287,9 @@ describe 'Component', ->
           tags:
             datatype: 'string'
 
-      s1 = new socket.InternalSocket
-      s2 = new socket.InternalSocket
-      s3 = new socket.InternalSocket
+      s1 = new noflo.internalSocket.InternalSocket
+      s2 = new noflo.internalSocket.InternalSocket
+      s3 = new noflo.internalSocket.InternalSocket
 
       s3.on 'ip', (ip) ->
         chai.expect(ip).to.be.an 'object'
@@ -306,7 +302,7 @@ describe 'Component', ->
       c.inPorts.tags.attach s2
       c.outPorts.html.attach s3
 
-      s1.post new IP 'data', 'start'
+      s1.post new noflo.IP 'data', 'start'
 
   describe 'with process function', ->
     c = null
@@ -317,16 +313,16 @@ describe 'Component', ->
     sout2 = null
 
     beforeEach (done) ->
-      sin1 = new socket.InternalSocket
-      sin2 = new socket.InternalSocket
-      sin3 = new socket.InternalSocket
-      sout1 = new socket.InternalSocket
-      sout2 = new socket.InternalSocket
+      sin1 = new noflo.internalSocket.InternalSocket
+      sin2 = new noflo.internalSocket.InternalSocket
+      sin3 = new noflo.internalSocket.InternalSocket
+      sout1 = new noflo.internalSocket.InternalSocket
+      sout2 = new noflo.internalSocket.InternalSocket
       done()
 
     it 'should trigger on IPs', (done) ->
       hadIPs = []
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           foo: datatype: 'string'
           bar: datatype: 'string'
@@ -351,12 +347,12 @@ describe 'Component', ->
           chai.expect(hadIPs).to.eql ['foo', 'bar']
           done()
 
-      sin1.post new IP 'data', 'first'
-      sin2.post new IP 'data', 'second'
+      sin1.post new noflo.IP 'data', 'first'
+      sin2.post new noflo.IP 'data', 'second'
 
     it 'should not be triggered by non-triggering ports', (done) ->
       triggered = []
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           foo:
             datatype: 'string'
@@ -381,13 +377,13 @@ describe 'Component', ->
           chai.expect(triggered).to.eql ['bar', 'bar']
           done()
 
-      sin1.post new IP 'data', 'first'
-      sin2.post new IP 'data', 'second'
-      sin1.post new IP 'data', 'first'
-      sin2.post new IP 'data', 'second'
+      sin1.post new noflo.IP 'data', 'first'
+      sin2.post new noflo.IP 'data', 'second'
+      sin1.post new noflo.IP 'data', 'first'
+      sin2.post new noflo.IP 'data', 'second'
 
     it 'should fetch undefined for premature data', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           foo:
             datatype: 'string'
@@ -411,12 +407,12 @@ describe 'Component', ->
       c.inPorts.bar.attach sin2
       c.inPorts.baz.attach sin3
 
-      sin1.post new IP 'data', 'AZ'
-      sin2.post new IP 'data', true
-      sin3.post new IP 'data', 'first'
+      sin1.post new noflo.IP 'data', 'AZ'
+      sin2.post new noflo.IP 'data', true
+      sin3.post new noflo.IP 'data', 'first'
 
-    it 'should receive and send complete IP objects', (done) ->
-      c = new component.Component
+    it 'should receive and send complete noflo.IP objects', (done) ->
+      c = new noflo.Component
         inPorts:
           foo: datatype: 'string'
           bar: datatype: 'string'
@@ -431,7 +427,7 @@ describe 'Component', ->
             groups: foo.groups
             type: bar.type
           output.sendDone
-            baz: new IP 'data', baz,
+            baz: new noflo.IP 'data', baz,
               groups: ['baz']
 
       c.inPorts.foo.attach sin1
@@ -448,13 +444,13 @@ describe 'Component', ->
         chai.expect(ip.groups).to.eql ['baz']
         done()
 
-      sin1.post new IP 'data', 'foo',
+      sin1.post new noflo.IP 'data', 'foo',
         groups: ['foo']
-      sin2.post new IP 'data', 'bar',
+      sin2.post new noflo.IP 'data', 'bar',
         groups: ['bar']
 
     it 'should receive and send just IP data if wanted', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           foo: datatype: 'string'
           bar: datatype: 'string'
@@ -480,14 +476,14 @@ describe 'Component', ->
         chai.expect(ip.data.bar).to.equal 'bar'
         done()
 
-      sin1.post new IP 'data', 'foo',
+      sin1.post new noflo.IP 'data', 'foo',
         groups: ['foo']
-      sin2.post new IP 'data', 'bar',
+      sin2.post new noflo.IP 'data', 'bar',
         groups: ['bar']
 
     it 'should receive IPs and be able to selectively find them', (done) ->
       called = 0
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           foo: datatype: 'string'
           bar: datatype: 'string'
@@ -520,14 +516,14 @@ describe 'Component', ->
         chai.expect(called).to.equal 10
         done()
 
-      sin1.post new IP 'openBracket', 'a'
-      sin1.post new IP 'data', 'hello',
-      sin1.post new IP 'closeBracket', 'a'
+      sin1.post new noflo.IP 'openBracket', 'a'
+      sin1.post new noflo.IP 'data', 'hello',
+      sin1.post new noflo.IP 'closeBracket', 'a'
       shouldHaveSent = true
-      sin2.post new IP 'data', 'hello'
+      sin2.post new noflo.IP 'data', 'hello'
 
     it 'should keep last value for controls', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           foo: datatype: 'string'
           bar:
@@ -560,12 +556,12 @@ describe 'Component', ->
           chai.expect(ip.data.bar).to.equal 'bar'
           done()
 
-      sin1.post new IP 'data', 'foo'
-      sin2.post new IP 'data', 'bar'
-      sin1.post new IP 'data', 'boo'
+      sin1.post new noflo.IP 'data', 'foo'
+      sin2.post new noflo.IP 'data', 'bar'
+      sin1.post new noflo.IP 'data', 'boo'
 
     it 'should keep last data-typed IP packet for controls', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           foo: datatype: 'string'
           bar:
@@ -598,11 +594,11 @@ describe 'Component', ->
           chai.expect(ip.data.bar).to.equal 'bar'
           done()
 
-      sin1.post new IP 'data', 'foo'
-      sin2.post new IP 'openBracket'
-      sin2.post new IP 'data', 'bar'
-      sin2.post new IP 'closeBracket'
-      sin1.post new IP 'data', 'boo'
+      sin1.post new noflo.IP 'data', 'foo'
+      sin2.post new noflo.IP 'openBracket'
+      sin2.post new noflo.IP 'data', 'bar'
+      sin2.post new noflo.IP 'closeBracket'
+      sin1.post new noflo.IP 'data', 'boo'
 
     it 'should isolate packets with different scopes', (done) ->
       foo1 = 'Josh'
@@ -610,7 +606,7 @@ describe 'Component', ->
       bar2 = 'Luke'
       foo2 = 'Jane'
 
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           foo: datatype: 'string'
           bar: datatype: 'string'
@@ -638,13 +634,13 @@ describe 'Component', ->
           chai.expect(ip.data).to.equal 'Jane and Luke'
           done()
 
-      sin1.post new IP 'data', 'Josh', scope: '1'
-      sin2.post new IP 'data', 'Luke', scope: '2'
-      sin2.post new IP 'data', 'Laura', scope: '1'
-      sin1.post new IP 'data', 'Jane', scope: '2'
+      sin1.post new noflo.IP 'data', 'Josh', scope: '1'
+      sin2.post new noflo.IP 'data', 'Luke', scope: '2'
+      sin2.post new noflo.IP 'data', 'Laura', scope: '1'
+      sin1.post new noflo.IP 'data', 'Jane', scope: '2'
 
     it 'should be able to change scope', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           foo: datatype: 'string'
         outPorts:
@@ -652,7 +648,7 @@ describe 'Component', ->
         process: (input, output) ->
           foo = input.getData 'foo'
           output.sendDone
-            baz: new IP 'data', foo, scope: 'baz'
+            baz: new noflo.IP 'data', foo, scope: 'baz'
 
       c.inPorts.foo.attach sin1
       c.outPorts.baz.attach sout1
@@ -664,10 +660,10 @@ describe 'Component', ->
         chai.expect(ip.data).to.equal 'foo'
         done()
 
-      sin1.post new IP 'data', 'foo', scope: 'foo'
+      sin1.post new noflo.IP 'data', 'foo', scope: 'foo'
 
     it 'should preserve order between input and output', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           msg: datatype: 'string'
           delay: datatype: 'int'
@@ -698,11 +694,11 @@ describe 'Component', ->
         done() if sample.length is 0
 
       for ip in sample
-        sin1.post new IP 'data', ip.msg
-        sin2.post new IP 'data', ip.delay
+        sin1.post new noflo.IP 'data', ip.msg
+        sin2.post new noflo.IP 'data', ip.delay
 
     it 'should ignore order between input and output', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           msg: datatype: 'string'
           delay: datatype: 'int'
@@ -740,11 +736,11 @@ describe 'Component', ->
         done() if count is 4
 
       for ip in sample
-        sin1.post new IP 'data', ip.msg
-        sin2.post new IP 'data', ip.delay
+        sin1.post new noflo.IP 'data', ip.msg
+        sin2.post new noflo.IP 'data', ip.delay
 
     it 'should throw errors if there is no error port', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           in:
             datatype: 'string'
@@ -756,10 +752,10 @@ describe 'Component', ->
           done()
 
       c.inPorts.in.attach sin1
-      sin1.post new IP 'data', 'some-data'
+      sin1.post new noflo.IP 'data', 'some-data'
 
     it 'should throw errors if there is a non-attached error port', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           in:
             datatype: 'string'
@@ -775,10 +771,10 @@ describe 'Component', ->
           done()
 
       c.inPorts.in.attach sin1
-      sin1.post new IP 'data', 'some-data'
+      sin1.post new noflo.IP 'data', 'some-data'
 
     it 'should not throw errors if there is a non-required error port', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           in:
             datatype: 'string'
@@ -793,10 +789,82 @@ describe 'Component', ->
           done()
 
       c.inPorts.in.attach sin1
-      sin1.post new IP 'data', 'some-data'
+      sin1.post new noflo.IP 'data', 'some-data'
+
+    it 'should send out string other port if there is only one port aside from error', (done) ->
+      c = new noflo.Component
+        inPorts:
+          in:
+            datatype: 'all'
+            required: true
+        outPorts:
+          out:
+            required: true
+          error:
+            required: false
+        process: (input, output) ->
+          packet = input.get 'in'
+          output.sendDone 'some data'
+
+      sout1.on 'ip', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.data).to.equal 'some data'
+        done()
+
+      c.inPorts.in.attach sin1
+      c.outPorts.out.attach sout1
+
+      sin1.post new noflo.IP 'data', 'first'
+
+    it 'should send object out other port if there is only one port aside from error', (done) ->
+      c = new noflo.Component
+        inPorts:
+          in:
+            datatype: 'all'
+            required: true
+        outPorts:
+          out:
+            required: true
+          error:
+            required: false
+        process: (input, output) ->
+          packet = input.get 'in'
+          output.sendDone some: 'data'
+
+      sout1.on 'ip', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.data).to.eql some: 'data'
+        done()
+
+      c.inPorts.in.attach sin1
+      c.outPorts.out.attach sout1
+
+      sin1.post new noflo.IP 'data', 'first'
+
+    it 'should throw an error if sending without specifying a port and there are multiple ports', (done) ->
+      try
+        c = new noflo.Component
+          inPorts:
+            in:
+              datatype: 'string'
+              required: true
+          outPorts:
+            out:
+              datatype: 'all'
+            eh:
+              required: no
+            error:
+              required: no
+          process: (input, output) ->
+            output.sendDone 'test'
+
+        c.inPorts.in.attach sin1
+        sin1.post new noflo.IP 'data', 'some-data'
+      catch e
+        done()
 
     it 'should send errors if there is a connected error port', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           in:
             datatype: 'string'
@@ -818,11 +886,11 @@ describe 'Component', ->
 
       c.inPorts.in.attach sin1
       c.outPorts.error.attach sout1
-      sin1.post new IP 'data', 'some-data',
+      sin1.post new noflo.IP 'data', 'some-data',
         scope: 'some-scope'
 
     it 'should send substreams with multiple errors per activation', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           in:
             datatype: 'string'
@@ -863,11 +931,11 @@ describe 'Component', ->
 
       c.inPorts.in.attach sin1
       c.outPorts.error.attach sout1
-      sin1.post new IP 'data', 'some-data',
+      sin1.post new noflo.IP 'data', 'some-data',
         scope: 'some-scope'
 
     it 'should forward brackets for map-style components', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           in:
             datatype: 'string'
@@ -911,12 +979,12 @@ describe 'Component', ->
 
       for data in source
         switch data
-          when '<' then sin1.post new IP 'openBracket'
-          when '>' then sin1.post new IP 'closeBracket'
-          else sin1.post new IP 'data', data
+          when '<' then sin1.post new noflo.IP 'openBracket'
+          when '>' then sin1.post new noflo.IP 'closeBracket'
+          else sin1.post new noflo.IP 'data', data
 
     it 'should forward brackets to error port in async components', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           in:
             datatype: 'string'
@@ -938,7 +1006,7 @@ describe 'Component', ->
       c.outPorts.error.attach sout2
 
       sout1.on 'ip', (ip) ->
-        # done new Error "Unexpectd IP: #{ip.type} #{ip.data}"
+        # done new Error "Unexpected IP: #{ip.type} #{ip.data}"
 
       count = 0
       sout2.on 'ip', (ip) ->
@@ -953,9 +1021,9 @@ describe 'Component', ->
             chai.expect(ip.type).to.equal 'closeBracket'
         done() if count is 3
 
-      sin1.post new IP 'openBracket', 'foo'
-      sin1.post new IP 'data', { bar: 'baz' }
-      sin1.post new IP 'closeBracket', 'foo'
+      sin1.post new noflo.IP 'openBracket', 'foo'
+      sin1.post new noflo.IP 'data', { bar: 'baz' }
+      sin1.post new noflo.IP 'closeBracket', 'foo'
 
     it 'should not forward brackets if error port is not connected', (done) ->
       c = new component.Component
@@ -994,7 +1062,7 @@ describe 'Component', ->
       .to.not.throw()
 
     it 'should support custom bracket forwarding mappings with auto-ordering', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           msg:
             datatype: 'string'
@@ -1067,18 +1135,18 @@ describe 'Component', ->
         errCount++
         done() if errCount is 5
 
-      sin1.post new IP 'openBracket', 'msg'
-      sin2.post new IP 'openBracket', 'delay'
+      sin1.post new noflo.IP 'openBracket', 'msg'
+      sin2.post new noflo.IP 'openBracket', 'delay'
 
       for ip in sample
-        sin1.post new IP 'data', ip.msg
-        sin2.post new IP 'data', ip.delay
+        sin1.post new noflo.IP 'data', ip.msg
+        sin2.post new noflo.IP 'data', ip.delay
 
-      sin1.post new IP 'closeBracket', 'msg'
-      sin2.post new IP 'closeBracket', 'delay'
+      sin1.post new noflo.IP 'closeBracket', 'msg'
+      sin2.post new noflo.IP 'closeBracket', 'delay'
 
     it 'should not apply auto-ordering if that option is false', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           msg: datatype: 'string'
           delay: datatype: 'int'
@@ -1118,18 +1186,18 @@ describe 'Component', ->
         chai.expect(ip.data).to.eql src
         done() if count is 4
 
-      sin1.post new IP 'openBracket', 'msg'
-      sin2.post new IP 'openBracket', 'delay'
+      sin1.post new noflo.IP 'openBracket', 'msg'
+      sin2.post new noflo.IP 'openBracket', 'delay'
 
       for ip in sample
-        sin1.post new IP 'data', ip.msg
-        sin2.post new IP 'data', ip.delay
+        sin1.post new noflo.IP 'data', ip.msg
+        sin2.post new noflo.IP 'data', ip.delay
 
-      sin1.post new IP 'closeBracket', 'msg'
-      sin2.post new IP 'closeBracket', 'delay'
+      sin1.post new noflo.IP 'closeBracket', 'msg'
+      sin2.post new noflo.IP 'closeBracket', 'delay'
 
-    it 'should forward IP metadata for map-style components', (done) ->
-      c = new component.Component
+    it 'should forward noflo.IP metadata for map-style components', (done) ->
+      c = new noflo.Component
         inPorts:
           in:
             datatype: 'string'
@@ -1169,12 +1237,12 @@ describe 'Component', ->
 
       n = 0
       for str in source
-        sin1.post new IP 'data', str,
+        sin1.post new noflo.IP 'data', str,
           count: n++
           length: source.length
 
     it 'should be safe dropping IPs', (done) ->
-      c = new component.Component
+      c = new noflo.Component
         inPorts:
           in:
             datatype: 'string'
@@ -1196,13 +1264,13 @@ describe 'Component', ->
       sout1.on 'ip', (ip) ->
         done ip
 
-      sin1.post new IP 'data', 'foo',
+      sin1.post new noflo.IP 'data', 'foo',
         meta: 'bar'
 
     describe 'with custom callbacks', ->
 
       beforeEach (done) ->
-        c = new component.Component
+        c = new noflo.Component
           inPorts:
             foo: datatype: 'string'
             bar:
@@ -1222,7 +1290,7 @@ describe 'Component', ->
             # Start capturing output
             input.activate()
             output.send
-              baz: new IP 'openBracket'
+              baz: new noflo.IP 'openBracket'
             baz =
               foo: foo
               bar: bar
@@ -1230,7 +1298,7 @@ describe 'Component', ->
               baz: baz
             setTimeout ->
               output.send
-                baz: new IP 'closeBracket'
+                baz: new noflo.IP 'closeBracket'
               done()
             , bar
         c.inPorts.foo.attach sin1
@@ -1248,8 +1316,8 @@ describe 'Component', ->
           chai.expect(ip.data.message).to.contain 'Bar'
           done()
 
-        sin1.post new IP 'data', 'fff'
-        sin2.post new IP 'data', -120
+        sin1.post new noflo.IP 'data', 'fff'
+        sin2.post new noflo.IP 'data', -120
 
       it 'should send substreams', (done) ->
         sample = [
@@ -1282,12 +1350,12 @@ describe 'Component', ->
           done ip.data
 
         for item in sample
-          sin2.post new IP 'data', item.bar
-          sin1.post new IP 'data', item.foo
+          sin2.post new noflo.IP 'data', item.bar
+          sin1.post new noflo.IP 'data', item.foo
 
     describe 'using buffers', ->
       it 'should get from buffer using a name', (done) ->
-        c = new component.Component
+        c = new noflo.Component
           inPorts:
             in:
               datatype: 'string'
@@ -1303,10 +1371,10 @@ describe 'Component', ->
             done()
 
         c.inPorts.in.attach sin1
-        sin1.post new IP 'data', 'foo'
+        sin1.post new noflo.IP 'data', 'foo'
 
       it 'should filter everything from the buffer using no name', (done) ->
-        c = new component.Component
+        c = new noflo.Component
           inPorts:
             in:
               datatype: 'string'
@@ -1326,10 +1394,10 @@ describe 'Component', ->
             done()
 
         c.inPorts.in.attach sin1
-        sin1.post new IP 'data', 'foo'
+        sin1.post new noflo.IP 'data', 'foo'
 
       it 'should filter everything from the scoped buffer using no name', (done) ->
-        c = new component.Component
+        c = new noflo.Component
           inPorts:
             in:
               datatype: 'string'
@@ -1349,12 +1417,12 @@ describe 'Component', ->
             done()
 
         c.inPorts.in.attach sin1
-        ip = new IP 'data', 'foo'
+        ip = new noflo.IP 'data', 'foo'
         ip.scope = 'eh'
         sin1.post ip
 
       it 'should find from the buffer using a name', (done) ->
-        c = new component.Component
+        c = new noflo.Component
           inPorts:
             in:
               datatype: 'string'
@@ -1371,10 +1439,10 @@ describe 'Component', ->
             done()
 
         c.inPorts.in.attach sin1
-        sin1.post new IP 'data', 'foo'
+        sin1.post new noflo.IP 'data', 'foo'
 
       it 'should get scoped buffer using a name ', (done) ->
-        c = new component.Component
+        c = new noflo.Component
           inPorts:
             in:
               datatype: 'string'
@@ -1388,12 +1456,12 @@ describe 'Component', ->
             done()
 
         c.inPorts.in.attach sin1
-        ip = new IP 'data', 'foo'
+        ip = new noflo.IP 'data', 'foo'
         ip.scope = 'eh'
         sin1.post ip
 
       it 'should set a buffer using a name', (done) ->
-        c = new component.Component
+        c = new noflo.Component
           inPorts:
             in:
               datatype: 'string'
@@ -1409,10 +1477,10 @@ describe 'Component', ->
             done()
 
         c.inPorts.in.attach sin1
-        sin1.post new IP 'data', 'foo'
+        sin1.post new noflo.IP 'data', 'foo'
 
       it 'should set a buffer without a name', (done) ->
-        c = new component.Component
+        c = new noflo.Component
           inPorts:
             in:
               datatype: 'string'
@@ -1428,10 +1496,10 @@ describe 'Component', ->
             done()
 
         c.inPorts.in.attach sin1
-        sin1.post new IP 'data', 'foo'
+        sin1.post new noflo.IP 'data', 'foo'
 
       it 'should set a scoped buffer using a name', (done) ->
-        c = new component.Component
+        c = new noflo.Component
           inPorts:
             in:
               datatype: 'string'
@@ -1446,12 +1514,12 @@ describe 'Component', ->
             done()
 
         c.inPorts.in.attach sin1
-        ip = new IP 'data', 'foo'
+        ip = new noflo.IP 'data', 'foo'
         ip.scope = 'eh'
         sin1.post ip
 
       it 'should set a scoped buffer without a name', (done) ->
-        c = new component.Component
+        c = new noflo.Component
           inPorts:
             in:
               datatype: 'string'
@@ -1466,6 +1534,6 @@ describe 'Component', ->
             done()
 
         c.inPorts.in.attach sin1
-        ip = new IP 'data', 'foo'
+        ip = new noflo.IP 'data', 'foo'
         ip.scope = 'eh'
         sin1.post ip
