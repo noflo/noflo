@@ -137,6 +137,7 @@ class Component extends EventEmitter
       break unless result.__resolved
       for port, ips of result
         continue if port.indexOf('__') is 0
+        continue unless @outPorts.ports[port].isAttached()
         for ip in ips
           @bracketCounter[port]-- if ip.type is 'closeBracket'
           @outPorts[port].sendIP ip
