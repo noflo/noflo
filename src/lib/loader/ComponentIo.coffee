@@ -24,6 +24,7 @@ customLoader =
       return callback e
 
     return callback() unless definition.noflo
+    return callback() unless definition.dependencies
 
     @getModuleDependencies loader, Object.keys(definition.dependencies), (err) ->
       return callback err if err
