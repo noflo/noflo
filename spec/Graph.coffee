@@ -1,19 +1,19 @@
 if typeof process isnt 'undefined' and process.execPath and process.execPath.match /node|iojs/
   chai = require 'chai' unless chai
-  graph = require '../src/lib/Graph.coffee'
+  noflo = require '../src/lib/NoFlo.coffee'
 else
-  graph = require 'noflo/src/lib/Graph.js'
+  noflo = require 'noflo'
 
 describe 'Unnamed graph instance', ->
   it 'should have an empty name', ->
-    g = new graph.Graph
+    g = new noflo.graph.Graph
     chai.expect(g.name).to.equal ''
 
 describe 'Graph', ->
   describe 'with new instance', ->
     g = null
     it 'should get a name from constructor', ->
-      g = new graph.Graph 'Foo bar', caseSensitive: true
+      g = new noflo.graph.Graph 'Foo bar', caseSensitive: true
       chai.expect(g.name).to.equal 'Foo bar'
 
     it 'should have no nodes initially', ->
@@ -234,7 +234,7 @@ describe 'Graph', ->
     json = JSON.parse(jsonString)
     g = null
     it 'should produce a Graph', (done) ->
-      graph.loadJSON json, (err, instance) ->
+      noflo.graph.loadJSON json, (err, instance) ->
         return done err if err
         g = instance
         chai.expect(g).to.be.an 'object'
@@ -429,7 +429,7 @@ describe 'Graph', ->
         chai.expect(otherGroup.nodes.length).to.equal 2
 
   describe 'with multiple connected ArrayPorts', ->
-    g = new graph.Graph
+    g = new noflo.graph.Graph
     g.addNode 'Split1', 'Split'
     g.addNode 'Split2', 'Split'
     g.addNode 'Merge1', 'Merge'
@@ -459,7 +459,7 @@ describe 'Graph', ->
       chai.expect(connection).to.be.an 'object'
 
   describe 'with an Initial Information Packet', ->
-    g = new graph.Graph
+    g = new noflo.graph.Graph
     g.addNode 'Split', 'Split'
     g.addInitial 'Foo', 'Split', 'in'
     it 'should contain one node', ->
@@ -480,7 +480,7 @@ describe 'Graph', ->
         chai.expect(g.initializers.length).to.equal 0
 
   describe 'with an Inport Initial Information Packet', ->
-    g = new graph.Graph
+    g = new noflo.graph.Graph
     g.addNode 'Split', 'Split'
     g.addInport 'testinport', 'Split', 'in'
     g.addGraphInitial 'Foo', 'testinport'
@@ -509,7 +509,7 @@ describe 'Graph', ->
         chai.expect(g.initializers.length).to.equal 0
 
   describe 'with an indexed Inport Initial Information Packet', ->
-    g = new graph.Graph
+    g = new noflo.graph.Graph
     g.addNode 'Split', 'Split'
     g.addInport 'testinport', 'Split', 'in'
     g.addGraphInitialIndex 'Foo', 'testinport', 1
@@ -539,13 +539,13 @@ describe 'Graph', ->
         chai.expect(g.initializers.length).to.equal 0
 
   describe 'with no nodes', ->
-    g = new graph.Graph
+    g = new noflo.graph.Graph
     it 'should not allow adding edges', ->
       g.addEdge 'Foo', 'out', 'Bar', 'in'
-      chai.expect(graph.edges).to.be.empty
+      chai.expect(noflo.graph.edges).to.be.empty
     it 'should not allow adding IIPs', ->
       g.addInitial 'Hello', 'Bar', 'in'
-      chai.expect(graph.initializers).to.be.empty
+      chai.expect(noflo.graph.initializers).to.be.empty
 
   describe 'Legacy exports loaded via JSON', ->
     jsonString = """
@@ -578,7 +578,7 @@ describe 'Graph', ->
     json = JSON.parse(jsonString)
     g = null
     it 'should produce a Graph', (done) ->
-      graph.loadJSON json, (err, instance) ->
+      noflo.graph.loadJSON json, (err, instance) ->
         return done err if err
         g = instance
         chai.expect(g).to.be.an 'object'
@@ -598,7 +598,7 @@ describe 'Case Insensitive Graph', ->
   describe 'Graph operations should convert port names to lowercase', ->
     g = null
     beforeEach ->
-      g = new graph.Graph 'Hola'
+      g = new noflo.graph.Graph 'Hola'
 
     it 'should have case sensitive property set to false', ->
       chai.expect(g.caseSensitive).to.equal false
@@ -650,7 +650,7 @@ describe 'Case Insensitive Graph', ->
     g = null
 
     it 'should produce a Graph', (done) ->
-      graph.loadJSON json, (err, instance) ->
+      noflo.graph.loadJSON json, (err, instance) ->
         return done err if err
         g = instance
         chai.expect(g).to.be.an 'object'
