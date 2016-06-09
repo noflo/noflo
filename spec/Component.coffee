@@ -1041,7 +1041,6 @@ describe 'Component', ->
       c.outPorts.out.attach sout1
       c.outPorts.error.attach sout2
 
-      cnt = 0
       sout1.on 'ip', (ip) ->
         # done new Error "Unexpected IP: #{ip.type} #{ip.data}"
 
@@ -1061,6 +1060,42 @@ describe 'Component', ->
       sin1.post new noflo.IP 'openBracket', 'foo'
       sin1.post new noflo.IP 'data', { bar: 'baz' }
       sin1.post new noflo.IP 'closeBracket', 'foo'
+
+    it 'should not forward brackets if error port is not connected', (done) ->
+      c = new noflo.Component
+        inPorts:
+          in:
+            datatype: 'string'
+        outPorts:
+          out:
+            datatype: 'string'
+            required: true
+          error:
+            datatype: 'object'
+            required: true
+        process: (input, output) ->
+          str = input.getData()
+          setTimeout ->
+            if typeof str isnt 'string'
+              return output.sendDone new Error 'Input is not string'
+            output.pass str.toUpperCase()
+          , 10
+
+      c.inPorts.in.attach sin1
+      c.outPorts.out.attach sout1
+      # c.outPorts.error.attach sout2
+
+      sout1.on 'ip', (ip) ->
+        done() if ip.type is 'closeBracket'
+
+      sout2.on 'ip', (ip) ->
+        done new Error "Unexpected error IP: #{ip.type} #{ip.data}"
+
+      chai.expect ->
+        sin1.post new noflo.IP 'openBracket', 'foo'
+        sin1.post new noflo.IP 'data', 'bar'
+        sin1.post new noflo.IP 'closeBracket', 'foo'
+      .to.not.throw()
 
     it 'should support custom bracket forwarding mappings with auto-ordering', (done) ->
       c = new noflo.Component
