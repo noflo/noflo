@@ -605,11 +605,6 @@ describe 'Component', ->
       sin1.post new IP 'data', 'boo'
 
     it 'should isolate packets with different scopes', (done) ->
-      foo1 = 'Josh'
-      bar1 = 'Laura'
-      bar2 = 'Luke'
-      foo2 = 'Jane'
-
       c = new component.Component
         inPorts:
           foo: datatype: 'string'
@@ -665,6 +660,47 @@ describe 'Component', ->
         done()
 
       sin1.post new IP 'data', 'foo', scope: 'foo'
+
+    it 'should support integer scopes', (done) ->
+      c = new component.Component
+        inPorts:
+          foo: datatype: 'string'
+          bar: datatype: 'string'
+        outPorts:
+          baz: datatype: 'string'
+        process: (input, output) ->
+          return unless input.has 'foo', 'bar'
+          [foo, bar] = input.getData 'foo', 'bar'
+          output.sendDone
+            baz: "#{foo} and #{bar}"
+
+      c.inPorts.foo.attach sin1
+      c.inPorts.bar.attach sin2
+      c.outPorts.baz.attach sout1
+
+      sout1.once 'ip', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.type).to.equal 'data'
+        chai.expect(ip.scope).to.equal 1
+        chai.expect(ip.data).to.equal 'Josh and Laura'
+        sout1.once 'ip', (ip) ->
+          chai.expect(ip).to.be.an 'object'
+          chai.expect(ip.type).to.equal 'data'
+          chai.expect(ip.scope).to.equal 0
+          chai.expect(ip.data).to.equal 'Jane and Luke'
+          sout1.once 'ip', (ip) ->
+            chai.expect(ip).to.be.an 'object'
+            chai.expect(ip.type).to.equal 'data'
+            chai.expect(ip.scope).to.be.null
+            chai.expect(ip.data).to.equal 'Tom and Anna'
+            done()
+
+      sin1.post new IP 'data', 'Tom'
+      sin1.post new IP 'data', 'Josh', scope: 1
+      sin2.post new IP 'data', 'Luke', scope: 0
+      sin2.post new IP 'data', 'Laura', scope: 1
+      sin1.post new IP 'data', 'Jane', scope: 0
+      sin2.post new IP 'data', 'Anna'
 
     it 'should preserve order between input and output', (done) ->
       c = new component.Component
