@@ -542,10 +542,10 @@ describe 'Graph', ->
     g = new noflo.graph.Graph
     it 'should not allow adding edges', ->
       g.addEdge 'Foo', 'out', 'Bar', 'in'
-      chai.expect(noflo.graph.edges).to.be.empty
+      chai.expect(g.edges).to.be.empty
     it 'should not allow adding IIPs', ->
       g.addInitial 'Hello', 'Bar', 'in'
-      chai.expect(noflo.graph.initializers).to.be.empty
+      chai.expect(g.initializers).to.be.empty
 
   describe 'Legacy exports loaded via JSON', ->
     jsonString = """
