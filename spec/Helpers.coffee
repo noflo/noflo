@@ -847,14 +847,11 @@ describe 'Component traits', ->
         p2.send 73
         p2.disconnect()
 
-        chai.expect(Object.keys(c.groupedData)).to.have.length.above 0
-        chai.expect(Object.keys(c.params)).to.have.length.above 0
+        chai.expect(Object.keys(c._wpData[null].groupedData)).to.have.length.above 0
+        chai.expect(Object.keys(c._wpData[null].params)).to.have.length.above 0
 
         c.shutdown()
-        chai.expect(c.groupedData).to.deep.equal {}
-        chai.expect(c.params).to.deep.equal {}
-        chai.expect(c.taskQ).to.deep.equal []
-
+        chai.expect(c._wpData).to.deep.equal {}
         done()
 
       it 'should drop premature data if configured to do so', (done) ->
@@ -1543,17 +1540,17 @@ describe 'Component traits', ->
 
       it 'should collect garbage every N requests', (done) ->
         # GC dropped 3 timed out packets, 1 should be left
-        chai.expect(Object.keys(c.groupedData)).to.have.lengthOf 1
-        chai.expect(Object.keys(c.groupedGroups)).to.have.lengthOf 1
-        chai.expect(Object.keys(c.disconnectData)).to.have.lengthOf 1
+        chai.expect(Object.keys(c._wpData[null].groupedData)).to.have.lengthOf 1
+        chai.expect(Object.keys(c._wpData[null].groupedGroups)).to.have.lengthOf 1
+        chai.expect(Object.keys(c._wpData[null].disconnectData)).to.have.lengthOf 1
         done()
 
       it 'should be able to drop a request explicitly', (done) ->
-        for key in Object.keys(c.groupedData)
-          c.dropRequest key
-        chai.expect(c.groupedData).to.deep.equal {}
-        chai.expect(c.groupedGroups).to.deep.equal {}
-        chai.expect(c.disconnectData).to.deep.equal {}
+        for key in Object.keys(c._wpData[null].groupedData)
+          c.dropRequest null, key
+        chai.expect(c._wpData[null].groupedData).to.deep.equal {}
+        chai.expect(c._wpData[null].groupedGroups).to.deep.equal {}
+        chai.expect(c._wpData[null].disconnectData).to.deep.equal {}
         done()
 
   describe 'MultiError', ->
