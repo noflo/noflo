@@ -7,6 +7,7 @@ NoFlo ChangeLog
 * Added support for falsy IP object scopes
 * Added support for sending values out directly with `output.send` if there is only one non-error outport
 * InternalSocket no longer re-wraps already-wrapped errors coming from downstream
+* Switched NoFlo's default browser builder to webpack
 
 ## 0.7.7 (June 8th 2016)
 
