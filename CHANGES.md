@@ -1,6 +1,13 @@
 NoFlo ChangeLog
 ===============
 
+## 0.7.8 (June 10th 2016)
+
+* Added input buffer manipulation methods
+* Added support for falsy IP object scopes
+* Added support for sending values out directly with `output.send` if there is only one non-error outport
+* InternalSocket no longer re-wraps already-wrapped errors coming from downstream
+
 ## 0.7.7 (June 8th 2016)
 
 * `input.has` now accepts a validation callback function as the last argument. All packets in buffer will be passed to this function, and `has` will return false only if something returns true for each port specified
