@@ -23,7 +23,7 @@ wirePatternAsync = ->
     forwardGroups: true
   , (data, groups, out, callback) ->
     setTimeout ->
-      out.send data + 'foo'
+      out.send data + c.nodeId
       callback()
     , 1
 
@@ -37,7 +37,7 @@ processAsync = ->
   c.process (input, output) ->
     data = input.getData 'in'
     setTimeout ->
-      output.sendDone data + 'bar'
+      output.sendDone data + c.nodeId
     , 1
 
 describe 'Scope isolation', ->
@@ -81,7 +81,7 @@ describe 'Scope isolation', ->
         'CONN'
         '< 1'
         '< a'
-        'DATA bazfoobar'
+        'DATA bazWpPc'
         '>'
         '>'
         'DISC'
