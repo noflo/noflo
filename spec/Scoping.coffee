@@ -282,3 +282,38 @@ describe 'Scope isolation', ->
       in1.endGroup()
       in1.endGroup()
       in1.disconnect()
+    it 'should forward new-style brackets as expected regardless of sending order', (done) ->
+      expected = [
+        'CONN'
+        '< 1'
+        '< a'
+        'DATA 1bazPc1:2fooPc2:PcMerge'
+        '>'
+        '>'
+        'DISC'
+      ]
+      received = []
+
+      out.on 'connect', ->
+        received.push 'CONN'
+      out.on 'begingroup', (group) ->
+        received.push "< #{group}"
+      out.on 'data', (data) ->
+        received.push "DATA #{data}"
+      out.on 'endgroup', ->
+        received.push '>'
+      out.on 'disconnect', ->
+        received.push 'DISC'
+        chai.expect(received).to.eql expected
+        done()
+
+      in1.connect()
+      in1.beginGroup 1
+      in1.beginGroup 'a'
+      in1.send 'baz'
+      in1.endGroup()
+      in1.endGroup()
+      in1.disconnect()
+      in2.connect()
+      in2.send 'foo'
+      in2.disconnect()
