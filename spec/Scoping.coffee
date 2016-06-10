@@ -108,3 +108,33 @@ describe 'Scope isolation', ->
       ins.endGroup()
       ins.endGroup()
       ins.disconnect()
+    it 'should forward new-style brackets as expected', (done) ->
+      expected = [
+        '< 1'
+        '< a'
+        'DATA fooWpPc'
+        '>'
+        '>'
+      ]
+      received = []
+      brackets = []
+
+      out.on 'ip', (ip) ->
+        switch ip.type
+          when 'openBracket'
+            received.push "< #{ip.data}"
+            brackets.push ip.data
+          when 'data'
+            received.push "DATA #{ip.data}"
+          when 'closeBracket'
+            received.push '>'
+            brackets.pop()
+            return if brackets.length
+            chai.expect(received).to.eql expected
+            done()
+
+      ins.post new noflo.IP 'openBracket', 1
+      ins.post new noflo.IP 'openBracket', 'a'
+      ins.post new noflo.IP 'data', 'foo'
+      ins.post new noflo.IP 'closeBracket', 'a'
+      ins.post new noflo.IP 'closeBracket', 1
