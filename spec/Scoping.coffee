@@ -138,3 +138,38 @@ describe 'Scope isolation', ->
       ins.post new noflo.IP 'data', 'foo'
       ins.post new noflo.IP 'closeBracket', 'a'
       ins.post new noflo.IP 'closeBracket', 1
+    it 'should forward scopes as expected', (done) ->
+      expected = [
+        'x < 1'
+        'x < a'
+        'x DATA barWpPc'
+        'x >'
+        'x >'
+      ]
+      received = []
+      brackets = []
+
+      out.on 'ip', (ip) ->
+        switch ip.type
+          when 'openBracket'
+            received.push "#{ip.scope} < #{ip.data}"
+            brackets.push ip.data
+          when 'data'
+            received.push "#{ip.scope} DATA #{ip.data}"
+          when 'closeBracket'
+            received.push "#{ip.scope} >"
+            brackets.pop()
+            return if brackets.length
+            chai.expect(received).to.eql expected
+            done()
+
+      ins.post new noflo.IP 'openBracket', 1,
+        scope: 'x'
+      ins.post new noflo.IP 'openBracket', 'a',
+        scope: 'x'
+      ins.post new noflo.IP 'data', 'foo',
+        scope: 'x'
+      ins.post new noflo.IP 'closeBracket', 'a',
+        scope: 'x'
+      ins.post new noflo.IP 'closeBracket', 1,
+        scope: 'x'
