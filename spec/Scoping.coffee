@@ -67,8 +67,8 @@ processMerge = ->
   c.outPorts.add 'out',
     datatype: 'string'
 
-  c.forwardGroups =
-    in1: ['out']
+  c.forwardBrackets =
+    'in1': ['out']
 
   c.process (input, output) ->
     return unless input.has 'in1', 'in2', (ip) -> ip.type is 'data'
@@ -78,7 +78,7 @@ processMerge = ->
     first = input.getData 'in1'
 
     output.sendDone
-      out: "1#{first}#{c.nodeId}2#{second.data}#{c.nodeId}"
+      out: "1#{first}:2#{second.data}:#{c.nodeId}"
 
 describe 'Scope isolation', ->
   loader = null
@@ -252,7 +252,7 @@ describe 'Scope isolation', ->
         'CONN'
         '< 1'
         '< a'
-        'DATA bazWpPc'
+        'DATA 1bazPc1:2fooPc2:PcMerge'
         '>'
         '>'
         'DISC'
