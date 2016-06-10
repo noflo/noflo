@@ -27,6 +27,24 @@ wirePatternAsync = ->
       callback()
     , 1
 
+wirePatternMerge = ->
+  c = new noflo.Component
+  c.inPorts.add 'in1',
+    datatype: 'string'
+  c.inPorts.add 'in2',
+    datatype: 'string'
+  c.outPorts.add 'out',
+    datatype: 'string'
+
+  noflo.helpers.WirePattern c,
+    in: ['in1', 'in2']
+    out: 'out'
+    async: true
+    forwardGroups: true
+  , (data, groups, out, callback) ->
+    out.send "1#{data['in1']}#{c.nodeId}2#{data['in2']}#{c.nodeId}"
+    callback()
+
 processAsync = ->
   c = new noflo.Component
   c.inPorts.add 'in',
@@ -40,6 +58,28 @@ processAsync = ->
       output.sendDone data + c.nodeId
     , 1
 
+processMerge = ->
+  c = new noflo.Component
+  c.inPorts.add 'in1',
+    datatype: 'string'
+  c.inPorts.add 'in2',
+    datatype: 'string'
+  c.outPorts.add 'out',
+    datatype: 'string'
+
+  c.forwardGroups =
+    in1: ['out']
+
+  c.process (input, output) ->
+    return unless input.has 'in1', 'in2', (ip) -> ip.type is 'data'
+    second = input.get 'in2'
+    until second.type is 'data'
+      second = input.get 'in2'
+    first = input.getData 'in1'
+
+    output.sendDone
+      out: "1#{first}#{c.nodeId}2#{second.data}#{c.nodeId}"
+
 describe 'Scope isolation', ->
   loader = null
   before (done) ->
@@ -47,7 +87,9 @@ describe 'Scope isolation', ->
     loader.listComponents (err) ->
       return done err if err
       loader.registerComponent 'wirepattern', 'Async', wirePatternAsync
+      loader.registerComponent 'wirepattern', 'Merge', wirePatternMerge
       loader.registerComponent 'process', 'Async', processAsync
+      loader.registerComponent 'process', 'Merge', processMerge
       done()
 
   describe 'with WirePattern sending to Process API', ->
@@ -173,3 +215,70 @@ describe 'Scope isolation', ->
         scope: 'x'
       ins.post new noflo.IP 'closeBracket', 1,
         scope: 'x'
+
+  describe 'pure Process API merging two inputs', ->
+    c = null
+    in1 = null
+    in2 = null
+    out = null
+    before (done) ->
+      fbpData = "
+      INPORT=Pc1.IN:IN1
+      INPORT=Pc2.IN:IN2
+      OUTPORT=PcMerge.OUT:OUT
+      Pc1(process/Async) OUT -> IN1 PcMerge(process/Merge)
+      Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)
+      "
+      noflo.graph.loadFBP fbpData, (err, g) ->
+        return done err if err
+        loader.registerComponent 'scope', 'Merge', g
+        loader.load 'scope/Merge', (err, instance) ->
+          return done err if err
+          c = instance
+          in1 = noflo.internalSocket.createSocket()
+          c.inPorts.in1.attach in1
+          in2 = noflo.internalSocket.createSocket()
+          c.inPorts.in2.attach in2
+          done()
+    beforeEach ->
+      out = noflo.internalSocket.createSocket()
+      c.outPorts.out.attach out
+    afterEach ->
+      c.outPorts.out.detach out
+      out = null
+
+    it 'should forward new-style brackets as expected', (done) ->
+      expected = [
+        'CONN'
+        '< 1'
+        '< a'
+        'DATA bazWpPc'
+        '>'
+        '>'
+        'DISC'
+      ]
+      received = []
+
+      out.on 'connect', ->
+        received.push 'CONN'
+      out.on 'begingroup', (group) ->
+        received.push "< #{group}"
+      out.on 'data', (data) ->
+        received.push "DATA #{data}"
+      out.on 'endgroup', ->
+        received.push '>'
+      out.on 'disconnect', ->
+        received.push 'DISC'
+        chai.expect(received).to.eql expected
+        done()
+
+      in2.connect()
+      in2.send 'foo'
+      in2.disconnect()
+      in1.connect()
+      in1.beginGroup 1
+      in1.beginGroup 'a'
+      in1.send 'baz'
+      in1.endGroup()
+      in1.endGroup()
+      in1.disconnect()
