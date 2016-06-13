@@ -574,7 +574,7 @@ class Network extends EventEmitter
           @setStarted true
           callback null
 
-  stop: ->
+  stop: (callback) ->
     # Disconnect all connections
     for connection in @connections
       continue unless connection.isConnected()
@@ -583,6 +583,7 @@ class Network extends EventEmitter
     for id, process of @processes
       process.component.shutdown()
     @setStarted false
+    do callback if callback
 
   setStarted: (started) ->
     return if @started is started

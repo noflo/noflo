@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.7.9 (git master)
+
+* Added callback for `Network.stop`
+
 ## 0.7.8 (June 10th 2016)
 
 * Added input buffer manipulation methods
