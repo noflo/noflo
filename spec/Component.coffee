@@ -1573,3 +1573,79 @@ describe 'Component', ->
         ip = new noflo.IP 'data', 'foo'
         ip.scope = 'eh'
         sin1.post ip
+
+    describe 'using streams', ->
+      it 'should not trigger without a full stream without getting the whole stream', (done) ->
+        setTimeout ->
+          done()
+        , 1000
+        c = new noflo.Component
+          inPorts:
+            in:
+              datatype: 'string'
+          outPorts:
+            out:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.hasStream 'in'
+            done new Error 'should never trigger this'
+        c.forwardBrackets = {}
+        c.inPorts.in.attach sin1
+        sin1.send 'eh'
+
+      # should trigger when using bracket forwarding because it is a data stream
+      # one packet of data is a full stream if we use IPs
+      it 'should trigger when using ips without disconnect because they do not have openBrackets', (done) ->
+        c = new noflo.Component
+          inPorts:
+            in:
+              datatype: 'string'
+          outPorts:
+            out:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.hasStream 'in'
+            done()
+
+        c.forwardBrackets = {}
+        c.inPorts.in.attach sin1
+        sin1.post new noflo.IP 'data', 'eh'
+
+      it 'should trigger when forwardingBrackets because then it is only data with no brackets and is a full stream', (done) ->
+        c = new noflo.Component
+          inPorts:
+            in:
+              datatype: 'string'
+          outPorts:
+            out:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.hasStream 'in'
+            done()
+        c.forwardBrackets =
+          in: ['out']
+
+        c.inPorts.in.attach sin1
+        sin1.send 'eh'
+
+      it 'should get full stream when it has a full stream, and it should clear it', (done) ->
+        c = new noflo.Component
+          inPorts:
+            eh:
+              datatype: 'string'
+          outPorts:
+            canada:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.hasStream 'eh'
+            originalBuf = input.buffer.get 'eh'
+            stream = input.getStream 'in'
+            afterStreamBuf = input.buffer.get 'eh'
+            chai.expect(stream).to.eql originalBuf
+            chai.expect(afterStreamBuf).to.eql []
+            done()
+
+        c.inPorts.eh.attach sin1
+        sin1.connect()
+        sin1.send 'moose'
+        sin1.disconnect()
