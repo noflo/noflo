@@ -35,6 +35,25 @@ exports.MapComponent = (component, func, config) ->
         groups = []
         outPort.disconnect()
 
+# Wraps OutPort in WirePattern to add transparent scope support
+class OutPortWrapper
+  constructor: (@port, @scope) ->
+  connect: (socketId = null) ->
+    @port.connect socketId
+    # @port.openBracket null, scope: @scope, socketId
+  beginGroup: (group, socketId = null) ->
+    @port.beginGroup group, socketId
+    # @port.openBracket group, scope: @scope, socketId
+  send: (data, socketId = null) ->
+    @port.send data, socketId
+    # @port.data data, scope: @scope, socketId
+  endGroup: (socketId = null) ->
+    @port.endGroup socketId
+    # @port.closeBracket null, scope: @scope, socketId
+  disconnect: (socketId = null) ->
+    @port.disconnect socketId
+    # @endGroup socketId
+
 # WirePattern makes your component collect data from several inports
 # and activates a handler `proc` only when a tuple from all of these
 # ports is complete. The signature of handler function is:
@@ -464,14 +483,15 @@ exports.WirePattern = (component, config, proc) ->
             return if config.dropInput and _wp(scope).completeParams.length isnt component.requiredParams.length
 
             # Prepare outputs
-            # TODO append scope to all outgoing IPs
             outs = {}
             for name in outPorts
+              wrp = new OutPortWrapper component.outPorts[name], scope
               if config.async or config.sendStreams and
               config.sendStreams.indexOf(name) isnt -1
-                outs[name] = new StreamSender component.outPorts[name], config.ordered
+                wrp
+                outs[name] = new StreamSender wrp
               else
-                outs[name] = component.outPorts[name]
+                outs[name] = wrp
 
             outs = outs[outPorts[0]] if outPorts.length is 1 # for simplicity
             groups = [] unless groups
