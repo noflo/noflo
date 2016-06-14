@@ -149,7 +149,8 @@ class InPort extends BasePort
     else
       return false unless @buffer.length
       buf = @buffer
-    return true if validate packet for packet in buf
+    for packet in buf
+      return true if validate packet
     false
 
   # Returns the number of data packets in an inport

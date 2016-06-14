@@ -315,6 +315,7 @@ class Network extends EventEmitter
 
     emitSub = (type, data) =>
       if type is 'process-error' and @listeners('process-error').length is 0
+        throw data.error if data.id and data.metadata and data.error
         throw data
       do @increaseConnections if type is 'connect'
       do @decreaseConnections if type is 'disconnect'
@@ -368,7 +369,9 @@ class Network extends EventEmitter
         socket: socket
         metadata: socket.metadata
     socket.on 'error', (event) =>
-      throw event if @listeners('process-error').length is 0
+      if @listeners('process-error').length is 0
+        throw event.error if event.id and event.metadata and event.error
+        throw event
       @emit 'process-error', event
 
   subscribeNode: (node) ->
@@ -571,7 +574,7 @@ class Network extends EventEmitter
           @setStarted true
           callback null
 
-  stop: ->
+  stop: (callback) ->
     # Disconnect all connections
     for connection in @connections
       continue unless connection.isConnected()
@@ -580,6 +583,7 @@ class Network extends EventEmitter
     for id, process of @processes
       process.component.shutdown()
     @setStarted false
+    do callback if callback
 
   setStarted: (started) ->
     return if @started is started
