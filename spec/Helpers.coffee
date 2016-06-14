@@ -66,25 +66,32 @@ describe 'Component traits', ->
 
   describe 'WirePattern', ->
     describe 'when grouping by packet groups', ->
-      c = new noflo.Component
-      c.inPorts.add 'x',
-        required: true
-        datatype: 'int'
-      .add 'y',
-        required: true
-        datatype: 'int'
-      .add 'z',
-        required: true
-        datatype: 'int'
-      c.outPorts.add 'point'
-      x = new noflo.internalSocket.createSocket()
-      y = new noflo.internalSocket.createSocket()
-      z = new noflo.internalSocket.createSocket()
-      p = new noflo.internalSocket.createSocket()
-      c.inPorts.x.attach x
-      c.inPorts.y.attach y
-      c.inPorts.z.attach z
-      c.outPorts.point.attach p
+      c = null
+      x = null
+      y = null
+      z = null
+      p = null
+      beforeEach (done) ->
+        c = new noflo.Component
+        c.inPorts.add 'x',
+          required: true
+          datatype: 'int'
+        .add 'y',
+          required: true
+          datatype: 'int'
+        .add 'z',
+          required: true
+          datatype: 'int'
+        c.outPorts.add 'point'
+        x = new noflo.internalSocket.createSocket()
+        y = new noflo.internalSocket.createSocket()
+        z = new noflo.internalSocket.createSocket()
+        p = new noflo.internalSocket.createSocket()
+        c.inPorts.x.attach x
+        c.inPorts.y.attach y
+        c.inPorts.z.attach z
+        c.outPorts.point.attach p
+        done()
 
       it 'should pass data and groups to the callback', (done) ->
         src =

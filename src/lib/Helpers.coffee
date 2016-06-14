@@ -53,6 +53,8 @@ class OutPortWrapper
   disconnect: (socketId = null) ->
     @port.disconnect socketId
     # @endGroup socketId
+  isConnected: -> @port.isConnected()
+  isAttached: -> @port.isAttached()
 
 # WirePattern makes your component collect data from several inports
 # and activates a handler `proc` only when a tuple from all of these
