@@ -47,6 +47,7 @@ describe 'NoFlo Network', ->
     c.outPorts.add 'out',
       datatype: 'all'
     c.process (input, output) ->
+      return unless input.has 'in'
       cb = input.getData 'callback'
       data = input.getData 'in'
       cb data
