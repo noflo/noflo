@@ -95,14 +95,14 @@ class InternalSocket extends EventEmitter
   # As _connect_ event is considered as open bracket, it needs to be followed
   # by a _disconnect_ event or a closing bracket. In the new simplified
   # sending semantics single IP objects can be sent without open/close brackets.
-  post: (ip) ->
+  post: (ip, autoDisconnect = true) ->
     ip = @dataDelegate() if ip is undefined and typeof @dataDelegate is 'function'
     # Send legacy connect/disconnect if needed
     if not @isConnected() and @brackets.length is 0
       @connected = true
       @emitEvent 'connect', null
     @handleSocketEvent 'ip', ip, false
-    if @isConnected() and @brackets.length is 0
+    if autoDisconnect and @isConnected() and @brackets.length is 0
       @connected = false
       @emitEvent 'disconnect', null
 

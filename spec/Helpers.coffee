@@ -1560,6 +1560,85 @@ describe 'Component traits', ->
         chai.expect(c._wpData[null].disconnectData).to.deep.equal {}
         done()
 
+    describe 'when using scopes', ->
+      c = new noflo.Component
+        inPorts:
+          x: datatype: 'int'
+          y: datatype: 'int'
+        outPorts:
+          out: datatype: 'object'
+      x = noflo.internalSocket.createSocket()
+      y = noflo.internalSocket.createSocket()
+      out = noflo.internalSocket.createSocket()
+      c.inPorts.x.attach x
+      c.inPorts.y.attach y
+      c.outPorts.out.attach out
+
+      getUuid = ->
+        'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace /[xy]/g, (c) ->
+          r = Math.random()*16|0
+          v = if c is 'x' then r else r&0x3|0x8
+          v.toString 16
+      isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+      generateRequests = (num) ->
+        reqs = {}
+        for i in [1..num]
+          req =
+            id: getUuid()
+            num: i
+          if i % 3 is 0
+            req.x = i
+          else if i % 7 is 0
+            req.y = i
+          else
+            req.x = i
+            req.y = 2*i
+          reqs[req.id] = req
+        reqs
+
+      sendRequests = (reqs, delay) ->
+        for id, req of reqs
+          do (req) ->
+            setTimeout ->
+              if 'x' of req
+                x.post new noflo.IP 'openBracket', 'x', scope: req.id
+                x.post new noflo.IP 'data', req.x, scope: req.id
+                x.post new noflo.IP 'closeBracket', null, scope: req.id
+                x.disconnect()
+              if 'y' of req
+                y.post new noflo.IP 'openBracket', 'y', scope: req.id
+                y.post new noflo.IP 'data', req.y, scope: req.id
+                y.post new noflo.IP 'closeBracket', null, scope: req.id
+                y.disconnect()
+            , delay*req.num
+
+      noflo.helpers.WirePattern c,
+        in: ['x', 'y']
+        out: 'out'
+        async: true
+        forwardGroups: true
+      , (input, groups, out, done, postpone, resume, scope) ->
+        setTimeout ->
+          out.send
+            id: scope
+            x: input.x
+            y: input.y
+          done()
+        , 3
+
+      it 'should scope requests by proper UUID', (done) ->
+        reqs = generateRequests 10
+        count = 0
+
+        out.on 'data', (data) ->
+          count++
+          chai.expect(data.x).to.equal reqs[data.id].x
+          chai.expect(data.y).to.equal reqs[data.id].y
+          done() if count is 6 # 6 complete requests processed
+
+        sendRequests reqs, 10
+
   describe 'MultiError', ->
     describe 'with simple sync processes', ->
       c = new noflo.Component

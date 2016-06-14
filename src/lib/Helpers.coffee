@@ -39,20 +39,15 @@ exports.MapComponent = (component, func, config) ->
 class OutPortWrapper
   constructor: (@port, @scope) ->
   connect: (socketId = null) ->
-    @port.connect socketId
-    # @port.openBracket null, scope: @scope, socketId
+    @port.openBracket null, scope: @scope, socketId
   beginGroup: (group, socketId = null) ->
-    @port.beginGroup group, socketId
-    # @port.openBracket group, scope: @scope, socketId
+    @port.openBracket group, scope: @scope, socketId
   send: (data, socketId = null) ->
-    @port.send data, socketId
-    # @port.data data, scope: @scope, socketId
+    @port.sendIP 'data', data, scope: @scope, socketId, false
   endGroup: (socketId = null) ->
-    @port.endGroup socketId
-    # @port.closeBracket null, scope: @scope, socketId
+    @port.closeBracket null, scope: @scope, socketId
   disconnect: (socketId = null) ->
-    @port.disconnect socketId
-    # @endGroup socketId
+    @endGroup socketId
   isConnected: -> @port.isConnected()
   isAttached: -> @port.isAttached()
 
@@ -340,15 +335,17 @@ exports.WirePattern = (component, config, proc) ->
         _wp(scope).keyBuffers[port] = null unless port of _wp(scope).keyBuffers
         switch ip.type
           when 'openBracket'
+            return if payload is null
             _wp(scope).groupBuffers[port].push payload
             if config.forwardGroups and (collectGroups is true or needPortGroups) and not config.async
               sendGroupToOuts payload
           when 'closeBracket'
             _wp(scope).groupBuffers[port] = _wp(scope).groupBuffers[port].slice 0, _wp(scope).groupBuffers[port].length - 1
             if config.forwardGroups and (collectGroups is true or needPortGroups) and not config.async
+              # FIXME probably need to skip this if payload is null
               closeGroupOnOuts payload
             # Disconnect
-            if _wp(scope).groupBuffers[port].length is 0
+            if _wp(scope).groupBuffers[port].length is 0 and payload is null
               if inPorts.length is 1
                 if config.async or config.StreamSender
                   if config.ordered
@@ -491,7 +488,7 @@ exports.WirePattern = (component, config, proc) ->
               if config.async or config.sendStreams and
               config.sendStreams.indexOf(name) isnt -1
                 wrp
-                outs[name] = new StreamSender wrp
+                outs[name] = new StreamSender wrp, config.ordered
               else
                 outs[name] = wrp
 
@@ -546,7 +543,7 @@ exports.WirePattern = (component, config, proc) ->
               postponedToQ = false
               task = ->
                 setParamsScope scope
-                proc.call component, data, groups, outs, whenDone, postpone, resume
+                proc.call component, data, groups, outs, whenDone, postpone, resume, scope
               postpone = (backToQueue = true) ->
                 postponedToQ = backToQueue
                 if backToQueue
@@ -556,7 +553,7 @@ exports.WirePattern = (component, config, proc) ->
             else
               task = ->
                 setParamsScope scope
-                proc.call component, data, groups, outs
+                proc.call component, data, groups, outs, null, null, null, scope
                 whenDone()
             _wp(scope).taskQ.push task
             resumeTaskQ scope
