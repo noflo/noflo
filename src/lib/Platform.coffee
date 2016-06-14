@@ -8,7 +8,7 @@ exports.isBrowser = ->
     return false
   true
 
-exports.warnDeprecated = (message) ->
+exports.deprecated = (message) ->
   if exports.isBrowser()
     throw new Error message if window.NOFLO_FATAL_DEPRECATED
     console.warn message
