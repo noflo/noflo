@@ -564,6 +564,7 @@ class Network extends EventEmitter
 
   start: (callback) ->
     unless callback
+      platform.deprecated 'Calling network.start() without callback is deprecated'
       callback = ->
 
     do @stop if @started
@@ -578,6 +579,10 @@ class Network extends EventEmitter
           callback null
 
   stop: (callback) ->
+    unless callback
+      platform.deprecated 'Calling network.stop() without callback is deprecated'
+      callback = ->
+
     # Disconnect all connections
     for connection in @connections
       continue unless connection.isConnected()
@@ -586,7 +591,7 @@ class Network extends EventEmitter
     for id, process of @processes
       process.component.shutdown()
     @setStarted false
-    do callback if callback
+    do callback
 
   setStarted: (started) ->
     return if @started is started

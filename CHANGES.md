@@ -5,6 +5,11 @@ NoFlo ChangeLog
 
 * Added callback for `Network.stop`
 * Outmost brackets are no longer automatically converted to `connect` and `disconnect` events. Instead, `connect` and `disconnect` are injected as needed, but only for subscribers of the legacy events
+* Added deprecation warnings for APIs that will be removed by NoFlo 1.0. These can be made fatal by setting the `NOFLO_FATAL_DEPRECATED` environment variable. These include:
+  - noflo.AsyncComponent: should be ported to Process API
+  - noflo.ArrayPort: should be ported to noflo.In/OutPort with `addressable: true`
+  - noflo.Port: should be ported to noflo.In/OutPort
+  - Calling Network.start or Network.stop without a callback
 
 ## 0.7.8 (June 10th 2016)
 
