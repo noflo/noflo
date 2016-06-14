@@ -1178,8 +1178,8 @@ describe 'Component', ->
         sin1.post new noflo.IP 'data', ip.msg
         sin2.post new noflo.IP 'data', ip.delay
 
-      sin1.post new noflo.IP 'closeBracket', 'msg'
       sin2.post new noflo.IP 'closeBracket', 'delay'
+      sin1.post new noflo.IP 'closeBracket', 'msg'
 
     it 'should not apply auto-ordering if that option is false', (done) ->
       c = new noflo.Component
