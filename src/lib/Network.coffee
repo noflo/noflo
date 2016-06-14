@@ -171,9 +171,12 @@ class Network extends EventEmitter
     process.id = newId
 
     # Inform the ports of the node name
-    for name, port of process.component.inPorts
+    # FIXME: direct process.component.inPorts/outPorts access is only for legacy compat
+    inPorts = process.component.inPorts.ports or process.component.inPorts
+    outPorts = process.component.outPorts.ports or process.component.outPorts
+    for name, port of inPorts
       port.node = newId
-    for name, port of process.component.outPorts
+    for name, port of outPorts
       port.node = newId
 
     @processes[newId] = process
