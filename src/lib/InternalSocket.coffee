@@ -209,6 +209,10 @@ class InternalSocket extends EventEmitter
     isIP = event is 'ip' and IP.isIP payload
     ip = if isIP then payload else @legacyToIp event, payload
 
+    if not @isConnected() and autoConnect and @brackets.length is 0
+      # Connect before sending
+      @connect()
+
     if event is 'begingroup'
       @brackets.push payload
     if isIP and ip.type is 'openBracket'
@@ -224,10 +228,6 @@ class InternalSocket extends EventEmitter
       # Prevent closing already closed brackets
       return if @brackets.length is 0
       @brackets.pop()
-
-    if not @isConnected() and autoConnect and @brackets.length is 0
-      # Connect before sending
-      @connect()
 
     # Emit the IP Object
     @emitEvent 'ip', ip
