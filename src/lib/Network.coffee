@@ -136,14 +136,15 @@ class Network extends EventEmitter
       process.component = instance
 
       # Inform the ports of the node name
-      for name, port of process.component.inPorts
-        continue if not port or typeof port is 'function' or not port.canAttach
+      # FIXME: direct process.component.inPorts/outPorts access is only for legacy compat
+      inPorts = process.component.inPorts.ports or process.component.inPorts
+      outPorts = process.component.outPorts.ports or process.component.outPorts
+      for name, port of inPorts
         port.node = node.id
         port.nodeInstance = instance
         port.name = name
 
-      for name, port of process.component.outPorts
-        continue if not port or typeof port is 'function' or not port.canAttach
+      for name, port of outPorts
         port.node = node.id
         port.nodeInstance = instance
         port.name = name
@@ -567,7 +568,12 @@ class Network extends EventEmitter
       platform.deprecated 'Calling network.start() without callback is deprecated'
       callback = ->
 
-    do @stop if @started
+    if @started
+      @stop (err) =>
+        return callback err if err
+        @start callback
+      return
+
     @initials = @nextInitials.slice 0
     @startComponents (err) =>
       return callback err if err
