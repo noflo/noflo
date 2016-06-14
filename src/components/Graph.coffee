@@ -56,20 +56,23 @@ class Graph extends noflo.Component
       @network.connect (err) =>
         return @error err if err
         notReady = false
-        for name, process of @network.processes
-          notReady = true unless @checkComponent name, process
+        for name, node of @network.processes
+          notReady = true unless @checkComponent name, node
         do @setToReady unless notReady
     , true
 
-  start: ->
+  start: (callback) ->
+    unless callback
+      callback = ->
     unless @isReady()
       @on 'ready', =>
-        do @start
+        @start callback
       return
 
-    return unless @network
-    @started = true
-    @network.start()
+    return callback null unless @network
+    @network.start (err) =>
+      return callback err if err
+      @started = true
 
   checkComponent: (name, process) ->
     unless process.component.isReady()
@@ -130,8 +133,11 @@ class Graph extends noflo.Component
       , 0
 
   findEdgePorts: (name, process) ->
-    for portName, port of process.component.inPorts
-      continue if not port or typeof port is 'function' or not port.canAttach
+    # FIXME: direct process.component.inPorts/outPorts access is only for legacy compat
+    inPorts = process.component.inPorts.ports or process.component.inPorts
+    outPorts = process.component.outPorts.ports or process.component.outPorts
+
+    for portName, port of inPorts
       targetPortName = @isExportedInport port, name, portName
       continue if targetPortName is false
       @inPorts.add targetPortName, port
@@ -140,8 +146,7 @@ class Graph extends noflo.Component
         return if @isStarted()
         do @start
 
-    for portName, port of process.component.outPorts
-      continue if not port or typeof port is 'function' or not port.canAttach
+    for portName, port of outPorts
       targetPortName = @isExportedOutport port, name, portName
       continue if targetPortName is false
       @outPorts.add targetPortName, port
@@ -154,8 +159,10 @@ class Graph extends noflo.Component
   isSubgraph: ->
     true
 
-  shutdown: ->
-    return unless @network
-    @network.stop()
+  shutdown: (callback) ->
+    unless callback
+      callback = ->
+    return callback null unless @network
+    @network.stop callback
 
 exports.getComponent = (metadata) -> new Graph metadata
