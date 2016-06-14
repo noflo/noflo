@@ -136,11 +136,11 @@ describe 'NoFlo Network', ->
       chai.expect(n.processes.Callback).to.exist
       chai.expect(n.processes.Callback).to.be.an 'Object'
     it 'the ports of the processes should know the node names', ->
-      for name, port of n.processes.Callback.component.inPorts
+      for name, port of n.processes.Callback.component.inPorts.ports
         chai.expect(port.name).to.equal name
         chai.expect(port.node).to.equal 'Callback'
         chai.expect(port.getId()).to.equal "Callback #{name.toUpperCase()}"
-      for name, port of n.processes.Callback.component.outPorts
+      for name, port of n.processes.Callback.component.outPorts.ports
         chai.expect(port.name).to.equal name
         chai.expect(port.node).to.equal 'Callback'
         chai.expect(port.getId()).to.equal "Callback #{name.toUpperCase()}"
