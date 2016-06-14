@@ -150,10 +150,10 @@ describe 'NoFlo Graph component', ->
         c.start (err) ->
           done err if err
       g.send
-        exports: [
-          public: 'out'
-          private: 'split.out'
-        ]
+        outports:
+          out:
+            process: 'Split'
+            port: 'out'
         processes:
           Split:
             component: 'Split'
@@ -187,13 +187,14 @@ describe 'NoFlo Graph component', ->
         c.start (err) ->
           done err if err
       g.send
-        exports: [
-          public: 'in'
-          private: 'merge.in'
-        ,
-          public: 'out'
-          private: 'split.out'
-        ]
+        inports:
+          in:
+            process: 'Merge'
+            port: 'in'
+        outports:
+          out:
+            process: 'Split'
+            port: 'out'
         processes:
           Split:
             component: 'Split'
