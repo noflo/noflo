@@ -10,6 +10,7 @@ NoFlo ChangeLog
   - noflo.ArrayPort: should be ported to noflo.In/OutPort with `addressable: true`
   - noflo.Port: should be ported to noflo.In/OutPort
   - Calling Network.start or Network.stop without a callback
+  - Additionally component.io builds warn about deprecation in favor of webpack
 
 ## 0.7.8 (June 10th 2016)
 
