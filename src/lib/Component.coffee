@@ -276,8 +276,38 @@ class ProcessOutput
   sendIP: (port, packet) ->
     if typeof packet isnt 'object' or IP.types.indexOf(packet.type) is -1
       ip = new IP 'data', packet
+      data = packet
     else
       ip = packet
+      data = packet.data
+
+    if port.strict and port.datatype isnt 'all'
+      switch @options.datatype
+        when 'object' then
+          if typeof data isnt 'object'
+            throw new Error "#{data} was not object"
+        when 'array' then
+          if !Array.isArray(data)
+            throw new Error "#{data} was not array"
+        when 'number', 'int' then
+          if typeof data isnt 'number' and !Number.isNaN(data)
+            throw new Error "#{data} was not " + @options.datatype
+        when 'string', 'function' then
+          if typeof data isnt @options.datatype
+            throw new Error "#{data} was not " + @options.datatype
+        when 'boolean' then
+          if String(data) isnt 'true' and String(data) isnt 'false'
+            throw new Error "#{data} was not " + @options.datatype
+        when 'date' then
+          if isNaN(Date.parse('foo')) is false
+            throw new Error "#{data} was not date"
+        when 'buffer' then
+          if data isnt instanceof Buffer
+            throw new Error "#{data} was not buffer"
+        when 'stream' then
+          if data isnt instanceof EventEmitter
+            throw new Error "#{data} was not stream"
+
     ip.scope = @scope if @scope isnt null and ip.scope is null
     if @nodeInstance.ordered or @nodeInstance.autoOrdering
       @result[port] = [] unless port of @result
