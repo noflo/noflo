@@ -126,6 +126,10 @@ class Component extends EventEmitter
       @processOutputQueue()
       return
     return unless port.options.triggering
+
+    if Types.validate(port.options.strict, port.options.datatype, ip.data) isnt true
+      throw new Error "#{ip.data} is not a " + port.options.datatype
+
     result = {}
     input = new ProcessInput @inPorts, ip, @, port, result
     output = new ProcessOutput @outPorts, ip, @, result
@@ -277,12 +281,11 @@ class ProcessOutput
   sendIP: (port, packet) ->
     if typeof packet isnt 'object' or IP.types.indexOf(packet.type) is -1
       ip = new IP 'data', packet
-      unless Types.validate port.strict, packet
-        throw new Error "#{packet} is not a " + port.datatype
     else
       ip = packet
-      unless Types.validate port.strict, packet.data
-        throw new Error "#{packet.data} is not a " + port.datatype
+
+    unless Types.validate @ports.ports[port].options.strict, @ports.ports[port].options.datatype, ip.data
+      throw new Error "#{packet} is not a " +  @ports.ports[port].options.datatype
 
     ip.scope = @scope if @scope isnt null and ip.scope is null
     if @nodeInstance.ordered or @nodeInstance.autoOrdering

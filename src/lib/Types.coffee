@@ -1,6 +1,6 @@
-exports.validate = (strict, datatype)
-  if strict and datatype isnt 'all'
-    switch @options.datatype
+exports.validate = (strict, datatype, data) ->
+  if strict is true and datatype isnt 'all'
+    switch typeof datatype
       when 'object'
         if typeof data isnt 'object'
           return false
@@ -11,7 +11,7 @@ exports.validate = (strict, datatype)
         if typeof data isnt 'number' and not Number.isNaN(data)
           return false
       when 'string', 'function'
-        if typeof data isnt @options.datatype
+        if typeof data isnt datatype
           return false
       when 'boolean'
         if String(data) isnt 'true' and String(data) isnt 'false'
@@ -25,7 +25,7 @@ exports.validate = (strict, datatype)
       when 'stream'
         if not data instanceof EventEmitter
           return false
-      return true
+  return true
 
 exports.validTypes = [
   'all'

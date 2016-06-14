@@ -58,13 +58,11 @@ class OutPort extends BasePort
     if IP.isIP type
       ip = type
       socketId = ip.index
-      ip = packet
-      unless Types.validate @strict, packet.data
-        throw new Error "#{packet.data} is not a " + @datatype
     else
       ip = new IP type, data, options
-      unless Types.validate @strict, packet
-        throw new Error "#{data} is not a " + @datatype
+
+    if Types.validate(@options.strict, @options.datatype, ip.data) isnt true
+      throw new Error "#{data} is not a " + @options.datatype
 
     sockets = @getSockets socketId
     @checkRequired sockets
