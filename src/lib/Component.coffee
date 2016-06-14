@@ -194,6 +194,26 @@ class ProcessInput
       return ips?.data ? undefined
     (ip?.data ? undefined for ip in ips)
 
+  hasStream: (port) ->
+    buffer = @buffer.get port
+    return false if buffer.length is 0
+    # check if we have everything until "disconnect"
+    received = 0
+    for packet in buffer
+      if packet.type is 'openBracket'
+        ++received
+      else if packet.type is 'closeBracket'
+        --received
+    received is 0
+
+  getStream: (input, port, withoutConnectAndDisconnect = false) ->
+    buf = @buffer.get port
+    @buffer.filter port, (ip) -> false
+    if withoutConnectAndDisconnect
+      buf = buf.slice 1
+      buf.pop()
+    buf
+
 class PortBuffer
   constructor: (@context) ->
 
