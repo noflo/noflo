@@ -24,28 +24,29 @@ describe 'Graph component', ->
       c.inPorts.graph.attach g
       done()
 
-  class Split extends noflo.Component
-    constructor: ->
-      @inPorts =
-        in: new noflo.Port
-      @outPorts =
-        out: new noflo.ArrayPort
-      @inPorts.in.on 'connect', (data) =>
-        @outPorts.out.connect()
-      @inPorts.in.on 'data', (data) =>
-        @outPorts.out.send data
-      @inPorts.in.on 'disconnect', =>
-        @outPorts.out.disconnect()
-  Split.getComponent = -> new Split
+  Split = ->
+    c = new noflo.Component
+    c.inPorts.add 'in',
+      datatype: 'all'
+    c.outPorts.add 'out',
+      datatype: 'all'
+    c.process (input, output) ->
+      data = input.getData 'in'
+      output.sendDone
+        out: data
 
   SubgraphMerge = ->
-    inst = new noflo.Component
-    inst.inPorts.add 'in', (event, payload, instance) ->
-      method = event
-      method = 'send' if event is 'data'
-      instance.outPorts[method] 'out', payload
-    inst.outPorts.add 'out'
-    inst
+    c = new noflo.Component
+    c.inPorts.add 'in',
+      datatype: 'all'
+    c.outPorts.add 'out',
+      datatype: 'all'
+    c.forwardBrackets = {}
+    c.process (input, output) ->
+      packet = input.get 'in'
+      return output.done() unless packet.type is 'data'
+      output.sendDone
+        out: packet.data
 
   describe 'initially', ->
     it 'should be ready', ->
