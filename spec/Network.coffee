@@ -8,46 +8,50 @@ else
   root = 'noflo'
 
 describe 'NoFlo Network', ->
-  class Split extends noflo.Component
-    constructor: ->
-      @stopped = false
-      @inPorts =
-        in: new noflo.Port
-      @outPorts =
-        out: new noflo.ArrayPort
-      @inPorts.in.on 'data', (data) =>
-        @outPorts.out.send data
-      @inPorts.in.on 'disconnect', =>
-        @outPorts.out.disconnect()
-    start: ->
-      @stopped = false
-      super()
-    shutdown: ->
-      @stopped = true
-  Split.getComponent = -> new Split
-  class Merge extends noflo.Component
-    constructor: ->
-      @inPorts =
-        in: new noflo.ArrayPort
-      @outPorts =
-        out: new noflo.Port
-      @inPorts.in.on 'data', (data) =>
-        @outPorts.out.send data
-      @inPorts.in.on 'disconnect', =>
-        @outPorts.out.disconnect()
-  Merge.getComponent = -> new Merge
-  class Callback extends noflo.Component
-    constructor: ->
-      @cb = null
-      @inPorts =
-        in: new noflo.Port
-        callback: new noflo.Port
-      @outPorts = {}
-      @inPorts.callback.on 'data', (data) =>
-        @cb = data
-      @inPorts.in.on 'data', (data) =>
-        @cb data
-  Callback.getComponent = -> new Callback
+  Split = ->
+    c = new noflo.Component
+    c.stopped = false
+    c.inPorts.add 'in',
+      datatype: 'all'
+    c.outPorts.add 'out',
+      datatype: 'all'
+    c.start = ->
+      c.stopped = false
+      c.started = true
+    c.shutdown = ->
+      c.stopped = true
+      c.started = false
+    c.process (input, output) ->
+      data = input.getData 'in'
+      output.sendDone
+        out: data
+  Merge = ->
+    c = new noflo.Component
+    c.stopped = false
+    c.inPorts.add 'in',
+      datatype: 'all'
+    c.outPorts.add 'out',
+      datatype: 'all'
+    c.process (input, output) ->
+      data = input.getData 'in'
+      output.sendDone
+        out: data
+  Callback = ->
+    c = new noflo.Component
+    c.stopped = false
+    c.inPorts.add 'in',
+      datatype: 'all'
+    c.inPorts.add 'callback',
+      datatype: 'function'
+      control: true
+    c.outPorts.add 'out',
+      datatype: 'all'
+    c.process (input, output) ->
+      return unless input.has 'in'
+      cb = input.getData 'callback'
+      data = input.getData 'in'
+      cb data
+      output.done()
 
   describe 'with an empty graph', ->
     g = null
@@ -133,11 +137,11 @@ describe 'NoFlo Network', ->
       chai.expect(n.processes.Callback).to.exist
       chai.expect(n.processes.Callback).to.be.an 'Object'
     it 'the ports of the processes should know the node names', ->
-      for name, port of n.processes.Callback.component.inPorts
+      for name, port of n.processes.Callback.component.inPorts.ports
         chai.expect(port.name).to.equal name
         chai.expect(port.node).to.equal 'Callback'
         chai.expect(port.getId()).to.equal "Callback #{name.toUpperCase()}"
-      for name, port of n.processes.Callback.component.outPorts
+      for name, port of n.processes.Callback.component.outPorts.ports
         chai.expect(port.name).to.equal name
         chai.expect(port.node).to.equal 'Callback'
         chai.expect(port.getId()).to.equal "Callback #{name.toUpperCase()}"
@@ -186,11 +190,11 @@ describe 'NoFlo Network', ->
       it 'shouldn\'t have the process in the old location', ->
         chai.expect(n.processes.Callback).to.be.undefined
       it 'should have informed the ports of their new node name', ->
-        for name, port of n.processes.Func.component.inPorts
+        for name, port of n.processes.Func.component.inPorts.ports
           chai.expect(port.name).to.equal name
           chai.expect(port.node).to.equal 'Func'
           chai.expect(port.getId()).to.equal "Func #{name.toUpperCase()}"
-        for name, port of n.processes.Func.component.outPorts
+        for name, port of n.processes.Func.component.outPorts.ports
           chai.expect(port.name).to.equal name
           chai.expect(port.node).to.equal 'Func'
           chai.expect(port.getId()).to.equal "Func #{name.toUpperCase()}"
