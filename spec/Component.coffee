@@ -4,7 +4,7 @@ if typeof process isnt 'undefined' and process.execPath and process.execPath.mat
 else
   noflo = require 'noflo'
 
-describe.only 'Component', ->
+describe 'Component', ->
   describe 'with required ports', ->
     it 'should throw an error upon sending packet to an unattached required port', ->
       s2 = new noflo.internalSocket.InternalSocket
@@ -30,88 +30,6 @@ describe.only 'Component', ->
         s1.send 'some-more-data'
         s2.send 'some-data'
       chai.expect(f).to.not.throw()
-
-  describe 'with strict ports', ->
-    it 'should throw an error upon receiving packet with the wrong datatype', (done) ->
-      s1 = new noflo.internalSocket.InternalSocket
-      c = new noflo.Component
-        inPorts:
-          in:
-            datatype: 'object'
-            required: true
-            strict: true
-        process: (input, output) ->
-
-      c.inPorts.in.attach s1
-      try
-        s1.send('q')
-      catch e
-        done()
-
-    it 'should throw an error upon receiving IP with the wrong datatype', (done) ->
-      s1 = new noflo.internalSocket.InternalSocket
-      c = new noflo.Component
-        inPorts:
-          in:
-            datatype: 'object'
-            required: true
-            strict: true
-        process: (input, output) ->
-
-      c.inPorts.in.attach s1
-      try
-        s1.send new noflo.IP('data', 'foo')
-      catch e
-        done()
-
-    it 'should throw an error upon sending packet with the wrong datatype', (done) ->
-      s1 = new noflo.internalSocket.InternalSocket
-      o1 = new noflo.internalSocket.InternalSocket
-      c = new noflo.Component
-        inPorts:
-          in: datatype: 'string'
-        outPorts:
-          out:
-            datatype: 'object'
-            required: true
-            strict: true
-        process: (input, output) ->
-          chai.expect(-> output.send out: 'outeh').to.throw()
-          done()
-
-      c.inPorts.in.attach s1
-      c.outPorts.out.attach o1
-      s1.send 'eh'
-
-    it 'should throw an error upon sending IP with the wrong datatype', (done) ->
-      s1 = new noflo.internalSocket.InternalSocket
-      o1 = new noflo.internalSocket.InternalSocket
-      c = new noflo.Component
-        inPorts:
-          in: datatype: 'string'
-        outPorts:
-          out:
-            datatype: 'object'
-            required: true
-            strict: true
-        process: (input, output) ->
-          chai.expect(-> output.send out: new noflo.IP('data', 'foo')).to.throw()
-          done()
-
-      c.inPorts.in.attach s1
-      c.outPorts.out.attach o1
-      s1.send 'eh'
-
-    it 'should not throw an error upon sending IP with the right datatype', ->
-      o1 = new noflo.internalSocket.InternalSocket
-      c = new noflo.Component
-        outPorts:
-          required_port:
-            datatype: 'string'
-            required: true
-            strict: true
-      c.outPorts.required_port.attach o1
-      chai.expect(-> o1.send(new noflo.IP('data', 'foo'))).to.not.throw()
 
   describe 'with component creation shorthand', ->
     it 'should make component creation easy', (done) ->
@@ -259,6 +177,7 @@ describe.only 'Component', ->
       chai.expect(shorthand).to.throw()
 
   describe 'starting a component', ->
+
     it 'should flag the component as started', ->
       c = new noflo.Component
         inPorts:
@@ -272,6 +191,7 @@ describe.only 'Component', ->
       chai.expect(c.isStarted()).to.equal(true)
 
   describe 'shutting down a component', ->
+
     it 'should flag the component as not started', ->
       c = new noflo.Component
         inPorts:
@@ -286,6 +206,7 @@ describe.only 'Component', ->
       chai.expect(c.isStarted()).to.equal(false)
 
   describe 'with object-based IPs', ->
+
     it 'should speak IP objects', (done) ->
       c = new noflo.Component
         inPorts:
@@ -1652,3 +1573,67 @@ describe.only 'Component', ->
         ip = new noflo.IP 'data', 'foo'
         ip.scope = 'eh'
         sin1.post ip
+
+    describe 'using streams', ->
+      it 'should not trigger without a full stream without getting the whole stream', (done) ->
+        c = new noflo.Component
+          inPorts:
+            in:
+              datatype: 'string'
+          outPorts:
+            out:
+              datatype: 'string'
+          process: (input, output) ->
+            if input.hasStream 'in'
+              done new Error 'should never trigger this'
+
+            if (input.has 'in', (ip) -> ip.type is 'closeBracket')
+              done()
+
+        c.forwardBrackets = {}
+        c.inPorts.in.attach sin1
+
+        sin1.post new noflo.IP 'openBracket', ''
+        sin1.post new noflo.IP 'openBracket', ''
+        sin1.post new noflo.IP 'openBracket', ''
+        sin1.post new noflo.IP 'data', 'eh'
+        sin1.post new noflo.IP 'closeBracket', ''
+
+      it 'should trigger when forwardingBrackets because then it is only data with no brackets and is a full stream', (done) ->
+        c = new noflo.Component
+          inPorts:
+            in:
+              datatype: 'string'
+          outPorts:
+            out:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.hasStream 'in'
+            done()
+        c.forwardBrackets =
+          in: ['out']
+
+        c.inPorts.in.attach sin1
+        sin1.post new noflo.IP 'data', 'eh'
+
+      it 'should get full stream when it has a full stream, and it should clear it', (done) ->
+        c = new noflo.Component
+          inPorts:
+            eh:
+              datatype: 'string'
+          outPorts:
+            canada:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.hasStream 'eh'
+            originalBuf = input.buffer.get 'eh'
+            stream = input.getStream 'in'
+            afterStreamBuf = input.buffer.get 'eh'
+            chai.expect(stream).to.eql originalBuf
+            chai.expect(afterStreamBuf).to.eql []
+            done()
+
+        c.inPorts.eh.attach sin1
+        sin1.post new noflo.IP 'openBracket', ''
+        sin1.post new noflo.IP 'data', 'moose'
+        sin1.post new noflo.IP 'closeBracket', ''
