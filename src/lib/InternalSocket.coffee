@@ -35,6 +35,7 @@ class InternalSocket extends EventEmitter
 
   constructor: (@metadata = {}) ->
     @brackets = []
+    @connected = false
     @dataDelegate = null
     @debug = false
     @emitEvent = @regularEmitEvent
@@ -65,12 +66,14 @@ class InternalSocket extends EventEmitter
   #         # Otherwise, call same method recursively
   #         @readBuffer fd, position, size, buffer
   connect: ->
-    @handleSocketEvent 'connect', null
+    @connected = true
+    @handleSocketEvent 'connect', null, false
 
   disconnect: ->
-    @handleSocketEvent 'disconnect', null
+    @connected = false
+    @handleSocketEvent 'disconnect', null, false
 
-  isConnected: -> @brackets.length > 0
+  isConnected: -> @connected
 
   # ## Sending information packets
   #
@@ -92,11 +95,16 @@ class InternalSocket extends EventEmitter
   # As _connect_ event is considered as open bracket, it needs to be followed
   # by a _disconnect_ event or a closing bracket. In the new simplified
   # sending semantics single IP objects can be sent without open/close brackets.
-  post: (data) ->
-    data = @dataDelegate() if data is undefined and typeof @dataDelegate is 'function'
-    @emitEvent 'connect', @ if data.type is 'data' and @brackets.length is 0
-    @handleSocketEvent 'data', data, false
-    @emitEvent 'disconnect', @ if data.type is 'data' and @brackets.length is 0
+  post: (ip) ->
+    ip = @dataDelegate() if ip is undefined and typeof @dataDelegate is 'function'
+    # Send legacy connect/disconnect if needed
+    if not @isConnected() and @brackets.length is 0
+      @connected = true
+      @emitEvent 'connect', null
+    @handleSocketEvent 'ip', ip, false
+    if @isConnected() and @brackets.length is 0
+      @connected = false
+      @emitEvent 'disconnect', null
 
   # ## Information Packet grouping
   #
@@ -185,10 +193,6 @@ class InternalSocket extends EventEmitter
   ipToLegacy: (ip) ->
     switch ip.type
       when 'openBracket'
-        if @brackets.length is 1
-          return legacy =
-            event: 'connect'
-            payload: @
         return legacy =
           event: 'begingroup'
           payload: ip.data
@@ -197,46 +201,48 @@ class InternalSocket extends EventEmitter
           event: 'data'
           payload: ip.data
       when 'closeBracket'
-        if @brackets.length is 0
-          return legacy =
-            event: 'disconnect'
-            payload: @
         return legacy =
           event: 'endgroup'
           payload: ip.data
 
   handleSocketEvent: (event, payload, autoConnect = true) ->
-    ip = @legacyToIp event, payload
+    isIP = event is 'ip' and IP.isIP payload
+    ip = if isIP then payload else @legacyToIp event, payload
 
-    # Handle state transitions
-    if ip.type is 'data' and @brackets.length is 0 and autoConnect
-      # Connect before sending data
-      @handleSocketEvent 'connect', null
+    if not @isConnected() and autoConnect and @brackets.length is 0
+      # Connect before sending
+      @connect()
 
-    if ip.type is 'openBracket'
-      if ip.data is null
-        # If we're already connected, no need to connect again
-        return if @brackets.length
-      else
-        if @brackets.length is 0 and autoConnect
-          # Connect before sending bracket
-          @handleSocketEvent 'connect', null
+    if event is 'begingroup'
+      @brackets.push payload
+    if isIP and ip.type is 'openBracket'
       @brackets.push ip.data
 
-    if ip.type is 'closeBracket'
-      # Last bracket was closed, we're disconnected
-      # If we were already disconnected, no need to disconnect again
+    if event is 'endgroup'
+      # Prevent closing already closed groups
       return if @brackets.length is 0
       # Add group name to bracket
       ip.data = @brackets.pop()
+      payload = ip.data
+    if isIP and payload.type is 'closeBracket'
+      # Prevent closing already closed brackets
+      return if @brackets.length is 0
+      @brackets.pop()
 
     # Emit the IP Object
     @emitEvent 'ip', ip
 
     # Emit the legacy event
     return unless ip and ip.type
-    legacyEvent = @ipToLegacy ip
-    @emitEvent legacyEvent.event, legacyEvent.payload
+
+    if isIP
+      legacy = @ipToLegacy ip
+      event = legacy.event
+      payload = legacy.payload
+
+    @connected = true if event is 'connect'
+    @connected = false if event is 'disconnect'
+    @emitEvent event, payload
 
 exports.InternalSocket = InternalSocket
 

@@ -122,15 +122,15 @@ describe 'Inport Port', ->
       p = new noflo.InPort
         buffered: true
       , (eventName) ->
-          expectedEvent = expectedEvents.shift()
-          chai.expect(eventName).to.equal expectedEvent
-          packet = p.receive()
-          chai.expect(packet).to.be.an 'object'
-          chai.expect(packet.event).to.equal expectedEvent
-          if packet.event is 'data'
-            chai.expect(packet.payload).to.equal expectedData.shift()
-          if expectedEvents.length is 0
-            done()
+        expectedEvent = expectedEvents.shift()
+        chai.expect(eventName).to.equal expectedEvent
+        packet = p.receive()
+        chai.expect(packet).to.be.an 'object'
+        chai.expect(packet.event).to.equal expectedEvent
+        if packet.event is 'data'
+          chai.expect(packet.payload).to.equal expectedData.shift()
+        if expectedEvents.length is 0
+          done()
       s = new noflo.internalSocket.InternalSocket
       p.attach s
       s.send 'buffered-data-1'
@@ -304,4 +304,4 @@ describe 'Inport Port', ->
         done()
       ps.inPorts.in.attach s
       chai.expect(ps.inPorts.in.listAttached()).to.eql [0]
-      s.post type: 'data', data: 'some-data'
+      s.post new noflo.IP 'data', 'some-data'
