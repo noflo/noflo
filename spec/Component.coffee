@@ -1178,8 +1178,8 @@ describe 'Component', ->
         sin1.post new noflo.IP 'data', ip.msg
         sin2.post new noflo.IP 'data', ip.delay
 
-      sin2.post new noflo.IP 'closeBracket', 'delay'
       sin1.post new noflo.IP 'closeBracket', 'msg'
+      sin2.post new noflo.IP 'closeBracket', 'delay'
 
     it 'should not apply auto-ordering if that option is false', (done) ->
       c = new noflo.Component
@@ -1573,3 +1573,67 @@ describe 'Component', ->
         ip = new noflo.IP 'data', 'foo'
         ip.scope = 'eh'
         sin1.post ip
+
+    describe 'using streams', ->
+      it 'should not trigger without a full stream without getting the whole stream', (done) ->
+        c = new noflo.Component
+          inPorts:
+            in:
+              datatype: 'string'
+          outPorts:
+            out:
+              datatype: 'string'
+          process: (input, output) ->
+            if input.hasStream 'in'
+              done new Error 'should never trigger this'
+
+            if (input.has 'in', (ip) -> ip.type is 'closeBracket')
+              done()
+
+        c.forwardBrackets = {}
+        c.inPorts.in.attach sin1
+
+        sin1.post new noflo.IP 'openBracket', ''
+        sin1.post new noflo.IP 'openBracket', ''
+        sin1.post new noflo.IP 'openBracket', ''
+        sin1.post new noflo.IP 'data', 'eh'
+        sin1.post new noflo.IP 'closeBracket', ''
+
+      it 'should trigger when forwardingBrackets because then it is only data with no brackets and is a full stream', (done) ->
+        c = new noflo.Component
+          inPorts:
+            in:
+              datatype: 'string'
+          outPorts:
+            out:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.hasStream 'in'
+            done()
+        c.forwardBrackets =
+          in: ['out']
+
+        c.inPorts.in.attach sin1
+        sin1.post new noflo.IP 'data', 'eh'
+
+      it 'should get full stream when it has a full stream, and it should clear it', (done) ->
+        c = new noflo.Component
+          inPorts:
+            eh:
+              datatype: 'string'
+          outPorts:
+            canada:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.hasStream 'eh'
+            originalBuf = input.buffer.get 'eh'
+            stream = input.getStream 'in'
+            afterStreamBuf = input.buffer.get 'eh'
+            chai.expect(stream).to.eql originalBuf
+            chai.expect(afterStreamBuf).to.eql []
+            done()
+
+        c.inPorts.eh.attach sin1
+        sin1.post new noflo.IP 'openBracket', ''
+        sin1.post new noflo.IP 'data', 'moose'
+        sin1.post new noflo.IP 'closeBracket', ''
