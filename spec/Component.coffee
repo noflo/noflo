@@ -1576,9 +1576,6 @@ describe 'Component', ->
 
     describe 'using streams', ->
       it 'should not trigger without a full stream without getting the whole stream', (done) ->
-        setTimeout ->
-          done()
-        , 1000
         c = new noflo.Component
           inPorts:
             in:
@@ -1587,29 +1584,19 @@ describe 'Component', ->
             out:
               datatype: 'string'
           process: (input, output) ->
-            return unless input.hasStream 'in'
-            done new Error 'should never trigger this'
-        c.forwardBrackets = {}
-        c.inPorts.in.attach sin1
-        sin1.send 'eh'
-
-      # should trigger when using bracket forwarding because it is a data stream
-      # one packet of data is a full stream if we use IPs
-      it 'should trigger when using ips without disconnect because they do not have openBrackets', (done) ->
-        c = new noflo.Component
-          inPorts:
-            in:
-              datatype: 'string'
-          outPorts:
-            out:
-              datatype: 'string'
-          process: (input, output) ->
-            return unless input.hasStream 'in'
-            done()
+            if input.has 'in', (ip) -> ip.type is 'closeBracket'
+              done()
+              output.done()
+            if input.hasStream 'in'
+              done new Error 'should never trigger this'
 
         c.forwardBrackets = {}
         c.inPorts.in.attach sin1
+
+        sin1.openBracket()
+        sin1.openBracket()
         sin1.post new noflo.IP 'data', 'eh'
+        sin1.closeBracket()
 
       it 'should trigger when forwardingBrackets because then it is only data with no brackets and is a full stream', (done) ->
         c = new noflo.Component
