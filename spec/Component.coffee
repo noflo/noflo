@@ -1634,6 +1634,6 @@ describe 'Component', ->
             done()
 
         c.inPorts.eh.attach sin1
-        sin1.connect()
+        sin1.post new noflo.IP 'openBracket', ''
         sin1.post new noflo.IP 'data', 'moose'
-        sin1.disconnect()
+        sin1.post new noflo.IP 'closeBracket', ''
