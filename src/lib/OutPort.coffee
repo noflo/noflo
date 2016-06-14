@@ -5,6 +5,7 @@
 # Output Port (outport) implementation for NoFlo components
 BasePort = require './BasePort'
 IP = require './IP'
+Types = require './Types'
 
 class OutPort extends BasePort
   constructor: (options) ->
@@ -57,8 +58,14 @@ class OutPort extends BasePort
     if IP.isIP type
       ip = type
       socketId = ip.index
+      ip = packet
+      unless Types.validate @strict, packet.data
+        throw new Error "#{packet.data} is not a " + @datatype
     else
       ip = new IP type, data, options
+      unless Types.validate @strict, packet
+        throw new Error "#{data} is not a " + @datatype
+
     sockets = @getSockets socketId
     @checkRequired sockets
     if @isCaching() and data isnt @cache[socketId]?.data
