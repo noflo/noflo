@@ -4,7 +4,7 @@ if typeof process isnt 'undefined' and process.execPath and process.execPath.mat
 else
   noflo = require 'noflo'
 
-describe 'Component', ->
+describe.only 'Component', ->
   describe 'with required ports', ->
     it 'should throw an error upon sending packet to an unattached required port', ->
       s2 = new noflo.internalSocket.InternalSocket
@@ -29,6 +29,66 @@ describe 'Component', ->
       f = ->
         s1.send 'some-more-data'
         s2.send 'some-data'
+      chai.expect(f).to.not.throw()
+
+
+  describe 'with strict ports', ->
+    it 'should throw an error upon receiving packet with the wrong datatype', ->
+      s1 = new noflo.internalSocket.InternalSocket
+      c = new noflo.Component
+        inPorts:
+          in:
+            datatype: 'object'
+            required: true
+            strict: true
+      c.inPorts.in.attach s1
+      chai.expect(-> s1.send('foo')).to.throw()
+
+    it 'should throw an error upon receiving IP with the wrong datatype', ->
+      s1 = new noflo.internalSocket.InternalSocket
+      c = new noflo.Component
+        inPorts:
+          in:
+            datatype: 'object'
+            required: true
+            strict: true
+      c.inPorts.in.attach s1
+      chai.expect(-> o1.send(new IP('data', 'foo'))).to.throw()
+
+    it 'should throw an error upon sending packet with the wrong datatype', ->
+      o1 = new noflo.internalSocket.InternalSocket
+      c = new noflo.Component
+        outPorts:
+          required_port:
+            datatype: 'object'
+            required: true
+            strict: true
+      c.outPorts.required_port.attach o1
+      chai.expect(-> o1.send('foo')).to.throw()
+
+    it 'should throw an error upon sending IP with the wrong datatype', ->
+      o1 = new noflo.internalSocket.InternalSocket
+      c = new noflo.Component
+        outPorts:
+          required_port:
+            datatype: 'object'
+            required: true
+            strict: true
+      c.outPorts.required_port.attach o1
+      chai.expect(-> o1.send(new IP('data', 'foo'))).to.throw()
+
+    it 'should not throw an error upon sending IP with the right datatype', ->
+      o1 = new noflo.internalSocket.InternalSocket
+      c = new noflo.Component
+        outPorts:
+          required_port:
+            datatype: 'string'
+            required: true
+            strict: true
+      c.outPorts.required_port.attach o1
+      chai.expect(-> o1.send(new IP('data', 'foo'))).to.throw()
+      f = ->
+        s1.send 'some-more-data'
       chai.expect(f).to.not.throw()
 
   describe 'with component creation shorthand', ->
@@ -177,7 +237,6 @@ describe 'Component', ->
       chai.expect(shorthand).to.throw()
 
   describe 'starting a component', ->
-
     it 'should flag the component as started', ->
       c = new noflo.Component
         inPorts:
@@ -191,7 +250,6 @@ describe 'Component', ->
       chai.expect(c.isStarted()).to.equal(true)
 
   describe 'shutting down a component', ->
-
     it 'should flag the component as not started', ->
       c = new noflo.Component
         inPorts:
@@ -206,7 +264,6 @@ describe 'Component', ->
       chai.expect(c.isStarted()).to.equal(false)
 
   describe 'with object-based IPs', ->
-
     it 'should speak IP objects', (done) ->
       c = new noflo.Component
         inPorts:
@@ -1573,3 +1630,79 @@ describe 'Component', ->
         ip = new noflo.IP 'data', 'foo'
         ip.scope = 'eh'
         sin1.post ip
+
+    describe 'using streams', ->
+      it 'should not trigger without a full stream without getting the whole stream', (done) ->
+        setTimeout ->
+          done()
+        , 1000
+        c = new noflo.Component
+          inPorts:
+            in:
+              datatype: 'string'
+          outPorts:
+            out:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.hasStream 'in'
+            done new Error 'should never trigger this'
+        c.forwardBrackets = {}
+        c.inPorts.in.attach sin1
+        sin1.send 'eh'
+
+      # should trigger when using bracket forwarding because it is a data stream
+      # one packet of data is a full stream if we use IPs
+      it 'should trigger when using ips without disconnect because they do not have openBrackets', (done) ->
+        c = new noflo.Component
+          inPorts:
+            in:
+              datatype: 'string'
+          outPorts:
+            out:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.hasStream 'in'
+            done()
+
+        c.forwardBrackets = {}
+        c.inPorts.in.attach sin1
+        sin1.post new noflo.IP 'data', 'eh'
+
+      it 'should trigger when forwardingBrackets because then it is only data with no brackets and is a full stream', (done) ->
+        c = new noflo.Component
+          inPorts:
+            in:
+              datatype: 'string'
+          outPorts:
+            out:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.hasStream 'in'
+            done()
+        c.forwardBrackets =
+          in: ['out']
+
+        c.inPorts.in.attach sin1
+        sin1.send 'eh'
+
+      it 'should get full stream when it has a full stream, and it should clear it', (done) ->
+        c = new noflo.Component
+          inPorts:
+            eh:
+              datatype: 'string'
+          outPorts:
+            canada:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.hasStream 'eh'
+            originalBuf = input.buffer.get 'eh'
+            stream = input.getStream 'in'
+            afterStreamBuf = input.buffer.get 'eh'
+            chai.expect(stream).to.eql originalBuf
+            chai.expect(afterStreamBuf).to.eql []
+            done()
+
+        c.inPorts.eh.attach sin1
+        sin1.connect()
+        sin1.send 'moose'
+        sin1.disconnect()
