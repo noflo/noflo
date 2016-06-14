@@ -1576,7 +1576,6 @@ describe 'Component', ->
 
     describe 'using streams', ->
       it 'should not trigger without a full stream without getting the whole stream', (done) ->
-        doneIt = false
         c = new noflo.Component
           inPorts:
             in:
@@ -1585,13 +1584,11 @@ describe 'Component', ->
             out:
               datatype: 'string'
           process: (input, output) ->
-            return if doneIt
             if input.hasStream 'in'
               done new Error 'should never trigger this'
 
             if (input.has 'in', (ip) -> ip.type is 'closeBracket')
               done()
-              doneIt = true
 
         c.forwardBrackets = {}
         c.inPorts.in.attach sin1
@@ -1617,7 +1614,7 @@ describe 'Component', ->
           in: ['out']
 
         c.inPorts.in.attach sin1
-        sin1.send 'eh'
+        sin1.post new noflo.IP 'data', 'eh'
 
       it 'should get full stream when it has a full stream, and it should clear it', (done) ->
         c = new noflo.Component
@@ -1638,5 +1635,5 @@ describe 'Component', ->
 
         c.inPorts.eh.attach sin1
         sin1.connect()
-        sin1.send 'moose'
+        sin1.post new noflo.IP 'data', 'moose'
         sin1.disconnect()
