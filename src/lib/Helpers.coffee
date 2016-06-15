@@ -500,12 +500,11 @@ exports.WirePattern = (component, config, proc) ->
             groups = (g for g in groups when g isnt null)
             whenDoneGroups = groups.slice 0
             whenDone = (err) ->
-              # TODO add scope to error output
               if err
-                component.error err, whenDoneGroups
+                component.error err, whenDoneGroups, 'error', scope
               # For use with MultiError trait
               if typeof component.fail is 'function' and component.hasErrors
-                component.fail()
+                component.fail null, [], scope
               # Disconnect outputs if still connected,
               # this also indicates them as resolved if pending
               outputs = outs
@@ -536,7 +535,7 @@ exports.WirePattern = (component, config, proc) ->
                   out.beginGroup g for g in groups
 
             # Enforce MultiError with WirePattern (for group forwarding)
-            exports.MultiError component, config.name, config.error, groups
+            exports.MultiError component, config.name, config.error, groups, scope
 
             # Call the proc function
             if config.async
@@ -597,9 +596,11 @@ exports.CustomizeError = (err, options) ->
 #
 # `group` is an optional group ID which will be used to wrap all error
 # packets emitted by the component.
-exports.MultiError = (component, group = '', errorPort = 'error', forwardedGroups = []) ->
+exports.MultiError = (component, group = '', errorPort = 'error', forwardedGroups = [], scope = null) ->
   component.hasErrors = false
   component.errors = []
+  group = component.name if component.name and not group
+  group = 'Component' unless group
 
   # Override component.error to support group information
   component.error = (e, groups = []) ->
@@ -615,13 +616,13 @@ exports.MultiError = (component, group = '', errorPort = 'error', forwardedGroup
     return unless component.hasErrors
     return unless errorPort of component.outPorts
     return unless component.outPorts[errorPort].isAttached()
-    component.outPorts[errorPort].beginGroup group if group
+    component.outPorts[errorPort].openBracket group, scope: scope if group
     for error in component.errors
-      component.outPorts[errorPort].beginGroup grp for grp in error.groups
-      component.outPorts[errorPort].send error.err
-      component.outPorts[errorPort].endGroup() for grp in error.groups
-    component.outPorts[errorPort].endGroup() if group
-    component.outPorts[errorPort].disconnect()
+      component.outPorts[errorPort].openBracket grp, scope: scope for grp in error.groups
+      component.outPorts[errorPort].data error.err, scope: scope
+      component.outPorts[errorPort].closeBracket grp, scope: scope for grp in error.groups
+    component.outPorts[errorPort].closeBracket group, scope: scope if group
+    # component.outPorts[errorPort].disconnect()
     # Clean the status for next activation
     component.hasErrors = false
     component.errors = []

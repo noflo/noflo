@@ -1642,38 +1642,41 @@ describe 'Component traits', ->
   describe 'MultiError', ->
     describe 'with simple sync processes', ->
       c = new noflo.Component
-      c.inPorts.add 'form', datatype: 'object', (event, payload) ->
-        return unless event is 'data'
-        # Validate form
-        unless payload.name and payload.name.match /^\w{3,16}$/
-          c.error noflo.helpers.CustomError 'Incorrect name',
-            kind: 'form_error'
-            code: 'invalid_name'
-            param: 'name'
-        unless payload.email and payload.email.match /^\w+@\w+\.\w+$/
-          c.error noflo.helpers.CustomError 'Incorrect email',
-            kind: 'form_error'
-            code: 'invalid_email'
-            param: 'email'
-        unless payload.accept
-          c.error noflo.helpers.CustomError 'Terms have to be accepted',
-            kind: 'form_error'
-            code: 'terms_not_accepted'
-            param: 'accept'
-        # Finish validation
-        return c.fail() if c.hasErrors
+      c.inPorts.add 'form',
+        datatype: 'object'
+        handle: (ip) ->
+          return unless ip.type is 'data'
+          payload = ip.data
+          # Validate form
+          unless payload.name and payload.name.match /^\w{3,16}$/
+            c.error noflo.helpers.CustomError 'Incorrect name',
+              kind: 'form_error'
+              code: 'invalid_name'
+              param: 'name'
+          unless payload.email and payload.email.match /^\w+@\w+\.\w+$/
+            c.error noflo.helpers.CustomError 'Incorrect email',
+              kind: 'form_error'
+              code: 'invalid_email'
+              param: 'email'
+          unless payload.accept
+            c.error noflo.helpers.CustomError 'Terms have to be accepted',
+              kind: 'form_error'
+              code: 'terms_not_accepted'
+              param: 'accept'
+          # Finish validation
+          return c.fail() if c.hasErrors
 
-        # Emulating some processing logic here
-        if payload.name is 'DelayLama'
-          # oops
-          c.outPorts.saved.send false
-          c.outPorts.saved.disconnect()
-          return c.fail noflo.helpers.CustomError 'Suspended for a meditation',
-            kind: 'runtime_error'
-            code: 'delay_lama_detected'
-        else
-          c.outPorts.saved.send true
-          c.outPorts.saved.disconnect()
+          # Emulating some processing logic here
+          if payload.name is 'DelayLama'
+            # oops
+            c.outPorts.saved.send false
+            c.outPorts.saved.disconnect()
+            return c.fail noflo.helpers.CustomError 'Suspended for a meditation',
+              kind: 'runtime_error'
+              code: 'delay_lama_detected'
+          else
+            c.outPorts.saved.send true
+            c.outPorts.saved.disconnect()
 
       c.outPorts.add 'saved', datatype: 'boolean'
       c.outPorts.add 'error', datatype: 'object'
@@ -1793,7 +1796,7 @@ describe 'Component traits', ->
             callback()
         , 10
 
-      it 'should support multiple error messages and groups', (done) ->
+      it 'should support multiple error messages and groups and scope', (done) ->
         expected = [
           'Registration'
           'async0'
@@ -1805,23 +1808,31 @@ describe 'Component traits', ->
         ]
         actual = []
         errCount = 0
-        err.on 'begingroup', (grp) ->
-          actual.push grp
-        err.on 'data', (data) ->
-          chai.expect(data instanceof Error).to.be.true
-          chai.expect(data.kind).to.equal 'form_error'
-          errCount++
-        err.on 'disconnect', ->
-          chai.expect(errCount).to.equal 3
-          chai.expect(actual).to.deep.equal expected
-          done()
+        brackets = 0
+        err.on 'ip', (ip) ->
+          chai.expect(ip.scope).to.equal 'foo'
+          if ip.type is 'openBracket'
+            brackets++
+            return actual.push ip.data
+          if ip.type is 'data'
+            data = ip.data
+            chai.expect(data).to.be.an.error
+            chai.expect(data.kind).to.equal 'form_error'
+            errCount++
+          if ip.type is 'closeBracket'
+            brackets--
+            if brackets is 0
+              chai.expect(errCount).to.equal 3
+              chai.expect(actual).to.deep.equal expected
+              done()
 
-        form.beginGroup 'async0'
-        form.send
+        form.post new noflo.IP 'openBracket', 'async0', scope: 'foo'
+        form.post new noflo.IP 'data',
           name: 'Bo'
           email: 'missing'
-        form.endGroup()
-        form.disconnect()
+        , scope: 'foo'
+        form.post new noflo.IP 'closeBracket', 'async0', scope: 'foo'
+        # form.disconnect()
 
       it 'should pass if everything is correct', (done) ->
         hadData = false
@@ -1870,9 +1881,11 @@ describe 'Component traits', ->
 
       it 'should reset state if component is shut down', (done) ->
         c2 = new noflo.Component
-        c2.inPorts.add 'name', datatype: 'string', (event, payload) ->
-          return unless event is 'data'
-          c2.error new Error "The name will never pass!"
+        c2.inPorts.add 'name',
+          datatype: 'string'
+          handle: (ip) ->
+            return unless ip.type is 'data'
+            c2.error new Error "The name will never pass!"
         noflo.helpers.MultiError c2
         ins = new noflo.internalSocket.createSocket()
         c2.inPorts.name.attach ins
