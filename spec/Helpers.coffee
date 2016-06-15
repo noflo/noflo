@@ -71,7 +71,7 @@ describe 'Component traits', ->
       y = null
       z = null
       p = null
-      beforeEach (done) ->
+      before (done) ->
         c = new noflo.Component
         c.inPorts.add 'x',
           required: true
