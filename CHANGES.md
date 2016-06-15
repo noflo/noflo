@@ -16,6 +16,8 @@ NoFlo ChangeLog
   - `noflo.InPort` `contains` method: replaced by the `has` method
   - `noflo.Graph` exports: use specific inport or outport instead
   - Additionally [component.io](https://github.com/componentjs/component) builds warn about deprecation in favor of [webpack](http://webpack.github.io/) with helpful automation available in [grunt-noflo-browser](https://www.npmjs.com/package/grunt-noflo-browser)
+* Added IP object `scope` support to `WirePattern` to make `WirePattern` components more concurrency-friendly
+* Removed `receiveStreams` option from `WirePattern`
 
 ## 0.7.8 (June 10th 2016)
 
