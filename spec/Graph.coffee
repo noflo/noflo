@@ -4,12 +4,11 @@ if typeof process isnt 'undefined' and process.execPath and process.execPath.mat
 else
   noflo = require 'noflo'
 
-describe 'Unnamed graph instance', ->
-  it 'should have an empty name', ->
-    g = new noflo.graph.Graph
-    chai.expect(g.name).to.equal ''
-
-describe 'Graph', ->
+describe 'NoFlo Graph', ->
+  describe 'Unnamed graph instance', ->
+    it 'should have an empty name', ->
+      g = new noflo.graph.Graph
+      chai.expect(g.name).to.equal ''
   describe 'with new instance', ->
     g = null
     it 'should get a name from constructor', ->

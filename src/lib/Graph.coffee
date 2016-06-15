@@ -103,6 +103,7 @@ class Graph extends EventEmitter
   # The ports exported using this way are ambiguous in their direciton. Use
   # `addInport` or `addOutport` instead to disambiguate.
   addExport: (publicPort, nodeKey, portKey, metadata = {x:0,y:0}) ->
+    platform.deprecated 'noflo.Graph exports is deprecated: please use specific inport or outport instead'
     # Check that node exists
     return unless @getNode nodeKey
 
@@ -119,6 +120,7 @@ class Graph extends EventEmitter
     @checkTransactionEnd()
 
   removeExport: (publicPort) ->
+    platform.deprecated 'noflo.Graph exports is deprecated: please use specific inport or outport instead'
     publicPort = @getPortName publicPort
     found = null
     for exported, idx in @exports
