@@ -120,7 +120,10 @@ class Component extends EventEmitter
       for outPort in @forwardBrackets[port.name]
         outputEntry[outPort] = [] unless outPort of outputEntry
         outputEntry[outPort].push ip
-      port.buffer.pop()
+      if ip.scope?
+        port.scopedBuffer[ip.scope].pop()
+      else
+        port.buffer.pop()
       @outputQ.push outputEntry
       @processOutputQueue()
       return
