@@ -1,5 +1,6 @@
 utils = require '../Utils'
 nofloGraph = require '../Graph'
+platform = require '../Platform'
 
 customLoader =
   checked: []
@@ -59,6 +60,8 @@ customLoader =
       do callback
 
 exports.register = (loader, callback) ->
+  platform.deprecated 'Component.io is deprecated. Please make browser builds using webpack instead. grunt-noflo-browser provides a simple setup for this'
+
   customLoader.checked = []
   # Start discovery from baseDir
   setTimeout ->
