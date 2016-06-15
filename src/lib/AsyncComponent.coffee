@@ -7,10 +7,13 @@
 # throttling.
 port = require "./Port"
 component = require "./Component"
+platform = require './Platform'
 
 class AsyncComponent extends component.Component
 
   constructor: (@inPortName="in", @outPortName="out", @errPortName="error") ->
+    platform.deprecated 'noflo.AsyncComponent is deprecated. Please port to Process API'
+
     unless @inPorts[@inPortName]
       throw new Error "no inPort named '#{@inPortName}'"
     unless @outPorts[@outPortName]
@@ -100,5 +103,15 @@ class AsyncComponent extends component.Component
   shutdown: ->
     @q = []
     @errorGroups = []
+
+  # Old-style error function because of legacy ports
+  error: (e, groups = [], errorPort = 'error') =>
+    if @outPorts[errorPort] and (@outPorts[errorPort].isAttached() or not @outPorts[errorPort].isRequired())
+      @outPorts[errorPort].beginGroup group for group in groups
+      @outPorts[errorPort].send e
+      @outPorts[errorPort].endGroup() for group in groups
+      @outPorts[errorPort].disconnect()
+      return
+    throw e
 
 exports.AsyncComponent = AsyncComponent

@@ -66,25 +66,32 @@ describe 'Component traits', ->
 
   describe 'WirePattern', ->
     describe 'when grouping by packet groups', ->
-      c = new noflo.Component
-      c.inPorts.add 'x',
-        required: true
-        datatype: 'int'
-      .add 'y',
-        required: true
-        datatype: 'int'
-      .add 'z',
-        required: true
-        datatype: 'int'
-      c.outPorts.add 'point'
-      x = new noflo.internalSocket.createSocket()
-      y = new noflo.internalSocket.createSocket()
-      z = new noflo.internalSocket.createSocket()
-      p = new noflo.internalSocket.createSocket()
-      c.inPorts.x.attach x
-      c.inPorts.y.attach y
-      c.inPorts.z.attach z
-      c.outPorts.point.attach p
+      c = null
+      x = null
+      y = null
+      z = null
+      p = null
+      before (done) ->
+        c = new noflo.Component
+        c.inPorts.add 'x',
+          required: true
+          datatype: 'int'
+        .add 'y',
+          required: true
+          datatype: 'int'
+        .add 'z',
+          required: true
+          datatype: 'int'
+        c.outPorts.add 'point'
+        x = new noflo.internalSocket.createSocket()
+        y = new noflo.internalSocket.createSocket()
+        z = new noflo.internalSocket.createSocket()
+        p = new noflo.internalSocket.createSocket()
+        c.inPorts.x.attach x
+        c.inPorts.y.attach y
+        c.inPorts.z.attach z
+        c.outPorts.point.attach p
+        done()
 
       it 'should pass data and groups to the callback', (done) ->
         src =
@@ -466,87 +473,115 @@ describe 'Component traits', ->
           msg.disconnect()
           idx++
 
-      it 'should support complex substreams', (done) ->
-        out.removeAllListeners()
-        load.removeAllListeners()
-        c.cntr = 0
-        noflo.helpers.WirePattern c,
-          in: ['delay', 'msg']
-          async: true
-          ordered: true
-          group: false
-          receiveStreams: ['delay', 'msg']
-        , (data, groups, res, callback) ->
-          # Substream to object conversion validation
-          # (the hard way)
-          chai.expect(data.delay instanceof noflo.streams.Substream).to.be.true
-          chai.expect(data.msg instanceof noflo.streams.Substream).to.be.true
-          delayObj = data.delay.toObject()
-          msgObj = data.msg.toObject()
-          index0 = this.cntr.toString()
-          chai.expect(Object.keys(delayObj)[0]).to.equal index0
-          chai.expect(Object.keys(msgObj)[0]).to.equal index0
-          subDelay = delayObj[index0]
-          subMsg = msgObj[index0]
-          index1 = (10 + this.cntr).toString()
-          chai.expect(Object.keys(subDelay)[0]).to.equal index1
-          chai.expect(Object.keys(subMsg)[0]).to.equal index1
-          delayData = subDelay[index1]
-          msgData = subMsg[index1]
-          chai.expect(delayData).to.equal sample[c.cntr].delay
-          chai.expect(msgData).to.equal sample[c.cntr].msg
-          this.cntr++
-
-          setTimeout ->
-            # Substream tree traversal (the easy way)
-            for k0, v0 of msgObj
-              res.beginGroup k0
-              res.send k0
-              for k1, v1 of v0
-                res.beginGroup k1
-                res.send
-                  delay: delayObj[k0][k1]
-                  msg: msgObj[k0][k1]
-                res.endGroup()
-                res.send k1
-              res.endGroup()
+      it 'should throw if receiveStreams is used', (done) ->
+        f = ->
+          noflo.helpers.WirePattern c,
+            in: ['delay', 'msg']
+            async: true
+            ordered: true
+            group: false
+            receiveStreams: ['delay', 'msg']
+          , (data, groups, res, callback) ->
             callback()
-          , data.delay
 
-        sample = [
-          { delay: 30, msg: "one" }
-          { delay: 0, msg: "two" }
-          { delay: 20, msg: "three" }
-          { delay: 10, msg: "four" }
-        ]
+        chai.expect(f).to.throw Error
+        done()
 
-        expected = [
-          '0', '0', '10', sample[0], '10'
-          '1', '1', '11', sample[1], '11'
-          '2', '2', '12', sample[2], '12'
-          '3', '3', '13', sample[3], '13'
-        ]
+      it 'should throw if sendStreams is used', (done) ->
+        f = ->
+          noflo.helpers.WirePattern c,
+            in: ['delay', 'msg']
+            async: true
+            ordered: true
+            group: false
+            sendStreams: ['out']
+          , (data, groups, res, callback) ->
+            callback()
 
-        out.on 'begingroup', (grp) ->
-          chai.expect(grp).to.equal expected.shift()
-        out.on 'data', (data) ->
-          chai.expect(data).to.deep.equal expected.shift()
-        out.on 'disconnect', ->
-          done() if expected.length is 0
+        chai.expect(f).to.throw Error
+        done()
 
-        for i in [0..3]
-          delay.beginGroup i
-          delay.beginGroup 10 + i
-          delay.send sample[i].delay
-          delay.endGroup()
-          delay.endGroup()
-          msg.beginGroup i
-          msg.beginGroup 10 + i
-          msg.send sample[i].msg
-          msg.endGroup()
-          msg.endGroup()
-          delay.disconnect()
-          msg.disconnect()
+      # it 'should support complex substreams', (done) ->
+      #   out.removeAllListeners()
+      #   load.removeAllListeners()
+      #   c.cntr = 0
+      #   helpers.WirePattern c,
+      #     in: ['delay', 'msg']
+      #     async: true
+      #     ordered: true
+      #     group: false
+      #     receiveStreams: ['delay', 'msg']
+      #   , (data, groups, res, callback) ->
+      #     # Substream to object conversion validation
+      #     # (the hard way)
+      #     chai.expect(data.delay instanceof Substream).to.be.true
+      #     chai.expect(data.msg instanceof Substream).to.be.true
+      #     delayObj = data.delay.toObject()
+      #     msgObj = data.msg.toObject()
+      #     index0 = this.cntr.toString()
+      #     chai.expect(Object.keys(delayObj)[0]).to.equal index0
+      #     chai.expect(Object.keys(msgObj)[0]).to.equal index0
+      #     subDelay = delayObj[index0]
+      #     subMsg = msgObj[index0]
+      #     index1 = (10 + this.cntr).toString()
+      #     chai.expect(Object.keys(subDelay)[0]).to.equal index1
+      #     chai.expect(Object.keys(subMsg)[0]).to.equal index1
+      #     delayData = subDelay[index1]
+      #     msgData = subMsg[index1]
+      #     chai.expect(delayData).to.equal sample[c.cntr].delay
+      #     chai.expect(msgData).to.equal sample[c.cntr].msg
+      #     this.cntr++
+
+      #     setTimeout ->
+      #       # Substream tree traversal (the easy way)
+      #       for k0, v0 of msgObj
+      #         res.beginGroup k0
+      #         res.send k0
+      #         for k1, v1 of v0
+      #           res.beginGroup k1
+      #           res.send
+      #             delay: delayObj[k0][k1]
+      #             msg: msgObj[k0][k1]
+      #           res.endGroup()
+      #           res.send k1
+      #         res.endGroup()
+      #       callback()
+      #     , data.delay
+
+      #   sample = [
+      #     { delay: 30, msg: "one" }
+      #     { delay: 0, msg: "two" }
+      #     { delay: 20, msg: "three" }
+      #     { delay: 10, msg: "four" }
+      #   ]
+
+      #   expected = [
+      #     '0', '0', '10', sample[0], '10'
+      #     '1', '1', '11', sample[1], '11'
+      #     '2', '2', '12', sample[2], '12'
+      #     '3', '3', '13', sample[3], '13'
+      #   ]
+
+      #   out.on 'begingroup', (grp) ->
+      #     chai.expect(grp).to.equal expected.shift()
+      #   out.on 'data', (data) ->
+      #     chai.expect(data).to.deep.equal expected.shift()
+      #   out.on 'disconnect', ->
+      #     done() if expected.length is 0
+
+      #   for i in [0..3]
+      #     delay.beginGroup i
+      #     delay.beginGroup 10 + i
+      #     delay.send sample[i].delay
+      #     delay.endGroup()
+      #     delay.endGroup()
+      #     msg.beginGroup i
+      #     msg.beginGroup 10 + i
+      #     msg.send sample[i].msg
+      #     msg.endGroup()
+      #     msg.endGroup()
+      #     delay.disconnect()
+      #     msg.disconnect()
 
     describe 'when grouping by field', ->
       c = new noflo.Component
@@ -819,14 +854,11 @@ describe 'Component traits', ->
         p2.send 73
         p2.disconnect()
 
-        chai.expect(Object.keys(c.groupedData)).to.have.length.above 0
-        chai.expect(Object.keys(c.params)).to.have.length.above 0
+        chai.expect(Object.keys(c._wpData[null].groupedData)).to.have.length.above 0
+        chai.expect(Object.keys(c._wpData[null].params)).to.have.length.above 0
 
         c.shutdown()
-        chai.expect(c.groupedData).to.deep.equal {}
-        chai.expect(c.params).to.deep.equal {}
-        chai.expect(c.taskQ).to.deep.equal []
-
+        chai.expect(c._wpData).to.deep.equal {}
         done()
 
       it 'should drop premature data if configured to do so', (done) ->
@@ -1515,54 +1547,136 @@ describe 'Component traits', ->
 
       it 'should collect garbage every N requests', (done) ->
         # GC dropped 3 timed out packets, 1 should be left
-        chai.expect(Object.keys(c.groupedData)).to.have.lengthOf 1
-        chai.expect(Object.keys(c.groupedGroups)).to.have.lengthOf 1
-        chai.expect(Object.keys(c.disconnectData)).to.have.lengthOf 1
+        chai.expect(Object.keys(c._wpData[null].groupedData)).to.have.lengthOf 1
+        chai.expect(Object.keys(c._wpData[null].groupedGroups)).to.have.lengthOf 1
+        chai.expect(Object.keys(c._wpData[null].disconnectData)).to.have.lengthOf 1
         done()
 
       it 'should be able to drop a request explicitly', (done) ->
-        for key in Object.keys(c.groupedData)
-          c.dropRequest key
-        chai.expect(c.groupedData).to.deep.equal {}
-        chai.expect(c.groupedGroups).to.deep.equal {}
-        chai.expect(c.disconnectData).to.deep.equal {}
+        for key in Object.keys(c._wpData[null].groupedData)
+          c.dropRequest null, key
+        chai.expect(c._wpData[null].groupedData).to.deep.equal {}
+        chai.expect(c._wpData[null].groupedGroups).to.deep.equal {}
+        chai.expect(c._wpData[null].disconnectData).to.deep.equal {}
         done()
+
+    describe 'when using scopes', ->
+      c = new noflo.Component
+        inPorts:
+          x: datatype: 'int'
+          y: datatype: 'int'
+        outPorts:
+          out: datatype: 'object'
+      x = noflo.internalSocket.createSocket()
+      y = noflo.internalSocket.createSocket()
+      out = noflo.internalSocket.createSocket()
+      c.inPorts.x.attach x
+      c.inPorts.y.attach y
+      c.outPorts.out.attach out
+
+      getUuid = ->
+        'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace /[xy]/g, (c) ->
+          r = Math.random()*16|0
+          v = if c is 'x' then r else r&0x3|0x8
+          v.toString 16
+      isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+      generateRequests = (num) ->
+        reqs = {}
+        for i in [1..num]
+          req =
+            id: getUuid()
+            num: i
+          if i % 3 is 0
+            req.x = i
+          else if i % 7 is 0
+            req.y = i
+          else
+            req.x = i
+            req.y = 2*i
+          reqs[req.id] = req
+        reqs
+
+      sendRequests = (reqs, delay) ->
+        for id, req of reqs
+          do (req) ->
+            setTimeout ->
+              if 'x' of req
+                x.post new noflo.IP 'openBracket', 'x', scope: req.id
+                x.post new noflo.IP 'data', req.x, scope: req.id
+                x.post new noflo.IP 'closeBracket', null, scope: req.id
+                x.disconnect()
+              if 'y' of req
+                y.post new noflo.IP 'openBracket', 'y', scope: req.id
+                y.post new noflo.IP 'data', req.y, scope: req.id
+                y.post new noflo.IP 'closeBracket', null, scope: req.id
+                y.disconnect()
+            , delay*req.num
+
+      noflo.helpers.WirePattern c,
+        in: ['x', 'y']
+        out: 'out'
+        async: true
+        forwardGroups: true
+      , (input, groups, out, done, postpone, resume, scope) ->
+        setTimeout ->
+          out.send
+            id: scope
+            x: input.x
+            y: input.y
+          done()
+        , 3
+
+      it 'should scope requests by proper UUID', (done) ->
+        reqs = generateRequests 10
+        count = 0
+
+        out.on 'data', (data) ->
+          count++
+          chai.expect(data.x).to.equal reqs[data.id].x
+          chai.expect(data.y).to.equal reqs[data.id].y
+          done() if count is 6 # 6 complete requests processed
+
+        sendRequests reqs, 10
 
   describe 'MultiError', ->
     describe 'with simple sync processes', ->
       c = new noflo.Component
-      c.inPorts.add 'form', datatype: 'object', (event, payload) ->
-        return unless event is 'data'
-        # Validate form
-        unless payload.name and payload.name.match /^\w{3,16}$/
-          c.error noflo.helpers.CustomError 'Incorrect name',
-            kind: 'form_error'
-            code: 'invalid_name'
-            param: 'name'
-        unless payload.email and payload.email.match /^\w+@\w+\.\w+$/
-          c.error noflo.helpers.CustomError 'Incorrect email',
-            kind: 'form_error'
-            code: 'invalid_email'
-            param: 'email'
-        unless payload.accept
-          c.error noflo.helpers.CustomError 'Terms have to be accepted',
-            kind: 'form_error'
-            code: 'terms_not_accepted'
-            param: 'accept'
-        # Finish validation
-        return c.fail() if c.hasErrors
+      c.inPorts.add 'form',
+        datatype: 'object'
+        handle: (ip) ->
+          return unless ip.type is 'data'
+          payload = ip.data
+          # Validate form
+          unless payload.name and payload.name.match /^\w{3,16}$/
+            c.error noflo.helpers.CustomError 'Incorrect name',
+              kind: 'form_error'
+              code: 'invalid_name'
+              param: 'name'
+          unless payload.email and payload.email.match /^\w+@\w+\.\w+$/
+            c.error noflo.helpers.CustomError 'Incorrect email',
+              kind: 'form_error'
+              code: 'invalid_email'
+              param: 'email'
+          unless payload.accept
+            c.error noflo.helpers.CustomError 'Terms have to be accepted',
+              kind: 'form_error'
+              code: 'terms_not_accepted'
+              param: 'accept'
+          # Finish validation
+          return c.fail() if c.hasErrors
 
-        # Emulating some processing logic here
-        if payload.name is 'DelayLama'
-          # oops
-          c.outPorts.saved.send false
-          c.outPorts.saved.disconnect()
-          return c.fail noflo.helpers.CustomError 'Suspended for a meditation',
-            kind: 'runtime_error'
-            code: 'delay_lama_detected'
-        else
-          c.outPorts.saved.send true
-          c.outPorts.saved.disconnect()
+          # Emulating some processing logic here
+          if payload.name is 'DelayLama'
+            # oops
+            c.outPorts.saved.send false
+            c.outPorts.saved.disconnect()
+            return c.fail noflo.helpers.CustomError 'Suspended for a meditation',
+              kind: 'runtime_error'
+              code: 'delay_lama_detected'
+          else
+            c.outPorts.saved.send true
+            c.outPorts.saved.disconnect()
 
       c.outPorts.add 'saved', datatype: 'boolean'
       c.outPorts.add 'error', datatype: 'object'
@@ -1682,7 +1796,7 @@ describe 'Component traits', ->
             callback()
         , 10
 
-      it 'should support multiple error messages and groups', (done) ->
+      it 'should support multiple error messages and groups and scope', (done) ->
         expected = [
           'Registration'
           'async0'
@@ -1694,23 +1808,31 @@ describe 'Component traits', ->
         ]
         actual = []
         errCount = 0
-        err.on 'begingroup', (grp) ->
-          actual.push grp
-        err.on 'data', (data) ->
-          chai.expect(data instanceof Error).to.be.true
-          chai.expect(data.kind).to.equal 'form_error'
-          errCount++
-        err.on 'disconnect', ->
-          chai.expect(errCount).to.equal 3
-          chai.expect(actual).to.deep.equal expected
-          done()
+        brackets = 0
+        err.on 'ip', (ip) ->
+          chai.expect(ip.scope).to.equal 'foo'
+          if ip.type is 'openBracket'
+            brackets++
+            return actual.push ip.data
+          if ip.type is 'data'
+            data = ip.data
+            chai.expect(data).to.be.an.error
+            chai.expect(data.kind).to.equal 'form_error'
+            errCount++
+          if ip.type is 'closeBracket'
+            brackets--
+            if brackets is 0
+              chai.expect(errCount).to.equal 3
+              chai.expect(actual).to.deep.equal expected
+              done()
 
-        form.beginGroup 'async0'
-        form.send
+        form.post new noflo.IP 'openBracket', 'async0', scope: 'foo'
+        form.post new noflo.IP 'data',
           name: 'Bo'
           email: 'missing'
-        form.endGroup()
-        form.disconnect()
+        , scope: 'foo'
+        form.post new noflo.IP 'closeBracket', 'async0', scope: 'foo'
+        # form.disconnect()
 
       it 'should pass if everything is correct', (done) ->
         hadData = false
@@ -1759,9 +1881,11 @@ describe 'Component traits', ->
 
       it 'should reset state if component is shut down', (done) ->
         c2 = new noflo.Component
-        c2.inPorts.add 'name', datatype: 'string', (event, payload) ->
-          return unless event is 'data'
-          c2.error new Error "The name will never pass!"
+        c2.inPorts.add 'name',
+          datatype: 'string'
+          handle: (ip) ->
+            return unless ip.type is 'data'
+            c2.error new Error "The name will never pass!"
         noflo.helpers.MultiError c2
         ins = new noflo.internalSocket.createSocket()
         c2.inPorts.name.attach ins

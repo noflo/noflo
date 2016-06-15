@@ -53,7 +53,7 @@ class OutPort extends BasePort
       continue unless socket
       socket.disconnect()
 
-  sendIP: (type, data, options, socketId) ->
+  sendIP: (type, data, options, socketId, autoConnect = true) ->
     if IP.isIP type
       ip = type
       socketId = ip.index
@@ -67,10 +67,11 @@ class OutPort extends BasePort
     for socket in sockets
       continue unless socket
       if pristine
-        socket.post ip
+        socket.post ip, autoConnect
         pristine = false
       else
-        socket.post if ip.clonable then ip.clone() else ip
+        ip = ip.clone() if ip.clonable
+        socket.post ip, autoConnect
     @
 
   openBracket: (data = null, options = {}, socketId = null) ->

@@ -55,12 +55,12 @@ class Component extends EventEmitter
     @emit 'icon', @icon
   getIcon: -> @icon
 
-  error: (e, groups = [], errorPort = 'error') =>
+  error: (e, groups = [], errorPort = 'error', scope = null) =>
     if @outPorts[errorPort] and (@outPorts[errorPort].isAttached() or not @outPorts[errorPort].isRequired())
-      @outPorts[errorPort].beginGroup group for group in groups
-      @outPorts[errorPort].send e
-      @outPorts[errorPort].endGroup() for group in groups
-      @outPorts[errorPort].disconnect()
+      @outPorts[errorPort].openBracket group, scope: scope for group in groups
+      @outPorts[errorPort].data e, scope: scope
+      @outPorts[errorPort].closeBracket group, scope: scope for group in groups
+      # @outPorts[errorPort].disconnect()
       return
     throw e
 
@@ -193,6 +193,26 @@ class ProcessInput
     if args.length is 1
       return ips?.data ? undefined
     (ip?.data ? undefined for ip in ips)
+
+  hasStream: (port) ->
+    buffer = @buffer.get port
+    return false if buffer.length is 0
+    # check if we have everything until "disconnect"
+    received = 0
+    for packet in buffer
+      if packet.type is 'openBracket'
+        ++received
+      else if packet.type is 'closeBracket'
+        --received
+    received is 0
+
+  getStream: (input, port, withoutConnectAndDisconnect = false) ->
+    buf = @buffer.get port
+    @buffer.filter port, (ip) -> false
+    if withoutConnectAndDisconnect
+      buf = buf.slice 1
+      buf.pop()
+    buf
 
 class PortBuffer
   constructor: (@context) ->

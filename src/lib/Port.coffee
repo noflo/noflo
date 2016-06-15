@@ -5,11 +5,13 @@
 #
 # Regular port for NoFlo components.
 {EventEmitter} = require 'events'
+platform = require './Platform'
 
 class Port extends EventEmitter
   description: ''
   required: true
   constructor: (@type) ->
+    platform.deprecated 'noflo.Port is deprecated. Please port to noflo.InPort/noflo.OutPort'
     @type = 'all' unless @type
     @type = 'int' if @type is 'integer'
     @sockets = []
