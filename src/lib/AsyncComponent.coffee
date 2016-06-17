@@ -104,4 +104,14 @@ class AsyncComponent extends component.Component
     @q = []
     @errorGroups = []
 
+  # Old-style error function because of legacy ports
+  error: (e, groups = [], errorPort = 'error') =>
+    if @outPorts[errorPort] and (@outPorts[errorPort].isAttached() or not @outPorts[errorPort].isRequired())
+      @outPorts[errorPort].beginGroup group for group in groups
+      @outPorts[errorPort].send e
+      @outPorts[errorPort].endGroup() for group in groups
+      @outPorts[errorPort].disconnect()
+      return
+    throw e
+
 exports.AsyncComponent = AsyncComponent
