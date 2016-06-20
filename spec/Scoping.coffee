@@ -209,7 +209,7 @@ describe 'Scope isolation', ->
         scope: 'x'
       ins.post new noflo.IP 'openBracket', 'a',
         scope: 'x'
-      ins.post new noflo.IP 'data', 'foo',
+      ins.post new noflo.IP 'data', 'bar',
         scope: 'x'
       ins.post new noflo.IP 'closeBracket', 'a',
         scope: 'x'
