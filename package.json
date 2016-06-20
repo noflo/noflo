@@ -35,8 +35,7 @@
     "grunt-noflo-browser": "1.0.0-alpha3",
     "grunt-noflo-manifest": "^0.1.11",
     "json-loader": "^0.5.4",
-    "mocha": "^2.5.2",
-    "tv4": "^1.2.7"
+    "mocha": "^2.5.2"
   },
   "main": "./lib/NoFlo",
   "bin": {
