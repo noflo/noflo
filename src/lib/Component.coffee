@@ -209,7 +209,7 @@ class ProcessInput
         --received
     received is 0
 
-  getStream: (input, port, withoutConnectAndDisconnect = false) ->
+  getStream: (port, withoutConnectAndDisconnect = false) ->
     buf = @buffer.get port
     @buffer.filter port, (ip) -> false
     if withoutConnectAndDisconnect
