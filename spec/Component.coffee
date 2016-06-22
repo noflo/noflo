@@ -1593,11 +1593,11 @@ describe 'Component', ->
         c.forwardBrackets = {}
         c.inPorts.in.attach sin1
 
-        sin1.post new noflo.IP 'openBracket', null
-        sin1.post new noflo.IP 'openBracket', null
-        sin1.post new noflo.IP 'openBracket', null
+        sin1.post new noflo.IP 'openBracket'
+        sin1.post new noflo.IP 'openBracket'
+        sin1.post new noflo.IP 'openBracket'
         sin1.post new noflo.IP 'data', 'eh'
-        sin1.post new noflo.IP 'closeBracket', null
+        sin1.post new noflo.IP 'closeBracket'
 
       it 'should trigger when forwardingBrackets because then it is only data with no brackets and is a full stream', (done) ->
         c = new noflo.Component
@@ -1634,6 +1634,6 @@ describe 'Component', ->
             done()
 
         c.inPorts.eh.attach sin1
-        sin1.post new noflo.IP 'openBracket', null
+        sin1.post new noflo.IP 'openBracket'
         sin1.post new noflo.IP 'data', 'moose'
-        sin1.post new noflo.IP 'closeBracket', null
+        sin1.post new noflo.IP 'closeBracket'
