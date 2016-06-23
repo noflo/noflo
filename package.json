@@ -14,7 +14,6 @@
     "node": ">=0.6.0"
   },
   "dependencies": {
-    "babel-core": "~6.9.0",
     "coffee-script": "~1.10.0",
     "fbp": "~1.4.0",
     "fbp-manifest": "~0.1.8",
