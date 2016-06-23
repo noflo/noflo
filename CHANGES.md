@@ -20,7 +20,8 @@ NoFlo ChangeLog
 * Removed `receiveStreams` option from `WirePattern`
 * Graph JSON schema has been moved to https://github.com/flowbased/fbp, and updated with tests.
 * [babel-core](https://www.npmjs.com/package/babel-core) was removed as a dependency. Install separately for projects needing ES6 component support
-* Added stream helpers to process input. `hasStream` checks if it has a closeBracket for every openBracket, or just data with no brackets, and `getStream` gets them all.
+* Added stream helpers for Process API input. `hasStream` checks if an input buffer contains a complete stream (matching brackets and data, or only data), `getStream` returns a complete stream of packets. 
+
 
 ## 0.7.8 (June 10th 2016)
 
