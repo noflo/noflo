@@ -226,8 +226,9 @@ class ProcessInput
     return false
 
   getDataStream: (port) ->
-    @buffer.get port
-      .map (ip) -> ip.data
+    buffer = @buffer.get port
+    @buffer.filter port, (ip) -> false
+    buffer.map (ip) -> ip.data
 
   hasStream: (port) ->
     buffer = @buffer.get port
