@@ -35,6 +35,7 @@ class Component extends EventEmitter
     @ordered = options.ordered ? false
     @autoOrdering = options.autoOrdering ? null
     @outputQ = []
+    @fullOutputQ = []
     @activateOnInput = options.activateOnInput ? true
     @forwardBrackets = in: ['out', 'error']
     @bracketCounter = {}
@@ -106,6 +107,14 @@ class Component extends EventEmitter
 
   # Handles an incoming IP object
   handleIP: (ip, port) ->
+    if port.options.data
+      @fullOutputQ.push ip
+      result = {}
+      input = new ProcessInput @inPorts, ip, @, port, result
+      output = new ProcessOutput @outPorts, ip, @, result
+      @load++
+      @handle input, output, -> output.done()
+
     if ip.type is 'openBracket'
       @autoOrdering = true if @autoOrdering is null
       @bracketCounter[port.name]++
@@ -124,15 +133,18 @@ class Component extends EventEmitter
         port.scopedBuffer[ip.scope].pop()
       else
         port.buffer.pop()
+
       @outputQ.push outputEntry
+
       @processOutputQueue()
       return
-    return unless port.options.triggering
-    result = {}
-    input = new ProcessInput @inPorts, ip, @, port, result
-    output = new ProcessOutput @outPorts, ip, @, result
-    @load++
-    @handle input, output, -> output.done()
+
+    if port.options.triggering
+      result = {}
+      input = new ProcessInput @inPorts, ip, @, port, result
+      output = new ProcessOutput @outPorts, ip, @, result
+      @load++
+      @handle input, output, -> output.done()
 
   processOutputQueue: ->
     while @outputQ.length > 0
@@ -196,6 +208,26 @@ class ProcessInput
     if args.length is 1
       return ips?.data ? undefined
     (ip?.data ? undefined for ip in ips)
+
+  hasDataStream: (port) ->
+    return false if @nodeInstance.fullOutputQ.length is 0
+    # check if we have everything until "disconnect"
+    received = 0
+    for packet in @nodeInstance.fullOutputQ
+      if packet.type is 'openBracket'
+        ++received
+      else if packet.type is 'closeBracket'
+        --received
+
+    if received is 0
+      @nodeInstance.fullOutputQ = []
+      return true
+
+    return false
+
+  getDataStream: (port) ->
+    @buffer.get port
+      .map (ip) -> ip.data
 
   hasStream: (port) ->
     buffer = @buffer.get port

@@ -59,6 +59,7 @@ class OutPort extends BasePort
       socketId = ip.index
     else
       ip = new IP type, data, options
+
     sockets = @getSockets socketId
     @checkRequired sockets
     if @isCaching() and data isnt @cache[socketId]?.data
