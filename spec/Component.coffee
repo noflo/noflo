@@ -1400,7 +1400,7 @@ describe 'Component', ->
               datatype: 'string'
           process: (input, output) ->
             return unless input.has 'in', (ip) -> ip.type is 'data'
-            buf = input.buffer.get 'in', (ip) -> ip.type is 'data'
+            buf = input.buffer.find 'in', (ip) -> ip.type is 'data'
 
             chai.expect(buf[0].data).to.eql 'foo'
             chai.expect(buf).to.eql input.ports.in.buffer
@@ -1616,7 +1616,7 @@ describe 'Component', ->
         c.inPorts.in.attach sin1
         sin1.post new noflo.IP 'data', 'eh'
 
-      it 'should get full stream when it has a full stream, and it should clear it', (done) ->
+      it 'should get full stream when it has a full stream, and it should clear its buffer', (done) ->
         c = new noflo.Component
           inPorts:
             eh:
@@ -1636,4 +1636,143 @@ describe 'Component', ->
         c.inPorts.eh.attach sin1
         sin1.post new noflo.IP 'openBracket'
         sin1.post new noflo.IP 'data', 'moose'
+        sin1.post new noflo.IP 'closeBracket'
+
+      it 'should get full stream when it has a full stream for multiple ports, and it should clear their buffers', (done) ->
+        c = new noflo.Component
+          inPorts:
+            eh:
+              datatype: 'string'
+            igloo:
+              datatype: 'string'
+          outPorts:
+            canada:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.hasStream 'eh', 'igloo'
+
+            [ehOriginal, iglooOriginal] = input.buffer.get 'eh', 'igloo'
+            [eh, igloo] = input.getStream 'eh', 'igloo'
+            [ehAfter, iglooAfter] = input.buffer.get 'eh', 'igloo'
+
+            chai.expect(ehOriginal).to.eql eh
+            chai.expect(iglooOriginal).to.eql igloo
+            chai.expect(ehAfter).to.eql []
+            chai.expect(iglooAfter).to.eql []
+            done()
+
+        c.inPorts.eh.attach sin1
+        c.inPorts.igloo.attach sin2
+        sin1.post new noflo.IP 'openBracket'
+        sin1.post new noflo.IP 'data', 'moose'
+        sin1.post new noflo.IP 'closeBracket'
+        sin2.post new noflo.IP 'openBracket'
+        sin2.post new noflo.IP 'data', 'ice'
+        sin2.post new noflo.IP 'closeBracket'
+
+    describe 'using dataStreams', ->
+      it 'should not trigger without a full stream without getting the whole dataStream', (done) ->
+        c = new noflo.Component
+          inPorts:
+            in:
+              datatype: 'string'
+              data: true
+              triggering: false # because it triggeres an extra time when using data
+
+          outPorts:
+            out:
+              datatype: 'string'
+          process: (input, output) ->
+            if input.hasDataStream 'in'
+              done new Error 'should never trigger this'
+
+            if (input.has 'in', (ip) -> ip.type is 'closeBracket')
+              done()
+
+        c.forwardBrackets = {}
+        c.inPorts.in.attach sin1
+
+        sin1.post new noflo.IP 'openBracket'
+        sin1.post new noflo.IP 'openBracket'
+        sin1.post new noflo.IP 'openBracket'
+        sin1.post new noflo.IP 'data', 'eh'
+        sin1.post new noflo.IP 'closeBracket'
+
+      it 'when using a non-flat stream,
+      should wrap with the outtermost brackets,
+      and send the other nested brackets empty
+      (but this will be changed in bracketForwarding v3+)', (done) ->
+        c = new noflo.Component
+          inPorts:
+            eh:
+              datatype: 'string'
+              data: true
+          outPorts:
+            canada:
+              datatype: 'string'
+          forwardBrackets:
+            eh: ['canada']
+          process: (input, output) ->
+            return unless input.hasDataStream 'eh'
+            dataStream = input.getDataStream 'eh'
+            for data in dataStream
+              output.send canada: data
+            output.done()
+
+        c.inPorts.eh.attach sin1
+        c.outPorts.canada.attach sout1
+        expect = [
+          {type: 'openBracket', data: '$1'}
+          {type: 'openBracket', data: '$2'}
+          {type: 'closeBracket', data: '$2'}
+          {type: 'openBracket', data: '$3'}
+          {type: 'closeBracket', data: '$3'}
+          {type: 'data', data: 'moose'}
+          {type: 'data', data: 'igloo'}
+          {type: 'data', data: 'ice'}
+          {type: 'closeBracket', data: '$1'}
+        ]
+        sout1.on 'ip', (ip) ->
+          expectObject = expect.shift()
+          chai.expect(ip.type).to.eql expectObject.type
+          chai.expect(ip.data).to.eql expectObject.data
+          if expect.length is 0
+            done()
+
+        sin1.post new noflo.IP 'openBracket', '$1'
+        sin1.post new noflo.IP 'openBracket', '$2'
+        sin1.post new noflo.IP 'data', 'moose'
+        sin1.post new noflo.IP 'data', 'igloo'
+        sin1.post new noflo.IP 'closeBracket', '$2'
+        sin1.post new noflo.IP 'openBracket', '$3'
+        sin1.post new noflo.IP 'data', 'ice'
+        sin1.post new noflo.IP 'closeBracket', '$3'
+        sin1.post new noflo.IP 'closeBracket', '$1'
+
+      it 'should get dataStream when it has a full stream, and it should clear it', (done) ->
+        c = new noflo.Component
+          inPorts:
+            eh:
+              datatype: 'string'
+              data: true
+          outPorts:
+            canada:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.hasDataStream 'eh'
+
+            originalDataBuf = input.buffer.get 'eh'
+              .filter (ip) -> ip.type is 'data'
+              .map (ip) -> ip.data
+
+            dataStream = input.getDataStream 'eh'
+            afterDataStreamBuf = input.buffer.get 'eh'
+            chai.expect(dataStream).to.eql originalDataBuf
+            chai.expect(afterDataStreamBuf).to.eql []
+            done()
+
+        c.inPorts.eh.attach sin1
+        sin1.post new noflo.IP 'openBracket'
+        sin1.post new noflo.IP 'data', 'moose'
+        sin1.post new noflo.IP 'data', 'igloo'
         sin1.post new noflo.IP 'closeBracket'
