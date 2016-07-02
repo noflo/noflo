@@ -35,7 +35,7 @@ class Component extends EventEmitter
     @ordered = options.ordered ? false
     @autoOrdering = options.autoOrdering ? null
     @outputQ = []
-    @dataStream = null
+    @dataStream = []
     @activateOnInput = options.activateOnInput ? true
     @forwardBrackets = in: ['out', 'error']
     @bracketCounter = {}
@@ -110,11 +110,11 @@ class Component extends EventEmitter
     if port.options.data
       # check if we have everything until "disconnect"
       if ip.type is 'openBracket' or ip.type is 'closeBracket'
-        @dataStream ?= 0
+        @dataStream[port.name] ?= 0
       if ip.type is 'openBracket'
-        ++@dataStream
+        ++@dataStream[port.name]
       if ip.type is 'closeBracket'
-        --@dataStream
+        --@dataStream[port.name]
 
       result = {}
       input = new ProcessInput @inPorts, ip, @, port, result
@@ -216,21 +216,29 @@ class ProcessInput
       return ips?.data ? undefined
     (ip?.data ? undefined for ip in ips)
 
-  hasDataStream: (port) ->
-    return false if @nodeInstance.dataStream is null
-    return @nodeInstance.dataStream is 0
+  hasDataStream: (args...) ->
+    hasAll = true
+    for port in args
+      return false if @nodeInstance.dataStream[port] is null
+      if @nodeInstance.dataStream[port] isnt 0
+        hasAll = false
+    return hasAll
 
-  getDataStream: (port) ->
-    @nodeInstance.dataStream = null
-    buffer = @buffer.get port
-    @buffer.filter port, (ip) -> false
-    buffer
-      .filter (ip) -> ip.type is 'data'
-      .map (ip) -> ip.data
+  getDataStream: (args...) ->
+    all = []
+    for port in args
+      @nodeInstance.dataStream[port] = null
+      buffer = @buffer.get port
+      @buffer.filter port, (ip) -> false
+
+      all.push (buffer
+        .filter (ip) -> ip.type is 'data'
+        .map (ip) -> ip.data)
+
+    return all[0] if args.length is 1
+    return all
 
   hasStream: (args...) ->
-    #args = ['in'] unless args.length
-
     hasAll = true
     for port in args
       buf = @buffer.get port
@@ -248,30 +256,21 @@ class ProcessInput
     return hasAll
 
   getStream: (args...) ->
-    args = ['in'] unless args.length
-
     # if the last argument is a boolean, use it
     withoutConnectAndDisconnect = false
     if typeof args[args.length - 1] is 'boolean'
       withoutConnectAndDisconnect = args.pop()
 
-    if args.length is 1
+    all = []
+    for port in args
       buf = @buffer.get port
       @buffer.filter port, (ip) -> false
       if withoutConnectAndDisconnect
         buf = buf.slice 1
         buf.pop()
-      return buf
+      all.push buf
 
-    all = []
-    if args.length > 1
-      for port in args
-        buf = @buffer.get port
-        @buffer.filter port, (ip) -> false
-        if withoutConnectAndDisconnect
-          buf = buf.slice 1
-          buf.pop()
-        all.push buf
+    return all[0] if args.length is 1
     return all
 
 class PortBuffer
@@ -313,12 +312,11 @@ class PortBuffer
       return getBuffer args[0]
     if args.length is 0
       return getBuffer()
-
-    all = []
     if args.length > 1
+      all = []
       for port in args
         all.push getBuffer port
-    return all
+      return all
 
   # Find packets matching a callback and return them without modifying the buffer
   find: (name, cb) ->

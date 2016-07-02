@@ -1678,7 +1678,6 @@ describe 'Component', ->
               datatype: 'string'
               data: true
               triggering: false # because it triggeres an extra time when using data
-
           outPorts:
             out:
               datatype: 'string'
