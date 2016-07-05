@@ -16,8 +16,7 @@
   "dependencies": {
     "coffee-script": "~1.10.0",
     "fbp": "~1.4.0",
-    "fbp-manifest": "~0.1.8",
-    "underscore": "~1.8.3"
+    "fbp-manifest": "~0.1.8"
   },
   "devDependencies": {
     "chai": "~3.5.0",
