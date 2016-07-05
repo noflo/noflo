@@ -2,12 +2,12 @@
 #     (c) 2013-2016 TheGrid (Rituwall Inc.)
 #     (c) 2011-2012 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
-_ = require "underscore"
 internalSocket = require "./InternalSocket"
 graph = require "./Graph"
 {EventEmitter} = require 'events'
 platform = require './Platform'
 componentLoader = require './ComponentLoader'
+utils = require './Utils'
 
 # ## The NoFlo network coordinator
 #
@@ -90,7 +90,7 @@ class Network extends EventEmitter
     # Last connection closed, execution has now ended
     # We do this in debounced way in case there is an in-flight operation still
     unless @debouncedEnd
-      @debouncedEnd = _.debounce =>
+      @debouncedEnd = utils.debounce =>
         return if @connectionCount
         @setStarted false
       , 50
@@ -213,16 +213,16 @@ class Network extends EventEmitter
       done()
 
     # Serialize default socket creation then call callback when done
-    setDefaults = _.reduceRight @graph.nodes, serialize, subscribeGraph
+    setDefaults = utils.reduceRight @graph.nodes, serialize, subscribeGraph
 
     # Serialize initializers then call defaults.
-    initializers = _.reduceRight @graph.initializers, serialize, -> setDefaults "Defaults"
+    initializers = utils.reduceRight @graph.initializers, serialize, -> setDefaults "Defaults"
 
     # Serialize edge creators then call the initializers.
-    edges = _.reduceRight @graph.edges, serialize, -> initializers "Initial"
+    edges = utils.reduceRight @graph.edges, serialize, -> initializers "Initial"
 
     # Serialize node creators then call the edge creators
-    nodes = _.reduceRight @graph.nodes, serialize, -> edges "Edge"
+    nodes = utils.reduceRight @graph.nodes, serialize, -> edges "Edge"
     # Start with node creators
     nodes "Node"
 

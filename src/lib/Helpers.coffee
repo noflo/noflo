@@ -1,11 +1,11 @@
 #     NoFlo - Flow-Based Programming for JavaScript
 #     (c) 2014-2015 TheGrid (Rituwall Inc.)
 #     NoFlo may be freely distributed under the MIT license
-_ = require 'underscore'
 StreamSender = require('./Streams').StreamSender
 StreamReceiver = require('./Streams').StreamReceiver
 InternalSocket = require './InternalSocket'
 platform = require './Platform'
+utils = require './Utils'
 
 isArray = (obj) ->
   return Array.isArray(obj) if Array.isArray
@@ -423,7 +423,7 @@ exports.WirePattern = (component, config, proc) ->
                     _wp(scope).groupedData[key][i][port] = payload
                   if needPortGroups
                     # Include port groups into the set of the unique ones
-                    _wp(scope).groupedGroups[key][i] = _.union _wp(scope).groupedGroups[key][i], _wp(scope).groupBuffers[port]
+                    _wp(scope).groupedGroups[key][i] = utils.unique [_wp(scope).groupedGroups[key][i]..., _wp(scope).groupBuffers[port]...]
                   else if collectGroups is true
                     # All the groups we need are here in this port
                     _wp(scope).groupedGroups[key][i][port] = _wp(scope).groupBuffers[port]
@@ -443,7 +443,7 @@ exports.WirePattern = (component, config, proc) ->
                       data = data[port]
                     groups = (_wp(scope).groupedGroups[key].splice i, 1)[0]
                     if collectGroups is true
-                      groups = _.intersection.apply null, _.values groups
+                      groups = utils.intersection.apply null, utils.getValues groups
                     delete _wp(scope).groupedData[key] if _wp(scope).groupedData[key].length is 0
                     delete _wp(scope).groupedGroups[key] if _wp(scope).groupedGroups[key].length is 0
                     if config.group and key
