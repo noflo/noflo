@@ -34,8 +34,23 @@ isArray = (obj) ->
   return Array.isArray(obj) if Array.isArray
   return Object.prototype.toString.call(arg) == '[object Array]'
 
-# from http://underscorejs.org/docs/underscore.html
+isObject = (obj) ->
+  type = typeof(obj)
+  type == 'function' or type == 'object' and ! !obj
 
+unique = (array) ->
+  output = {}
+  output[array[key]] = array[key] for key in [0...array.length]
+  value for key, value of output
+
+# the following functions are from http://underscorejs.org/docs/underscore.html
+# Underscore.js 1.8.3 http://underscorejs.org
+# (c) 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+# Underscore may be freely distributed under the MIT license.
+
+# Internal function that returns an efficient (for current engines)
+# version of the passed-in callback,
+# to be repeatedly applied in other Underscore functions.
 optimizeCb = (func, context, argCount) ->
   if context == undefined
     return func
@@ -55,6 +70,10 @@ optimizeCb = (func, context, argCount) ->
   ->
     func.apply context, arguments
 
+
+# Create a reducing function iterating left or right.
+# Optimized iterator function as using arguments.length in the main function
+# will deoptimize the, see #1991.
 createReduce = (dir) ->
   iterator = (obj, iteratee, memo, keys, index, length) ->
     while index >= 0 and index < length
@@ -75,6 +94,11 @@ createReduce = (dir) ->
 
 reduceRight = createReduce(-1)
 
+# Returns a function, that, as long as it continues to be invoked,
+# will not be triggered.
+# The function will be called after it stops being called for N milliseconds.
+# If immediate is passed, trigger the function on the leading edge,
+# instead of the trailing.
 debounce = (func, wait, immediate) ->
   timeout = undefined
   args = undefined
@@ -106,10 +130,8 @@ debounce = (func, wait, immediate) ->
       context = args = null
     result
 
-isObject = (obj) ->
-  type = typeof(obj)
-  type == 'function' or type == 'object' and ! !obj
-
+#  Retrieve the names of an object’s own properties.
+# Delegates to ECMAScript 5‘s native Object.keys
 getKeys = (obj) ->
   if !isObject obj
     return []
@@ -121,6 +143,7 @@ getKeys = (obj) ->
       keys.push key
   keys
 
+# Retrieve the values of an object’s properties.
 getValues = (obj) ->
   keys = getKeys obj
   length = keys.length
@@ -131,6 +154,8 @@ getValues = (obj) ->
     i++
   values
 
+# Determine if the array or object contains a given item (using ===).
+# Aliased as includes and include.
 contains = (obj, item, fromIndex) ->
   if !isArray obj
     obj = getValues obj
@@ -138,6 +163,8 @@ contains = (obj, item, fromIndex) ->
     fromIndex = 0
   obj.indexOf(item) >= 0
 
+# Produce an array that contains every item
+# shared between all the passed-in arrays.
 intersection = (array) ->
   result = []
   argsLength = arguments.length
@@ -150,11 +177,6 @@ intersection = (array) ->
 
     result.push item if j is argsLength
   result
-
-unique = (array) ->
-  output = {}
-  output[array[key]] = array[key] for key in [0...array.length]
-  value for key, value of output
 
 exports.clone = clone
 exports.guessLanguageFromFilename = guessLanguageFromFilename
