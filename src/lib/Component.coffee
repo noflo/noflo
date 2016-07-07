@@ -192,10 +192,23 @@ class ProcessInput
   # Fetches `data` property of IP object(s) for given port(s)
   getData: (args...) ->
     args = ['in'] unless args.length
-    ips = @get.apply this, args
-    if args.length is 1
-      return ips?.data ? undefined
-    (ip?.data ? undefined for ip in ips)
+
+    datas = []
+    for port in args
+      packet = @get port
+      continue unless packet?
+      until packet.type is 'data'
+        packet = @get port
+
+      packet = packet?.data ? undefined
+      datas.push packet
+
+      # check if there is any other `data` IPs
+      unless (@buffer.find port, (ip) -> ip.type is 'data').length > 0
+        @buffer.set port, []
+
+    return datas.pop() if args.length is 1
+    datas
 
   hasStream: (port) ->
     buffer = @buffer.get port
