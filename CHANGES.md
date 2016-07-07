@@ -19,9 +19,9 @@ NoFlo ChangeLog
 * Added IP object `scope` support to `WirePattern` to make `WirePattern` components more concurrency-friendly
 * Removed `receiveStreams` option from `WirePattern`
 * Graph JSON schema has been moved to https://github.com/flowbased/fbp, and updated with tests.
-* [babel-core](https://www.npmjs.com/package/babel-core) was removed as a dependency. Install separately for projects needing ES6 component support
 * Added stream helpers for Process API input. `hasStream` checks if an input buffer contains a complete stream (matching brackets and data, or only data), `getStream` returns a complete stream of packets. These require `forwardBrackets` to be disabled for the port.
-
+* [babel-core](https://www.npmjs.com/package/babel-core) was removed as a dependency. Install separately for projects needing ES6 component support
+* underscore.js was removed as a dependency
 
 ## 0.7.8 (June 10th 2016)
 
