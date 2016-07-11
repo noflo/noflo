@@ -320,7 +320,7 @@ class ProcessOutput
     mapIsInPorts = false
     for port in Object.keys @ports.ports
       componentPorts.push port if port isnt 'error' and port isnt 'ports' and port isnt '_callbacks'
-      if not mapIsInPorts and typeof outputMap is 'object' and Object.keys(outputMap).indexOf(port) isnt -1
+      if not mapIsInPorts and outputMap? and typeof outputMap is 'object' and Object.keys(outputMap).indexOf(port) isnt -1
         mapIsInPorts = true
 
     if componentPorts.length is 1 and not mapIsInPorts
