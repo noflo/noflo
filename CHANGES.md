@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.7.0 (July 19th 2016)
+
+* fbp: Don't lock version to 1.3.x, allow any 1.x.x
+
 ## 0.7.8 (June 10th 2016)
 
 * Added input buffer manipulation methods
