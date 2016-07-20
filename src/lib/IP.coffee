@@ -17,7 +17,6 @@ module.exports = class IP
   # Valid types: 'data', 'openBracket', 'closeBracket'
   constructor: (@type = 'data', @data = null, options = {}) ->
     @_isIP = true
-    @groups = [] # sync groups
     @scope = null # sync scope id
     @owner = null # packet owner process
     @clonable = false # cloning safety flag
