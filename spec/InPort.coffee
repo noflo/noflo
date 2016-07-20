@@ -252,7 +252,7 @@ describe 'Inport Port', ->
 
       ps.inPorts.in.attach s
       chai.expect(ps.inPorts.in.listAttached()).to.eql [0]
-      s.send type: 'data', data: 'some-data'
+      s.send new noflo.IP 'data', 'some-data'
 
     it 'should translate legacy events to IP objects', (done) ->
       s = new noflo.internalSocket.InternalSocket
