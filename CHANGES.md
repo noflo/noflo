@@ -23,6 +23,7 @@ NoFlo ChangeLog
 * [babel-core](https://www.npmjs.com/package/babel-core) was removed as a dependency. Install separately for projects needing ES6 component support
 * underscore.js was removed as a dependency
 * `input.getData()` in Process API has been changed to fetch only packets of `data` type skipping and dropping brackets inbetween
+* IP objects are strictly required to be of `noflo.IP` type
 
 ## 0.7.8 (June 10th 2016)
 
