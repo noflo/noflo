@@ -196,7 +196,13 @@ class ProcessInput
     datas = []
     for port in args
       packet = @get port
-      continue unless packet?
+      unless packet?
+        # we add the null packet to the array so when getting
+        # multiple ports, if one is null we still return it
+        # so the indexes are correct.
+        datas.push packet
+        continue
+
       until packet.type is 'data'
         packet = @get port
 
