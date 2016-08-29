@@ -22,6 +22,7 @@ NoFlo ChangeLog
 * Added stream helpers for Process API input. `hasStream` checks if an input buffer contains a complete stream (matching brackets and data, or only data), `getStream` returns a complete stream of packets. These require `forwardBrackets` to be disabled for the port.
 * [babel-core](https://www.npmjs.com/package/babel-core) was removed as a dependency. Install separately for projects needing ES6 component support
 * underscore.js was removed as a dependency
+* `input.getData()` in Process API has been changed to fetch only packets of `data` type skipping and dropping brackets inbetween
 
 ## 0.7.8 (June 10th 2016)
 
