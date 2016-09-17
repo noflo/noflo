@@ -29,7 +29,7 @@
     "grunt-contrib-connect": "~1.0.1",
     "grunt-contrib-watch": "~1.0.0",
     "grunt-mocha-phantomjs": "~3.0.0",
-    "grunt-mocha-test": "^0.12.7",
+    "grunt-mocha-test": "^0.13.1",
     "grunt-noflo-browser": "1.0.0-alpha3",
     "grunt-noflo-manifest": "^0.1.11",
     "json-loader": "^0.5.4",
