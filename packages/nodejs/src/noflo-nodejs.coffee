@@ -159,7 +159,7 @@ startServer = (program, defaultGraph) ->
           process.exit 0
         cleanup = () ->
           server.close onDone
-          setTimeout 2000, onDone # workaround for node.js 0.12 where on open connections does not fire
+          setTimeout onDone, 2000 # workaround for node.js 0.12 where on open connections does not fire
         if program.trace
           tracer.dumpFile null, (err, fname) ->
             console.log 'Wrote flowtrace to:', fname
