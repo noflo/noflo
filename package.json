@@ -22,7 +22,7 @@
     "chai": "~3.5.0",
     "coffee-loader": "^0.7.2",
     "fbp-loader": "^0.1.1",
-    "grunt": "~0.4.5",
+    "grunt": "~1.0.1",
     "grunt-cli": "~1.2.0",
     "grunt-coffeelint": "~0.0.15",
     "grunt-contrib-coffee": "~0.11.1",
