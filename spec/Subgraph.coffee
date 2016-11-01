@@ -465,6 +465,7 @@ describe 'NoFlo Graph component', ->
             chai.expect(data).to.equal 'default-value'
             done()
           inst.start()
+      return
 
     it 'should send initials', (done) ->
       @timeout 6000
@@ -481,6 +482,7 @@ describe 'NoFlo Graph component', ->
             chai.expect(data).to.equal 'initial-value'
             done()
           inst.start()
+      return
 
     it 'should not send defaults when an inport is attached externally', (done) ->
       @timeout 6000
@@ -500,3 +502,4 @@ describe 'NoFlo Graph component', ->
             done()
           inst.start()
           i.send 'Foo'
+      return
