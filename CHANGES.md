@@ -24,6 +24,7 @@ NoFlo ChangeLog
 * underscore.js was removed as a dependency
 * `input.getData()` in Process API has been changed to fetch only packets of `data` type skipping and dropping brackets inbetween
 * IP objects are strictly required to be of `noflo.IP` type
+* Removed support for deprecated Node.js 0.x versions
 
 ## 0.7.8 (June 10th 2016)
 
