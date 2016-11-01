@@ -83,6 +83,7 @@ describe 'NoFlo Network', ->
         return done err if err
         chai.expect(components).to.be.an 'object'
         done()
+      return
     it 'should have an uptime', ->
       chai.expect(n.uptime()).to.be.at.least 0
 
@@ -459,3 +460,4 @@ describe 'NoFlo Network', ->
           return done err if err
           nw.start (err) ->
             return done err if err
+      return

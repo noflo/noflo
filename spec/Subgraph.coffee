@@ -16,6 +16,7 @@ describe 'NoFlo Graph component', ->
   before (done) ->
     loader = new noflo.ComponentLoader root
     loader.listComponents done
+    done
   beforeEach (done) ->
     loader.load 'Graph', (err, instance) ->
       return done err if err
@@ -23,6 +24,7 @@ describe 'NoFlo Graph component', ->
       g = noflo.internalSocket.createSocket()
       c.inPorts.graph.attach g
       done()
+    return
 
   Split = ->
     inst = new noflo.Component
