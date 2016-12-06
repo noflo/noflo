@@ -24,7 +24,7 @@
     "fbp-loader": "^0.1.1",
     "grunt": "^1.0.1",
     "grunt-cli": "^1.2.0",
-    "grunt-coffeelint": "^0.0.15",
+    "grunt-coffeelint": "^0.0.16",
     "grunt-contrib-coffee": "^1.0.0",
     "grunt-contrib-connect": "^1.0.1",
     "grunt-contrib-watch": "~1.0.0",
