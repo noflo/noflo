@@ -266,6 +266,12 @@ class ProcessInput
     res and= @ports[port].ready @scope for port in args
     res
 
+  # Returns true if the ports contain data packets
+  hasData: (args...) ->
+    args = ['in'] unless args.length
+    args.push (ip) -> ip.type is 'data'
+    return @has.apply @, args
+
   # Returns true if a port has a complete stream in its input buffer.
   hasStream: (port) ->
     buffer = @buffer.get port

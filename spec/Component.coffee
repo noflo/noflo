@@ -1113,7 +1113,7 @@ describe 'Component', ->
           msg: ['out', 'error']
           delay: ['error']
         process: (input, output) ->
-          return unless input.has 'msg', 'delay'
+          return unless input.hasData 'msg', 'delay'
           [msg, delay] = input.getData 'msg', 'delay'
           if delay < 0
             return output.sendDone new Error 'Delay is negative'
