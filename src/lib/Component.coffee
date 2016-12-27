@@ -37,6 +37,7 @@ class Component extends EventEmitter
     @ordered = options.ordered ? false
     @autoOrdering = options.autoOrdering ? null
     @outputQ = []
+    @bracketContext = {}
     @activateOnInput = options.activateOnInput ? true
     @forwardBrackets = in: ['out', 'error']
 
@@ -104,52 +105,121 @@ class Component extends EventEmitter
           @handleIP ip, port
     @
 
-  # Handles an incoming IP object
+  isForwardingInport: (port) ->
+    if typeof port is 'string'
+      portName = port
+    else
+      portName = port.name
+    if portName of @forwardBrackets
+      return true
+    false
+
+  isForwardingOutport: (outport) ->
+    if typeof outport is 'string'
+      outportName = outport
+    else
+      outportName = outport.name
+    for inport, outports of @forwardBrackets
+      return true if outports.indexOf(outportName) isnt -1
+    false
+
+  isOrdered: ->
+    return true if @ordered
+    return true if @autoOrdering
+    false
+
+  # The component has received an Information Packet. Call the processing function
+  # so that firing pattern preconditions can be checked and component can do
+  # processing as needed.
   handleIP: (ip, port) ->
-    if ip.type is 'openBracket'
-      # Switch component to ordered mode when receiving a stream unless
-      # auto-ordering is disabled
-      @autoOrdering = true if @autoOrdering is null
-    # If port is non-triggering, we can skip the process function call
-    return unless port.options.triggering
-    if port.name of @forwardBrackets and
-    (ip.type is 'openBracket' or ip.type is 'closeBracket')
-      # Bracket forwarding
-      outputEntry =
-        __resolved: true
-        __forwarded: true
-        __type: ip.type
-        __scope: ip.scope
-      for outPort in @forwardBrackets[port.name]
-        outputEntry[outPort] = [] unless outPort of outputEntry
-        outputEntry[outPort].push ip
-      if ip.scope?
-        port.scopedBuffer[ip.scope].pop()
-      else
-        port.buffer.pop()
-      @outputQ.push outputEntry
-      @processOutputQueue()
+    unless port.options.triggering
+      # If port is non-triggering, we can skip the process function call
       return
-    result = {}
+
+    if ip.type is 'openBracket'
+      # Prepare bracket context for packet scope as needed
+      @bracketContext[ip.scope] = [] unless @bracketContext[ip.scope]
+
+      # Initialize the context for this bracket
+      context =
+        ip: ip
+        ports: []
+      @bracketContext[ip.scope].push context
+
+      if @bracketContext[ip.scope].length is 1 and @autoOrdering is null
+        # Switch component to ordered mode when receiving a stream unless
+        # auto-ordering is disabled
+        debug "#{@nodeId} port #{port.name} entered auto-ordering mode"
+        @autoOrdering = true
+
+    if ip.type is 'closeBracket' and @isOrdered()
+      # Clear this scope
+      context = @bracketContext[ip.scope].pop()
+      context.closeIp = ip
+      result =
+        __resolved: true
+        __closeBracketContext: context
+      @outputQ.push result
+      do @processOutputQueue
+
+    if @isForwardingInport(port) and ip.type in ['openBracket', 'closeBracket']
+      # Bracket forwarding enabled on port. In this case we don't call processing
+      # functions on brackets, only on data.
+      return
+
+    bracketContext = if @bracketContext[ip.scope] then @bracketContext[ip.scope].slice(0) else []
+    result =
+      __bracketContext: bracketContext
     # Prepare the input/output pair
     input = new ProcessInput @inPorts, ip, @, port, result
     output = new ProcessOutput @outPorts, ip, @, result
     # Call the processing function
     @handle input, output, -> output.done()
-    debug "#{@nodeId} didn't match preconditions on #{port.name}" unless input.activated
+
+    unless input.activated
+      debug "#{@nodeId} #{ip.type} packet on #{port.name} didn't match preconditions"
+      return
+
+    # Component fired
+    if @isOrdered()
+      # Ordered mode. Instead of sending directly, we're queueing
+      @outputQ.push result if @isOrdered()
+    return
+
+  addBracketForwards: (result) ->
+    # First see if there are any brackets to forward
+    return unless result.__bracketContext
+    for outport, ips of result
+      continue if outport.indexOf('__') is 0
+      continue unless @isForwardingOutport outport
+      unforwarded = result.__bracketContext.filter (ctx) ->
+        ctx.ports.indexOf(outport) is -1
+      continue unless unforwarded.length
+      unforwarded.reverse()
+      for ctx in unforwarded
+        ips.unshift ctx.ip.clone()
+        debug "#{@nodeId} forwarding #{ctx.ip.type} to #{outport}"
+        ctx.ports.push outport
 
   processOutputQueue: ->
     while @outputQ.length > 0
       result = @outputQ[0]
       break unless result.__resolved
+
+      if result.__closeBracketContext
+        # Handle closing bracket forwarding
+        for outport in result.__closeBracketContext.ports
+          debug "#{@nodeId} forwarding closeBracket to #{outport}"
+          result[outport] = [result.__closeBracketContext.closeIp.clone()]
+        delete result.__closeBracketContext
+
       for port, ips of result
         continue if port.indexOf('__') is 0
         continue unless @outPorts.ports[port].isAttached()
+        @addBracketForwards result
         for ip in ips
           @outPorts[port].sendIP ip
       @outputQ.shift()
-    bracketsClosed = true
-    @autoOrdering = null if bracketsClosed and @autoOrdering is true
 
 exports.Component = Component
 
@@ -162,12 +232,14 @@ class ProcessInput
   # Preconditions met, set component state to `activated`
   activate: ->
     return if @activated
-    @result.__resolved = false
-    debug "#{@nodeInstance.nodeId} activated on #{@port.name}"
-    if @nodeInstance.ordered or @nodeInstance.autoOrdering
-      @nodeInstance.outputQ.push @result
     @nodeInstance.load++
+    debug "#{@nodeInstance.nodeId} #{@ip.type} packet on #{@port.name} caused activation #{@nodeInstance.load}"
     @activated = true
+
+    if @nodeInstance.isOrdered()
+      # We're handling packets in order. Set the result as non-resolved so that it can
+      # be send when the order comes up
+      @result.__resolved = false
 
   # ## Input preconditions
   # When the processing function is called, it can check if input buffers
@@ -192,7 +264,7 @@ class ProcessInput
   hasStream: (port) ->
     buffer = @buffer.get port
     return false if buffer.length is 0
-    # check if we have everything until "disconnect"
+    # check if we have everything until end of a complete stream
     received = 0
     for packet in buffer
       if packet.type is 'openBracket'
@@ -208,12 +280,13 @@ class ProcessInput
   #
   # Fetches IP object(s) for port(s)
   get: (args...) ->
+    @activate()
     args = ['in'] unless args.length
-    if (@nodeInstance.ordered or @nodeInstance.autoOrdering) and
-    @nodeInstance.activateOnInput and
-    not ('__resolved' of @result)
-      @activate()
-    res = (@ports[port].get @scope for port in args)
+    res = []
+    for port in args
+      ip = @ports[port].get @scope
+      res.push ip
+
     if args.length is 1 then res[0] else res
 
   # Fetches `data` property of IP object(s) for given port(s)
@@ -307,12 +380,7 @@ class PortBuffer
 class ProcessOutput
   constructor: (@ports, @ip, @nodeInstance, @result) ->
     @scope = @ip.scope
-
-  # Sets component state to `activated`
-  activate: ->
-    @result.__resolved = false
-    if @nodeInstance.ordered or @nodeInstance.autoOrdering
-      @nodeInstance.outputQ.push @result
+    @sent = []
 
   # Checks if a value is an Error
   isError: (err) ->
@@ -333,23 +401,23 @@ class ProcessOutput
 
   # Sends a single IP object to a port
   sendIP: (port, packet) ->
-    if typeof packet isnt 'object' or IP.types.indexOf(packet.type) is -1
+    unless IP.isIP packet
       ip = new IP 'data', packet
     else
       ip = packet
     ip.scope = @scope if @scope isnt null and ip.scope is null
-    if @nodeInstance.ordered or @nodeInstance.autoOrdering
+
+    if @nodeInstance.isOrdered()
+      debug "#{@nodeInstance.nodeId} is in ordered mode, deferred send of #{ip.type} to #{port}"
       @result[port] = [] unless port of @result
       @result[port].push ip
-    else
-      @nodeInstance.outPorts[port].sendIP ip
+      return
+    debug "#{@nodeInstance.nodeId} direct send of #{ip.type} to #{port}"
+    @nodeInstance.outPorts[port].sendIP ip
 
   # Sends packets for each port as a key in the map
   # or sends Error or a list of Errors if passed such
   send: (outputMap) ->
-    if (@nodeInstance.ordered or @nodeInstance.autoOrdering) and
-    not ('__resolved' of @result)
-      @activate()
     return @error outputMap if @isError outputMap
 
     componentPorts = []
@@ -386,7 +454,10 @@ class ProcessOutput
   # Finishes process activation gracefully
   done: (error) ->
     @error error if error
-    if @nodeInstance.ordered or @nodeInstance.autoOrdering
+
+    debug "#{@nodeInstance.nodeId} finished processing #{@nodeInstance.load}"
+    @nodeInstance.load--
+
+    if @nodeInstance.isOrdered()
       @result.__resolved = true
       @nodeInstance.processOutputQueue()
-    @nodeInstance.load--
