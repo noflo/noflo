@@ -183,7 +183,8 @@ class Component extends EventEmitter
     # Component fired
     if @isOrdered()
       # Ordered mode. Instead of sending directly, we're queueing
-      @outputQ.push result if @isOrdered()
+      @outputQ.push result
+      do @processOutputQueue
     return
 
   addBracketForwards: (result) ->
