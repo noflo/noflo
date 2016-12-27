@@ -9,6 +9,8 @@
 ports = require './Ports'
 IP = require './IP'
 
+debug = require('debug') 'noflo:component'
+
 class Component extends EventEmitter
   description: ''
   icon: null
@@ -159,11 +161,17 @@ class ProcessInput
     @scope = @ip.scope
     @buffer = new PortBuffer(@)
 
-  # Sets component state to `activated`
+  # Preconditions met, set component state to `activated`
   activate: ->
+    debug "#{@nodeInstance.nodeId} activated"
     @result.__resolved = false
     if @nodeInstance.ordered or @nodeInstance.autoOrdering
       @nodeInstance.outputQ.push @result
+
+  # ## Input preconditions
+  # When the processing function is called, it can check if input buffers
+  # contain the packets needed for the process to fire.
+  # This precondition handling is done via the `has` and `hasStream` methods.
 
   # Returns true if a port (or ports joined by logical AND) has a new IP
   # Passing a validation callback as a last argument allows more selective
@@ -179,6 +187,24 @@ class ProcessInput
     res and= @ports[port].ready @scope for port in args
     res
 
+  # Returns true if a port has a complete stream in its input buffer.
+  hasStream: (port) ->
+    buffer = @buffer.get port
+    return false if buffer.length is 0
+    # check if we have everything until "disconnect"
+    received = 0
+    for packet in buffer
+      if packet.type is 'openBracket'
+        ++received
+      else if packet.type is 'closeBracket'
+        --received
+    received is 0
+
+  # ## Input processing
+  #
+  # Once preconditions have been met, the processing function can read from
+  # the input buffers. Reading packets sets the component as "activated".
+  #
   # Fetches IP object(s) for port(s)
   get: (args...) ->
     args = ['in'] unless args.length
@@ -216,18 +242,7 @@ class ProcessInput
     return datas.pop() if args.length is 1
     datas
 
-  hasStream: (port) ->
-    buffer = @buffer.get port
-    return false if buffer.length is 0
-    # check if we have everything until "disconnect"
-    received = 0
-    for packet in buffer
-      if packet.type is 'openBracket'
-        ++received
-      else if packet.type is 'closeBracket'
-        --received
-    received is 0
-
+  # Fetches a complete data stream from the buffer.
   getStream: (port, withoutConnectAndDisconnect = false) ->
     buf = @buffer.get port
     @buffer.filter port, (ip) -> false
