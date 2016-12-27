@@ -114,13 +114,17 @@ class Component extends EventEmitter
       return true
     false
 
-  isForwardingOutport: (outport) ->
+  isForwardingOutport: (inport, outport) ->
+    if typeof inport is 'string'
+      inportName = inport
+    else
+      inportName = inport.name
     if typeof outport is 'string'
       outportName = outport
     else
       outportName = outport.name
-    for inport, outports of @forwardBrackets
-      return true if outports.indexOf(outportName) isnt -1
+    return false unless @forwardBrackets[inportName]
+    return true if @forwardBrackets[inportName].indexOf(outportName) isnt -1
     false
 
   isOrdered: ->
@@ -144,6 +148,7 @@ class Component extends EventEmitter
       context =
         ip: ip
         ports: []
+        source: port.name
       @bracketContext[ip.scope].push context
 
       if @bracketContext[ip.scope].length is 1 and @autoOrdering is null
@@ -192,8 +197,8 @@ class Component extends EventEmitter
     return unless result.__bracketContext
     for outport, ips of result
       continue if outport.indexOf('__') is 0
-      continue unless @isForwardingOutport outport
-      unforwarded = result.__bracketContext.filter (ctx) ->
+      unforwarded = result.__bracketContext.filter (ctx) =>
+        return false unless @isForwardingOutport ctx.source, outport
         ctx.ports.indexOf(outport) is -1
       continue unless unforwarded.length
       unforwarded.reverse()
