@@ -42,6 +42,7 @@ class ComponentLoader extends EventEmitter
       @ready = true
       @emit 'ready', true
       callback null, @components if callback
+    return
 
   load: (name, callback, metadata) ->
     unless @ready
