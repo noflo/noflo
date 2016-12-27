@@ -16,6 +16,7 @@ describe 'NoFlo Graph component', ->
   before (done) ->
     loader = new noflo.ComponentLoader root
     loader.listComponents done
+    done
   beforeEach (done) ->
     loader.load 'Graph', (err, instance) ->
       return done err if err
@@ -23,6 +24,7 @@ describe 'NoFlo Graph component', ->
       g = noflo.internalSocket.createSocket()
       c.inPorts.graph.attach g
       done()
+    return
 
   Split = ->
     inst = new noflo.Component
@@ -463,6 +465,7 @@ describe 'NoFlo Graph component', ->
             chai.expect(data).to.equal 'default-value'
             done()
           inst.start()
+      return
 
     it 'should send initials', (done) ->
       @timeout 6000
@@ -479,6 +482,7 @@ describe 'NoFlo Graph component', ->
             chai.expect(data).to.equal 'initial-value'
             done()
           inst.start()
+      return
 
     it 'should not send defaults when an inport is attached externally', (done) ->
       @timeout 6000
@@ -498,3 +502,4 @@ describe 'NoFlo Graph component', ->
             done()
           inst.start()
           i.send 'Foo'
+      return

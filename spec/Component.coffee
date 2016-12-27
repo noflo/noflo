@@ -1593,11 +1593,11 @@ describe 'Component', ->
         c.forwardBrackets = {}
         c.inPorts.in.attach sin1
 
-        sin1.post new noflo.IP 'openBracket', ''
-        sin1.post new noflo.IP 'openBracket', ''
-        sin1.post new noflo.IP 'openBracket', ''
+        sin1.post new noflo.IP 'openBracket'
+        sin1.post new noflo.IP 'openBracket'
+        sin1.post new noflo.IP 'openBracket'
         sin1.post new noflo.IP 'data', 'eh'
-        sin1.post new noflo.IP 'closeBracket', ''
+        sin1.post new noflo.IP 'closeBracket'
 
       it 'should trigger when forwardingBrackets because then it is only data with no brackets and is a full stream', (done) ->
         c = new noflo.Component
@@ -1627,13 +1627,13 @@ describe 'Component', ->
           process: (input, output) ->
             return unless input.hasStream 'eh'
             originalBuf = input.buffer.get 'eh'
-            stream = input.getStream 'in'
+            stream = input.getStream 'eh'
             afterStreamBuf = input.buffer.get 'eh'
             chai.expect(stream).to.eql originalBuf
             chai.expect(afterStreamBuf).to.eql []
             done()
 
         c.inPorts.eh.attach sin1
-        sin1.post new noflo.IP 'openBracket', ''
+        sin1.post new noflo.IP 'openBracket'
         sin1.post new noflo.IP 'data', 'moose'
-        sin1.post new noflo.IP 'closeBracket', ''
+        sin1.post new noflo.IP 'closeBracket'

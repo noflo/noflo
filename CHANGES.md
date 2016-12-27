@@ -18,6 +18,13 @@ NoFlo ChangeLog
   - Additionally [component.io](https://github.com/componentjs/component) builds warn about deprecation in favor of [webpack](http://webpack.github.io/) with helpful automation available in [grunt-noflo-browser](https://www.npmjs.com/package/grunt-noflo-browser)
 * Added IP object `scope` support to `WirePattern` to make `WirePattern` components more concurrency-friendly
 * Removed `receiveStreams` option from `WirePattern`
+* Graph JSON schema has been moved to https://github.com/flowbased/fbp, and updated with tests.
+* Added stream helpers for Process API input. `hasStream` checks if an input buffer contains a complete stream (matching brackets and data, or only data), `getStream` returns a complete stream of packets. These require `forwardBrackets` to be disabled for the port.
+* [babel-core](https://www.npmjs.com/package/babel-core) was removed as a dependency. Install separately for projects needing ES6 component support
+* underscore.js was removed as a dependency
+* `input.getData()` in Process API has been changed to fetch only packets of `data` type skipping and dropping brackets inbetween
+* IP objects are strictly required to be of `noflo.IP` type
+* Removed support for deprecated Node.js 0.x versions
 
 ## 0.7.8 (June 10th 2016)
 

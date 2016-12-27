@@ -11,13 +11,12 @@ module.exports = class IP
 
   # Detects if an arbitrary value is an IP
   @isIP: (obj) ->
-    obj and typeof obj is 'object' and
-    obj.type and @types.indexOf(obj.type) > -1
+    obj and typeof obj is 'object' and obj._isIP is true
 
   # Creates as new IP object
   # Valid types: 'data', 'openBracket', 'closeBracket'
   constructor: (@type = 'data', @data = null, options = {}) ->
-    @groups = [] # sync groups
+    @_isIP = true
     @scope = null # sync scope id
     @owner = null # packet owner process
     @clonable = false # cloning safety flag

@@ -39,7 +39,7 @@ NoFlo is available for Node.js [via NPM](https://npmjs.org/package/noflo), so yo
 
     $ npm install noflo --save
 
-You can make a browser build of NoFlo using component.io. The [grunt-noflo-browser](https://github.com/noflo/grunt-noflo-browser) plugin makes this easy.
+You can make a browser build of NoFlo using webpack. The [grunt-noflo-browser](https://github.com/noflo/grunt-noflo-browser) plugin makes this easy.
 
 ### Installing from Git
 

@@ -192,10 +192,29 @@ class ProcessInput
   # Fetches `data` property of IP object(s) for given port(s)
   getData: (args...) ->
     args = ['in'] unless args.length
-    ips = @get.apply this, args
-    if args.length is 1
-      return ips?.data ? undefined
-    (ip?.data ? undefined for ip in ips)
+
+    datas = []
+    for port in args
+      packet = @get port
+      unless packet?
+        # we add the null packet to the array so when getting
+        # multiple ports, if one is null we still return it
+        # so the indexes are correct.
+        datas.push packet
+        continue
+
+      until packet.type is 'data'
+        packet = @get port
+
+      packet = packet?.data ? undefined
+      datas.push packet
+
+      # check if there is any other `data` IPs
+      unless (@buffer.find port, (ip) -> ip.type is 'data').length > 0
+        @buffer.set port, []
+
+    return datas.pop() if args.length is 1
+    datas
 
   hasStream: (port) ->
     buffer = @buffer.get port
@@ -209,7 +228,7 @@ class ProcessInput
         --received
     received is 0
 
-  getStream: (input, port, withoutConnectAndDisconnect = false) ->
+  getStream: (port, withoutConnectAndDisconnect = false) ->
     buf = @buffer.get port
     @buffer.filter port, (ip) -> false
     if withoutConnectAndDisconnect
@@ -320,7 +339,7 @@ class ProcessOutput
     mapIsInPorts = false
     for port in Object.keys @ports.ports
       componentPorts.push port if port isnt 'error' and port isnt 'ports' and port isnt '_callbacks'
-      if not mapIsInPorts and typeof outputMap is 'object' and Object.keys(outputMap).indexOf(port) isnt -1
+      if not mapIsInPorts and outputMap? and typeof outputMap is 'object' and Object.keys(outputMap).indexOf(port) isnt -1
         mapIsInPorts = true
 
     if componentPorts.length is 1 and not mapIsInPorts

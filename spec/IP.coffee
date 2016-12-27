@@ -13,13 +13,6 @@ describe 'IP object', ->
     chai.expect(close.type).to.equal 'closeBracket'
     chai.expect(data.type).to.equal 'data'
 
-  it 'should attach data groups explicitly', ->
-    data = new noflo.IP 'data', "Payload"
-    chai.expect(data.groups).to.be.an.instanceof Array
-    chai.expect(data.groups).to.have.lengthOf 0
-    data.groups = ['foo', 'bar']
-    chai.expect(data.groups).to.have.lengthOf 2
-
   it 'should be moved to an owner', ->
     p = new noflo.IP 'data', "Token"
     p.move 'SomeProc'
