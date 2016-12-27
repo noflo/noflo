@@ -39,7 +39,6 @@ class Component extends EventEmitter
     @outputQ = []
     @activateOnInput = options.activateOnInput ? true
     @forwardBrackets = in: ['out', 'error']
-    @bracketCounter = {}
 
     if 'forwardBrackets' of options
       @forwardBrackets = options.forwardBrackets
@@ -89,7 +88,6 @@ class Component extends EventEmitter
         delete @forwardBrackets[inPort]
       else
         @forwardBrackets[inPort] = tmp
-        @bracketCounter[inPort] = 0
 
   # Sets process handler function
   process: (handle) ->
@@ -109,8 +107,11 @@ class Component extends EventEmitter
   # Handles an incoming IP object
   handleIP: (ip, port) ->
     if ip.type is 'openBracket'
+      # Switch component to ordered mode when receiving a stream unless
+      # auto-ordering is disabled
       @autoOrdering = true if @autoOrdering is null
-      @bracketCounter[port.name]++
+    # If port is non-triggering, we can skip the process function call
+    return unless port.options.triggering
     if port.name of @forwardBrackets and
     (ip.type is 'openBracket' or ip.type is 'closeBracket')
       # Bracket forwarding
@@ -129,12 +130,13 @@ class Component extends EventEmitter
       @outputQ.push outputEntry
       @processOutputQueue()
       return
-    return unless port.options.triggering
     result = {}
+    # Prepare the input/output pair
     input = new ProcessInput @inPorts, ip, @, port, result
     output = new ProcessOutput @outPorts, ip, @, result
-    @load++
+    # Call the processing function
     @handle input, output, -> output.done()
+    debug "#{@nodeId} didn't match preconditions on #{port.name}" unless input.activated
 
   processOutputQueue: ->
     while @outputQ.length > 0
@@ -144,14 +146,9 @@ class Component extends EventEmitter
         continue if port.indexOf('__') is 0
         continue unless @outPorts.ports[port].isAttached()
         for ip in ips
-          @bracketCounter[port]-- if ip.type is 'closeBracket'
           @outPorts[port].sendIP ip
       @outputQ.shift()
     bracketsClosed = true
-    for name, port of @outPorts.ports
-      if @bracketCounter[port] isnt 0
-        bracketsClosed = false
-        break
     @autoOrdering = null if bracketsClosed and @autoOrdering is true
 
 exports.Component = Component
@@ -160,13 +157,17 @@ class ProcessInput
   constructor: (@ports, @ip, @nodeInstance, @port, @result) ->
     @scope = @ip.scope
     @buffer = new PortBuffer(@)
+    @activated = false
 
   # Preconditions met, set component state to `activated`
   activate: ->
-    debug "#{@nodeInstance.nodeId} activated"
+    return if @activated
     @result.__resolved = false
+    debug "#{@nodeInstance.nodeId} activated on #{@port.name}"
     if @nodeInstance.ordered or @nodeInstance.autoOrdering
       @nodeInstance.outputQ.push @result
+    @nodeInstance.load++
+    @activated = true
 
   # ## Input preconditions
   # When the processing function is called, it can check if input buffers
@@ -231,6 +232,7 @@ class ProcessInput
 
       until packet.type is 'data'
         packet = @get port
+        break unless packet
 
       packet = packet?.data ? undefined
       datas.push packet
