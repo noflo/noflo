@@ -1637,3 +1637,106 @@ describe 'Component', ->
         sin1.post new noflo.IP 'openBracket'
         sin1.post new noflo.IP 'data', 'moose'
         sin1.post new noflo.IP 'closeBracket'
+
+    describe 'with a simple ordered stream', ->
+      it 'should send packets with brackets in expected order when synchronous', (done) ->
+        received = []
+        c = new noflo.Component
+          inPorts:
+            in:
+              datatype: 'string'
+          outPorts:
+            out:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.has 'in'
+            data = input.getData 'in'
+            output.sendDone
+              out: data
+        c.nodeId = 'Issue465'
+        c.inPorts.in.attach sin1
+        c.outPorts.out.attach sout1
+
+        sout1.on 'ip', (ip) ->
+          if ip.type is 'openBracket'
+            return unless ip.data
+            received.push "< #{ip.data}"
+            return
+          if ip.type is 'closeBracket'
+            return unless ip.data
+            received.push "> #{ip.data}"
+            return
+          received.push ip.data
+          console.log received
+        sout1.on 'disconnect', ->
+          console.log "DISC"
+          console.log received
+          chai.expect(received).to.eql [
+            '< 1'
+            '< 2'
+            'A'
+            '> 2'
+            'B'
+            '> 1'
+          ]
+          done()
+        sin1.connect()
+        sin1.beginGroup 1
+        sin1.beginGroup 2
+        sin1.send 'A'
+        sin1.endGroup()
+        sin1.send 'B'
+        sin1.endGroup()
+        sin1.disconnect()
+      it 'should send packets with brackets in expected order when asynchronous', (done) ->
+        received = []
+        c = new noflo.Component
+          inPorts:
+            in:
+              datatype: 'string'
+          outPorts:
+            out:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.has 'in'
+            data = input.getData 'in'
+            setTimeout ->
+              output.sendDone
+                out: data
+            , 1
+        c.nodeId = 'Issue465'
+        c.inPorts.in.attach sin1
+        c.outPorts.out.attach sout1
+
+        sout1.on 'ip', (ip) ->
+          if ip.type is 'openBracket'
+            return unless ip.data
+            received.push "< #{ip.data}"
+            return
+          if ip.type is 'closeBracket'
+            return unless ip.data
+            received.push "> #{ip.data}"
+            return
+          received.push ip.data
+          console.log received
+        sout1.on 'disconnect', ->
+          console.log "DISC"
+          console.log received
+          chai.expect(received).to.eql [
+            '< 1'
+            '< 2'
+            'A'
+            '> 2'
+            'B'
+            '> 1'
+          ]
+          done()
+
+        sin1.connect()
+        sin1.beginGroup 1
+        sin1.beginGroup 2
+        sin1.send 'A'
+        sin1.endGroup()
+        sin1.send 'B'
+        sin1.endGroup()
+        sin1.disconnect()
