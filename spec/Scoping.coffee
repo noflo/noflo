@@ -72,13 +72,11 @@ processMerge = ->
 
   c.process (input, output) ->
     return unless input.has 'in1', 'in2', (ip) -> ip.type is 'data'
-    second = input.get 'in2'
-    until second.type is 'data'
-      second = input.get 'in2'
     first = input.getData 'in1'
+    second = input.getData 'in2'
 
     output.sendDone
-      out: "1#{first}:2#{second.data}:#{c.nodeId}"
+      out: "1#{first}:2#{second}:#{c.nodeId}"
 
 describe 'Scope isolation', ->
   loader = null
