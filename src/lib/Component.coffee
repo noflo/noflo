@@ -140,49 +140,46 @@ class Component extends EventEmitter
       # If port is non-triggering, we can skip the process function call
       return
 
-    if ip.type is 'openBracket'
-      # Prepare bracket context for packet scope as needed
-      @bracketContext[ip.scope] = [] unless @bracketContext[ip.scope]
+    if ip.type is 'openBracket' and @autoOrdering is null
+      # Switch component to ordered mode when receiving a stream unless
+      # auto-ordering is disabled
+      debug "#{@nodeId} port #{port.name} entered auto-ordering mode"
+      @autoOrdering = true
 
-      # Initialize the context for this bracket
-      context =
-        ip: ip
-        ports: []
-        source: port.name
-      @bracketContext[ip.scope].push context
+    # Initialize the result object for situations where output needs
+    # to be queued to be kept in order
+    result = {}
 
-      if @bracketContext[ip.scope].length is 1 and @autoOrdering is null
-        # Switch component to ordered mode when receiving a stream unless
-        # auto-ordering is disabled
-        debug "#{@nodeId} port #{port.name} entered auto-ordering mode"
-        @autoOrdering = true
-
-    if ip.type is 'closeBracket' and @isOrdered()
-      # Clear this scope
-      context = @bracketContext[ip.scope].pop()
-      if context.pending
-        debug "#{@nodeId} bracket context #{context.ip.data} is pending, skipping close"
-        @bracketContext[ip.scope].push context
-        contexts = @bracketContext[ip.scope].slice 0
-        contexts.reverse()
-        unclosed = contexts.filter (ctx) -> not ctx.closeIp
-        unclosed[0].closeIp = ip
+    if @isForwardingInport port
+      # For bracket-forwarding inports we need to initialize a bracket context
+      # so that brackets can be sent as part of the output, and closed after.
+      if ip.type is 'openBracket'
+        # For forwarding ports openBrackets don't fire
         return
-      context.closeIp = ip
-      result =
-        __resolved: true
-        __closeBracketContext: context
-      @outputQ.push result
-      do @processOutputQueue
 
-    if @isForwardingInport(port) and ip.type in ['openBracket', 'closeBracket']
-      # Bracket forwarding enabled on port. In this case we don't call processing
-      # functions on brackets, only on data.
-      return
+      if ip.type is 'closeBracket'
+        # For forwarding ports closeBrackets don't fire
+        # However, we need to handle several different scenarios:
+        # A. There are closeBrackets in queue before current packet
+        # B. There are closeBrackets in queue after current packet
+        # C. We're no longer processing anything and closeBracket arrives
+        if @load is 0 and @outputQ.length is 0
+          buf = port.getBuffer ip.scope
+          return unless buf[0] is ip
+          # Remove from buffer
+          port.get ip.scope
+          context = @bracketContext[ip.scope].pop()
+          context.closeIp = ip
+          return unless context.ports.length
+          debug "#{@nodeId} closeBracket-C #{ip.data} #{context.ports}"
+          result =
+            __resolved: true
+          for outport in context.ports
+            result[outport] = [ip.clone()]
+          @outputQ.push result
+          do @processOutputQueue
+        return
 
-    bracketContext = if @bracketContext[ip.scope] then @bracketContext[ip.scope].slice(0) else []
-    result =
-      __bracketContext: bracketContext
     # Prepare the input/output pair
     input = new ProcessInput @inPorts, ip, @, port, result
     output = new ProcessOutput @outPorts, ip, @, result
@@ -191,7 +188,6 @@ class Component extends EventEmitter
 
     unless input.activated
       debug "#{@nodeId} #{ip.type} packet on #{port.name} didn't match preconditions"
-      bracketContext[bracketContext.length - 1].pending = true if @isForwardingInport port
       return
 
     # Component fired
@@ -202,40 +198,54 @@ class Component extends EventEmitter
     return
 
   addBracketForwards: (result) ->
-    # First see if there are any brackets to forward
-    return unless result.__bracketContext
-    for outport, ips of result
-      continue if outport.indexOf('__') is 0
-      unforwarded = result.__bracketContext.filter (ctx) =>
-        return false unless @isForwardingOutport ctx.source, outport
-        ctx.ports.indexOf(outport) is -1
-      continue unless unforwarded.length
-      unforwarded.reverse()
-      for ctx in unforwarded
-        ips.unshift ctx.ip.clone()
-        debug "#{@nodeId} forwarding #{ctx.ip.type} to #{outport}"
-        if ctx.closeIp
-          @outputQ.push
-            __resolved: true
-            __closeBracketContext: ctx
+    if result.__bracketClosingBefore?.length
+      for context in result.__bracketClosingBefore
+        debug "#{@nodeId} closeBracket-A #{context.closeIp.data} #{context.ports}"
+        continue unless context.ports.length
+        for port in context.ports
+          result[port] = [] unless result[port]
+          result[port].unshift context.closeIp.clone()
+
+    if result.__bracketContext?.length
+      # First see if there are any brackets to forward
+      for outport, ips of result
+        continue if outport.indexOf('__') is 0
+        unforwarded = result.__bracketContext.filter (ctx) =>
+          return false unless @isForwardingOutport ctx.source, outport
+          ctx.ports.indexOf(outport) is -1
+        continue unless unforwarded.length
+        unforwarded.reverse()
+        for ctx in unforwarded
+          ips.unshift ctx.ip.clone()
+          ctx.ports.push outport
+
+    if result.__bracketClosingAfter?.length
+      for context in result.__bracketClosingAfter
+        debug "#{@nodeId} closeBracket-B #{context.closeIp.data} #{context.ports}"
+        continue unless context.ports.length
+        for port in context.ports
+          result[port] = [] unless result[port]
+          result[port].push context.closeIp.clone()
+
+    delete result.__bracketClosingBefore
+    delete result.__bracketContext
+    delete result.__bracketClosingAfter
 
   processOutputQueue: ->
     while @outputQ.length > 0
       result = @outputQ[0]
       break unless result.__resolved
-
-      if result.__closeBracketContext
-        # Handle closing bracket forwarding
-        for outport in result.__closeBracketContext.ports
-          debug "#{@nodeId} forwarding closeBracket to #{outport}"
-          result[outport] = [result.__closeBracketContext.closeIp.clone()]
-        delete result.__closeBracketContext
-
+      @addBracketForwards result
       for port, ips of result
         continue if port.indexOf('__') is 0
         continue unless @outPorts.ports[port].isAttached()
-        @addBracketForwards result
         for ip in ips
+          if ip.type is 'openBracket'
+            debug "#{@nodeId} sending < #{ip.data} to #{port}"
+          else if ip.type is 'closeBracket'
+            debug "#{@nodeId} sending > #{ip.data} to #{port}"
+          else
+            debug "#{@nodeId} sending DATA to #{port}"
           @outPorts[port].sendIP ip
       @outputQ.shift()
 
@@ -255,8 +265,8 @@ class ProcessInput
     @activated = true
 
     if @nodeInstance.isOrdered()
-      # We're handling packets in order. Set the result as non-resolved so that it can
-      # be send when the order comes up
+      # We're handling packets in order. Set the result as non-resolved
+      # so that it can be send when the order comes up
       @result.__resolved = false
 
   # ## Input preconditions
@@ -308,10 +318,58 @@ class ProcessInput
     args = ['in'] unless args.length
     res = []
     for port in args
+      if @nodeInstance.isForwardingInport port
+        ip = @__getForForwarding port
+        res.push ip
+        continue
       ip = @ports[port].get @scope
       res.push ip
 
     if args.length is 1 then res[0] else res
+
+  __getForForwarding: (port) ->
+    # Ensure we have a bracket context for the current scope
+    @nodeInstance.bracketContext[@scope] = [] unless @nodeInstance.bracketContext[@scope]
+    prefix = []
+    dataIp = null
+    # Read IPs until we hit data
+    loop
+      # Read next packet
+      ip = @ports[port].get @scope
+      # Stop at the end of the buffer
+      break unless ip
+      if ip.type is 'data'
+        # Hit the data IP, stop here
+        dataIp = ip
+        break
+      # Keep track of bracket closings and openings before
+      prefix.push ip
+
+    # Forwarding brackets that came before data packet need to manipulate context
+    # and be added to result so they can be forwarded correctly to ports that
+    # need them
+    for ip in prefix
+      if ip.type is 'closeBracket'
+        # Bracket closings before data should remove bracket context
+        @result.__bracketClosingBefore = [] unless @result.__bracketClosingBefore
+        context = @nodeInstance.bracketContext[@scope].pop()
+        context.closeIp = ip
+        @result.__bracketClosingBefore.push context
+        continue
+      if ip.type is 'openBracket'
+        # Bracket openings need to go to bracket context
+        @nodeInstance.bracketContext[@scope].push
+          ip: ip
+          ports: []
+          source: port
+        continue
+
+    # Add current bracket context to the result so that when we send
+    # to ports we can also add the surrounding brackets
+    @result.__bracketContext = @nodeInstance.bracketContext[@scope].slice 0
+    # Bracket closings that were in buffer after the data packet need to
+    # be added to result for done() to read them from
+    return dataIp
 
   # Fetches `data` property of IP object(s) for given port(s)
   getData: (args...) ->
@@ -432,11 +490,9 @@ class ProcessOutput
     ip.scope = @scope if @scope isnt null and ip.scope is null
 
     if @nodeInstance.isOrdered()
-      debug "#{@nodeInstance.nodeId} is in ordered mode, deferred send of #{ip.type} to #{port}"
       @result[port] = [] unless port of @result
       @result[port].push ip
       return
-    debug "#{@nodeInstance.nodeId} direct send of #{ip.type} to #{port}"
     @nodeInstance.outPorts[port].sendIP ip
 
   # Sends packets for each port as a key in the map
@@ -478,6 +534,22 @@ class ProcessOutput
   # Finishes process activation gracefully
   done: (error) ->
     @error error if error
+
+    if @nodeInstance.isOrdered() and @nodeInstance.bracketContext[@scope]?.length and @nodeInstance.load is 1
+      # We're doing bracket forwarding. See if there are
+      # dangling closeBrackets in buffer
+      nodeContext = @nodeInstance.bracketContext[@scope]
+      processContext = @result.__bracketContext
+      context = nodeContext[nodeContext.length - 1]
+      buf = @nodeInstance.inPorts[context.source].getBuffer context.ip.scope
+      loop
+        break unless buf.length
+        break unless buf[0].type is 'closeBracket'
+        ip = @nodeInstance.inPorts[context.source].get context.ip.scope
+        ctx = @nodeInstance.bracketContext[ip.scope].pop()
+        ctx.closeIp = ip
+        @result.__bracketClosingAfter = [] unless @result.__bracketClosingAfter
+        @result.__bracketClosingAfter.push ctx
 
     debug "#{@nodeInstance.nodeId} finished processing #{@nodeInstance.load}"
     @nodeInstance.load--
