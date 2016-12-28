@@ -394,6 +394,9 @@ class ProcessOutput
       @sendIP componentPorts[0], outputMap
       return
 
+    if componentPorts.length > 1 and not mapIsInPorts
+      throw new Error 'Port must be specified for sending output'
+
     for port, packet of outputMap
       @sendIP port, packet
 
