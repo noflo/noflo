@@ -1667,10 +1667,7 @@ describe 'Component', ->
             received.push "> #{ip.data}"
             return
           received.push ip.data
-          console.log received
         sout1.on 'disconnect', ->
-          console.log "DISC"
-          console.log received
           chai.expect(received).to.eql [
             '< 1'
             '< 2'
@@ -1718,10 +1715,7 @@ describe 'Component', ->
             received.push "> #{ip.data}"
             return
           received.push ip.data
-          console.log received
         sout1.on 'disconnect', ->
-          console.log "DISC"
-          console.log received
           chai.expect(received).to.eql [
             '< 1'
             '< 2'
