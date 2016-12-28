@@ -160,6 +160,14 @@ class Component extends EventEmitter
     if ip.type is 'closeBracket' and @isOrdered()
       # Clear this scope
       context = @bracketContext[ip.scope].pop()
+      if context.pending
+        debug "#{@nodeId} bracket context #{context.ip.data} is pending, skipping close"
+        @bracketContext[ip.scope].push context
+        contexts = @bracketContext[ip.scope].slice 0
+        contexts.reverse()
+        unclosed = contexts.filter (ctx) -> not ctx.closeIp
+        unclosed[0].closeIp = ip
+        return
       context.closeIp = ip
       result =
         __resolved: true
@@ -183,6 +191,7 @@ class Component extends EventEmitter
 
     unless input.activated
       debug "#{@nodeId} #{ip.type} packet on #{port.name} didn't match preconditions"
+      bracketContext[bracketContext.length - 1].pending = true if @isForwardingInport port
       return
 
     # Component fired
@@ -205,7 +214,10 @@ class Component extends EventEmitter
       for ctx in unforwarded
         ips.unshift ctx.ip.clone()
         debug "#{@nodeId} forwarding #{ctx.ip.type} to #{outport}"
-        ctx.ports.push outport
+        if ctx.closeIp
+          @outputQ.push
+            __resolved: true
+            __closeBracketContext: ctx
 
   processOutputQueue: ->
     while @outputQ.length > 0

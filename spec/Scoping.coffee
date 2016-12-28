@@ -281,7 +281,6 @@ describe 'Scope isolation', ->
       in1.endGroup()
       in1.disconnect()
     it 'should forward new-style brackets as expected regardless of sending order', (done) ->
-      return @skip 'Temporarily skipped, needs some thinking'
       expected = [
         'CONN'
         '< 1'
