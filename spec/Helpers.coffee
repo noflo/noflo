@@ -1230,6 +1230,7 @@ describe 'Component traits', ->
       sumr.outPorts.sum.attach sum
 
       it 'should process sequences of packets separated by disconnects', (done) ->
+        return @skip 'WirePattern doesn\'t see disconnects because of IP objects'
         expected = [ 24, 40 ]
         actual = []
         sum.on 'data', (data) ->
