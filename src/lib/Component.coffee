@@ -207,9 +207,11 @@ class Component extends EventEmitter
           result[port].unshift context.closeIp.clone()
 
     if result.__bracketContext
-      # First see if there are any brackets to forward
-      for inport, context of result.__bracketContext
-        continue unless context.length
+      # First see if there are any brackets to forward. We need to reverse
+      # the keys so that they get added in correct order
+      Object.keys(result.__bracketContext).reverse().forEach (inport) =>
+        context = result.__bracketContext[inport]
+        return unless context.length
         for outport, ips of result
           continue if outport.indexOf('__') is 0
           unforwarded = context.filter (ctx) =>
