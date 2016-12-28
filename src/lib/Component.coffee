@@ -162,20 +162,19 @@ class Component extends EventEmitter
         # However, we need to handle several different scenarios:
         # A. There are closeBrackets in queue before current packet
         # B. There are closeBrackets in queue after current packet
-        # C. We're no longer processing anything and closeBracket arrives
-        if @load is 0 and @outputQ.length is 0
+        # C. We've queued the results from all in-flight processes and
+        #    new closeBracket arrives
+        if @outputQ.length >= @load
           buf = port.getBuffer ip.scope
           return unless buf[0] is ip
           # Remove from buffer
           port.get ip.scope
           context = @bracketContext[port.name][ip.scope].pop()
           context.closeIp = ip
-          return unless context.ports.length
           debug "#{@nodeId} closeBracket-C #{ip.data} #{context.ports}"
           result =
             __resolved: true
-          for outport in context.ports
-            result[outport] = [ip.clone()]
+            __bracketClosingAfter: [context]
           @outputQ.push result
           do @processOutputQueue
         return
@@ -546,15 +545,12 @@ class ProcessOutput
       return true if pos is -1 and load is len + 1
       return true if len <= 1 and load is 1
       false
-
     if @nodeInstance.isOrdered() and isLast()
       # We're doing bracket forwarding. See if there are
       # dangling closeBrackets in buffer since we're the
       # last running process function.
       for port, contexts of @nodeInstance.bracketContext
         continue unless contexts[@scope]
-        continue if @nodeInstance.outputQ.length > 1
-        debug "#{@nodeInstance.nodeId} potential closeBracket-B for #{port}"
         nodeContext = contexts[@scope]
         context = nodeContext[nodeContext.length - 1]
         buf = @nodeInstance.inPorts[context.source].getBuffer context.ip.scope
