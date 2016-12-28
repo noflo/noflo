@@ -136,33 +136,32 @@ class InPort extends BasePort
       throw new Error 'Contains query is only possible on buffered ports'
     @buffer.filter((packet) -> return true if packet.event is 'data').length
 
-  # Fetches a packet from the port
-  get: (scope) ->
+  getBuffer: (scope) ->
     if scope?
       return undefined unless scope of @scopedBuffer
       buf = @scopedBuffer[scope]
     else
       buf = @buffer
+    return buf
+
+  # Fetches a packet from the port
+  get: (scope) ->
+    buf = @getBuffer scope
     return if @options.control then buf[buf.length - 1] else buf.shift()
 
   # Returns true if port contains packet(s) matching the validator
   has: (scope, validate) ->
-    if scope?
-      return false unless scope of @scopedBuffer
-      buf = @scopedBuffer[scope]
-    else
-      return false unless @buffer.length
-      buf = @buffer
+    buf = @getBuffer scope
+    return false unless buf?.length
     for packet in buf
       return true if validate packet
     false
 
   # Returns the number of data packets in an inport
   length: (scope) ->
-    if scope?
-      return 0 unless scope of @scopedBuffer
-      return @scopedBuffer[scope].length
-    return @buffer.length
+    buf = @getBuffer scope
+    return 0 unless buf
+    return buf.length
 
   # Tells if buffer has packets or not
   ready: (scope) ->
