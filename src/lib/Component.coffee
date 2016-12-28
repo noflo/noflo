@@ -392,10 +392,6 @@ class ProcessInput
       packet = packet?.data ? undefined
       datas.push packet
 
-      # check if there is any other `data` IPs
-      unless (@buffer.find port, (ip) -> ip.type is 'data').length > 0
-        @buffer.set port, []
-
     return datas.pop() if args.length is 1
     datas
 
