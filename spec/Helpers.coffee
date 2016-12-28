@@ -1841,8 +1841,6 @@ describe 'Component traits', ->
         saved.once 'data', (data) ->
           chai.expect(data).to.be.true
           hadData = true
-        saved.once 'disconnect', ->
-          chai.expect(hadData).to.be.true
           done()
 
         err.removeAllListeners()
