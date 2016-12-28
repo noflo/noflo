@@ -1,22 +1,17 @@
 if typeof process isnt 'undefined' and process.execPath and process.execPath.match /node|iojs/
   chai = require 'chai' unless chai
-  loader = require '../src/lib/ComponentLoader.coffee'
-  component = require '../src/lib/Component.coffee'
-  port = require '../src/lib/Port.coffee'
-  platform = require '../src/lib/Platform.coffee'
+  noflo = require '../src/lib/NoFlo.coffee'
+  shippingLanguage = 'coffeescript'
   path = require 'path'
   root = path.resolve __dirname, '../'
-  shippingLanguage = 'coffeescript'
   urlPrefix = './'
 else
-  loader = require 'noflo/src/lib/ComponentLoader.js'
-  component = require 'noflo/src/lib/Component.js'
-  platform = require 'noflo/src/lib/Platform.js'
-  root = 'noflo'
+  noflo = require 'noflo'
   shippingLanguage = 'javascript'
+  root = 'noflo'
   urlPrefix = '/'
 
-class Split extends component.Component
+class Split extends noflo.Component
   constructor: ->
     @inPorts =
       in: new noflo.Port
@@ -31,7 +26,7 @@ class Split extends component.Component
 Split.getComponent = -> new Split
 
 Merge = ->
-  inst = new component.Component
+  inst = new noflo.Component
   inst.inPorts.add 'in', (event, payload, instance) ->
     method = event
     method = 'send' if event is 'data'
@@ -40,7 +35,7 @@ Merge = ->
   inst
 
 describe 'ComponentLoader with no external packages installed', ->
-  l = new loader.ComponentLoader root
+  l = new noflo.ComponentLoader root
 
   it 'should initially know of no components', ->
     chai.expect(l.components).to.be.null
@@ -73,16 +68,19 @@ describe 'ComponentLoader with no external packages installed', ->
     ready = false
     l.once 'ready', ->
       ready = true
-      chai.expect(l.ready).to.equal true
+      chai.expect(l.ready, 'should have the ready bit').to.equal true
     l.listComponents (err, components) ->
       return done err if err
-      chai.expect(l.processing).to.equal false
-      chai.expect(l.components).not.to.be.empty
-      chai.expect(components).to.equal l.components
-      chai.expect(l.ready).to.equal true
-      chai.expect(ready).to.equal true
+      chai.expect(l.processing, 'should have stopped processing').to.equal false
+      chai.expect(l.components, 'should contain components').not.to.be.empty
+      chai.expect(components, 'should have returned the full list').to.equal l.components
+      chai.expect(l.ready, 'should have been set ready').to.equal true
+      chai.expect(ready, 'should have emitted ready').to.equal true
       done()
-    chai.expect(l.processing).to.equal true
+
+    unless noflo.isBrowser()
+      # Browser component registry can be synchronous
+      chai.expect(l.processing, 'should have started processing').to.equal true
 
   describe 'after listing components', ->
     it 'should have the Graph component registered', ->
@@ -111,7 +109,7 @@ describe 'ComponentLoader with no external packages installed', ->
       chai.expect(instance.getIcon()).to.equal 'sitemap'
 
   # describe 'loading a subgraph', ->
-  #   l = new loader.ComponentLoader root
+  #   l = new noflo.ComponentLoader root
   #   file = "#{urlPrefix}spec/fixtures/subgraph.fbp"
   #   it 'should remove `graph` and `start` ports', (done) ->
   #     l.listComponents (err, components) ->
@@ -156,12 +154,12 @@ describe 'ComponentLoader with no external packages installed', ->
         done()
 
   describe 'register a component at runtime', ->
-    class Split extends component.Component
+    class Split extends noflo.Component
       constructor: ->
         @inPorts =
-          in: new port.Port
+          in: new noflo.Port
         @outPorts =
-          out: new port.Port
+          out: new noflo.Port
     Split.getComponent = -> new Split
     instance = null
     l.libraryIcons.foo = 'star'
@@ -201,6 +199,9 @@ describe 'ComponentLoader with no external packages installed', ->
       chai.expect(instance.getIcon()).to.equal 'smile'
 
   describe 'reading sources', ->
+    before ->
+      # getSource not implemented in webpack loader yet
+      return @skip() if noflo.isBrowser()
     it 'should be able to provide source code for a component', (done) ->
       l.getSource 'Graph', (err, component) ->
         return done err if err
@@ -222,6 +223,9 @@ describe 'ComponentLoader with no external packages installed', ->
         done()
 
   describe 'writing sources', ->
+    before ->
+      # setSource not implemented in webpack loader yet
+      return @skip() if noflo.isBrowser()
     describe 'with working code', ->
       workingSource = """
       var noflo = require('noflo');
@@ -244,7 +248,7 @@ describe 'ComponentLoader with no external packages installed', ->
 
       it 'should be able to set the source', (done) ->
         @timeout 10000
-        unless platform.isBrowser()
+        unless noflo.isBrowser()
           workingSource = workingSource.replace "'noflo'", "'../src/lib/NoFlo'"
         l.setSource 'foo', 'RepeatData', workingSource, 'js', (err) ->
           return done err if err
@@ -278,7 +282,7 @@ describe 'ComponentLoader with no external packages installed', ->
       };"""
 
       it 'should be able to set the source', (done) ->
-        unless platform.isBrowser()
+        unless noflo.isBrowser()
           nonWorkingSource = nonWorkingSource.replace "'noflo'", "'../src/lib/NoFlo'"
         l.setSource 'foo', 'NotWorking', nonWorkingSource, 'js', (err) ->
           chai.expect(err).to.be.an 'error'
@@ -292,9 +296,9 @@ describe 'ComponentLoader with no external packages installed', ->
 describe 'ComponentLoader with a fixture project', ->
   l = null
   before ->
-    return @skip() if platform.isBrowser()
+    return @skip() if noflo.isBrowser()
   it 'should be possible to instantiate', ->
-    l = new loader.ComponentLoader path.resolve __dirname, 'fixtures/componentloader'
+    l = new noflo.ComponentLoader path.resolve __dirname, 'fixtures/componentloader'
   it 'should initially know of no components', ->
     chai.expect(l.components).to.be.a 'null'
   it 'should not initially be ready', ->

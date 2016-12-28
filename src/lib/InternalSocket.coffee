@@ -20,7 +20,14 @@ class InternalSocket extends EventEmitter
     try
       @emit event, data
     catch error
+      if error.id and error.metadata and error.error
+        # Wrapped debuggable error coming from downstream, no need to wrap
+        throw error.error if @listeners('error').length is 0
+        @emit 'error', error
+        return
+
       throw error if @listeners('error').length is 0
+
       @emit 'error',
         id: @to.process.id
         error: error

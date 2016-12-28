@@ -39,9 +39,8 @@ class InPort extends BasePort
 
     @prepareBuffer()
 
+  # Assign a delegate for retrieving data should this inPort
   attachSocket: (socket, localId = null) ->
-
-    # Assign a delegate for retrieving data should this inPort
     # have a default value.
     if @hasDefault()
       if @handle
@@ -69,7 +68,7 @@ class InPort extends BasePort
     ip.owner = @nodeInstance
     ip.index = id
 
-    if ip.scope
+    if ip.scope?
       @scopedBuffer[ip.scope] = [] unless ip.scope of @scopedBuffer
       buf = @scopedBuffer[ip.scope]
     else
@@ -135,7 +134,7 @@ class InPort extends BasePort
 
   # Fetches a packet from the port
   get: (scope) ->
-    if scope
+    if scope?
       return undefined unless scope of @scopedBuffer
       buf = @scopedBuffer[scope]
     else
@@ -144,18 +143,19 @@ class InPort extends BasePort
 
   # Returns true if port contains packet(s) matching the validator
   has: (scope, validate) ->
-    if scope
+    if scope?
       return false unless scope of @scopedBuffer
       buf = @scopedBuffer[scope]
     else
       return false unless @buffer.length
       buf = @buffer
-    return true if validate packet for packet in buf
+    for packet in buf
+      return true if validate packet
     false
 
   # Returns the number of data packets in an inport
   length: (scope) ->
-    if scope
+    if scope?
       return 0 unless scope of @scopedBuffer
       return @scopedBuffer[scope].length
     return @buffer.length

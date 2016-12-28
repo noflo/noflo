@@ -1,19 +1,15 @@
 if typeof process isnt 'undefined' and process.execPath and process.execPath.match /node|iojs/
   chai = require 'chai' unless chai
-  acomponent = require '../src/lib/AsyncComponent.coffee'
-  port = require '../src/lib/Port.coffee'
-  socket = require '../src/lib/InternalSocket.coffee'
+  noflo = require '../src/lib/NoFlo.coffee'
 else
-  acomponent = require 'noflo/src/lib/AsyncComponent.js'
-  port = require 'noflo/src/lib/Port.js'
-  socket = require 'noflo/src/lib/InternalSocket.js'
+  noflo = require 'noflo'
 
 describe 'AsyncComponent with missing ports', ->
-  class C1 extends acomponent.AsyncComponent
-  class C2 extends acomponent.AsyncComponent
+  class C1 extends noflo.AsyncComponent
+  class C2 extends noflo.AsyncComponent
     constructor: ->
       @inPorts =
-        in: new port.Port
+        in: new noflo.Port
       super()
 
   it 'should throw an error on instantiation when no IN defined', ->
@@ -22,26 +18,26 @@ describe 'AsyncComponent with missing ports', ->
     chai.expect(-> new C2).to.throw Error
 
 describe 'AsyncComponent without a doAsync method', ->
-  class Unimplemented extends acomponent.AsyncComponent
+  class Unimplemented extends noflo.AsyncComponent
     constructor: ->
       @inPorts =
-        in: new port.Port
+        in: new noflo.Port
       @outPorts =
-        out: new port.Port
-        error: new port.Port
+        out: new noflo.Port
+        error: new noflo.Port
       super()
 
   it 'should throw an error if there is no connection to the ERROR port', ->
     u = new Unimplemented
-    ins = socket.createSocket()
+    ins = noflo.internalSocket.createSocket()
     u.inPorts.in.attach ins
     chai.expect(-> ins.send 'Foo').to.throw Error
 
   it 'should send an error to the ERROR port if connected', (done) ->
     u = new Unimplemented
-    ins = socket.createSocket()
+    ins = noflo.internalSocket.createSocket()
     u.inPorts.in.attach ins
-    err = socket.createSocket()
+    err = noflo.internalSocket.createSocket()
     u.outPorts.error.attach err
     err.on 'data', (data) ->
       chai.expect(data).to.be.an.instanceof Error
@@ -50,9 +46,9 @@ describe 'AsyncComponent without a doAsync method', ->
 
   it 'should send groups and error to the ERROR port if connected', (done) ->
     u = new Unimplemented
-    ins = socket.createSocket()
+    ins = noflo.internalSocket.createSocket()
     u.inPorts.in.attach ins
-    err = socket.createSocket()
+    err = noflo.internalSocket.createSocket()
     groups = [
       'one'
       'two'
@@ -61,7 +57,7 @@ describe 'AsyncComponent without a doAsync method', ->
       'two'
       'four'
     ]
-    u.outPorts.out.attach socket.createSocket()
+    u.outPorts.out.attach noflo.internalSocket.createSocket()
     u.outPorts.error.attach err
     err.on 'begingroup', (group) ->
       chai.expect(group).to.equal groups.shift()
@@ -81,13 +77,13 @@ describe 'AsyncComponent without a doAsync method', ->
     ins.endGroup() for group in [0..2]
 
 describe 'Implemented AsyncComponent', ->
-  class Timer extends acomponent.AsyncComponent
+  class Timer extends noflo.AsyncComponent
     constructor: ->
       @inPorts =
-        in: new port.Port
+        in: new noflo.Port
       @outPorts =
-        out: new port.Port
-        error: new port.Port
+        out: new noflo.Port
+        error: new noflo.Port
       super()
     doAsync: (data, callback) ->
       setTimeout (=>
@@ -102,10 +98,10 @@ describe 'Implemented AsyncComponent', ->
 
   beforeEach ->
     t = new Timer
-    ins = socket.createSocket()
-    out = socket.createSocket()
-    lod = socket.createSocket()
-    err = socket.createSocket()
+    ins = noflo.internalSocket.createSocket()
+    out = noflo.internalSocket.createSocket()
+    lod = noflo.internalSocket.createSocket()
+    err = noflo.internalSocket.createSocket()
     t.inPorts.in.attach ins
     t.outPorts.out.attach out
     t.outPorts.load.attach lod
