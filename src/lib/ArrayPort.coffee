@@ -6,9 +6,11 @@
 # ArrayPorts are similar to regular ports except that they're able to handle multiple
 # connections and even address them separately.
 port = require "./Port"
+platform = require './Platform'
 
 class ArrayPort extends port.Port
   constructor: (@type) ->
+    platform.deprecated 'noflo.ArrayPort is deprecated. Please port to noflo.InPort/noflo.OutPort and use addressable: true'
     super @type
 
   attach: (socket, socketId = null) ->

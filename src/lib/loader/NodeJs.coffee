@@ -1,7 +1,6 @@
 path = require 'path'
 fs = require 'fs'
 manifest = require 'fbp-manifest'
-{_} = require 'underscore'
 utils = require '../Utils'
 nofloGraph = require '../Graph'
 
@@ -24,7 +23,10 @@ registerModules = (loader, modules, callback) ->
       loader.registerComponent m.name, c.name, path.resolve loader.baseDir, c.path
 
   return callback null unless componentLoaders.length
-  done = _.after componentLoaders.length, callback
+  done = ->
+    if --componentLoaders.length < 1
+      return callback.apply this, arguments
+    return
   componentLoaders.forEach (loaderPath) =>
     cLoader = require loaderPath
     loader.registerLoader cLoader, (err) ->

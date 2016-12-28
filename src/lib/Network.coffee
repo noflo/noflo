@@ -2,12 +2,12 @@
 #     (c) 2013-2016 TheGrid (Rituwall Inc.)
 #     (c) 2011-2012 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
-_ = require "underscore"
 internalSocket = require "./InternalSocket"
 graph = require "./Graph"
 {EventEmitter} = require 'events'
 platform = require './Platform'
 componentLoader = require './ComponentLoader'
+utils = require './Utils'
 
 # ## The NoFlo network coordinator
 #
@@ -90,7 +90,7 @@ class Network extends EventEmitter
     # Last connection closed, execution has now ended
     # We do this in debounced way in case there is an in-flight operation still
     unless @debouncedEnd
-      @debouncedEnd = _.debounce =>
+      @debouncedEnd = utils.debounce =>
         return if @connectionCount
         @setStarted false
       , 50
@@ -136,14 +136,15 @@ class Network extends EventEmitter
       process.component = instance
 
       # Inform the ports of the node name
-      for name, port of process.component.inPorts
-        continue if not port or typeof port is 'function' or not port.canAttach
+      # FIXME: direct process.component.inPorts/outPorts access is only for legacy compat
+      inPorts = process.component.inPorts.ports or process.component.inPorts
+      outPorts = process.component.outPorts.ports or process.component.outPorts
+      for name, port of inPorts
         port.node = node.id
         port.nodeInstance = instance
         port.name = name
 
-      for name, port of process.component.outPorts
-        continue if not port or typeof port is 'function' or not port.canAttach
+      for name, port of outPorts
         port.node = node.id
         port.nodeInstance = instance
         port.name = name
@@ -171,9 +172,12 @@ class Network extends EventEmitter
     process.id = newId
 
     # Inform the ports of the node name
-    for name, port of process.component.inPorts.ports
+    # FIXME: direct process.component.inPorts/outPorts access is only for legacy compat
+    inPorts = process.component.inPorts.ports or process.component.inPorts
+    outPorts = process.component.outPorts.ports or process.component.outPorts
+    for name, port of inPorts
       port.node = newId
-    for name, port of process.component.outPorts.ports
+    for name, port of outPorts
       port.node = newId
 
     @processes[newId] = process
@@ -209,16 +213,16 @@ class Network extends EventEmitter
       done()
 
     # Serialize default socket creation then call callback when done
-    setDefaults = _.reduceRight @graph.nodes, serialize, subscribeGraph
+    setDefaults = utils.reduceRight @graph.nodes, serialize, subscribeGraph
 
     # Serialize initializers then call defaults.
-    initializers = _.reduceRight @graph.initializers, serialize, -> setDefaults "Defaults"
+    initializers = utils.reduceRight @graph.initializers, serialize, -> setDefaults "Defaults"
 
     # Serialize edge creators then call the initializers.
-    edges = _.reduceRight @graph.edges, serialize, -> initializers "Initial"
+    edges = utils.reduceRight @graph.edges, serialize, -> initializers "Initial"
 
     # Serialize node creators then call the edge creators
-    nodes = _.reduceRight @graph.nodes, serialize, -> edges "Edge"
+    nodes = utils.reduceRight @graph.nodes, serialize, -> edges "Edge"
     # Start with node creators
     nodes "Node"
 
@@ -569,9 +573,15 @@ class Network extends EventEmitter
 
   start: (callback) ->
     unless callback
+      platform.deprecated 'Calling network.start() without callback is deprecated'
       callback = ->
 
-    do @stop if @started
+    if @started
+      @stop (err) =>
+        return callback err if err
+        @start callback
+      return
+
     @initials = @nextInitials.slice 0
     @startComponents (err) =>
       return callback err if err
@@ -584,7 +594,9 @@ class Network extends EventEmitter
 
   stop: (callback) ->
     unless callback
+      platform.deprecated 'Calling network.stop() without callback is deprecated'
       callback = ->
+
     # Disconnect all connections
     for connection in @connections
       continue unless connection.isConnected()

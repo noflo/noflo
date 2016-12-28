@@ -55,12 +55,12 @@ class Component extends EventEmitter
     @emit 'icon', @icon
   getIcon: -> @icon
 
-  error: (e, groups = [], errorPort = 'error') =>
+  error: (e, groups = [], errorPort = 'error', scope = null) =>
     if @outPorts[errorPort] and (@outPorts[errorPort].isAttached() or not @outPorts[errorPort].isRequired())
-      @outPorts[errorPort].beginGroup group for group in groups
-      @outPorts[errorPort].send e
-      @outPorts[errorPort].endGroup() for group in groups
-      @outPorts[errorPort].disconnect()
+      @outPorts[errorPort].openBracket group, scope: scope for group in groups
+      @outPorts[errorPort].data e, scope: scope
+      @outPorts[errorPort].closeBracket group, scope: scope for group in groups
+      # @outPorts[errorPort].disconnect()
       return
     throw e
 
@@ -129,7 +129,10 @@ class Component extends EventEmitter
       for outPort in @forwardBrackets[port.name]
         outputEntry[outPort] = [] unless outPort of outputEntry
         outputEntry[outPort].push ip
-      port.buffer.pop()
+      if ip.scope?
+        port.scopedBuffer[ip.scope].pop()
+      else
+        port.buffer.pop()
       @outputQ.push outputEntry
       @processOutputQueue()
       return
@@ -236,10 +239,49 @@ class ProcessInput
   # Fetches `data` property of IP object(s) for given port(s)
   getData: (args...) ->
     args = ['in'] unless args.length
-    ips = @get.apply this, args
-    if args.length is 1
-      return ips?.data ? undefined
-    (ip?.data ? undefined for ip in ips)
+
+    datas = []
+    for port in args
+      packet = @get port
+      unless packet?
+        # we add the null packet to the array so when getting
+        # multiple ports, if one is null we still return it
+        # so the indexes are correct.
+        datas.push packet
+        continue
+
+      until packet.type is 'data'
+        packet = @get port
+
+      packet = packet?.data ? undefined
+      datas.push packet
+
+      # check if there is any other `data` IPs
+      unless (@buffer.find port, (ip) -> ip.type is 'data').length > 0
+        @buffer.set port, []
+
+    return datas.pop() if args.length is 1
+    datas
+
+  hasStream: (port) ->
+    buffer = @buffer.get port
+    return false if buffer.length is 0
+    # check if we have everything until "disconnect"
+    received = 0
+    for packet in buffer
+      if packet.type is 'openBracket'
+        ++received
+      else if packet.type is 'closeBracket'
+        --received
+    received is 0
+
+  getStream: (port, withoutConnectAndDisconnect = false) ->
+    buf = @buffer.get port
+    @buffer.filter port, (ip) -> false
+    if withoutConnectAndDisconnect
+      buf = buf.slice 1
+      buf.pop()
+    buf
 
 class PortBuffer
   constructor: (@context) ->
@@ -345,7 +387,7 @@ class ProcessOutput
     mapIsInPorts = false
     for port in Object.keys @ports.ports
       componentPorts.push port if port isnt 'error' and port isnt 'ports' and port isnt '_callbacks'
-      if not mapIsInPorts and typeof outputMap is 'object' and Object.keys(outputMap).indexOf(port) isnt -1
+      if not mapIsInPorts and outputMap? and typeof outputMap is 'object' and Object.keys(outputMap).indexOf(port) isnt -1
         mapIsInPorts = true
 
     if componentPorts.length is 1 and not mapIsInPorts

@@ -1,10 +1,11 @@
 #     NoFlo - Flow-Based Programming for JavaScript
 #     (c) 2014-2015 TheGrid (Rituwall Inc.)
 #     NoFlo may be freely distributed under the MIT license
-_ = require 'underscore'
 StreamSender = require('./Streams').StreamSender
 StreamReceiver = require('./Streams').StreamReceiver
 InternalSocket = require './InternalSocket'
+platform = require './Platform'
+utils = require './Utils'
 
 isArray = (obj) ->
   return Array.isArray(obj) if Array.isArray
@@ -13,6 +14,7 @@ isArray = (obj) ->
 # MapComponent maps a single inport to a single outport, forwarding all
 # groups from in to out and calling `func` on each incoming packet
 exports.MapComponent = (component, func, config) ->
+  platform.deprecated 'noflo.helpers.MapComponent is deprecated. Please port Process API'
   config = {} unless config
   config.inPort = 'in' unless config.inPort
   config.outPort = 'out' unless config.outPort
@@ -34,6 +36,22 @@ exports.MapComponent = (component, func, config) ->
       when 'disconnect'
         groups = []
         outPort.disconnect()
+
+# Wraps OutPort in WirePattern to add transparent scope support
+class OutPortWrapper
+  constructor: (@port, @scope) ->
+  connect: (socketId = null) ->
+    @port.openBracket null, scope: @scope, socketId
+  beginGroup: (group, socketId = null) ->
+    @port.openBracket group, scope: @scope, socketId
+  send: (data, socketId = null) ->
+    @port.sendIP 'data', data, scope: @scope, socketId, false
+  endGroup: (socketId = null) ->
+    @port.closeBracket null, scope: @scope, socketId
+  disconnect: (socketId = null) ->
+    @endGroup socketId
+  isConnected: -> @port.isConnected()
+  isAttached: -> @port.isAttached()
 
 # WirePattern makes your component collect data from several inports
 # and activates a handler `proc` only when a tuple from all of these
@@ -100,12 +118,16 @@ exports.WirePattern = (component, config, proc) ->
   config.forwardGroups = false unless 'forwardGroups' of config
   # Receive streams feature
   config.receiveStreams = false unless 'receiveStreams' of config
-  if typeof config.receiveStreams is 'string'
-    config.receiveStreams = [ config.receiveStreams ]
+  if config.receiveStreams
+    throw new Error 'WirePattern receiveStreams is deprecated'
+  # if typeof config.receiveStreams is 'string'
+  #   config.receiveStreams = [ config.receiveStreams ]
   # Send streams feature
   config.sendStreams = false unless 'sendStreams' of config
-  if typeof config.sendStreams is 'string'
-    config.sendStreams = [ config.sendStreams ]
+  if config.sendStreams
+    throw new Error 'WirePattern sendStreams is deprecated'
+  # if typeof config.sendStreams is 'string'
+  #   config.sendStreams = [ config.sendStreams ]
   config.sendStreams = outPorts if config.async
   # Parameter ports
   config.params = [] unless 'params' of config
@@ -142,10 +164,6 @@ exports.WirePattern = (component, config, proc) ->
     unless component.outPorts[name]
       throw new Error "no outPort named '#{name}'"
 
-  component.groupedData = {}
-  component.groupedGroups = {}
-  component.groupedDisconnects = {}
-
   disconnectOuts = ->
     # Manual disconnect forwarding
     for p in outPorts
@@ -159,11 +177,44 @@ exports.WirePattern = (component, config, proc) ->
     for p in outPorts
       component.outPorts[p].endGroup grp
 
+  # Declarations
+  component.requiredParams = []
+  component.defaultedParams = []
+  component.gcCounter = 0
+  component._wpData = {}
+  _wp = (scope) ->
+    unless scope of component._wpData
+      component._wpData[scope] = {}
+      # Input grouping
+      component._wpData[scope].groupedData = {}
+      component._wpData[scope].groupedGroups = {}
+      component._wpData[scope].groupedDisconnects = {}
+
+      # Params and queues
+      component._wpData[scope].outputQ = []
+      component._wpData[scope].taskQ = []
+      component._wpData[scope].params = {}
+      component._wpData[scope].completeParams = []
+      component._wpData[scope].receivedParams = []
+      component._wpData[scope].defaultsSent = false
+
+      # Disconnect event forwarding
+      component._wpData[scope].disconnectData = {}
+      component._wpData[scope].disconnectQ = []
+
+      # GC and rest
+      component._wpData[scope].groupBuffers = {}
+      component._wpData[scope].keyBuffers = {}
+      component._wpData[scope].gcTimestamps = {}
+    component._wpData[scope]
+  component.params = {}
+  setParamsScope = (scope) ->
+    component.params = _wp(scope).params
+
   # For ordered output
-  component.outputQ = []
-  processQueue = ->
-    while component.outputQ.length > 0
-      streams = component.outputQ[0]
+  processQueue = (scope) ->
+    while _wp(scope).outputQ.length > 0
+      streams = _wp(scope).outputQ[0]
       flushed = false
       # Null in the queue means "disconnect all"
       if streams is null
@@ -180,51 +231,42 @@ exports.WirePattern = (component, config, proc) ->
           if stream.resolved
             stream.flush()
             flushed = true
-      component.outputQ.shift() if flushed
+      _wp(scope).outputQ.shift() if flushed
       return unless flushed
 
   if config.async
     component.load = 0 if 'load' of component.outPorts
     # Create before and after hooks
-    component.beforeProcess = (outs) ->
-      component.outputQ.push outs if config.ordered
+    component.beforeProcess = (scope, outs) ->
+      _wp(scope).outputQ.push outs if config.ordered
       component.load++
       if 'load' of component.outPorts and component.outPorts.load.isAttached()
         component.outPorts.load.send component.load
         component.outPorts.load.disconnect()
-    component.afterProcess = (err, outs) ->
-      processQueue()
+    component.afterProcess = (scope, err, outs) ->
+      processQueue scope
       component.load--
       if 'load' of component.outPorts and component.outPorts.load.isAttached()
         component.outPorts.load.send component.load
         component.outPorts.load.disconnect()
 
-  # Parameter ports
-  component.taskQ = []
-  component.params = {}
-  component.requiredParams = []
-  component.completeParams = []
-  component.receivedParams = []
-  component.defaultedParams = []
-  component.defaultsSent = false
-
-  component.sendDefaults = ->
+  component.sendDefaults = (scope) ->
     if component.defaultedParams.length > 0
       for param in component.defaultedParams
-        if component.receivedParams.indexOf(param) is -1
+        if _wp(scope).receivedParams.indexOf(param) is -1
           tempSocket = InternalSocket.createSocket()
           component.inPorts[param].attach tempSocket
           tempSocket.send()
           tempSocket.disconnect()
           component.inPorts[param].detach tempSocket
-    component.defaultsSent = true
+    _wp(scope).defaultsSent = true
 
-  resumeTaskQ = ->
-    if component.completeParams.length is component.requiredParams.length and
-    component.taskQ.length > 0
+  resumeTaskQ = (scope) ->
+    if _wp(scope).completeParams.length is component.requiredParams.length and
+    _wp(scope).taskQ.length > 0
       # Avoid looping when feeding the queue inside the queue itself
-      temp = component.taskQ.slice 0
-      component.taskQ = []
+      temp = _wp(scope).taskQ.slice 0
+      _wp(scope).taskQ = []
       while temp.length > 0
         task = temp.shift()
         task()
@@ -236,121 +278,121 @@ exports.WirePattern = (component, config, proc) ->
   for port in config.params
     do (port) ->
       inPort = component.inPorts[port]
-      inPort.process = (event, payload, index) ->
+      inPort.handle = (ip) ->
+        event = ip.type
+        payload = ip.data
+        scope = ip.scope
+        index = ip.index
         # Param ports only react on data
         return unless event is 'data'
         if inPort.isAddressable()
-          component.params[port] = {} unless port of component.params
-          component.params[port][index] = payload
+          _wp(scope).params[port] = {} unless port of _wp(scope).params
+          _wp(scope).params[port][index] = payload
           if config.arrayPolicy.params is 'all' and
-          Object.keys(component.params[port]).length < inPort.listAttached().length
+          Object.keys(_wp(scope).params[port]).length < inPort.listAttached().length
             return # Need data on all array indexes to proceed
         else
-          component.params[port] = payload
-        if component.completeParams.indexOf(port) is -1 and
+          _wp(scope).params[port] = payload
+        if _wp(scope).completeParams.indexOf(port) is -1 and
         component.requiredParams.indexOf(port) > -1
-          component.completeParams.push port
-        component.receivedParams.push port
+          _wp(scope).completeParams.push port
+        _wp(scope).receivedParams.push port
         # Trigger pending procs if all params are complete
-        resumeTaskQ()
-
-  # Disconnect event forwarding
-  component.disconnectData = {}
-  component.disconnectQ = []
-
-  component.groupBuffers = {}
-  component.keyBuffers = {}
-  component.gcTimestamps = {}
+        resumeTaskQ scope
 
   # Garbage collector
-  component.dropRequest = (key) ->
+  component.dropRequest = (scope, key) ->
     # Discard pending disconnect keys
-    delete component.disconnectData[key] if key of component.disconnectData
+    delete _wp(scope).disconnectData[key] if key of _wp(scope).disconnectData
     # Clean grouped data
-    delete component.groupedData[key] if key of component.groupedData
-    delete component.groupedGroups[key] if key of component.groupedGroups
+    delete _wp(scope).groupedData[key] if key of _wp(scope).groupedData
+    delete _wp(scope).groupedGroups[key] if key of _wp(scope).groupedGroups
 
-  component.gcCounter = 0
   gc = ->
     component.gcCounter++
     if component.gcCounter % config.gcFrequency is 0
-      current = new Date().getTime()
-      for key, val of component.gcTimestamps
-        if (current - val) > (config.gcTimeout * 1000)
-          component.dropRequest key
-          delete component.gcTimestamps[key]
+      for scope in Object.keys(component._wpData)
+        current = new Date().getTime()
+        for key, val of _wp(scope).gcTimestamps
+          if (current - val) > (config.gcTimeout * 1000)
+            component.dropRequest scope, key
+            delete _wp(scope).gcTimestamps[key]
 
   # Grouped ports
   for port in inPorts
     do (port) ->
-      component.groupBuffers[port] = []
-      component.keyBuffers[port] = null
       # Support for StreamReceiver ports
-      if config.receiveStreams and config.receiveStreams.indexOf(port) isnt -1
-        inPort = new StreamReceiver component.inPorts[port]
-      else
-        inPort = component.inPorts[port]
+      # if config.receiveStreams and config.receiveStreams.indexOf(port) isnt -1
+      #   inPort = new StreamReceiver component.inPorts[port]
+      inPort = component.inPorts[port]
 
       needPortGroups = collectGroups instanceof Array and collectGroups.indexOf(port) isnt -1
 
       # Set processing callback
-      inPort.process = (event, payload, index) ->
-        component.groupBuffers[port] = [] unless component.groupBuffers[port]
-        switch event
-          when 'begingroup'
-            component.groupBuffers[port].push payload
+      inPort.handle = (ip) ->
+        index = ip.index
+        payload = ip.data
+        scope = ip.scope
+        _wp(scope).groupBuffers[port] = [] unless port of _wp(scope).groupBuffers
+        _wp(scope).keyBuffers[port] = null unless port of _wp(scope).keyBuffers
+        switch ip.type
+          when 'openBracket'
+            return if payload is null
+            _wp(scope).groupBuffers[port].push payload
             if config.forwardGroups and (collectGroups is true or needPortGroups) and not config.async
               sendGroupToOuts payload
-          when 'endgroup'
-            component.groupBuffers[port] = component.groupBuffers[port].slice 0, component.groupBuffers[port].length - 1
+          when 'closeBracket'
+            _wp(scope).groupBuffers[port] = _wp(scope).groupBuffers[port].slice 0, _wp(scope).groupBuffers[port].length - 1
             if config.forwardGroups and (collectGroups is true or needPortGroups) and not config.async
+              # FIXME probably need to skip this if payload is null
               closeGroupOnOuts payload
-          when 'disconnect'
-            if inPorts.length is 1
-              if config.async or config.StreamSender
-                if config.ordered
-                  component.outputQ.push null
-                  processQueue()
+            # Disconnect
+            if _wp(scope).groupBuffers[port].length is 0 and payload is null
+              if inPorts.length is 1
+                if config.async or config.StreamSender
+                  if config.ordered
+                    _wp(scope).outputQ.push null
+                    processQueue scope
+                  else
+                    _wp(scope).disconnectQ.push true
                 else
-                  component.disconnectQ.push true
+                  disconnectOuts()
               else
-                disconnectOuts()
-            else
-              foundGroup = false
-              key = component.keyBuffers[port]
-              component.disconnectData[key] = [] unless key of component.disconnectData
-              for i in [0...component.disconnectData[key].length]
-                unless port of component.disconnectData[key][i]
-                  foundGroup = true
-                  component.disconnectData[key][i][port] = true
-                  if Object.keys(component.disconnectData[key][i]).length is inPorts.length
-                    component.disconnectData[key].shift()
-                    if config.async or config.StreamSender
-                      if config.ordered
-                        component.outputQ.push null
-                        processQueue()
+                foundGroup = false
+                key = _wp(scope).keyBuffers[port]
+                _wp(scope).disconnectData[key] = [] unless key of _wp(scope).disconnectData
+                for i in [0..._wp(scope).disconnectData[key].length]
+                  unless port of _wp(scope).disconnectData[key][i]
+                    foundGroup = true
+                    _wp(scope).disconnectData[key][i][port] = true
+                    if Object.keys(_wp(scope).disconnectData[key][i]).length is inPorts.length
+                      _wp(scope).disconnectData[key].shift()
+                      if config.async or config.StreamSender
+                        if config.ordered
+                          _wp(scope).outputQ.push null
+                          processQueue scope
+                        else
+                          _wp(scope).disconnectQ.push true
                       else
-                        component.disconnectQ.push true
-                    else
-                      disconnectOuts()
-                    delete component.disconnectData[key] if component.disconnectData[key].length is 0
-                  break
-              unless foundGroup
-                obj = {}
-                obj[port] = true
-                component.disconnectData[key].push obj
+                        disconnectOuts()
+                      delete _wp(scope).disconnectData[key] if _wp(scope).disconnectData[key].length is 0
+                    break
+                unless foundGroup
+                  obj = {}
+                  obj[port] = true
+                  _wp(scope).disconnectData[key].push obj
 
           when 'data'
             if inPorts.length is 1 and not inPort.isAddressable()
               data = payload
-              groups = component.groupBuffers[port]
+              groups = _wp(scope).groupBuffers[port]
             else
               key = ''
-              if config.group and component.groupBuffers[port].length > 0
-                key = component.groupBuffers[port].toString()
+              if config.group and _wp(scope).groupBuffers[port].length > 0
+                key = _wp(scope).groupBuffers[port].toString()
                 if config.group instanceof RegExp
                   reqId = null
-                  for grp in component.groupBuffers[port]
+                  for grp in _wp(scope).groupBuffers[port]
                     if config.group.test grp
                       reqId = grp
                       break
@@ -358,55 +400,54 @@ exports.WirePattern = (component, config, proc) ->
               else if config.field and typeof(payload) is 'object' and
               config.field of payload
                 key = payload[config.field]
-              component.keyBuffers[port] = key
-
-              component.groupedData[key] = [] unless key of component.groupedData
-              component.groupedGroups[key] = [] unless key of component.groupedGroups
+              _wp(scope).keyBuffers[port] = key
+              _wp(scope).groupedData[key] = [] unless key of _wp(scope).groupedData
+              _wp(scope).groupedGroups[key] = [] unless key of _wp(scope).groupedGroups
               foundGroup = false
               requiredLength = inPorts.length
               ++requiredLength if config.field
               # Check buffered tuples awaiting completion
-              for i in [0...component.groupedData[key].length]
+              for i in [0..._wp(scope).groupedData[key].length]
                 # Check this buffered tuple if it's missing value for this port
-                if not (port of component.groupedData[key][i]) or
+                if not (port of _wp(scope).groupedData[key][i]) or
                 (component.inPorts[port].isAddressable() and
                 config.arrayPolicy.in is 'all' and
-                not (index of component.groupedData[key][i][port]))
+                not (index of _wp(scope).groupedData[key][i][port]))
                   foundGroup = true
                   if component.inPorts[port].isAddressable()
                     # Maintain indexes for addressable ports
-                    unless port of component.groupedData[key][i]
-                      component.groupedData[key][i][port] = {}
-                    component.groupedData[key][i][port][index] = payload
+                    unless port of _wp(scope).groupedData[key][i]
+                      _wp(scope).groupedData[key][i][port] = {}
+                    _wp(scope).groupedData[key][i][port][index] = payload
                   else
-                    component.groupedData[key][i][port] = payload
+                    _wp(scope).groupedData[key][i][port] = payload
                   if needPortGroups
                     # Include port groups into the set of the unique ones
-                    component.groupedGroups[key][i] = _.union component.groupedGroups[key][i], component.groupBuffers[port]
+                    _wp(scope).groupedGroups[key][i] = utils.unique [_wp(scope).groupedGroups[key][i]..., _wp(scope).groupBuffers[port]...]
                   else if collectGroups is true
                     # All the groups we need are here in this port
-                    component.groupedGroups[key][i][port] = component.groupBuffers[port]
+                    _wp(scope).groupedGroups[key][i][port] = _wp(scope).groupBuffers[port]
                   # Addressable ports may require other indexes
                   if component.inPorts[port].isAddressable() and
                   config.arrayPolicy.in is 'all' and
-                  Object.keys(component.groupedData[key][i][port]).length <
+                  Object.keys(_wp(scope).groupedData[key][i][port]).length <
                   component.inPorts[port].listAttached().length
                     return # Need data on other array port indexes to arrive
 
-                  groupLength = Object.keys(component.groupedData[key][i]).length
+                  groupLength = Object.keys(_wp(scope).groupedData[key][i]).length
                   # Check if the tuple is complete
                   if groupLength is requiredLength
-                    data = (component.groupedData[key].splice i, 1)[0]
+                    data = (_wp(scope).groupedData[key].splice i, 1)[0]
                     # Strip port name if there's only one inport
                     if inPorts.length is 1 and inPort.isAddressable()
                       data = data[port]
-                    groups = (component.groupedGroups[key].splice i, 1)[0]
+                    groups = (_wp(scope).groupedGroups[key].splice i, 1)[0]
                     if collectGroups is true
-                      groups = _.intersection.apply null, _.values groups
-                    delete component.groupedData[key] if component.groupedData[key].length is 0
-                    delete component.groupedGroups[key] if component.groupedGroups[key].length is 0
+                      groups = utils.intersection.apply null, utils.getValues groups
+                    delete _wp(scope).groupedData[key] if _wp(scope).groupedData[key].length is 0
+                    delete _wp(scope).groupedGroups[key] if _wp(scope).groupedGroups[key].length is 0
                     if config.group and key
-                      delete component.gcTimestamps[key]
+                      delete _wp(scope).gcTimestamps[key]
                     break
                   else
                     return # need more data to continue
@@ -424,59 +465,66 @@ exports.WirePattern = (component, config, proc) ->
                 component.inPorts[port].listAttached().length is 1)
                   # This packet is all we need
                   data = obj[port]
-                  groups = component.groupBuffers[port]
+                  groups = _wp(scope).groupBuffers[port]
                 else
-                  component.groupedData[key].push obj
+                  _wp(scope).groupedData[key].push obj
                   if needPortGroups
-                    component.groupedGroups[key].push component.groupBuffers[port]
+                    _wp(scope).groupedGroups[key].push _wp(scope).groupBuffers[port]
                   else if collectGroups is true
-                    tmp = {} ; tmp[port] = component.groupBuffers[port]
-                    component.groupedGroups[key].push tmp
+                    tmp = {} ; tmp[port] = _wp(scope).groupBuffers[port]
+                    _wp(scope).groupedGroups[key].push tmp
                   else
-                    component.groupedGroups[key].push []
+                    _wp(scope).groupedGroups[key].push []
                   if config.group and key
                     # Timestamp to garbage collect this request
-                    component.gcTimestamps[key] = new Date().getTime()
+                    _wp(scope).gcTimestamps[key] = new Date().getTime()
                   return # need more data to continue
 
             # Drop premature data if configured to do so
-            return if config.dropInput and component.completeParams.length isnt component.requiredParams.length
+            return if config.dropInput and _wp(scope).completeParams.length isnt component.requiredParams.length
 
             # Prepare outputs
             outs = {}
             for name in outPorts
+              wrp = new OutPortWrapper component.outPorts[name], scope
               if config.async or config.sendStreams and
               config.sendStreams.indexOf(name) isnt -1
-                outs[name] = new StreamSender component.outPorts[name], config.ordered
+                wrp
+                outs[name] = new StreamSender wrp, config.ordered
               else
-                outs[name] = component.outPorts[name]
+                outs[name] = wrp
 
             outs = outs[outPorts[0]] if outPorts.length is 1 # for simplicity
             groups = [] unless groups
+            # Filter empty connect/disconnect groups
+            groups = (g for g in groups when g isnt null)
             whenDoneGroups = groups.slice 0
             whenDone = (err) ->
               if err
-                component.error err, whenDoneGroups
+                component.error err, whenDoneGroups, 'error', scope
               # For use with MultiError trait
               if typeof component.fail is 'function' and component.hasErrors
-                component.fail()
+                component.fail null, [], scope
               # Disconnect outputs if still connected,
               # this also indicates them as resolved if pending
-              outputs = if outPorts.length is 1 then port: outs else outs
+              outputs = outs
+              if outPorts.length is 1
+                outputs = {}
+                outputs[port] = outs
               disconnect = false
-              if component.disconnectQ.length > 0
-                component.disconnectQ.shift()
+              if _wp(scope).disconnectQ.length > 0
+                _wp(scope).disconnectQ.shift()
                 disconnect = true
               for name, out of outputs
                 out.endGroup() for i in whenDoneGroups if config.forwardGroups and config.async
                 out.disconnect() if disconnect
                 out.done() if config.async or config.StreamSender
               if typeof component.afterProcess is 'function'
-                component.afterProcess err or component.hasErrors, outs
+                component.afterProcess scope, err or component.hasErrors, outs
 
             # Before hook
             if typeof component.beforeProcess is 'function'
-              component.beforeProcess outs
+              component.beforeProcess scope, outs
 
             # Group forwarding
             if config.forwardGroups and config.async
@@ -487,7 +535,7 @@ exports.WirePattern = (component, config, proc) ->
                   out.beginGroup g for g in groups
 
             # Enforce MultiError with WirePattern (for group forwarding)
-            exports.MultiError component, config.name, config.error, groups
+            exports.MultiError component, config.name, config.error, groups, scope
 
             # Call the proc function
             if config.async
@@ -495,19 +543,21 @@ exports.WirePattern = (component, config, proc) ->
               resume = ->
               postponedToQ = false
               task = ->
-                proc.call component, data, groups, outs, whenDone, postpone, resume
+                setParamsScope scope
+                proc.call component, data, groups, outs, whenDone, postpone, resume, scope
               postpone = (backToQueue = true) ->
                 postponedToQ = backToQueue
                 if backToQueue
-                  component.taskQ.push task
+                  _wp(scope).taskQ.push task
               resume = ->
                 if postponedToQ then resumeTaskQ() else task()
             else
               task = ->
-                proc.call component, data, groups, outs
+                setParamsScope scope
+                proc.call component, data, groups, outs, null, null, null, scope
                 whenDone()
-            component.taskQ.push task
-            resumeTaskQ()
+            _wp(scope).taskQ.push task
+            resumeTaskQ scope
 
             # Call the garbage collector
             gc()
@@ -516,20 +566,11 @@ exports.WirePattern = (component, config, proc) ->
   baseShutdown = component.shutdown
   component.shutdown = ->
     baseShutdown.call component
-    component.groupedData = {}
-    component.groupedGroups = {}
-    component.outputQ = []
-    component.disconnectData = {}
-    component.disconnectQ = []
-    component.taskQ = []
-    component.params = {}
-    component.completeParams = []
-    component.receivedParams = []
-    component.defaultsSent = false
-    component.groupBuffers = {}
-    component.keyBuffers = {}
-    component.gcTimestamps = {}
+    component.requiredParams = []
+    component.defaultedParams = []
     component.gcCounter = 0
+    component._wpData = {}
+    component.params = {}
 
   # Make it chainable or usable at the end of getComponent()
   return component
@@ -555,9 +596,11 @@ exports.CustomizeError = (err, options) ->
 #
 # `group` is an optional group ID which will be used to wrap all error
 # packets emitted by the component.
-exports.MultiError = (component, group = '', errorPort = 'error', forwardedGroups = []) ->
+exports.MultiError = (component, group = '', errorPort = 'error', forwardedGroups = [], scope = null) ->
   component.hasErrors = false
   component.errors = []
+  group = component.name if component.name and not group
+  group = 'Component' unless group
 
   # Override component.error to support group information
   component.error = (e, groups = []) ->
@@ -573,13 +616,13 @@ exports.MultiError = (component, group = '', errorPort = 'error', forwardedGroup
     return unless component.hasErrors
     return unless errorPort of component.outPorts
     return unless component.outPorts[errorPort].isAttached()
-    component.outPorts[errorPort].beginGroup group if group
+    component.outPorts[errorPort].openBracket group, scope: scope if group
     for error in component.errors
-      component.outPorts[errorPort].beginGroup grp for grp in error.groups
-      component.outPorts[errorPort].send error.err
-      component.outPorts[errorPort].endGroup() for grp in error.groups
-    component.outPorts[errorPort].endGroup() if group
-    component.outPorts[errorPort].disconnect()
+      component.outPorts[errorPort].openBracket grp, scope: scope for grp in error.groups
+      component.outPorts[errorPort].data error.err, scope: scope
+      component.outPorts[errorPort].closeBracket grp, scope: scope for grp in error.groups
+    component.outPorts[errorPort].closeBracket group, scope: scope if group
+    # component.outPorts[errorPort].disconnect()
     # Clean the status for next activation
     component.hasErrors = false
     component.errors = []

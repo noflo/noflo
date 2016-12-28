@@ -5,6 +5,7 @@
 # Input Port (inport) implementation for NoFlo components
 BasePort = require './BasePort'
 IP = require './IP'
+platform = require './Platform'
 
 class InPort extends BasePort
   constructor: (options, process) ->
@@ -25,6 +26,7 @@ class InPort extends BasePort
       delete options.process
 
     if process
+      platform.deprecated 'InPort process callback is deprecated. Please use Process API or the InPort handle option'
       unless typeof process is 'function'
         throw new Error 'process must be a function'
       @process = process
@@ -122,12 +124,14 @@ class InPort extends BasePort
 
   # Returns the next packet in the (legacy) buffer
   receive: ->
+    platform.deprecated 'InPort.receive is deprecated. Use InPort.get instead'
     unless @isBuffered()
       throw new Error 'Receive is only possible on buffered ports'
     @buffer.shift()
 
   # Returns the number of data packets in a (legacy) buffered inport
   contains: ->
+    platform.deprecated 'InPort.contains is deprecated. Use InPort.has instead'
     unless @isBuffered()
       throw new Error 'Contains query is only possible on buffered ports'
     @buffer.filter((packet) -> return true if packet.event is 'data').length

@@ -223,10 +223,10 @@ describe 'ComponentLoader with no external packages installed', ->
         done()
 
   describe 'writing sources', ->
-    before ->
-      # setSource not implemented in webpack loader yet
-      return @skip() if noflo.isBrowser()
     describe 'with working code', ->
+      before ->
+        # setSource not implemented in webpack loader yet
+        return @skip() if noflo.isBrowser()
       workingSource = """
       var noflo = require('noflo');
 
@@ -261,6 +261,9 @@ describe 'ComponentLoader with no external packages installed', ->
           chai.expect(inst.outPorts).to.contain.keys ['out']
           done()
     describe 'with non-working code', ->
+      before ->
+        # setSource not implemented in webpack loader yet
+        return @skip() if noflo.isBrowser()
       nonWorkingSource = """
       var noflo = require('noflo');
       var notFound = require('./this_file_does_not_exist.js');

@@ -9,13 +9,14 @@ else
   root = 'noflo'
   urlPrefix = '/'
 
-describe 'Graph component', ->
+describe 'NoFlo Graph component', ->
   c = null
   g = null
   loader = null
   before (done) ->
     loader = new noflo.ComponentLoader root
     loader.listComponents done
+    done
   beforeEach (done) ->
     loader.load 'Graph', (err, instance) ->
       return done err if err
@@ -23,29 +24,31 @@ describe 'Graph component', ->
       g = noflo.internalSocket.createSocket()
       c.inPorts.graph.attach g
       done()
+    return
 
-  class Split extends noflo.Component
-    constructor: ->
-      @inPorts =
-        in: new noflo.Port
-      @outPorts =
-        out: new noflo.ArrayPort
-      @inPorts.in.on 'connect', (data) =>
-        @outPorts.out.connect()
-      @inPorts.in.on 'data', (data) =>
-        @outPorts.out.send data
-      @inPorts.in.on 'disconnect', =>
-        @outPorts.out.disconnect()
-  Split.getComponent = -> new Split
+  Split = ->
+    inst = new noflo.Component
+    inst.inPorts.add 'in',
+      datatype: 'all'
+    inst.outPorts.add 'out',
+      datatype: 'all'
+    inst.process (input, output) ->
+      data = input.getData 'in'
+      output.sendDone
+        out: data
 
   SubgraphMerge = ->
     inst = new noflo.Component
-    inst.inPorts.add 'in', (event, payload, instance) ->
-      method = event
-      method = 'send' if event is 'data'
-      instance.outPorts[method] 'out', payload
-    inst.outPorts.add 'out'
-    inst
+    inst.inPorts.add 'in',
+      datatype: 'all'
+    inst.outPorts.add 'out',
+      datatype: 'all'
+    inst.forwardBrackets = {}
+    inst.process (input, output) ->
+      packet = input.get 'in'
+      return output.done() unless packet.type is 'data'
+      output.sendDone
+        out: packet.data
 
   describe 'initially', ->
     it 'should be ready', ->
@@ -71,7 +74,8 @@ describe 'Graph component', ->
         network.loader.registerComponent '', 'Merge', SubgraphMerge
         chai.expect(c.ready).to.be.false
         chai.expect(c.network).not.to.be.null
-        c.start()
+        c.start (err) ->
+          done err if err
       g.send
         processes:
           Split:
@@ -92,7 +96,8 @@ describe 'Graph component', ->
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
         c.network.loader.components.Merge = SubgraphMerge
-        c.start()
+        c.start (err) ->
+          done err if err
       g.send
         processes:
           Split:
@@ -120,7 +125,8 @@ describe 'Graph component', ->
         chai.expect(c.ready).to.be.false
         chai.expect(c.network).not.to.be.null
         chai.expect(c.description).to.equal 'Hello, World!'
-        c.start()
+        c.start (err) ->
+          done err if err
       g.send
         properties:
           description: 'Hello, World!'
@@ -143,12 +149,13 @@ describe 'Graph component', ->
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
         c.network.loader.components.Merge = SubgraphMerge
-        c.start()
+        c.start (err) ->
+          done err if err
       g.send
-        exports: [
-          public: 'out'
-          private: 'split.out'
-        ]
+        outports:
+          out:
+            process: 'Split'
+            port: 'out'
         processes:
           Split:
             component: 'Split'
@@ -179,15 +186,17 @@ describe 'Graph component', ->
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
         c.network.loader.components.Merge = SubgraphMerge
-        c.start()
+        c.start (err) ->
+          done err if err
       g.send
-        exports: [
-          public: 'in'
-          private: 'merge.in'
-        ,
-          public: 'out'
-          private: 'split.out'
-        ]
+        inports:
+          in:
+            process: 'Merge'
+            port: 'in'
+        outports:
+          out:
+            process: 'Split'
+            port: 'out'
         processes:
           Split:
             component: 'Split'
@@ -222,7 +231,8 @@ describe 'Graph component', ->
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
         c.network.loader.components.Merge = SubgraphMerge
-        c.start()
+        c.start (err) ->
+          done err if err
       g.send gr
       chai.expect(c.ready).to.be.false
     it 'should expose available ports', (done) ->
@@ -242,7 +252,8 @@ describe 'Graph component', ->
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
         c.network.loader.components.Merge = SubgraphMerge
-        c.start()
+        c.start (err) ->
+          done err if err
       g.send gr
     it 'should be able to run the graph', (done) ->
       c.baseDir = root
@@ -261,7 +272,8 @@ describe 'Graph component', ->
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
         c.network.loader.components.Merge = SubgraphMerge
-        c.start()
+        c.start (err) ->
+          done err if err
       g.send gr
 
   describe 'with a FBP file with INPORTs and OUTPORTs', ->
@@ -278,7 +290,8 @@ describe 'Graph component', ->
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
         c.network.loader.components.Merge = SubgraphMerge
-        c.start()
+        c.start (err) ->
+          done err if err
       g.send file
       chai.expect(c.ready).to.be.false
     it 'should expose available ports', (done) ->
@@ -298,7 +311,8 @@ describe 'Graph component', ->
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
         c.network.loader.components.Merge = SubgraphMerge
-        c.start()
+        c.start (err) ->
+          done err if err
       g.send file
     it 'should be able to run the graph', (done) ->
       c.baseDir = root
@@ -308,20 +322,23 @@ describe 'Graph component', ->
         out = noflo.internalSocket.createSocket()
         c.inPorts['in'].attach ins
         c.outPorts['out'].attach out
-        out.on 'connect', ->
-          ins.send 'Foo'
+        received = false
         out.on 'data', (data) ->
           chai.expect(data).to.equal 'Foo'
-          ins.disconnect()
+          received = true
         out.on 'disconnect', ->
+          chai.expect(received, 'should have transmitted data').to.equal true
           done()
         ins.connect()
+        ins.send 'Foo'
+        ins.disconnect()
       c.once 'network', ->
         chai.expect(c.ready).to.be.false
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
         c.network.loader.components.Merge = SubgraphMerge
-        c.start()
+        c.start (err) ->
+          done err if err
       g.send file
 
   describe 'with a FBP file with legacy EXPORTS', ->
@@ -338,7 +355,8 @@ describe 'Graph component', ->
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
         c.network.loader.components.Merge = SubgraphMerge
-        c.start()
+        c.start (err) ->
+          done err if err
       g.send file
       chai.expect(c.ready).to.be.false
     it 'should expose available ports', (done) ->
@@ -358,7 +376,8 @@ describe 'Graph component', ->
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
         c.network.loader.components.Merge = SubgraphMerge
-        c.start()
+        c.start (err) ->
+          done err if err
       g.send file
     it 'should have disambiguated the exported ports', (done) ->
       c.baseDir = root
@@ -382,20 +401,23 @@ describe 'Graph component', ->
         out = noflo.internalSocket.createSocket()
         c.inPorts['in'].attach ins
         c.outPorts['out'].attach out
-        out.on 'connect', ->
-          ins.send 'Foo'
+        received = false
         out.on 'data', (data) ->
           chai.expect(data).to.equal 'Foo'
-          ins.disconnect()
+          received = true
         out.on 'disconnect', ->
+          chai.expect(received, 'should have transmitted data').to.equal true
           done()
         ins.connect()
+        ins.send 'Foo'
+        ins.disconnect()
       c.once 'network', ->
         chai.expect(c.ready).to.be.false
         chai.expect(c.network).not.to.be.null
         c.network.loader.components.Split = Split
         c.network.loader.components.Merge = SubgraphMerge
-        c.start()
+        c.start (err) ->
+          done err if err
       g.send file
 
   describe 'when a subgraph is used as a component', ->
@@ -406,13 +428,12 @@ describe 'Graph component', ->
         required: true
         datatype: 'string'
         default: 'default-value',
-        (e, data) =>
-          switch e
-            when 'connect' then c.outPorts.out.connect()
-            when 'data' then c.outPorts.out.send(data)
-            when 'disconnect' then c.outPorts.out.disconnect()
-      c.outPorts.add 'out'
-      c
+      c.outPorts.add 'out',
+        datatype: 'string'
+      c.process (input, output) ->
+        data = input.getData 'in'
+        output.sendDone
+          out: data
 
     grDefaults = new noflo.Graph 'Child Graph Using Defaults'
     grDefaults.addNode 'SplitIn', 'Split'
@@ -444,6 +465,7 @@ describe 'Graph component', ->
             chai.expect(data).to.equal 'default-value'
             done()
           inst.start()
+      return
 
     it 'should send initials', (done) ->
       @timeout 6000
@@ -460,6 +482,7 @@ describe 'Graph component', ->
             chai.expect(data).to.equal 'initial-value'
             done()
           inst.start()
+      return
 
     it 'should not send defaults when an inport is attached externally', (done) ->
       @timeout 6000
@@ -479,3 +502,4 @@ describe 'Graph component', ->
             done()
           inst.start()
           i.send 'Foo'
+      return

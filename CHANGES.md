@@ -1,9 +1,30 @@
 NoFlo ChangeLog
 ===============
 
-## 0.7.9 (git master)
+## 0.8.0 (git master)
 
 * Added callback for `Network.stop`
+* Outmost brackets are no longer automatically converted to `connect` and `disconnect` events. Instead, `connect` and `disconnect` are injected as needed, but only for subscribers of the legacy events
+* Added deprecation warnings for APIs that will be removed by NoFlo 1.0. These can be made fatal by setting the `NOFLO_FATAL_DEPRECATED` environment variable. These include:
+  - `noflo.AsyncComponent`: should be ported to Process API
+  - `noflo.helpers.MapComponent`: should be ported to Process API
+  - `noflo.ArrayPort`: should be ported to noflo.In/OutPort with `addressable: true`
+  - `noflo.Port`: should be ported to noflo.In/OutPort
+  - Calling `Network.start` or `Network.stop` without a callback
+  - `noflo.InPort` `process` option: should be ported to Process API or use the `handle` option
+  - `noflo.InPort` `receive` method: replaced by the `get` method
+  - `noflo.InPort` `contains` method: replaced by the `has` method
+  - `noflo.Graph` exports: use specific inport or outport instead
+  - Additionally [component.io](https://github.com/componentjs/component) builds warn about deprecation in favor of [webpack](http://webpack.github.io/) with helpful automation available in [grunt-noflo-browser](https://www.npmjs.com/package/grunt-noflo-browser)
+* Added IP object `scope` support to `WirePattern` to make `WirePattern` components more concurrency-friendly
+* Removed `receiveStreams` option from `WirePattern`
+* Graph JSON schema has been moved to https://github.com/flowbased/fbp, and updated with tests.
+* Added stream helpers for Process API input. `hasStream` checks if an input buffer contains a complete stream (matching brackets and data, or only data), `getStream` returns a complete stream of packets. These require `forwardBrackets` to be disabled for the port.
+* [babel-core](https://www.npmjs.com/package/babel-core) was removed as a dependency. Install separately for projects needing ES6 component support
+* underscore.js was removed as a dependency
+* `input.getData()` in Process API has been changed to fetch only packets of `data` type skipping and dropping brackets inbetween
+* IP objects are strictly required to be of `noflo.IP` type
+* Removed support for deprecated Node.js 0.x versions
 
 ## 0.7.8 (June 10th 2016)
 
