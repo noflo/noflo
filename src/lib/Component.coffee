@@ -65,11 +65,20 @@ class Component extends EventEmitter
     throw e
 
   shutdown: ->
-    @started = false
+    return unless @started
+    callback = =>
+      @started = false
+      @emit 'end'
+    if @load > 0
+      @on 'deactivate', =>
+        callback() if @load is 0
+    else
+      callback()
 
   # The startup function performs initialization for the component.
   start: ->
     @started = true
+    @emit 'start'
     @started
 
   isStarted: -> @started
@@ -129,10 +138,14 @@ class Component extends EventEmitter
       return
     return unless port.options.triggering
     result = {}
-    input = new ProcessInput @inPorts, ip, @, port, result
-    output = new ProcessOutput @outPorts, ip, @, result
-    @load++
-    @handle input, output, -> output.done()
+    context = new ProcessContext ip, @, port, result
+    input = new ProcessInput @inPorts, context
+    output = new ProcessOutput @outPorts, context
+    try
+      @handle input, output, context
+    catch e
+      @deactivate context
+      output.sendDone e
 
   processOutputQueue: ->
     while @outputQ.length > 0
@@ -152,18 +165,52 @@ class Component extends EventEmitter
         break
     @autoOrdering = null if bracketsClosed and @autoOrdering is true
 
+  activate: (context) ->
+    return if context.activated # prevent double activation
+    context.activated = true
+    context.deactivated = false
+    @load++
+    @emit 'activate', @load
+    if @ordered or @autoOrdering
+      @outputQ.push context.result
+
+  deactivate: (context) ->
+    return if context.deactivated # prevent double deactivation
+    context.deactivated = true
+    context.activated = false
+    if @ordered or @autoOrdering
+      @processOutputQueue()
+    @load--
+    @emit 'deactivate', @load
+
 exports.Component = Component
 
-class ProcessInput
-  constructor: (@ports, @ip, @nodeInstance, @port, @result) ->
+class ProcessContext
+  constructor: (@ip, @nodeInstance, @port, @result) ->
     @scope = @ip.scope
+    @activated = false
+    @deactivated = false
+  activate: ->
+    # Push a new result value if previous has been sent already
+    if @result.__resolved or @nodeInstance.outputQ.indexOf(@result) is -1
+      @result = {}
+    @nodeInstance.activate @
+  deactivate: ->
+    @result.__resolved = true unless @result.__resolved
+    @nodeInstance.deactivate @
+
+class ProcessInput
+  constructor: (@ports, @context) ->
+    @nodeInstance = @context.nodeInstance
+    @ip = @context.ip
+    @port = @context.port
+    @result = @context.result
+    @scope = @context.scope
     @buffer = new PortBuffer(@)
 
   # Sets component state to `activated`
   activate: ->
-    @result.__resolved = false
-    if @nodeInstance.ordered or @nodeInstance.autoOrdering
-      @nodeInstance.outputQ.push @result
+    @nodeInstance.activate @context
 
   # Returns true if a port (or ports joined by logical AND) has a new IP
   # Passing a validation callback as a last argument allows more selective
@@ -288,14 +335,15 @@ class PortBuffer
     @set name, b
 
 class ProcessOutput
-  constructor: (@ports, @ip, @nodeInstance, @result) ->
-    @scope = @ip.scope
+  constructor: (@ports, @context) ->
+    @nodeInstance = @context.nodeInstance
+    @ip = @context.ip
+    @result = @context.result
+    @scope = @context.scope
 
   # Sets component state to `activated`
   activate: ->
-    @result.__resolved = false
-    if @nodeInstance.ordered or @nodeInstance.autoOrdering
-      @nodeInstance.outputQ.push @result
+    @nodeInstance.activate @context
 
   # Checks if a value is an Error
   isError: (err) ->
@@ -346,6 +394,9 @@ class ProcessOutput
       @sendIP componentPorts[0], outputMap
       return
 
+    if componentPorts.length > 1 and not mapIsInPorts
+      throw new Error 'Port must be specified for sending output'
+
     for port, packet of outputMap
       @sendIP port, packet
 
@@ -368,8 +419,7 @@ class ProcessOutput
 
   # Finishes process activation gracefully
   done: (error) ->
+    @result.__resolved = true
+    @nodeInstance.activate @context
     @error error if error
-    if @nodeInstance.ordered or @nodeInstance.autoOrdering
-      @result.__resolved = true
-      @nodeInstance.processOutputQueue()
-    @nodeInstance.load--
+    @nodeInstance.deactivate @context

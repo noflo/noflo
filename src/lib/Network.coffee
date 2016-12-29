@@ -540,10 +540,18 @@ class Network extends EventEmitter
     unless callback
       callback = ->
 
+    # Emit start event when all processes are started
+    count = 0
+    length = if @processes then Object.keys(@processes).length else 0
+    onProcessStart = ->
+      count++
+      callback() if count is length
+
     # Perform any startup routines necessary for every component.
+    return callback() unless @processes and Object.keys(@processes).length
     for id, process of @processes
+      process.component.on 'start', onProcessStart
       process.component.start()
-    do callback
 
   sendDefaults: (callback) ->
     unless callback
@@ -593,11 +601,21 @@ class Network extends EventEmitter
     for connection in @connections
       continue unless connection.isConnected()
       connection.disconnect()
+    # Emit start event when all processes are started
+    count = 0
+    length = if @processes then Object.keys(@processes).length else 0
+    onProcessEnd = =>
+      count++
+      if count is length
+        @setStarted false
+        callback()
+    unless @processes and Object.keys(@processes).length
+      @setStarted false
+      return callback()
     # Tell processes to shut down
     for id, process of @processes
+      process.component.on 'end', onProcessEnd
       process.component.shutdown()
-    @setStarted false
-    do callback
 
   setStarted: (started) ->
     return if @started is started
