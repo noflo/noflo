@@ -67,11 +67,20 @@ class Component extends EventEmitter
     throw e
 
   shutdown: ->
-    @started = false
+    return unless @started
+    callback = =>
+      @started = false
+      @emit 'end'
+    if @load > 0
+      @on 'deactivate', =>
+        callback() if @load is 0
+    else
+      callback()
 
   # The startup function performs initialization for the component.
   start: ->
     @started = true
+    @emit 'start'
     @started
 
   isStarted: -> @started
@@ -180,10 +189,15 @@ class Component extends EventEmitter
         return
 
     # Prepare the input/output pair
-    input = new ProcessInput @inPorts, ip, @, port, result
-    output = new ProcessOutput @outPorts, ip, @, result
-    # Call the processing function
-    @handle input, output, -> output.done()
+    context = new ProcessContext ip, @, port, result
+    input = new ProcessInput @inPorts, context
+    output = new ProcessOutput @outPorts, context
+    try
+      # Call the processing function
+      @handle input, output, context
+    catch e
+      @deactivate context
+      output.sendDone e
 
     unless input.activated
       debug "#{@nodeId} #{ip.type} packet on #{port.name} didn't match preconditions"
@@ -253,25 +267,59 @@ class Component extends EventEmitter
           @outPorts[port].sendIP ip
       @outputQ.shift()
 
+  activate: (context) ->
+    return if context.activated # prevent double activation
+    context.activated = true
+    context.deactivated = false
+    @load++
+    @emit 'activate', @load
+    if @ordered or @autoOrdering
+      @outputQ.push context.result
+
+  deactivate: (context) ->
+    return if context.deactivated # prevent double deactivation
+    context.deactivated = true
+    context.activated = false
+    if @ordered or @autoOrdering
+      @processOutputQueue()
+    @load--
+    @emit 'deactivate', @load
+
 exports.Component = Component
 
-class ProcessInput
-  constructor: (@ports, @ip, @nodeInstance, @port, @result) ->
+class ProcessContext
+  constructor: (@ip, @nodeInstance, @port, @result) ->
     @scope = @ip.scope
+    @activated = false
+    @deactivated = false
+  activate: ->
+    # Push a new result value if previous has been sent already
+    if @result.__resolved or @nodeInstance.outputQ.indexOf(@result) is -1
+      @result = {}
+    @nodeInstance.activate @
+  deactivate: ->
+    @result.__resolved = true unless @result.__resolved
+    @nodeInstance.deactivate @
+
+class ProcessInput
+  constructor: (@ports, @context) ->
+    @nodeInstance = @context.nodeInstance
+    @ip = @context.ip
+    @port = @context.port
+    @result = @context.result
+    @scope = @context.scope
     @buffer = new PortBuffer(@)
     @activated = false
 
-  # Preconditions met, set component state to `activated`
+  # When preconditions are met, set component state to `activated`
   activate: ->
-    return if @activated
-    @nodeInstance.load++
+    return if @context.activated
     debug "#{@nodeInstance.nodeId} #{@ip.type} packet on #{@port.name} caused activation #{@nodeInstance.load}"
-    @activated = true
-
     if @nodeInstance.isOrdered()
       # We're handling packets in order. Set the result as non-resolved
       # so that it can be send when the order comes up
       @result.__resolved = false
+    @nodeInstance.activate @context
 
   # ## Input preconditions
   # When the processing function is called, it can check if input buffers
@@ -462,9 +510,11 @@ class PortBuffer
     @set name, b
 
 class ProcessOutput
-  constructor: (@ports, @ip, @nodeInstance, @result) ->
-    @scope = @ip.scope
-    @sent = []
+  constructor: (@ports, @context) ->
+    @nodeInstance = @context.nodeInstance
+    @ip = @context.ip
+    @result = @context.result
+    @scope = @context.scope
 
   # Checks if a value is an Error
   isError: (err) ->
@@ -513,6 +563,9 @@ class ProcessOutput
       @sendIP componentPorts[0], outputMap
       return
 
+    if componentPorts.length > 1 and not mapIsInPorts
+      throw new Error 'Port must be specified for sending output'
+
     for port, packet of outputMap
       @sendIP port, packet
 
@@ -535,6 +588,8 @@ class ProcessOutput
 
   # Finishes process activation gracefully
   done: (error) ->
+    @result.__resolved = true
+    @nodeInstance.activate @context
     @error error if error
 
     isLast = =>
@@ -569,3 +624,4 @@ class ProcessOutput
     if @nodeInstance.isOrdered()
       @result.__resolved = true
       @nodeInstance.processOutputQueue()
+    @nodeInstance.deactivate @context

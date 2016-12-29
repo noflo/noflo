@@ -878,7 +878,7 @@ describe 'Component', ->
       sin1.post new noflo.IP 'data', 'first'
 
     it 'should throw an error if sending without specifying a port and there are multiple ports', (done) ->
-      try
+      f = ->
         c = new noflo.Component
           inPorts:
             in:
@@ -889,15 +889,13 @@ describe 'Component', ->
               datatype: 'all'
             eh:
               required: no
-            error:
-              required: no
           process: (input, output) ->
             output.sendDone 'test'
 
         c.inPorts.in.attach sin1
         sin1.post new noflo.IP 'data', 'some-data'
-      catch e
-        done()
+      chai.expect(f).to.throw Error
+      done()
 
     it 'should send errors if there is a connected error port', (done) ->
       c = new noflo.Component
@@ -1317,7 +1315,7 @@ describe 'Component', ->
             err: datatype: 'object'
           ordered: true
           activateOnInput: false
-          process: (input, output, done) ->
+          process: (input, output) ->
             return unless input.has 'foo', 'bar'
             [foo, bar] = input.getData 'foo', 'bar'
             if bar < 0 or bar > 1000
@@ -1335,7 +1333,7 @@ describe 'Component', ->
             setTimeout ->
               output.send
                 baz: new noflo.IP 'closeBracket'
-              done()
+              output.done()
             , bar
         c.inPorts.foo.attach sin1
         c.inPorts.bar.attach sin2
@@ -1734,3 +1732,84 @@ describe 'Component', ->
         sin1.send 'B'
         sin1.endGroup()
         sin1.disconnect()
+
+  describe 'with generator components', ->
+    c = null
+    sin1 = null
+    sin2 = null
+    sin3 = null
+    sout1 = null
+    sout2 = null
+    before (done) ->
+      c = new noflo.Component
+        inPorts:
+          interval:
+            datatype: 'number'
+            control: true
+          start: datatype: 'bang'
+          stop: datatype: 'bang'
+        outPorts:
+          out: datatype: 'bang'
+          err: datatype: 'object'
+        timer: null
+        ordered: false
+        autoOrdering: false
+        process: (input, output, context) ->
+          return unless input.has 'interval'
+          if input.has 'start'
+            start = input.get 'start'
+            interval = parseInt input.getData 'interval'
+            clearInterval @timer if @timer
+            @timer = setInterval ->
+              context.activate()
+              setTimeout ->
+                output.ports.out.sendIP new noflo.IP 'data', true
+                context.deactivate()
+              , 5 # delay of 3 to test async
+            , interval
+          if input.has 'stop'
+            stop = input.get 'stop'
+            clearInterval @timer if @timer
+          output.done()
+
+      sin1 = new noflo.internalSocket.InternalSocket
+      sin2 = new noflo.internalSocket.InternalSocket
+      sin3 = new noflo.internalSocket.InternalSocket
+      sout1 = new noflo.internalSocket.InternalSocket
+      sout2 = new noflo.internalSocket.InternalSocket
+      c.inPorts.interval.attach sin1
+      c.inPorts.start.attach sin2
+      c.inPorts.stop.attach sin3
+      c.outPorts.out.attach sout1
+      c.outPorts.err.attach sout2
+      done()
+
+    it 'should emit start event when started', (done) ->
+      c.on 'start', ->
+        chai.expect(c.started).to.be.true
+        done()
+      c.start()
+
+    it 'should emit activate/deactivate event on every tick', (done) ->
+      @timeout 100
+      count = 0
+      dcount = 0
+      c.on 'activate', (load) ->
+        count++
+      c.on 'deactivate', (load) ->
+        dcount++
+        # Stop when the stack of processes grows
+        if count is 3 and dcount is 3
+          sin3.post new noflo.IP 'data', true
+          done()
+      sin1.post new noflo.IP 'data', 2
+      sin2.post new noflo.IP 'data', true
+
+    it 'should emit end event when stopped and no activate after it', (done) ->
+      c.on 'end', ->
+        chai.expect(c.started).to.be.false
+        done()
+      c.on 'activate', (load) ->
+        unless c.started
+          done new Error 'Unexpected activate after end'
+      c.shutdown()
