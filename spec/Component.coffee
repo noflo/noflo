@@ -889,14 +889,12 @@ describe 'Component', ->
               datatype: 'all'
             eh:
               required: no
-            error:
-              required: no
           process: (input, output) ->
             output.sendDone 'test'
 
         c.inPorts.in.attach sin1
         sin1.post new noflo.IP 'data', 'some-data'
-      chai.expect(f).to.thow
+      chai.expect(f).to.throw Error
       done()
 
     it 'should send errors if there is a connected error port', (done) ->
