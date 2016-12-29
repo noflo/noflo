@@ -4,7 +4,7 @@ if typeof process isnt 'undefined' and process.execPath and process.execPath.mat
 else
   noflo = require 'noflo'
 
-describe 'Component', ->
+describe.only 'Component', ->
   describe 'with required ports', ->
     it 'should throw an error upon sending packet to an unattached required port', ->
       s2 = new noflo.internalSocket.InternalSocket
@@ -30,6 +30,88 @@ describe 'Component', ->
         s1.send 'some-more-data'
         s2.send 'some-data'
       chai.expect(f).to.not.throw()
+
+  describe 'with strict ports', ->
+    it 'should throw an error upon receiving packet with the wrong datatype', (done) ->
+      s1 = new noflo.internalSocket.InternalSocket
+      c = new noflo.Component
+        inPorts:
+          in:
+            datatype: 'object'
+            required: true
+            strict: true
+        process: (input, output) ->
+
+      c.inPorts.in.attach s1
+      try
+        s1.send('q')
+      catch e
+        done()
+
+    it 'should throw an error upon receiving IP with the wrong datatype', (done) ->
+      s1 = new noflo.internalSocket.InternalSocket
+      c = new noflo.Component
+        inPorts:
+          in:
+            datatype: 'object'
+            required: true
+            strict: true
+        process: (input, output) ->
+
+      c.inPorts.in.attach s1
+      try
+        s1.send new noflo.IP('data', 'foo')
+      catch e
+        done()
+
+    it 'should throw an error upon sending packet with the wrong datatype', (done) ->
+      s1 = new noflo.internalSocket.InternalSocket
+      o1 = new noflo.internalSocket.InternalSocket
+      c = new noflo.Component
+        inPorts:
+          in: datatype: 'string'
+        outPorts:
+          out:
+            datatype: 'object'
+            required: true
+            strict: true
+        process: (input, output) ->
+          chai.expect(-> output.send out: 'outeh').to.throw()
+          done()
+
+      c.inPorts.in.attach s1
+      c.outPorts.out.attach o1
+      s1.send 'eh'
+
+    it 'should throw an error upon sending IP with the wrong datatype', (done) ->
+      s1 = new noflo.internalSocket.InternalSocket
+      o1 = new noflo.internalSocket.InternalSocket
+      c = new noflo.Component
+        inPorts:
+          in: datatype: 'string'
+        outPorts:
+          out:
+            datatype: 'object'
+            required: true
+            strict: true
+        process: (input, output) ->
+          chai.expect(-> output.send out: new noflo.IP('data', 'foo')).to.throw()
+          done()
+
+      c.inPorts.in.attach s1
+      c.outPorts.out.attach o1
+      s1.send 'eh'
+
+    it 'should not throw an error upon sending IP with the right datatype', ->
+      o1 = new noflo.internalSocket.InternalSocket
+      c = new noflo.Component
+        outPorts:
+          required_port:
+            datatype: 'string'
+            required: true
+            strict: true
+      c.outPorts.required_port.attach o1
+      chai.expect(-> o1.send(new noflo.IP('data', 'foo'))).to.not.throw()
 
   describe 'with component creation shorthand', ->
     it 'should make component creation easy', (done) ->
@@ -177,7 +259,6 @@ describe 'Component', ->
       chai.expect(shorthand).to.throw()
 
   describe 'starting a component', ->
-
     it 'should flag the component as started', ->
       c = new noflo.Component
         inPorts:
@@ -191,7 +272,6 @@ describe 'Component', ->
       chai.expect(c.isStarted()).to.equal(true)
 
   describe 'shutting down a component', ->
-
     it 'should flag the component as not started', ->
       c = new noflo.Component
         inPorts:
@@ -206,7 +286,6 @@ describe 'Component', ->
       chai.expect(c.isStarted()).to.equal(false)
 
   describe 'with object-based IPs', ->
-
     it 'should speak IP objects', (done) ->
       c = new noflo.Component
         inPorts:

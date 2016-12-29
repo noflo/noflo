@@ -20,6 +20,7 @@ class InPort extends BasePort
     options.buffered ?= false
     options.control ?= false
     options.triggering ?= true
+    options.strict ?= false
 
     if not process and options and options.process
       process = options.process
@@ -118,8 +119,7 @@ class InPort extends BasePort
     @scopedBuffer = {}
 
   validateData: (data) ->
-    return unless @options.values
-    if @options.values.indexOf(data) is -1
+    if @options.values and @options.values.indexOf(data) is -1
       throw new Error "Invalid data='#{data}' received, not in [#{@options.values}]"
 
   # Returns the next packet in the (legacy) buffer

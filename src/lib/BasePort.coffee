@@ -4,22 +4,7 @@
 #
 # Base port type used for options normalization
 {EventEmitter} = require 'events'
-
-validTypes = [
-  'all'
-  'string'
-  'number'
-  'int'
-  'object'
-  'array'
-  'boolean'
-  'color'
-  'date'
-  'bang'
-  'function'
-  'buffer'
-  'stream'
-]
+validTypes = require('./Types').validTypes
 
 class BasePort extends EventEmitter
   constructor: (options) ->

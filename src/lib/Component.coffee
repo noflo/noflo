@@ -8,6 +8,7 @@
 
 ports = require './Ports'
 IP = require './IP'
+Types = require './Types'
 
 class Component extends EventEmitter
   description: ''
@@ -137,6 +138,10 @@ class Component extends EventEmitter
       @processOutputQueue()
       return
     return unless port.options.triggering
+
+    if Types.validate(port.options.strict, port.options.datatype, ip.data) isnt true
+      throw new Error "#{ip.data} is not a " + port.options.datatype
+
     result = {}
     context = new ProcessContext ip, @, port, result
     input = new ProcessInput @inPorts, context
@@ -368,6 +373,10 @@ class ProcessOutput
       ip = new IP 'data', packet
     else
       ip = packet
+
+    unless Types.validate @ports.ports[port].options.strict, @ports.ports[port].options.datatype, ip.data
+      throw new Error "#{packet} is not a " +  @ports.ports[port].options.datatype
+
     ip.scope = @scope if @scope isnt null and ip.scope is null
     if @nodeInstance.ordered or @nodeInstance.autoOrdering
       @result[port] = [] unless port of @result
