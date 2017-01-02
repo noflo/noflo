@@ -67,11 +67,11 @@ class InternalSocket extends EventEmitter
   #         @readBuffer fd, position, size, buffer
   connect: ->
     @connected = true
-    @handleSocketEvent 'connect', null, false
+    @emitEvent 'connect', null
 
   disconnect: ->
     @connected = false
-    @handleSocketEvent 'disconnect', null, false
+    @emitEvent 'disconnect', null
 
   isConnected: -> @connected
 
@@ -183,12 +183,14 @@ class InternalSocket extends EventEmitter
 
     # Wrap legacy events into appropriate IP objects
     switch event
-      when 'connect', 'begingroup'
+      when 'begingroup'
         return new IP 'openBracket', payload
-      when 'disconnect', 'endgroup'
+      when 'endgroup'
         return new IP 'closeBracket'
-      else
+      when 'data'
         return new IP 'data', payload
+      else
+        return null
 
   ipToLegacy: (ip) ->
     switch ip.type
@@ -208,6 +210,7 @@ class InternalSocket extends EventEmitter
   handleSocketEvent: (event, payload, autoConnect = true) ->
     isIP = event is 'ip' and IP.isIP payload
     ip = if isIP then payload else @legacyToIp event, payload
+    return unless ip
 
     if not @isConnected() and autoConnect and @brackets.length is 0
       # Connect before sending

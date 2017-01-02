@@ -347,7 +347,7 @@ exports.WirePattern = (component, config, proc) ->
               # FIXME probably need to skip this if payload is null
               closeGroupOnOuts payload
             # Disconnect
-            if _wp(scope).groupBuffers[port].length is 0 and payload is null
+            if _wp(scope).groupBuffers[port].length is 0
               if inPorts.length is 1
                 if config.async or config.StreamSender
                   if config.ordered

@@ -280,7 +280,9 @@ describe 'Inport Port', ->
 
       ps.inPorts.in.attach s
       chai.expect(ps.inPorts.in.listAttached()).to.eql [0]
+      s.beginGroup 'foo'
       s.send 'some-data'
+      s.endGroup()
       s.disconnect()
 
     it 'should translate IP objects to legacy events', (done) ->
