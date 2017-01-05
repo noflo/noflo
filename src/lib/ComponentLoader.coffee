@@ -5,7 +5,7 @@
 #
 # This is the browser version of the ComponentLoader.
 internalSocket = require './InternalSocket'
-nofloGraph = require './Graph'
+fbpGraph = require 'fbp-graph'
 {EventEmitter} = require 'events'
 registerLoader = require './loader/register'
 
@@ -112,7 +112,7 @@ class ComponentLoader extends EventEmitter
 
   isGraph: (cPath) ->
     # Live graph instance
-    return true if typeof cPath is 'object' and cPath instanceof nofloGraph.Graph
+    return true if typeof cPath is 'object' and cPath instanceof fbpGraph.Graph
     # Graph JSON definition
     return true if typeof cPath is 'object' and cPath.processes and cPath.connections
     return false unless typeof cPath is 'string'

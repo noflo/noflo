@@ -2,7 +2,7 @@ path = require 'path'
 fs = require 'fs'
 manifest = require 'fbp-manifest'
 utils = require '../Utils'
-nofloGraph = require '../Graph'
+fbpGraph = require 'fbp-graph'
 
 # We allow components to be un-compiled CoffeeScript
 CoffeeScript = require 'coffee-script'
@@ -170,7 +170,7 @@ exports.getSource = (loader, name, callback) ->
     nameParts[0] = ''
 
   if loader.isGraph component
-    nofloGraph.loadFile component, (err, graph) ->
+    fbpGraph.loadFile component, (err, graph) ->
       return callback err if err
       return callback new Error 'Unable to load graph' unless graph
       callback null,

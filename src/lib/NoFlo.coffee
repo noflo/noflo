@@ -13,14 +13,15 @@
 # ### Graph interface
 #
 # [Graph](Graph.html) is used for instantiating FBP graph definitions.
-exports.graph = require('./Graph')
-exports.Graph = exports.graph.Graph
+fbpGraph = require 'fbp-graph'
+exports.graph = fbpGraph.graph
+exports.Graph = fbpGraph.Graph
 
 # ### Graph journal
 #
 # Journal is used for keeping track of graph changes
-exports.journal = require('./Journal')
-exports.Journal = exports.journal.Journal
+exports.journal = fbpGraph.journal
+exports.Journal = fbpGraph.Journal
 
 # ## Network interface
 #
