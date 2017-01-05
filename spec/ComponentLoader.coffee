@@ -108,31 +108,35 @@ describe 'ComponentLoader with no external packages installed', ->
       chai.expect(instance.getIcon()).to.be.a 'string'
       chai.expect(instance.getIcon()).to.equal 'sitemap'
 
-  # describe 'loading a subgraph', ->
-  #   l = new noflo.ComponentLoader root
-  #   file = "#{urlPrefix}spec/fixtures/subgraph.fbp"
-  #   it 'should remove `graph` and `start` ports', (done) ->
-  #     l.listComponents (err, components) ->
-  #       l.components.Merge = Merge
-  #       l.components.Subgraph = file
-  #       l.components.Split = Split
-  #       l.load 'Subgraph', (inst) ->
-  #         chai.expect(inst).to.be.an 'object'
-  #         inst.once 'ready', ->
-  #           chai.expect(inst.inPorts.ports).not.to.have.keys ['graph','start']
-  #           chai.expect(inst.inPorts.ports).to.have.keys ['in']
-  #           chai.expect(inst.outPorts.ports).to.have.keys ['out']
-  #           done()
-  #   it 'should not automatically start the subgraph if there is no `start` port', (done) ->
-  #     l.listComponents (err, components) ->
-  #       l.components.Merge = Merge
-  #       l.components.Subgraph = file
-  #       l.components.Split = Split
-  #       l.load 'Subgraph', (inst) ->
-  #         chai.expect(inst).to.be.an 'object'
-  #         inst.once 'ready', ->
-  #           chai.expect(inst.started).to.equal(false)
-  #           done()
+  describe 'loading a subgraph', ->
+    l = new noflo.ComponentLoader root
+    file = "#{urlPrefix}spec/fixtures/subgraph.fbp"
+    it 'should remove `graph` and `start` ports', (done) ->
+      l.listComponents (err, components) ->
+        return done err if err
+        l.components.Merge = Merge
+        l.components.Subgraph = file
+        l.components.Split = Split
+        l.load 'Subgraph', (err, inst) ->
+          return done err if err
+          chai.expect(inst).to.be.an 'object'
+          inst.once 'ready', ->
+            chai.expect(inst.inPorts.ports).not.to.have.keys ['graph','start']
+            chai.expect(inst.inPorts.ports).to.have.keys ['in']
+            chai.expect(inst.outPorts.ports).to.have.keys ['out']
+            done()
+    it 'should not automatically start the subgraph if there is no `start` port', (done) ->
+      l.listComponents (err, components) ->
+        return done err if err
+        l.components.Merge = Merge
+        l.components.Subgraph = file
+        l.components.Split = Split
+        l.load 'Subgraph', (err, inst) ->
+          return done err if err
+          chai.expect(inst).to.be.an 'object'
+          inst.once 'ready', ->
+            chai.expect(inst.started).to.equal(false)
+            done()
 
   describe 'loading the Graph component', ->
     instance = null
