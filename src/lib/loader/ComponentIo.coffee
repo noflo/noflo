@@ -1,5 +1,5 @@
 utils = require '../Utils'
-nofloGraph = require '../Graph'
+fbpGraph = require 'fbp-graph'
 platform = require '../Platform'
 
 customLoader =
@@ -138,7 +138,7 @@ exports.getSource = (loader, name, callback) ->
     nameParts[0] = ''
 
   if loader.isGraph component
-    nofloGraph.loadFile component, (err, graph) ->
+    fbpGraph.graph.loadFile component, (err, graph) ->
       return callback err if err
       return callback new Error 'Unable to load graph' unless graph
       callback null,

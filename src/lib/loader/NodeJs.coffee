@@ -2,7 +2,7 @@ path = require 'path'
 fs = require 'fs'
 manifest = require 'fbp-manifest'
 utils = require '../Utils'
-nofloGraph = require '../Graph'
+fbpGraph = require 'fbp-graph'
 
 # We allow components to be un-compiled CoffeeScript
 CoffeeScript = require 'coffee-script'
@@ -161,16 +161,22 @@ exports.getSource = (loader, name, callback) ->
     unless component
       return callback new Error "Component #{name} not installed"
 
-  if typeof component isnt 'string'
-    return callback new Error "Can't provide source for #{name}. Not a file"
-
   nameParts = name.split '/'
   if nameParts.length is 1
     nameParts[1] = nameParts[0]
     nameParts[0] = ''
 
   if loader.isGraph component
-    nofloGraph.loadFile component, (err, graph) ->
+    if typeof component is 'object'
+      if typeof component.toJSON is 'function'
+        callback null,
+          name: nameParts[1]
+          library: nameParts[0]
+          code: JSON.stringify component.toJSON()
+          language: 'json'
+        return
+      return callback new Error "Can't provide source for #{name}. Not a file"
+    fbpGraph.graph.loadFile component, (err, graph) ->
       return callback err if err
       return callback new Error 'Unable to load graph' unless graph
       callback null,
@@ -179,6 +185,9 @@ exports.getSource = (loader, name, callback) ->
         code: JSON.stringify graph.toJSON()
         language: 'json'
     return
+
+  if typeof component isnt 'string'
+    return callback new Error "Can't provide source for #{name}. Not a file"
 
   fs.readFile component, 'utf-8', (err, code) ->
     return callback err if err

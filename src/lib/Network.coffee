@@ -3,7 +3,7 @@
 #     (c) 2011-2012 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
 internalSocket = require "./InternalSocket"
-graph = require "./Graph"
+graph = require "fbp-graph"
 {EventEmitter} = require 'events'
 platform = require './Platform'
 componentLoader = require './ComponentLoader'
