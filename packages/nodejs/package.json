@@ -31,11 +31,12 @@
   "devDependencies": {
     "chai": "^3.4.1",
     "coffeelint": "^1.13.0",
+    "fbp-protocol": "^0.6.1",
     "grunt": "^1.0.1",
     "grunt-coffeelint": "^0.0.16",
     "grunt-mocha-test": "^0.13.2",
     "jshint": "^2.9.3",
     "mocha": "^3.0.2",
-    "noflo-core": "^0.3.0"
+    "noflo-core": "^0.2.3"
   }
 }
