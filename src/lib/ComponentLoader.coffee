@@ -81,6 +81,8 @@ class ComponentLoader extends EventEmitter
         return
 
       instance.baseDir = @baseDir if name is 'Graph'
+      instance.componentName = name if typeof name is 'string'
+
       @setIcon name, instance
       callback null, instance
 
@@ -107,7 +109,6 @@ class ComponentLoader extends EventEmitter
       callback new Error "Invalid type #{typeof(implementation)} for component #{name}."
       return
 
-    instance.componentName = name if typeof name is 'string'
     callback null, instance
 
   isGraph: (cPath) ->
