@@ -1,6 +1,6 @@
 {
   "name": "noflo-nodejs",
-  "command": "node bin/noflo-nodejs --register false --host localhost --port 8080",
+  "command": null,
   "host": "localhost",
   "port": 8080,
   "collection": "core",
