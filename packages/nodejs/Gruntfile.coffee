@@ -1,4 +1,7 @@
+{spawn} = require 'child_process'
+
 module.exports = ->
+  runtimeSecret  = process.env.FBP_PROTOCOL_SECRET or 'noflo-nodejs'
   # Project configuration
   @initConfig
     pkg: @file.readJSON 'package.json'
@@ -23,11 +26,40 @@ module.exports = ->
           reporter: 'spec'
           require: 'coffee-script/register'
           grep: process.env.TESTS
+    # FBP Network Protocol tests
+    exec:
+      fbp_test:
+        command: "FBP_PROTOCOL_SECRET=#{runtimeSecret} ./node_modules/.bin/fbp-test --colors"
 
   @loadNpmTasks 'grunt-coffeelint'
   @loadNpmTasks 'grunt-mocha-test'
+  @loadNpmTasks 'grunt-exec'
 
   @registerTask 'test', [
     'coffeelint'
     'mochaTest'
+    'startRuntime'
+    'exec:fbp_test'
+    'stopRuntime'
   ]
+
+  runtime = null
+  @registerTask 'startRuntime', ->
+    done = @async()
+    runtime = spawn 'node', [
+      'bin/noflo-nodejs'
+      '--register=false'
+      '--host=localhost'
+      '--port=8080'
+      "--secret=#{runtimeSecret}"
+    ]
+    setTimeout ->
+      done()
+    , 4000
+  @registerTask 'stopRuntime', ->
+    return unless runtime
+    done = @async()
+    runtime.on 'close', ->
+      runtime = null
+      done()
+    runtime.kill()
