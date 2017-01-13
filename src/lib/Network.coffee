@@ -176,8 +176,10 @@ class Network extends EventEmitter
     inPorts = process.component.inPorts.ports or process.component.inPorts
     outPorts = process.component.outPorts.ports or process.component.outPorts
     for name, port of inPorts
+      continue unless port
       port.node = newId
     for name, port of outPorts
+      continue unless port
       port.node = newId
 
     @processes[newId] = process
