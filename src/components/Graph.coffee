@@ -74,6 +74,7 @@ class Graph extends noflo.Component
     @network.start (err) =>
       return callback err if err
       super()
+      do callback
 
   checkComponent: (name, process) ->
     unless process.component.isReady()
