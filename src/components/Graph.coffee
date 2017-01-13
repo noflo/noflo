@@ -47,6 +47,7 @@ class Graph extends noflo.Component
   createNetwork: (graph) ->
     @description = graph.properties.description or ''
     @icon = graph.properties.icon or @icon
+    graph.name = @nodeId unless graph.name
 
     graph.componentLoader = @loader
 
@@ -164,7 +165,10 @@ class Graph extends noflo.Component
   shutdown: (callback) ->
     unless callback
       callback = ->
+    return callback() unless @started
     return callback null unless @network
-    @network.stop callback
+    @network.stop (err) ->
+      return callback err if err
+      super()
 
 exports.getComponent = (metadata) -> new Graph metadata
