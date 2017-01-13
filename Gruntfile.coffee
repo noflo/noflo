@@ -67,6 +67,13 @@ module.exports = ->
         options:
           port: 8000
 
+    # Generate runner.html
+    noflo_browser_mocha:
+      all:
+        options:
+          scripts: ["../browser/<%=pkg.name%>.js"]
+        files:
+          'spec/runner.html': ['spec/*.js']
     # BDD tests on browser
     mocha_phantomjs:
       all:
@@ -123,8 +130,9 @@ module.exports = ->
       @file.mkdir 'components'
       @task.run 'mochaTest'
     if target is 'all' or target is 'browser'
-      @task.run 'connect'
       @task.run 'noflo_browser'
+      @task.run 'noflo_browser_mocha'
+      @task.run 'connect'
       @task.run 'mocha_phantomjs'
 
   @registerTask 'default', ['test']

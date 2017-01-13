@@ -8,6 +8,7 @@ bin/*.js
 spec/*.js
 spec/browser/*.js
 spec/result.xml
+spec/runner.html
 server/static/js/*.js
 docs_tmp/
 docs/
