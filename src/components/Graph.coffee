@@ -7,6 +7,7 @@ class Graph extends noflo.Component
     @started = false
     @baseDir = null
     @loader = null
+    @load = 0
 
     @inPorts = new noflo.InPorts
       graph:
@@ -54,6 +55,15 @@ class Graph extends noflo.Component
     noflo.createNetwork graph, (err, @network) =>
       return @error err if err
       @emit 'network', @network
+      contexts = []
+      @network.on 'start', =>
+        ctx = {}
+        contexts.push ctx
+        @activate ctx
+      @network.on 'end', =>
+        ctx = contexts.pop()
+        return unless ctx
+        @deactivate ctx
       @network.connect (err) =>
         return @error err if err
         notReady = false
