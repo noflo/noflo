@@ -77,24 +77,17 @@ class Network extends EventEmitter
     return 0 unless @startupDate
     new Date() - @startupDate
 
-  # Emit a 'start' event on the first connection, and 'end' event when
-  # last connection has been closed
-  increaseConnections: ->
-    if @connectionCount is 0
-      # First connection opened, execution has now started
-      @setStarted true
-    @connectionCount++
-  decreaseConnections: ->
-    @connectionCount--
-    return if @connectionCount
-    # Last connection closed, execution has now ended
-    # We do this in debounced way in case there is an in-flight operation still
-    unless @debouncedEnd
-      @debouncedEnd = utils.debounce =>
-        return if @connectionCount
-        @setStarted false
-      , 50
-    do @debouncedEnd
+  getActiveProcesses: ->
+    active = []
+    return active unless @started
+    for name, process of @processes
+      if process.component.load
+        # Modern component with load
+        active.push name
+      if process.component.__openConnections
+        # Legacy component
+        active.push name
+    return active
 
   # ## Loading components
   #
@@ -134,6 +127,7 @@ class Network extends EventEmitter
       return callback err if err
       instance.nodeId = node.id
       process.component = instance
+      process.componentName = node.component
 
       # Inform the ports of the node name
       # FIXME: direct process.component.inPorts/outPorts access is only for legacy compat
@@ -323,8 +317,6 @@ class Network extends EventEmitter
       if type is 'process-error' and @listeners('process-error').length is 0
         throw data.error if data.id and data.metadata and data.error
         throw data
-      do @increaseConnections if type is 'connect'
-      do @decreaseConnections if type is 'disconnect'
       data = {} unless data
       if data.subgraph
         unless data.subgraph.unshift
@@ -343,9 +335,13 @@ class Network extends EventEmitter
       emitSub 'process-error', data
 
   # Subscribe to events from all connected sockets and re-emit them
-  subscribeSocket: (socket) ->
+  subscribeSocket: (socket, source) ->
     socket.on 'connect', =>
-      do @increaseConnections
+      if source and not source.component.load
+        # Handle activation for legacy components
+        source.component.__openConnections = 0 unless source.component.__openConnections
+        source.component.__openConnections++
+        @checkIfStarted()
       @emit 'connect',
         id: socket.getId()
         socket: socket
@@ -369,11 +365,17 @@ class Network extends EventEmitter
         group: group
         metadata: socket.metadata
     socket.on 'disconnect', =>
-      do @decreaseConnections
       @emit 'disconnect',
         id: socket.getId()
         socket: socket
         metadata: socket.metadata
+      if source and source.component.__openConnections?
+        # Handle deactivation for legacy components
+        source.component.__openConnections--
+        if source.component.__openConnections < 0
+          source.component.__openConnections = 0
+        if source.component.__openConnections is 0
+          @checkIfFinished()
     socket.on 'error', (event) =>
       if @listeners('process-error').length is 0
         throw event.error if event.id and event.metadata and event.error
@@ -381,6 +383,12 @@ class Network extends EventEmitter
       @emit 'process-error', event
 
   subscribeNode: (node) ->
+    node.component.on 'activate', (load) =>
+      return if load > 1
+      @checkIfStarted()
+    node.component.on 'deactivate', (load) =>
+      return if load
+      @checkIfFinished()
     return unless node.component.getIcon
     node.component.on 'icon', =>
       @emit 'icon',
@@ -414,7 +422,7 @@ class Network extends EventEmitter
       return
 
     # Subscribe to events from the socket
-    @subscribeSocket socket
+    @subscribeSocket socket, from
 
     @connectPort socket, to, edge.to.port, edge.to.index, true
     @connectPort socket, from, edge.from.port, edge.from.index, false
@@ -635,6 +643,22 @@ class Network extends EventEmitter
     @started = true
     @emit 'start',
       start: @startupDate
+
+  checkIfStarted: ->
+    return if @started
+    @start ->
+
+  checkIfFinished: ->
+    return unless @started
+    active = @getActiveProcesses()
+    console.log @graph.name, active
+    return if active.length
+    unless @debouncedEnd
+      @debouncedEnd = utils.debounce =>
+        return if @connectionCount
+        @setStarted false
+      , 50
+    do @debouncedEnd
 
   getDebug: () ->
     @debug
