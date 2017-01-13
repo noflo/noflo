@@ -62,6 +62,7 @@ class Graph extends noflo.Component
     , true
 
   start: (callback) ->
+    return if @started
     unless callback
       callback = ->
     unless @isReady()
@@ -72,7 +73,7 @@ class Graph extends noflo.Component
     return callback null unless @network
     @network.start (err) =>
       return callback err if err
-      @started = true
+      super()
 
   checkComponent: (name, process) ->
     unless process.component.isReady()
