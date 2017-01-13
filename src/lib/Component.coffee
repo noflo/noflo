@@ -79,6 +79,7 @@ class Component extends EventEmitter
 
   # The startup function performs initialization for the component.
   start: ->
+    return if @started
     @started = true
     @emit 'start'
     @started
