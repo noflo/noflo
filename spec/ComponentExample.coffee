@@ -3,7 +3,6 @@ if typeof process isnt 'undefined' and process.execPath and process.execPath.mat
   noflo = require '../src/lib/NoFlo.coffee'
 else
   noflo = require 'noflo'
-MergeObjects = require './components/MergeObjects.coffee'
 
 describe 'MergeObjects component', ->
   c = null
@@ -19,6 +18,8 @@ describe 'MergeObjects component', ->
     title: 'Attorney'
     age: 33
   before (done) ->
+    return @skip() if noflo.isBrowser()
+    MergeObjects = require './components/MergeObjects.coffee'
     c = MergeObjects.getComponent()
     sin1 = new noflo.internalSocket.InternalSocket
     sin2 = new noflo.internalSocket.InternalSocket
