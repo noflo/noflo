@@ -80,11 +80,10 @@ class Graph extends noflo.Component
       @on 'ready', =>
         @start callback
       return
-
+    super()
     return callback null unless @network
     @network.start (err) =>
       return callback err if err
-      super()
       do callback
 
   checkComponent: (name, process) ->
@@ -177,8 +176,9 @@ class Graph extends noflo.Component
       callback = ->
     return callback() unless @started
     return callback null unless @network
-    @network.stop (err) ->
+    @network.stop (err) =>
       return callback err if err
       super()
+      do callback
 
 exports.getComponent = (metadata) -> new Graph metadata
