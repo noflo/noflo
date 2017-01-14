@@ -31,7 +31,6 @@ class Network extends EventEmitter
   graph: null
   # Start-up timestamp for the network, used for calculating uptime
   startupDate: null
-  portBuffer: {}
 
   # All NoFlo networks are instantiated with a graph. Upon instantiation
   # they will load all the needed components, instantiate them, and
@@ -339,8 +338,6 @@ class Network extends EventEmitter
         # Handle activation for legacy components
         source.component.__openConnections = 0 unless source.component.__openConnections
         source.component.__openConnections++
-        if source.component.__openConnections is 1
-          @checkIfStarted()
       @emit 'connect',
         id: socket.getId()
         socket: socket
@@ -382,9 +379,6 @@ class Network extends EventEmitter
       @emit 'process-error', event
 
   subscribeNode: (node) ->
-    node.component.on 'activate', (load) =>
-      return if load > 1
-      @checkIfStarted()
     node.component.on 'deactivate', (load) =>
       return if load > 0
       @checkIfFinished()
@@ -651,12 +645,8 @@ class Network extends EventEmitter
     @emit 'start',
       start: @startupDate
 
-  checkIfStarted: ->
-    return if @isRunning()
-    @setStarted true
-
   checkIfFinished: ->
-    return unless @isRunning()
+    return if @isRunning()
     unless @debouncedEnd
       @debouncedEnd = utils.debounce =>
         @setStarted false
