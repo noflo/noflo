@@ -35,10 +35,7 @@ describe 'NoFlo Network', ->
           control: true
       process: (input, output) ->
         # Drop brackets
-        if input.ip.type isnt 'data'
-          buf = if input.scope then input.port.scopedBuffer[input.scope] else input.port.buffer
-          return buf.pop()
-        return unless input.has 'callback', 'in'
+        return unless input.hasData 'callback', 'in'
         cb = input.getData 'callback'
         data = input.getData 'in'
         cb data
