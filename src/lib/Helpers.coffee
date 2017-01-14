@@ -240,6 +240,7 @@ exports.WirePattern = (component, config, proc) ->
     component.beforeProcess = (scope, outs) ->
       _wp(scope).outputQ.push outs if config.ordered
       component.load++
+      component.emit 'activate', component.load
       if 'load' of component.outPorts and component.outPorts.load.isAttached()
         component.outPorts.load.send component.load
         component.outPorts.load.disconnect()
@@ -249,6 +250,7 @@ exports.WirePattern = (component, config, proc) ->
       if 'load' of component.outPorts and component.outPorts.load.isAttached()
         component.outPorts.load.send component.load
         component.outPorts.load.disconnect()
+      component.emit 'deactivate', component.load
 
   component.sendDefaults = (scope) ->
     if component.defaultedParams.length > 0

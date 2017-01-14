@@ -31,7 +31,6 @@ class Network extends EventEmitter
   graph: null
   # Start-up timestamp for the network, used for calculating uptime
   startupDate: null
-  portBuffer: {}
 
   # All NoFlo networks are instantiated with a graph. Upon instantiation
   # they will load all the needed components, instantiate them, and
@@ -49,7 +48,6 @@ class Network extends EventEmitter
     @graph = graph
     @started = false
     @debug = true
-    @connectionCount = 0
 
     # On Node.js we default the baseDir for component loading to
     # the current working directory
@@ -77,24 +75,17 @@ class Network extends EventEmitter
     return 0 unless @startupDate
     new Date() - @startupDate
 
-  # Emit a 'start' event on the first connection, and 'end' event when
-  # last connection has been closed
-  increaseConnections: ->
-    if @connectionCount is 0
-      # First connection opened, execution has now started
-      @setStarted true
-    @connectionCount++
-  decreaseConnections: ->
-    @connectionCount--
-    return if @connectionCount
-    # Last connection closed, execution has now ended
-    # We do this in debounced way in case there is an in-flight operation still
-    unless @debouncedEnd
-      @debouncedEnd = utils.debounce =>
-        return if @connectionCount
-        @setStarted false
-      , 50
-    do @debouncedEnd
+  getActiveProcesses: ->
+    active = []
+    return active unless @started
+    for name, process of @processes
+      if process.component.load > 0
+        # Modern component with load
+        active.push name
+      if process.component.__openConnections > 0
+        # Legacy component
+        active.push name
+    return active
 
   # ## Loading components
   #
@@ -134,6 +125,7 @@ class Network extends EventEmitter
       return callback err if err
       instance.nodeId = node.id
       process.component = instance
+      process.componentName = node.component
 
       # Inform the ports of the node name
       # FIXME: direct process.component.inPorts/outPorts access is only for legacy compat
@@ -199,7 +191,6 @@ class Network extends EventEmitter
         # Add either a Node, an Initial, or an Edge and move on to the next one
         # when done
         this["add#{type}"] add, (err) ->
-          console.log err if err
           return done err if err
           callStack++
           if callStack % 100 is 0
@@ -323,8 +314,6 @@ class Network extends EventEmitter
       if type is 'process-error' and @listeners('process-error').length is 0
         throw data.error if data.id and data.metadata and data.error
         throw data
-      do @increaseConnections if type is 'connect'
-      do @decreaseConnections if type is 'disconnect'
       data = {} unless data
       if data.subgraph
         unless data.subgraph.unshift
@@ -343,9 +332,12 @@ class Network extends EventEmitter
       emitSub 'process-error', data
 
   # Subscribe to events from all connected sockets and re-emit them
-  subscribeSocket: (socket) ->
+  subscribeSocket: (socket, source) ->
     socket.on 'connect', =>
-      do @increaseConnections
+      if source and source.component.isLegacy()
+        # Handle activation for legacy components
+        source.component.__openConnections = 0 unless source.component.__openConnections
+        source.component.__openConnections++
       @emit 'connect',
         id: socket.getId()
         socket: socket
@@ -369,11 +361,17 @@ class Network extends EventEmitter
         group: group
         metadata: socket.metadata
     socket.on 'disconnect', =>
-      do @decreaseConnections
       @emit 'disconnect',
         id: socket.getId()
         socket: socket
         metadata: socket.metadata
+      if source and source.component.isLegacy()
+        # Handle deactivation for legacy components
+        source.component.__openConnections--
+        if source.component.__openConnections < 0
+          source.component.__openConnections = 0
+        if source.component.__openConnections is 0
+          @checkIfFinished()
     socket.on 'error', (event) =>
       if @listeners('process-error').length is 0
         throw event.error if event.id and event.metadata and event.error
@@ -381,6 +379,9 @@ class Network extends EventEmitter
       @emit 'process-error', event
 
   subscribeNode: (node) ->
+    node.component.on 'deactivate', (load) =>
+      return if load > 0
+      @checkIfFinished()
     return unless node.component.getIcon
     node.component.on 'icon', =>
       @emit 'icon',
@@ -414,7 +415,7 @@ class Network extends EventEmitter
       return
 
     # Subscribe to events from the socket
-    @subscribeSocket socket
+    @subscribeSocket socket, from
 
     @connectPort socket, to, edge.to.port, edge.to.index, true
     @connectPort socket, from, edge.from.port, edge.from.index, false
@@ -536,7 +537,7 @@ class Network extends EventEmitter
 
   isRunning: ->
     return false unless @started
-    @connectionCount > 0
+    return @getActiveProcesses().length > 0
 
   startComponents: (callback) ->
     unless callback
@@ -552,7 +553,10 @@ class Network extends EventEmitter
     # Perform any startup routines necessary for every component.
     return callback() unless @processes and Object.keys(@processes).length
     for id, process of @processes
-      process.component.on 'start', onProcessStart
+      if process.component.isStarted()
+        onProcessStart()
+        continue
+      process.component.once 'start', onProcessStart
       process.component.start()
 
   sendDefaults: (callback) ->
@@ -578,6 +582,8 @@ class Network extends EventEmitter
       platform.deprecated 'Calling network.start() without callback is deprecated'
       callback = ->
 
+    @abortDebounce = true if @debouncedEnd
+
     if @started
       @stop (err) =>
         return callback err if err
@@ -599,6 +605,10 @@ class Network extends EventEmitter
       platform.deprecated 'Calling network.stop() without callback is deprecated'
       callback = ->
 
+    @abortDebounce = true if @debouncedEnd
+
+    return callback null unless @started
+
     # Disconnect all connections
     for connection in @connections
       continue unless connection.isConnected()
@@ -616,7 +626,15 @@ class Network extends EventEmitter
       return callback()
     # Tell processes to shut down
     for id, process of @processes
-      process.component.on 'end', onProcessEnd
+      # Clear input buffers
+      # FIXME: direct process.component.inPorts/outPorts access is only for legacy compat
+      inPorts = process.component.inPorts.ports or process.component.inPorts
+      inPort.clear() for inPort in inPorts
+
+      unless process.component.isStarted()
+        onProcessEnd()
+        continue
+      process.component.once 'end', onProcessEnd
       process.component.shutdown()
 
   setStarted: (started) ->
@@ -635,6 +653,16 @@ class Network extends EventEmitter
     @started = true
     @emit 'start',
       start: @startupDate
+
+  checkIfFinished: ->
+    return if @isRunning()
+    delete @abortDebounce
+    unless @debouncedEnd
+      @debouncedEnd = utils.debounce =>
+        return if @abortDebounce
+        @setStarted false
+      , 50
+    do @debouncedEnd
 
   getDebug: () ->
     @debug

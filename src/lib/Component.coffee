@@ -100,6 +100,14 @@ class Component extends EventEmitter
       else
         @forwardBrackets[inPort] = tmp
 
+  isLegacy: ->
+    # Process API
+    return false if @handle
+    # WirePattern
+    return false if @_wpData
+    # Legacy
+    true
+
   # Sets process handler function
   process: (handle) ->
     unless typeof handle is 'function'
@@ -270,6 +278,8 @@ class Component extends EventEmitter
 
   activate: (context) ->
     return if context.activated # prevent double activation
+    # Start if not started already
+    do @start unless @started
     context.activated = true
     context.deactivated = false
     @load++
@@ -620,7 +630,6 @@ class ProcessOutput
           @result.__bracketClosingAfter.push ctx
 
     debug "#{@nodeInstance.nodeId} finished processing #{@nodeInstance.load}"
-    @nodeInstance.load--
 
     if @nodeInstance.isOrdered()
       @result.__resolved = true

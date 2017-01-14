@@ -7,6 +7,7 @@ class Graph extends noflo.Component
     @started = false
     @baseDir = null
     @loader = null
+    @load = 0
 
     @inPorts = new noflo.InPorts
       graph:
@@ -47,12 +48,22 @@ class Graph extends noflo.Component
   createNetwork: (graph) ->
     @description = graph.properties.description or ''
     @icon = graph.properties.icon or @icon
+    graph.name = @nodeId unless graph.name
 
     graph.componentLoader = @loader
 
     noflo.createNetwork graph, (err, @network) =>
       return @error err if err
       @emit 'network', @network
+      contexts = []
+      @network.on 'start', =>
+        ctx = {}
+        contexts.push ctx
+        @activate ctx
+      @network.on 'end', =>
+        ctx = contexts.pop()
+        return unless ctx
+        @deactivate ctx
       @network.connect (err) =>
         return @error err if err
         notReady = false
@@ -69,11 +80,10 @@ class Graph extends noflo.Component
       @on 'ready', =>
         @start callback
       return
-
+    super()
     return callback null unless @network
     @network.start (err) =>
       return callback err if err
-      super()
       do callback
 
   checkComponent: (name, process) ->
@@ -164,7 +174,11 @@ class Graph extends noflo.Component
   shutdown: (callback) ->
     unless callback
       callback = ->
+    return callback() unless @started
     return callback null unless @network
-    @network.stop callback
+    @network.stop (err) =>
+      return callback err if err
+      super()
+      do callback
 
 exports.getComponent = (metadata) -> new Graph metadata
