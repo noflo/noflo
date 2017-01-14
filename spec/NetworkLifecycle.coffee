@@ -96,6 +96,42 @@ processMerge = ->
     output.sendDone
       out: "1#{first}:2#{second}:#{c.nodeId}"
 
+processGenerator = ->
+  c = new noflo.Component
+  c.inPorts.add 'start',
+    datatype: 'bang'
+  c.inPorts.add 'stop',
+    datatype: 'bang'
+  c.outPorts.add 'out',
+    datatype: 'bang'
+  c.autoOrdering = false
+
+  cleanUp = ->
+    clearInterval c.timer.interval
+    c.timer.deactivate()
+    c.timer = null
+
+  c.process (input, output, context) ->
+    if input.hasData 'start'
+      cleanUp() if c.timer
+      input.getData 'start'
+      c.timer = context
+      c.timer.interval = setInterval ->
+        output.send out: true
+      , 100
+    if input.hasData 'stop'
+      input.getData 'stop'
+      return output.done() unless c.timer
+      cleanUp()
+      output.done()
+
+  baseShutdown = c.shutdown.bind c
+  c.shutdown = ->
+    cleanUp() if c.timer
+    do baseShutdown
+
+  c
+
 describe 'Network Lifecycle', ->
   loader = null
   before (done) ->
@@ -106,6 +142,7 @@ describe 'Network Lifecycle', ->
       loader.registerComponent 'wirepattern', 'Merge', wirePatternMerge
       loader.registerComponent 'process', 'Async', processAsync
       loader.registerComponent 'process', 'Merge', processMerge
+      loader.registerComponent 'process', 'Generator', processGenerator
       loader.registerComponent 'legacy', 'Sync', legacyBasic
       done()
 
@@ -833,3 +870,60 @@ describe 'Network Lifecycle', ->
         in2.connect()
         in2.send 'foo'
         in2.disconnect()
+
+  describe 'with a Process API Generator component', ->
+    c = null
+    start = null
+    stop = null
+    out = null
+    before (done) ->
+      fbpData = "
+      INPORT=PcGen.START:START
+      INPORT=PcGen.STOP:STOP
+      OUTPORT=Pc.OUT:OUT
+      PcGen(process/Generator) OUT -> IN Pc(process/Async)
+      "
+      noflo.graph.loadFBP fbpData, (err, g) ->
+        return done err if err
+        loader.registerComponent 'scope', 'Connected', g
+        loader.load 'scope/Connected', (err, instance) ->
+          return done err if err
+          instance.once 'ready', ->
+            c = instance
+            start = noflo.internalSocket.createSocket()
+            c.inPorts.start.attach start
+            stop = noflo.internalSocket.createSocket()
+            c.inPorts.stop.attach stop
+            done()
+    beforeEach ->
+      out = noflo.internalSocket.createSocket()
+      c.outPorts.out.attach out
+    afterEach (done) ->
+      c.outPorts.out.detach out
+      out = null
+      c.shutdown done
+    it 'should not be running initially', ->
+      chai.expect(c.network.isRunning()).to.equal false
+    it 'should not be running even when network starts', (done) ->
+      c.start (err) ->
+        return done err if err
+        chai.expect(c.network.isRunning()).to.equal false
+        done()
+    it 'should start generating when receiving a start packet', (done) ->
+      c.start (err) ->
+        return done err if err
+        out.once 'data', ->
+          chai.expect(c.network.isRunning()).to.equal true
+          done()
+        start.send true
+    it 'should stop generating when receiving a stop packet', (done) ->
+      c.start (err) ->
+        return done err if err
+        out.once 'data', ->
+          chai.expect(c.network.isRunning()).to.equal true
+          stop.send true
+          setTimeout ->
+            chai.expect(c.network.isRunning()).to.equal false
+            done()
+          , 10
+        start.send true
