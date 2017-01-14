@@ -112,9 +112,10 @@ describe 'Network Lifecycle', ->
     beforeEach ->
       out = noflo.internalSocket.createSocket()
       c.outPorts.out.attach out
-    afterEach ->
+    afterEach (done) ->
       c.outPorts.out.detach out
       out = null
+      c.shutdown done
 
     it 'should forward old-style groups as expected', (done) ->
       expected = [
@@ -140,21 +141,27 @@ describe 'Network Lifecycle', ->
         received.push 'DISC'
 
       wasStarted = false
-      c.network.on 'start', ->
+      checkStart = ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
-      c.network.on 'end', ->
+      checkEnd = ->
         chai.expect(wasStarted).to.equal true
         chai.expect(received).to.eql expected
+        c.network.removeListener 'start', checkStart
+        c.network.removeListener 'end', checkEnd
         done()
+      c.network.on 'start', checkStart
+      c.network.once 'end', checkEnd
 
-      ins.connect()
-      ins.beginGroup 1
-      ins.beginGroup 'a'
-      ins.send 'baz'
-      ins.endGroup()
-      ins.endGroup()
-      ins.disconnect()
+      c.start (err) ->
+        return done err if err
+        ins.connect()
+        ins.beginGroup 1
+        ins.beginGroup 'a'
+        ins.send 'baz'
+        ins.endGroup()
+        ins.endGroup()
+        ins.disconnect()
     it 'should forward new-style brackets as expected', (done) ->
       expected = [
         '< 1'
@@ -178,19 +185,25 @@ describe 'Network Lifecycle', ->
             brackets.pop()
 
       wasStarted = false
-      c.network.on 'start', ->
+      checkStart = ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
-      c.network.on 'end', ->
+      checkEnd = ->
         chai.expect(wasStarted).to.equal true
         chai.expect(received).to.eql expected
+        c.network.removeListener 'start', checkStart
+        c.network.removeListener 'end', checkEnd
         done()
+      c.network.on 'start', checkStart
+      c.network.once 'end', checkEnd
 
-      ins.post new noflo.IP 'openBracket', 1
-      ins.post new noflo.IP 'openBracket', 'a'
-      ins.post new noflo.IP 'data', 'foo'
-      ins.post new noflo.IP 'closeBracket', 'a'
-      ins.post new noflo.IP 'closeBracket', 1
+      c.start (err) ->
+        return done err if err
+        ins.post new noflo.IP 'openBracket', 1
+        ins.post new noflo.IP 'openBracket', 'a'
+        ins.post new noflo.IP 'data', 'foo'
+        ins.post new noflo.IP 'closeBracket', 'a'
+        ins.post new noflo.IP 'closeBracket', 1
     it 'should forward scopes as expected', (done) ->
       expected = [
         'x < 1'
@@ -214,24 +227,30 @@ describe 'Network Lifecycle', ->
             brackets.pop()
 
       wasStarted = false
-      c.network.on 'start', ->
+      checkStart = ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
-      c.network.on 'end', ->
+      checkEnd = ->
         chai.expect(wasStarted).to.equal true
         chai.expect(received).to.eql expected
+        c.network.removeListener 'start', checkStart
+        c.network.removeListener 'end', checkEnd
         done()
+      c.network.on 'start', checkStart
+      c.network.once 'end', checkEnd
 
-      ins.post new noflo.IP 'openBracket', 1,
-        scope: 'x'
-      ins.post new noflo.IP 'openBracket', 'a',
-        scope: 'x'
-      ins.post new noflo.IP 'data', 'bar',
-        scope: 'x'
-      ins.post new noflo.IP 'closeBracket', 'a',
-        scope: 'x'
-      ins.post new noflo.IP 'closeBracket', 1,
-        scope: 'x'
+      c.start (err) ->
+        return done err if err
+        ins.post new noflo.IP 'openBracket', 1,
+          scope: 'x'
+        ins.post new noflo.IP 'openBracket', 'a',
+          scope: 'x'
+        ins.post new noflo.IP 'data', 'bar',
+          scope: 'x'
+        ins.post new noflo.IP 'closeBracket', 'a',
+          scope: 'x'
+        ins.post new noflo.IP 'closeBracket', 1,
+          scope: 'x'
 
   describe 'pure Process API merging two inputs', ->
     c = null
@@ -260,9 +279,10 @@ describe 'Network Lifecycle', ->
     beforeEach ->
       out = noflo.internalSocket.createSocket()
       c.outPorts.out.attach out
-    afterEach ->
+    afterEach (done) ->
       c.outPorts.out.detach out
       out = null
+      c.shutdown done
 
     it 'should forward new-style brackets as expected', (done) ->
       expected = [
@@ -288,24 +308,30 @@ describe 'Network Lifecycle', ->
         received.push 'DISC'
 
       wasStarted = false
-      c.network.on 'start', ->
+      checkStart = ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
-      c.network.on 'end', ->
+      checkEnd = ->
         chai.expect(wasStarted).to.equal true
         chai.expect(received).to.eql expected
+        c.network.removeListener 'start', checkStart
+        c.network.removeListener 'end', checkEnd
         done()
+      c.network.on 'start', checkStart
+      c.network.once 'end', checkEnd
 
-      in2.connect()
-      in2.send 'foo'
-      in2.disconnect()
-      in1.connect()
-      in1.beginGroup 1
-      in1.beginGroup 'a'
-      in1.send 'baz'
-      in1.endGroup()
-      in1.endGroup()
-      in1.disconnect()
+      c.start (err) ->
+        return done err if err
+        in2.connect()
+        in2.send 'foo'
+        in2.disconnect()
+        in1.connect()
+        in1.beginGroup 1
+        in1.beginGroup 'a'
+        in1.send 'baz'
+        in1.endGroup()
+        in1.endGroup()
+        in1.disconnect()
     it 'should forward new-style brackets as expected regardless of sending order', (done) ->
       expected = [
         'CONN'
@@ -330,24 +356,30 @@ describe 'Network Lifecycle', ->
         received.push 'DISC'
 
       wasStarted = false
-      c.network.on 'start', ->
+      checkStart = ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
-      c.network.on 'end', ->
+      checkEnd = ->
         chai.expect(wasStarted).to.equal true
         chai.expect(received).to.eql expected
+        c.network.removeListener 'start', checkStart
+        c.network.removeListener 'end', checkEnd
         done()
+      c.network.on 'start', checkStart
+      c.network.once 'end', checkEnd
 
-      in1.connect()
-      in1.beginGroup 1
-      in1.beginGroup 'a'
-      in1.send 'baz'
-      in1.endGroup()
-      in1.endGroup()
-      in1.disconnect()
-      in2.connect()
-      in2.send 'foo'
-      in2.disconnect()
+      c.start (err) ->
+        return done err if err
+        in1.connect()
+        in1.beginGroup 1
+        in1.beginGroup 'a'
+        in1.send 'baz'
+        in1.endGroup()
+        in1.endGroup()
+        in1.disconnect()
+        in2.connect()
+        in2.send 'foo'
+        in2.disconnect()
     it 'should forward scopes as expected', (done) ->
       expected = [
         'x < 1'
@@ -369,20 +401,25 @@ describe 'Network Lifecycle', ->
             brackets.pop()
 
       wasStarted = false
-      c.network.on 'start', ->
+      checkStart = ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
-      c.network.on 'end', ->
+      checkEnd = ->
         chai.expect(wasStarted).to.equal true
         chai.expect(received).to.eql expected
+        c.network.removeListener 'start', checkStart
+        c.network.removeListener 'end', checkEnd
         done()
+      c.network.on 'start', checkStart
+      c.network.once 'end', checkEnd
 
-
-      in2.post new noflo.IP 'data', 'two',
-        scope: 'x'
-      in1.post new noflo.IP 'openBracket', 1,
-        scope: 'x'
-      in1.post new noflo.IP 'data', 'one',
-        scope: 'x'
-      in1.post new noflo.IP 'closeBracket', 1,
-        scope: 'x'
+      c.start (err) ->
+        return done err if err
+        in2.post new noflo.IP 'data', 'two',
+          scope: 'x'
+        in1.post new noflo.IP 'openBracket', 1,
+          scope: 'x'
+        in1.post new noflo.IP 'data', 'one',
+          scope: 'x'
+        in1.post new noflo.IP 'closeBracket', 1,
+          scope: 'x'
