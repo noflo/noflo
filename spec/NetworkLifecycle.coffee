@@ -9,6 +9,24 @@ else
   root = 'noflo'
   urlPrefix = '/'
 
+legacyBasic = ->
+  c = new noflo.Component
+  c.inPorts.add 'in',
+    datatype: 'string'
+  c.outPorts.add 'out',
+    datatype: 'string'
+  c.inPorts.in.on 'connect', ->
+    c.outPorts.out.connect()
+  c.inPorts.in.on 'begingroup', (group) ->
+    c.outPorts.out.beginGroup group
+  c.inPorts.in.on 'data', (data) ->
+    c.outPorts.out.data data + c.nodeId
+  c.inPorts.in.on 'endgroup', (group) ->
+    c.outPorts.out.endGroup()
+  c.inPorts.in.on 'disconnect', ->
+    c.outPorts.out.disconnect()
+  c
+
 wirePatternAsync = ->
   c = new noflo.Component
   c.inPorts.add 'in',
@@ -88,6 +106,7 @@ describe 'Network Lifecycle', ->
       loader.registerComponent 'wirepattern', 'Merge', wirePatternMerge
       loader.registerComponent 'process', 'Async', processAsync
       loader.registerComponent 'process', 'Merge', processMerge
+      loader.registerComponent 'legacy', 'Sync', legacyBasic
       done()
 
   describe 'with WirePattern sending to Process API', ->
@@ -423,3 +442,394 @@ describe 'Network Lifecycle', ->
           scope: 'x'
         in1.post new noflo.IP 'closeBracket', 1,
           scope: 'x'
+
+  describe 'Process API mixed with legacy merging two inputs', ->
+    c = null
+    in1 = null
+    in2 = null
+    out = null
+    before (done) ->
+      fbpData = "
+      INPORT=Leg1.IN:IN1
+      INPORT=Leg2.IN:IN2
+      OUTPORT=Leg3.OUT:OUT
+      Leg1(legacy/Sync) OUT -> IN1 PcMerge(process/Merge)
+      Leg2(legacy/Sync) OUT -> IN2 PcMerge(process/Merge)
+      PcMerge OUT -> IN Leg3(legacy/Sync)
+      "
+      noflo.graph.loadFBP fbpData, (err, g) ->
+        return done err if err
+        loader.registerComponent 'scope', 'Merge', g
+        loader.load 'scope/Merge', (err, instance) ->
+          return done err if err
+          c = instance
+          in1 = noflo.internalSocket.createSocket()
+          c.inPorts.in1.attach in1
+          in2 = noflo.internalSocket.createSocket()
+          c.inPorts.in2.attach in2
+          done()
+    beforeEach ->
+      out = noflo.internalSocket.createSocket()
+      c.outPorts.out.attach out
+    afterEach (done) ->
+      c.outPorts.out.detach out
+      out = null
+      c.shutdown done
+
+    it 'should forward new-style brackets as expected', (done) ->
+      expected = [
+        'CONN'
+        '< 1'
+        '< a'
+        'DATA 1bazLeg1:2fooLeg2:PcMergeLeg3'
+        '>'
+        '>'
+        'DISC'
+      ]
+      received = []
+
+      out.on 'connect', ->
+        received.push 'CONN'
+      out.on 'begingroup', (group) ->
+        received.push "< #{group}"
+      out.on 'data', (data) ->
+        received.push "DATA #{data}"
+      out.on 'endgroup', ->
+        received.push '>'
+      out.on 'disconnect', ->
+        received.push 'DISC'
+
+      wasStarted = false
+      checkStart = ->
+        chai.expect(wasStarted).to.equal false
+        wasStarted = true
+      checkEnd = ->
+        chai.expect(wasStarted).to.equal true
+        chai.expect(received).to.eql expected
+        c.network.removeListener 'start', checkStart
+        c.network.removeListener 'end', checkEnd
+        done()
+      c.network.on 'start', checkStart
+      c.network.once 'end', checkEnd
+
+      c.start (err) ->
+        return done err if err
+        in2.connect()
+        in2.send 'foo'
+        in2.disconnect()
+        in1.connect()
+        in1.beginGroup 1
+        in1.beginGroup 'a'
+        in1.send 'baz'
+        in1.endGroup()
+        in1.endGroup()
+        in1.disconnect()
+    it 'should forward new-style brackets as expected regardless of sending order', (done) ->
+      expected = [
+        'CONN'
+        '< 1'
+        '< a'
+        'DATA 1bazLeg1:2fooLeg2:PcMergeLeg3'
+        '>'
+        '>'
+        'DISC'
+      ]
+      received = []
+
+      out.on 'connect', ->
+        received.push 'CONN'
+      out.on 'begingroup', (group) ->
+        received.push "< #{group}"
+      out.on 'data', (data) ->
+        received.push "DATA #{data}"
+      out.on 'endgroup', ->
+        received.push '>'
+      out.on 'disconnect', ->
+        received.push 'DISC'
+
+      wasStarted = false
+      checkStart = ->
+        chai.expect(wasStarted).to.equal false
+        wasStarted = true
+      checkEnd = ->
+        chai.expect(wasStarted).to.equal true
+        chai.expect(received).to.eql expected
+        c.network.removeListener 'start', checkStart
+        c.network.removeListener 'end', checkEnd
+        done()
+      c.network.on 'start', checkStart
+      c.network.once 'end', checkEnd
+
+      c.start (err) ->
+        return done err if err
+        in1.connect()
+        in1.beginGroup 1
+        in1.beginGroup 'a'
+        in1.send 'baz'
+        in1.endGroup()
+        in1.endGroup()
+        in1.disconnect()
+        in2.connect()
+        in2.send 'foo'
+        in2.disconnect()
+
+  describe 'Process API mixed with Legacy and WirePattern merging two inputs', ->
+    c = null
+    in1 = null
+    in2 = null
+    out = null
+    before (done) ->
+      fbpData = "
+      INPORT=Leg1.IN:IN1
+      INPORT=Leg2.IN:IN2
+      OUTPORT=Wp.OUT:OUT
+      Leg1(legacy/Sync) OUT -> IN1 PcMerge(process/Merge)
+      Leg2(legacy/Sync) OUT -> IN2 PcMerge(process/Merge)
+      PcMerge OUT -> IN Wp(wirepattern/Async)
+      "
+      noflo.graph.loadFBP fbpData, (err, g) ->
+        return done err if err
+        loader.registerComponent 'scope', 'Merge', g
+        loader.load 'scope/Merge', (err, instance) ->
+          return done err if err
+          c = instance
+          in1 = noflo.internalSocket.createSocket()
+          c.inPorts.in1.attach in1
+          in2 = noflo.internalSocket.createSocket()
+          c.inPorts.in2.attach in2
+          done()
+    beforeEach ->
+      out = noflo.internalSocket.createSocket()
+      c.outPorts.out.attach out
+    afterEach (done) ->
+      c.outPorts.out.detach out
+      out = null
+      c.shutdown done
+
+    it 'should forward new-style brackets as expected', (done) ->
+      expected = [
+        'CONN'
+        '< 1'
+        '< a'
+        'DATA 1bazLeg1:2fooLeg2:PcMergeWp'
+        '>'
+        '>'
+        'DISC'
+      ]
+      received = []
+
+      out.on 'connect', ->
+        received.push 'CONN'
+      out.on 'begingroup', (group) ->
+        received.push "< #{group}"
+      out.on 'data', (data) ->
+        received.push "DATA #{data}"
+      out.on 'endgroup', ->
+        received.push '>'
+      out.on 'disconnect', ->
+        received.push 'DISC'
+
+      wasStarted = false
+      checkStart = ->
+        chai.expect(wasStarted).to.equal false
+        wasStarted = true
+      checkEnd = ->
+        chai.expect(wasStarted).to.equal true
+        chai.expect(received).to.eql expected
+        c.network.removeListener 'start', checkStart
+        c.network.removeListener 'end', checkEnd
+        done()
+      c.network.on 'start', checkStart
+      c.network.once 'end', checkEnd
+
+      c.start (err) ->
+        return done err if err
+        in2.connect()
+        in2.send 'foo'
+        in2.disconnect()
+        in1.connect()
+        in1.beginGroup 1
+        in1.beginGroup 'a'
+        in1.send 'baz'
+        in1.endGroup()
+        in1.endGroup()
+        in1.disconnect()
+    it 'should forward new-style brackets as expected regardless of sending order', (done) ->
+      expected = [
+        'CONN'
+        '< 1'
+        '< a'
+        'DATA 1bazLeg1:2fooLeg2:PcMergeWp'
+        '>'
+        '>'
+        'DISC'
+      ]
+      received = []
+
+      out.on 'connect', ->
+        received.push 'CONN'
+      out.on 'begingroup', (group) ->
+        received.push "< #{group}"
+      out.on 'data', (data) ->
+        received.push "DATA #{data}"
+      out.on 'endgroup', ->
+        received.push '>'
+      out.on 'disconnect', ->
+        received.push 'DISC'
+
+      wasStarted = false
+      checkStart = ->
+        chai.expect(wasStarted).to.equal false
+        wasStarted = true
+      checkEnd = ->
+        chai.expect(wasStarted).to.equal true
+        chai.expect(received).to.eql expected
+        c.network.removeListener 'start', checkStart
+        c.network.removeListener 'end', checkEnd
+        done()
+      c.network.on 'start', checkStart
+      c.network.once 'end', checkEnd
+
+      c.start (err) ->
+        return done err if err
+        in1.connect()
+        in1.beginGroup 1
+        in1.beginGroup 'a'
+        in1.send 'baz'
+        in1.endGroup()
+        in1.endGroup()
+        in1.disconnect()
+        in2.connect()
+        in2.send 'foo'
+        in2.disconnect()
+
+  describe 'Process API mixed with WirePattern and legacy merging two inputs', ->
+    c = null
+    in1 = null
+    in2 = null
+    out = null
+    before (done) ->
+      fbpData = "
+      INPORT=Leg1.IN:IN1
+      INPORT=Leg2.IN:IN2
+      OUTPORT=Leg3.OUT:OUT
+      Leg1(legacy/Sync) OUT -> IN1 PcMerge(process/Merge)
+      Leg2(legacy/Sync) OUT -> IN2 PcMerge(process/Merge)
+      PcMerge OUT -> IN Wp(wirepattern/Async)
+      Wp OUT -> IN Leg3(legacy/Sync)
+      "
+      noflo.graph.loadFBP fbpData, (err, g) ->
+        return done err if err
+        loader.registerComponent 'scope', 'Merge', g
+        loader.load 'scope/Merge', (err, instance) ->
+          return done err if err
+          c = instance
+          in1 = noflo.internalSocket.createSocket()
+          c.inPorts.in1.attach in1
+          in2 = noflo.internalSocket.createSocket()
+          c.inPorts.in2.attach in2
+          done()
+    beforeEach ->
+      out = noflo.internalSocket.createSocket()
+      c.outPorts.out.attach out
+    afterEach (done) ->
+      c.outPorts.out.detach out
+      out = null
+      c.shutdown done
+
+    it 'should forward new-style brackets as expected', (done) ->
+      expected = [
+        'CONN'
+        '< 1'
+        '< a'
+        'DATA 1bazLeg1:2fooLeg2:PcMergeWpLeg3'
+        '>'
+        '>'
+        'DISC'
+      ]
+      received = []
+
+      out.on 'connect', ->
+        received.push 'CONN'
+      out.on 'begingroup', (group) ->
+        received.push "< #{group}"
+      out.on 'data', (data) ->
+        received.push "DATA #{data}"
+      out.on 'endgroup', ->
+        received.push '>'
+      out.on 'disconnect', ->
+        received.push 'DISC'
+
+      wasStarted = false
+      checkStart = ->
+        chai.expect(wasStarted).to.equal false
+        wasStarted = true
+      checkEnd = ->
+        chai.expect(wasStarted).to.equal true
+        chai.expect(received).to.eql expected
+        c.network.removeListener 'start', checkStart
+        c.network.removeListener 'end', checkEnd
+        done()
+      c.network.on 'start', checkStart
+      c.network.once 'end', checkEnd
+
+      c.start (err) ->
+        return done err if err
+        in2.connect()
+        in2.send 'foo'
+        in2.disconnect()
+        in1.connect()
+        in1.beginGroup 1
+        in1.beginGroup 'a'
+        in1.send 'baz'
+        in1.endGroup()
+        in1.endGroup()
+        in1.disconnect()
+    it 'should forward new-style brackets as expected regardless of sending order', (done) ->
+      expected = [
+        'CONN'
+        '< 1'
+        '< a'
+        'DATA 1bazLeg1:2fooLeg2:PcMergeWpLeg3'
+        '>'
+        '>'
+        'DISC'
+      ]
+      received = []
+
+      out.on 'connect', ->
+        received.push 'CONN'
+      out.on 'begingroup', (group) ->
+        received.push "< #{group}"
+      out.on 'data', (data) ->
+        received.push "DATA #{data}"
+      out.on 'endgroup', ->
+        received.push '>'
+      out.on 'disconnect', ->
+        received.push 'DISC'
+
+      wasStarted = false
+      checkStart = ->
+        chai.expect(wasStarted).to.equal false
+        wasStarted = true
+      checkEnd = ->
+        chai.expect(wasStarted).to.equal true
+        chai.expect(received).to.eql expected
+        c.network.removeListener 'start', checkStart
+        c.network.removeListener 'end', checkEnd
+        done()
+      c.network.on 'start', checkStart
+      c.network.once 'end', checkEnd
+
+      c.start (err) ->
+        return done err if err
+        in1.connect()
+        in1.beginGroup 1
+        in1.beginGroup 'a'
+        in1.send 'baz'
+        in1.endGroup()
+        in1.endGroup()
+        in1.disconnect()
+        in2.connect()
+        in2.send 'foo'
+        in2.disconnect()
