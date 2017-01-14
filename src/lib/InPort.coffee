@@ -167,4 +167,10 @@ class InPort extends BasePort
   ready: (scope) ->
     return @length(scope) > 0
 
+  # Clears inport buffers
+  clear: ->
+    @buffer = [] if @buffer
+    @scopedBuffer = {} if @scopedBuffer
+
+
 module.exports = InPort
