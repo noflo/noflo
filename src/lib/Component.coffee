@@ -270,6 +270,8 @@ class Component extends EventEmitter
 
   activate: (context) ->
     return if context.activated # prevent double activation
+    # Start if not started already
+    do @start unless @started
     context.activated = true
     context.deactivated = false
     @load++
