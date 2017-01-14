@@ -620,7 +620,6 @@ class ProcessOutput
           @result.__bracketClosingAfter.push ctx
 
     debug "#{@nodeInstance.nodeId} finished processing #{@nodeInstance.load}"
-    @nodeInstance.load--
 
     if @nodeInstance.isOrdered()
       @result.__resolved = true
