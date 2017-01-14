@@ -335,7 +335,7 @@ class Network extends EventEmitter
   # Subscribe to events from all connected sockets and re-emit them
   subscribeSocket: (socket, source) ->
     socket.on 'connect', =>
-      if source and typeof source.component.load is 'undefined'
+      if source and source.component.isLegacy()
         # Handle activation for legacy components
         source.component.__openConnections = 0 unless source.component.__openConnections
         source.component.__openConnections++
@@ -368,7 +368,7 @@ class Network extends EventEmitter
         id: socket.getId()
         socket: socket
         metadata: socket.metadata
-      if source and source.component.__openConnections?
+      if source and source.component.isLegacy()
         # Handle deactivation for legacy components
         source.component.__openConnections--
         if source.component.__openConnections < 0
