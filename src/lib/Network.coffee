@@ -556,7 +556,7 @@ class Network extends EventEmitter
       if process.component.isStarted()
         onProcessStart()
         continue
-      process.component.on 'start', onProcessStart
+      process.component.once 'start', onProcessStart
       process.component.start()
 
   sendDefaults: (callback) ->
@@ -582,6 +582,8 @@ class Network extends EventEmitter
       platform.deprecated 'Calling network.start() without callback is deprecated'
       callback = ->
 
+    @abortDebounce = true if @debouncedEnd
+
     if @started
       @stop (err) =>
         return callback err if err
@@ -602,6 +604,8 @@ class Network extends EventEmitter
     unless callback
       platform.deprecated 'Calling network.stop() without callback is deprecated'
       callback = ->
+
+    @abortDebounce = true if @debouncedEnd
 
     return callback null unless @started
 
@@ -625,7 +629,7 @@ class Network extends EventEmitter
       unless process.component.isStarted()
         onProcessEnd()
         continue
-      process.component.on 'end', onProcessEnd
+      process.component.once 'end', onProcessEnd
       process.component.shutdown()
 
   setStarted: (started) ->
@@ -647,8 +651,10 @@ class Network extends EventEmitter
 
   checkIfFinished: ->
     return if @isRunning()
+    delete @abortDebounce
     unless @debouncedEnd
       @debouncedEnd = utils.debounce =>
+        return if @abortDebounce
         @setStarted false
       , 50
     do @debouncedEnd
