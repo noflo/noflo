@@ -66,10 +66,12 @@ class InternalSocket extends EventEmitter
   #         # Otherwise, call same method recursively
   #         @readBuffer fd, position, size, buffer
   connect: ->
+    return if @connected
     @connected = true
     @emitEvent 'connect', null
 
   disconnect: ->
+    return unless @connected
     @connected = false
     @emitEvent 'disconnect', null
 
@@ -99,12 +101,10 @@ class InternalSocket extends EventEmitter
     ip = @dataDelegate() if ip is undefined and typeof @dataDelegate is 'function'
     # Send legacy connect/disconnect if needed
     if not @isConnected() and @brackets.length is 0
-      @connected = true
-      @emitEvent 'connect', null
+      do @connect
     @handleSocketEvent 'ip', ip, false
     if autoDisconnect and @isConnected() and @brackets.length is 0
-      @connected = false
-      @emitEvent 'disconnect', null
+      do @disconnect
 
   # ## Information Packet grouping
   #
