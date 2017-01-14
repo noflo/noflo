@@ -130,7 +130,8 @@ describe 'NoFlo Network', ->
     it 'should send some initials when started', (done) ->
       chai.expect(n.initials).not.to.be.empty
       cb = done
-      n.start()
+      n.start (err) ->
+        return done err if err
 
     it 'should contain two processes', ->
       chai.expect(n.processes).to.not.be.empty
@@ -252,7 +253,8 @@ describe 'NoFlo Network', ->
         nw.loader.components.Cb = -> cb
         nw.connect (err) ->
           return done err if err
-          nw.start()
+          nw.start (err) ->
+            return done err if err
       , true
 
     it 'should not send default values to nodes with an edge', (done) ->
@@ -270,7 +272,8 @@ describe 'NoFlo Network', ->
         nw.loader.components.Merge = Merge
         nw.connect (err) ->
           return done err if err
-          nw.start()
+          nw.start (err) ->
+            return done err if err
       , true
 
     it 'should not send default values to nodes with IIP', (done) ->
@@ -286,7 +289,8 @@ describe 'NoFlo Network', ->
         nw.loader.components.Merge = Merge
         nw.connect (err) ->
           return done err if err
-          nw.start()
+          nw.start (err) ->
+            return done err if err
       , true
 
   describe "Nodes are added first, then edges, then initializers (i.e. IIPs), and in order of definition order within each", ->
@@ -383,7 +387,8 @@ describe 'NoFlo Network', ->
           n = nw
           nw.connect (err) ->
             return done err if err
-            nw.start()
+            nw.start (err) ->
+              return done err if err
         , true
       , 10
     it 'should allow removing the IIPs', (done) ->
@@ -405,7 +410,8 @@ describe 'NoFlo Network', ->
         done()
       g.addInitial cb, 'Callback', 'callback'
       g.addInitial 'Baz', 'Repeat', 'in'
-      n.start()
+      n.start (err) ->
+        return done err if err
 
     describe 'on stopping', ->
       it 'processes should be running before the stop call', ->
