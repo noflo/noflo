@@ -49,7 +49,6 @@ class Network extends EventEmitter
     @graph = graph
     @started = false
     @debug = true
-    @connectionCount = 0
 
     # On Node.js we default the baseDir for component loading to
     # the current working directory
@@ -81,10 +80,10 @@ class Network extends EventEmitter
     active = []
     return active unless @started
     for name, process of @processes
-      if process.component.load
+      if process.component.load > 0
         # Modern component with load
         active.push name
-      if process.component.__openConnections
+      if process.component.__openConnections > 0
         # Legacy component
         active.push name
     return active
@@ -193,7 +192,6 @@ class Network extends EventEmitter
         # Add either a Node, an Initial, or an Edge and move on to the next one
         # when done
         this["add#{type}"] add, (err) ->
-          console.log err if err
           return done err if err
           callStack++
           if callStack % 100 is 0
@@ -337,11 +335,12 @@ class Network extends EventEmitter
   # Subscribe to events from all connected sockets and re-emit them
   subscribeSocket: (socket, source) ->
     socket.on 'connect', =>
-      if source and not source.component.load
+      if source and typeof source.component.load is 'undefined'
         # Handle activation for legacy components
         source.component.__openConnections = 0 unless source.component.__openConnections
         source.component.__openConnections++
-        @checkIfStarted()
+        if source.component.__openConnections is 1
+          @checkIfStarted()
       @emit 'connect',
         id: socket.getId()
         socket: socket
@@ -387,7 +386,7 @@ class Network extends EventEmitter
       return if load > 1
       @checkIfStarted()
     node.component.on 'deactivate', (load) =>
-      return if load
+      return if load > 0
       @checkIfFinished()
     return unless node.component.getIcon
     node.component.on 'icon', =>
@@ -544,7 +543,7 @@ class Network extends EventEmitter
 
   isRunning: ->
     return false unless @started
-    @connectionCount > 0
+    return @getActiveProcesses().length > 0
 
   startComponents: (callback) ->
     unless callback
@@ -560,6 +559,9 @@ class Network extends EventEmitter
     # Perform any startup routines necessary for every component.
     return callback() unless @processes and Object.keys(@processes).length
     for id, process of @processes
+      if process.component.isStarted()
+        onProcessStart()
+        continue
       process.component.on 'start', onProcessStart
       process.component.start()
 
@@ -607,6 +609,8 @@ class Network extends EventEmitter
       platform.deprecated 'Calling network.stop() without callback is deprecated'
       callback = ->
 
+    return callback null unless @started
+
     # Disconnect all connections
     for connection in @connections
       continue unless connection.isConnected()
@@ -624,6 +628,9 @@ class Network extends EventEmitter
       return callback()
     # Tell processes to shut down
     for id, process of @processes
+      unless process.component.isStarted()
+        onProcessEnd()
+        continue
       process.component.on 'end', onProcessEnd
       process.component.shutdown()
 
@@ -645,17 +652,13 @@ class Network extends EventEmitter
       start: @startupDate
 
   checkIfStarted: ->
-    return if @started
-    @start ->
+    return if @isRunning()
+    @setStarted true
 
   checkIfFinished: ->
-    return unless @started
-    active = @getActiveProcesses()
-    console.log @graph.name, active
-    return if active.length
+    return unless @isRunning()
     unless @debouncedEnd
       @debouncedEnd = utils.debounce =>
-        return if @connectionCount
         @setStarted false
       , 50
     do @debouncedEnd
