@@ -100,6 +100,14 @@ class Component extends EventEmitter
       else
         @forwardBrackets[inPort] = tmp
 
+  isLegacy: ->
+    # Process API
+    return false if @handle
+    # WirePattern
+    return false if @_wpData
+    # Legacy
+    true
+
   # Sets process handler function
   process: (handle) ->
     unless typeof handle is 'function'
