@@ -336,7 +336,7 @@ class Network extends EventEmitter
   subscribeSocket: (socket, source) ->
     socket.on 'ip', (ip) =>
       @emit 'ip',
-        id: socket.getId true
+        id: socket.getId()
         type: ip.type
         socket: socket
         data: ip.data
