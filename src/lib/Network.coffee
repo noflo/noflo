@@ -87,6 +87,26 @@ class Network extends EventEmitter
         active.push name
     return active
 
+  eventBuffer: []
+  bufferedEmit: (event, payload) ->
+    # Errors get emitted immediately, like does network end
+    if event in ['error', 'process-error', 'end']
+      @emit event, payload
+      return
+    unless @isStarted()
+      @eventBuffer.push
+        type: event
+        payload: payload
+      return
+
+    @emit event, payload
+
+    if event is 'start'
+      # Once network has started we can send the IP-related events
+      for ev in @eventBuffer
+        @emit ev.type, ev.payload
+      @eventBuffer = []
+
   # ## Loading components
   #
   # Components can be passed to the NoFlo network in two ways:
@@ -262,7 +282,7 @@ class Network extends EventEmitter
     processOps = (err) =>
       if err
         throw err if @listeners('process-error').length is 0
-        @emit 'process-error', err
+        @bufferedEmit 'process-error', err
 
       unless graphOps.length
         processing = false
@@ -321,7 +341,7 @@ class Network extends EventEmitter
         data.subgraph = data.subgraph.unshift node.id
       else
         data.subgraph = [node.id]
-      @emit type, data
+      @bufferedEmit type, data
 
     node.component.network.on 'connect', (data) -> emitSub 'connect', data
     node.component.network.on 'begingroup', (data) -> emitSub 'begingroup', data
@@ -335,7 +355,7 @@ class Network extends EventEmitter
   # Subscribe to events from all connected sockets and re-emit them
   subscribeSocket: (socket, source) ->
     socket.on 'ip', (ip) =>
-      @emit 'ip',
+      @bufferedEmit 'ip',
         id: socket.getId()
         type: ip.type
         socket: socket
@@ -346,30 +366,30 @@ class Network extends EventEmitter
         # Handle activation for legacy components
         source.component.__openConnections = 0 unless source.component.__openConnections
         source.component.__openConnections++
-      @emit 'connect',
+      @bufferedEmit 'connect',
         id: socket.getId()
         socket: socket
         metadata: socket.metadata
     socket.on 'begingroup', (group) =>
-      @emit 'begingroup',
+      @bufferedEmit 'begingroup',
         id: socket.getId()
         socket: socket
         group: group
         metadata: socket.metadata
     socket.on 'data', (data) =>
-      @emit 'data',
+      @bufferedEmit 'data',
         id: socket.getId()
         socket: socket
         data: data
         metadata: socket.metadata
     socket.on 'endgroup', (group) =>
-      @emit 'endgroup',
+      @bufferedEmit 'endgroup',
         id: socket.getId()
         socket: socket
         group: group
         metadata: socket.metadata
     socket.on 'disconnect', =>
-      @emit 'disconnect',
+      @bufferedEmit 'disconnect',
         id: socket.getId()
         socket: socket
         metadata: socket.metadata
@@ -384,7 +404,7 @@ class Network extends EventEmitter
       if @listeners('process-error').length is 0
         throw event.error if event.id and event.metadata and event.error
         throw event
-      @emit 'process-error', event
+      @bufferedEmit 'process-error', event
 
   subscribeNode: (node) ->
     node.component.on 'deactivate', (load) =>
@@ -392,7 +412,7 @@ class Network extends EventEmitter
       @checkIfFinished()
     return unless node.component.getIcon
     node.component.on 'icon', =>
-      @emit 'icon',
+      @bufferedEmit 'icon',
         id: node.id
         icon: node.component.getIcon()
 
@@ -650,7 +670,7 @@ class Network extends EventEmitter
     unless started
       # Ending the execution
       @started = false
-      @emit 'end',
+      @bufferedEmit 'end',
         start: @startupDate
         end: new Date
         uptime: @uptime()
@@ -659,7 +679,7 @@ class Network extends EventEmitter
     # Starting the execution
     @startupDate = new Date unless @startupDate
     @started = true
-    @emit 'start',
+    @bufferedEmit 'start',
       start: @startupDate
 
   checkIfFinished: ->
