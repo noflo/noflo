@@ -30,7 +30,7 @@ class Substream
         ip.sendTo port
       else
         port.send ip
-    port.endGroup()
+    port.endGroup @key
   getKey: ->
     return @key
   getValue: ->
