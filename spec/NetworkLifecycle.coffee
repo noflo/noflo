@@ -776,38 +776,51 @@ describe 'Network Lifecycle', ->
 
     it 'should forward new-style brackets as expected', (done) ->
       expected = [
-        'CONN'
-        '< 1'
-        '< a'
-        'DATA 1bazLeg1:2fooLeg2:PcMergeWpLeg3'
-        '>'
-        '>'
-        'DISC'
+        'Leg2() OUT -> IN2 PcMerge() DATA fooLeg2'
+        'Leg1() OUT -> IN1 PcMerge() < 1'
+        'Leg1() OUT -> IN1 PcMerge() < a'
+        'Leg1() OUT -> IN1 PcMerge() DATA bazLeg1'
+        'PcMerge() OUT -> IN Wp() < 1'
+        'PcMerge() OUT -> IN Wp() < a'
+        'PcMerge() OUT -> IN Wp() DATA 1bazLeg1:2fooLeg2:PcMerge'
+        'Leg1() OUT -> IN1 PcMerge() > a'
+        'PcMerge() OUT -> IN Wp() > a'
+        'Leg1() OUT -> IN1 PcMerge() > 1'
+        'PcMerge() OUT -> IN Wp() > 1'
+        'Wp() OUT -> IN Leg3() < 1'
+        'Wp() OUT -> IN Leg3() < a'
+        'Wp() OUT -> IN Leg3() DATA 1bazLeg1:2fooLeg2:PcMergeWp'
+        'Wp() OUT -> IN Leg3() > a'
+        'Wp() OUT -> IN Leg3() > 1'
       ]
       received = []
-
-      out.on 'connect', ->
-        received.push 'CONN'
-      out.on 'begingroup', (group) ->
-        received.push "< #{group}"
-      out.on 'data', (data) ->
-        received.push "DATA #{data}"
-      out.on 'endgroup', ->
-        received.push '>'
-      out.on 'disconnect', ->
-        received.push 'DISC'
 
       wasStarted = false
       checkStart = ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
+      receiveEvent = (event) ->
+        prefix = ''
+        switch event.type
+          when 'openBracket'
+            prefix = '<'
+            data = "#{prefix} #{event.data}"
+          when 'data'
+            prefix = 'DATA'
+            data = "#{prefix} #{event.data}"
+          when 'closeBracket'
+            prefix = '>'
+            data = "#{prefix} #{event.data}"
+        received.push "#{event.id} #{data}"
       checkEnd = ->
+        c.network.removeListener 'start', checkStart
+        c.network.removeListener 'ip', receiveEvent
+        c.network.removeListener 'end', checkEnd
         chai.expect(wasStarted).to.equal true
         chai.expect(received).to.eql expected
-        c.network.removeListener 'start', checkStart
-        c.network.removeListener 'end', checkEnd
         done()
       c.network.on 'start', checkStart
+      c.network.on 'ip', receiveEvent
       c.network.once 'end', checkEnd
 
       c.start (err) ->
