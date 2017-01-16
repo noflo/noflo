@@ -166,7 +166,7 @@ class InternalSocket extends EventEmitter
   # Typical identifiers look like _ReadFile:OUT -> Display:IN_,
   # but for sockets sending initial information packets to
   # components may also loom like _DATA -> ReadFile:SOURCE_.
-  getId:  ->
+  getId: ->
     fromStr = (from) ->
       "#{from.process.id}() #{from.port.toUpperCase()}"
     toStr = (to) ->
