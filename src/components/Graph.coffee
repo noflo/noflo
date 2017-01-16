@@ -82,7 +82,7 @@ class Graph extends noflo.Component
       return
     super()
     return callback null unless @network
-    @network.start (err) =>
+    @network.start (err) ->
       return callback err if err
       do callback
 

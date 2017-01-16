@@ -105,7 +105,7 @@ class BasePort extends EventEmitter
       return @sockets[socketId].isConnected()
 
     connected = false
-    @sockets.forEach (socket) =>
+    @sockets.forEach (socket) ->
       return unless socket
       if socket.isConnected()
         connected = true

@@ -31,8 +31,8 @@ exports.MapComponent = (component, func, config) ->
       when 'data'
         func payload, groups, outPort
       when 'endgroup'
-        groups.pop()
-        outPort.endGroup()
+        group = groups.pop()
+        outPort.endGroup group
       when 'disconnect'
         groups = []
         outPort.disconnect()
@@ -46,8 +46,8 @@ class OutPortWrapper
     @port.openBracket group, scope: @scope, socketId
   send: (data, socketId = null) ->
     @port.sendIP 'data', data, scope: @scope, socketId, false
-  endGroup: (socketId = null) ->
-    @port.closeBracket null, scope: @scope, socketId
+  endGroup: (group, socketId = null) ->
+    @port.closeBracket group, scope: @scope, socketId
   disconnect: (socketId = null) ->
     @endGroup socketId
   isConnected: -> @port.isConnected()

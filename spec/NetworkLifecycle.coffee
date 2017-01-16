@@ -776,45 +776,77 @@ describe 'Network Lifecycle', ->
 
     it 'should forward new-style brackets as expected', (done) ->
       expected = [
-        'CONN'
-        '< 1'
-        '< a'
-        'DATA 1bazLeg1:2fooLeg2:PcMergeWpLeg3'
-        '>'
-        '>'
-        'DISC'
+        'START'
+        'DATA -> IN Leg2() CONN'
+        'Leg2() OUT -> IN2 PcMerge() CONN'
+        'DATA -> IN Leg2() DATA foo'
+        'Leg2() OUT -> IN2 PcMerge() DATA fooLeg2'
+        'Leg2() OUT -> IN2 PcMerge() DISC'
+        'DATA -> IN Leg2() DISC'
+        'Leg1() OUT -> IN1 PcMerge() CONN'
+        'Leg1() OUT -> IN1 PcMerge() < 1'
+        'Leg1() OUT -> IN1 PcMerge() < a'
+        'Leg1() OUT -> IN1 PcMerge() DATA bazLeg1'
+        'PcMerge() OUT -> IN Wp() CONN'
+        'PcMerge() OUT -> IN Wp() < 1'
+        'PcMerge() OUT -> IN Wp() < a'
+        'PcMerge() OUT -> IN Wp() DATA 1bazLeg1:2fooLeg2:PcMerge'
+        'Leg1() OUT -> IN1 PcMerge() > a'
+        'PcMerge() OUT -> IN Wp() > a'
+        'Leg1() OUT -> IN1 PcMerge() > 1'
+        'PcMerge() OUT -> IN Wp() > 1'
+        'PcMerge() OUT -> IN Wp() DISC'
+        'Leg1() OUT -> IN1 PcMerge() DISC'
+        'Wp() OUT -> IN Leg3() CONN'
+        'Wp() OUT -> IN Leg3() < 1'
+        'Wp() OUT -> IN Leg3() < a'
+        'Wp() OUT -> IN Leg3() DATA 1bazLeg1:2fooLeg2:PcMergeWp'
+        'Wp() OUT -> IN Leg3() > a'
+        'Wp() OUT -> IN Leg3() > 1'
+        'Wp() OUT -> IN Leg3() DISC'
+        'END'
       ]
       received = []
 
-      out.on 'connect', ->
-        received.push 'CONN'
-      out.on 'begingroup', (group) ->
-        received.push "< #{group}"
-      out.on 'data', (data) ->
-        received.push "DATA #{data}"
-      out.on 'endgroup', ->
-        received.push '>'
-      out.on 'disconnect', ->
-        received.push 'DISC'
-
       wasStarted = false
       checkStart = ->
-        chai.expect(wasStarted).to.equal false
-        wasStarted = true
+        received.push 'START'
+      receiveConnect = (event) ->
+        received.push "#{event.id} CONN"
+      receiveEvent = (event) ->
+        prefix = ''
+        switch event.type
+          when 'openBracket'
+            prefix = '<'
+            data = "#{prefix} #{event.data}"
+          when 'data'
+            prefix = 'DATA'
+            data = "#{prefix} #{event.data}"
+          when 'closeBracket'
+            prefix = '>'
+            data = "#{prefix} #{event.data}"
+        received.push "#{event.id} #{data}"
+      receiveDisconnect = (event) ->
+        received.push "#{event.id} DISC"
       checkEnd = ->
-        chai.expect(wasStarted).to.equal true
-        chai.expect(received).to.eql expected
+        received.push 'END'
+        c.network.graph.removeInitial 'foo', 'Leg2', 'in'
         c.network.removeListener 'start', checkStart
+        c.network.removeListener 'connect', receiveConnect
+        c.network.removeListener 'ip', receiveEvent
+        c.network.removeListener 'disconnect', receiveDisconnect
         c.network.removeListener 'end', checkEnd
+        chai.expect(received).to.eql expected
         done()
       c.network.on 'start', checkStart
+      c.network.on 'connect', receiveConnect
+      c.network.on 'ip', receiveEvent
+      c.network.on 'disconnect', receiveDisconnect
       c.network.once 'end', checkEnd
 
+      c.network.graph.addInitial 'foo', 'Leg2', 'in'
       c.start (err) ->
         return done err if err
-        in2.connect()
-        in2.send 'foo'
-        in2.disconnect()
         in1.connect()
         in1.beginGroup 1
         in1.beginGroup 'a'

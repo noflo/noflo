@@ -26,6 +26,8 @@ NoFlo ChangeLog
 * IP objects are strictly required to be of `noflo.IP` type
 * Removed support for deprecated Node.js 0.x versions
 * NoFlo Graph and Journal were moved to a dedicated [fbp-graph](https://github.com/flowbased/fbp-graph) library for easier usage in other FBP projects. No changes to NoFlo interface
+* NoFlo networks now emit packet events only while the network is running
+* NoFlo networks can show their currently active processes with the `getActiveProcesses()` method
 
 ## 0.7.8 (June 10th 2016)
 

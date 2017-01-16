@@ -149,7 +149,7 @@ exports.createNetwork = (graph, callback, options) ->
 #         throw err;
 #       }
 #       console.log('Network is now running!');
-#     });
+#     })
 exports.loadFile = (file, options, callback) ->
   unless callback
     callback = options

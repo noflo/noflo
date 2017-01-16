@@ -97,7 +97,7 @@ class ArrayPort extends port.Port
   isConnected: (socketId = null) ->
     if socketId is null
       connected = false
-      @sockets.forEach (socket) =>
+      @sockets.forEach (socket) ->
         return unless socket
         if socket.isConnected()
           connected = true

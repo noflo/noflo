@@ -246,7 +246,6 @@ describe 'ComponentLoader with no external packages installed', ->
       l.components.Subgraph = file
       l.getSource 'Subgraph', (err, src) ->
         return done err if err
-        console.log src
         chai.expect(src.code).to.not.be.empty
         chai.expect(src.language).to.equal 'json'
         done()
@@ -257,7 +256,6 @@ describe 'ComponentLoader with no external packages installed', ->
         l.components.Subgraph2 = graph
         l.getSource 'Subgraph2', (err, src) ->
           return done err if err
-          console.log src
           chai.expect(src.code).to.not.be.empty
           chai.expect(src.language).to.equal 'json'
           done()

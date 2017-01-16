@@ -420,7 +420,8 @@ describe 'NoFlo Network', ->
         n.once 'end', (endTimes) ->
           chai.expect(endTimes).to.be.an 'object'
           done()
-        n.stop()
+        n.stop (err) ->
+          return done err if err
       it 'should have called the shutdown method of each process', ->
         chai.expect(n.processes.Repeat.component.started).to.equal false
 

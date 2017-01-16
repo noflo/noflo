@@ -48,6 +48,7 @@ class Network extends EventEmitter
     @graph = graph
     @started = false
     @debug = true
+    @eventBuffer = []
 
     # On Node.js we default the baseDir for component loading to
     # the current working directory
@@ -86,6 +87,26 @@ class Network extends EventEmitter
         # Legacy component
         active.push name
     return active
+
+  eventBuffer: []
+  bufferedEmit: (event, payload) ->
+    # Errors get emitted immediately, like does network end
+    if event in ['error', 'process-error', 'end']
+      @emit event, payload
+      return
+    unless @isStarted()
+      @eventBuffer.push
+        type: event
+        payload: payload
+      return
+
+    @emit event, payload
+
+    if event is 'start'
+      # Once network has started we can send the IP-related events
+      for ev in @eventBuffer
+        @emit ev.type, ev.payload
+      @eventBuffer = []
 
   # ## Loading components
   #
@@ -262,7 +283,7 @@ class Network extends EventEmitter
     processOps = (err) =>
       if err
         throw err if @listeners('process-error').length is 0
-        @emit 'process-error', err
+        @bufferedEmit 'process-error', err
 
       unless graphOps.length
         processing = false
@@ -276,27 +297,27 @@ class Network extends EventEmitter
         else
           @[op.op] op.details, cb
 
-    @graph.on 'addNode', (node) =>
+    @graph.on 'addNode', (node) ->
       registerOp 'addNode', node
       do processOps unless processing
-    @graph.on 'removeNode', (node) =>
+    @graph.on 'removeNode', (node) ->
       registerOp 'removeNode', node
       do processOps unless processing
-    @graph.on 'renameNode', (oldId, newId) =>
+    @graph.on 'renameNode', (oldId, newId) ->
       registerOp 'renameNode',
         from: oldId
         to: newId
       do processOps unless processing
-    @graph.on 'addEdge', (edge) =>
+    @graph.on 'addEdge', (edge) ->
       registerOp 'addEdge', edge
       do processOps unless processing
-    @graph.on 'removeEdge', (edge) =>
+    @graph.on 'removeEdge', (edge) ->
       registerOp 'removeEdge', edge
       do processOps unless processing
-    @graph.on 'addInitial', (iip) =>
+    @graph.on 'addInitial', (iip) ->
       registerOp 'addInitial', iip
       do processOps unless processing
-    @graph.on 'removeInitial', (iip) =>
+    @graph.on 'removeInitial', (iip) ->
       registerOp 'removeInitial', iip
       do processOps unless processing
 
@@ -321,47 +342,55 @@ class Network extends EventEmitter
         data.subgraph = data.subgraph.unshift node.id
       else
         data.subgraph = [node.id]
-      @emit type, data
+      @bufferedEmit type, data
 
     node.component.network.on 'connect', (data) -> emitSub 'connect', data
     node.component.network.on 'begingroup', (data) -> emitSub 'begingroup', data
     node.component.network.on 'data', (data) -> emitSub 'data', data
     node.component.network.on 'endgroup', (data) -> emitSub 'endgroup', data
     node.component.network.on 'disconnect', (data) -> emitSub 'disconnect', data
+    node.component.network.on 'ip', (data) -> emitSub 'ip', data
     node.component.network.on 'process-error', (data) ->
       emitSub 'process-error', data
 
   # Subscribe to events from all connected sockets and re-emit them
   subscribeSocket: (socket, source) ->
+    socket.on 'ip', (ip) =>
+      @bufferedEmit 'ip',
+        id: socket.getId()
+        type: ip.type
+        socket: socket
+        data: ip.data
+        metadata: socket.metadata
     socket.on 'connect', =>
       if source and source.component.isLegacy()
         # Handle activation for legacy components
         source.component.__openConnections = 0 unless source.component.__openConnections
         source.component.__openConnections++
-      @emit 'connect',
+      @bufferedEmit 'connect',
         id: socket.getId()
         socket: socket
         metadata: socket.metadata
     socket.on 'begingroup', (group) =>
-      @emit 'begingroup',
+      @bufferedEmit 'begingroup',
         id: socket.getId()
         socket: socket
         group: group
         metadata: socket.metadata
     socket.on 'data', (data) =>
-      @emit 'data',
+      @bufferedEmit 'data',
         id: socket.getId()
         socket: socket
         data: data
         metadata: socket.metadata
     socket.on 'endgroup', (group) =>
-      @emit 'endgroup',
+      @bufferedEmit 'endgroup',
         id: socket.getId()
         socket: socket
         group: group
         metadata: socket.metadata
     socket.on 'disconnect', =>
-      @emit 'disconnect',
+      @bufferedEmit 'disconnect',
         id: socket.getId()
         socket: socket
         metadata: socket.metadata
@@ -376,7 +405,7 @@ class Network extends EventEmitter
       if @listeners('process-error').length is 0
         throw event.error if event.id and event.metadata and event.error
         throw event
-      @emit 'process-error', event
+      @bufferedEmit 'process-error', event
 
   subscribeNode: (node) ->
     node.component.on 'deactivate', (load) =>
@@ -384,7 +413,7 @@ class Network extends EventEmitter
       @checkIfFinished()
     return unless node.component.getIcon
     node.component.on 'icon', =>
-      @emit 'icon',
+      @bufferedEmit 'icon',
         id: node.id
         icon: node.component.getIcon()
 
@@ -591,6 +620,7 @@ class Network extends EventEmitter
       return
 
     @initials = @nextInitials.slice 0
+    @eventBuffer = []
     @startComponents (err) =>
       return callback err if err
       @sendInitials (err) =>
@@ -642,7 +672,7 @@ class Network extends EventEmitter
     unless started
       # Ending the execution
       @started = false
-      @emit 'end',
+      @bufferedEmit 'end',
         start: @startupDate
         end: new Date
         uptime: @uptime()
@@ -651,7 +681,7 @@ class Network extends EventEmitter
     # Starting the execution
     @startupDate = new Date unless @startupDate
     @started = true
-    @emit 'start',
+    @bufferedEmit 'start',
       start: @startupDate
 
   checkIfFinished: ->
