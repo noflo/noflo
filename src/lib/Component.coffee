@@ -363,7 +363,6 @@ class ProcessInput
       portBrackets = []
       hasData = false
       validate = (ip) ->
-        console.log ip.type, hasData, portBrackets
         if ip.type is 'openBracket'
           portBrackets.push ip.data
           return false
