@@ -297,27 +297,27 @@ class Network extends EventEmitter
         else
           @[op.op] op.details, cb
 
-    @graph.on 'addNode', (node) =>
+    @graph.on 'addNode', (node) ->
       registerOp 'addNode', node
       do processOps unless processing
-    @graph.on 'removeNode', (node) =>
+    @graph.on 'removeNode', (node) ->
       registerOp 'removeNode', node
       do processOps unless processing
-    @graph.on 'renameNode', (oldId, newId) =>
+    @graph.on 'renameNode', (oldId, newId) ->
       registerOp 'renameNode',
         from: oldId
         to: newId
       do processOps unless processing
-    @graph.on 'addEdge', (edge) =>
+    @graph.on 'addEdge', (edge) ->
       registerOp 'addEdge', edge
       do processOps unless processing
-    @graph.on 'removeEdge', (edge) =>
+    @graph.on 'removeEdge', (edge) ->
       registerOp 'removeEdge', edge
       do processOps unless processing
-    @graph.on 'addInitial', (iip) =>
+    @graph.on 'addInitial', (iip) ->
       registerOp 'addInitial', iip
       do processOps unless processing
-    @graph.on 'removeInitial', (iip) =>
+    @graph.on 'removeInitial', (iip) ->
       registerOp 'removeInitial', iip
       do processOps unless processing
 

@@ -96,7 +96,7 @@ class Port extends EventEmitter
 
   isConnected: ->
     connected = false
-    @sockets.forEach (socket) =>
+    @sockets.forEach (socket) ->
       if socket.isConnected()
         connected = true
     connected
