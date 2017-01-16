@@ -48,6 +48,7 @@ class Network extends EventEmitter
     @graph = graph
     @started = false
     @debug = true
+    @eventBuffer = []
 
     # On Node.js we default the baseDir for component loading to
     # the current working directory
@@ -619,6 +620,7 @@ class Network extends EventEmitter
       return
 
     @initials = @nextInitials.slice 0
+    @eventBuffer = []
     @startComponents (err) =>
       return callback err if err
       @sendInitials (err) =>
