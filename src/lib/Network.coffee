@@ -328,11 +328,19 @@ class Network extends EventEmitter
     node.component.network.on 'data', (data) -> emitSub 'data', data
     node.component.network.on 'endgroup', (data) -> emitSub 'endgroup', data
     node.component.network.on 'disconnect', (data) -> emitSub 'disconnect', data
+    node.component.network.on 'ip', (data) -> emitSub 'ip', data
     node.component.network.on 'process-error', (data) ->
       emitSub 'process-error', data
 
   # Subscribe to events from all connected sockets and re-emit them
   subscribeSocket: (socket, source) ->
+    socket.on 'ip', (ip) =>
+      @emit 'ip',
+        id: socket.getId true
+        type: ip.type
+        socket: socket
+        data: ip.data
+        metadata: socket.metadata
     socket.on 'connect', =>
       if source and source.component.isLegacy()
         # Handle activation for legacy components
