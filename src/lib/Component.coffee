@@ -319,7 +319,6 @@ class ProcessInput
     @port = @context.port
     @result = @context.result
     @scope = @context.scope
-    @buffer = new PortBuffer(@)
     @activated = false
 
   # When preconditions are met, set component state to `activated`
@@ -358,17 +357,30 @@ class ProcessInput
     return @has.apply @, args
 
   # Returns true if a port has a complete stream in its input buffer.
-  hasStream: (port) ->
-    buffer = @buffer.get port
-    return false if buffer.length is 0
-    # check if we have everything until end of a complete stream
-    received = 0
-    for packet in buffer
-      if packet.type is 'openBracket'
-        ++received
-      else if packet.type is 'closeBracket'
-        --received
-    received is 0
+  hasStream: (args...) ->
+    args = ['in'] unless args.length
+    for port in args
+      portBrackets = []
+      hasData = false
+      validate = (ip) ->
+        if ip.type is 'openBracket'
+          portBrackets.push ip.data
+          return false
+        if ip.type is 'data'
+          # Data IP on its own is a valid stream
+          return true unless portBrackets.length
+          # Otherwise we need to check for complete stream
+          hasData = true
+          return false
+        if ip.type is 'closeBracket'
+          portBrackets.pop()
+          return false if portBrackets.length
+          return false unless hasData
+          return true
+      return false unless @ports[port].has @scope, validate
+    res = true
+    res and= @ports[port].ready @scope for port in args
+    res
 
   # ## Input processing
   #
@@ -461,64 +473,39 @@ class ProcessInput
     datas
 
   # Fetches a complete data stream from the buffer.
-  getStream: (port, withoutConnectAndDisconnect = false) ->
-    buf = @buffer.get port
-    @buffer.filter port, (ip) -> false
-    if withoutConnectAndDisconnect
-      buf = buf.slice 1
-      buf.pop()
-    buf
+  getStream: (args...) ->
+    args = ['in'] unless args.length
+    datas = []
+    for port in args
+      portBrackets = []
+      portPackets = []
+      hasData = false
+      ip = @get port
+      datas.push undefined unless ip
+      while ip
+        if ip.type is 'openBracket'
+          unless portBrackets.length
+            # First openBracket in stream, drop previous
+            portPackets = []
+            hasData = false
+          portBrackets.push ip.data
+          portPackets.push ip
+        if ip.type is 'data'
+          portPackets.push ip
+          hasData = true
+          # Unbracketed data packet is a valid stream
+          break unless portBrackets.length
+        if ip.type is 'closeBracket'
+          portPackets.push ip
+          portBrackets.pop()
+          if hasData and not portBrackets.length
+            # Last close bracket finishes stream if there was data inside
+            break
+        ip = @get port
+      datas.push portPackets
 
-class PortBuffer
-  constructor: (@context) ->
-
-  set: (name, buffer) ->
-    if name? and typeof name isnt 'string'
-      buffer = name
-      name = null
-
-    if @context.scope?
-      if name?
-        @context.ports[name].scopedBuffer[@context.scope] = buffer
-        return @context.ports[name].scopedBuffer[@context.scope]
-      @context.port.scopedBuffer[@context.scope] = buffer
-      return @context.port.scopedBuffer[@context.scope]
-
-    if name?
-      @context.ports[name].buffer = buffer
-      return @context.ports[name].buffer
-
-    @context.port.buffer = buffer
-    return @context.port.buffer
-
-  # Get a buffer (scoped or not) for a given port
-  # if name is optional, use the current port
-  get: (name = null) ->
-    if @context.scope?
-      if name?
-        return @context.ports[name].scopedBuffer[@context.scope]
-      return @context.port.scopedBuffer[@context.scope]
-
-    if name?
-      return @context.ports[name].buffer
-    return @context.port.buffer
-
-  # Find packets matching a callback and return them without modifying the buffer
-  find: (name, cb) ->
-    b = @get name
-    b.filter cb
-
-  # Find packets and modify the original buffer
-  # cb is a function with 2 arguments (ip, index)
-  filter: (name, cb) ->
-    if name? and typeof name isnt 'string'
-      cb = name
-      name = null
-
-    b = @get name
-    b = b.filter cb
-
-    @set name, b
+    return datas.pop() if args.length is 1
+    datas
 
 class ProcessOutput
   constructor: (@ports, @context) ->

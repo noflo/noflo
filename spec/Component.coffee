@@ -1387,191 +1387,6 @@ describe 'Component', ->
           sin2.post new noflo.IP 'data', item.bar
           sin1.post new noflo.IP 'data', item.foo
 
-    describe 'using buffers', ->
-      it 'should get from buffer using a name', (done) ->
-        c = new noflo.Component
-          inPorts:
-            in:
-              datatype: 'string'
-          outPorts:
-            out:
-              datatype: 'string'
-          process: (input, output) ->
-            return unless input.has 'in', (ip) -> ip.type is 'data'
-            buf = input.buffer.get 'in', (ip) -> ip.type is 'data'
-
-            chai.expect(buf[0].data).to.eql 'foo'
-            chai.expect(buf).to.eql input.ports.in.buffer
-            done()
-
-        c.inPorts.in.attach sin1
-        sin1.post new noflo.IP 'data', 'foo'
-
-      it 'should filter everything from the buffer using no name', (done) ->
-        c = new noflo.Component
-          inPorts:
-            in:
-              datatype: 'string'
-          outPorts:
-            out:
-              datatype: 'string'
-            error:
-              datatype: 'object'
-          process: (input, output) ->
-            return unless input.has 'in', (ip) -> ip.type is 'data'
-            originalBuffer = input.buffer.get()
-            input.buffer.filter (ip) -> false
-            buffer = input.buffer.get()
-
-            chai.expect(originalBuffer.length).to.eql 1
-            chai.expect(buffer).to.eql []
-            done()
-
-        c.inPorts.in.attach sin1
-        sin1.post new noflo.IP 'data', 'foo'
-
-      it 'should filter everything from the scoped buffer using no name', (done) ->
-        c = new noflo.Component
-          inPorts:
-            in:
-              datatype: 'string'
-          outPorts:
-            out:
-              datatype: 'string'
-            error:
-              datatype: 'object'
-          process: (input, output) ->
-            return unless input.has 'in', (ip) -> ip.type is 'data'
-            originalBuffer = input.buffer.get()
-            input.buffer.filter (ip) -> false
-            buffer = input.buffer.get()
-
-            chai.expect(originalBuffer.length).to.eql 1
-            chai.expect(buffer).to.eql []
-            done()
-
-        c.inPorts.in.attach sin1
-        ip = new noflo.IP 'data', 'foo'
-        ip.scope = 'eh'
-        sin1.post ip
-
-      it 'should find from the buffer using a name', (done) ->
-        c = new noflo.Component
-          inPorts:
-            in:
-              datatype: 'string'
-          outPorts:
-            out:
-              datatype: 'string'
-            error:
-              datatype: 'object'
-          process: (input, output) ->
-            return unless input.has 'in', (ip) -> ip.type is 'data'
-            bufferedData = input.buffer.find 'in', (ip) -> return if ip.data? then true else false
-
-            chai.expect(bufferedData[0].data).to.eql 'foo'
-            done()
-
-        c.inPorts.in.attach sin1
-        sin1.post new noflo.IP 'data', 'foo'
-
-      it 'should get scoped buffer using a name ', (done) ->
-        c = new noflo.Component
-          inPorts:
-            in:
-              datatype: 'string'
-          outPorts:
-            out:
-              datatype: 'string'
-          process: (input, output) ->
-            return unless input.has 'in', (ip) -> ip.type is 'data'
-            buf = input.buffer.get 'in'
-            chai.expect(buf).to.eql input.ports.in.scopedBuffer.eh
-            done()
-
-        c.inPorts.in.attach sin1
-        ip = new noflo.IP 'data', 'foo'
-        ip.scope = 'eh'
-        sin1.post ip
-
-      it 'should set a buffer using a name', (done) ->
-        c = new noflo.Component
-          inPorts:
-            in:
-              datatype: 'string'
-          outPorts:
-            out:
-              datatype: 'string'
-          process: (input, output) ->
-            return unless input.has 'in', (ip) -> ip.type is 'data'
-            input.buffer.set 'in', []
-            bufferedData = input.buffer.get 'in'
-
-            chai.expect(bufferedData).to.eql []
-            done()
-
-        c.inPorts.in.attach sin1
-        sin1.post new noflo.IP 'data', 'foo'
-
-      it 'should set a buffer without a name', (done) ->
-        c = new noflo.Component
-          inPorts:
-            in:
-              datatype: 'string'
-          outPorts:
-            out:
-              datatype: 'string'
-          process: (input, output) ->
-            return unless input.has 'in', (ip) -> ip.type is 'data'
-            input.buffer.set []
-            bufferedData = input.buffer.get()
-
-            chai.expect(bufferedData).to.eql []
-            done()
-
-        c.inPorts.in.attach sin1
-        sin1.post new noflo.IP 'data', 'foo'
-
-      it 'should set a scoped buffer using a name', (done) ->
-        c = new noflo.Component
-          inPorts:
-            in:
-              datatype: 'string'
-          outPorts:
-            out:
-              datatype: 'string'
-          process: (input, output) ->
-            return unless input.has 'in', (ip) -> ip.type is 'data'
-            input.buffer.set 'in', []
-            bufferedData = input.buffer.get 'in'
-            chai.expect(bufferedData).to.eql []
-            done()
-
-        c.inPorts.in.attach sin1
-        ip = new noflo.IP 'data', 'foo'
-        ip.scope = 'eh'
-        sin1.post ip
-
-      it 'should set a scoped buffer without a name', (done) ->
-        c = new noflo.Component
-          inPorts:
-            in:
-              datatype: 'string'
-          outPorts:
-            out:
-              datatype: 'string'
-          process: (input, output) ->
-            return unless input.has 'in', (ip) -> ip.type is 'data'
-            input.buffer.set []
-            bufferedData = input.buffer.get()
-            chai.expect(bufferedData).to.eql []
-            done()
-
-        c.inPorts.in.attach sin1
-        ip = new noflo.IP 'data', 'foo'
-        ip.scope = 'eh'
-        sin1.post ip
-
     describe 'using streams', ->
       it 'should not trigger without a full stream without getting the whole stream', (done) ->
         c = new noflo.Component
@@ -1614,6 +1429,26 @@ describe 'Component', ->
         c.inPorts.in.attach sin1
         sin1.post new noflo.IP 'data', 'eh'
 
+      it 'should get full stream when it has a single packet stream and it should clear it', (done) ->
+        c = new noflo.Component
+          inPorts:
+            eh:
+              datatype: 'string'
+          outPorts:
+            canada:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.hasStream 'eh'
+            stream = input.getStream 'eh'
+            packetTypes = stream.map (ip) -> [ip.type, ip.data]
+            chai.expect(packetTypes).to.eql [
+              ['data', 'moose']
+            ]
+            chai.expect(input.has('eh')).to.equal false
+            done()
+
+        c.inPorts.eh.attach sin1
+        sin1.post new noflo.IP 'data', 'moose'
       it 'should get full stream when it has a full stream, and it should clear it', (done) ->
         c = new noflo.Component
           inPorts:
@@ -1624,16 +1459,23 @@ describe 'Component', ->
               datatype: 'string'
           process: (input, output) ->
             return unless input.hasStream 'eh'
-            originalBuf = input.buffer.get 'eh'
             stream = input.getStream 'eh'
-            afterStreamBuf = input.buffer.get 'eh'
-            chai.expect(stream).to.eql originalBuf
-            chai.expect(afterStreamBuf).to.eql []
+            packetTypes = stream.map (ip) -> [ip.type, ip.data]
+            chai.expect(packetTypes).to.eql [
+              ['openBracket', null]
+              ['openBracket', 'foo']
+              ['data', 'moose']
+              ['closeBracket', 'foo']
+              ['closeBracket', null]
+            ]
+            chai.expect(input.has('eh')).to.equal false
             done()
 
         c.inPorts.eh.attach sin1
         sin1.post new noflo.IP 'openBracket'
+        sin1.post new noflo.IP 'openBracket', 'foo'
         sin1.post new noflo.IP 'data', 'moose'
+        sin1.post new noflo.IP 'closeBracket', 'foo'
         sin1.post new noflo.IP 'closeBracket'
 
     describe 'with a simple ordered stream', ->
