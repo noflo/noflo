@@ -376,6 +376,7 @@ class ProcessInput
           portBrackets.pop()
           return false if portBrackets.length
           return false unless hasData
+          return true
       return false unless @ports[port].has @scope, validate
     res = true
     res and= @ports[port].ready @scope for port in args
@@ -472,13 +473,39 @@ class ProcessInput
     datas
 
   # Fetches a complete data stream from the buffer.
-  getStream: (port, withoutConnectAndDisconnect = false) ->
-    buf = @buffer.get port
-    @buffer.filter port, (ip) -> false
-    if withoutConnectAndDisconnect
-      buf = buf.slice 1
-      buf.pop()
-    buf
+  getStream: (args...) ->
+    args = ['in'] unless args.length
+    datas = []
+    for port in args
+      portBrackets = []
+      portPackets = []
+      hasData = false
+      ip = @get port
+      datas.push undefined unless ip
+      while ip
+        if ip.type is 'openBracket'
+          unless portBrackets.length
+            # First openBracket in stream, drop previous
+            portPackets = []
+            hasData = false
+          portBrackets.push ip.data
+          portPackets.push ip
+        if ip.type is 'data'
+          portPackets.push ip
+          hasData = true
+          # Unbracketed data packet is a valid stream
+          break unless portBrackets.length
+        if ip.type is 'closeBracket'
+          portPackets.push ip
+          portBrackets.pop()
+          if hasData and not portBrackets.length
+            # Last open bracket finishes stream
+            break
+        ip = @get port
+      datas.push portPackets
+
+    return datas.pop() if args.length is 1
+    datas
 
 class ProcessOutput
   constructor: (@ports, @context) ->
