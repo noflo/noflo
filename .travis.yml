@@ -1,14 +1,14 @@
 language: node_js
 sudo: false
 node_js:
-- '4.2'
+- '4.6'
 script: npm test
 deploy:
   provider: npm
   email: henri.bergius@iki.fi
-  api_key:
-    secure: deHF5J6LVgrKsjY5ovfi92FdEFmj3qIqfxJKRRze6jGfC4/q26WauLfed/W5SAknzLtaaSzCH+YLQ/T+F/GKY19POjRLNdCRk0InnZWHSxOVcA7hVLRpCuJbRdUtd1mzpgfOTmCUMhkFw3b99xEmtp6M5RfQ9lp6E0NkFrKPqQk=
   skip_cleanup: true
+  api_key:
+    secure: cFYORov9PIQf5AHRzr0nskLjMuI/3+P193OMV412Q/+/zvM6Z0WHTnfDHqb8RYolCJQiZDFMXrMu1qC+2LrmrgmR5tQ/PrhrKPPlL8mrcOmEMuPAhbkh6A0a7thuUI2itGBBIXeIxExNdO/IArhaFh5xxo5Dksx4Kvk8rJ+3hF4=
   on:
     tags: true
     repo: noflo/noflo
