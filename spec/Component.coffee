@@ -1477,6 +1477,43 @@ describe 'Component', ->
         sin1.post new noflo.IP 'data', 'moose'
         sin1.post new noflo.IP 'closeBracket', 'foo'
         sin1.post new noflo.IP 'closeBracket'
+      it 'should get data when it has a full stream', (done) ->
+        c = new noflo.Component
+          inPorts:
+            eh:
+              datatype: 'string'
+          outPorts:
+            canada:
+              datatype: 'string'
+          forwardBrackets:
+            eh: ['canada']
+          process: (input, output) ->
+            return unless input.hasStream 'eh'
+            data = input.get 'eh'
+            chai.expect(data.type).to.equal 'data'
+            chai.expect(data.data).to.equal 'moose'
+            output.sendDone data
+
+        expected = [
+          ['openBracket', null]
+          ['openBracket', 'foo']
+          ['data', 'moose']
+          ['closeBracket', 'foo']
+          ['closeBracket', null]
+        ]
+        received = []
+        sout1.on 'ip', (ip) ->
+          received.push [ip.type, ip.data]
+          return unless received.length is expected.length
+          chai.expect(received).to.eql expected
+          done()
+        c.inPorts.eh.attach sin1
+        c.outPorts.canada.attach sout1
+        sin1.post new noflo.IP 'openBracket'
+        sin1.post new noflo.IP 'openBracket', 'foo'
+        sin1.post new noflo.IP 'data', 'moose'
+        sin1.post new noflo.IP 'closeBracket', 'foo'
+        sin1.post new noflo.IP 'closeBracket'
 
     describe 'with a simple ordered stream', ->
       it 'should send packets with brackets in expected order when synchronous', (done) ->
