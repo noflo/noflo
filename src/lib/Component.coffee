@@ -499,7 +499,7 @@ class ProcessInput
           portPackets.push ip
           portBrackets.pop()
           if hasData and not portBrackets.length
-            # Last open bracket finishes stream
+            # Last close bracket finishes stream if there was data inside
             break
         ip = @get port
       datas.push portPackets
