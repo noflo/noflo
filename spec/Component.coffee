@@ -1429,6 +1429,26 @@ describe 'Component', ->
         c.inPorts.in.attach sin1
         sin1.post new noflo.IP 'data', 'eh'
 
+      it 'should get full stream when it has a single packet stream and it should clear it', (done) ->
+        c = new noflo.Component
+          inPorts:
+            eh:
+              datatype: 'string'
+          outPorts:
+            canada:
+              datatype: 'string'
+          process: (input, output) ->
+            return unless input.hasStream 'eh'
+            stream = input.getStream 'eh'
+            packetTypes = stream.map (ip) -> [ip.type, ip.data]
+            chai.expect(packetTypes).to.eql [
+              ['data', 'moose']
+            ]
+            chai.expect(input.has('eh')).to.equal false
+            done()
+
+        c.inPorts.eh.attach sin1
+        sin1.post new noflo.IP 'data', 'moose'
       it 'should get full stream when it has a full stream, and it should clear it', (done) ->
         c = new noflo.Component
           inPorts:
@@ -1439,16 +1459,23 @@ describe 'Component', ->
               datatype: 'string'
           process: (input, output) ->
             return unless input.hasStream 'eh'
-            originalBuf = input.buffer.get 'eh'
             stream = input.getStream 'eh'
-            afterStreamBuf = input.buffer.get 'eh'
-            chai.expect(stream).to.eql originalBuf
-            chai.expect(afterStreamBuf).to.eql []
+            packetTypes = stream.map (ip) -> [ip.type, ip.data]
+            chai.expect(packetTypes).to.eql [
+              ['openBracket', null]
+              ['openBracket', 'foo']
+              ['data', 'moose']
+              ['closeBracket', 'foo']
+              ['closeBracket', null]
+            ]
+            chai.expect(input.has('eh')).to.equal false
             done()
 
         c.inPorts.eh.attach sin1
         sin1.post new noflo.IP 'openBracket'
+        sin1.post new noflo.IP 'openBracket', 'foo'
         sin1.post new noflo.IP 'data', 'moose'
+        sin1.post new noflo.IP 'closeBracket', 'foo'
         sin1.post new noflo.IP 'closeBracket'
 
     describe 'with a simple ordered stream', ->
