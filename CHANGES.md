@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.8.0 (January 13th 2017)
+## 0.8.0-beta1 (January 18th 2017)
 
 * Added callback for `Network.stop`
 * Outmost brackets are no longer automatically converted to `connect` and `disconnect` events. Instead, `connect` and `disconnect` are injected as needed, but only for subscribers of the legacy events
