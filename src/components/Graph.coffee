@@ -73,9 +73,9 @@ class Graph extends noflo.Component
     , true
 
   start: (callback) ->
-    return if @started
     unless callback
       callback = ->
+    return callback() if @started
     unless @isReady()
       @on 'ready', =>
         @start callback
