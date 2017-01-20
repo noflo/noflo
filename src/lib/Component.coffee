@@ -182,8 +182,9 @@ class Component extends EventEmitter
         # B. There are closeBrackets in queue after current packet
         # C. We've queued the results from all in-flight processes and
         #    new closeBracket arrives
-        if @outputQ.length >= @load
-          buf = port.getBuffer ip.scope
+        buf = port.getBuffer ip.scope
+        dataPackets = buf.filter (ip) -> ip.type is 'data'
+        if @outputQ.length >= @load and dataPackets.length is 0
           return unless buf[0] is ip
           # Remove from buffer
           port.get ip.scope
@@ -195,7 +196,9 @@ class Component extends EventEmitter
             __bracketClosingAfter: [context]
           @outputQ.push result
           do @processOutputQueue
-        return
+        # Check if buffer contains data IPs. If it does, we want to allow
+        # firing
+        return unless dataPackets.length
 
     # Prepare the input/output pair
     context = new ProcessContext ip, @, port, result
