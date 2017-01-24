@@ -68,6 +68,9 @@ class Component extends EventEmitter
 
   shutdown: ->
     return unless @started
+    inPorts = @inPorts.ports or @inPorts
+    inPort.clear() for inPort in inPorts
+    @bracketContext = {}
     callback = =>
       @started = false
       @emit 'end'

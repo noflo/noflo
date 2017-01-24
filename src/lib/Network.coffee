@@ -656,11 +656,6 @@ class Network extends EventEmitter
       return callback()
     # Tell processes to shut down
     for id, process of @processes
-      # Clear input buffers
-      # FIXME: direct process.component.inPorts/outPorts access is only for legacy compat
-      inPorts = process.component.inPorts.ports or process.component.inPorts
-      inPort.clear() for inPort in inPorts
-
       unless process.component.isStarted()
         onProcessEnd()
         continue
