@@ -4,6 +4,7 @@
 StreamSender = require('./Streams').StreamSender
 StreamReceiver = require('./Streams').StreamReceiver
 InternalSocket = require './InternalSocket'
+IP = require './IP'
 platform = require './Platform'
 utils = require './Utils'
 
@@ -19,23 +20,25 @@ exports.MapComponent = (component, func, config) ->
   config.inPort = 'in' unless config.inPort
   config.outPort = 'out' unless config.outPort
 
-  inPort = component.inPorts[config.inPort]
-  outPort = component.outPorts[config.outPort]
-  groups = []
-  inPort.process = (event, payload) ->
-    switch event
-      when 'connect' then outPort.connect()
-      when 'begingroup'
-        groups.push payload
-        outPort.beginGroup payload
-      when 'data'
-        func payload, groups, outPort
-      when 'endgroup'
-        group = groups.pop()
-        outPort.endGroup group
-      when 'disconnect'
-        groups = []
-        outPort.disconnect()
+  # Set up bracket forwarding
+  component.forwardBrackets = {} unless component.forwardBrackets
+  component.forwardBrackets[config.inPort] = [config.outPort]
+
+  component.process (input, output) ->
+    return unless input.hasData config.inPort
+    outProxy =
+      beginGroup: (group) ->
+        output.sendIP config.outPort, new IP 'openBracket', group
+      send: (data) ->
+        output.sendIP config.outPort, new IP 'data', data
+      endGroup: (group) ->
+        output.sendIP config.outPort, new IP 'closeBracket', group
+    data = input.getData config.inPort
+    ctx = input.result.__bracketContext[config.inPort].filter((c) ->
+      c.source is config.inPort
+    ).map (c) -> c.ip.data
+    func data, ctx, outProxy
+    output.done()
 
 # Wraps OutPort in WirePattern to add transparent scope support
 class OutPortWrapper
