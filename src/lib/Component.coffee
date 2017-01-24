@@ -190,7 +190,7 @@ class Component extends EventEmitter
           port.get ip.scope, ip.index
           context = @getBracketContext(port.name, ip.scope, ip.index).pop()
           context.closeIp = ip
-          debug "#{@nodeId} closeBracket-C #{ip.data} #{context.ports}"
+          debug "#{@nodeId} closeBracket-C #{ip.data} from #{context.source} to #{context.ports}"
           result =
             __resolved: true
             __bracketClosingAfter: [context]
@@ -254,7 +254,7 @@ class Component extends EventEmitter
   addBracketForwards: (result) ->
     if result.__bracketClosingBefore?.length
       for context in result.__bracketClosingBefore
-        debug "#{@nodeId} closeBracket-A #{context.closeIp.data} #{context.ports}"
+        debug "#{@nodeId} closeBracket-A #{context.closeIp.data} from #{context.source} to #{context.ports}"
         continue unless context.ports.length
         for port in context.ports
           ipClone = context.closeIp.clone()
@@ -295,7 +295,7 @@ class Component extends EventEmitter
 
     if result.__bracketClosingAfter?.length
       for context in result.__bracketClosingAfter
-        debug "#{@nodeId} closeBracket-B #{context.closeIp.data} #{context.ports}"
+        debug "#{@nodeId} closeBracket-B #{context.closeIp.data} from #{context.source} to #{context.ports}"
         continue unless context.ports.length
         for port in context.ports
           ipClone = context.closeIp.clone()
@@ -678,6 +678,7 @@ class ProcessOutput
     @error error if error
 
     isLast = =>
+      # We only care about real output sets with processing data
       resultsOnly = @nodeInstance.outputQ.filter (q) ->
         return true unless q.__resolved
         if Object.keys(q).length is 2 and q.__bracketClosingAfter
