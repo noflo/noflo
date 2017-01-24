@@ -26,19 +26,128 @@ exports.MapComponent = (component, func, config) ->
 
   component.process (input, output) ->
     return unless input.hasData config.inPort
-    outProxy =
-      beginGroup: (group) ->
-        output.sendIP config.outPort, new IP 'openBracket', group
-      send: (data) ->
-        output.sendIP config.outPort, new IP 'data', data
-      endGroup: (group) ->
-        output.sendIP config.outPort, new IP 'closeBracket', group
     data = input.getData config.inPort
-    ctx = input.result.__bracketContext[config.inPort].filter((c) ->
-      c.source is config.inPort
-    ).map (c) -> c.ip.data
-    func data, ctx, outProxy
+    groups = getGroupContext config.inPort, input
+    outProxy = getOutputProxy [config.outPort], output
+    func data, groups, outProxy
     output.done()
+
+# Takes WirePattern configuration of a component and sets up
+# Process API to handle it.
+setupProcess = (component, config, func) ->
+  # Make param ports control ports
+  setupControlPorts component, config
+  # Set up sendDefaults function
+  setupSendDefaults component
+  # Set up bracket forwarding rules
+  setupBracketForwarding component, config
+  # Create the processing function
+  component.process (input, output, context) ->
+    # Abort unless WirePattern-style preconditions don't match
+    return unless checkWirePatternPreconditions component, config, input
+    # Populate component.params from control ports
+    component.params = populateParams config, input
+    # Read input data
+    data = getInputData config, input
+    # Read bracket context of first inport
+    groups = getGroupContext config.inPorts[0], input
+    # Produce proxy object wrapping output in legacy-style port API
+    outProxy = getOutputProxy config.outPorts, output
+
+    unless config.async
+      # Synchronous WirePattern, call done here
+      func.call component, data, groups, outProxy, null, null, null, context.scope
+      return output.done()
+
+    # Fake postpone and resume methods
+    postpone = ->
+    resume = ->
+    # Async WirePattern will call the output.done callback itself
+    func.call component, data, groups, outProxy, output.done.bind(output), postpone, resume, context.scope
+
+# Updates component port definitions to control prots for WirePattern
+# -style params array
+setupControlPorts = (component, config) ->
+  for param in config.params
+    component.inPorts[param].options.control = true
+
+# Sets up Process API bracket forwarding rules for WirePattern configuration
+setupBracketForwarding = (component, config) ->
+  # Start with empty bracket forwarding config
+  component.forwardBrackets = {}
+  return unless config.forwardGroups
+  # We only forward from one inport
+  inPort = config.inPorts[0]
+  component.forwardBrackets[inPort] = []
+  # Forward to all declared outports
+  for outPort in config.outPorts
+    component.forwardBrackets[inPort].push outPort
+  # If component has an error outport, forward there too
+  if component.outPorts.error
+    component.forwardBrackets[inPort].push 'error'
+  return
+
+setupSendDefaults = (component) ->
+  portsWithDefaults = Object.keys(component.inPorts.ports).filter (p) ->
+    return false unless component.inPorts[p].options.control
+    return false unless component.inPorts[p].hasDefault()
+  component.sendDefaults = ->
+    portsWithDefaults.forEach (port) ->
+      #return if input.hasData port
+      tempSocket = InternalSocket.createSocket()
+      component.inPorts[port].attach tempSocket
+      tempSocket.send component.inPorts[port].opens.default
+      tempSocket.disconnect()
+      component.inPorts[port].detach tempSocket
+
+
+populateParams = (config, input) ->
+  return unless config.params.length
+  params = {}
+  for paramPort in config.params
+    params[paramPort] = input.getData paramPort
+  return params
+
+getInputData = (config, input) ->
+  data = {}
+  for port in config.inPorts
+    data[port] = input.getData port
+  if config.inPorts.length is 1
+    return data[config.inPorts[0]]
+  return data
+
+getGroupContext = (port, input) ->
+  return [] unless input.result.__bracketContext?[port]?
+  input.result.__bracketContext[port].filter((c) ->
+    c.source is port
+  ).map (c) -> c.ip.data
+
+getOutputProxy = (ports, output) ->
+  outProxy = {}
+  ports.forEach (port) ->
+    outProxy[port] =
+      connect: ->
+      beginGroup: (group) ->
+        output.sendIP port, new IP 'openBracket', group
+      send: (data) ->
+        output.sendIP port, new IP 'data', data
+      endGroup: (group) ->
+        output.sendIP port, new IP 'closeBracket', group
+      disconnect: ->
+  if ports.length is 1
+    return outProxy[ports[0]]
+  return outProxy
+
+checkWirePatternPreconditions = (component, config, input) ->
+  # First check for required params
+  for param in config.params
+    continue unless component.inPorts[param].isRequired()
+    return false unless input.hasData param
+  # Then check actual input ports
+  for port in config.inPorts
+    return false unless input.hasData port
+  # TODO: Other WirePattern-specific checks
+  true
 
 # Wraps OutPort in WirePattern to add transparent scope support
 class OutPortWrapper
@@ -139,6 +248,11 @@ exports.WirePattern = (component, config, proc) ->
   config.name = '' unless 'name' of config
   # Drop premature input before all params are received
   config.dropInput = false unless 'dropInput' of config
+
+  config.inPorts = inPorts
+  config.outPorts = outPorts
+  return setupProcess component, config, proc
+
   # Firing policy for addressable ports
   unless 'arrayPolicy' of config
     config.arrayPolicy =
