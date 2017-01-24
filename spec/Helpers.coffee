@@ -1733,22 +1733,30 @@ describe 'Component traits', ->
       c = new noflo.Component
       c.inPorts.add 'form',
         datatype: 'object'
-        handle: (ip) ->
-          return unless ip.type is 'data'
-          payload = ip.data
+      c.outPorts.add 'saved',
+        datatype: 'boolean'
+      c.outPorts.add 'error',
+        datatype: 'object'
+      noflo.helpers.WirePattern c,
+        in: 'form'
+        out: 'saved'
+        async: false
+        forwardGroups: true
+        name: 'Registration'
+      , (payload, groups, out) ->
           # Validate form
           unless payload.name and payload.name.match /^\w{3,16}$/
-            c.error noflo.helpers.CustomError 'Incorrect name',
+            this.error noflo.helpers.CustomError 'Incorrect name',
               kind: 'form_error'
               code: 'invalid_name'
               param: 'name'
           unless payload.email and payload.email.match /^\w+@\w+\.\w+$/
-            c.error noflo.helpers.CustomError 'Incorrect email',
+            this.error noflo.helpers.CustomError 'Incorrect email',
               kind: 'form_error'
               code: 'invalid_email'
               param: 'email'
           unless payload.accept
-            c.error noflo.helpers.CustomError 'Terms have to be accepted',
+            this.error noflo.helpers.CustomError 'Terms have to be accepted',
               kind: 'form_error'
               code: 'terms_not_accepted'
               param: 'accept'
@@ -1758,29 +1766,31 @@ describe 'Component traits', ->
           # Emulating some processing logic here
           if payload.name is 'DelayLama'
             # oops
-            c.outPorts.saved.send false
-            c.outPorts.saved.disconnect()
-            return c.fail noflo.helpers.CustomError 'Suspended for a meditation',
+            out.send false
+            out.disconnect()
+            return this.fail noflo.helpers.CustomError 'Suspended for a meditation',
               kind: 'runtime_error'
               code: 'delay_lama_detected'
           else
-            c.outPorts.saved.send true
-            c.outPorts.saved.disconnect()
+            out.send true
 
-      c.outPorts.add 'saved', datatype: 'boolean'
-      c.outPorts.add 'error', datatype: 'object'
       form = new noflo.internalSocket.createSocket()
-      saved = new noflo.internalSocket.createSocket()
-      err = new noflo.internalSocket.createSocket()
       c.inPorts.form.attach form
-      c.outPorts.saved.attach saved
-      c.outPorts.error.attach err
-      noflo.helpers.MultiError c
+      saved = null
+      err = null
+      beforeEach ->
+        saved = new noflo.internalSocket.createSocket()
+        err = new noflo.internalSocket.createSocket()
+        c.outPorts.saved.attach saved
+        c.outPorts.error.attach err
+      afterEach ->
+        c.outPorts.saved.detach saved
+        c.outPorts.error.detach err
 
       it 'should support multiple customized error messages', (done) ->
         errCount = 0
         err.on 'data', (data) ->
-          chai.expect(data instanceof Error).to.be.true
+          chai.expect(data instanceof Error, 'should be instance of error').to.be.true
           chai.expect(data.kind).to.equal 'form_error'
           errCount++
         err.on 'disconnect', ->
@@ -1794,7 +1804,6 @@ describe 'Component traits', ->
 
       it 'should pass if everything is correct', (done) ->
         hadData = false
-        saved.removeAllListeners()
         saved.once 'data', (data) ->
           chai.expect(data).to.be.true
           hadData = true
@@ -1802,7 +1811,6 @@ describe 'Component traits', ->
           chai.expect(hadData).to.be.true
           done()
 
-        err.removeAllListeners()
         err.on 'data', (data) ->
           done data
 
@@ -1816,7 +1824,6 @@ describe 'Component traits', ->
         saved.once 'data', (data) ->
           chai.expect(data).to.be.false
 
-        err.removeAllListeners()
         errCount = 0
         err.once 'data', (data) ->
           chai.expect(data instanceof Error).to.be.true
@@ -1838,11 +1845,7 @@ describe 'Component traits', ->
       c.outPorts.add 'saved', datatype: 'boolean'
       c.outPorts.add 'error', datatype: 'object'
       form = new noflo.internalSocket.createSocket()
-      saved = new noflo.internalSocket.createSocket()
-      err = new noflo.internalSocket.createSocket()
       c.inPorts.form.attach form
-      c.outPorts.saved.attach saved
-      c.outPorts.error.attach err
       noflo.helpers.WirePattern c,
         in: 'form'
         out: 'saved'
@@ -1870,29 +1873,37 @@ describe 'Component traits', ->
             param: 'accept'
           ), ['e3']
         # Finish validation
-        return callback no if this.hasErrors
+        return this.fail no if this.hasErrors
 
         setTimeout ->
           # Emulating some processing logic here
           if payload.name is 'DelayLama'
             # oops
             out.send false
-            return callback noflo.helpers.CustomError 'Suspended for a meditation',
+            return c.fail noflo.helpers.CustomError 'Suspended for a meditation',
               kind: 'runtime_error'
               code: 'delay_lama_detected'
           else
             out.send true
             callback()
         , 10
+      saved = null
+      err = null
+      beforeEach ->
+        saved = new noflo.internalSocket.createSocket()
+        err = new noflo.internalSocket.createSocket()
+        c.outPorts.saved.attach saved
+        c.outPorts.error.attach err
+      afterEach ->
+        c.outPorts.saved.detach saved
+        c.outPorts.error.detach err
 
       it 'should support multiple error messages and groups and scope', (done) ->
         expected = [
+          'async0'
           'Registration'
-          'async0'
           'e1'
-          'async0'
           'e2'
-          'async0'
           'e3'
         ]
         actual = []
@@ -1924,14 +1935,11 @@ describe 'Component traits', ->
         # form.disconnect()
 
       it 'should pass if everything is correct', (done) ->
-        hadData = false
-        saved.removeAllListeners()
         saved.once 'data', (data) ->
           chai.expect(data).to.be.true
           hadData = true
           done()
 
-        err.removeAllListeners()
         err.on 'data', (data) ->
           done data
 
@@ -1945,19 +1953,19 @@ describe 'Component traits', ->
         saved.once 'data', (data) ->
           chai.expect(data).to.be.false
 
-        err.removeAllListeners()
         errCount = 0
         grpCount = 0
         err.on 'begingroup', (grp) ->
+          console.log grp
           chai.expect(grp).to.equal 'Registration'
           grpCount++
-        err.once 'data', (data) ->
+        err.on 'data', (data) ->
           chai.expect(data instanceof Error).to.be.true
           chai.expect(data.kind).to.equal 'runtime_error'
           errCount++
-        err.once 'disconnect', ->
-          chai.expect(errCount).to.equal 1
-          chai.expect(grpCount).to.equal 1
+        err.on 'disconnect', ->
+          chai.expect(errCount, 'should have one error').to.equal 1
+          chai.expect(grpCount, 'should have one group').to.equal 1
           done()
 
         form.send
