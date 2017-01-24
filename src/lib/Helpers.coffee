@@ -16,7 +16,7 @@ isArray = (obj) ->
 # MapComponent maps a single inport to a single outport, forwarding all
 # groups from in to out and calling `func` on each incoming packet
 exports.MapComponent = (component, func, config) ->
-  platform.deprecated 'noflo.helpers.MapComponent is deprecated. Please port Process API'
+  platform.deprecated 'noflo.helpers.MapComponent is deprecated. Please port to Process API'
   config = {} unless config
   config.inPort = 'in' unless config.inPort
   config.outPort = 'out' unless config.outPort
@@ -55,29 +55,40 @@ processApiWrapper = (component, config, func) ->
     # Produce proxy object wrapping output in legacy-style port API
     outProxy = getOutputProxy config.outPorts, output
 
-    debug "PC: CALL WITH", data, groups, component.params, context.scope
+    debug "WirePattern Process API call with", data, groups, component.params, context.scope
 
     unless config.async
+      # Set up custom error handlers
+      errorHandler = setupErrorHandler component, config, output, ->
+        return output.done()
       # Synchronous WirePattern, call done here
       func.call component, data, groups, outProxy
+      do errorHandler
       output.done()
-      return
 
     # Async WirePattern will call the output.done callback itself
-    func.call component, data, groups, outProxy, output.done.bind output
+    errorHandler = setupErrorHandler component, config, output, ->
+      output.done()
+    func.call component, data, groups, outProxy, (err) ->
+      do errorHandler
+      output.done err
 
 # Provide deprecation warnings on certain more esoteric WirePattern features
 checkDeprecation = (config, func) ->
   needsFallback = false
+  # First check the conditions that force us to fall back on legacy WirePattern
   if config.group
-    platform.deprecated 'noflo.helpers.WirePattern group option is deprecated. Please port Process API'
+    platform.deprecated 'noflo.helpers.WirePattern group option is deprecated. Please port to Process API'
     needsFallback = true
   if config.field
-    platform.deprecated 'noflo.helpers.WirePattern field option is deprecated. Please port Process API'
+    platform.deprecated 'noflo.helpers.WirePattern field option is deprecated. Please port to Process API'
     needsFallback = true
   if func.length > 4
     platform.deprecated 'noflo.helpers.WirePattern postpone and resume are deprecated. Please port to Process API'
     needsFallback = true
+  # Then add deprecation warnings for other unwanted behaviors
+  unless config.async
+    platform.deprecated 'noflo.helpers.WirePattern synchronous is deprecated. Please port to Process API'
   return needsFallback
 
 # Updates component port definitions to control prots for WirePattern
@@ -105,6 +116,37 @@ setupBracketForwarding = (component, config) ->
     if component.outPorts.error
       component.forwardBrackets[inPort].push 'error'
   return
+
+setupErrorHandler = (component, config, output, failCallback) ->
+  errors = []
+  errorHandler = (e, groups = []) ->
+    platform.deprecated 'noflo.helpers.WirePattern error method is deprecated. Please send error to callback instead'
+    errors.push
+      err: e
+      groups: groups
+    component.hasErrors = true
+  failHandler = (e = null, groups = []) ->
+    platform.deprecated 'noflo.helpers.WirePattern fail method is deprecated. Please send error to callback instead'
+    errorHandler e, groups if e
+    sendErrors()
+    failCallback()
+
+  sendErrors  = ->
+    return unless errors.length
+    output.sendIP 'error', new IP 'openBracket', config.name if config.name
+    errors.forEach (e) ->
+      output.sendIP 'error', new IP 'openBracket', grp for grp in e.groups
+      output.sendIP 'error', new IP 'data', e.err
+      output.sendIP 'error', new IP 'closeBracket', grp for grp in e.groups
+    output.sendIP 'error', new IP 'closeBracket', config.name if config.name
+    component.hasErrors = false
+    errors = []
+
+  component.hasErrors = false
+  component.error = errorHandler
+  component.fail = failHandler
+
+  sendErrors
 
 setupSendDefaults = (component) ->
   portsWithDefaults = Object.keys(component.inPorts.ports).filter (p) ->
@@ -693,7 +735,7 @@ legacyWirePattern = (component, config, proc) ->
             # Enforce MultiError with WirePattern (for group forwarding)
             exports.MultiError component, config.name, config.error, groups, scope
 
-            debug "WP: CALL WITH", data, groups, component.params, scope
+            debug "WirePattern with", data, groups, component.params, scope
 
             # Call the proc function
             if config.async
@@ -755,6 +797,7 @@ exports.CustomizeError = (err, options) ->
 # `group` is an optional group ID which will be used to wrap all error
 # packets emitted by the component.
 exports.MultiError = (component, group = '', errorPort = 'error', forwardedGroups = [], scope = null) ->
+  platform.deprecated 'noflo.helpers.MultiError is deprecated. Send errors to error port instead'
   component.hasErrors = false
   component.errors = []
   group = component.name if component.name and not group
