@@ -65,6 +65,7 @@ processApiWrapper = (component, config, func) ->
       func.call component, data, groups, outProxy
       do errorHandler
       output.done()
+      return
 
     # Async WirePattern will call the output.done callback itself
     errorHandler = setupErrorHandler component, config, output, ->
@@ -154,6 +155,7 @@ setupSendDefaults = (component) ->
     return false unless component.inPorts[p].hasDefault()
     true
   component.sendDefaults = ->
+    platform.deprecated 'noflo.helpers.WirePattern sendDefaults method is deprecated. Please start with a Network'
     portsWithDefaults.forEach (port) ->
       tempSocket = InternalSocket.createSocket()
       component.inPorts[port].attach tempSocket
