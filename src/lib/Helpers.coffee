@@ -7,6 +7,7 @@ InternalSocket = require './InternalSocket'
 IP = require './IP'
 platform = require './Platform'
 utils = require './Utils'
+debug = require('debug') 'noflo:helpers'
 
 isArray = (obj) ->
   return Array.isArray(obj) if Array.isArray
@@ -34,11 +35,7 @@ exports.MapComponent = (component, func, config) ->
 
 # Takes WirePattern configuration of a component and sets up
 # Process API to handle it.
-setupProcess = (component, config, func) ->
-  if checkDeprecation config
-    # If we're using deprecated WirePattern features we provide warnings on them
-    # and fall back to the legacy implementation of WirePattern
-    return legacyWirePattern component, config, func
+processApiWrapper = (component, config, func) ->
   # Make param ports control ports
   setupControlPorts component, config
   # Set up sendDefaults function
@@ -48,7 +45,7 @@ setupProcess = (component, config, func) ->
   # Create the processing function
   component.process (input, output, context) ->
     # Abort unless WirePattern-style preconditions don't match
-    return unless checkWirePatternPreconditions component, config, input
+    return unless checkWirePatternPreconditions component, config, input, output
     # Populate component.params from control ports
     component.params = populateParams config, input
     # Read input data
@@ -58,27 +55,28 @@ setupProcess = (component, config, func) ->
     # Produce proxy object wrapping output in legacy-style port API
     outProxy = getOutputProxy config.outPorts, output
 
+    debug "PC: CALL WITH", data, groups, component.params, context.scope
+
     unless config.async
       # Synchronous WirePattern, call done here
-      func.call component, data, groups, outProxy, null, null, null, context.scope
-      return output.done()
+      func.call component, data, groups, outProxy
+      output.done()
+      return
 
-    # Fake postpone and resume methods
-    postpone = ->
-      platform.deprecated 'noflo.helpers.WirePattern postpone is deprecated.'
-    resume = ->
-      platform.deprecated 'noflo.helpers.WirePattern resume is deprecated.'
     # Async WirePattern will call the output.done callback itself
-    func.call component, data, groups, outProxy, output.done.bind(output), postpone, resume, context.scope
+    func.call component, data, groups, outProxy, output.done.bind output
 
 # Provide deprecation warnings on certain more esoteric WirePattern features
-checkDeprecation = (config) ->
+checkDeprecation = (config, func) ->
   needsFallback = false
   if config.group
     platform.deprecated 'noflo.helpers.WirePattern group option is deprecated. Please port Process API'
     needsFallback = true
   if config.field
     platform.deprecated 'noflo.helpers.WirePattern field option is deprecated. Please port Process API'
+    needsFallback = true
+  if func.length > 4
+    platform.deprecated 'noflo.helpers.WirePattern postpone and resume are deprecated. Please port to Process API'
     needsFallback = true
   return needsFallback
 
@@ -93,27 +91,31 @@ setupBracketForwarding = (component, config) ->
   # Start with empty bracket forwarding config
   component.forwardBrackets = {}
   return unless config.forwardGroups
-  # We only forward from one inport
-  inPort = config.inPorts[0]
-  component.forwardBrackets[inPort] = []
-  # Forward to all declared outports
-  for outPort in config.outPorts
-    component.forwardBrackets[inPort].push outPort
-  # If component has an error outport, forward there too
-  if component.outPorts.error
-    component.forwardBrackets[inPort].push 'error'
+  # By default we forward from all inports
+  inPorts = config.inPorts
+  if isArray config.forwardGroups
+    # Selective forwarding enabled
+    inPorts = config.forwardGroups
+  for inPort in inPorts
+    component.forwardBrackets[inPort] = []
+    # Forward to all declared outports
+    for outPort in config.outPorts
+      component.forwardBrackets[inPort].push outPort
+    # If component has an error outport, forward there too
+    if component.outPorts.error
+      component.forwardBrackets[inPort].push 'error'
   return
 
 setupSendDefaults = (component) ->
   portsWithDefaults = Object.keys(component.inPorts.ports).filter (p) ->
     return false unless component.inPorts[p].options.control
     return false unless component.inPorts[p].hasDefault()
+    true
   component.sendDefaults = ->
     portsWithDefaults.forEach (port) ->
-      #return if input.hasData port
       tempSocket = InternalSocket.createSocket()
       component.inPorts[port].attach tempSocket
-      tempSocket.send component.inPorts[port].opens.default
+      tempSocket.send()
       tempSocket.disconnect()
       component.inPorts[port].detach tempSocket
 
@@ -155,16 +157,28 @@ getOutputProxy = (ports, output) ->
     return outProxy[ports[0]]
   return outProxy
 
-checkWirePatternPreconditions = (component, config, input) ->
+checkWirePatternPreconditions = (component, config, input, output) ->
   # First check for required params
+  paramsMet = true
+  inputsMet = true
+  droppedPackets = false
   for param in config.params
     continue unless component.inPorts[param].isRequired()
-    return false unless input.hasData param
+    paramsMet = false unless input.hasData param
   # Then check actual input ports
   for port in config.inPorts
-    return false unless input.hasData port
-  # TODO: Other WirePattern-specific checks
-  true
+    unless input.hasData port
+      inputsMet = false
+      continue
+    # If input port has data but param requirements are not
+    # met, and we're in dropInput mode, read the data and
+    # call done
+    if config.dropInput and not paramsMet
+      input.getData port
+      droppedPackets = true
+
+  output.done() if droppedPackets and not paramsMet
+  return inputsMet and paramsMet
 
 # Wraps OutPort in WirePattern to add transparent scope support
 class OutPortWrapper
@@ -245,6 +259,13 @@ exports.WirePattern = (component, config, proc) ->
   # - string: forward groups of a specific port only
   # - array: forward unique groups of inports in the list
   config.forwardGroups = false unless 'forwardGroups' of config
+  if config.forwardGroups
+    if typeof config.forwardGroups is 'string'
+      # Collect groups from one and only port?
+      config.forwardGroups = [config.forwardGroups]
+    if typeof config.forwardGroups is 'boolean'
+      # Forward groups from each port?
+      config.forwardGroups = inPorts
   # Receive streams feature
   config.receiveStreams = false unless 'receiveStreams' of config
   if config.receiveStreams
@@ -268,7 +289,11 @@ exports.WirePattern = (component, config, proc) ->
 
   config.inPorts = inPorts
   config.outPorts = outPorts
-  return setupProcess component, config, proc
+
+  # If we're using deprecated WirePattern features we provide warnings on them
+  # and fall back to the legacy implementation of WirePattern
+  setup = if checkDeprecation config, proc then legacyWirePattern else processApiWrapper
+  return setup component, config, proc
 
 legacyWirePattern = (component, config, proc) ->
   # Firing policy for addressable ports
@@ -282,12 +307,6 @@ legacyWirePattern = (component, config, proc) ->
   config.gcTimeout = 300 unless 'gcTimeout' of config
 
   collectGroups = config.forwardGroups
-  # Collect groups from each port?
-  if typeof collectGroups is 'boolean' and not config.group
-    collectGroups = config.inPorts
-  # Collect groups from one and only port?
-  if typeof collectGroups is 'string' and not config.group
-    collectGroups = [collectGroups]
   # Collect groups from any port, as we group by them
   if collectGroups isnt false and config.group
     collectGroups = true
@@ -673,6 +692,8 @@ legacyWirePattern = (component, config, proc) ->
 
             # Enforce MultiError with WirePattern (for group forwarding)
             exports.MultiError component, config.name, config.error, groups, scope
+
+            debug "WP: CALL WITH", data, groups, component.params, scope
 
             # Call the proc function
             if config.async
