@@ -71,7 +71,7 @@ describe 'Component traits', ->
       y = null
       z = null
       p = null
-      before (done) ->
+      beforeEach (done) ->
         c = new noflo.Component
         c.inPorts.add 'x',
           required: true
@@ -92,6 +92,8 @@ describe 'Component traits', ->
         c.inPorts.z.attach z
         c.outPorts.point.attach p
         done()
+      afterEach ->
+        c.outPorts.point.detach p
 
       it 'should pass data and groups to the callback', (done) ->
         src =
@@ -134,7 +136,6 @@ describe 'Component traits', ->
           z.disconnect()
 
       it 'should work without a group provided', (done) ->
-        p.removeAllListeners()
         noflo.helpers.WirePattern c,
           in: ['x', 'y', 'z']
           out: 'point'
@@ -224,7 +225,6 @@ describe 'Component traits', ->
             callback()
           , 100
 
-        p.removeAllListeners()
         counter = 0
         hadData = false
         p.on 'begingroup', (grp) ->
@@ -262,7 +262,6 @@ describe 'Component traits', ->
         , (data, groups, out) ->
           out.send { x: data.x, y: data.y }
 
-        p.removeAllListeners()
         counter = 0
         hadData = false
         p.on 'begingroup', (grp) ->
@@ -297,7 +296,6 @@ describe 'Component traits', ->
         , (data, groups, out) ->
           out.send { x: data.x, y: data.y, z: data.z }
 
-        p.removeAllListeners()
         groups = []
         p.on 'begingroup', (grp) ->
           groups.push grp
@@ -333,7 +331,6 @@ describe 'Component traits', ->
         , (data, groups, out) ->
           out.send { x: data.x, y: data.y, z: data.z }
 
-        p.removeAllListeners()
         groups = []
         p.on 'begingroup', (grp) ->
           groups.push grp
@@ -378,7 +375,6 @@ describe 'Component traits', ->
       c.outPorts.point.attach p
 
       it 'should correctly bind component to `this` context', (done) ->
-        p.removeAllListeners()
         noflo.helpers.WirePattern c,
           in: ['x', 'y', 'z']
           out: 'point'
@@ -398,7 +394,6 @@ describe 'Component traits', ->
         z.disconnect()
 
       it 'should correctly bind component to `this` context in async mode', (done) ->
-        p.removeAllListeners()
         noflo.helpers.WirePattern c,
           in: ['x', 'y', 'z']
           async: true
@@ -760,7 +755,8 @@ describe 'Component traits', ->
             d1: input.data1
             d2: input.data2
           out.send res
-
+        err.on 'data', (data) ->
+          done data
         out.once 'data', (data) ->
           chai.expect(data).to.be.an 'object'
           chai.expect(data.p1).to.equal 'req'
@@ -816,6 +812,8 @@ describe 'Component traits', ->
             out.send res
           , delay
 
+        err.on 'data', (data) ->
+          done data
         out.once 'data', (data) ->
           chai.expect(data).to.be.an 'object'
           chai.expect(data.p1).to.equal 'req'
@@ -854,12 +852,14 @@ describe 'Component traits', ->
         p2.send 73
         p2.disconnect()
 
-        chai.expect(Object.keys(c._wpData[null].groupedData)).to.have.length.above 0
-        chai.expect(Object.keys(c._wpData[null].params)).to.have.length.above 0
+        chai.expect(c.inPorts.data1.getBuffer().length, 'data1 should have a packet').to.be.above 0
+        chai.expect(c.inPorts.param2.getBuffer().length, 'param2 should have a packet').to.be.above 0
 
         c.shutdown (err) ->
           return done err if err
-          chai.expect(c._wpData).to.deep.equal {}
+          for portName, port in c.inPorts.ports
+            chai.expect(port.getBuffer()).to.eql []
+            chai.expect(c.load).to.equal 0
           done()
 
       it 'should drop premature data if configured to do so', (done) ->
@@ -877,6 +877,8 @@ describe 'Component traits', ->
             d2: input.data2
           out.send res
 
+        err.on 'data', (data) ->
+          done data
         out.once 'data', (data) ->
           chai.expect(data).to.be.an 'object'
           chai.expect(data.p1).to.equal 'req'
@@ -1043,7 +1045,7 @@ describe 'Component traits', ->
           tryAgain()
         , 30
 
-    describe 'with many inputs and groups', ->
+    describe 'with many inputs and groups in async mode', ->
       c = new noflo.Component
       c.token = null
       c.inPorts.add 'in', datatype: 'string'
@@ -1061,13 +1063,98 @@ describe 'Component traits', ->
         async: true
         forwardGroups: true
       , (data, groups, out, callback) ->
-
         setTimeout ->
           out.beginGroup data.path
           out.send data.message
           out.endGroup()
           do callback
         , 300
+
+      ins = noflo.internalSocket.createSocket()
+      msg = noflo.internalSocket.createSocket()
+      rep = noflo.internalSocket.createSocket()
+      pth = noflo.internalSocket.createSocket()
+      tkn = noflo.internalSocket.createSocket()
+      out = noflo.internalSocket.createSocket()
+      err = noflo.internalSocket.createSocket()
+      c.inPorts.in.attach ins
+      c.inPorts.message.attach msg
+      c.inPorts.repository.attach rep
+      c.inPorts.path.attach pth
+      c.inPorts.token.attach tkn
+      c.outPorts.out.attach out
+      c.outPorts.error.attach err
+
+      it 'should handle mixed flow well', (done) ->
+        groups = []
+        refGroups = [
+          'foo'
+          'http://techcrunch.com/2013/03/26/embedly-now/'
+          'path data'
+        ]
+        ends = 0
+        packets = []
+        refData = ['message data']
+        out.on 'begingroup', (grp) ->
+          groups.push grp
+        out.on 'endgroup', ->
+          ends++
+        out.on 'data', (data) ->
+          packets.push data
+        out.on 'disconnect', ->
+          chai.expect(groups).to.deep.equal refGroups
+          chai.expect(ends).to.equal 3
+          chai.expect(packets).to.deep.equal refData
+          done()
+
+        err.on 'data', (data) ->
+          done data
+
+        rep.beginGroup 'foo'
+        rep.beginGroup 'http://techcrunch.com/2013/03/26/embedly-now/'
+        rep.send 'repo data'
+        rep.endGroup()
+        rep.endGroup()
+        ins.beginGroup 'foo'
+        ins.beginGroup 'http://techcrunch.com/2013/03/26/embedly-now/'
+        ins.send 'ins data'
+        msg.beginGroup 'foo'
+        msg.beginGroup 'http://techcrunch.com/2013/03/26/embedly-now/'
+        msg.send 'message data'
+        msg.endGroup()
+        msg.endGroup()
+        ins.endGroup()
+        ins.endGroup()
+        ins.disconnect()
+        msg.disconnect()
+        pth.beginGroup 'foo'
+        pth.beginGroup 'http://techcrunch.com/2013/03/26/embedly-now/'
+        pth.send 'path data'
+        pth.endGroup()
+        pth.endGroup()
+        pth.disconnect()
+        rep.disconnect()
+    describe 'with many inputs and groups in sync mode', ->
+      c = new noflo.Component
+      c.token = null
+      c.inPorts.add 'in', datatype: 'string'
+      .add 'message', datatype: 'string'
+      .add 'repository', datatype: 'string'
+      .add 'path', datatype: 'string'
+      .add 'token', datatype: 'string', (event, payload) ->
+        c.token = payload if event is 'data'
+      c.outPorts.add 'out', datatype: 'string'
+      .add 'error', datatype: 'object'
+
+      noflo.helpers.WirePattern c,
+        in: ['in', 'message', 'repository', 'path']
+        out: 'out'
+        async: false
+        forwardGroups: true
+      , (data, groups, out) ->
+        out.beginGroup data.path
+        out.send data.message
+        out.endGroup()
 
       ins = noflo.internalSocket.createSocket()
       msg = noflo.internalSocket.createSocket()
