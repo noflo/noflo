@@ -35,6 +35,10 @@ exports.MapComponent = (component, func, config) ->
 # Takes WirePattern configuration of a component and sets up
 # Process API to handle it.
 setupProcess = (component, config, func) ->
+  if checkDeprecation config
+    # If we're using deprecated WirePattern features we provide warnings on them
+    # and fall back to the legacy implementation of WirePattern
+    return legacyWirePattern component, config, func
   # Make param ports control ports
   setupControlPorts component, config
   # Set up sendDefaults function
@@ -61,9 +65,22 @@ setupProcess = (component, config, func) ->
 
     # Fake postpone and resume methods
     postpone = ->
+      platform.deprecated 'noflo.helpers.WirePattern postpone is deprecated.'
     resume = ->
+      platform.deprecated 'noflo.helpers.WirePattern resume is deprecated.'
     # Async WirePattern will call the output.done callback itself
     func.call component, data, groups, outProxy, output.done.bind(output), postpone, resume, context.scope
+
+# Provide deprecation warnings on certain more esoteric WirePattern features
+checkDeprecation = (config) ->
+  needsFallback = false
+  if config.group
+    platform.deprecated 'noflo.helpers.WirePattern group option is deprecated. Please port Process API'
+    needsFallback = true
+  if config.field
+    platform.deprecated 'noflo.helpers.WirePattern field option is deprecated. Please port Process API'
+    needsFallback = true
+  return needsFallback
 
 # Updates component port definitions to control prots for WirePattern
 # -style params array
@@ -253,6 +270,7 @@ exports.WirePattern = (component, config, proc) ->
   config.outPorts = outPorts
   return setupProcess component, config, proc
 
+legacyWirePattern = (component, config, proc) ->
   # Firing policy for addressable ports
   unless 'arrayPolicy' of config
     config.arrayPolicy =
@@ -266,7 +284,7 @@ exports.WirePattern = (component, config, proc) ->
   collectGroups = config.forwardGroups
   # Collect groups from each port?
   if typeof collectGroups is 'boolean' and not config.group
-    collectGroups = inPorts
+    collectGroups = config.inPorts
   # Collect groups from one and only port?
   if typeof collectGroups is 'string' and not config.group
     collectGroups = [collectGroups]
@@ -274,24 +292,24 @@ exports.WirePattern = (component, config, proc) ->
   if collectGroups isnt false and config.group
     collectGroups = true
 
-  for name in inPorts
+  for name in config.inPorts
     unless component.inPorts[name]
       throw new Error "no inPort named '#{name}'"
-  for name in outPorts
+  for name in config.outPorts
     unless component.outPorts[name]
       throw new Error "no outPort named '#{name}'"
 
   disconnectOuts = ->
     # Manual disconnect forwarding
-    for p in outPorts
+    for p in config.outPorts
       component.outPorts[p].disconnect() if component.outPorts[p].isConnected()
 
   sendGroupToOuts = (grp) ->
-    for p in outPorts
+    for p in config.outPorts
       component.outPorts[p].beginGroup grp
 
   closeGroupOnOuts = (grp) ->
-    for p in outPorts
+    for p in config.outPorts
       component.outPorts[p].endGroup grp
 
   # Declarations
@@ -340,9 +358,9 @@ exports.WirePattern = (component, config, proc) ->
       else
         # At least one of the outputs has to be resolved
         # for output streams to be flushed.
-        if outPorts.length is 1
+        if config.outPorts.length is 1
           tmp = {}
-          tmp[outPorts[0]] = streams
+          tmp[config.outPorts[0]] = streams
           streams = tmp
         for key, stream of streams
           if stream.resolved
@@ -438,7 +456,7 @@ exports.WirePattern = (component, config, proc) ->
             delete _wp(scope).gcTimestamps[key]
 
   # Grouped ports
-  for port in inPorts
+  for port in config.inPorts
     do (port) ->
       # Support for StreamReceiver ports
       # if config.receiveStreams and config.receiveStreams.indexOf(port) isnt -1
@@ -467,7 +485,7 @@ exports.WirePattern = (component, config, proc) ->
               closeGroupOnOuts payload
             # Disconnect
             if _wp(scope).groupBuffers[port].length is 0
-              if inPorts.length is 1
+              if config.inPorts.length is 1
                 if config.async or config.StreamSender
                   if config.ordered
                     _wp(scope).outputQ.push null
@@ -484,7 +502,7 @@ exports.WirePattern = (component, config, proc) ->
                   unless port of _wp(scope).disconnectData[key][i]
                     foundGroup = true
                     _wp(scope).disconnectData[key][i][port] = true
-                    if Object.keys(_wp(scope).disconnectData[key][i]).length is inPorts.length
+                    if Object.keys(_wp(scope).disconnectData[key][i]).length is config.inPorts.length
                       _wp(scope).disconnectData[key].shift()
                       if config.async or config.StreamSender
                         if config.ordered
@@ -502,7 +520,7 @@ exports.WirePattern = (component, config, proc) ->
                   _wp(scope).disconnectData[key].push obj
 
           when 'data'
-            if inPorts.length is 1 and not inPort.isAddressable()
+            if config.inPorts.length is 1 and not inPort.isAddressable()
               data = payload
               groups = _wp(scope).groupBuffers[port]
             else
@@ -523,7 +541,7 @@ exports.WirePattern = (component, config, proc) ->
               _wp(scope).groupedData[key] = [] unless key of _wp(scope).groupedData
               _wp(scope).groupedGroups[key] = [] unless key of _wp(scope).groupedGroups
               foundGroup = false
-              requiredLength = inPorts.length
+              requiredLength = config.inPorts.length
               ++requiredLength if config.field
               # Check buffered tuples awaiting completion
               for i in [0..._wp(scope).groupedData[key].length]
@@ -558,7 +576,7 @@ exports.WirePattern = (component, config, proc) ->
                   if groupLength is requiredLength
                     data = (_wp(scope).groupedData[key].splice i, 1)[0]
                     # Strip port name if there's only one inport
-                    if inPorts.length is 1 and inPort.isAddressable()
+                    if config.inPorts.length is 1 and inPort.isAddressable()
                       data = data[port]
                     groups = (_wp(scope).groupedGroups[key].splice i, 1)[0]
                     if collectGroups is true
@@ -578,7 +596,7 @@ exports.WirePattern = (component, config, proc) ->
                   obj[port] = {} ; obj[port][index] = payload
                 else
                   obj[port] = payload
-                if inPorts.length is 1 and
+                if config.inPorts.length is 1 and
                 component.inPorts[port].isAddressable() and
                 (config.arrayPolicy.in is 'any' or
                 component.inPorts[port].listAttached().length is 1)
@@ -604,7 +622,7 @@ exports.WirePattern = (component, config, proc) ->
 
             # Prepare outputs
             outs = {}
-            for name in outPorts
+            for name in config.outPorts
               wrp = new OutPortWrapper component.outPorts[name], scope
               if config.async or config.sendStreams and
               config.sendStreams.indexOf(name) isnt -1
@@ -613,7 +631,7 @@ exports.WirePattern = (component, config, proc) ->
               else
                 outs[name] = wrp
 
-            outs = outs[outPorts[0]] if outPorts.length is 1 # for simplicity
+            outs = outs[config.outPorts[0]] if config.outPorts.length is 1 # for simplicity
             groups = [] unless groups
             # Filter empty connect/disconnect groups
             groups = (g for g in groups when g isnt null)
@@ -627,7 +645,7 @@ exports.WirePattern = (component, config, proc) ->
               # Disconnect outputs if still connected,
               # this also indicates them as resolved if pending
               outputs = outs
-              if outPorts.length is 1
+              if config.outPorts.length is 1
                 outputs = {}
                 outputs[port] = outs
               disconnect = false
@@ -647,7 +665,7 @@ exports.WirePattern = (component, config, proc) ->
 
             # Group forwarding
             if config.forwardGroups and config.async
-              if outPorts.length is 1
+              if config.outPorts.length is 1
                 outs.beginGroup g for g in groups
               else
                 for name, out of outs
