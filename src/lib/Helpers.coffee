@@ -267,12 +267,24 @@ populateParams = (config, input) ->
   return unless config.params.length
   params = {}
   for paramPort in config.params
+    if input.ports[paramPort].isAddressable()
+      params[paramPort] = {}
+      for idx in input.attached paramPort
+        continue unless input.hasData [paramPort, idx]
+        params[paramPort][idx] = input.getData [paramPort, idx]
+      continue
     params[paramPort] = input.getData paramPort
   return params
 
 getInputData = (config, input) ->
   data = {}
   for port in config.inPorts
+    if input.ports[port].isAddressable()
+      data[port] = {}
+      for idx in input.attached port
+        continue unless input.hasData [port, idx]
+        data[port][idx] = input.getData [port, idx]
+      continue
     data[port] = input.getData port
   if config.inPorts.length is 1
     return data[config.inPorts[0]]
@@ -306,10 +318,32 @@ checkWirePatternPreconditions = (component, config, input, output) ->
   inputsMet = true
   droppedPackets = false
   for param in config.params
-    continue unless component.inPorts[param].isRequired()
+    continue unless input.ports[param].isRequired()
+    if input.ports[param].isAddressable()
+      attached = input.attached param
+      unless attached.length
+        paramsMet = false
+        continue
+      withData = attached.filter (idx) -> input.hasData [param, idx]
+      if config.arrayPolicy.params is 'all'
+        paramsMet = false unless withData.length is attached.length
+        continue
+      paramsMet = false unless withData.length
+      continue
     paramsMet = false unless input.hasData param
   # Then check actual input ports
   for port in config.inPorts
+    if input.ports[port].isAddressable()
+      attached = input.attached port
+      unless attached.length
+        inputsMet = false
+        continue
+      withData = attached.filter (idx) -> input.hasData [port, idx]
+      if config.arrayPolicy['in'] is 'all'
+        inputsMet = false unless withData.length is attached.length
+        continue
+      inputsMet = false unless withData.length
+      continue
     unless input.hasData port
       inputsMet = false
       continue
