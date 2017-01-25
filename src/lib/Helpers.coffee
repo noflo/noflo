@@ -162,7 +162,7 @@ processApiWrapper = (component, config, func) ->
       errorHandler = setupErrorHandler component, config, output, ->
         return output.done()
       # Synchronous WirePattern, call done here
-      func.call component, data, groups, outProxy
+      func.call component, data, groups, outProxy, null, null, input.scope
       do errorHandler
       output.done()
       return
@@ -173,6 +173,7 @@ processApiWrapper = (component, config, func) ->
     func.call component, data, groups, outProxy, (err) ->
       do errorHandler
       output.done err
+    , null, null, input.scope
 
 # Provide deprecation warnings on certain more esoteric WirePattern features
 checkDeprecation = (config, func) ->
@@ -184,10 +185,9 @@ checkDeprecation = (config, func) ->
   if config.field
     platform.deprecated 'noflo.helpers.WirePattern field option is deprecated. Please port to Process API'
     needsFallback = true
+  # Then add deprecation warnings for other unwanted behaviors
   if func.length > 4
     platform.deprecated 'noflo.helpers.WirePattern postpone and resume are deprecated. Please port to Process API'
-    needsFallback = true
-  # Then add deprecation warnings for other unwanted behaviors
   unless config.async
     platform.deprecated 'noflo.helpers.WirePattern synchronous is deprecated. Please port to Process API'
   return needsFallback
