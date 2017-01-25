@@ -142,6 +142,7 @@ processApiWrapper = (component, config, func) ->
   setupSendDefaults component
   # Set up bracket forwarding rules
   setupBracketForwarding component, config
+  component.ordered = config.ordered
   # Create the processing function
   component.process (input, output, context) ->
     # Abort unless WirePattern-style preconditions don't match
@@ -301,12 +302,18 @@ getOutputProxy = (ports, output) ->
   ports.forEach (port) ->
     outProxy[port] =
       connect: ->
-      beginGroup: (group) ->
-        output.sendIP port, new IP 'openBracket', group
-      send: (data) ->
-        output.sendIP port, new IP 'data', data
-      endGroup: (group) ->
-        output.sendIP port, new IP 'closeBracket', group
+      beginGroup: (group, idx) ->
+        ip = new IP 'openBracket', group
+        ip.index = idx
+        output.sendIP port, ip
+      send: (data, idx) ->
+        ip = new IP 'data', data
+        ip.index = idx
+        output.sendIP port, ip
+      endGroup: (group, idx) ->
+        ip = new IP 'closeBracket', group
+        ip.index = idx
+        output.sendIP port, ip
       disconnect: ->
   if ports.length is 1
     return outProxy[ports[0]]
