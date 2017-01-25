@@ -659,40 +659,46 @@ describe 'Component traits', ->
           in: ['num', 'str']
           out: ['odd', 'even']
           async: true
-          ordered: true
+          forwardGroups: true
         , (data, groups, outs, callback) ->
           setTimeout ->
             if data.num % 2 is 1
-              outs.odd.beginGroup grp for grp in groups
               outs.odd.send data
-              outs.odd.endGroup() for grp in groups
             else
-              outs.even.beginGroup grp for grp in groups
               outs.even.send data
-              outs.even.endGroup() for grp in groups
             callback()
           , 0
 
-        grpCounter = 0
-        dataCounter = 0
-
+        expected = []
+        numbers.forEach (n, idx) ->
+          if idx % 2 is 1
+            port = 'odd'
+          else
+            port = 'even'
+          expected.push "#{port} < #{idx}"
+          expected.push "#{port} DATA #{n}"
+          expected.push "#{port} > #{idx}"
+        received = []
         odd.on 'begingroup', (grp) ->
-          grpCounter++
+          received.push "odd < #{grp}"
         odd.on 'data', (data) ->
-          chai.expect(data.num % 2).to.equal 1
-          chai.expect(data.str).to.equal numbers[data.num]
-          dataCounter++
+          received.push "odd DATA #{data.str}"
+        odd.on 'endgroup', (grp) ->
+          received.push "odd > #{grp}"
         odd.on 'disconnect', ->
-          done() if dataCounter is 10 and grpCounter is 10
-
+          return unless received.length is expected.length
+          chai.expect(received).to.eql expected
+          done()
         even.on 'begingroup', (grp) ->
-          grpCounter++
+          received.push "even < #{grp}"
         even.on 'data', (data) ->
-          chai.expect(data.num % 2).to.equal 0
-          chai.expect(data.str).to.equal numbers[data.num]
-          dataCounter++
+          received.push "even DATA #{data.str}"
+        even.on 'endgroup', (grp) ->
+          received.push "even > #{grp}"
         even.on 'disconnect', ->
-          done() if dataCounter is 10 and grpCounter is 10
+          return unless received.length >= expected.length
+          chai.expect(received).to.eql expected
+          done()
 
         for i in [0...10]
           num.beginGroup i
@@ -1855,7 +1861,6 @@ describe 'Component traits', ->
         errCount = 0
         grpCount = 0
         err.on 'begingroup', (grp) ->
-          console.log grp
           chai.expect(grp).to.equal 'Registration'
           grpCount++
         err.on 'data', (data) ->
