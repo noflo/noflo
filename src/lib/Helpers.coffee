@@ -69,10 +69,6 @@ exports.MapComponent = (component, func, config) ->
 # WirePattern supports both sync and async `proc` handlers. In latter case
 # pass `config.async = true` and make sure that `proc` accepts callback as
 # 4th parameter and calls it when async operation completes or fails.
-#
-# WirePattern sends group packets, sends data packets emitted by `proc`
-# via its `outputPort` argument, then closes groups and disconnects
-# automatically.
 exports.WirePattern = (component, config, proc) ->
   # In ports
   inPorts = if 'in' of config then config.in else 'in'
