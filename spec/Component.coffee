@@ -435,6 +435,31 @@ describe 'Component', ->
       sin1.post new noflo.IP 'data', 'first'
       sin1.post new noflo.IP 'data', 'second'
 
+    it 'trying to send to addressable port without providing index should fail', (done) ->
+      c = new noflo.Component
+        inPorts:
+          foo:
+            datatype: 'string'
+        outPorts:
+          baz:
+            datatype: 'boolean'
+            addressable: true
+        process: (input, output) ->
+          return unless input.hasData 'foo'
+          packet = input.get 'foo'
+          noIndex = new noflo.IP 'data', packet.data
+          chai.expect(-> output.sendDone noIndex).to.throw Error
+          done()
+
+      c.inPorts.foo.attach sin1
+      c.outPorts.baz.attach sout1, 1
+      c.outPorts.baz.attach sout2, 0
+
+      sout1.on 'ip', (ip) ->
+      sout2.on 'ip', (ip) ->
+
+      sin1.post new noflo.IP 'data', 'first'
+
     it 'should not be triggered by non-triggering ports', (done) ->
       triggered = []
       c = new noflo.Component
