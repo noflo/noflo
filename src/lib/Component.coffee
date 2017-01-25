@@ -589,6 +589,9 @@ class ProcessOutput
       ip = packet
     ip.scope = @scope if @scope isnt null and ip.scope is null
 
+    if @nodeInstance.outPorts[port].isAddressable() and ip.index is null
+      throw new Error 'Sending packets to addressable ports requires specifying index'
+
     if @nodeInstance.isOrdered()
       @nodeInstance.addToResult @result, port, ip
       return
