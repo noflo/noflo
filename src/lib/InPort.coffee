@@ -32,6 +32,7 @@ class InPort extends BasePort
       @process = process
 
     if options.handle
+      platform.deprecated 'InPort handle callback is deprecated. Please use Process API'
       unless typeof options.handle is 'function'
         throw new Error 'handle must be a function'
       @handle = options.handle
