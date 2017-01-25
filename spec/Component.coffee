@@ -1263,6 +1263,138 @@ describe 'Component', ->
       sin1.post new noflo.IP 'closeBracket', 'bar'
       sin1.post new noflo.IP 'closeBracket', 'a'
 
+    it 'should forward brackets for map-style components with addressable in/outports', (done) ->
+      c = new noflo.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            addressable: true
+        outPorts:
+          out:
+            datatype: 'string'
+            addressable: true
+        process: (input, output) ->
+          return unless input.hasData
+          data = input.get()
+          ip = new noflo.IP 'data', data.data
+          ip.index = data.index
+          output.sendDone ip
+
+      c.inPorts.in.attach sin1, 1
+      c.inPorts.in.attach sin2, 0
+      c.outPorts.out.attach sout1, 1
+      c.outPorts.out.attach sout2, 0
+
+      expected = [
+        '1 < a'
+        '1 < foo'
+        '1 DATA first'
+        '1 > foo'
+        '0 < bar'
+        '0 DATA second'
+        '0 > bar'
+        '1 > a'
+      ]
+      received = []
+      sout1.on 'ip', (ip) ->
+        switch ip.type
+          when 'openBracket'
+            received.push "1 < #{ip.data}"
+          when 'data'
+            received.push "1 DATA #{ip.data}"
+          when 'closeBracket'
+            received.push "1 > #{ip.data}"
+        return unless received.length is expected.length
+        chai.expect(received).to.eql expected
+        done()
+      sout2.on 'ip', (ip) ->
+        switch ip.type
+          when 'openBracket'
+            received.push "0 < #{ip.data}"
+          when 'data'
+            received.push "0 DATA #{ip.data}"
+          when 'closeBracket'
+            received.push "0 > #{ip.data}"
+        return unless received.length is expected.length
+        chai.expect(received).to.eql expected
+        done()
+
+      sin1.post new noflo.IP 'openBracket', 'a'
+      sin1.post new noflo.IP 'openBracket', 'foo'
+      sin1.post new noflo.IP 'data', 'first'
+      sin1.post new noflo.IP 'closeBracket', 'foo'
+      sin2.post new noflo.IP 'openBracket', 'bar'
+      sin2.post new noflo.IP 'data', 'second'
+      sin2.post new noflo.IP 'closeBracket', 'bar'
+      sin1.post new noflo.IP 'closeBracket', 'a'
+
+    it 'should forward brackets for async map-style components with addressable in/outports', (done) ->
+      c = new noflo.Component
+        inPorts:
+          in:
+            datatype: 'string'
+            addressable: true
+        outPorts:
+          out:
+            datatype: 'string'
+            addressable: true
+        process: (input, output) ->
+          return unless input.hasData
+          data = input.get()
+          setTimeout ->
+            ip = new noflo.IP 'data', data.data
+            ip.index = data.index
+            output.sendDone ip
+          , 1
+
+      c.inPorts.in.attach sin1, 1
+      c.inPorts.in.attach sin2, 0
+      c.outPorts.out.attach sout1, 1
+      c.outPorts.out.attach sout2, 0
+
+      expected = [
+        '1 < a'
+        '1 < foo'
+        '1 DATA first'
+        '1 > foo'
+        '0 < bar'
+        '0 DATA second'
+        '0 > bar'
+        '1 > a'
+      ]
+      received = []
+      sout1.on 'ip', (ip) ->
+        switch ip.type
+          when 'openBracket'
+            received.push "1 < #{ip.data}"
+          when 'data'
+            received.push "1 DATA #{ip.data}"
+          when 'closeBracket'
+            received.push "1 > #{ip.data}"
+        return unless received.length is expected.length
+        chai.expect(received).to.eql expected
+        done()
+      sout2.on 'ip', (ip) ->
+        switch ip.type
+          when 'openBracket'
+            received.push "0 < #{ip.data}"
+          when 'data'
+            received.push "0 DATA #{ip.data}"
+          when 'closeBracket'
+            received.push "0 > #{ip.data}"
+        return unless received.length is expected.length
+        chai.expect(received).to.eql expected
+        done()
+
+      sin1.post new noflo.IP 'openBracket', 'a'
+      sin1.post new noflo.IP 'openBracket', 'foo'
+      sin1.post new noflo.IP 'data', 'first'
+      sin1.post new noflo.IP 'closeBracket', 'foo'
+      sin2.post new noflo.IP 'openBracket', 'bar'
+      sin2.post new noflo.IP 'data', 'second'
+      sin2.post new noflo.IP 'closeBracket', 'bar'
+      sin1.post new noflo.IP 'closeBracket', 'a'
+
     it 'should forward brackets to error port in async components', (done) ->
       c = new noflo.Component
         inPorts:
