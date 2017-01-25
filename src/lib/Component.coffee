@@ -214,7 +214,7 @@ class Component extends EventEmitter
       @deactivate context
       output.sendDone e
 
-    unless input.activated
+    unless context.activated
       if port.isAddressable()
         debug "#{@nodeId} #{ip.type} packet on #{port.name}[#{ip.index}] didn't match preconditions"
       else
