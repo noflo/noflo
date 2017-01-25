@@ -160,17 +160,17 @@ processApiWrapper = (component, config, func) ->
 
     unless config.async
       # Set up custom error handlers
-      errorHandler = setupErrorHandler component, config, output, ->
-        return output.done()
+      errorHandler = setupErrorHandler component, config, output
       # Synchronous WirePattern, call done here
       func.call component, data, groups, outProxy, null, null, input.scope
+      # No need to call done if component called fail
+      return if output.result.__resolved
       do errorHandler
       output.done()
       return
 
     # Async WirePattern will call the output.done callback itself
-    errorHandler = setupErrorHandler component, config, output, ->
-      output.done()
+    errorHandler = setupErrorHandler component, config, output
     func.call component, data, groups, outProxy, (err) ->
       do errorHandler
       output.done err
@@ -219,7 +219,7 @@ setupBracketForwarding = (component, config) ->
       component.forwardBrackets[inPort].push 'error'
   return
 
-setupErrorHandler = (component, config, output, failCallback) ->
+setupErrorHandler = (component, config, output) ->
   errors = []
   errorHandler = (e, groups = []) ->
     platform.deprecated 'noflo.helpers.WirePattern error method is deprecated. Please send error to callback instead'
@@ -231,7 +231,7 @@ setupErrorHandler = (component, config, output, failCallback) ->
     platform.deprecated 'noflo.helpers.WirePattern fail method is deprecated. Please send error to callback instead'
     errorHandler e, groups if e
     sendErrors()
-    failCallback()
+    output.done()
 
   sendErrors  = ->
     return unless errors.length
