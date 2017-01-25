@@ -148,12 +148,17 @@ class InPort extends BasePort
     @buffer.filter((packet) -> return true if packet.event is 'data').length
 
   getBuffer: (scope, idx) ->
+    if @isAddressable()
+      if ip.scope?
+        return undefined unless scope of @scopedBuffer
+        return undefined unless idx of @scopedBuffer[scope]
+        return @scopedBuffer[scope][idx]
+      return undefined unless idx of @indexedBuffer
+      return @indexedBuffer[idx]
     if scope?
       return undefined unless scope of @scopedBuffer
-      buf = @scopedBuffer[scope]
-    else
-      buf = @buffer
-    return buf
+      return @scopedBuffer[scope]
+    return @buffer
 
   # Fetches a packet from the port
   get: (scope, idx) ->
