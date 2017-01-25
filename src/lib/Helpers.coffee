@@ -33,6 +33,105 @@ exports.MapComponent = (component, func, config) ->
     func data, groups, outProxy
     output.done()
 
+# WirePattern makes your component collect data from several inports
+# and activates a handler `proc` only when a tuple from all of these
+# ports is complete. The signature of handler function is:
+# ```
+# proc = (combinedInputData, inputGroups, outputPorts, asyncCallback) ->
+# ```
+#
+# With `config.group = true` it checks incoming group IPs and collates
+# data with matching group IPs. By default this kind of grouping is `false`.
+# Set `config.group` to a RegExp object to correlate inputs only if the
+# group matches the expression (e.g. `^req_`). For non-matching groups
+# the component will act normally.
+#
+# With `config.field = 'fieldName' it collates incoming data by specified
+# field. The component's proc function is passed a combined object with
+# port names used as keys. This kind of grouping is disabled by default.
+#
+# With `config.forwardGroups = true` it would forward group IPs from
+# inputs to the output sending them along with the data. This option also
+# accepts string or array values, if you want to forward groups from specific
+# port(s) only. By default group forwarding is `false`.
+#
+# `config.receiveStreams = [portNames]` feature makes the component expect
+# substreams on specific inports instead of separate IPs (brackets and data).
+# It makes select inports emit `Substream` objects on `data` event
+# and silences `beginGroup` and `endGroup` events.
+#
+# `config.sendStreams = [portNames]` feature makes the component emit entire
+# substreams of packets atomically to the outport. Atomically means that a
+# substream cannot be interrupted by other packets, which is important when
+# doing asynchronous processing. In fact, `sendStreams` is enabled by default
+# on all outports when `config.async` is `true`.
+#
+# WirePattern supports both sync and async `proc` handlers. In latter case
+# pass `config.async = true` and make sure that `proc` accepts callback as
+# 4th parameter and calls it when async operation completes or fails.
+#
+# WirePattern sends group packets, sends data packets emitted by `proc`
+# via its `outputPort` argument, then closes groups and disconnects
+# automatically.
+exports.WirePattern = (component, config, proc) ->
+  # In ports
+  inPorts = if 'in' of config then config.in else 'in'
+  inPorts = [ inPorts ] unless isArray inPorts
+  # Out ports
+  outPorts = if 'out' of config then config.out else 'out'
+  outPorts = [ outPorts ] unless isArray outPorts
+  # Error port
+  config.error = 'error' unless 'error' of config
+  # For async process
+  config.async = false unless 'async' of config
+  # Keep correct output order for async mode
+  config.ordered = true unless 'ordered' of config
+  # Group requests by group ID
+  config.group = false unless 'group' of config
+  # Group requests by object field
+  config.field = null unless 'field' of config
+  # Forward group events from specific inputs to the output:
+  # - false: don't forward anything
+  # - true: forward unique groups of all inputs
+  # - string: forward groups of a specific port only
+  # - array: forward unique groups of inports in the list
+  config.forwardGroups = false unless 'forwardGroups' of config
+  if config.forwardGroups
+    if typeof config.forwardGroups is 'string'
+      # Collect groups from one and only port?
+      config.forwardGroups = [config.forwardGroups]
+    if typeof config.forwardGroups is 'boolean'
+      # Forward groups from each port?
+      config.forwardGroups = inPorts
+  # Receive streams feature
+  config.receiveStreams = false unless 'receiveStreams' of config
+  if config.receiveStreams
+    throw new Error 'WirePattern receiveStreams is deprecated'
+  # if typeof config.receiveStreams is 'string'
+  #   config.receiveStreams = [ config.receiveStreams ]
+  # Send streams feature
+  config.sendStreams = false unless 'sendStreams' of config
+  if config.sendStreams
+    throw new Error 'WirePattern sendStreams is deprecated'
+  # if typeof config.sendStreams is 'string'
+  #   config.sendStreams = [ config.sendStreams ]
+  config.sendStreams = outPorts if config.async
+  # Parameter ports
+  config.params = [] unless 'params' of config
+  config.params = [ config.params ] if typeof config.params is 'string'
+  # Node name
+  config.name = '' unless 'name' of config
+  # Drop premature input before all params are received
+  config.dropInput = false unless 'dropInput' of config
+
+  config.inPorts = inPorts
+  config.outPorts = outPorts
+
+  # If we're using deprecated WirePattern features we provide warnings on them
+  # and fall back to the legacy implementation of WirePattern
+  setup = if checkDeprecation config, proc then legacyWirePattern else processApiWrapper
+  return setup component, config, proc
+
 # Takes WirePattern configuration of a component and sets up
 # Process API to handle it.
 processApiWrapper = (component, config, func) ->
@@ -163,7 +262,6 @@ setupSendDefaults = (component) ->
       tempSocket.disconnect()
       component.inPorts[port].detach tempSocket
 
-
 populateParams = (config, input) ->
   return unless config.params.length
   params = {}
@@ -240,105 +338,8 @@ class OutPortWrapper
   isConnected: -> @port.isConnected()
   isAttached: -> @port.isAttached()
 
-# WirePattern makes your component collect data from several inports
-# and activates a handler `proc` only when a tuple from all of these
-# ports is complete. The signature of handler function is:
-# ```
-# proc = (combinedInputData, inputGroups, outputPorts, asyncCallback) ->
-# ```
-#
-# With `config.group = true` it checks incoming group IPs and collates
-# data with matching group IPs. By default this kind of grouping is `false`.
-# Set `config.group` to a RegExp object to correlate inputs only if the
-# group matches the expression (e.g. `^req_`). For non-matching groups
-# the component will act normally.
-#
-# With `config.field = 'fieldName' it collates incoming data by specified
-# field. The component's proc function is passed a combined object with
-# port names used as keys. This kind of grouping is disabled by default.
-#
-# With `config.forwardGroups = true` it would forward group IPs from
-# inputs to the output sending them along with the data. This option also
-# accepts string or array values, if you want to forward groups from specific
-# port(s) only. By default group forwarding is `false`.
-#
-# `config.receiveStreams = [portNames]` feature makes the component expect
-# substreams on specific inports instead of separate IPs (brackets and data).
-# It makes select inports emit `Substream` objects on `data` event
-# and silences `beginGroup` and `endGroup` events.
-#
-# `config.sendStreams = [portNames]` feature makes the component emit entire
-# substreams of packets atomically to the outport. Atomically means that a
-# substream cannot be interrupted by other packets, which is important when
-# doing asynchronous processing. In fact, `sendStreams` is enabled by default
-# on all outports when `config.async` is `true`.
-#
-# WirePattern supports both sync and async `proc` handlers. In latter case
-# pass `config.async = true` and make sure that `proc` accepts callback as
-# 4th parameter and calls it when async operation completes or fails.
-#
-# WirePattern sends group packets, sends data packets emitted by `proc`
-# via its `outputPort` argument, then closes groups and disconnects
-# automatically.
-exports.WirePattern = (component, config, proc) ->
-  # In ports
-  inPorts = if 'in' of config then config.in else 'in'
-  inPorts = [ inPorts ] unless isArray inPorts
-  # Out ports
-  outPorts = if 'out' of config then config.out else 'out'
-  outPorts = [ outPorts ] unless isArray outPorts
-  # Error port
-  config.error = 'error' unless 'error' of config
-  # For async process
-  config.async = false unless 'async' of config
-  # Keep correct output order for async mode
-  config.ordered = true unless 'ordered' of config
-  # Group requests by group ID
-  config.group = false unless 'group' of config
-  # Group requests by object field
-  config.field = null unless 'field' of config
-  # Forward group events from specific inputs to the output:
-  # - false: don't forward anything
-  # - true: forward unique groups of all inputs
-  # - string: forward groups of a specific port only
-  # - array: forward unique groups of inports in the list
-  config.forwardGroups = false unless 'forwardGroups' of config
-  if config.forwardGroups
-    if typeof config.forwardGroups is 'string'
-      # Collect groups from one and only port?
-      config.forwardGroups = [config.forwardGroups]
-    if typeof config.forwardGroups is 'boolean'
-      # Forward groups from each port?
-      config.forwardGroups = inPorts
-  # Receive streams feature
-  config.receiveStreams = false unless 'receiveStreams' of config
-  if config.receiveStreams
-    throw new Error 'WirePattern receiveStreams is deprecated'
-  # if typeof config.receiveStreams is 'string'
-  #   config.receiveStreams = [ config.receiveStreams ]
-  # Send streams feature
-  config.sendStreams = false unless 'sendStreams' of config
-  if config.sendStreams
-    throw new Error 'WirePattern sendStreams is deprecated'
-  # if typeof config.sendStreams is 'string'
-  #   config.sendStreams = [ config.sendStreams ]
-  config.sendStreams = outPorts if config.async
-  # Parameter ports
-  config.params = [] unless 'params' of config
-  config.params = [ config.params ] if typeof config.params is 'string'
-  # Node name
-  config.name = '' unless 'name' of config
-  # Drop premature input before all params are received
-  config.dropInput = false unless 'dropInput' of config
-
-  config.inPorts = inPorts
-  config.outPorts = outPorts
-
-  # If we're using deprecated WirePattern features we provide warnings on them
-  # and fall back to the legacy implementation of WirePattern
-  setup = if checkDeprecation config, proc then legacyWirePattern else processApiWrapper
-  return setup component, config, proc
-
+# Legacy WirePattern implementation. We fall back to this with
+# some deprecated parameters.
 legacyWirePattern = (component, config, proc) ->
   # Firing policy for addressable ports
   unless 'arrayPolicy' of config
