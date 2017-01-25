@@ -161,7 +161,7 @@ class Component extends EventEmitter
       # If port is non-triggering, we can skip the process function call
       return
 
-    if ip.type is 'openBracket' and @autoOrdering is null
+    if ip.type is 'openBracket' and @autoOrdering is null and not @ordered
       # Switch component to ordered mode when receiving a stream unless
       # auto-ordering is disabled
       debug "#{@nodeId} port #{port.name} entered auto-ordering mode"
@@ -273,6 +273,9 @@ class Component extends EventEmitter
           continue if outport.indexOf('__') is 0
           if @outPorts[outport].isAddressable()
             for idx, idxIps of ips
+              # Don't register indexes we're only sending brackets to
+              datas = idxIps.filter (ip) -> ip.type is 'data'
+              continue unless datas.length
               portIdentifier = "#{outport}[#{idx}]"
               unforwarded = context.filter (ctx) =>
                 return false unless @isForwardingOutport inport, outport
@@ -286,6 +289,9 @@ class Component extends EventEmitter
                 debug "#{@nodeId} register #{portIdentifier} to #{inport} ctx #{ctx.ip.data}"
                 ctx.ports.push portIdentifier
             continue
+          # Don't register ports we're only sending brackets to
+          datas = ips.filter (ip) -> ip.type is 'data'
+          continue unless datas.length
           unforwarded = context.filter (ctx) =>
             return false unless @isForwardingOutport inport, outport
             ctx.ports.indexOf(outport) is -1
