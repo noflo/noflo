@@ -119,6 +119,11 @@ exports.WirePattern = (component, config, proc) ->
   config.name = '' unless 'name' of config
   # Drop premature input before all params are received
   config.dropInput = false unless 'dropInput' of config
+  # Firing policy for addressable ports
+  unless 'arrayPolicy' of config
+    config.arrayPolicy =
+      in: 'any'
+      params: 'all'
 
   config.inPorts = inPorts
   config.outPorts = outPorts
@@ -337,11 +342,6 @@ class OutPortWrapper
 # Legacy WirePattern implementation. We fall back to this with
 # some deprecated parameters.
 legacyWirePattern = (component, config, proc) ->
-  # Firing policy for addressable ports
-  unless 'arrayPolicy' of config
-    config.arrayPolicy =
-      in: 'any'
-      params: 'all'
   # Garbage collector frequency: execute every N packets
   config.gcFrequency = 100 unless 'gcFrequency' of config
   # Garbage collector timeout: drop packets older than N seconds
