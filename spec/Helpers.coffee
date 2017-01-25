@@ -638,27 +638,27 @@ describe 'Component traits', ->
             , req
 
     describe 'when there are multiple output routes', ->
-      c = new noflo.Component
-      c.inPorts.add 'num', datatype: 'int'
-      .add 'str', datatype: 'string'
-      c.outPorts.add 'odd', datatype: 'object'
-      .add 'even', datatype: 'object'
-      num = new noflo.internalSocket.createSocket()
-      str = new noflo.internalSocket.createSocket()
-      odd = new noflo.internalSocket.createSocket()
-      even = new noflo.internalSocket.createSocket()
-      c.inPorts.num.attach num
-      c.inPorts.str.attach str
-      c.outPorts.odd.attach odd
-      c.outPorts.even.attach even
-
       it 'should send output to one or more of them', (done) ->
         numbers = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve']
+        c = new noflo.Component
+        c.inPorts.add 'num', datatype: 'int'
+        .add 'str', datatype: 'string'
+        c.outPorts.add 'odd', datatype: 'object'
+        .add 'even', datatype: 'object'
+        num = new noflo.internalSocket.createSocket()
+        str = new noflo.internalSocket.createSocket()
+        odd = new noflo.internalSocket.createSocket()
+        even = new noflo.internalSocket.createSocket()
+        c.inPorts.num.attach num
+        c.inPorts.str.attach str
+        c.outPorts.odd.attach odd
+        c.outPorts.even.attach even
 
         noflo.helpers.WirePattern c,
           in: ['num', 'str']
           out: ['odd', 'even']
           async: true
+          ordered: true
           forwardGroups: true
         , (data, groups, outs, callback) ->
           setTimeout ->
@@ -666,6 +666,79 @@ describe 'Component traits', ->
               outs.odd.send data
             else
               outs.even.send data
+            callback()
+          , 0
+
+        expected = []
+        numbers.forEach (n, idx) ->
+          if idx % 2 is 1
+            port = 'odd'
+          else
+            port = 'even'
+          expected.push "#{port} < #{idx}"
+          expected.push "#{port} DATA #{n}"
+          expected.push "#{port} > #{idx}"
+        received = []
+        odd.on 'begingroup', (grp) ->
+          received.push "odd < #{grp}"
+        odd.on 'data', (data) ->
+          received.push "odd DATA #{data.str}"
+        odd.on 'endgroup', (grp) ->
+          received.push "odd > #{grp}"
+        odd.on 'disconnect', ->
+          return unless received.length is expected.length
+          chai.expect(received).to.eql expected
+          done()
+        even.on 'begingroup', (grp) ->
+          received.push "even < #{grp}"
+        even.on 'data', (data) ->
+          received.push "even DATA #{data.str}"
+        even.on 'endgroup', (grp) ->
+          received.push "even > #{grp}"
+        even.on 'disconnect', ->
+          return unless received.length >= expected.length
+          chai.expect(received).to.eql expected
+          done()
+
+        for i in [0...10]
+          num.beginGroup i
+          num.send i
+          num.endGroup i
+          num.disconnect()
+          str.beginGroup i
+          str.send numbers[i]
+          str.endGroup i
+          str.disconnect()
+
+      it 'should send output to one or more of indexes', (done) ->
+        c = new noflo.Component
+        c.inPorts.add 'num', datatype: 'int'
+        .add 'str', datatype: 'string'
+        c.outPorts.add 'out',
+          datatype: 'object'
+          addressable: true
+        num = new noflo.internalSocket.createSocket()
+        str = new noflo.internalSocket.createSocket()
+        odd = new noflo.internalSocket.createSocket()
+        even = new noflo.internalSocket.createSocket()
+        c.inPorts.num.attach num
+        c.inPorts.str.attach str
+        c.outPorts.out.attach odd
+        c.outPorts.out.attach even
+        numbers = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve']
+
+        noflo.helpers.WirePattern c,
+          in: ['num', 'str']
+          out: 'out'
+          async: true
+          ordered: true
+          forwardGroups: true
+        , (data, groups, outs, callback) ->
+          setTimeout ->
+            if data.num % 2 is 1
+              outs.send data, 0
+            else
+              outs.send data, 1
             callback()
           , 0
 
