@@ -1138,7 +1138,7 @@ describe 'Component', ->
             datatype: 'string'
             addressable: true
         process: (input, output) ->
-          return unless input.hasData
+          return unless input.hasData()
           string = input.getData()
           idx = if sent then 0 else 1
           sent = true
@@ -1205,7 +1205,7 @@ describe 'Component', ->
             datatype: 'string'
             addressable: true
         process: (input, output) ->
-          return unless input.hasData
+          return unless input.hasData()
           string = input.getData()
           idx = if sent then 0 else 1
           sent = true
@@ -1274,7 +1274,7 @@ describe 'Component', ->
             datatype: 'string'
             addressable: true
         process: (input, output) ->
-          return unless input.hasData
+          return unless input.hasData()
           data = input.get()
           ip = new noflo.IP 'data', data.data
           ip.index = data.index
@@ -1339,7 +1339,7 @@ describe 'Component', ->
             datatype: 'string'
             addressable: true
         process: (input, output) ->
-          return unless input.hasData
+          return unless input.hasData()
           data = input.get()
           setTimeout ->
             ip = new noflo.IP 'data', data.data
