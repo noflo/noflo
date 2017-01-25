@@ -149,7 +149,7 @@ class InPort extends BasePort
 
   getBuffer: (scope, idx) ->
     if @isAddressable()
-      if ip.scope?
+      if scope?
         return undefined unless scope of @scopedBuffer
         return undefined unless idx of @scopedBuffer[scope]
         return @scopedBuffer[scope][idx]
