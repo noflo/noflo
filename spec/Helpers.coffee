@@ -1289,38 +1289,49 @@ describe 'Component traits', ->
         cnt.disconnect()
 
     describe 'with addressable ports', ->
-      c = new noflo.Component
-      c.inPorts.add 'p1',
-        datatype: 'int'
-        addressable: true
-        required: true
-      .add 'd1',
-        datatype: 'int'
-        addressable: true
-      .add 'd2',
-        datatype: 'string'
-      c.outPorts.add 'out',
-        datatype: 'object'
-      .add 'error',
-        datatype: 'object'
-      p11 = noflo.internalSocket.createSocket()
-      p12 = noflo.internalSocket.createSocket()
-      p13 = noflo.internalSocket.createSocket()
-      d11 = noflo.internalSocket.createSocket()
-      d12 = noflo.internalSocket.createSocket()
-      d13 = noflo.internalSocket.createSocket()
-      d2 = noflo.internalSocket.createSocket()
-      out = noflo.internalSocket.createSocket()
-      err = noflo.internalSocket.createSocket()
-      c.inPorts.p1.attach p11
-      c.inPorts.p1.attach p12
-      c.inPorts.p1.attach p13
-      c.inPorts.d1.attach d11
-      c.inPorts.d1.attach d12
-      c.inPorts.d1.attach d13
-      c.inPorts.d2.attach d2
-      c.outPorts.out.attach out
-      c.outPorts.error.attach err
+      c = null
+      p11 = null
+      p12 = null
+      p13 = null
+      d11 = null
+      d12 = null
+      d13 = null
+      d2 = null
+      out = null
+      err = null
+      beforeEach ->
+        c = new noflo.Component
+        c.inPorts.add 'p1',
+          datatype: 'int'
+          addressable: true
+          required: true
+        .add 'd1',
+          datatype: 'int'
+          addressable: true
+        .add 'd2',
+          datatype: 'string'
+        c.outPorts.add 'out',
+          datatype: 'object'
+        .add 'error',
+          datatype: 'object'
+        p11 = noflo.internalSocket.createSocket()
+        p12 = noflo.internalSocket.createSocket()
+        p13 = noflo.internalSocket.createSocket()
+        d11 = noflo.internalSocket.createSocket()
+        d12 = noflo.internalSocket.createSocket()
+        d13 = noflo.internalSocket.createSocket()
+        d2 = noflo.internalSocket.createSocket()
+        out = noflo.internalSocket.createSocket()
+        err = noflo.internalSocket.createSocket()
+        c.inPorts.p1.attach p11
+        c.inPorts.p1.attach p12
+        c.inPorts.p1.attach p13
+        c.inPorts.d1.attach d11
+        c.inPorts.d1.attach d12
+        c.inPorts.d1.attach d13
+        c.inPorts.d2.attach d2
+        c.outPorts.out.attach out
+        c.outPorts.error.attach err
 
       it 'should wait for all param and any data port values (default)', (done) ->
         noflo.helpers.WirePattern c,
