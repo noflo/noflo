@@ -10,6 +10,8 @@ ports = require './Ports'
 IP = require './IP'
 
 debug = require('debug') 'noflo:component'
+debugBrackets = require('debug') 'noflo:component:brackets'
+debugSend = require('debug') 'noflo:component:send'
 
 class Component extends EventEmitter
   description: ''
@@ -193,7 +195,7 @@ class Component extends EventEmitter
           port.get ip.scope, ip.index
           context = @getBracketContext(port.name, ip.scope, ip.index).pop()
           context.closeIp = ip
-          debug "#{@nodeId} closeBracket-C from '#{context.source}' to #{context.ports}: '#{ip.data}'"
+          debugBrackets "#{@nodeId} closeBracket-C from '#{context.source}' to #{context.ports}: '#{ip.data}'"
           result =
             __resolved: true
             __bracketClosingAfter: [context]
@@ -250,7 +252,7 @@ class Component extends EventEmitter
   addBracketForwards: (result) ->
     if result.__bracketClosingBefore?.length
       for context in result.__bracketClosingBefore
-        debug "#{@nodeId} closeBracket-A from '#{context.source}' to #{context.ports}: '#{context.closeIp.data}'"
+        debugBrackets "#{@nodeId} closeBracket-A from '#{context.source}' to #{context.ports}: '#{context.closeIp.data}'"
         continue unless context.ports.length
         for port in context.ports
           ipClone = context.closeIp.clone()
@@ -279,7 +281,7 @@ class Component extends EventEmitter
                 ipClone = ctx.ip.clone()
                 ipClone.index = parseInt idx
                 idxIps.unshift ipClone
-                debug "#{@nodeId} register from '#{inport}' to '#{portIdentifier}' < '#{ctx.ip.data}'"
+                debugBrackets "#{@nodeId} register from '#{inport}' to '#{portIdentifier}' < '#{ctx.ip.data}'"
                 ctx.ports.push portIdentifier
             continue
           # Don't register ports we're only sending brackets to
@@ -292,12 +294,12 @@ class Component extends EventEmitter
           unforwarded.reverse()
           for ctx in unforwarded
             ips.unshift ctx.ip.clone()
-            debug "#{@nodeId} register from '#{inport}' to '#{outport}' < '#{ctx.ip.data}'"
+            debugBrackets "#{@nodeId} register from '#{inport}' to '#{outport}' < '#{ctx.ip.data}'"
             ctx.ports.push outport
 
     if result.__bracketClosingAfter?.length
       for context in result.__bracketClosingAfter
-        debug "#{@nodeId} closeBracket-B from '#{context.source}' to #{context.ports}: '#{context.closeIp.data}'"
+        debugBrackets "#{@nodeId} closeBracket-B from '#{context.source}' to #{context.ports}: '#{context.closeIp.data}'"
         continue unless context.ports.length
         for port in context.ports
           ipClone = context.closeIp.clone()
@@ -321,22 +323,22 @@ class Component extends EventEmitter
             for ip in idxIps
               portIdentifier = "#{port}[#{ip.index}]"
               if ip.type is 'openBracket'
-                debug "#{@nodeId} sending #{portIdentifier} < '#{ip.data}'"
+                debugSend "#{@nodeId} sending #{portIdentifier} < '#{ip.data}'"
               else if ip.type is 'closeBracket'
-                debug "#{@nodeId} sending #{portIdentifier} > '#{ip.data}'"
+                debugSend "#{@nodeId} sending #{portIdentifier} > '#{ip.data}'"
               else
-                debug "#{@nodeId} sending #{portIdentifier} DATA"
+                debugSend "#{@nodeId} sending #{portIdentifier} DATA"
               @outPorts[port].sendIP ip
           continue
         continue unless @outPorts.ports[port].isAttached()
         for ip in ips
           portIdentifier = port
           if ip.type is 'openBracket'
-            debug "#{@nodeId} sending #{portIdentifier} < '#{ip.data}'"
+            debugSend "#{@nodeId} sending #{portIdentifier} < '#{ip.data}'"
           else if ip.type is 'closeBracket'
-            debug "#{@nodeId} sending #{portIdentifier} > '#{ip.data}'"
+            debugSend "#{@nodeId} sending #{portIdentifier} > '#{ip.data}'"
           else
-            debug "#{@nodeId} sending #{portIdentifier} DATA"
+            debugSend "#{@nodeId} sending #{portIdentifier} DATA"
           @outPorts[port].sendIP ip
       @outputQ.shift()
 
