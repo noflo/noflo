@@ -879,7 +879,8 @@ describe 'Component traits', ->
           in: ['data1', 'data2']
           out: 'out'
           params: ['param1', 'param2', 'param3']
-        , (input, groups, out) ->
+          async: true
+        , (input, groups, out, callback) ->
           delay = if c.params.param2 then c.params.param2 else 10
           setTimeout ->
             res =
@@ -889,6 +890,7 @@ describe 'Component traits', ->
               d1: input.data1
               d2: input.data2
             out.send res
+            do callback
           , delay
 
         err.on 'data', (data) ->
