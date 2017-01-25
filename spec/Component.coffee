@@ -350,6 +350,48 @@ describe 'Component', ->
       sin1.post new noflo.IP 'data', 'first'
       sin2.post new noflo.IP 'data', 'second'
 
+    it 'should trigger on IPs to addressable ports', (done) ->
+      receivedIndexes = []
+      c = new noflo.Component
+        inPorts:
+          foo:
+            datatype: 'string'
+            addressable: true
+        outPorts:
+          baz:
+            datatype: 'boolean'
+        process: (input, output) ->
+          return unless input.hasData 'foo'
+          packet = input.get 'foo'
+          receivedIndexes.push
+            idx: packet.index
+            payload: packet.data
+          output.sendDone baz: true
+
+      c.inPorts.foo.attach sin1, 1
+      c.inPorts.foo.attach sin2, 0
+      c.outPorts.baz.attach sout1
+
+      count = 0
+      sout1.on 'ip', (ip) ->
+        count++
+        if count is 1
+          chai.expect(receivedIndexes).to.eql [
+            idx: 1
+            payload: 'first'
+          ]
+        if count is 2
+          chai.expect(receivedIndexes).to.eql [
+            idx: 1
+            payload: 'first'
+          ,
+            idx: 0
+            payload: 'second'
+          ]
+          done()
+      sin1.post new noflo.IP 'data', 'first'
+      sin2.post new noflo.IP 'data', 'second'
+
     it 'should not be triggered by non-triggering ports', (done) ->
       triggered = []
       c = new noflo.Component
