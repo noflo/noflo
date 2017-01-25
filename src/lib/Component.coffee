@@ -188,7 +188,7 @@ class Component extends EventEmitter
           return unless buf[0] is ip
           # Remove from buffer
           port.get ip.scope
-          context = @bracketContext[port.name][ip.scope].pop()
+          context = @getBracketContext(port.name, ip.scope, ip.index).pop()
           context.closeIp = ip
           debug "#{@nodeId} closeBracket-C #{ip.data} #{context.ports}"
           result =
@@ -212,7 +212,10 @@ class Component extends EventEmitter
       output.sendDone e
 
     unless input.activated
-      debug "#{@nodeId} #{ip.type} packet on #{port.name} didn't match preconditions"
+      if port.isAddressable()
+        debug "#{@nodeId} #{ip.type} packet on #{port.name}[#{ip.index}] didn't match preconditions"
+      else
+        debug "#{@nodeId} #{ip.type} packet on #{port.name} didn't match preconditions"
       return
 
     # Component fired
@@ -221,6 +224,15 @@ class Component extends EventEmitter
       @outputQ.push result
       do @processOutputQueue
     return
+
+  getBracketContext: (port, scope, idx) ->
+    portname = port
+    if @inPorts[port].isAddressable()
+      portname = "#{port}[#{idx}]"
+    # Ensure we have a bracket context for the current scope
+    @bracketContext[portname] = {} unless @bracketContext[portname]
+    @bracketContext[portname][scope] = [] unless @bracketContext[portname][scope]
+    return @bracketContext[portname][scope]
 
   addToResult: (result, port, ip, before = false) ->
     if port.indexOf('[') is -1
@@ -374,7 +386,10 @@ class ProcessInput
   # When preconditions are met, set component state to `activated`
   activate: ->
     return if @context.activated
-    debug "#{@nodeInstance.nodeId} #{@ip.type} packet on #{@port.name} caused activation #{@nodeInstance.load}"
+    if @port.isAddressable()
+      debug "#{@nodeInstance.nodeId} #{@ip.type} packet on #{@port.name}[#{@ip.index}] caused activation #{@nodeInstance.load}"
+    else
+      debug "#{@nodeInstance.nodeId} #{@ip.type} packet on #{@port.name} caused activation #{@nodeInstance.load}"
     if @nodeInstance.isOrdered()
       # We're handling packets in order. Set the result as non-resolved
       # so that it can be send when the order comes up
@@ -453,9 +468,6 @@ class ProcessInput
     if args.length is 1 then res[0] else res
 
   __getForForwarding: (port) ->
-    # Ensure we have a bracket context for the current scope
-    @nodeInstance.bracketContext[port] = {} unless @nodeInstance.bracketContext[port]
-    @nodeInstance.bracketContext[port][@scope] = [] unless @nodeInstance.bracketContext[port][@scope]
     prefix = []
     dataIp = null
     # Read IPs until we hit data
@@ -478,13 +490,13 @@ class ProcessInput
       if ip.type is 'closeBracket'
         # Bracket closings before data should remove bracket context
         @result.__bracketClosingBefore = [] unless @result.__bracketClosingBefore
-        context = @nodeInstance.bracketContext[port][@scope].pop()
+        context = @nodeInstance.getBracketContext(port, @scope, ip.index).pop()
         context.closeIp = ip
         @result.__bracketClosingBefore.push context
         continue
       if ip.type is 'openBracket'
         # Bracket openings need to go to bracket context
-        @nodeInstance.bracketContext[port][@scope].push
+        @nodeInstance.getBracketContext(port, @scope, ip.index).push
           ip: ip
           ports: []
           source: port
@@ -493,7 +505,7 @@ class ProcessInput
     # Add current bracket context to the result so that when we send
     # to ports we can also add the surrounding brackets
     @result.__bracketContext = {} unless @result.__bracketContext
-    @result.__bracketContext[port] = @nodeInstance.bracketContext[port][@scope].slice 0
+    @result.__bracketContext[port] = @nodeInstance.getBracketContext(port, @scope, dataIp.index).slice 0
     # Bracket closings that were in buffer after the data packet need to
     # be added to result for done() to read them from
     return dataIp
