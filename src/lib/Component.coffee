@@ -214,18 +214,11 @@ class Component extends EventEmitter
       @deactivate context
       output.sendDone e
 
-    unless context.activated
-      if port.isAddressable()
-        debug "#{@nodeId} #{ip.type} packet on #{port.name}[#{ip.index}] didn't match preconditions"
-      else
-        debug "#{@nodeId} #{ip.type} packet on #{port.name} didn't match preconditions"
+    return if context.activated
+    if port.isAddressable()
+      debug "#{@nodeId} #{ip.type} packet on #{port.name}[#{ip.index}] didn't match preconditions"
       return
-
-    # Component fired
-    if @isOrdered()
-      # Ordered mode. Instead of sending directly, we're queueing
-      @outputQ.push result
-      do @processOutputQueue
+    debug "#{@nodeId} #{ip.type} packet on #{port.name} didn't match preconditions"
     return
 
   getBracketContext: (port, scope, idx) ->
@@ -390,7 +383,6 @@ class ProcessInput
     @port = @context.port
     @result = @context.result
     @scope = @context.scope
-    @activated = false
 
   # When preconditions are met, set component state to `activated`
   activate: ->
