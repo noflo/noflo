@@ -39,7 +39,8 @@ class Component extends EventEmitter
     @ordered = options.ordered ? false
     @autoOrdering = options.autoOrdering ? null
     @outputQ = []
-    @bracketContextIn = {}
+    @bracketContext =
+      in: {}
     @activateOnInput = options.activateOnInput ? true
     @forwardBrackets = in: ['out', 'error']
 
@@ -72,7 +73,8 @@ class Component extends EventEmitter
     return unless @started
     inPorts = @inPorts.ports or @inPorts
     inPort.clear() for inPort in inPorts
-    @bracketContextIn = {}
+    @bracketContext =
+      in: {}
     callback = =>
       @started = false
       @emit 'end'
@@ -228,9 +230,9 @@ class Component extends EventEmitter
     if @inPorts[port].isAddressable()
       portname = "#{port}[#{idx}]"
     # Ensure we have a bracket context for the current scope
-    @bracketContextIn[portname] = {} unless @bracketContextIn[portname]
-    @bracketContextIn[portname][scope] = [] unless @bracketContextIn[portname][scope]
-    return @bracketContextIn[portname][scope]
+    @bracketContext.in[portname] = {} unless @bracketContext.in[portname]
+    @bracketContext.in[portname][scope] = [] unless @bracketContext.in[portname][scope]
+    return @bracketContext.in[portname][scope]
 
   addToResult: (result, port, ip, before = false) ->
     if port.indexOf('[') is -1
@@ -699,7 +701,7 @@ class ProcessOutput
       # We're doing bracket forwarding. See if there are
       # dangling closeBrackets in buffer since we're the
       # last running process function.
-      for port, contexts of @nodeInstance.bracketContextIn
+      for port, contexts of @nodeInstance.bracketContext.in
         continue unless contexts[@scope]
         nodeContext = contexts[@scope]
         continue unless nodeContext.length
