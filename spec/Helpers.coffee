@@ -857,9 +857,10 @@ describe 'Component traits', ->
         chai.expect(Object.keys(c._wpData[null].groupedData)).to.have.length.above 0
         chai.expect(Object.keys(c._wpData[null].params)).to.have.length.above 0
 
-        c.shutdown()
-        chai.expect(c._wpData).to.deep.equal {}
-        done()
+        c.shutdown (err) ->
+          return done err if err
+          chai.expect(c._wpData).to.deep.equal {}
+          done()
 
       it 'should drop premature data if configured to do so', (done) ->
         noflo.helpers.WirePattern c,
@@ -1894,9 +1895,9 @@ describe 'Component traits', ->
         chai.expect(c2.errors).to.be.an 'array'
         chai.expect(c2.errors).to.have.lengthOf 1
 
-        c2.shutdown()
-        chai.expect(c2.hasErrors).to.be.false
-        chai.expect(c2.errors).to.be.an 'array'
-        chai.expect(c2.errors).to.have.lengthOf 0
-
-        done()
+        c2.shutdown (err) ->
+          return done err if err
+          chai.expect(c2.hasErrors).to.be.false
+          chai.expect(c2.errors).to.be.an 'array'
+          chai.expect(c2.errors).to.have.lengthOf 0
+          done()
