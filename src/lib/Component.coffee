@@ -229,9 +229,10 @@ class Component extends EventEmitter
 
   getBracketContext: (type, port, scope, idx) ->
     {name, index} = ports.normalizePortName port
+    index = idx if idx?
     portsList = if type is 'in' then @inPorts else @outPorts
-    if portsList[name].isAddressable() and idx
-      port = "#{port}[#{idx}]"
+    if portsList[name].isAddressable()
+      port = "#{name}[#{index}]"
     # Ensure we have a bracket context for the current scope
     @bracketContext[type][port] = {} unless @bracketContext[type][port]
     @bracketContext[type][port][scope] = [] unless @bracketContext[type][port][scope]
@@ -274,7 +275,7 @@ class Component extends EventEmitter
         for port in context.ports
           ipClone = context.closeIp.clone()
           @addToResult result, port, ipClone, true
-          @getBracketContext('out', port, ipClone.scope, ipClone.index).pop()
+          @getBracketContext('out', port, ipClone.scope).pop()
 
     if result.__bracketContext
       # First see if there are any brackets to forward. We need to reverse
@@ -301,7 +302,7 @@ class Component extends EventEmitter
                 ctx.ports.push portIdentifier
                 @getBracketContext('out', outport, ctx.ip.scope, idx).push ctx
               forwardedOpens.reverse()
-              idxIps.unshift ip for ip in forwardedOpens
+              @addToResult result, outport, ip, true for ip in forwardedOpens
             continue
           # Don't register ports we're only sending brackets to
           datas = ips.filter (ip) -> ip.type is 'data'
@@ -315,7 +316,7 @@ class Component extends EventEmitter
             ctx.ports.push outport
             @getBracketContext('out', outport, ctx.ip.scope).push ctx
           forwardedOpens.reverse()
-          ips.unshift ip for ip in forwardedOpens
+          @addToResult result, outport, ip, true for ip in forwardedOpens
 
     if result.__bracketClosingAfter?.length
       for context in result.__bracketClosingAfter
@@ -324,7 +325,7 @@ class Component extends EventEmitter
         for port in context.ports
           ipClone = context.closeIp.clone()
           @addToResult result, port, ipClone, false
-          @getBracketContext('out', port, ipClone.scope, ipClone.index).pop()
+          @getBracketContext('out', port, ipClone.scope).pop()
 
     delete result.__bracketClosingBefore
     delete result.__bracketContext
