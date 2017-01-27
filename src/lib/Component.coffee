@@ -39,7 +39,7 @@ class Component extends EventEmitter
     @ordered = options.ordered ? false
     @autoOrdering = options.autoOrdering ? null
     @outputQ = []
-    @bracketContext = {}
+    @bracketContextIn = {}
     @activateOnInput = options.activateOnInput ? true
     @forwardBrackets = in: ['out', 'error']
 
@@ -72,7 +72,7 @@ class Component extends EventEmitter
     return unless @started
     inPorts = @inPorts.ports or @inPorts
     inPort.clear() for inPort in inPorts
-    @bracketContext = {}
+    @bracketContextIn = {}
     callback = =>
       @started = false
       @emit 'end'
@@ -228,9 +228,9 @@ class Component extends EventEmitter
     if @inPorts[port].isAddressable()
       portname = "#{port}[#{idx}]"
     # Ensure we have a bracket context for the current scope
-    @bracketContext[portname] = {} unless @bracketContext[portname]
-    @bracketContext[portname][scope] = [] unless @bracketContext[portname][scope]
-    return @bracketContext[portname][scope]
+    @bracketContextIn[portname] = {} unless @bracketContextIn[portname]
+    @bracketContextIn[portname][scope] = [] unless @bracketContextIn[portname][scope]
+    return @bracketContextIn[portname][scope]
 
   addToResult: (result, port, ip, before = false) ->
     if port.indexOf('[') is -1
@@ -281,12 +281,13 @@ class Component extends EventEmitter
                 ipClone = ctx.ip.clone()
                 ipClone.index = parseInt idx
                 idxIps.unshift ipClone
-                debugBrackets "#{@nodeId} register from '#{inport}' to '#{portIdentifier}' < '#{ctx.ip.data}'"
+                debugBrackets "#{@nodeId} openBracket from '#{inport}' to '#{portIdentifier}': '#{ctx.ip.data}'"
                 ctx.ports.push portIdentifier
             continue
           # Don't register ports we're only sending brackets to
           datas = ips.filter (ip) -> ip.type is 'data'
           continue unless datas.length
+          console.log context.map (ctx) -> return "#{ctx.source} < #{ctx.ip.data}"
           unforwarded = context.filter (ctx) =>
             return false unless @isForwardingOutport inport, outport
             ctx.ports.indexOf(outport) is -1
@@ -294,7 +295,7 @@ class Component extends EventEmitter
           unforwarded.reverse()
           for ctx in unforwarded
             ips.unshift ctx.ip.clone()
-            debugBrackets "#{@nodeId} register from '#{inport}' to '#{outport}' < '#{ctx.ip.data}'"
+            debugBrackets "#{@nodeId} openBracket from '#{inport}' to '#{outport}': '#{ctx.ip.data}'"
             ctx.ports.push outport
 
     if result.__bracketClosingAfter?.length
@@ -698,7 +699,7 @@ class ProcessOutput
       # We're doing bracket forwarding. See if there are
       # dangling closeBrackets in buffer since we're the
       # last running process function.
-      for port, contexts of @nodeInstance.bracketContext
+      for port, contexts of @nodeInstance.bracketContextIn
         continue unless contexts[@scope]
         nodeContext = contexts[@scope]
         continue unless nodeContext.length
