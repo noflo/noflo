@@ -182,12 +182,12 @@ class Component extends EventEmitter
         # B. There are closeBrackets in queue after current packet
         # C. We've queued the results from all in-flight processes and
         #    new closeBracket arrives
-        buf = port.getBuffer ip.scope
+        buf = port.getBuffer ip.scope, ip.index
         dataPackets = buf.filter (ip) -> ip.type is 'data'
         if @outputQ.length >= @load and dataPackets.length is 0
           return unless buf[0] is ip
           # Remove from buffer
-          port.get ip.scope
+          port.get ip.scope, ip.index
           context = @getBracketContext(port.name, ip.scope, ip.index).pop()
           context.closeIp = ip
           debug "#{@nodeId} closeBracket-C #{ip.data} #{context.ports}"
@@ -396,6 +396,17 @@ class ProcessInput
       @result.__resolved = false
     @nodeInstance.activate @context
 
+  # ## Connection listing
+  # This allows components to check which input ports are attached. This is
+  # useful mainly for addressable ports
+  attached: (args...) ->
+    args = ['in'] unless args.length
+    res = []
+    for port in args
+      res.push @ports[port].listAttached()
+    return res.pop() if args.length is 1
+    res
+
   # ## Input preconditions
   # When the processing function is called, it can check if input buffers
   # contain the packets needed for the process to fire.
@@ -408,12 +419,18 @@ class ProcessInput
     args = ['in'] unless args.length
     if typeof args[args.length - 1] is 'function'
       validate = args.pop()
-      for port in args
-        return false unless @ports[port].has @scope, validate
-      return true
-    res = true
-    res and= @ports[port].ready @scope for port in args
-    res
+    else
+      validate = -> true
+    for port in args
+      if Array.isArray port
+        unless @ports[port[0]].isAddressable()
+          throw new Error "Non-addressable ports, access must be with string #{port[0]}"
+        return false unless @ports[port[0]].has @scope, port[1], validate
+        continue
+      if @ports[port].isAddressable()
+        throw new Error "For addressable ports, access must be with array [#{port}, idx]"
+      return false unless @ports[port].has @scope, validate
+    return true
 
   # Returns true if the ports contain data packets
   hasData: (args...) ->
@@ -442,10 +459,8 @@ class ProcessInput
           return false if portBrackets.length
           return false unless hasData
           return true
-      return false unless @ports[port].has @scope, validate
-    res = true
-    res and= @ports[port].ready @scope for port in args
-    res
+      return false unless @has port, validate
+    true
 
   # ## Input processing
   #
@@ -458,22 +473,30 @@ class ProcessInput
     args = ['in'] unless args.length
     res = []
     for port in args
-      if @nodeInstance.isForwardingInport port
-        ip = @__getForForwarding port
+      if Array.isArray port
+        [portname, idx] = port
+        unless @ports[portname].isAddressable()
+          throw new Error 'Non-addressable ports, access must be with string portname'
+      else
+        portname = port
+        if @ports[portname].isAddressable()
+          throw new Error 'For addressable ports, access must be with array [portname, idx]'
+      if @nodeInstance.isForwardingInport portname
+        ip = @__getForForwarding portname, idx
         res.push ip
         continue
-      ip = @ports[port].get @scope
+      ip = @ports[portname].get @scope, idx
       res.push ip
 
     if args.length is 1 then res[0] else res
 
-  __getForForwarding: (port) ->
+  __getForForwarding: (port, idx) ->
     prefix = []
     dataIp = null
     # Read IPs until we hit data
     loop
       # Read next packet
-      ip = @ports[port].get @scope
+      ip = @ports[port].get @scope, idx
       # Stop at the end of the buffer
       break unless ip
       if ip.type is 'data'
@@ -490,13 +513,13 @@ class ProcessInput
       if ip.type is 'closeBracket'
         # Bracket closings before data should remove bracket context
         @result.__bracketClosingBefore = [] unless @result.__bracketClosingBefore
-        context = @nodeInstance.getBracketContext(port, @scope, ip.index).pop()
+        context = @nodeInstance.getBracketContext(port, @scope, idx).pop()
         context.closeIp = ip
         @result.__bracketClosingBefore.push context
         continue
       if ip.type is 'openBracket'
         # Bracket openings need to go to bracket context
-        @nodeInstance.getBracketContext(port, @scope, ip.index).push
+        @nodeInstance.getBracketContext(port, @scope, idx).push
           ip: ip
           ports: []
           source: port
@@ -505,7 +528,7 @@ class ProcessInput
     # Add current bracket context to the result so that when we send
     # to ports we can also add the surrounding brackets
     @result.__bracketContext = {} unless @result.__bracketContext
-    @result.__bracketContext[port] = @nodeInstance.getBracketContext(port, @scope, dataIp.index).slice 0
+    @result.__bracketContext[port] = @nodeInstance.getBracketContext(port, @scope, idx).slice 0
     # Bracket closings that were in buffer after the data packet need to
     # be added to result for done() to read them from
     return dataIp
@@ -676,11 +699,11 @@ class ProcessOutput
         nodeContext = contexts[@scope]
         continue unless nodeContext.length
         context = nodeContext[nodeContext.length - 1]
-        buf = @nodeInstance.inPorts[context.source].getBuffer context.ip.scope
+        buf = @nodeInstance.inPorts[context.source].getBuffer context.ip.scope, context.ip.index
         loop
           break unless buf.length
           break unless buf[0].type is 'closeBracket'
-          ip = @nodeInstance.inPorts[context.source].get context.ip.scope
+          ip = @nodeInstance.inPorts[context.source].get context.ip.scope, context.ip.index
           ctx = nodeContext.pop()
           ctx.closeIp = ip
           @result.__bracketClosingAfter = [] unless @result.__bracketClosingAfter

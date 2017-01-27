@@ -361,10 +361,15 @@ describe 'Component', ->
           baz:
             datatype: 'boolean'
         process: (input, output) ->
-          return unless input.hasData 'foo'
-          packet = input.get 'foo'
+          # See what inbound connection indexes have data
+          indexesWithData = input.attached('foo').filter (idx) ->
+            input.hasData ['foo', idx]
+          return unless indexesWithData.length
+          # Read from the first of them
+          indexToUse = indexesWithData[0]
+          packet = input.get ['foo', indexToUse]
           receivedIndexes.push
-            idx: packet.index
+            idx: indexToUse
             payload: packet.data
           output.sendDone baz: true
 
@@ -409,7 +414,7 @@ describe 'Component', ->
             datatype: 'boolean'
             addressable: true
         process: (input, output) ->
-          return unless input.hasData 'foo'
+          return unless input.has 'foo'
           packet = input.get 'foo'
           output.sendDone new noflo.IP 'data', packet.data,
             index: expected.length - 1
@@ -1274,10 +1279,14 @@ describe 'Component', ->
             datatype: 'string'
             addressable: true
         process: (input, output) ->
-          return unless input.hasData()
-          data = input.get()
+          indexesWithData = []
+          for idx in input.attached()
+            indexesWithData.push idx if input.hasData ['in', idx]
+          return unless indexesWithData.length
+          indexToUse = indexesWithData[0]
+          data = input.get ['in', indexToUse]
           ip = new noflo.IP 'data', data.data
-          ip.index = data.index
+          ip.index = indexToUse
           output.sendDone ip
 
       c.inPorts.in.attach sin1, 1
@@ -1316,6 +1325,7 @@ describe 'Component', ->
           when 'closeBracket'
             received.push "0 > #{ip.data}"
         return unless received.length is expected.length
+        return unless received.length is expected.length
         chai.expect(received).to.eql expected
         done()
 
@@ -1339,8 +1349,11 @@ describe 'Component', ->
             datatype: 'string'
             addressable: true
         process: (input, output) ->
-          return unless input.hasData()
-          data = input.get()
+          indexesWithData = []
+          for idx in input.attached()
+            indexesWithData.push idx if input.hasData ['in', idx]
+          return unless indexesWithData.length
+          data = input.get ['in', indexesWithData[0]]
           setTimeout ->
             ip = new noflo.IP 'data', data.data
             ip.index = data.index
