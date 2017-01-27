@@ -1702,54 +1702,56 @@ describe 'Component traits', ->
 
   describe 'MultiError', ->
     describe 'with simple sync processes', ->
-      c = new noflo.Component
-      c.inPorts.add 'form',
-        datatype: 'object'
-      c.outPorts.add 'saved',
-        datatype: 'boolean'
-      c.outPorts.add 'error',
-        datatype: 'object'
-      noflo.helpers.WirePattern c,
-        in: 'form'
-        out: 'saved'
-        async: false
-        forwardGroups: true
-        name: 'Registration'
-      , (payload, groups, out) ->
-          # Validate form
-          unless payload.name and payload.name.match /^\w{3,16}$/
-            this.error noflo.helpers.CustomError 'Incorrect name',
-              kind: 'form_error'
-              code: 'invalid_name'
-              param: 'name'
-          unless payload.email and payload.email.match /^\w+@\w+\.\w+$/
-            this.error noflo.helpers.CustomError 'Incorrect email',
-              kind: 'form_error'
-              code: 'invalid_email'
-              param: 'email'
-          unless payload.accept
-            this.error noflo.helpers.CustomError 'Terms have to be accepted',
-              kind: 'form_error'
-              code: 'terms_not_accepted'
-              param: 'accept'
-          # Finish validation
-          return c.fail() if c.hasErrors
-
-          # Emulating some processing logic here
-          if payload.name is 'DelayLama'
-            # oops
-            out.send false
-            out.disconnect()
-            return this.fail noflo.helpers.CustomError 'Suspended for a meditation',
-              kind: 'runtime_error'
-              code: 'delay_lama_detected'
-          else
-            out.send true
-
-      form = new noflo.internalSocket.createSocket()
-      c.inPorts.form.attach form
+      form = null
       saved = null
       err = null
+      before ->
+        c = new noflo.Component
+        c.inPorts.add 'form',
+          datatype: 'object'
+        c.outPorts.add 'saved',
+          datatype: 'boolean'
+        c.outPorts.add 'error',
+          datatype: 'object'
+        noflo.helpers.WirePattern c,
+          in: 'form'
+          out: 'saved'
+          async: false
+          forwardGroups: true
+          name: 'Registration'
+        , (payload, groups, out) ->
+            # Validate form
+            unless payload.name and payload.name.match /^\w{3,16}$/
+              this.error noflo.helpers.CustomError 'Incorrect name',
+                kind: 'form_error'
+                code: 'invalid_name'
+                param: 'name'
+            unless payload.email and payload.email.match /^\w+@\w+\.\w+$/
+              this.error noflo.helpers.CustomError 'Incorrect email',
+                kind: 'form_error'
+                code: 'invalid_email'
+                param: 'email'
+            unless payload.accept
+              this.error noflo.helpers.CustomError 'Terms have to be accepted',
+                kind: 'form_error'
+                code: 'terms_not_accepted'
+                param: 'accept'
+            # Finish validation
+            return c.fail() if c.hasErrors
+
+            # Emulating some processing logic here
+            if payload.name is 'DelayLama'
+              # oops
+              out.send false
+              out.disconnect()
+              return this.fail noflo.helpers.CustomError 'Suspended for a meditation',
+                kind: 'runtime_error'
+                code: 'delay_lama_detected'
+            else
+              out.send true
+
+        form = new noflo.internalSocket.createSocket()
+        c.inPorts.form.attach form
       beforeEach ->
         saved = new noflo.internalSocket.createSocket()
         err = new noflo.internalSocket.createSocket()
