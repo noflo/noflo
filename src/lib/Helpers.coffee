@@ -775,7 +775,7 @@ legacyWirePattern = (component, config, proc) ->
             # Enforce MultiError with WirePattern (for group forwarding)
             exports.MultiError component, config.name, config.error, groups, scope
 
-            debug "WirePattern with", data, groups, component.params, scope
+            debug "WirePattern Legacy API call with", data, groups, component.params, scope
 
             # Call the proc function
             if config.async
