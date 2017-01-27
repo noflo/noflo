@@ -88,13 +88,12 @@ class Network extends EventEmitter
         active.push name
     return active
 
-  eventBuffer: []
   bufferedEmit: (event, payload) ->
     # Errors get emitted immediately, like does network end
     if event in ['error', 'process-error', 'end']
       @emit event, payload
       return
-    unless @isStarted()
+    if not @isStarted() and event isnt 'end'
       @eventBuffer.push
         type: event
         payload: payload
@@ -129,7 +128,7 @@ class Network extends EventEmitter
     # Processes are treated as singletons by their identifier. If
     # we already have a process with the given ID, return that.
     if @processes[node.id]
-      callback null, @processes[node.id] if callback
+      callback null, @processes[node.id]
       return
 
     process =
@@ -138,7 +137,7 @@ class Network extends EventEmitter
     # No component defined, just register the process but don't start.
     unless node.component
       @processes[process.id] = process
-      callback null, process if callback
+      callback null, process
       return
 
     # Load the component for the process.
@@ -168,14 +167,15 @@ class Network extends EventEmitter
 
       # Store and return the process instance
       @processes[process.id] = process
-      callback null, process if callback
+      callback null, process
 
   removeNode: (node, callback) ->
     unless @processes[node.id]
       return callback new Error "Node #{node.id} not found"
-    @processes[node.id].component.shutdown()
-    delete @processes[node.id]
-    callback null if callback
+    @processes[node.id].component.shutdown (err) =>
+      return callback err if err
+      delete @processes[node.id]
+      callback null
 
   renameNode: (oldId, newId, callback) ->
     process = @getNode oldId
@@ -197,7 +197,7 @@ class Network extends EventEmitter
 
     @processes[newId] = process
     delete @processes[oldId]
-    callback null if callback
+    callback null
 
   # Get process by its ID.
   getNode: (id) ->
@@ -450,7 +450,7 @@ class Network extends EventEmitter
     @connectPort socket, from, edge.from.port, edge.from.index, false
 
     @connections.push socket
-    callback() if callback
+    callback()
 
   removeEdge: (edge, callback) ->
     for connection in @connections
@@ -461,7 +461,7 @@ class Network extends EventEmitter
         if connection.from and edge.from.node is connection.from.process.id and edge.from.port is connection.from.port
           connection.from.process.component.outPorts[connection.from.port].detach connection
       @connections.splice @connections.indexOf(connection), 1
-      do callback if callback
+      do callback
 
   addDefaults: (node, callback) ->
 
@@ -490,7 +490,7 @@ class Network extends EventEmitter
 
         @defaults.push socket
 
-    callback() if callback
+    callback()
 
   addInitial: (initializer, callback) ->
     socket = internalSocket.createSocket initializer.metadata
@@ -521,7 +521,7 @@ class Network extends EventEmitter
 
     do @sendInitials if @isStarted()
 
-    callback() if callback
+    callback()
 
   removeInitial: (initializer, callback) ->
     for connection in @connections
@@ -539,7 +539,7 @@ class Network extends EventEmitter
         continue unless init.socket is connection
         @nextInitials.splice @nextInitials.indexOf(init), 1
 
-    do callback if callback
+    do callback
 
   sendInitial: (initial) ->
     initial.socket.connect()
@@ -575,7 +575,8 @@ class Network extends EventEmitter
     # Emit start event when all processes are started
     count = 0
     length = if @processes then Object.keys(@processes).length else 0
-    onProcessStart = ->
+    onProcessStart = (err) ->
+      return callback err if err
       count++
       callback() if count is length
 
@@ -585,8 +586,12 @@ class Network extends EventEmitter
       if process.component.isStarted()
         onProcessStart()
         continue
-      process.component.once 'start', onProcessStart
-      process.component.start()
+      if process.component.start.length is 0
+        platform.deprecated 'component.start method without callback is deprecated'
+        process.component.start()
+        onProcessStart()
+        continue
+      process.component.start onProcessStart
 
   sendDefaults: (callback) ->
     unless callback
@@ -643,10 +648,12 @@ class Network extends EventEmitter
     for connection in @connections
       continue unless connection.isConnected()
       connection.disconnect()
-    # Emit start event when all processes are started
+
+    # Emit stop event when all processes are stopped
     count = 0
     length = if @processes then Object.keys(@processes).length else 0
-    onProcessEnd = =>
+    onProcessEnd = (err) =>
+      return callback err if err
       count++
       if count is length
         @setStarted false
@@ -659,8 +666,12 @@ class Network extends EventEmitter
       unless process.component.isStarted()
         onProcessEnd()
         continue
-      process.component.once 'end', onProcessEnd
-      process.component.shutdown()
+      if process.component.shutdown.length is 0
+        platform.deprecated 'component.shutdown method without callback is deprecated'
+        process.component.shutdown()
+        onProcessEnd()
+        continue
+      process.component.shutdown onProcessEnd
 
   setStarted: (started) ->
     return if @started is started
