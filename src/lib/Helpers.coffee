@@ -133,12 +133,12 @@ exports.WirePattern = (component, config, proc) ->
     platform.deprecated 'noflo.helpers.WirePattern legacy mode is deprecated'
     setup = legacyWirePattern
   else
-    setup = processApiWrapper
+    setup = processApiWirePattern
   return setup component, config, proc
 
 # Takes WirePattern configuration of a component and sets up
 # Process API to handle it.
-processApiWrapper = (component, config, func) ->
+processApiWirePattern = (component, config, func) ->
   # Make param ports control ports
   setupControlPorts component, config
   # Set up sendDefaults function
