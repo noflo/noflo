@@ -991,20 +991,23 @@ describe 'Component traits', ->
 
 
     describe 'without output ports', ->
-      c = new noflo.Component
-      c.inPorts.add 'foo'
-      foo = noflo.internalSocket.createSocket()
-      sig = noflo.internalSocket.createSocket()
-      c.inPorts.foo.attach foo
-      noflo.helpers.WirePattern c,
-        in: 'foo'
-        out: []
-        async: true
-      , (foo, grp, out, callback) ->
-        setTimeout ->
-          sig.send foo
-          callback()
-        , 20
+      foo = null
+      sig = null
+      before ->
+        c = new noflo.Component
+        c.inPorts.add 'foo'
+        foo = noflo.internalSocket.createSocket()
+        sig = noflo.internalSocket.createSocket()
+        c.inPorts.foo.attach foo
+        noflo.helpers.WirePattern c,
+          in: 'foo'
+          out: []
+          async: true
+        , (foo, grp, out, callback) ->
+          setTimeout ->
+            sig.send foo
+            callback()
+          , 20
 
       it 'should be fine still', (done) ->
         sig.on 'data', (data) ->
@@ -1015,30 +1018,6 @@ describe 'Component traits', ->
         foo.disconnect()
 
     describe 'with many inputs and groups in async mode', ->
-      c = new noflo.Component
-      c.token = null
-      c.inPorts.add 'in', datatype: 'string'
-      .add 'message', datatype: 'string'
-      .add 'repository', datatype: 'string'
-      .add 'path', datatype: 'string'
-      .add 'token', datatype: 'string', (event, payload) ->
-        c.token = payload if event is 'data'
-      c.outPorts.add 'out', datatype: 'string'
-      .add 'error', datatype: 'object'
-
-      noflo.helpers.WirePattern c,
-        in: ['in', 'message', 'repository', 'path']
-        out: 'out'
-        async: true
-        forwardGroups: true
-      , (data, groups, out, callback) ->
-        setTimeout ->
-          out.beginGroup data.path
-          out.send data.message
-          out.endGroup()
-          do callback
-        , 300
-
       ins = noflo.internalSocket.createSocket()
       msg = noflo.internalSocket.createSocket()
       rep = noflo.internalSocket.createSocket()
@@ -1046,13 +1025,37 @@ describe 'Component traits', ->
       tkn = noflo.internalSocket.createSocket()
       out = noflo.internalSocket.createSocket()
       err = noflo.internalSocket.createSocket()
-      c.inPorts.in.attach ins
-      c.inPorts.message.attach msg
-      c.inPorts.repository.attach rep
-      c.inPorts.path.attach pth
-      c.inPorts.token.attach tkn
-      c.outPorts.out.attach out
-      c.outPorts.error.attach err
+      before ->
+        c = new noflo.Component
+        c.token = null
+        c.inPorts.add 'in', datatype: 'string'
+        .add 'message', datatype: 'string'
+        .add 'repository', datatype: 'string'
+        .add 'path', datatype: 'string'
+        .add 'token', datatype: 'string', (event, payload) ->
+          c.token = payload if event is 'data'
+        c.outPorts.add 'out', datatype: 'string'
+        .add 'error', datatype: 'object'
+
+        noflo.helpers.WirePattern c,
+          in: ['in', 'message', 'repository', 'path']
+          out: 'out'
+          async: true
+          forwardGroups: true
+        , (data, groups, out, callback) ->
+          setTimeout ->
+            out.beginGroup data.path
+            out.send data.message
+            out.endGroup()
+            do callback
+          , 300
+        c.inPorts.in.attach ins
+        c.inPorts.message.attach msg
+        c.inPorts.repository.attach rep
+        c.inPorts.path.attach pth
+        c.inPorts.token.attach tkn
+        c.outPorts.out.attach out
+        c.outPorts.error.attach err
 
       it 'should handle mixed flow well', (done) ->
         groups = []
@@ -1104,27 +1107,6 @@ describe 'Component traits', ->
         pth.disconnect()
         rep.disconnect()
     describe 'with many inputs and groups in sync mode', ->
-      c = new noflo.Component
-      c.token = null
-      c.inPorts.add 'in', datatype: 'string'
-      .add 'message', datatype: 'string'
-      .add 'repository', datatype: 'string'
-      .add 'path', datatype: 'string'
-      .add 'token', datatype: 'string', (event, payload) ->
-        c.token = payload if event is 'data'
-      c.outPorts.add 'out', datatype: 'string'
-      .add 'error', datatype: 'object'
-
-      noflo.helpers.WirePattern c,
-        in: ['in', 'message', 'repository', 'path']
-        out: 'out'
-        async: false
-        forwardGroups: true
-      , (data, groups, out) ->
-        out.beginGroup data.path
-        out.send data.message
-        out.endGroup()
-
       ins = noflo.internalSocket.createSocket()
       msg = noflo.internalSocket.createSocket()
       rep = noflo.internalSocket.createSocket()
@@ -1132,13 +1114,35 @@ describe 'Component traits', ->
       tkn = noflo.internalSocket.createSocket()
       out = noflo.internalSocket.createSocket()
       err = noflo.internalSocket.createSocket()
-      c.inPorts.in.attach ins
-      c.inPorts.message.attach msg
-      c.inPorts.repository.attach rep
-      c.inPorts.path.attach pth
-      c.inPorts.token.attach tkn
-      c.outPorts.out.attach out
-      c.outPorts.error.attach err
+      before ->
+        c = new noflo.Component
+        c.token = null
+        c.inPorts.add 'in', datatype: 'string'
+        .add 'message', datatype: 'string'
+        .add 'repository', datatype: 'string'
+        .add 'path', datatype: 'string'
+        .add 'token', datatype: 'string', (event, payload) ->
+          c.token = payload if event is 'data'
+        c.outPorts.add 'out', datatype: 'string'
+        .add 'error', datatype: 'object'
+
+        noflo.helpers.WirePattern c,
+          in: ['in', 'message', 'repository', 'path']
+          out: 'out'
+          async: false
+          forwardGroups: true
+        , (data, groups, out) ->
+          out.beginGroup data.path
+          out.send data.message
+          out.endGroup()
+
+        c.inPorts.in.attach ins
+        c.inPorts.message.attach msg
+        c.inPorts.repository.attach rep
+        c.inPorts.path.attach pth
+        c.inPorts.token.attach tkn
+        c.outPorts.out.attach out
+        c.outPorts.error.attach err
 
       it 'should handle mixed flow well', (done) ->
         groups = []
@@ -1256,13 +1260,6 @@ describe 'Component traits', ->
         seqsum.outPorts.add 'sum', datatype: 'int'
         return seqsum
 
-      # Wires
-      genA = newGenerator 'A'
-      genB = newGenerator 'B'
-      dblA = newDoubler 'A'
-      dblB = newDoubler 'B'
-      addr = newAdder()
-      sumr = newSeqsum()
       cntA = noflo.internalSocket.createSocket()
       cntB = noflo.internalSocket.createSocket()
       gen2dblA = noflo.internalSocket.createSocket()
@@ -1271,20 +1268,28 @@ describe 'Component traits', ->
       dblB2add = noflo.internalSocket.createSocket()
       addr2sum = noflo.internalSocket.createSocket()
       sum = noflo.internalSocket.createSocket()
+      before ->
+        # Wires
+        genA = newGenerator 'A'
+        genB = newGenerator 'B'
+        dblA = newDoubler 'A'
+        dblB = newDoubler 'B'
+        addr = newAdder()
+        sumr = newSeqsum()
 
-      genA.inPorts.count.attach cntA
-      genB.inPorts.count.attach cntB
-      genA.outPorts.seq.attach gen2dblA
-      genB.outPorts.seq.attach gen2dblB
-      dblA.inPorts.num.attach gen2dblA
-      dblB.inPorts.num.attach gen2dblB
-      dblA.outPorts.out.attach dblA2add
-      dblB.outPorts.out.attach dblB2add
-      addr.inPorts.num1.attach dblA2add
-      addr.inPorts.num2.attach dblB2add
-      addr.outPorts.sum.attach addr2sum
-      sumr.inPorts.seq.attach addr2sum
-      sumr.outPorts.sum.attach sum
+        genA.inPorts.count.attach cntA
+        genB.inPorts.count.attach cntB
+        genA.outPorts.seq.attach gen2dblA
+        genB.outPorts.seq.attach gen2dblB
+        dblA.inPorts.num.attach gen2dblA
+        dblB.inPorts.num.attach gen2dblB
+        dblA.outPorts.out.attach dblA2add
+        dblB.outPorts.out.attach dblB2add
+        addr.inPorts.num1.attach dblA2add
+        addr.inPorts.num2.attach dblB2add
+        addr.outPorts.sum.attach addr2sum
+        sumr.inPorts.seq.attach addr2sum
+        sumr.outPorts.sum.attach sum
 
       it 'should process sequences of packets separated by disconnects', (done) ->
         return @skip 'WirePattern doesn\'t see disconnects because of IP objects'
@@ -1585,22 +1590,23 @@ describe 'Component traits', ->
                 y.disconnect()
             , delay*req.num
 
-      noflo.helpers.WirePattern c,
-        in: ['x', 'y']
-        out: 'out'
-        async: true
-        forwardGroups: true
-        group: isUuid
-        gcFrequency: 2 # every 2 requests
-        gcTimeout: 0.02 # older than 20ms
-      , (input, groups, out, done) ->
-        setTimeout ->
-          out.send
-            id: groups[0]
-            x: input.x
-            y: input.y
-          done()
-        , 3
+      before ->
+        noflo.helpers.WirePattern c,
+          in: ['x', 'y']
+          out: 'out'
+          async: true
+          forwardGroups: true
+          group: isUuid
+          gcFrequency: 2 # every 2 requests
+          gcTimeout: 0.02 # older than 20ms
+        , (input, groups, out, done) ->
+          setTimeout ->
+            out.send
+              id: groups[0]
+              x: input.x
+              y: input.y
+            done()
+          , 3
 
       it 'should group requests by outer UUID group', (done) ->
         reqs = generateRequests 10
@@ -1667,19 +1673,20 @@ describe 'Component traits', ->
                 y.disconnect()
             , delay*req.num
 
-      noflo.helpers.WirePattern c,
-        in: ['x', 'y']
-        out: 'out'
-        async: true
-        forwardGroups: true
-      , (input, groups, out, done, postpone, resume, scope) ->
-        setTimeout ->
-          out.send
-            id: scope
-            x: input.x
-            y: input.y
-          done()
-        , 3
+      before ->
+        noflo.helpers.WirePattern c,
+          in: ['x', 'y']
+          out: 'out'
+          async: true
+          forwardGroups: true
+        , (input, groups, out, done, postpone, resume, scope) ->
+          setTimeout ->
+            out.send
+              id: scope
+              x: input.x
+              y: input.y
+            done()
+          , 3
 
       it 'should scope requests by proper UUID', (done) ->
         reqs = generateRequests 10
