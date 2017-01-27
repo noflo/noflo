@@ -228,13 +228,14 @@ class Component extends EventEmitter
     return
 
   getBracketContext: (type, port, scope, idx) ->
-    portname = port
-    if @inPorts[port].isAddressable()
-      portname = "#{port}[#{idx}]"
+    {name, index} = ports.normalizePortName port
+    portsList = if type is 'in' then @inPorts else @outPorts
+    if portsList[name].isAddressable() and idx
+      port = "#{port}[#{idx}]"
     # Ensure we have a bracket context for the current scope
-    @bracketContext[type][portname] = {} unless @bracketContext[type][portname]
-    @bracketContext[type][portname][scope] = [] unless @bracketContext[type][portname][scope]
-    return @bracketContext[type][portname][scope]
+    @bracketContext[type][port] = {} unless @bracketContext[type][port]
+    @bracketContext[type][port][scope] = [] unless @bracketContext[type][port][scope]
+    return @bracketContext[type][port][scope]
 
   addToResult: (result, port, ip, before = false) ->
     {name, index} = ports.normalizePortName port
@@ -257,7 +258,12 @@ class Component extends EventEmitter
       return unless @isForwardingOutport inport, name
       # We have already forwarded this context to this outport
       return unless ctx.ports.indexOf(outport) is -1
-      forwardable.unshift ctx
+      # See if we have already forwarded the same bracket from another
+      # inport
+      outContext = @getBracketContext('out', name, ctx.ip.scope, index)[idx]
+      if outContext
+        return if outContext.ip.data is ctx.ip.data and outContext.ports.indexOf(outport) isnt -1
+      forwardable.push ctx
     return forwardable
 
   addBracketForwards: (result) ->
@@ -268,6 +274,7 @@ class Component extends EventEmitter
         for port in context.ports
           ipClone = context.closeIp.clone()
           @addToResult result, port, ipClone, true
+          @getBracketContext('out', port, ipClone.scope, ipClone.index).pop()
 
     if result.__bracketContext
       # First see if there are any brackets to forward. We need to reverse
@@ -285,22 +292,30 @@ class Component extends EventEmitter
               portIdentifier = "#{outport}[#{idx}]"
               unforwarded = @getForwardableContexts inport, portIdentifier, context
               continue unless unforwarded.length
+              forwardedOpens = []
               for ctx in unforwarded
+                debugBrackets "#{@nodeId} openBracket from '#{inport}' to '#{portIdentifier}': '#{ctx.ip.data}'"
                 ipClone = ctx.ip.clone()
                 ipClone.index = parseInt idx
-                idxIps.unshift ipClone
-                debugBrackets "#{@nodeId} openBracket from '#{inport}' to '#{portIdentifier}': '#{ctx.ip.data}'"
+                forwardedOpens.push ipClone
                 ctx.ports.push portIdentifier
+                @getBracketContext('out', outport, ctx.ip.scope, idx).push ctx
+              forwardedOpens.reverse()
+              idxIps.unshift ip for ip in forwardedOpens
             continue
           # Don't register ports we're only sending brackets to
           datas = ips.filter (ip) -> ip.type is 'data'
           continue unless datas.length
           unforwarded = @getForwardableContexts inport, outport, context
           continue unless unforwarded.length
+          forwardedOpens = []
           for ctx in unforwarded
-            ips.unshift ctx.ip.clone()
             debugBrackets "#{@nodeId} openBracket from '#{inport}' to '#{outport}': '#{ctx.ip.data}'"
+            forwardedOpens.push ctx.ip.clone()
             ctx.ports.push outport
+            @getBracketContext('out', outport, ctx.ip.scope).push ctx
+          forwardedOpens.reverse()
+          ips.unshift ip for ip in forwardedOpens
 
     if result.__bracketClosingAfter?.length
       for context in result.__bracketClosingAfter
@@ -309,6 +324,7 @@ class Component extends EventEmitter
         for port in context.ports
           ipClone = context.closeIp.clone()
           @addToResult result, port, ipClone, false
+          @getBracketContext('out', port, ipClone.scope, ipClone.index).pop()
 
     delete result.__bracketClosingBefore
     delete result.__bracketContext
