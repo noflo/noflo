@@ -1705,6 +1705,7 @@ describe 'Component traits', ->
       form = null
       saved = null
       err = null
+      c = null
       before ->
         c = new noflo.Component
         c.inPorts.add 'form',
