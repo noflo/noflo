@@ -163,6 +163,7 @@ class InPort extends BasePort
   # Fetches a packet from the port
   get: (scope, idx) ->
     buf = @getBuffer scope, idx
+    return undefined unless buf?.length
     return if @options.control then buf[buf.length - 1] else buf.shift()
 
   # Returns true if port contains packet(s) matching the validator

@@ -10,6 +10,8 @@ ports = require './Ports'
 IP = require './IP'
 
 debug = require('debug') 'noflo:component'
+debugBrackets = require('debug') 'noflo:component:brackets'
+debugSend = require('debug') 'noflo:component:send'
 
 class Component extends EventEmitter
   description: ''
@@ -68,6 +70,9 @@ class Component extends EventEmitter
 
   shutdown: ->
     return unless @started
+    inPorts = @inPorts.ports or @inPorts
+    inPort.clear() for inPort in inPorts
+    @bracketContext = {}
     callback = =>
       @started = false
       @emit 'end'
@@ -158,10 +163,10 @@ class Component extends EventEmitter
       # If port is non-triggering, we can skip the process function call
       return
 
-    if ip.type is 'openBracket' and @autoOrdering is null
+    if ip.type is 'openBracket' and @autoOrdering is null and not @ordered
       # Switch component to ordered mode when receiving a stream unless
       # auto-ordering is disabled
-      debug "#{@nodeId} port #{port.name} entered auto-ordering mode"
+      debug "#{@nodeId} port '#{port.name}' entered auto-ordering mode"
       @autoOrdering = true
 
     # Initialize the result object for situations where output needs
@@ -190,7 +195,7 @@ class Component extends EventEmitter
           port.get ip.scope, ip.index
           context = @getBracketContext(port.name, ip.scope, ip.index).pop()
           context.closeIp = ip
-          debug "#{@nodeId} closeBracket-C #{ip.data} #{context.ports}"
+          debugBrackets "#{@nodeId} closeBracket-C from '#{context.source}' to #{context.ports}: '#{ip.data}'"
           result =
             __resolved: true
             __bracketClosingAfter: [context]
@@ -211,18 +216,11 @@ class Component extends EventEmitter
       @deactivate context
       output.sendDone e
 
-    unless input.activated
-      if port.isAddressable()
-        debug "#{@nodeId} #{ip.type} packet on #{port.name}[#{ip.index}] didn't match preconditions"
-      else
-        debug "#{@nodeId} #{ip.type} packet on #{port.name} didn't match preconditions"
+    return if context.activated
+    if port.isAddressable()
+      debug "#{@nodeId} packet on '#{port.name}[#{ip.index}]' didn't match preconditions: #{ip.type}"
       return
-
-    # Component fired
-    if @isOrdered()
-      # Ordered mode. Instead of sending directly, we're queueing
-      @outputQ.push result
-      do @processOutputQueue
+    debug "#{@nodeId} packet on '#{port.name}' didn't match preconditions: #{ip.type}"
     return
 
   getBracketContext: (port, scope, idx) ->
@@ -254,7 +252,7 @@ class Component extends EventEmitter
   addBracketForwards: (result) ->
     if result.__bracketClosingBefore?.length
       for context in result.__bracketClosingBefore
-        debug "#{@nodeId} closeBracket-A #{context.closeIp.data} #{context.ports}"
+        debugBrackets "#{@nodeId} closeBracket-A from '#{context.source}' to #{context.ports}: '#{context.closeIp.data}'"
         continue unless context.ports.length
         for port in context.ports
           ipClone = context.closeIp.clone()
@@ -270,6 +268,9 @@ class Component extends EventEmitter
           continue if outport.indexOf('__') is 0
           if @outPorts[outport].isAddressable()
             for idx, idxIps of ips
+              # Don't register indexes we're only sending brackets to
+              datas = idxIps.filter (ip) -> ip.type is 'data'
+              continue unless datas.length
               portIdentifier = "#{outport}[#{idx}]"
               unforwarded = context.filter (ctx) =>
                 return false unless @isForwardingOutport inport, outport
@@ -280,9 +281,12 @@ class Component extends EventEmitter
                 ipClone = ctx.ip.clone()
                 ipClone.index = parseInt idx
                 idxIps.unshift ipClone
-                debug "#{@nodeId} register #{portIdentifier} to #{inport} ctx #{ctx.ip.data}"
+                debugBrackets "#{@nodeId} register from '#{inport}' to '#{portIdentifier}' < '#{ctx.ip.data}'"
                 ctx.ports.push portIdentifier
             continue
+          # Don't register ports we're only sending brackets to
+          datas = ips.filter (ip) -> ip.type is 'data'
+          continue unless datas.length
           unforwarded = context.filter (ctx) =>
             return false unless @isForwardingOutport inport, outport
             ctx.ports.indexOf(outport) is -1
@@ -290,12 +294,12 @@ class Component extends EventEmitter
           unforwarded.reverse()
           for ctx in unforwarded
             ips.unshift ctx.ip.clone()
-            debug "#{@nodeId} register #{outport} to #{inport} ctx #{ctx.ip.data}"
+            debugBrackets "#{@nodeId} register from '#{inport}' to '#{outport}' < '#{ctx.ip.data}'"
             ctx.ports.push outport
 
     if result.__bracketClosingAfter?.length
       for context in result.__bracketClosingAfter
-        debug "#{@nodeId} closeBracket-B #{context.closeIp.data} #{context.ports}"
+        debugBrackets "#{@nodeId} closeBracket-B from '#{context.source}' to #{context.ports}: '#{context.closeIp.data}'"
         continue unless context.ports.length
         for port in context.ports
           ipClone = context.closeIp.clone()
@@ -319,22 +323,22 @@ class Component extends EventEmitter
             for ip in idxIps
               portIdentifier = "#{port}[#{ip.index}]"
               if ip.type is 'openBracket'
-                debug "#{@nodeId} sending < #{ip.data} to #{portIdentifier}"
+                debugSend "#{@nodeId} sending #{portIdentifier} < '#{ip.data}'"
               else if ip.type is 'closeBracket'
-                debug "#{@nodeId} sending > #{ip.data} to #{portIdentifier}"
+                debugSend "#{@nodeId} sending #{portIdentifier} > '#{ip.data}'"
               else
-                debug "#{@nodeId} sending DATA to #{portIdentifier}"
+                debugSend "#{@nodeId} sending #{portIdentifier} DATA"
               @outPorts[port].sendIP ip
           continue
         continue unless @outPorts.ports[port].isAttached()
         for ip in ips
           portIdentifier = port
           if ip.type is 'openBracket'
-            debug "#{@nodeId} sending < #{ip.data} to #{portIdentifier}"
+            debugSend "#{@nodeId} sending #{portIdentifier} < '#{ip.data}'"
           else if ip.type is 'closeBracket'
-            debug "#{@nodeId} sending > #{ip.data} to #{portIdentifier}"
+            debugSend "#{@nodeId} sending #{portIdentifier} > '#{ip.data}'"
           else
-            debug "#{@nodeId} sending DATA to #{portIdentifier}"
+            debugSend "#{@nodeId} sending #{portIdentifier} DATA"
           @outPorts[port].sendIP ip
       @outputQ.shift()
 
@@ -381,20 +385,19 @@ class ProcessInput
     @port = @context.port
     @result = @context.result
     @scope = @context.scope
-    @activated = false
 
   # When preconditions are met, set component state to `activated`
   activate: ->
     return if @context.activated
-    if @port.isAddressable()
-      debug "#{@nodeInstance.nodeId} #{@ip.type} packet on #{@port.name}[#{@ip.index}] caused activation #{@nodeInstance.load}"
-    else
-      debug "#{@nodeInstance.nodeId} #{@ip.type} packet on #{@port.name} caused activation #{@nodeInstance.load}"
     if @nodeInstance.isOrdered()
       # We're handling packets in order. Set the result as non-resolved
       # so that it can be send when the order comes up
       @result.__resolved = false
     @nodeInstance.activate @context
+    if @port.isAddressable()
+      debug "#{@nodeInstance.nodeId} packet on '#{@port.name}[#{@ip.index}]' caused activation #{@nodeInstance.load}: #{@ip.type}"
+    else
+      debug "#{@nodeInstance.nodeId} packet on '#{@port.name}' caused activation #{@nodeInstance.load}: #{@ip.type}"
 
   # ## Connection listing
   # This allows components to check which input ports are attached. This is
@@ -678,6 +681,7 @@ class ProcessOutput
     @error error if error
 
     isLast = =>
+      # We only care about real output sets with processing data
       resultsOnly = @nodeInstance.outputQ.filter (q) ->
         return true unless q.__resolved
         if Object.keys(q).length is 2 and q.__bracketClosingAfter
