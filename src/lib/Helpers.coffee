@@ -128,9 +128,12 @@ exports.WirePattern = (component, config, proc) ->
   config.inPorts = inPorts
   config.outPorts = outPorts
 
-  # If we're using deprecated WirePattern features we provide warnings on them
-  # and fall back to the legacy implementation of WirePattern
-  setup = if checkDeprecation config, proc then legacyWirePattern else processApiWrapper
+  # Allow users to selectively fall back to legacy WirePattern implementation
+  if config.legacy or process?.env?.NOFLO_WIREPATTERN_LEGACY
+    platform.deprecated 'noflo.helpers.WirePattern legacy mode is deprecated'
+    setup = legacyWirePattern
+  else
+    setup = processApiWrapper
   return setup component, config, proc
 
 # Takes WirePattern configuration of a component and sets up
@@ -178,20 +181,17 @@ processApiWrapper = (component, config, func) ->
 
 # Provide deprecation warnings on certain more esoteric WirePattern features
 checkDeprecation = (config, func) ->
-  needsFallback = false
   # First check the conditions that force us to fall back on legacy WirePattern
   if config.group
     platform.deprecated 'noflo.helpers.WirePattern group option is deprecated. Please port to Process API'
-    needsFallback = true
   if config.field
     platform.deprecated 'noflo.helpers.WirePattern field option is deprecated. Please port to Process API'
-    needsFallback = true
   # Then add deprecation warnings for other unwanted behaviors
   if func.length > 4
     platform.deprecated 'noflo.helpers.WirePattern postpone and resume are deprecated. Please port to Process API'
   unless config.async
     platform.deprecated 'noflo.helpers.WirePattern synchronous is deprecated. Please port to Process API'
-  return needsFallback
+  return
 
 # Updates component port definitions to control prots for WirePattern
 # -style params array

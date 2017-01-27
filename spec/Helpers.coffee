@@ -252,6 +252,52 @@ describe 'Component traits', ->
         y.disconnect()
         z.disconnect()
 
+      it 'should support asynchronous handlers in legacy mode', (done) ->
+        point =
+          x: 123
+          y: 456
+          z: 789
+
+        noflo.helpers.WirePattern c,
+          in: ['x', 'y', 'z']
+          out: 'point'
+          async: true
+          group: true
+          forwardGroups: true
+          legacy: true
+        , (data, groups, out, callback) ->
+          setTimeout ->
+            out.send {x: data.x, y: data.y, z: data.z}
+            callback()
+          , 100
+
+        counter = 0
+        hadData = false
+        p.on 'begingroup', (grp) ->
+          counter++
+        p.on 'endgroup', ->
+          counter--
+        p.once 'data', (data) ->
+          chai.expect(data).to.deep.equal point
+          hadData = true
+        p.once 'disconnect', ->
+          chai.expect(counter).to.equal 0
+          chai.expect(hadData).to.be.true
+          done()
+
+        x.beginGroup 'async'
+        y.beginGroup 'async'
+        z.beginGroup 'async'
+        x.send point.x
+        y.send point.y
+        z.send point.z
+        x.endGroup()
+        y.endGroup()
+        z.endGroup()
+        x.disconnect()
+        y.disconnect()
+        z.disconnect()
+
       it 'should not forward groups if forwarding is off', (done) ->
         point =
           x: 123
