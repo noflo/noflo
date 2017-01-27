@@ -466,18 +466,26 @@ class ProcessInput
   # Returns true if a port has a complete stream in its input buffer.
   hasStream: (args...) ->
     args = ['in'] unless args.length
+
+    if typeof args[args.length - 1] is 'function'
+      validateStream = args.pop()
+    else
+      validateStream = -> true
+
     for port in args
       portBrackets = []
+      dataBrackets = []
       hasData = false
       validate = (ip) ->
         if ip.type is 'openBracket'
           portBrackets.push ip.data
           return false
         if ip.type is 'data'
+          # Run the stream validation callback
+          hasData = validateStream ip, portBrackets
           # Data IP on its own is a valid stream
-          return true unless portBrackets.length
+          return hasData unless portBrackets.length
           # Otherwise we need to check for complete stream
-          hasData = true
           return false
         if ip.type is 'closeBracket'
           portBrackets.pop()
