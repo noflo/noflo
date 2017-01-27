@@ -39,7 +39,9 @@ class Component extends EventEmitter
     @ordered = options.ordered ? false
     @autoOrdering = options.autoOrdering ? null
     @outputQ = []
-    @bracketContext = {}
+    @bracketContext =
+      in: {}
+      out: {}
     @activateOnInput = options.activateOnInput ? true
     @forwardBrackets = in: ['out', 'error']
 
@@ -72,7 +74,9 @@ class Component extends EventEmitter
     return unless @started
     inPorts = @inPorts.ports or @inPorts
     inPort.clear() for inPort in inPorts
-    @bracketContext = {}
+    @bracketContext =
+      in: {}
+      out: {}
     callback = =>
       @started = false
       @emit 'end'
@@ -193,7 +197,7 @@ class Component extends EventEmitter
           return unless buf[0] is ip
           # Remove from buffer
           port.get ip.scope, ip.index
-          context = @getBracketContext(port.name, ip.scope, ip.index).pop()
+          context = @getBracketContext('in', port.name, ip.scope, ip.index).pop()
           context.closeIp = ip
           debugBrackets "#{@nodeId} closeBracket-C from '#{context.source}' to #{context.ports}: '#{ip.data}'"
           result =
@@ -223,31 +227,45 @@ class Component extends EventEmitter
     debug "#{@nodeId} packet on '#{port.name}' didn't match preconditions: #{ip.type}"
     return
 
-  getBracketContext: (port, scope, idx) ->
-    portname = port
-    if @inPorts[port].isAddressable()
-      portname = "#{port}[#{idx}]"
+  getBracketContext: (type, port, scope, idx) ->
+    {name, index} = ports.normalizePortName port
+    index = idx if idx?
+    portsList = if type is 'in' then @inPorts else @outPorts
+    if portsList[name].isAddressable()
+      port = "#{name}[#{index}]"
     # Ensure we have a bracket context for the current scope
-    @bracketContext[portname] = {} unless @bracketContext[portname]
-    @bracketContext[portname][scope] = [] unless @bracketContext[portname][scope]
-    return @bracketContext[portname][scope]
+    @bracketContext[type][port] = {} unless @bracketContext[type][port]
+    @bracketContext[type][port][scope] = [] unless @bracketContext[type][port][scope]
+    return @bracketContext[type][port][scope]
 
   addToResult: (result, port, ip, before = false) ->
-    if port.indexOf('[') is -1
-      # Regular port
-      outport = port
-    else
-      [port, outport, idx] = port.match /(.*)\[([0-9+])\]/
+    {name, index} = ports.normalizePortName port
     method = if before then 'unshift' else 'push'
-    if @outPorts[outport].isAddressable()
-      idx = if idx then parseInt(idx) else ip.index
-      result[outport] = {} unless result[outport]
-      result[outport][idx] = [] unless result[outport][idx]
+    if @outPorts[name].isAddressable()
+      idx = if index then parseInt(index) else ip.index
+      result[name] = {} unless result[name]
+      result[name][idx] = [] unless result[name][idx]
       ip.index = idx
-      result[outport][idx][method] ip
+      result[name][idx][method] ip
       return
-    result[outport] = [] unless result[outport]
-    result[outport][method] ip
+    result[name] = [] unless result[name]
+    result[name][method] ip
+
+  getForwardableContexts: (inport, outport, contexts) ->
+    {name, index} = ports.normalizePortName outport
+    forwardable = []
+    contexts.forEach (ctx, idx) =>
+      # No forwarding to this outport
+      return unless @isForwardingOutport inport, name
+      # We have already forwarded this context to this outport
+      return unless ctx.ports.indexOf(outport) is -1
+      # See if we have already forwarded the same bracket from another
+      # inport
+      outContext = @getBracketContext('out', name, ctx.ip.scope, index)[idx]
+      if outContext
+        return if outContext.ip.data is ctx.ip.data and outContext.ports.indexOf(outport) isnt -1
+      forwardable.push ctx
+    return forwardable
 
   addBracketForwards: (result) ->
     if result.__bracketClosingBefore?.length
@@ -257,6 +275,7 @@ class Component extends EventEmitter
         for port in context.ports
           ipClone = context.closeIp.clone()
           @addToResult result, port, ipClone, true
+          @getBracketContext('out', port, ipClone.scope).pop()
 
     if result.__bracketContext
       # First see if there are any brackets to forward. We need to reverse
@@ -272,30 +291,32 @@ class Component extends EventEmitter
               datas = idxIps.filter (ip) -> ip.type is 'data'
               continue unless datas.length
               portIdentifier = "#{outport}[#{idx}]"
-              unforwarded = context.filter (ctx) =>
-                return false unless @isForwardingOutport inport, outport
-                ctx.ports.indexOf(portIdentifier) is -1
+              unforwarded = @getForwardableContexts inport, portIdentifier, context
               continue unless unforwarded.length
-              unforwarded.reverse()
+              forwardedOpens = []
               for ctx in unforwarded
+                debugBrackets "#{@nodeId} openBracket from '#{inport}' to '#{portIdentifier}': '#{ctx.ip.data}'"
                 ipClone = ctx.ip.clone()
                 ipClone.index = parseInt idx
-                idxIps.unshift ipClone
-                debugBrackets "#{@nodeId} register from '#{inport}' to '#{portIdentifier}' < '#{ctx.ip.data}'"
+                forwardedOpens.push ipClone
                 ctx.ports.push portIdentifier
+                @getBracketContext('out', outport, ctx.ip.scope, idx).push ctx
+              forwardedOpens.reverse()
+              @addToResult result, outport, ip, true for ip in forwardedOpens
             continue
           # Don't register ports we're only sending brackets to
           datas = ips.filter (ip) -> ip.type is 'data'
           continue unless datas.length
-          unforwarded = context.filter (ctx) =>
-            return false unless @isForwardingOutport inport, outport
-            ctx.ports.indexOf(outport) is -1
+          unforwarded = @getForwardableContexts inport, outport, context
           continue unless unforwarded.length
-          unforwarded.reverse()
+          forwardedOpens = []
           for ctx in unforwarded
-            ips.unshift ctx.ip.clone()
-            debugBrackets "#{@nodeId} register from '#{inport}' to '#{outport}' < '#{ctx.ip.data}'"
+            debugBrackets "#{@nodeId} openBracket from '#{inport}' to '#{outport}': '#{ctx.ip.data}'"
+            forwardedOpens.push ctx.ip.clone()
             ctx.ports.push outport
+            @getBracketContext('out', outport, ctx.ip.scope).push ctx
+          forwardedOpens.reverse()
+          @addToResult result, outport, ip, true for ip in forwardedOpens
 
     if result.__bracketClosingAfter?.length
       for context in result.__bracketClosingAfter
@@ -304,6 +325,7 @@ class Component extends EventEmitter
         for port in context.ports
           ipClone = context.closeIp.clone()
           @addToResult result, port, ipClone, false
+          @getBracketContext('out', port, ipClone.scope).pop()
 
     delete result.__bracketClosingBefore
     delete result.__bracketContext
@@ -516,13 +538,13 @@ class ProcessInput
       if ip.type is 'closeBracket'
         # Bracket closings before data should remove bracket context
         @result.__bracketClosingBefore = [] unless @result.__bracketClosingBefore
-        context = @nodeInstance.getBracketContext(port, @scope, idx).pop()
+        context = @nodeInstance.getBracketContext('in', port, @scope, idx).pop()
         context.closeIp = ip
         @result.__bracketClosingBefore.push context
         continue
       if ip.type is 'openBracket'
         # Bracket openings need to go to bracket context
-        @nodeInstance.getBracketContext(port, @scope, idx).push
+        @nodeInstance.getBracketContext('in', port, @scope, idx).push
           ip: ip
           ports: []
           source: port
@@ -531,7 +553,7 @@ class ProcessInput
     # Add current bracket context to the result so that when we send
     # to ports we can also add the surrounding brackets
     @result.__bracketContext = {} unless @result.__bracketContext
-    @result.__bracketContext[port] = @nodeInstance.getBracketContext(port, @scope, idx).slice 0
+    @result.__bracketContext[port] = @nodeInstance.getBracketContext('in', port, @scope, idx).slice 0
     # Bracket closings that were in buffer after the data packet need to
     # be added to result for done() to read them from
     return dataIp
@@ -698,7 +720,7 @@ class ProcessOutput
       # We're doing bracket forwarding. See if there are
       # dangling closeBrackets in buffer since we're the
       # last running process function.
-      for port, contexts of @nodeInstance.bracketContext
+      for port, contexts of @nodeInstance.bracketContext.in
         continue unless contexts[@scope]
         nodeContext = contexts[@scope]
         continue unless nodeContext.length

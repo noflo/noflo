@@ -1570,6 +1570,156 @@ describe 'Component', ->
       sin2.post new noflo.IP 'closeBracket', 'delay'
       sin1.post new noflo.IP 'closeBracket', 'msg'
 
+    it 'should de-duplicate brackets when asynchronously forwarding from multiple inports', (done) ->
+      c = new noflo.Component
+        inPorts:
+          in1:
+            datatype: 'string'
+          in2:
+            datatype: 'string'
+        outPorts:
+          out:
+            datatype: 'string'
+          error:
+            datatype: 'object'
+        forwardBrackets:
+          in1: ['out', 'error']
+          in2: ['out', 'error']
+        process: (input, output) ->
+          return unless input.hasData 'in1', 'in2'
+          [one, two] = input.getData 'in1', 'in2'
+          setTimeout ->
+            output.sendDone
+              out: "#{one}:#{two}"
+          , 1
+
+      c.inPorts.in1.attach sin1
+      c.inPorts.in2.attach sin2
+      c.outPorts.out.attach sout1
+      c.outPorts.error.attach sout2
+
+      # Fail early on errors
+      sout2.on 'ip', (ip) ->
+        return unless ip.type is 'data'
+        done ip.data
+
+      expected = [
+        '< a'
+        '< b'
+        'DATA one:yksi'
+        '< c'
+        'DATA two:kaksi'
+        '> c'
+        'DATA three:kolme'
+        '> b'
+        '> a'
+      ]
+      received = [
+      ]
+
+      sout1.on 'ip', (ip) ->
+        switch ip.type
+          when 'openBracket'
+            received.push "< #{ip.data}"
+          when 'data'
+            received.push "DATA #{ip.data}"
+          when 'closeBracket'
+            received.push "> #{ip.data}"
+        return unless received.length is expected.length
+        chai.expect(received).to.eql expected
+        done()
+
+      sin1.post new noflo.IP 'openBracket', 'a'
+      sin1.post new noflo.IP 'openBracket', 'b'
+      sin1.post new noflo.IP 'data', 'one'
+      sin1.post new noflo.IP 'openBracket', 'c'
+      sin1.post new noflo.IP 'data', 'two'
+      sin1.post new noflo.IP 'closeBracket', 'c'
+      sin2.post new noflo.IP 'openBracket', 'a'
+      sin2.post new noflo.IP 'openBracket', 'b'
+      sin2.post new noflo.IP 'data', 'yksi'
+      sin2.post new noflo.IP 'data', 'kaksi'
+      sin1.post new noflo.IP 'data', 'three'
+      sin1.post new noflo.IP 'closeBracket', 'b'
+      sin1.post new noflo.IP 'closeBracket', 'a'
+      sin2.post new noflo.IP 'data', 'kolme'
+      sin2.post new noflo.IP 'closeBracket', 'b'
+      sin2.post new noflo.IP 'closeBracket', 'a'
+
+    it 'should de-duplicate brackets when synchronously forwarding from multiple inports', (done) ->
+      c = new noflo.Component
+        inPorts:
+          in1:
+            datatype: 'string'
+          in2:
+            datatype: 'string'
+        outPorts:
+          out:
+            datatype: 'string'
+          error:
+            datatype: 'object'
+        forwardBrackets:
+          in1: ['out', 'error']
+          in2: ['out', 'error']
+        process: (input, output) ->
+          return unless input.hasData 'in1', 'in2'
+          [one, two] = input.getData 'in1', 'in2'
+          output.sendDone
+            out: "#{one}:#{two}"
+
+      c.inPorts.in1.attach sin1
+      c.inPorts.in2.attach sin2
+      c.outPorts.out.attach sout1
+      c.outPorts.error.attach sout2
+
+      # Fail early on errors
+      sout2.on 'ip', (ip) ->
+        return unless ip.type is 'data'
+        done ip.data
+
+      expected = [
+        '< a'
+        '< b'
+        'DATA one:yksi'
+        '< c'
+        'DATA two:kaksi'
+        '> c'
+        'DATA three:kolme'
+        '> b'
+        '> a'
+      ]
+      received = [
+      ]
+
+      sout1.on 'ip', (ip) ->
+        switch ip.type
+          when 'openBracket'
+            received.push "< #{ip.data}"
+          when 'data'
+            received.push "DATA #{ip.data}"
+          when 'closeBracket'
+            received.push "> #{ip.data}"
+        return unless received.length is expected.length
+        chai.expect(received).to.eql expected
+        done()
+
+      sin1.post new noflo.IP 'openBracket', 'a'
+      sin1.post new noflo.IP 'openBracket', 'b'
+      sin1.post new noflo.IP 'data', 'one'
+      sin1.post new noflo.IP 'openBracket', 'c'
+      sin1.post new noflo.IP 'data', 'two'
+      sin1.post new noflo.IP 'closeBracket', 'c'
+      sin2.post new noflo.IP 'openBracket', 'a'
+      sin2.post new noflo.IP 'openBracket', 'b'
+      sin2.post new noflo.IP 'data', 'yksi'
+      sin2.post new noflo.IP 'data', 'kaksi'
+      sin1.post new noflo.IP 'data', 'three'
+      sin1.post new noflo.IP 'closeBracket', 'b'
+      sin1.post new noflo.IP 'closeBracket', 'a'
+      sin2.post new noflo.IP 'data', 'kolme'
+      sin2.post new noflo.IP 'closeBracket', 'b'
+      sin2.post new noflo.IP 'closeBracket', 'a'
+
     it 'should not apply auto-ordering if that option is false', (done) ->
       c = new noflo.Component
         inPorts:
