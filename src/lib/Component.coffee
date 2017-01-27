@@ -379,7 +379,7 @@ class Component extends EventEmitter
     return if context.deactivated # prevent double deactivation
     context.deactivated = true
     context.activated = false
-    if @ordered or @autoOrdering
+    if @isOrdered()
       @processOutputQueue()
     @load--
     @emit 'deactivate', @load
@@ -745,7 +745,4 @@ class ProcessOutput
 
     debug "#{@nodeInstance.nodeId} finished processing #{@nodeInstance.load}"
 
-    if @nodeInstance.isOrdered()
-      @result.__resolved = true
-      @nodeInstance.processOutputQueue()
     @nodeInstance.deactivate @context
