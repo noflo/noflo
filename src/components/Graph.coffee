@@ -5,6 +5,7 @@ class Graph extends noflo.Component
     @network = null
     @ready = true
     @started = false
+    @starting = false
     @baseDir = null
     @loader = null
     @load = 0
@@ -71,20 +72,6 @@ class Graph extends noflo.Component
           notReady = true unless @checkComponent name, node
         do @setToReady unless notReady
     , true
-
-  start: (callback) ->
-    unless callback
-      callback = ->
-    return callback() if @started
-    unless @isReady()
-      @on 'ready', =>
-        @start callback
-      return
-    super()
-    return callback null unless @network
-    @network.start (err) ->
-      return callback err if err
-      do callback
 
   checkComponent: (name, process) ->
     unless process.component.isReady()
@@ -155,8 +142,9 @@ class Graph extends noflo.Component
       @inPorts.add targetPortName, port
       @inPorts[targetPortName].once 'connect', =>
         # Start the network implicitly if we're starting to get data
+        return if @starting
         return if @isStarted()
-        do @start
+        @start ->
 
     for portName, port of outPorts
       targetPortName = @isExportedOutport port, name, portName
@@ -171,14 +159,23 @@ class Graph extends noflo.Component
   isSubgraph: ->
     true
 
-  shutdown: (callback) ->
-    unless callback
-      callback = ->
-    return callback() unless @started
+  setUp: (callback) ->
+    @starting = true
+    unless @isReady()
+      @once 'ready', =>
+        @setUp callback
+      return
     return callback null unless @network
-    @network.stop (err) =>
+    @network.start (err) ->
       return callback err if err
-      super()
+      @starting = false
+      do callback
+
+  tearDown: (callback) ->
+    @starting = false
+    return callback null unless @network
+    @network.stop (err) ->
+      return callback err if err
       do callback
 
 exports.getComponent = (metadata) -> new Graph metadata
