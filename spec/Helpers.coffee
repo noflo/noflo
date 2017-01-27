@@ -1614,21 +1614,6 @@ describe 'Component traits', ->
 
         sendRequests reqs, 10
 
-      it 'should collect garbage every N requests', (done) ->
-        # GC dropped 3 timed out packets, 1 should be left
-        chai.expect(Object.keys(c._wpData[null].groupedData)).to.have.lengthOf 1
-        chai.expect(Object.keys(c._wpData[null].groupedGroups)).to.have.lengthOf 1
-        chai.expect(Object.keys(c._wpData[null].disconnectData)).to.have.lengthOf 1
-        done()
-
-      it 'should be able to drop a request explicitly', (done) ->
-        for key in Object.keys(c._wpData[null].groupedData)
-          c.dropRequest null, key
-        chai.expect(c._wpData[null].groupedData).to.deep.equal {}
-        chai.expect(c._wpData[null].groupedGroups).to.deep.equal {}
-        chai.expect(c._wpData[null].disconnectData).to.deep.equal {}
-        done()
-
     describe 'when using scopes', ->
       c = new noflo.Component
         inPorts:
