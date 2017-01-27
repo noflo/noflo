@@ -149,7 +149,7 @@ processApiWirePattern = (component, config, func) ->
   # Create the processing function
   component.process (input, output, context) ->
     # Abort unless WirePattern-style preconditions don't match
-    return unless checkWirePatternPreconditions component, config, input, output
+    return unless checkWirePatternPreconditions config, input, output
     # Populate component.params from control ports
     component.params = populateParams config, input
     # Read input data
@@ -277,6 +277,34 @@ populateParams = (config, input) ->
     params[paramPort] = input.getData paramPort
   return params
 
+handleInputCollation = (data, config, input, port, idx) ->
+  return if not config.group and not config.field
+  # Note: the collation mechanism as shown below is not a
+  # very nice way to deal with inputs as it messes with
+  # input buffer order. Much better to handle collation
+  # in a specialized component or to separate flows by
+  # scope.
+  if config.field
+    buf = input.ports[port].getBuffer input.scope, idx
+    console.log port, config.field, data[config.field]
+    if data[config.field] is undefined
+      # First port being read, set as the field value
+      datas = buf.filter (ip) -> ip.type is 'data'
+      data[config.field] = datas[0].data[config.field]
+      # We don't need to reorder the first buffer by collation
+      return
+    # Move matching IP packet to be first in buffer
+    matchingAtIdx = null
+    for ip, idx in buf
+      continue unless ip.type is 'data'
+      continue unless ip.data[config.field] is data[config.field]
+      matchingAtIdx = idx
+      break
+    # No need to reorder if matching packet is already first
+    return if matchingAtIdx is 0
+    datas = buf.splice matchingAtIdx, 1
+    buf.unshift datas[0]
+
 getInputData = (config, input) ->
   data = {}
   for port in config.inPorts
@@ -284,8 +312,11 @@ getInputData = (config, input) ->
       data[port] = {}
       for idx in input.attached port
         continue unless input.hasData [port, idx]
+        handleInputCollation data, config, input, port, idx
         data[port][idx] = input.getData [port, idx]
       continue
+    continue unless input.hasData port
+    handleInputCollation data, config, input, port
     data[port] = input.getData port
   if config.inPorts.length is 1
     return data[config.inPorts[0]]
@@ -319,50 +350,73 @@ getOutputProxy = (ports, output) ->
     return outProxy[ports[0]]
   return outProxy
 
-checkWirePatternPreconditions = (component, config, input, output) ->
+checkWirePatternPreconditions = (config, input, output) ->
   # First check for required params
-  paramsMet = true
-  inputsMet = true
-  droppedPackets = false
+  paramsOk = checkWirePatternPreconditionsParams config, input
+  # Then check actual input ports
+  inputsOk = checkWirePatternPreconditionsInput config, input
+  # If input port has data but param requirements are not met, and we're in dropInput
+  # mode, read the data and call done
+  if config.dropInput and not paramsOk
+    # Drop all received input packets since params are not available
+    packetsDropped = false
+    for port in config.inPorts
+      if input.ports[port].isAddressable()
+        attached = input.attached port
+        continue unless attached.length
+        for idx in attached
+          while input.has [port, idx]
+            packetsDropped = true
+            input.get([port, idx]).drop()
+        continue
+      while input.has port
+        packetsDropped = true
+        input.get(port).drop()
+    # If we ended up dropping inputs because of missing params, we need to
+    # deactivate here
+    output.done() if packetsDropped
+  # Pass precondition check only if both params and inputs are OK
+  return inputsOk and paramsOk
+
+checkWirePatternPreconditionsParams = (config, input) ->
   for param in config.params
     continue unless input.ports[param].isRequired()
     if input.ports[param].isAddressable()
       attached = input.attached param
-      unless attached.length
-        paramsMet = false
-        continue
+      return false unless attached.length
       withData = attached.filter (idx) -> input.hasData [param, idx]
       if config.arrayPolicy.params is 'all'
-        paramsMet = false unless withData.length is attached.length
+        return false unless withData.length is attached.length
         continue
-      paramsMet = false unless withData.length
+      return false unless withData.length
       continue
-    paramsMet = false unless input.hasData param
-  # Then check actual input ports
+    return false unless input.hasData param
+  true
+
+checkWirePatternPreconditionsInput = (config, input) ->
+  collatedBy = undefined if config.group or config.field
+  validate = (ip) ->
+    if ip.type is 'data'
+      if config.field
+        # Use first data packet to define what to collate by
+        collatedBy = ip.data[config.field] if collatedBy is undefined
+        return ip.data[config.field] is collatedBy
+      # Without collation rules any data packet is OK
+      return true
+    false
+
   for port in config.inPorts
     if input.ports[port].isAddressable()
       attached = input.attached port
-      unless attached.length
-        inputsMet = false
-        continue
-      withData = attached.filter (idx) -> input.hasData [port, idx]
+      return false unless attached.length
+      withData = attached.filter (idx) -> input.has [port, idx], validate
       if config.arrayPolicy['in'] is 'all'
-        inputsMet = false unless withData.length is attached.length
+        return false unless withData.length is attached.length
         continue
-      inputsMet = false unless withData.length
+      return false unless withData.length
       continue
-    unless input.hasData port
-      inputsMet = false
-      continue
-    # If input port has data but param requirements are not
-    # met, and we're in dropInput mode, read the data and
-    # call done
-    if config.dropInput and not paramsMet
-      input.getData port
-      droppedPackets = true
-
-  output.done() if droppedPackets and not paramsMet
-  return inputsMet and paramsMet
+    return false unless input.has port, validate
+  true
 
 # Wraps OutPort in WirePattern to add transparent scope support
 class OutPortWrapper
