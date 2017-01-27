@@ -28,7 +28,7 @@ exports.MapComponent = (component, func, config) ->
   component.process (input, output) ->
     return unless input.hasData config.inPort
     data = input.getData config.inPort
-    groups = getGroupContext config.inPort, input
+    groups = getGroupContext component, config.inPort, input
     outProxy = getOutputProxy [config.outPort], output
     func data, groups, outProxy
     output.done()
@@ -155,7 +155,9 @@ processApiWirePattern = (component, config, func) ->
     # Read input data
     data = getInputData config, input
     # Read bracket context of first inport
-    groups = getGroupContext config.inPorts[0], input
+    groups = getGroupContext component, config.inPorts[0], input
+    if groups.length > 3
+      process.exit 0
     # Produce proxy object wrapping output in legacy-style port API
     outProxy = getOutputProxy config.outPorts, output
 
@@ -168,7 +170,9 @@ processApiWirePattern = (component, config, func) ->
       func.call component, data, groups, outProxy, null, null, input.scope
       # No need to call done if component called fail
       return if output.result.__resolved
+      # Let error handler send any remaining errors
       do errorHandler
+      # Call done
       output.done()
       return
 
@@ -277,33 +281,83 @@ populateParams = (config, input) ->
     params[paramPort] = input.getData paramPort
   return params
 
-handleInputCollation = (data, config, input, port, idx) ->
-  return if not config.group and not config.field
+reorderBuffer = (buffer, matcher) ->
+  # Move matching IP packet to be first in buffer
+  #
   # Note: the collation mechanism as shown below is not a
   # very nice way to deal with inputs as it messes with
   # input buffer order. Much better to handle collation
   # in a specialized component or to separate flows by
   # scope.
-  if config.field
+  #
+  # The trick here is to order the input in a way that
+  # still allows bracket forwarding to work. So if we
+  # want to first process packet B in stream like:
+  #
+  #     < 1
+  #     < 2
+  #     A
+  #     > 2
+  #     < 3
+  #     B
+  #     > 3
+  #     > 1
+  #
+  # We need to change the stream to be like:
+  #
+  #     < 1
+  #     < 3
+  #     B
+  #     > 3
+  #     < 2
+  #     A
+  #     > 2
+  #     > 1
+  substream = null
+  brackets = []
+  substreamBrackets = []
+  for ip, idx in buffer
+    if ip.type is 'openBracket'
+      brackets.push ip.data
+      substreamBrackets.push ip
+      continue
+    if ip.type is 'closeBracket'
+      brackets.pop()
+      substream.push ip if substream
+      substreamBrackets.pop() if substreamBrackets.length
+      break if substream and not substreamBrackets.length
+      continue
+    unless matcher ip, brackets
+      # Reset substream bracket tracking when we hit data
+      substreamBrackets = []
+      continue
+    # Match found, start tracking the actual substream
+    substream = substreamBrackets.slice 0
+    substream.push ip
+  # See where in the buffer the matching substream begins
+  substreamIdx = buffer.indexOf substream[0]
+  # No need to reorder if matching packet is already first
+  return if substreamIdx is 0
+  # Remove substream from its natural position
+  buffer.splice substreamIdx, substream.length
+  # Place the substream in the beginning
+  substream.reverse()
+  buffer.unshift ip for ip in substream
+
+handleInputCollation = (data, config, input, port, idx) ->
+  return if not config.group and not config.field
+  if config.group
     buf = input.ports[port].getBuffer input.scope, idx
-    console.log port, config.field, data[config.field]
-    if data[config.field] is undefined
-      # First port being read, set as the field value
-      datas = buf.filter (ip) -> ip.type is 'data'
-      data[config.field] = datas[0].data[config.field]
-      # We don't need to reorder the first buffer by collation
-      return
-    # Move matching IP packet to be first in buffer
-    matchingAtIdx = null
-    for ip, idx in buf
-      continue unless ip.type is 'data'
-      continue unless ip.data[config.field] is data[config.field]
-      matchingAtIdx = idx
-      break
-    # No need to reorder if matching packet is already first
-    return if matchingAtIdx is 0
-    datas = buf.splice matchingAtIdx, 1
-    buf.unshift datas[0]
+    reorderBuffer buf, (ip, brackets) ->
+      for grp, idx in input.collatedBy.brackets
+        return false unless brackets[idx] is grp
+      true
+
+  if config.field
+    data[config.field] = input.collatedBy.field
+    buf = input.ports[port].getBuffer input.scope, idx
+    reorderBuffer buf, (ip) ->
+      ip.data[config.field] is data[config.field]
 
 getInputData = (config, input) ->
   data = {}
@@ -322,8 +376,9 @@ getInputData = (config, input) ->
     return data[config.inPorts[0]]
   return data
 
-getGroupContext = (port, input) ->
+getGroupContext = (component, port, input) ->
   return [] unless input.result.__bracketContext?[port]?
+  return input.collatedBy.brackets if input.collatedBy?.brackets
   input.result.__bracketContext[port].filter((c) ->
     c.source is port
   ).map (c) -> c.ip.data
@@ -394,28 +449,96 @@ checkWirePatternPreconditionsParams = (config, input) ->
   true
 
 checkWirePatternPreconditionsInput = (config, input) ->
-  collatedBy = undefined if config.group or config.field
-  validate = (ip) ->
-    if ip.type is 'data'
-      if config.field
+  if config.group
+    bracketsAtPorts = {}
+    input.collatedBy =
+      brackets: []
+      ready: false
+    checkBrackets = (left, right) ->
+      for bracket, idx in left
+        return false unless right[idx] is bracket
+      true
+    checkPacket = (ip, brackets) ->
+      # With data packets we validate bracket matching
+      bracketsToCheck = brackets.slice 0
+      if config.group instanceof RegExp
+        # Basic regexp validation for the brackets
+        bracketsToCheck = bracketsToCheck.slice 0, 1
+        return false unless bracketsToCheck.length
+        return false unless config.group.test bracketsToCheck[0]
+
+      if input.collatedBy.ready
+        # We already know what brackets we're looking for, match
+        return checkBrackets input.collatedBy.brackets, bracketsToCheck
+
+      bracketId = bracketsToCheck.join ':'
+      bracketsAtPorts[bracketId] = [] unless bracketsAtPorts[bracketId]
+      if bracketsAtPorts[bracketId].indexOf(port) is -1
+        # Register that this port had these brackets
+        bracketsAtPorts[bracketId].push port
+
+      # To prevent deadlocks we see all bracket sets, and validate if at least
+      # one of them matches. This means we return true until the last inport
+      # where we actually check.
+      return true unless config.inPorts.indexOf(port) is config.inPorts.length - 1
+
+      # Brackets that are not in every port are invalid
+      return false unless bracketsAtPorts[bracketId].length is config.inPorts.length
+      return false if input.collatedBy.ready
+      input.collatedBy.ready = true
+      input.collatedBy.brackets = bracketsToCheck
+      true
+
+  if config.field
+    input.collatedBy =
+      field: undefined
+      ready: false
+
+  checkPort = (port) ->
+    # Without collation rules any data packet is OK
+    return input.hasData port if not config.group and not config.field
+
+    # With collation rules set we need can only work when we have full
+    # streams
+    if config.group
+      portBrackets = []
+      dataBrackets = []
+      hasMatching = false
+      buf = input.ports[port].getBuffer input.scope
+      for ip in buf
+        if ip.type is 'openBracket'
+          portBrackets.push ip.data
+          continue
+        if ip.type is 'closeBracket'
+          portBrackets.pop()
+          continue if portBrackets.length
+          continue unless hasData
+          hasMatching = true
+          continue
+        hasData = checkPacket ip, portBrackets
+        continue
+      return hasMatching
+
+    if config.field
+      return input.hasStream port, (ip) ->
         # Use first data packet to define what to collate by
-        collatedBy = ip.data[config.field] if collatedBy is undefined
-        return ip.data[config.field] is collatedBy
-      # Without collation rules any data packet is OK
-      return true
-    false
+        unless input.collatedBy.ready
+          input.collatedBy.field = ip.data[config.field]
+          input.collatedBy.ready = true
+          return true
+        return ip.data[config.field] is input.collatedBy.field
 
   for port in config.inPorts
     if input.ports[port].isAddressable()
       attached = input.attached port
       return false unless attached.length
-      withData = attached.filter (idx) -> input.has [port, idx], validate
+      withData = attached.filter (idx) -> checkPort [port, idx]
       if config.arrayPolicy['in'] is 'all'
         return false unless withData.length is attached.length
         continue
       return false unless withData.length
       continue
-    return false unless input.has port, validate
+    return false unless checkPort port
   true
 
 # Wraps OutPort in WirePattern to add transparent scope support
