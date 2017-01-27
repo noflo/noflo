@@ -107,9 +107,13 @@ processGenerator = ->
   c.autoOrdering = false
 
   cleanUp = ->
+    return unless c.timer
     clearInterval c.timer.interval
     c.timer.deactivate()
     c.timer = null
+  c.tearDown = (callback) ->
+    cleanUp()
+    callback()
 
   c.process (input, output, context) ->
     if input.hasData 'start'
@@ -124,13 +128,6 @@ processGenerator = ->
       return output.done() unless c.timer
       cleanUp()
       output.done()
-
-  baseShutdown = c.shutdown.bind c
-  c.shutdown = ->
-    cleanUp() if c.timer
-    do baseShutdown
-
-  c
 
 describe 'Network Lifecycle', ->
   loader = null
@@ -201,12 +198,10 @@ describe 'Network Lifecycle', ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
       checkEnd = ->
-        chai.expect(wasStarted).to.equal true
         chai.expect(received).to.eql expected
-        c.network.removeListener 'start', checkStart
-        c.network.removeListener 'end', checkEnd
+        chai.expect(wasStarted).to.equal true
         done()
-      c.network.on 'start', checkStart
+      c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
 
       c.start (err) ->
@@ -245,12 +240,10 @@ describe 'Network Lifecycle', ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
       checkEnd = ->
-        chai.expect(wasStarted).to.equal true
         chai.expect(received).to.eql expected
-        c.network.removeListener 'start', checkStart
-        c.network.removeListener 'end', checkEnd
+        chai.expect(wasStarted).to.equal true
         done()
-      c.network.on 'start', checkStart
+      c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
 
       c.start (err) ->
@@ -287,12 +280,10 @@ describe 'Network Lifecycle', ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
       checkEnd = ->
-        chai.expect(wasStarted).to.equal true
         chai.expect(received).to.eql expected
-        c.network.removeListener 'start', checkStart
-        c.network.removeListener 'end', checkEnd
+        chai.expect(wasStarted).to.equal true
         done()
-      c.network.on 'start', checkStart
+      c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
 
       c.start (err) ->
@@ -368,12 +359,10 @@ describe 'Network Lifecycle', ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
       checkEnd = ->
-        chai.expect(wasStarted).to.equal true
         chai.expect(received).to.eql expected
-        c.network.removeListener 'start', checkStart
-        c.network.removeListener 'end', checkEnd
+        chai.expect(wasStarted).to.equal true
         done()
-      c.network.on 'start', checkStart
+      c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
 
       c.start (err) ->
@@ -416,12 +405,10 @@ describe 'Network Lifecycle', ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
       checkEnd = ->
-        chai.expect(wasStarted).to.equal true
         chai.expect(received).to.eql expected
-        c.network.removeListener 'start', checkStart
-        c.network.removeListener 'end', checkEnd
+        chai.expect(wasStarted).to.equal true
         done()
-      c.network.on 'start', checkStart
+      c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
 
       c.start (err) ->
@@ -461,12 +448,10 @@ describe 'Network Lifecycle', ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
       checkEnd = ->
-        chai.expect(wasStarted).to.equal true
         chai.expect(received).to.eql expected
-        c.network.removeListener 'start', checkStart
-        c.network.removeListener 'end', checkEnd
+        chai.expect(wasStarted).to.equal true
         done()
-      c.network.on 'start', checkStart
+      c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
 
       c.start (err) ->
@@ -541,12 +526,10 @@ describe 'Network Lifecycle', ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
       checkEnd = ->
-        chai.expect(wasStarted).to.equal true
         chai.expect(received).to.eql expected
-        c.network.removeListener 'start', checkStart
-        c.network.removeListener 'end', checkEnd
+        chai.expect(wasStarted).to.equal true
         done()
-      c.network.on 'start', checkStart
+      c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
 
       c.start (err) ->
@@ -589,12 +572,10 @@ describe 'Network Lifecycle', ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
       checkEnd = ->
-        chai.expect(wasStarted).to.equal true
         chai.expect(received).to.eql expected
-        c.network.removeListener 'start', checkStart
-        c.network.removeListener 'end', checkEnd
+        chai.expect(wasStarted).to.equal true
         done()
-      c.network.on 'start', checkStart
+      c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
 
       c.start (err) ->
@@ -671,12 +652,10 @@ describe 'Network Lifecycle', ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
       checkEnd = ->
-        chai.expect(wasStarted).to.equal true
         chai.expect(received).to.eql expected
-        c.network.removeListener 'start', checkStart
-        c.network.removeListener 'end', checkEnd
+        chai.expect(wasStarted).to.equal true
         done()
-      c.network.on 'start', checkStart
+      c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
 
       c.start (err) ->
@@ -719,12 +698,10 @@ describe 'Network Lifecycle', ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
       checkEnd = ->
-        chai.expect(wasStarted).to.equal true
         chai.expect(received).to.eql expected
-        c.network.removeListener 'start', checkStart
-        c.network.removeListener 'end', checkEnd
+        chai.expect(wasStarted).to.equal true
         done()
-      c.network.on 'start', checkStart
+      c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
 
       c.start (err) ->
@@ -831,14 +808,12 @@ describe 'Network Lifecycle', ->
       checkEnd = ->
         received.push 'END'
         c.network.graph.removeInitial 'foo', 'Leg2', 'in'
-        c.network.removeListener 'start', checkStart
         c.network.removeListener 'connect', receiveConnect
         c.network.removeListener 'ip', receiveEvent
         c.network.removeListener 'disconnect', receiveDisconnect
-        c.network.removeListener 'end', checkEnd
         chai.expect(received).to.eql expected
         done()
-      c.network.on 'start', checkStart
+      c.network.once 'start', checkStart
       c.network.on 'connect', receiveConnect
       c.network.on 'ip', receiveEvent
       c.network.on 'disconnect', receiveDisconnect
@@ -882,12 +857,10 @@ describe 'Network Lifecycle', ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
       checkEnd = ->
-        chai.expect(wasStarted).to.equal true
         chai.expect(received).to.eql expected
-        c.network.removeListener 'start', checkStart
-        c.network.removeListener 'end', checkEnd
+        chai.expect(wasStarted).to.equal true
         done()
-      c.network.on 'start', checkStart
+      c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
 
       c.start (err) ->
