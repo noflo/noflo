@@ -71,3 +71,18 @@ exports.OutPorts = class OutPorts extends Ports
   disconnect: (name, socketId) ->
     throw new Error "Port #{name} not available" unless @ports[name]
     @ports[name].disconnect socketId
+
+# Port name normalization:
+# returns object containing keys name and index for ports names in
+# format `portname` or `portname[index]`.
+exports.normalizePortName = (name) ->
+  port =
+    name: name
+  # Regular port
+  return port if name.indexOf('[') is -1
+  # Addressable port with index
+  matched = name.match /(.*)\[([0-9+])\]/
+  return name unless matched?.length
+  port.name = matched[1]
+  port.index = matched[2]
+  return port

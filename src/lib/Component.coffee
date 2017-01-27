@@ -237,21 +237,28 @@ class Component extends EventEmitter
     return @bracketContext[type][portname][scope]
 
   addToResult: (result, port, ip, before = false) ->
-    if port.indexOf('[') is -1
-      # Regular port
-      outport = port
-    else
-      [port, outport, idx] = port.match /(.*)\[([0-9+])\]/
+    {name, index} = ports.normalizePortName port
     method = if before then 'unshift' else 'push'
-    if @outPorts[outport].isAddressable()
-      idx = if idx then parseInt(idx) else ip.index
-      result[outport] = {} unless result[outport]
-      result[outport][idx] = [] unless result[outport][idx]
+    if @outPorts[name].isAddressable()
+      idx = if index then parseInt(index) else ip.index
+      result[name] = {} unless result[name]
+      result[name][idx] = [] unless result[name][idx]
       ip.index = idx
-      result[outport][idx][method] ip
+      result[name][idx][method] ip
       return
-    result[outport] = [] unless result[outport]
-    result[outport][method] ip
+    result[name] = [] unless result[name]
+    result[name][method] ip
+
+  getForwardableContexts: (inport, outport, contexts) ->
+    {name, index} = ports.normalizePortName outport
+    forwardable = []
+    contexts.forEach (ctx, idx) =>
+      # No forwarding to this outport
+      return unless @isForwardingOutport inport, name
+      # We have already forwarded this context to this outport
+      return unless ctx.ports.indexOf(outport) is -1
+      forwardable.unshift ctx
+    return forwardable
 
   addBracketForwards: (result) ->
     if result.__bracketClosingBefore?.length
@@ -276,11 +283,8 @@ class Component extends EventEmitter
               datas = idxIps.filter (ip) -> ip.type is 'data'
               continue unless datas.length
               portIdentifier = "#{outport}[#{idx}]"
-              unforwarded = context.filter (ctx) =>
-                return false unless @isForwardingOutport inport, outport
-                ctx.ports.indexOf(portIdentifier) is -1
+              unforwarded = @getForwardableContexts inport, portIdentifier, context
               continue unless unforwarded.length
-              unforwarded.reverse()
               for ctx in unforwarded
                 ipClone = ctx.ip.clone()
                 ipClone.index = parseInt idx
@@ -291,11 +295,8 @@ class Component extends EventEmitter
           # Don't register ports we're only sending brackets to
           datas = ips.filter (ip) -> ip.type is 'data'
           continue unless datas.length
-          unforwarded = context.filter (ctx) =>
-            return false unless @isForwardingOutport inport, outport
-            ctx.ports.indexOf(outport) is -1
+          unforwarded = @getForwardableContexts inport, outport, context
           continue unless unforwarded.length
-          unforwarded.reverse()
           for ctx in unforwarded
             ips.unshift ctx.ip.clone()
             debugBrackets "#{@nodeId} openBracket from '#{inport}' to '#{outport}': '#{ctx.ip.data}'"
