@@ -81,7 +81,7 @@ exports.normalizePortName = (name) ->
   # Regular port
   return port if name.indexOf('[') is -1
   # Addressable port with index
-  matched = name.match /(.*)\[([0-9+])\]/
+  matched = name.match /(.*)\[([0-9]+)\]/
   return name unless matched?.length
   port.name = matched[1]
   port.index = matched[2]
