@@ -100,9 +100,10 @@ class AsyncComponent extends component.Component
           @q.shift()
           processedData = true
 
-  shutdown: ->
+  tearDown: (callback) ->
     @q = []
     @errorGroups = []
+    do callback
 
   # Old-style error function because of legacy ports
   error: (e, groups = [], errorPort = 'error') =>

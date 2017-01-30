@@ -178,7 +178,7 @@ describe 'Component', ->
 
   describe 'starting a component', ->
 
-    it 'should flag the component as started', ->
+    it 'should flag the component as started', (done) ->
       c = new noflo.Component
         inPorts:
           in:
@@ -186,13 +186,15 @@ describe 'Component', ->
             required: true
       i = new noflo.internalSocket.InternalSocket
       c.inPorts.in.attach(i)
-      c.start()
-      chai.expect(c.started).to.equal(true)
-      chai.expect(c.isStarted()).to.equal(true)
+      c.start (err) ->
+        return done err if err
+        chai.expect(c.started).to.equal(true)
+        chai.expect(c.isStarted()).to.equal(true)
+        done()
 
   describe 'shutting down a component', ->
 
-    it 'should flag the component as not started', ->
+    it 'should flag the component as not started', (done) ->
       c = new noflo.Component
         inPorts:
           in:
@@ -200,10 +202,14 @@ describe 'Component', ->
             required: true
       i = new noflo.internalSocket.InternalSocket
       c.inPorts.in.attach(i)
-      c.start()
-      c.shutdown()
-      chai.expect(c.started).to.equal(false)
-      chai.expect(c.isStarted()).to.equal(false)
+      c.start (err) ->
+        return done err if err
+        chai.expect(c.isStarted()).to.equal(true)
+        c.shutdown (err) ->
+          return done err if err
+          chai.expect(c.started).to.equal(false)
+          chai.expect(c.isStarted()).to.equal(false)
+          done()
 
   describe 'with object-based IPs', ->
 
@@ -2232,4 +2238,5 @@ describe 'Component', ->
       c.on 'activate', (load) ->
         unless c.started
           done new Error 'Unexpected activate after end'
-      c.shutdown()
+      c.shutdown (err) ->
+        done err if err

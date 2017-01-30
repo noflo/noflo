@@ -70,28 +70,50 @@ class Component extends EventEmitter
       return
     throw e
 
-  shutdown: ->
-    return unless @started
-    inPorts = @inPorts.ports or @inPorts
-    inPort.clear() for inPort in inPorts
-    @bracketContext =
-      in: {}
-      out: {}
-    callback = =>
+  # The setUp method is for component-specific initialization. Called
+  # at start-up
+  setUp: (callback) ->
+    do callback
+
+  # The tearDown method is for component-specific cleanup. Called
+  # at shutdown
+  tearDown: (callback) ->
+    do callback
+
+  start: (callback) ->
+    return callback() if @isStarted()
+    @setUp (err) =>
+      return callback err if err
+      @started = true
+      @emit 'start'
+      callback null
+
+  shutdown: (callback) ->
+    finalize = =>
+      # Clear contents of inport buffers
+      inPorts = @inPorts.ports or @inPorts
+      inPort.clear() for inPort in inPorts
+      # Clear bracket context
+      @bracketContext =
+        in: {}
+        out: {}
+      return callback() unless @isStarted()
       @started = false
       @emit 'end'
-    if @load > 0
-      @on 'deactivate', =>
-        callback() if @load is 0
-    else
       callback()
 
-  # The startup function performs initialization for the component.
-  start: ->
-    return if @started
-    @started = true
-    @emit 'start'
-    @started
+    # Tell the component that it is time to shut down
+    @tearDown (err) =>
+      return callback err if err
+      if @load > 0
+        # Some in-flight processes, wait for them to finish
+        checkLoad = (load) ->
+          return if load > 0
+          @removeListener 'deactivate', checkLoad
+          finalize()
+        @on 'deactivate', checkLoad
+        return
+      finalize()
 
   isStarted: -> @started
 
@@ -366,8 +388,6 @@ class Component extends EventEmitter
 
   activate: (context) ->
     return if context.activated # prevent double activation
-    # Start if not started already
-    do @start unless @started
     context.activated = true
     context.deactivated = false
     @load++

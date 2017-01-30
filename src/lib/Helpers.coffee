@@ -564,15 +564,15 @@ exports.WirePattern = (component, config, proc) ->
             # Call the garbage collector
             gc()
 
-  # Overload shutdown method to clean WirePattern state
-  baseShutdown = component.shutdown
-  component.shutdown = ->
-    baseShutdown.call component
+  # Overload tearDown method to clean WirePattern state
+  baseTearDown = component.tearDown
+  component.tearDown = (callback) ->
     component.requiredParams = []
     component.defaultedParams = []
     component.gcCounter = 0
     component._wpData = {}
     component.params = {}
+    baseTearDown.call component, callback
 
   # Make it chainable or usable at the end of getComponent()
   return component
@@ -630,10 +630,10 @@ exports.MultiError = (component, group = '', errorPort = 'error', forwardedGroup
     component.errors = []
 
   # Overload shutdown method to clear errors
-  baseShutdown = component.shutdown
-  component.shutdown = ->
-    baseShutdown.call component
+  baseTearDown = component.tearDown
+  component.tearDown = (callback) ->
     component.hasErrors = false
     component.errors = []
+    baseTearDown.call component, callback
 
   return component
