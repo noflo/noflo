@@ -164,11 +164,16 @@ processApiWirePattern = (component, config, func) ->
 
     debug "WirePattern Process API call with", data, groups, component.params, context.scope
 
+    postpone = ->
+      throw new Error 'noflo.helpers.WirePattern postpone is deprecated'
+    resume = ->
+      throw new Error 'noflo.helpers.WirePattern resume is deprecated'
+
     unless config.async
       # Set up custom error handlers
       errorHandler = setupErrorHandler component, config, output
       # Synchronous WirePattern, call done here
-      func.call component, data, groups, outProxy, null, null, input.scope
+      func.call component, data, groups, outProxy, postpone, resume, input.scope
       # No need to call done if component called fail
       return if output.result.__resolved
       # Let error handler send any remaining errors
@@ -182,7 +187,7 @@ processApiWirePattern = (component, config, func) ->
     func.call component, data, groups, outProxy, (err) ->
       do errorHandler
       output.done err
-    , null, null, input.scope
+    , postpone, resume, input.scope
 
 # Provide deprecation warnings on certain more esoteric WirePattern features
 checkDeprecation = (config, func) ->
