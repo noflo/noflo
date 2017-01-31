@@ -127,7 +127,8 @@ exports.WirePattern = (component, config, proc) ->
 
   config.inPorts = inPorts
   config.outPorts = outPorts
-
+  # Warn user of deprecated features
+  checkDeprecation config, proc
   # Allow users to selectively fall back to legacy WirePattern implementation
   if config.legacy or process?.env?.NOFLO_WIREPATTERN_LEGACY
     platform.deprecated 'noflo.helpers.WirePattern legacy mode is deprecated'
