@@ -1,6 +1,15 @@
 NoFlo ChangeLog
 ===============
 
+## 0.8.0-beta2 (February 8th 2017)
+
+* Added `setUp` and `tearDown` methods for easier handling of custom states in components. These methods take an asynchronous callback and are recommended to be used instead of `start` and `shutdown`
+* Added callbacks for component `start` and `shutdown` methods
+* Added a `clear` method for inports to clear their packet buffer. Used by component `shutdown` method
+* Added addressable port support to Process API
+  - When sending packets to an addressable outport, the connection to send to will be selected based on the `index` attribute of the IP object
+  - When reading from addressable ports, provide port name with index in format `[portname, index]`. For example: `input.getData ['in', 2]`
+
 ## 0.8.0-beta1 (January 18th 2017)
 
 * Added callback for `Network.stop`
@@ -28,7 +37,6 @@ NoFlo ChangeLog
 * NoFlo Graph and Journal were moved to a dedicated [fbp-graph](https://github.com/flowbased/fbp-graph) library for easier usage in other FBP projects. No changes to NoFlo interface
 * NoFlo networks now emit packet events only while the network is running
 * NoFlo networks can show their currently active processes with the `getActiveProcesses()` method
-* Added `setUp` and `tearDown` methods for easier handling of custom states in components. These methods take an asynchronous callback and are recommended to be used instead of `start` and `shutdown`
 
 ## 0.7.8 (June 10th 2016)
 
