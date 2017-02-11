@@ -604,8 +604,7 @@ class ProcessInput
         packet = @get port
         break unless packet
 
-      packet = packet?.data ? undefined
-      datas.push packet
+      datas.push packet.data
 
     return datas.pop() if args.length is 1
     datas
