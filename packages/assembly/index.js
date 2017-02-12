@@ -49,7 +49,7 @@ function normalizePorts(options, direction) {
   return result;
 }
 
-export const Component = class Component extends noflo.Component {
+export default class Component extends noflo.Component {
   constructor(options = {}) {
     let opts = normalizePorts(options, 'in');
     opts = normalizePorts(opts, 'out');
@@ -112,7 +112,7 @@ export const Component = class Component extends noflo.Component {
     });
     return errors;
   }
-};
+}
 
 export function fail(msg, err) {
   if (!Array.isArray(msg.errors)) {
@@ -138,4 +138,15 @@ export function fork(msg, excludeKeys = [], cloneKeys = []) {
     }
   });
   return newMsg;
+}
+
+export function merge(base, extra) {
+  const combined = base;
+  const baseKeys = Object.keys(base);
+  Object.keys(extra).forEach((key) => {
+    if ((!baseKeys.contains(key) || base[key] === undefined) && extra[key] !== undefined) {
+      combined[key] = extra[key];
+    }
+  });
+  return combined;
 }
