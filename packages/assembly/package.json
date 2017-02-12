@@ -1,0 +1,33 @@
+{
+  "name": "noflo-assembly",
+  "version": "0.0.1",
+  "description": "Industrial approach to writing NoFlo applications",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/trustmaster/noflo-assembly.git"
+  },
+  "scripts": {
+    "pretest": "./node_modules/.bin/eslint index.js",
+    "test": "./node_modules/.bin/mocha -R spec spec/*.js"
+  },
+  "keywords": [
+    "noflo"
+  ],
+  "author": "Vladimir Sibirov",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/trustmaster/noflo-assembly/issues"
+  },
+  "homepage": "https://github.com/trustmaster/noflo-assembly",
+  "dependencies": {
+    "noflo": "^0.8.0-beta2"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "eslint": "^3.14.1",
+    "eslint-config-airbnb-base": "^11.0.1",
+    "eslint-plugin-import": "^2.2.0",
+    "mocha": "^3.2.0"
+  }
+}
