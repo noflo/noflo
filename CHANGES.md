@@ -1,6 +1,21 @@
 NoFlo ChangeLog
 ===============
 
+## 0.8.0-beta3 (February 21st 2017)
+
+* Reimplemented `noflo.helpers.MapComponent` to use Process API internally. This helper is deprecated and components using it should be ported to Process API
+* Reimplemented `noflo.helpers.WirePattern` to use Process API internally. To use the original WirePattern implementation, either pass a `legacy: true` to WirePattern function or set `NOFLO_WIREPATTERN_LEGACY` environment variable
+* Removed WirePattern `receiveStreams` and `sendStream` options
+* Added deprecation warnings to several WirePattern options:
+  * `postpone` and `resume`. These are still available in legacy mode but will be removed soon
+  * `group` collation
+  * `field` collation
+  * `async: false` option
+  * `component.error` method with WirePattern. Use async and error callback instead
+  * `component.fail` method with WirePattern. Use async and error callback instead
+  * `component.sendDefaults` method with WirePattern. Start your components with a NoFlo network to get defaults sent
+  * `noflo.helpers.MultiError`. Use error callback instead
+
 ## 0.8.0-beta2 (February 8th 2017)
 
 * Added `setUp` and `tearDown` methods for easier handling of custom states in components. These methods take an asynchronous callback and are recommended to be used instead of `start` and `shutdown`
