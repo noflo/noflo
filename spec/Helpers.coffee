@@ -71,7 +71,7 @@ describe 'Component traits', ->
       y = null
       z = null
       p = null
-      before (done) ->
+      beforeEach (done) ->
         c = new noflo.Component
         c.inPorts.add 'x',
           required: true
@@ -92,6 +92,8 @@ describe 'Component traits', ->
         c.inPorts.z.attach z
         c.outPorts.point.attach p
         done()
+      afterEach ->
+        c.outPorts.point.detach p
 
       it 'should pass data and groups to the callback', (done) ->
         src =
@@ -134,7 +136,6 @@ describe 'Component traits', ->
           z.disconnect()
 
       it 'should work without a group provided', (done) ->
-        p.removeAllListeners()
         noflo.helpers.WirePattern c,
           in: ['x', 'y', 'z']
           out: 'point'
@@ -224,7 +225,52 @@ describe 'Component traits', ->
             callback()
           , 100
 
-        p.removeAllListeners()
+        counter = 0
+        hadData = false
+        p.on 'begingroup', (grp) ->
+          counter++
+        p.on 'endgroup', ->
+          counter--
+        p.once 'data', (data) ->
+          chai.expect(data).to.deep.equal point
+          hadData = true
+        p.once 'disconnect', ->
+          chai.expect(counter).to.equal 0
+          chai.expect(hadData).to.be.true
+          done()
+
+        x.beginGroup 'async'
+        y.beginGroup 'async'
+        z.beginGroup 'async'
+        x.send point.x
+        y.send point.y
+        z.send point.z
+        x.endGroup()
+        y.endGroup()
+        z.endGroup()
+        x.disconnect()
+        y.disconnect()
+        z.disconnect()
+
+      it 'should support asynchronous handlers in legacy mode', (done) ->
+        point =
+          x: 123
+          y: 456
+          z: 789
+
+        noflo.helpers.WirePattern c,
+          in: ['x', 'y', 'z']
+          out: 'point'
+          async: true
+          group: true
+          forwardGroups: true
+          legacy: true
+        , (data, groups, out, callback) ->
+          setTimeout ->
+            out.send {x: data.x, y: data.y, z: data.z}
+            callback()
+          , 100
+
         counter = 0
         hadData = false
         p.on 'begingroup', (grp) ->
@@ -262,7 +308,6 @@ describe 'Component traits', ->
         , (data, groups, out) ->
           out.send { x: data.x, y: data.y }
 
-        p.removeAllListeners()
         counter = 0
         hadData = false
         p.on 'begingroup', (grp) ->
@@ -297,7 +342,6 @@ describe 'Component traits', ->
         , (data, groups, out) ->
           out.send { x: data.x, y: data.y, z: data.z }
 
-        p.removeAllListeners()
         groups = []
         p.on 'begingroup', (grp) ->
           groups.push grp
@@ -333,7 +377,6 @@ describe 'Component traits', ->
         , (data, groups, out) ->
           out.send { x: data.x, y: data.y, z: data.z }
 
-        p.removeAllListeners()
         groups = []
         p.on 'begingroup', (grp) ->
           groups.push grp
@@ -378,7 +421,6 @@ describe 'Component traits', ->
       c.outPorts.point.attach p
 
       it 'should correctly bind component to `this` context', (done) ->
-        p.removeAllListeners()
         noflo.helpers.WirePattern c,
           in: ['x', 'y', 'z']
           out: 'point'
@@ -398,7 +440,6 @@ describe 'Component traits', ->
         z.disconnect()
 
       it 'should correctly bind component to `this` context in async mode', (done) ->
-        p.removeAllListeners()
         noflo.helpers.WirePattern c,
           in: ['x', 'y', 'z']
           async: true
@@ -643,61 +684,140 @@ describe 'Component traits', ->
             , req
 
     describe 'when there are multiple output routes', ->
-      c = new noflo.Component
-      c.inPorts.add 'num', datatype: 'int'
-      .add 'str', datatype: 'string'
-      c.outPorts.add 'odd', datatype: 'object'
-      .add 'even', datatype: 'object'
-      num = new noflo.internalSocket.createSocket()
-      str = new noflo.internalSocket.createSocket()
-      odd = new noflo.internalSocket.createSocket()
-      even = new noflo.internalSocket.createSocket()
-      c.inPorts.num.attach num
-      c.inPorts.str.attach str
-      c.outPorts.odd.attach odd
-      c.outPorts.even.attach even
-
       it 'should send output to one or more of them', (done) ->
         numbers = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve']
+        c = new noflo.Component
+        c.inPorts.add 'num', datatype: 'int'
+        .add 'str', datatype: 'string'
+        c.outPorts.add 'odd', datatype: 'object'
+        .add 'even', datatype: 'object'
+        num = new noflo.internalSocket.createSocket()
+        str = new noflo.internalSocket.createSocket()
+        odd = new noflo.internalSocket.createSocket()
+        even = new noflo.internalSocket.createSocket()
+        c.inPorts.num.attach num
+        c.inPorts.str.attach str
+        c.outPorts.odd.attach odd
+        c.outPorts.even.attach even
 
         noflo.helpers.WirePattern c,
           in: ['num', 'str']
           out: ['odd', 'even']
           async: true
           ordered: true
+          forwardGroups: true
         , (data, groups, outs, callback) ->
           setTimeout ->
             if data.num % 2 is 1
-              outs.odd.beginGroup grp for grp in groups
               outs.odd.send data
-              outs.odd.endGroup() for grp in groups
             else
-              outs.even.beginGroup grp for grp in groups
               outs.even.send data
-              outs.even.endGroup() for grp in groups
             callback()
           , 0
 
-        grpCounter = 0
-        dataCounter = 0
-
+        expected = []
+        numbers.forEach (n, idx) ->
+          if idx % 2 is 1
+            port = 'odd'
+          else
+            port = 'even'
+          expected.push "#{port} < #{idx}"
+          expected.push "#{port} DATA #{n}"
+          expected.push "#{port} > #{idx}"
+        received = []
         odd.on 'begingroup', (grp) ->
-          grpCounter++
+          received.push "odd < #{grp}"
         odd.on 'data', (data) ->
-          chai.expect(data.num % 2).to.equal 1
-          chai.expect(data.str).to.equal numbers[data.num]
-          dataCounter++
+          received.push "odd DATA #{data.str}"
+        odd.on 'endgroup', (grp) ->
+          received.push "odd > #{grp}"
         odd.on 'disconnect', ->
-          done() if dataCounter is 10 and grpCounter is 10
-
+          return unless received.length is expected.length
+          chai.expect(received).to.eql expected
+          done()
         even.on 'begingroup', (grp) ->
-          grpCounter++
+          received.push "even < #{grp}"
         even.on 'data', (data) ->
-          chai.expect(data.num % 2).to.equal 0
-          chai.expect(data.str).to.equal numbers[data.num]
-          dataCounter++
+          received.push "even DATA #{data.str}"
+        even.on 'endgroup', (grp) ->
+          received.push "even > #{grp}"
         even.on 'disconnect', ->
-          done() if dataCounter is 10 and grpCounter is 10
+          return unless received.length >= expected.length
+          chai.expect(received).to.eql expected
+          done()
+
+        for i in [0...10]
+          num.beginGroup i
+          num.send i
+          num.endGroup i
+          num.disconnect()
+          str.beginGroup i
+          str.send numbers[i]
+          str.endGroup i
+          str.disconnect()
+
+      it 'should send output to one or more of indexes', (done) ->
+        c = new noflo.Component
+        c.inPorts.add 'num', datatype: 'int'
+        .add 'str', datatype: 'string'
+        c.outPorts.add 'out',
+          datatype: 'object'
+          addressable: true
+        num = new noflo.internalSocket.createSocket()
+        str = new noflo.internalSocket.createSocket()
+        odd = new noflo.internalSocket.createSocket()
+        even = new noflo.internalSocket.createSocket()
+        c.inPorts.num.attach num
+        c.inPorts.str.attach str
+        c.outPorts.out.attach odd
+        c.outPorts.out.attach even
+        numbers = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve']
+
+        noflo.helpers.WirePattern c,
+          in: ['num', 'str']
+          out: 'out'
+          async: true
+          ordered: true
+          forwardGroups: true
+        , (data, groups, outs, callback) ->
+          setTimeout ->
+            if data.num % 2 is 1
+              outs.send data, 0
+            else
+              outs.send data, 1
+            callback()
+          , 0
+
+        expected = []
+        numbers.forEach (n, idx) ->
+          if idx % 2 is 1
+            port = 'odd'
+          else
+            port = 'even'
+          expected.push "#{port} < #{idx}"
+          expected.push "#{port} DATA #{n}"
+          expected.push "#{port} > #{idx}"
+        received = []
+        odd.on 'begingroup', (grp) ->
+          received.push "odd < #{grp}"
+        odd.on 'data', (data) ->
+          received.push "odd DATA #{data.str}"
+        odd.on 'endgroup', (grp) ->
+          received.push "odd > #{grp}"
+        odd.on 'disconnect', ->
+          return unless received.length is expected.length
+          chai.expect(received).to.eql expected
+          done()
+        even.on 'begingroup', (grp) ->
+          received.push "even < #{grp}"
+        even.on 'data', (data) ->
+          received.push "even DATA #{data.str}"
+        even.on 'endgroup', (grp) ->
+          received.push "even > #{grp}"
+        even.on 'disconnect', ->
+          return unless received.length >= expected.length
+          chai.expect(received).to.eql expected
+          done()
 
         for i in [0...10]
           num.beginGroup i
@@ -760,7 +880,8 @@ describe 'Component traits', ->
             d1: input.data1
             d2: input.data2
           out.send res
-
+        err.on 'data', (data) ->
+          done data
         out.once 'data', (data) ->
           chai.expect(data).to.be.an 'object'
           chai.expect(data.p1).to.equal 'req'
@@ -804,7 +925,8 @@ describe 'Component traits', ->
           in: ['data1', 'data2']
           out: 'out'
           params: ['param1', 'param2', 'param3']
-        , (input, groups, out) ->
+          async: true
+        , (input, groups, out, callback) ->
           delay = if c.params.param2 then c.params.param2 else 10
           setTimeout ->
             res =
@@ -814,8 +936,11 @@ describe 'Component traits', ->
               d1: input.data1
               d2: input.data2
             out.send res
+            do callback
           , delay
 
+        err.on 'data', (data) ->
+          done data
         out.once 'data', (data) ->
           chai.expect(data).to.be.an 'object'
           chai.expect(data.p1).to.equal 'req'
@@ -854,12 +979,14 @@ describe 'Component traits', ->
         p2.send 73
         p2.disconnect()
 
-        chai.expect(Object.keys(c._wpData[null].groupedData)).to.have.length.above 0
-        chai.expect(Object.keys(c._wpData[null].params)).to.have.length.above 0
+        chai.expect(c.inPorts.data1.getBuffer().length, 'data1 should have a packet').to.be.above 0
+        chai.expect(c.inPorts.param2.getBuffer().length, 'param2 should have a packet').to.be.above 0
 
         c.shutdown (err) ->
           return done err if err
-          chai.expect(c._wpData).to.deep.equal {}
+          for portName, port in c.inPorts.ports
+            chai.expect(port.getBuffer()).to.eql []
+            chai.expect(c.load).to.equal 0
           done()
 
       it 'should drop premature data if configured to do so', (done) ->
@@ -877,6 +1004,8 @@ describe 'Component traits', ->
             d2: input.data2
           out.send res
 
+        err.on 'data', (data) ->
+          done data
         out.once 'data', (data) ->
           chai.expect(data).to.be.an 'object'
           chai.expect(data.p1).to.equal 'req'
@@ -908,20 +1037,23 @@ describe 'Component traits', ->
 
 
     describe 'without output ports', ->
-      c = new noflo.Component
-      c.inPorts.add 'foo'
-      foo = noflo.internalSocket.createSocket()
-      sig = noflo.internalSocket.createSocket()
-      c.inPorts.foo.attach foo
-      noflo.helpers.WirePattern c,
-        in: 'foo'
-        out: []
-        async: true
-      , (foo, grp, out, callback) ->
-        setTimeout ->
-          sig.send foo
-          callback()
-        , 20
+      foo = null
+      sig = null
+      before ->
+        c = new noflo.Component
+        c.inPorts.add 'foo'
+        foo = noflo.internalSocket.createSocket()
+        sig = noflo.internalSocket.createSocket()
+        c.inPorts.foo.attach foo
+        noflo.helpers.WirePattern c,
+          in: 'foo'
+          out: []
+          async: true
+        , (foo, grp, out, callback) ->
+          setTimeout ->
+            sig.send foo
+            callback()
+          , 20
 
       it 'should be fine still', (done) ->
         sig.on 'data', (data) ->
@@ -931,144 +1063,7 @@ describe 'Component traits', ->
         foo.send 'foo'
         foo.disconnect()
 
-    describe 'when data processing is not possible at the moment', ->
-      c = new noflo.Component
-      c.inPorts.add 'line', datatype: 'string'
-      .add 'repeat', datatype: 'int'
-      .add 'when',
-        datatype: 'string'
-        default: 'later'
-      c.outPorts.add 'res', datatype: 'string'
-      .add 'error', datatype: 'object'
-      line = noflo.internalSocket.createSocket()
-      rpt = noflo.internalSocket.createSocket()
-      whn = noflo.internalSocket.createSocket()
-      res = noflo.internalSocket.createSocket()
-      err = noflo.internalSocket.createSocket()
-      c.inPorts.line.attach line
-      c.inPorts.repeat.attach rpt
-      c.inPorts.when.attach whn
-      c.outPorts.res.attach res
-      c.outPorts.error.attach err
-
-      c.invCount = 0
-      tryAgain = null
-      noflo.helpers.WirePattern c,
-        in: ['line', 'repeat']
-        params: 'when'
-        out: 'res'
-        async: true
-      , (input, groups, out, completed, postpone, resume) ->
-        this.invCount++
-        return if this.invCount > 100 # avoid deadlocks just in case
-        switch this.params.when
-          when 'now'
-            repeated = ''
-            repeated += input.line for i in [0...input.repeat]
-            out.send repeated
-            completed()
-          when 'later'
-            postpone()
-          when 'afterTimeout'
-            postpone false
-            this.params.when = 'now' # don't recurse forever
-            setTimeout ->
-              resume()
-            , 10
-          when 'whenItell'
-            postpone false
-            this.params.when = 'now' # don't recurse forever
-            tryAgain = resume
-
-      it 'should be able to postpone it until next tuple of data', (done) ->
-
-        res.once 'data', (data) ->
-          chai.expect(data).to.equal 'opopopopopopopopopop'
-          chai.expect(c.invCount).to.equal 2
-          res.once 'data', (data) ->
-            chai.expect(data).to.equal 'gogogo'
-            chai.expect(c.invCount).to.equal 3
-            done()
-
-        c.sendDefaults()
-        line.send 'op'
-        rpt.send 10
-        line.disconnect()
-        rpt.disconnect()
-
-        # no output expected at this point
-
-        whn.send 'now'
-        whn.disconnect()
-        line.send 'go'
-        rpt.send 3
-        line.disconnect()
-        rpt.disconnect()
-
-        # this flushes the earlier stuff
-
-      it 'should be able to postpone and retry after timeout', (done) ->
-        c.invCount = 0
-        res.once 'data', (data) ->
-          chai.expect(data).to.equal 'dododo'
-          chai.expect(c.invCount).to.equal 2
-          done()
-
-        whn.send 'afterTimeout'
-        whn.disconnect()
-
-        line.send 'do'
-        rpt.send 3
-        line.disconnect()
-        rpt.disconnect()
-
-      it 'should be able to postpone it and resume when needed', (done) ->
-        c.invCount = 0
-        res.once 'data', (data) ->
-          chai.expect(data).to.equal 'yoyo'
-          chai.expect(c.invCount).to.equal 2
-          done()
-
-        whn.send 'whenItell'
-        whn.disconnect()
-
-        line.send 'yo'
-        rpt.send 2
-        line.disconnect()
-        rpt.disconnect()
-
-        # Here tryAgain got the resume callback
-
-        setTimeout ->
-          tryAgain()
-        , 30
-
-    describe 'with many inputs and groups', ->
-      c = new noflo.Component
-      c.token = null
-      c.inPorts.add 'in', datatype: 'string'
-      .add 'message', datatype: 'string'
-      .add 'repository', datatype: 'string'
-      .add 'path', datatype: 'string'
-      .add 'token', datatype: 'string', (event, payload) ->
-        c.token = payload if event is 'data'
-      c.outPorts.add 'out', datatype: 'string'
-      .add 'error', datatype: 'object'
-
-      noflo.helpers.WirePattern c,
-        in: ['in', 'message', 'repository', 'path']
-        out: 'out'
-        async: true
-        forwardGroups: true
-      , (data, groups, out, callback) ->
-
-        setTimeout ->
-          out.beginGroup data.path
-          out.send data.message
-          out.endGroup()
-          do callback
-        , 300
-
+    describe 'with many inputs and groups in async mode', ->
       ins = noflo.internalSocket.createSocket()
       msg = noflo.internalSocket.createSocket()
       rep = noflo.internalSocket.createSocket()
@@ -1076,13 +1071,124 @@ describe 'Component traits', ->
       tkn = noflo.internalSocket.createSocket()
       out = noflo.internalSocket.createSocket()
       err = noflo.internalSocket.createSocket()
-      c.inPorts.in.attach ins
-      c.inPorts.message.attach msg
-      c.inPorts.repository.attach rep
-      c.inPorts.path.attach pth
-      c.inPorts.token.attach tkn
-      c.outPorts.out.attach out
-      c.outPorts.error.attach err
+      before ->
+        c = new noflo.Component
+        c.token = null
+        c.inPorts.add 'in', datatype: 'string'
+        .add 'message', datatype: 'string'
+        .add 'repository', datatype: 'string'
+        .add 'path', datatype: 'string'
+        .add 'token', datatype: 'string', (event, payload) ->
+          c.token = payload if event is 'data'
+        c.outPorts.add 'out', datatype: 'string'
+        .add 'error', datatype: 'object'
+
+        noflo.helpers.WirePattern c,
+          in: ['in', 'message', 'repository', 'path']
+          out: 'out'
+          async: true
+          forwardGroups: true
+        , (data, groups, out, callback) ->
+          setTimeout ->
+            out.beginGroup data.path
+            out.send data.message
+            out.endGroup()
+            do callback
+          , 300
+        c.inPorts.in.attach ins
+        c.inPorts.message.attach msg
+        c.inPorts.repository.attach rep
+        c.inPorts.path.attach pth
+        c.inPorts.token.attach tkn
+        c.outPorts.out.attach out
+        c.outPorts.error.attach err
+
+      it 'should handle mixed flow well', (done) ->
+        groups = []
+        refGroups = [
+          'foo'
+          'http://techcrunch.com/2013/03/26/embedly-now/'
+          'path data'
+        ]
+        ends = 0
+        packets = []
+        refData = ['message data']
+        out.on 'begingroup', (grp) ->
+          groups.push grp
+        out.on 'endgroup', ->
+          ends++
+        out.on 'data', (data) ->
+          packets.push data
+        out.on 'disconnect', ->
+          chai.expect(groups).to.deep.equal refGroups
+          chai.expect(ends).to.equal 3
+          chai.expect(packets).to.deep.equal refData
+          done()
+
+        err.on 'data', (data) ->
+          done data
+
+        rep.beginGroup 'foo'
+        rep.beginGroup 'http://techcrunch.com/2013/03/26/embedly-now/'
+        rep.send 'repo data'
+        rep.endGroup()
+        rep.endGroup()
+        ins.beginGroup 'foo'
+        ins.beginGroup 'http://techcrunch.com/2013/03/26/embedly-now/'
+        ins.send 'ins data'
+        msg.beginGroup 'foo'
+        msg.beginGroup 'http://techcrunch.com/2013/03/26/embedly-now/'
+        msg.send 'message data'
+        msg.endGroup()
+        msg.endGroup()
+        ins.endGroup()
+        ins.endGroup()
+        ins.disconnect()
+        msg.disconnect()
+        pth.beginGroup 'foo'
+        pth.beginGroup 'http://techcrunch.com/2013/03/26/embedly-now/'
+        pth.send 'path data'
+        pth.endGroup()
+        pth.endGroup()
+        pth.disconnect()
+        rep.disconnect()
+    describe 'with many inputs and groups in sync mode', ->
+      ins = noflo.internalSocket.createSocket()
+      msg = noflo.internalSocket.createSocket()
+      rep = noflo.internalSocket.createSocket()
+      pth = noflo.internalSocket.createSocket()
+      tkn = noflo.internalSocket.createSocket()
+      out = noflo.internalSocket.createSocket()
+      err = noflo.internalSocket.createSocket()
+      before ->
+        c = new noflo.Component
+        c.token = null
+        c.inPorts.add 'in', datatype: 'string'
+        .add 'message', datatype: 'string'
+        .add 'repository', datatype: 'string'
+        .add 'path', datatype: 'string'
+        .add 'token', datatype: 'string', (event, payload) ->
+          c.token = payload if event is 'data'
+        c.outPorts.add 'out', datatype: 'string'
+        .add 'error', datatype: 'object'
+
+        noflo.helpers.WirePattern c,
+          in: ['in', 'message', 'repository', 'path']
+          out: 'out'
+          async: false
+          forwardGroups: true
+        , (data, groups, out) ->
+          out.beginGroup data.path
+          out.send data.message
+          out.endGroup()
+
+        c.inPorts.in.attach ins
+        c.inPorts.message.attach msg
+        c.inPorts.repository.attach rep
+        c.inPorts.path.attach pth
+        c.inPorts.token.attach tkn
+        c.outPorts.out.attach out
+        c.outPorts.error.attach err
 
       it 'should handle mixed flow well', (done) ->
         groups = []
@@ -1200,13 +1306,6 @@ describe 'Component traits', ->
         seqsum.outPorts.add 'sum', datatype: 'int'
         return seqsum
 
-      # Wires
-      genA = newGenerator 'A'
-      genB = newGenerator 'B'
-      dblA = newDoubler 'A'
-      dblB = newDoubler 'B'
-      addr = newAdder()
-      sumr = newSeqsum()
       cntA = noflo.internalSocket.createSocket()
       cntB = noflo.internalSocket.createSocket()
       gen2dblA = noflo.internalSocket.createSocket()
@@ -1215,20 +1314,28 @@ describe 'Component traits', ->
       dblB2add = noflo.internalSocket.createSocket()
       addr2sum = noflo.internalSocket.createSocket()
       sum = noflo.internalSocket.createSocket()
+      before ->
+        # Wires
+        genA = newGenerator 'A'
+        genB = newGenerator 'B'
+        dblA = newDoubler 'A'
+        dblB = newDoubler 'B'
+        addr = newAdder()
+        sumr = newSeqsum()
 
-      genA.inPorts.count.attach cntA
-      genB.inPorts.count.attach cntB
-      genA.outPorts.seq.attach gen2dblA
-      genB.outPorts.seq.attach gen2dblB
-      dblA.inPorts.num.attach gen2dblA
-      dblB.inPorts.num.attach gen2dblB
-      dblA.outPorts.out.attach dblA2add
-      dblB.outPorts.out.attach dblB2add
-      addr.inPorts.num1.attach dblA2add
-      addr.inPorts.num2.attach dblB2add
-      addr.outPorts.sum.attach addr2sum
-      sumr.inPorts.seq.attach addr2sum
-      sumr.outPorts.sum.attach sum
+        genA.inPorts.count.attach cntA
+        genB.inPorts.count.attach cntB
+        genA.outPorts.seq.attach gen2dblA
+        genB.outPorts.seq.attach gen2dblB
+        dblA.inPorts.num.attach gen2dblA
+        dblB.inPorts.num.attach gen2dblB
+        dblA.outPorts.out.attach dblA2add
+        dblB.outPorts.out.attach dblB2add
+        addr.inPorts.num1.attach dblA2add
+        addr.inPorts.num2.attach dblB2add
+        addr.outPorts.sum.attach addr2sum
+        sumr.inPorts.seq.attach addr2sum
+        sumr.outPorts.sum.attach sum
 
       it 'should process sequences of packets separated by disconnects', (done) ->
         return @skip 'WirePattern doesn\'t see disconnects because of IP objects'
@@ -1314,38 +1421,49 @@ describe 'Component traits', ->
         cnt.disconnect()
 
     describe 'with addressable ports', ->
-      c = new noflo.Component
-      c.inPorts.add 'p1',
-        datatype: 'int'
-        addressable: true
-        required: true
-      .add 'd1',
-        datatype: 'int'
-        addressable: true
-      .add 'd2',
-        datatype: 'string'
-      c.outPorts.add 'out',
-        datatype: 'object'
-      .add 'error',
-        datatype: 'object'
-      p11 = noflo.internalSocket.createSocket()
-      p12 = noflo.internalSocket.createSocket()
-      p13 = noflo.internalSocket.createSocket()
-      d11 = noflo.internalSocket.createSocket()
-      d12 = noflo.internalSocket.createSocket()
-      d13 = noflo.internalSocket.createSocket()
-      d2 = noflo.internalSocket.createSocket()
-      out = noflo.internalSocket.createSocket()
-      err = noflo.internalSocket.createSocket()
-      c.inPorts.p1.attach p11
-      c.inPorts.p1.attach p12
-      c.inPorts.p1.attach p13
-      c.inPorts.d1.attach d11
-      c.inPorts.d1.attach d12
-      c.inPorts.d1.attach d13
-      c.inPorts.d2.attach d2
-      c.outPorts.out.attach out
-      c.outPorts.error.attach err
+      c = null
+      p11 = null
+      p12 = null
+      p13 = null
+      d11 = null
+      d12 = null
+      d13 = null
+      d2 = null
+      out = null
+      err = null
+      beforeEach ->
+        c = new noflo.Component
+        c.inPorts.add 'p1',
+          datatype: 'int'
+          addressable: true
+          required: true
+        .add 'd1',
+          datatype: 'int'
+          addressable: true
+        .add 'd2',
+          datatype: 'string'
+        c.outPorts.add 'out',
+          datatype: 'object'
+        .add 'error',
+          datatype: 'object'
+        p11 = noflo.internalSocket.createSocket()
+        p12 = noflo.internalSocket.createSocket()
+        p13 = noflo.internalSocket.createSocket()
+        d11 = noflo.internalSocket.createSocket()
+        d12 = noflo.internalSocket.createSocket()
+        d13 = noflo.internalSocket.createSocket()
+        d2 = noflo.internalSocket.createSocket()
+        out = noflo.internalSocket.createSocket()
+        err = noflo.internalSocket.createSocket()
+        c.inPorts.p1.attach p11
+        c.inPorts.p1.attach p12
+        c.inPorts.p1.attach p13
+        c.inPorts.d1.attach d11
+        c.inPorts.d1.attach d12
+        c.inPorts.d1.attach d13
+        c.inPorts.d2.attach d2
+        c.outPorts.out.attach out
+        c.outPorts.error.attach err
 
       it 'should wait for all param and any data port values (default)', (done) ->
         noflo.helpers.WirePattern c,
@@ -1518,22 +1636,23 @@ describe 'Component traits', ->
                 y.disconnect()
             , delay*req.num
 
-      noflo.helpers.WirePattern c,
-        in: ['x', 'y']
-        out: 'out'
-        async: true
-        forwardGroups: true
-        group: isUuid
-        gcFrequency: 2 # every 2 requests
-        gcTimeout: 0.02 # older than 20ms
-      , (input, groups, out, done) ->
-        setTimeout ->
-          out.send
-            id: groups[0]
-            x: input.x
-            y: input.y
-          done()
-        , 3
+      before ->
+        noflo.helpers.WirePattern c,
+          in: ['x', 'y']
+          out: 'out'
+          async: true
+          forwardGroups: true
+          group: isUuid
+          gcFrequency: 2 # every 2 requests
+          gcTimeout: 0.02 # older than 20ms
+        , (input, groups, out, done) ->
+          setTimeout ->
+            out.send
+              id: groups[0]
+              x: input.x
+              y: input.y
+            done()
+          , 3
 
       it 'should group requests by outer UUID group', (done) ->
         reqs = generateRequests 10
@@ -1546,21 +1665,6 @@ describe 'Component traits', ->
           done() if count is 6 # 6 complete requests processed
 
         sendRequests reqs, 10
-
-      it 'should collect garbage every N requests', (done) ->
-        # GC dropped 3 timed out packets, 1 should be left
-        chai.expect(Object.keys(c._wpData[null].groupedData)).to.have.lengthOf 1
-        chai.expect(Object.keys(c._wpData[null].groupedGroups)).to.have.lengthOf 1
-        chai.expect(Object.keys(c._wpData[null].disconnectData)).to.have.lengthOf 1
-        done()
-
-      it 'should be able to drop a request explicitly', (done) ->
-        for key in Object.keys(c._wpData[null].groupedData)
-          c.dropRequest null, key
-        chai.expect(c._wpData[null].groupedData).to.deep.equal {}
-        chai.expect(c._wpData[null].groupedGroups).to.deep.equal {}
-        chai.expect(c._wpData[null].disconnectData).to.deep.equal {}
-        done()
 
     describe 'when using scopes', ->
       c = new noflo.Component
@@ -1615,19 +1719,20 @@ describe 'Component traits', ->
                 y.disconnect()
             , delay*req.num
 
-      noflo.helpers.WirePattern c,
-        in: ['x', 'y']
-        out: 'out'
-        async: true
-        forwardGroups: true
-      , (input, groups, out, done, postpone, resume, scope) ->
-        setTimeout ->
-          out.send
-            id: scope
-            x: input.x
-            y: input.y
-          done()
-        , 3
+      before ->
+        noflo.helpers.WirePattern c,
+          in: ['x', 'y']
+          out: 'out'
+          async: true
+          forwardGroups: true
+        , (input, groups, out, done, postpone, resume, scope) ->
+          setTimeout ->
+            out.send
+              id: scope
+              x: input.x
+              y: input.y
+            done()
+          , 3
 
       it 'should scope requests by proper UUID', (done) ->
         reqs = generateRequests 10
@@ -1643,57 +1748,70 @@ describe 'Component traits', ->
 
   describe 'MultiError', ->
     describe 'with simple sync processes', ->
-      c = new noflo.Component
-      c.inPorts.add 'form',
-        datatype: 'object'
-        handle: (ip) ->
-          return unless ip.type is 'data'
-          payload = ip.data
-          # Validate form
-          unless payload.name and payload.name.match /^\w{3,16}$/
-            c.error noflo.helpers.CustomError 'Incorrect name',
-              kind: 'form_error'
-              code: 'invalid_name'
-              param: 'name'
-          unless payload.email and payload.email.match /^\w+@\w+\.\w+$/
-            c.error noflo.helpers.CustomError 'Incorrect email',
-              kind: 'form_error'
-              code: 'invalid_email'
-              param: 'email'
-          unless payload.accept
-            c.error noflo.helpers.CustomError 'Terms have to be accepted',
-              kind: 'form_error'
-              code: 'terms_not_accepted'
-              param: 'accept'
-          # Finish validation
-          return c.fail() if c.hasErrors
+      form = null
+      saved = null
+      err = null
+      c = null
+      before ->
+        c = new noflo.Component
+        c.inPorts.add 'form',
+          datatype: 'object'
+        c.outPorts.add 'saved',
+          datatype: 'boolean'
+        c.outPorts.add 'error',
+          datatype: 'object'
+        noflo.helpers.WirePattern c,
+          in: 'form'
+          out: 'saved'
+          async: false
+          forwardGroups: true
+          name: 'Registration'
+        , (payload, groups, out) ->
+            # Validate form
+            unless payload.name and payload.name.match /^\w{3,16}$/
+              this.error noflo.helpers.CustomError 'Incorrect name',
+                kind: 'form_error'
+                code: 'invalid_name'
+                param: 'name'
+            unless payload.email and payload.email.match /^\w+@\w+\.\w+$/
+              this.error noflo.helpers.CustomError 'Incorrect email',
+                kind: 'form_error'
+                code: 'invalid_email'
+                param: 'email'
+            unless payload.accept
+              this.error noflo.helpers.CustomError 'Terms have to be accepted',
+                kind: 'form_error'
+                code: 'terms_not_accepted'
+                param: 'accept'
+            # Finish validation
+            return c.fail() if c.hasErrors
 
-          # Emulating some processing logic here
-          if payload.name is 'DelayLama'
-            # oops
-            c.outPorts.saved.send false
-            c.outPorts.saved.disconnect()
-            return c.fail noflo.helpers.CustomError 'Suspended for a meditation',
-              kind: 'runtime_error'
-              code: 'delay_lama_detected'
-          else
-            c.outPorts.saved.send true
-            c.outPorts.saved.disconnect()
+            # Emulating some processing logic here
+            if payload.name is 'DelayLama'
+              # oops
+              out.send false
+              out.disconnect()
+              return this.fail noflo.helpers.CustomError 'Suspended for a meditation',
+                kind: 'runtime_error'
+                code: 'delay_lama_detected'
+            else
+              out.send true
 
-      c.outPorts.add 'saved', datatype: 'boolean'
-      c.outPorts.add 'error', datatype: 'object'
-      form = new noflo.internalSocket.createSocket()
-      saved = new noflo.internalSocket.createSocket()
-      err = new noflo.internalSocket.createSocket()
-      c.inPorts.form.attach form
-      c.outPorts.saved.attach saved
-      c.outPorts.error.attach err
-      noflo.helpers.MultiError c
+        form = new noflo.internalSocket.createSocket()
+        c.inPorts.form.attach form
+      beforeEach ->
+        saved = new noflo.internalSocket.createSocket()
+        err = new noflo.internalSocket.createSocket()
+        c.outPorts.saved.attach saved
+        c.outPorts.error.attach err
+      afterEach ->
+        c.outPorts.saved.detach saved
+        c.outPorts.error.detach err
 
       it 'should support multiple customized error messages', (done) ->
         errCount = 0
         err.on 'data', (data) ->
-          chai.expect(data instanceof Error).to.be.true
+          chai.expect(data instanceof Error, 'should be instance of error').to.be.true
           chai.expect(data.kind).to.equal 'form_error'
           errCount++
         err.on 'disconnect', ->
@@ -1707,7 +1825,6 @@ describe 'Component traits', ->
 
       it 'should pass if everything is correct', (done) ->
         hadData = false
-        saved.removeAllListeners()
         saved.once 'data', (data) ->
           chai.expect(data).to.be.true
           hadData = true
@@ -1715,7 +1832,6 @@ describe 'Component traits', ->
           chai.expect(hadData).to.be.true
           done()
 
-        err.removeAllListeners()
         err.on 'data', (data) ->
           done data
 
@@ -1729,7 +1845,6 @@ describe 'Component traits', ->
         saved.once 'data', (data) ->
           chai.expect(data).to.be.false
 
-        err.removeAllListeners()
         errCount = 0
         err.once 'data', (data) ->
           chai.expect(data instanceof Error).to.be.true
@@ -1751,11 +1866,7 @@ describe 'Component traits', ->
       c.outPorts.add 'saved', datatype: 'boolean'
       c.outPorts.add 'error', datatype: 'object'
       form = new noflo.internalSocket.createSocket()
-      saved = new noflo.internalSocket.createSocket()
-      err = new noflo.internalSocket.createSocket()
       c.inPorts.form.attach form
-      c.outPorts.saved.attach saved
-      c.outPorts.error.attach err
       noflo.helpers.WirePattern c,
         in: 'form'
         out: 'saved'
@@ -1783,29 +1894,37 @@ describe 'Component traits', ->
             param: 'accept'
           ), ['e3']
         # Finish validation
-        return callback no if this.hasErrors
+        return this.fail no if this.hasErrors
 
         setTimeout ->
           # Emulating some processing logic here
           if payload.name is 'DelayLama'
             # oops
             out.send false
-            return callback noflo.helpers.CustomError 'Suspended for a meditation',
+            return c.fail noflo.helpers.CustomError 'Suspended for a meditation',
               kind: 'runtime_error'
               code: 'delay_lama_detected'
           else
             out.send true
             callback()
         , 10
+      saved = null
+      err = null
+      beforeEach ->
+        saved = new noflo.internalSocket.createSocket()
+        err = new noflo.internalSocket.createSocket()
+        c.outPorts.saved.attach saved
+        c.outPorts.error.attach err
+      afterEach ->
+        c.outPorts.saved.detach saved
+        c.outPorts.error.detach err
 
       it 'should support multiple error messages and groups and scope', (done) ->
         expected = [
+          'async0'
           'Registration'
-          'async0'
           'e1'
-          'async0'
           'e2'
-          'async0'
           'e3'
         ]
         actual = []
@@ -1837,14 +1956,11 @@ describe 'Component traits', ->
         # form.disconnect()
 
       it 'should pass if everything is correct', (done) ->
-        hadData = false
-        saved.removeAllListeners()
         saved.once 'data', (data) ->
           chai.expect(data).to.be.true
           hadData = true
           done()
 
-        err.removeAllListeners()
         err.on 'data', (data) ->
           done data
 
@@ -1858,19 +1974,18 @@ describe 'Component traits', ->
         saved.once 'data', (data) ->
           chai.expect(data).to.be.false
 
-        err.removeAllListeners()
         errCount = 0
         grpCount = 0
         err.on 'begingroup', (grp) ->
           chai.expect(grp).to.equal 'Registration'
           grpCount++
-        err.once 'data', (data) ->
+        err.on 'data', (data) ->
           chai.expect(data instanceof Error).to.be.true
           chai.expect(data.kind).to.equal 'runtime_error'
           errCount++
-        err.once 'disconnect', ->
-          chai.expect(errCount).to.equal 1
-          chai.expect(grpCount).to.equal 1
+        err.on 'disconnect', ->
+          chai.expect(errCount, 'should have one error').to.equal 1
+          chai.expect(grpCount, 'should have one group').to.equal 1
           done()
 
         form.send
