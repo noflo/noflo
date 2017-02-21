@@ -123,14 +123,12 @@ module.exports = ->
 
   @registerTask 'test', 'Build NoFlo and run automated tests', (target = 'all') =>
     @task.run 'coffeelint'
-    @task.run 'noflo_manifest'
-    @task.run 'coffee'
+    @task.run "build:#{target}"
     if target is 'all' or target is 'nodejs'
       # The components directory has to exist for Node.js 4.x
       @file.mkdir 'components'
       @task.run 'mochaTest'
     if target is 'all' or target is 'browser'
-      @task.run 'noflo_browser'
       @task.run 'noflo_browser_mocha'
       @task.run 'connect'
       @task.run 'mocha_phantomjs'
