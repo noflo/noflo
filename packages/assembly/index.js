@@ -1,4 +1,4 @@
-import noflo from 'noflo';
+import { Component as NoFloComponent } from 'noflo';
 
 const validators = {
   def: val => val !== undefined,
@@ -49,7 +49,7 @@ function normalizePorts(options, direction) {
   return result;
 }
 
-export default class Component extends noflo.Component {
+export default class Component extends NoFloComponent {
   constructor(options = {}) {
     let opts = normalizePorts(options, 'in');
     opts = normalizePorts(opts, 'out');
