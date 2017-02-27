@@ -144,7 +144,7 @@ export function merge(base, extra) {
   const combined = base;
   const baseKeys = Object.keys(base);
   Object.keys(extra).forEach((key) => {
-    if ((!baseKeys.contains(key) || base[key] === undefined) && extra[key] !== undefined) {
+    if ((baseKeys.indexOf(key) === -1 || base[key] === undefined) && extra[key] !== undefined) {
       combined[key] = extra[key];
     }
   });
