@@ -2,7 +2,16 @@
 
 Industrial approach to writing NoFlo applications
 
-## About
+[![Build Status](https://travis-ci.org/trustmaster/noflo-assembly.svg?branch=master)](https://travis-ci.org/trustmaster/noflo-assembly)
+
+## Goals
+
+  - Build your application like a real world production
+  - Make development with [NoFlo](https://noflojs.org) more fun
+  - Follow best practices to avoid common pitfalls
+  - ES6-first
+
+## Documentation
 
 For introduction, underlying conventions and best practices please see [project Wiki](https://github.com/trustmaster/noflo-assembly/wiki).
 
