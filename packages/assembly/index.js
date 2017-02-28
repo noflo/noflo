@@ -22,6 +22,19 @@ const errorMessages = {
   '>0': (key, val) => `${key} is not positive: ${val}`,
 };
 
+export function fail(msg, err) {
+  if (!Array.isArray(msg.errors)) {
+    throw new Error('Message.errors is not an array');
+  }
+  const errs = Array.isArray(err) ? err : [err];
+  errs.forEach(e => msg.errors.push(e));
+  return msg;
+}
+
+export function failed(msg) {
+  return msg.errors && Array.isArray(msg.errors) > 0 && msg.errors.length > 0;
+}
+
 // Converts shortened ports definition to standard NoFlo ports definition
 function normalizePorts(options, direction) {
   const key = `${direction}Ports`;
@@ -69,16 +82,9 @@ export default class Component extends NoFloComponent {
       this.process(function process(input, output) {
         if (input.ip.type !== 'data') { return; }
         const msg = input.getData('in');
-        if (msg.errors && msg.errors.length > 0) {
+        if (!this.validate(msg)) {
           output.sendDone(msg);
           return;
-        }
-        if (this.validates) {
-          const errs = this.validate(msg, this.validates);
-          if (errs.length > 0) {
-            output.sendDone(exports.fail(msg, errs));
-            return;
-          }
         }
         this.relay(msg, output);
       });
@@ -88,8 +94,9 @@ export default class Component extends NoFloComponent {
     }
   }
 
-  validate(msg, fields = this.validates) {
-    if ((typeof msg !== 'object') || (typeof fields !== 'object')) { return []; }
+  checkFields(msg) {
+    if ((typeof msg !== 'object') || (typeof this.validates !== 'object')) { return []; }
+    const fields = this.validates;
     const errors = [];
     function checkField(obj, objPath, path, validator) {
       if (!obj || (path.length <= 0)) { return; }
@@ -112,19 +119,20 @@ export default class Component extends NoFloComponent {
     });
     return errors;
   }
-}
 
-export function fail(msg, err) {
-  if (!Array.isArray(msg.errors)) {
-    throw new Error('Message.errors is not an array');
+  validate(msg) {
+    if (failed(msg)) {
+      return false;
+    }
+    if (this.validates) {
+      const errs = this.checkFields(msg);
+      if (errs.length > 0) {
+        fail(msg, errs);
+        return false;
+      }
+    }
+    return true;
   }
-  const errs = Array.isArray(err) ? err : [err];
-  errs.forEach(e => msg.errors.push(e));
-  return msg;
-}
-
-export function failed(msg) {
-  return msg.errors && Array.isArray(msg.errors) > 0 && msg.errors.length > 0;
 }
 
 export function fork(msg, excludeKeys = [], cloneKeys = []) {

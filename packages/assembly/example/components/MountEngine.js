@@ -1,4 +1,4 @@
-import Component, { fail } from '../../index';
+import Component from '../../index';
 
 export class MountEngine extends Component {
   constructor() {
@@ -25,9 +25,8 @@ export class MountEngine extends Component {
     const engine = input.getData('engine');
 
     // Message validation is explicit if there are multiple inports
-    const errs = this.validate(msg);
-    if (errs.length > 0) {
-      return output.sendDone(fail(msg, errs));
+    if (!this.validate(msg)) {
+      return output.sendDone(msg);
     }
 
     msg.chassis.engine = engine;
