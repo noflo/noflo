@@ -31,6 +31,6 @@
     "eslint-config-airbnb-base": "^11.0.1",
     "eslint-plugin-import": "^2.2.0",
     "mocha": "^3.2.0",
-    "noflo-tester": "0.1.0-beta2"
+    "noflo-tester": "^0.1.0-beta3"
   }
 }
