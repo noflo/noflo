@@ -31,7 +31,7 @@
   "devDependencies": {
     "chai": "^3.4.1",
     "coffeelint": "^1.13.0",
-    "fbp-protocol": "^0.6.2",
+    "fbp-protocol": "^0.6.3",
     "grunt": "^1.0.1",
     "grunt-coffeelint": "^0.0.16",
     "grunt-exec": "^1.0.1",
