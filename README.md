@@ -61,7 +61,7 @@ Please refer to the [Release Notes](https://github.com/noflo/noflo/releases) and
 
 ## Usage
 
-Please refer to <http://noflojs.org/documentation/>. For visual programming with NoFlo, see <http://flowhub.io/documentation/>.
+Please refer to <http://noflojs.org/documentation/>. For visual programming with NoFlo, see <https://docs.flowhub.io/>.
 
 ## Development
 
