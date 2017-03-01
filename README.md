@@ -27,7 +27,7 @@ NoFlo itself is just a library for implementing flow-based programs in JavaScrip
 
 * [Flowhub](https://flowhub.io) -- browser-based visual programming **IDE** for NoFlo and other flow-based systems
 * [noflo-nodejs](https://github.com/noflo/noflo-nodejs) -- command-line interface for running NoFlo programs on **Node.js**
-* [MsgFlo](https://github.com/msgflo/msgflo) -- for running NoFlo and other FBP runtimes as a **distributed system**
+* [MsgFlo](https://msgflo.org) -- for running NoFlo and other FBP runtimes as a **distributed system**
 * [fbp-spec](https://github.com/flowbased/fbp-spec) -- **data-driven tests** for NoFlo and other FBP environments
 * [flowtrace](https://github.com/flowbased/flowtrace) -- tool for **retroactive debugging** of NoFlo programs. Supports visual replay with Flowhub
 
