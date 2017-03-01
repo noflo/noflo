@@ -23,7 +23,7 @@ NoFlo is not a web framework or a UI toolkit. It is a way to coordinate and reor
 
 ## Tools and ecosystem
 
-NoFlo itself is just a library for implementing flow-based programs in JavaScript. There is an ecosystem of tools around NoFlo and the [fbp protocol](http://noflojs.org/documentation/protocol/) that make it more powerful. Here are some of them:
+NoFlo itself is just a library for implementing flow-based programs in JavaScript. There is an ecosystem of tools around NoFlo and the [fbp protocol](https://flowbased.github.io/fbp-protocol/) that make it more powerful. Here are some of them:
 
 * [Flowhub](https://flowhub.io) -- browser-based visual programming **IDE** for NoFlo and other flow-based systems
 * [noflo-nodejs](https://github.com/noflo/noflo-nodejs) -- command-line interface for running NoFlo programs on **Node.js**
