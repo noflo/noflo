@@ -1,5 +1,5 @@
 #     NoFlo - Flow-Based Programming for JavaScript
-#     (c) 2014 The Grid
+#     (c) 2014-2017 Flowhub UG
 #     NoFlo may be freely distributed under the MIT license
 #
 # High-level wrappers for FBP substreams processing.

@@ -1,3 +1,10 @@
+#     NoFlo - Flow-Based Programming for JavaScript
+#     (c) 2013-2017 Flowhub UG
+#     (c) 2011-2012 Henri Bergius, Nemein
+#     NoFlo may be freely distributed under the MIT license
+#
+# The Graph component is used to wrap NoFlo Networks into components inside
+# another network.
 noflo = require "../lib/NoFlo"
 
 class Graph extends noflo.Component
