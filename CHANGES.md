@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.8.0 (git master)
+## 0.8.0 (March 1st 2017)
 
 * Updated headers to reflect the copyright assignment from [The Grid](https://thegrid.io) to [Flowhub UG](https://flowhub.io)
 
