@@ -38,6 +38,6 @@
     "grunt-mocha-test": "^0.13.2",
     "jshint": "^2.9.3",
     "mocha": "^3.0.2",
-    "noflo-core": "^0.2.3"
+    "noflo-core": "^0.3.1"
   }
 }
