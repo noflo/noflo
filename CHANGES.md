@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.8.0 (git master)
+
+* Updated headers to reflect the copyright assignment from [The Grid](https://thegrid.io) to [Flowhub UG](https://flowhub.io)
+
 ## 0.8.0-beta3 (February 21st 2017)
 
 * Reimplemented `noflo.helpers.MapComponent` to use Process API internally. This helper is deprecated and components using it should be ported to Process API

@@ -1,5 +1,5 @@
 #     NoFlo - Flow-Based Programming for JavaScript
-#     (c) 2014-2015 TheGrid (Rituwall Inc.)
+#     (c) 2014-2017 Flowhub UG
 #     NoFlo may be freely distributed under the MIT license
 #
 # Platform detection method
@@ -8,6 +8,9 @@ exports.isBrowser = ->
     return false
   true
 
+# Mechanism for showing API deprecation warnings. By default logs the warnings
+# but can also be configured to throw instead with the `NOFLO_FATAL_DEPRECATED`
+# env var.
 exports.deprecated = (message) ->
   if exports.isBrowser()
     throw new Error message if window.NOFLO_FATAL_DEPRECATED
