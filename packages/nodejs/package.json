@@ -21,7 +21,7 @@
     "coffee-cache": "~1.0.2",
     "coffee-script": "~1.12.1",
     "flowhub-registry": "~0.1.0",
-    "noflo": "~0.7.5",
+    "noflo": "~0.8.0",
     "noflo-runtime-websocket": "~0.6.2",
     "noflo-runtime-base": "~0.7.3",
     "password-maker": "~1.1.3",
