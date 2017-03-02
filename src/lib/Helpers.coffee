@@ -157,8 +157,6 @@ processApiWirePattern = (component, config, func) ->
     data = getInputData config, input
     # Read bracket context of first inport
     groups = getGroupContext component, config.inPorts[0], input
-    if groups.length > 3
-      process.exit 0
     # Produce proxy object wrapping output in legacy-style port API
     outProxy = getOutputProxy config.outPorts, output
 
