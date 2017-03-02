@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.8.1 (git master)
+## 0.8.1 (March 2nd 2017)
 
 * Fixed issue with Process API WirePattern emulation on deeper bracket hierarchies
 * Fixed inport buffer clearing on component shutdown
