@@ -92,7 +92,9 @@ class Component extends EventEmitter
     finalize = =>
       # Clear contents of inport buffers
       inPorts = @inPorts.ports or @inPorts
-      inPort.clear() for inPort in inPorts
+      for portName, inPort of inPorts
+        continue unless typeof inPort.clear is 'function'
+        inPort.clear()
       # Clear bracket context
       @bracketContext =
         in: {}
