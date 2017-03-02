@@ -16,7 +16,6 @@ describe('Assembly Graph', () => {
       if (err) { done(err); return; }
       load(loader, (err2) => {
         if (err2) { done(err2); return; }
-        c = new Tester('', { loader });
         done();
       });
     });
@@ -24,6 +23,7 @@ describe('Assembly Graph', () => {
 
   describe('A simple pipeline graph', () => {
     before((done) => {
+      c = new Tester('', { loader });
       c.component = 'example/BuildChassis';
       c.start((err) => {
         if (err) { done(err); return; }
@@ -44,6 +44,40 @@ describe('Assembly Graph', () => {
         expect(msg.chassis.driveShaft).to.be.ok;
         expect(msg.chassis.suspension).to.be.an('object');
         expect(msg.chassis.wheels).to.have.lengthOf(4);
+        done();
+      });
+
+      // Place an order message
+      const msg = {
+        errors: [],
+        id: 123,
+      };
+
+      c.send({ in: msg });
+    });
+  });
+
+  describe('A graph with branches', () => {
+    before((done) => {
+      c = new Tester('', { loader });
+      c.component = 'example/BuildBody';
+      c.start((err) => {
+        if (err) { done(err); return; }
+        done();
+      });
+    });
+
+    it('should build a car body', (done) => {
+      c.receive('out', (msg) => {
+        expect(msg).to.be.an('object');
+        expect(msg.errors).to.have.lengthOf(0);
+        expect(msg.id).to.equal(123);
+        expect(msg.body).to.be.an('object');
+        expect(msg.body.id).to.equal(msg.id);
+        expect(msg.body.panels).to.be.ok;
+        expect(msg.body.interior).to.be.ok;
+        expect(msg.body.doors).to.have.lengthOf(4);
+        expect(msg.body.electrics).to.be.ok;
         done();
       });
 
