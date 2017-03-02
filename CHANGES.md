@@ -3,6 +3,7 @@ NoFlo ChangeLog
 
 ## 0.8.0 (March 1st 2017)
 
+* General availability of [Process API for NoFlo components](http://bergie.iki.fi/blog/noflo-process-api/)
 * Updated headers to reflect the copyright assignment from [The Grid](https://thegrid.io) to [Flowhub UG](https://flowhub.io)
 
 ## 0.8.0-beta3 (February 21st 2017)
