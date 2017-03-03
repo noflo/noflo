@@ -90,4 +90,31 @@ describe('Assembly Graph', () => {
       c.send({ in: msg });
     });
   });
+
+  describe.only('A top level graph with subgraphs', () => {
+    before((done) => {
+      c = new Tester('', { loader });
+      c.component = 'example/BuildCar';
+      c.start((err) => {
+        if (err) { done(err); return; }
+        done();
+      });
+    });
+
+    it('should build a car', (done) => {
+      c.receive('out', (msg) => {
+        console.log(msg);
+        expect(msg).to.be.an('object');
+        expect(msg.errors).to.have.lengthOf(0);
+        expect(msg.id).to.equal(123);
+        expect(msg.chassis).to.be.an('object');
+        expect(msg.body).to.be.an('object');
+        // expect(msg.parts).to.be.undefined;
+        done();
+      });
+
+      // Place an order message
+      c.send({ in: true });
+    });
+  });
 });

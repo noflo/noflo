@@ -43,7 +43,6 @@ export class SupplyBodyParts extends Component {
   }
   handle(input, output) {
     if (!input.hasData('in', 'interior', 'doortype', 'doornum')) { return null; }
-
     const msg = input.getData('in');
     const interior = input.getData('interior');
     const doortype = input.getData('doortype');
