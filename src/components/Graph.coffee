@@ -22,11 +22,11 @@ class Graph extends noflo.Component
         datatype: 'all'
         description: 'NoFlo graph definition to be used with the subgraph component'
         required: true
-        immediate: true
     @outPorts = new noflo.OutPorts
 
-    @inPorts.on 'graph', 'data', (data) =>
-      @setGraph data
+    @inPorts.graph.on 'ip', (packet) =>
+      return unless packet.type is 'data'
+      @setGraph packet.data
 
   setGraph: (graph) ->
     @ready = false
