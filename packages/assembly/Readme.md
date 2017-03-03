@@ -7,8 +7,8 @@ Industrial approach to writing NoFlo applications
 ## Goals
 
   - Build your application like a real world production
-  - Make development with [NoFlo](https://noflojs.org) more fun
-  - Follow best practices to avoid common pitfalls
+  - Make development with [NoFlo](https://noflojs.org) more fun by reducing component boilerplate and the complexity of graphs
+  - Follow best practices for concurrency, error handling, etc. to avoid common pitfalls
   - ES6-first
 
 ## Documentation
