@@ -4,7 +4,6 @@ import { expect } from 'chai';
 import Tester from 'noflo-tester';
 import { ComponentLoader } from 'noflo';
 import { resolve } from 'path';
-import load from '../example/ComponentLoader';
 
 describe('Assembly Graph', function bar() {
   this.timeout(5000);
@@ -15,10 +14,7 @@ describe('Assembly Graph', function bar() {
     loader = new ComponentLoader(resolve(__dirname, '../example'));
     loader.listComponents((err) => {
       if (err) { done(err); return; }
-      load(loader, (err2) => {
-        if (err2) { done(err2); return; }
-        done();
-      });
+      done();
     });
   });
 
