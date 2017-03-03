@@ -126,12 +126,13 @@ class ComponentLoader extends EventEmitter
       graphSocket = internalSocket.createSocket()
       graph.loader = @
       graph.baseDir = @baseDir
-      graph.inPorts.graph.attach graphSocket
-      graphSocket.send component
-      graphSocket.disconnect()
       graph.inPorts.remove 'graph'
-      @setIcon name, graph
-      callback null, graph
+      graph.setGraph component, (err) =>
+        return callback err if err
+        @setIcon name, graph
+        callback null, graph
+      return
+    return
 
   setIcon: (name, instance) ->
     # See if component has an icon
