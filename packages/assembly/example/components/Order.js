@@ -17,8 +17,8 @@ export class Order extends Component {
       // App-specific fields
       id: this.counter,
     };
-    // Let's use noflo.IP.scope to isolate jobs
-    const ip = new IP('data', msg, { scope: msg.id });
+    // TODO: Let's use noflo.IP.scope to isolate jobs
+    const ip = new IP('data', msg);
     output.sendDone(ip);
   }
 }

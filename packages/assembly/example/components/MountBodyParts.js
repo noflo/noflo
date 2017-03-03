@@ -1,6 +1,6 @@
 import Component from '../../index';
 
-export class MountEngine extends Component {
+export class MountBodyParts extends Component {
   constructor() {
     super({
       description: 'Unified body part mounter',
@@ -40,5 +40,5 @@ export class MountEngine extends Component {
 }
 
 export function getComponent() {
-  return new MountEngine();
+  return new MountBodyParts();
 }

@@ -6,7 +6,8 @@ import { ComponentLoader } from 'noflo';
 import { resolve } from 'path';
 import load from '../example/ComponentLoader';
 
-describe('Assembly Graph', () => {
+describe('Assembly Graph', function bar() {
+  this.timeout(5000);
   let loader;
   let c;
   before((done) => {
@@ -91,7 +92,7 @@ describe('Assembly Graph', () => {
     });
   });
 
-  describe.only('A top level graph with subgraphs', () => {
+  describe('A top level graph with subgraphs', () => {
     before((done) => {
       c = new Tester('', { loader });
       c.component = 'example/BuildCar';
@@ -103,10 +104,14 @@ describe('Assembly Graph', () => {
 
     it('should build a car', (done) => {
       c.receive('out', (msg) => {
-        console.log(msg);
+        if (msg.errors.length) {
+          msg.errors.forEach((err) => {
+            console.log(err);
+          });
+        }
         expect(msg).to.be.an('object');
         expect(msg.errors).to.have.lengthOf(0);
-        expect(msg.id).to.equal(123);
+        expect(msg.id).to.equal(1);
         expect(msg.chassis).to.be.an('object');
         expect(msg.body).to.be.an('object');
         // expect(msg.parts).to.be.undefined;

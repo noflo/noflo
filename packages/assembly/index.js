@@ -79,8 +79,8 @@ export default class Component extends NoFloComponent {
       }
     }
     if (typeof this.relay === 'function') {
-      this.process(function process(input, output) {
-        if (input.ip.type !== 'data') { return; }
+      this.process((input, output) => {
+        if (!input.hasData('in')) { return; }
         const msg = input.getData('in');
         if (!this.validate(msg)) {
           output.sendDone(msg);

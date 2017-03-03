@@ -5,12 +5,6 @@ export class CombineAssemblies extends Component {
     super({
       description: 'Combines sub-assemblies into a complete car',
       inPorts: ['b', 'c'],
-      validates: {
-        b: 'obj',
-        c: 'obj',
-        'b.body.id': 'num',
-        'c.chassis.id': 'num',
-      },
     });
   }
   handle(input, output) {
@@ -29,13 +23,13 @@ export class CombineAssemblies extends Component {
 
     // Domain-specific validation logic
     const errs = [];
-    if (b.body.id <= 0) {
+    if (!b.body || b.body.id <= 0) {
       errs.push(new Error('Invalid Body #'));
     }
-    if (c.chassis.id <= 0) {
+    if (!c.chassis || c.chassis.id <= 0) {
       errs.push(new Error('Invalid Chassis #'));
     }
-    if (c.chassis.id !== c.body.id) {
+    if (!c.chassis || !b.body || c.chassis.id !== b.body.id) {
       errs.push(new Error('Chassis # and Body # do not match'));
     }
     if (errs.length > 0) {
@@ -44,7 +38,6 @@ export class CombineAssemblies extends Component {
 
     // Merge forked messages together
     const car = merge(c, b);
-
     return output.sendDone(car);
   }
 }

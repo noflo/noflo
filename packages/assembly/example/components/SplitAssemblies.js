@@ -9,6 +9,7 @@ export class SplitAssemblies extends Component {
     });
   }
   handle(input, output) {
+    if (!input.hasData('in')) { return null; }
     const msg = input.getData('in');
     // We have to call error check and validation manually
     // if ports are different from IN -> [ ] -> OUT
