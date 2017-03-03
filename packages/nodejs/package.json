@@ -17,7 +17,7 @@
     "url": "git://github.com/noflo/noflo-nodejs.git"
   },
   "dependencies": {
-    "cli-color": "~1.1.0",
+    "cli-color": "~1.2.0",
     "coffee-cache": "~1.0.2",
     "coffee-script": "~1.12.1",
     "flowhub-registry": "~0.1.0",
