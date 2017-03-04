@@ -27,6 +27,7 @@ class Graph extends noflo.Component
     @inPorts.graph.on 'ip', (packet) =>
       return unless packet.type is 'data'
       @setGraph packet.data, (err) =>
+        # TODO: Port this part to Process API and use output.error method instead
         return @error err if err
 
   setGraph: (graph, callback) ->
