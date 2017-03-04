@@ -88,11 +88,21 @@ prepareInputMap = (inputs, network) ->
   return map
 
 normalizeOutput = (values) ->
-  datas = values.filter (ip) -> ip.type is 'data'
-  if datas.length is 1
-    return datas[0].data
-  # TODO: Arrayize each stream
-  datas.map (ip) -> ip.data
+  result = []
+  previous = null
+  current = result
+  for packet in values
+    if packet.type is 'openBracket'
+      previous = current
+      current = []
+      previous.push current
+    if packet.type is 'data'
+      current.push packet.data
+    if packet.type is 'closeBracket'
+      current = previous
+  if result.length is 1
+    return result[0]
+  return result
 
 sendOutputMap = (outputs, useMap, callback) ->
   if outputs.error?.length

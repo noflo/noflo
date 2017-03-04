@@ -24,12 +24,48 @@ describe 'asCallback interface', ->
       setTimeout ->
         output.sendDone data
       , 1
+  processError = ->
+    c = new noflo.Component
+    c.inPorts.add 'in',
+      datatype: 'string'
+    c.outPorts.add 'out',
+      datatype: 'string'
+    c.outPorts.add 'error'
+    c.process (input, output) ->
+      data = input.getData 'in'
+      output.done new Error "Received #{data}"
+  neverSend = ->
+    c = new noflo.Component
+    c.inPorts.add 'in',
+      datatype: 'string'
+    c.outPorts.add 'out',
+      datatype: 'string'
+    c.process (input, output) ->
+      data = input.getData 'in'
+  streamify = ->
+    c = new noflo.Component
+    c.inPorts.add 'in',
+      datatype: 'string'
+    c.outPorts.add 'out',
+      datatype: 'string'
+    c.process (input, output) ->
+      data = input.getData 'in'
+      words = data.split ' '
+      for word, idx in words
+        output.send new noflo.IP 'openBracket', idx
+        chars = word.split ''
+        output.send new noflo.IP 'data', char for char in chars
+        output.send new noflo.IP 'closeBracket'
+      output.done()
 
   before (done) ->
     loader = new noflo.ComponentLoader root
     loader.listComponents (err) ->
       return done err if err
       loader.registerComponent 'process', 'Async', processAsync
+      loader.registerComponent 'process', 'Error', processError
+      loader.registerComponent 'process', 'NeverSend', neverSend
+      loader.registerComponent 'process', 'Streamify', streamify
       done()
   describe 'with a non-existing component', ->
     wrapped = null
@@ -70,4 +106,44 @@ describe 'asCallback interface', ->
       wrapped expected, (err, out) ->
         return done err if err
         chai.expect(out).to.eql expected
+        done()
+  describe 'with a component sending an error', ->
+    wrapped = null
+    before ->
+      wrapped = noflo.asCallback 'process/Error',
+        loader: loader
+    it 'should execute network with input map and provide error', (done) ->
+      expected = 'hello there'
+      wrapped
+        in: expected
+      , (err) ->
+        chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain expected
+        done()
+    it 'should execute network with simple input and provide error', (done) ->
+      expected = 'hello world'
+      wrapped expected, (err) ->
+        chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain expected
+        done()
+  describe 'with a component sending streams', ->
+    wrapped = null
+    before ->
+      wrapped = noflo.asCallback 'process/Streamify',
+        loader: loader
+    it 'should execute network with input map and provide output map with streams as arrays', (done) ->
+      wrapped
+        in: 'hello world'
+      , (err, out) ->
+        chai.expect(out.out).to.eql [
+          ['h','e','l','l','o']
+          ['w','o','r','l','d']
+        ]
+        done()
+    it 'should execute network with simple input and and provide simple output with streams as arrays', (done) ->
+      wrapped 'hello there', (err, out) ->
+        chai.expect(out).to.eql [
+          ['h','e','l','l','o']
+          ['t','h','e','r','e']
+        ]
         done()
