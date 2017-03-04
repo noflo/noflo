@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.8.2 (git master)
+
+* Improved subgraph instantiation error handling
+
 ## 0.8.1 (March 2nd 2017)
 
 * Fixed issue with Process API WirePattern emulation on deeper bracket hierarchies
