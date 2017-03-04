@@ -346,3 +346,58 @@ describe 'Scope isolation', ->
         scope: 'x'
       in1.post new noflo.IP 'closeBracket', 1,
         scope: 'x'
+
+  describe 'Process API with IIPs and scopes', ->
+    c = null
+    in1 = null
+    in2 = null
+    out = null
+    before (done) ->
+      fbpData = "
+      INPORT=Pc1.IN:IN1
+      OUTPORT=PcMerge.OUT:OUT
+      Pc1(process/Async) -> IN1 PcMerge(process/Merge)
+      'twoIIP' -> IN2 PcMerge(process/Merge)
+      "
+      noflo.graph.loadFBP fbpData, (err, g) ->
+        return done err if err
+        loader.registerComponent 'scope', 'MergeIIP', g
+        loader.load 'scope/MergeIIP', (err, instance) ->
+          return done err if err
+          c = instance
+          in1 = noflo.internalSocket.createSocket()
+          c.inPorts.in1.attach in1
+          done()
+    beforeEach ->
+      out = noflo.internalSocket.createSocket()
+      c.outPorts.out.attach out
+    afterEach ->
+      c.outPorts.out.detach out
+      out = null
+
+    it 'should forward scopes as expected', (done) ->
+      expected = [
+        'x < 1'
+        'x DATA 1onePc1:2twoIIP:PcMerge'
+        'x >'
+      ]
+      received = []
+      brackets = []
+
+      out.on 'ip', (ip) ->
+        switch ip.type
+          when 'openBracket'
+            received.push "#{ip.scope} < #{ip.data}"
+            brackets.push ip.data
+          when 'data'
+            received.push "#{ip.scope} DATA #{ip.data}"
+          when 'closeBracket'
+            received.push "#{ip.scope} >"
+            brackets.pop()
+            return if brackets.length
+            chai.expect(received).to.eql expected
+            done()
+
+      in1.post new noflo.IP 'openBracket', 1, scope: 'x'
+      in1.post new noflo.IP 'data', 'one', scope: 'x'
+      in1.post new noflo.IP 'closeBracket', 1, scope: 'x'
