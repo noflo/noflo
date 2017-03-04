@@ -78,6 +78,29 @@ processMerge = ->
     output.sendDone
       out: "1#{first}:2#{second}:#{c.nodeId}"
 
+# Merge with an addressable port
+processMergeA = ->
+  c = new noflo.Component
+  c.inPorts.add 'in1',
+    datatype: 'string'
+  c.inPorts.add 'in2',
+    datatype: 'string'
+    addressable: true
+  c.outPorts.add 'out',
+    datatype: 'string'
+
+  c.forwardBrackets =
+    'in1': ['out']
+
+  c.process (input, output) ->
+    return unless input.hasData 'in1', ['in2', 0], ['in2', 1]
+    first = input.getData 'in1'
+    second0 = input.getData ['in2', 0]
+    second1 = input.getData ['in2', 1]
+
+    output.sendDone
+      out: "1#{first}:2#{second0}:2#{second1}:#{c.nodeId}"
+
 describe 'Scope isolation', ->
   loader = null
   before (done) ->
@@ -88,6 +111,7 @@ describe 'Scope isolation', ->
       loader.registerComponent 'wirepattern', 'Merge', wirePatternMerge
       loader.registerComponent 'process', 'Async', processAsync
       loader.registerComponent 'process', 'Merge', processMerge
+      loader.registerComponent 'process', 'MergeA', processMergeA
       done()
 
   describe 'with WirePattern sending to Process API', ->
@@ -346,3 +370,114 @@ describe 'Scope isolation', ->
         scope: 'x'
       in1.post new noflo.IP 'closeBracket', 1,
         scope: 'x'
+
+  describe 'Process API with IIPs and scopes', ->
+    c = null
+    in1 = null
+    in2 = null
+    out = null
+    before (done) ->
+      fbpData = "
+      INPORT=Pc1.IN:IN1
+      OUTPORT=PcMerge.OUT:OUT
+      Pc1(process/Async) -> IN1 PcMerge(process/Merge)
+      'twoIIP' -> IN2 PcMerge(process/Merge)
+      "
+      noflo.graph.loadFBP fbpData, (err, g) ->
+        return done err if err
+        loader.registerComponent 'scope', 'MergeIIP', g
+        loader.load 'scope/MergeIIP', (err, instance) ->
+          return done err if err
+          c = instance
+          in1 = noflo.internalSocket.createSocket()
+          c.inPorts.in1.attach in1
+          done()
+    beforeEach ->
+      out = noflo.internalSocket.createSocket()
+      c.outPorts.out.attach out
+    afterEach ->
+      c.outPorts.out.detach out
+      out = null
+
+    it 'should forward scopes as expected', (done) ->
+      expected = [
+        'x < 1'
+        'x DATA 1onePc1:2twoIIP:PcMerge'
+        'x >'
+      ]
+      received = []
+      brackets = []
+
+      out.on 'ip', (ip) ->
+        switch ip.type
+          when 'openBracket'
+            received.push "#{ip.scope} < #{ip.data}"
+            brackets.push ip.data
+          when 'data'
+            received.push "#{ip.scope} DATA #{ip.data}"
+          when 'closeBracket'
+            received.push "#{ip.scope} >"
+            brackets.pop()
+            return if brackets.length
+            chai.expect(received).to.eql expected
+            done()
+
+      in1.post new noflo.IP 'openBracket', 1, scope: 'x'
+      in1.post new noflo.IP 'data', 'one', scope: 'x'
+      in1.post new noflo.IP 'closeBracket', 1, scope: 'x'
+
+  describe 'Process API with IIPs to addressable ports and scopes', ->
+    c = null
+    in1 = null
+    in2 = null
+    out = null
+    before (done) ->
+      fbpData = "
+      INPORT=Pc1.IN:IN1
+      OUTPORT=PcMergeA.OUT:OUT
+      Pc1(process/Async) -> IN1 PcMergeA(process/MergeA)
+      'twoIIP0' -> IN2[0] PcMergeA
+      'twoIIP1' -> IN2[1] PcMergeA
+      "
+      noflo.graph.loadFBP fbpData, (err, g) ->
+        return done err if err
+        loader.registerComponent 'scope', 'MergeIIPA', g
+        loader.load 'scope/MergeIIPA', (err, instance) ->
+          return done err if err
+          c = instance
+          in1 = noflo.internalSocket.createSocket()
+          c.inPorts.in1.attach in1
+          done()
+    beforeEach ->
+      out = noflo.internalSocket.createSocket()
+      c.outPorts.out.attach out
+    afterEach ->
+      c.outPorts.out.detach out
+      out = null
+
+    it 'should forward scopes as expected', (done) ->
+      expected = [
+        'x < 1'
+        'x DATA 1onePc1:2twoIIP0:2twoIIP1:PcMergeA'
+        'x >'
+      ]
+      received = []
+      brackets = []
+
+      out.on 'ip', (ip) ->
+        switch ip.type
+          when 'openBracket'
+            received.push "#{ip.scope} < #{ip.data}"
+            brackets.push ip.data
+          when 'data'
+            received.push "#{ip.scope} DATA #{ip.data}"
+          when 'closeBracket'
+            received.push "#{ip.scope} >"
+            brackets.pop()
+            return if brackets.length
+            chai.expect(received).to.eql expected
+            done()
+
+      in1.post new noflo.IP 'openBracket', 1, scope: 'x'
+      in1.post new noflo.IP 'data', 'one', scope: 'x'
+      in1.post new noflo.IP 'closeBracket', 1, scope: 'x'
