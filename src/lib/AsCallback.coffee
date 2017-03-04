@@ -1,5 +1,6 @@
 ComponentLoader = require('./ComponentLoader').ComponentLoader
 Network = require('./Network').Network
+IP = require('./IP')
 internalSocket = require './InternalSocket'
 Graph = require('fbp-graph').Graph
 
@@ -11,11 +12,9 @@ normalizeOptions = (options, component) ->
   unless options.loader
     options.loader = new ComponentLoader options.baseDir
   options.raw = false unless options.raw
-  options.network = null
   options
 
 prepareNetwork = (component, options, callback) ->
-  return callback null, options.network if options.network
   # Start by loading the component
   options.loader.load component, (err, instance) ->
     return callback err if err
@@ -33,11 +32,11 @@ prepareNetwork = (component, options, callback) ->
       graph.addOutport port, nodeName, port
     # Prepare network
     graph.componentLoader = options.loader
-    options.network = new Network graph, options
+    network = new Network graph, options
     # Wire the network up and start execution
-    options.network.connect (err) ->
+    network.connect (err) ->
       return callback err if err
-      callback null, options.network
+      callback null, network
 
 runNetwork = (network, inputs, options, callback) ->
   process = network.getNode options.name
@@ -69,7 +68,8 @@ runNetwork = (network, inputs, options, callback) ->
   network.start (err) ->
     return callback err if err
     # Send inputs
-    inSockets[port].send value for port, value of inputs
+    for port, value of inputs
+      inSockets[port].post new IP 'data', value
 
 isMap = (inputs, network) ->
   return false unless typeof inputs is 'object'
@@ -118,7 +118,7 @@ sendOutputMap = (outputs, useMap, options, callback) ->
     return callback null
   if withValue.length is 1 and not useMap
     # Single outport
-    callback null, normalizeOutput outputs[withValue[0]], options
+    return callback null, normalizeOutput outputs[withValue[0]], options
   result = {}
   for port, packets of outputs
     result[port] = normalizeOutput packets, options

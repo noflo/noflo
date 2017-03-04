@@ -107,6 +107,14 @@ describe 'asCallback interface', ->
         return done err if err
         chai.expect(out).to.eql expected
         done()
+    it 'should not mix up simultaneous runs', (done) ->
+      received = 0
+      [0..100].forEach (idx) ->
+        wrapped idx, (err, out) ->
+          chai.expect(out).to.equal idx
+          received++
+          return unless received is 101
+          done()
   describe 'with a component sending an error', ->
     wrapped = null
     before ->
