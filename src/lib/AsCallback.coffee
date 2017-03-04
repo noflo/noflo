@@ -7,6 +7,8 @@ Graph = require('fbp-graph').Graph
 normalizeOptions = (options, component) ->
   options = {} unless options
   options.name = component unless options.name
+  if options.loader
+    options.baseDir = options.loader.baseDir
   if not options.baseDir and process and process.cwd
     options.baseDir = process.cwd()
   unless options.loader
