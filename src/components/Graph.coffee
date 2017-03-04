@@ -22,74 +22,71 @@ class Graph extends noflo.Component
         datatype: 'all'
         description: 'NoFlo graph definition to be used with the subgraph component'
         required: true
-        immediate: true
     @outPorts = new noflo.OutPorts
 
-    @inPorts.on 'graph', 'data', (data) =>
-      @setGraph data
+    @inPorts.graph.on 'ip', (packet) =>
+      return unless packet.type is 'data'
+      @setGraph packet.data, (err) =>
+        # TODO: Port this part to Process API and use output.error method instead
+        return @error err if err
 
-  setGraph: (graph) ->
+  setGraph: (graph, callback) ->
     @ready = false
     if typeof graph is 'object'
       if typeof graph.addNode is 'function'
         # Existing Graph object
-        return @createNetwork graph, (err) =>
-          return @error err if err
+        @createNetwork graph, callback
+        return
 
       # JSON definition of a graph
       noflo.graph.loadJSON graph, (err, instance) =>
-        return @error err if err
+        return callback err if err
         instance.baseDir = @baseDir
-        @createNetwork instance, (err) =>
-          return @error err if err
+        @createNetwork instance, callback
       return
 
     if graph.substr(0, 1) isnt "/" and graph.substr(1, 1) isnt ":" and process and process.cwd
       graph = "#{process.cwd()}/#{graph}"
 
-    graph = noflo.graph.loadFile graph, (err, instance) =>
-      return @error err if err
+    noflo.graph.loadFile graph, (err, instance) =>
+      return callback err if err
       instance.baseDir = @baseDir
-      @createNetwork instance, (err) =>
-        return @error err if err
+      @createNetwork instance, callback
 
-  createNetwork: (graph) ->
+  createNetwork: (graph, callback) ->
     @description = graph.properties.description or ''
     @icon = graph.properties.icon or @icon
-    graph.name = @nodeId unless graph.name
 
+    graph.name = @nodeId unless graph.name
     graph.componentLoader = @loader
 
     noflo.createNetwork graph, (err, @network) =>
-      return @error err if err
+      return callback err if err
       @emit 'network', @network
-      contexts = []
-      @network.on 'start', =>
-        ctx = {}
-        contexts.push ctx
-        @activate ctx
-      @network.on 'end', =>
-        ctx = contexts.pop()
-        return unless ctx
-        @deactivate ctx
+      # Subscribe to network lifecycle
+      @subscribeNetwork @network
+
+      # Wire the network up
       @network.connect (err) =>
-        return @error err if err
-        notReady = false
+        return callback err if err
         for name, node of @network.processes
-          notReady = true unless @checkComponent name, node
-        do @setToReady unless notReady
+          # Map exported ports to local component
+          @findEdgePorts name, node
+        # Finally set ourselves as "ready"
+        do @setToReady
+        do callback
     , true
 
-  checkComponent: (name, process) ->
-    unless process.component.isReady()
-      process.component.once "ready", =>
-        @checkComponent name, process
-        @setToReady()
-      return false
-
-    @findEdgePorts name, process
-
-    true
+  subscribeNetwork: (network) ->
+    contexts = []
+    @network.on 'start', =>
+      ctx = {}
+      contexts.push ctx
+      @activate ctx
+    @network.on 'end', =>
+      ctx = contexts.pop()
+      return unless ctx
+      @deactivate ctx
 
   isExportedInport: (port, nodeName, portName) ->
     # First we check disambiguated exported ports

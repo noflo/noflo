@@ -37,7 +37,9 @@ See also the [list of reusable NoFlo modules on NPM](https://www.npmjs.com/brows
 
 NoFlo is available for Node.js [via NPM](https://npmjs.org/package/noflo), so you can install it with:
 
-    $ npm install noflo --save
+```bash
+$ npm install noflo --save
+```
 
 You can make a browser build of NoFlo using webpack. The [grunt-noflo-browser](https://github.com/noflo/grunt-noflo-browser) plugin makes this easy.
 
@@ -45,13 +47,17 @@ You can make a browser build of NoFlo using webpack. The [grunt-noflo-browser](h
 
 NoFlo requires a reasonably recent version of [Node.js](http://nodejs.org/), and some [npm](http://npmjs.org/) packages. Ensure you have the `grunt-cli` package installed (`grunt` command should be available on command line) and NoFlo checked out from Git. Build NoFlo with:
 
-    $ grunt build
+```bash
+$ grunt build
+```
 
 You can also build NoFlo only for the desired target platform with either *grunt build:nodejs* or *grunt build:browser*.
 
 Then you can install everything needed by a simple:
 
-    $ npm link
+```bash
+$ npm link
+```
 
 NoFlo is available from [GitHub](https://github.com/noflo/noflo) under the MIT license.
 
@@ -69,27 +75,31 @@ NoFlo development happens on GitHub. Just fork the [main repository](https://git
 
 We have an extensive suite of tests available for NoFlo. Run them with:
 
-    $ grunt test
-
-or:
-
-    $ npm test
+```bash
+$ npm test
+```
 
 ### Platform-specific tests
 
 By default, the tests are run for both Node.js and the browser. You can also run only the tests for a particular target platform:
 
-    $ grunt test:nodejs
+```bash
+$ grunt test:nodejs
+```
 
 or:
 
-    $ grunt test:browser
+```bash
+$ grunt test:browser
+```
 
 ### Running tests automatically
 
 The build system used for NoFlo is also able to watch for changes in the filesystem and run the tests automatically when something changes. To start the watcher, run:
 
-    $ grunt watch
+```bash
+$ grunt watch
+```
 
 To quit thew watcher, just end the process with Ctrl-C.
 
