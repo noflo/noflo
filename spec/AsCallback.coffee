@@ -55,7 +55,7 @@ describe 'asCallback interface', ->
         output.send new noflo.IP 'openBracket', idx
         chars = word.split ''
         output.send new noflo.IP 'data', char for char in chars
-        output.send new noflo.IP 'closeBracket'
+        output.send new noflo.IP 'closeBracket', idx
       output.done()
 
   before (done) ->
@@ -147,3 +147,29 @@ describe 'asCallback interface', ->
           ['t','h','e','r','e']
         ]
         done()
+    describe 'with the raw option', ->
+      it 'should execute network with input map and provide output map with IP objects', (done) ->
+        wrappedRaw = noflo.asCallback 'process/Streamify',
+          loader: loader
+          raw: true
+        wrappedRaw
+          in: 'hello world'
+        , (err, out) ->
+          types = out.out.map (ip) -> "#{ip.type} #{ip.data}"
+          chai.expect(types).to.eql [
+            'openBracket 0'
+            'data h'
+            'data e'
+            'data l'
+            'data l'
+            'data o'
+            'closeBracket 0'
+            'openBracket 1'
+            'data w'
+            'data o'
+            'data r'
+            'data l'
+            'data d'
+            'closeBracket 1'
+          ]
+          done()

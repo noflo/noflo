@@ -10,6 +10,7 @@ normalizeOptions = (options, component) ->
     options.baseDir = process.cwd()
   unless options.loader
     options.loader = new ComponentLoader options.baseDir
+  options.raw = false unless options.raw
   options.network = null
   options
 
@@ -87,7 +88,8 @@ prepareInputMap = (inputs, network) ->
   map[inPort] = inputs
   return map
 
-normalizeOutput = (values) ->
+normalizeOutput = (values, options) ->
+  return values if options.raw
   result = []
   previous = null
   current = result
@@ -104,10 +106,10 @@ normalizeOutput = (values) ->
     return result[0]
   return result
 
-sendOutputMap = (outputs, useMap, callback) ->
+sendOutputMap = (outputs, useMap, options, callback) ->
   if outputs.error?.length
     # We've got errors
-    return callback normalizeOutput outputs.error
+    return callback normalizeOutput outputs.error, options
   outputKeys = Object.keys outputs
   withValue = outputKeys.filter (outport) ->
     outputs[outport].length > 0
@@ -116,10 +118,10 @@ sendOutputMap = (outputs, useMap, callback) ->
     return callback null
   if withValue.length is 1 and not useMap
     # Single outport
-    callback null, normalizeOutput outputs[withValue[0]]
+    callback null, normalizeOutput outputs[withValue[0]], options
   result = {}
   for port, packets of outputs
-    result[port] = normalizeOutput packets
+    result[port] = normalizeOutput packets, options
   callback null, result
 
 exports.asCallback = (component, options) ->
@@ -131,4 +133,4 @@ exports.asCallback = (component, options) ->
       inputMap = prepareInputMap inputs, network
       runNetwork network, inputMap, options, (err, outputMap) ->
         return callback err if err
-        sendOutputMap outputMap, useMap, callback
+        sendOutputMap outputMap, useMap, options, callback
