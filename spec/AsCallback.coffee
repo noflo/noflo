@@ -111,9 +111,63 @@ describe 'asCallback interface', ->
       received = 0
       [0..100].forEach (idx) ->
         wrapped idx, (err, out) ->
+          return done err if err
           chai.expect(out).to.equal idx
           received++
           return unless received is 101
+          done()
+    it 'should execute a network with a sequence and provide output sequence', (done) ->
+      sent = [
+        in: 'hello'
+      ,
+        in: 'world'
+      ,
+        in: 'foo'
+      ,
+        in: 'bar'
+      ]
+      expected = sent.map (portmap) ->
+        return res =
+          out: portmap.in
+      wrapped sent, (err, out) ->
+        return done err if err
+        chai.expect(out).to.eql expected
+        done()
+    describe 'with the raw option', ->
+      it 'should execute a network with a sequence and provide output sequence', (done) ->
+        wrappedRaw = noflo.asCallback 'process/Async',
+          loader: loader
+          raw: true
+        sent = [
+          in: new noflo.IP 'openBracket', 'a'
+        ,
+          in: 'hello'
+        ,
+          in: 'world'
+        ,
+          in: new noflo.IP 'closeBracket', 'a'
+        ,
+          in: new noflo.IP 'openBracket', 'b'
+        ,
+          in: 'foo'
+        ,
+          in: 'bar'
+        ,
+          in: new noflo.IP 'closeBracket', 'b'
+        ]
+        wrappedRaw sent, (err, out) ->
+          return done err if err
+          types = out.map (map) -> "#{map.out.type} #{map.out.data}"
+          chai.expect(types).to.eql [
+            'openBracket a'
+            'data hello'
+            'data world'
+            'closeBracket a'
+            'openBracket b'
+            'data foo'
+            'data bar'
+            'closeBracket b'
+          ]
           done()
   describe 'with a component sending an error', ->
     wrapped = null

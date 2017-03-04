@@ -47,15 +47,16 @@ runNetwork = (network, inputs, options, callback) ->
     inSockets[inport] = internalSocket.createSocket()
     process.component.inPorts[inport].attach inSockets[inport]
   # Subscribe outports
-  received = {}
+  received = []
   outPorts = Object.keys network.graph.outports
   outSockets = {}
   outPorts.forEach (outport) ->
-    received[outport] = []
     outSockets[outport] = internalSocket.createSocket()
     process.component.outPorts[outport].attach outSockets[outport]
     outSockets[outport].on 'ip', (ip) ->
-      received[outport].push ip
+      res = {}
+      res[outport] = ip
+      received.push res
   # Subscribe network finish
   network.once 'end', ->
     # Clear listeners
@@ -68,25 +69,43 @@ runNetwork = (network, inputs, options, callback) ->
   network.start (err) ->
     return callback err if err
     # Send inputs
-    for port, value of inputs
-      inSockets[port].post new IP 'data', value
+    for inputMap in inputs
+      for port, value of inputMap
+        if IP.isIP value
+          inSockets[port].post value
+          continue
+        inSockets[port].post new IP 'data', value
 
-isMap = (inputs, network) ->
-  return false unless typeof inputs is 'object'
-  return false unless Object.keys(inputs).length
+getType = (inputs, network) ->
+  # Scalar values are always simple inputs
+  return 'simple' unless typeof inputs is 'object'
+
+  if Array.isArray inputs
+    maps = inputs.filter (entry) ->
+      getType(entry, network) is 'map'
+    # If each member if the array is an input map, this is a sequence
+    return 'sequence' if maps.length is inputs.length
+    # Otherwise arrays must be simple inputs
+    return 'simple'
+
+  # Empty objects can't be maps
+  return 'simple' unless Object.keys(inputs).length
   for key, value of inputs
-    return false unless network.graph.inports[key]
-  true
+    return 'simple' unless network.graph.inports[key]
+  return 'map'
 
-prepareInputMap = (inputs, network) ->
-  return inputs if isMap inputs, network
-  # Not a map, send to first available inport
+prepareInputMap = (inputs, inputType, network) ->
+  # Sequence we can use as-is
+  return inputs if inputType is 'sequence'
+  # We can turn a map to a sequence by wrapping it in an array
+  return [inputs] if inputType is 'map'
+  # Simple inputs need to be converted to a sequence
   inPort = Object.keys(network.graph.inports)[0]
   # If we have a port named "IN", send to that
   inPort = 'in' if network.graph.inports.in
   map = {}
   map[inPort] = inputs
-  return map
+  return [map]
 
 normalizeOutput = (values, options) ->
   return values if options.raw
@@ -106,21 +125,39 @@ normalizeOutput = (values, options) ->
     return result[0]
   return result
 
-sendOutputMap = (outputs, useMap, options, callback) ->
-  if outputs.error?.length
-    # We've got errors
-    return callback normalizeOutput outputs.error, options
-  outputKeys = Object.keys outputs
+sendOutputMap = (outputs, resultType, options, callback) ->
+  # First check if the output sequence contains errors
+  errors = outputs.filter((map) -> map.error?).map (map) -> map.error
+  return callback normalizeOutput errors, options if errors.length
+
+  if resultType is 'sequence'
+    return callback null, outputs.map (map) ->
+      res = {}
+      for key, val of map
+        if options.raw
+          res[key] = val
+          continue
+        res[key] = normalizeOutput [val], options
+      return res
+
+  # Flatten the sequence
+  mappedOutputs = {}
+  for map in outputs
+    for key, val of map
+      mappedOutputs[key] = [] unless mappedOutputs[key]
+      mappedOutputs[key].push val
+
+  outputKeys = Object.keys mappedOutputs
   withValue = outputKeys.filter (outport) ->
-    outputs[outport].length > 0
+    mappedOutputs[outport].length > 0
   if withValue.length is 0
     # No output
     return callback null
-  if withValue.length is 1 and not useMap
+  if withValue.length is 1 and resultType is 'simple'
     # Single outport
-    return callback null, normalizeOutput outputs[withValue[0]], options
+    return callback null, normalizeOutput mappedOutputs[withValue[0]], options
   result = {}
-  for port, packets of outputs
+  for port, packets of mappedOutputs
     result[port] = normalizeOutput packets, options
   callback null, result
 
@@ -129,8 +166,8 @@ exports.asCallback = (component, options) ->
   return (inputs, callback) ->
     prepareNetwork component, options, (err, network) ->
       return callback err if err
-      useMap = isMap inputs, network
-      inputMap = prepareInputMap inputs, network
+      resultType = getType inputs, network
+      inputMap = prepareInputMap inputs, resultType, network
       runNetwork network, inputMap, options, (err, outputMap) ->
         return callback err if err
-        sendOutputMap outputMap, useMap, options, callback
+        sendOutputMap outputMap, resultType, options, callback
