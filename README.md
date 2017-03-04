@@ -101,6 +101,12 @@ The build system used for NoFlo is also able to watch for changes in the filesys
 $ grunt watch
 ```
 
+If you want to only run a particular part of the test suite, you can filter them using the `TESTS` environment variable:
+
+```bash
+$ TESTS="Network Lifecycle" grunt watch
+```
+
 To quit thew watcher, just end the process with Ctrl-C.
 
 ## Discussion
