@@ -4,6 +4,7 @@ NoFlo ChangeLog
 ## 0.8.2 (git master)
 
 * Improved subgraph instantiation error handling
+* Fixed a problem of IIPs not visible to processes when inside an IP scope
 
 ## 0.8.1 (March 2nd 2017)
 
