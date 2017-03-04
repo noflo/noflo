@@ -12,7 +12,7 @@
 #
 # ### Graph interface
 #
-# [Graph](Graph.html) is used for instantiating FBP graph definitions.
+# [fbp-graph](https://github.com/flowbased/fbp-graph) is used for instantiating FBP graph definitions.
 fbpGraph = require 'fbp-graph'
 exports.graph = fbpGraph.graph
 exports.Graph = fbpGraph.Graph
@@ -25,7 +25,7 @@ exports.Journal = fbpGraph.Journal
 
 # ## Network interface
 #
-# [Network](Network.html) is used for running NoFlo graphs.
+# [Network](../Network/) is used for running NoFlo graphs.
 exports.Network = require('./Network').Network
 
 # ### Platform detection
@@ -36,15 +36,10 @@ exports.isBrowser = require('./Platform').isBrowser
 
 # ### Component Loader
 #
-# The [ComponentLoader](ComponentLoader.html) is responsible for finding and loading
-# NoFlo components.
-#
-# Node.js version of the Component Loader finds components and graphs by traversing
-# the NPM dependency tree from a given root directory on the file system.
-#
-# Browser version of the Component Loader finds components and graphs by traversing
-# the [Component](http://component.io/) dependency tree from a given Component package
-# name.
+# The [ComponentLoader](../ComponentLoader/) is responsible for finding and loading
+# NoFlo components. Component Loader uses [fbp-manifest](https://github.com/flowbased/fbp-manifest)
+# to find components and graphs by traversing the NPM dependency tree from a given root
+# directory on the file system.
 exports.ComponentLoader = require('./ComponentLoader').ComponentLoader
 
 # ### Component baseclasses
@@ -168,4 +163,4 @@ exports.loadFile = (file, options, callback) ->
 #
 # NoFlo graph files can be saved back into the filesystem with this method.
 exports.saveFile = (graph, file, callback) ->
-  exports.graph.save file, -> callback file
+  exports.graph.save file, callback
