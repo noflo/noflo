@@ -8,6 +8,7 @@ graph = require "fbp-graph"
 platform = require './Platform'
 componentLoader = require './ComponentLoader'
 utils = require './Utils'
+IP = require './IP'
 
 # ## The NoFlo network coordinator
 #
@@ -542,9 +543,8 @@ class Network extends EventEmitter
     do callback
 
   sendInitial: (initial) ->
-    initial.socket.connect()
-    initial.socket.send initial.data
-    initial.socket.disconnect()
+    initial.socket.post new IP 'data', initial.data,
+      initial: true
 
   sendInitials: (callback) ->
     unless callback

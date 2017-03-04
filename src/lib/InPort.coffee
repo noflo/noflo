@@ -114,6 +114,7 @@ class InPort extends BasePort
     @buffer = []
     @indexedBuffer = {} if @isAddressable()
     @scopedBuffer = {}
+    @iipBuffer = if @isAddressable() then {} else []
 
   prepareBufferForIP: (ip) ->
     if @isAddressable()
@@ -121,11 +122,16 @@ class InPort extends BasePort
         @scopedBuffer[ip.scope] = [] unless ip.scope of @scopedBuffer
         @scopedBuffer[ip.scope][ip.index] = [] unless ip.index of @scopedBuffer[ip.scope]
         return @scopedBuffer[ip.scope][ip.index]
+      if ip.initial
+        @iipBuffer[ip.index] = [] unless ip.index of @iipBuffer
+        return @iipBuffer[ip.index]
       @indexedBuffer[ip.index] = [] unless ip.index of @indexedBuffer
       return @indexedBuffer[ip.index]
     if ip.scope?
       @scopedBuffer[ip.scope] = [] unless ip.scope of @scopedBuffer
       return @scopedBuffer[ip.scope]
+    if ip.initial
+      return @iipBuffer
     return @buffer
 
   validateData: (data) ->
@@ -147,34 +153,53 @@ class InPort extends BasePort
       throw new Error 'Contains query is only possible on buffered ports'
     @buffer.filter((packet) -> return true if packet.event is 'data').length
 
-  getBuffer: (scope, idx) ->
+  getBuffer: (scope, idx, initial = false) ->
     if @isAddressable()
       if scope?
         return undefined unless scope of @scopedBuffer
         return undefined unless idx of @scopedBuffer[scope]
         return @scopedBuffer[scope][idx]
+      if initial
+        return undefined unless idx of @iipBuffer
+        return @iipBuffer[idx]
       return undefined unless idx of @indexedBuffer
       return @indexedBuffer[idx]
     if scope?
       return undefined unless scope of @scopedBuffer
       return @scopedBuffer[scope]
+    if initial
+      return @iipBuffer
     return @buffer
+
+  getFromBuffer: (scope, idx, initial = false) ->
+    buf = @getBuffer scope, idx, initial
+    return undefined unless buf?.length
+    return if @options.control then buf[buf.length - 1] else buf.shift()
 
   # Fetches a packet from the port
   get: (scope, idx) ->
-    buf = @getBuffer scope, idx
-    return undefined unless buf?.length
-    return if @options.control then buf[buf.length - 1] else buf.shift()
+    res = @getFromBuffer scope, idx
+    return res if res isnt undefined
+    # Try to find an IIP instead
+    @getFromBuffer null, idx, true
+
+  hasIPinBuffer: (scope, idx, validate, initial = false) ->
+    buf = @getBuffer scope, idx, initial
+    return false unless buf?.length
+    for packet in buf
+      return true if validate packet
+    false
+
+  hasIIP: (idx, validate) ->
+    @hasIPinBuffer null, idx, validate, true
 
   # Returns true if port contains packet(s) matching the validator
   has: (scope, idx, validate) ->
     unless @isAddressable()
       validate = idx
       idx = null
-    buf = @getBuffer scope, idx
-    return false unless buf?.length
-    for packet in buf
-      return true if validate packet
+    return true if @hasIPinBuffer scope, idx, validate
+    return true if @hasIIP idx, validate
     false
 
   # Returns the number of data packets in an inport
