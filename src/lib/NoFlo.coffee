@@ -164,3 +164,19 @@ exports.loadFile = (file, options, callback) ->
 # NoFlo graph files can be saved back into the filesystem with this method.
 exports.saveFile = (graph, file, callback) ->
   exports.graph.save file, callback
+
+# ## Embedding NoFlo in existing JavaScript code
+#
+# The `asCallback` helper provides an interface to wrap NoFlo components
+# or graphs into existing JavaScript code.
+#
+#     // Produce an asynchronous function wrapping a NoFlo graph
+#     var wrapped = noflo.asCallback('myproject/MyGraph');
+#
+#     // Call the function, providing input data and a callback for output data
+#     wrapped({
+#       in: 'data'
+#     }, function (err, results) {
+#       // Do something with results
+#     });
+exports.asCallback = require('./AsCallback').asCallback
