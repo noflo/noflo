@@ -5,6 +5,7 @@ NoFlo ChangeLog
 
 * Improved subgraph instantiation error handling
 * Fixed a problem of IIPs not visible to processes when inside an IP scope
+* Added [asCallback()](https://github.com/noflo/noflo/pull/538) function to embed NoFlo graphs and components into non-NoFlo applications and tests
 
 ## 0.8.1 (March 2nd 2017)
 
