@@ -71,16 +71,82 @@ More details, including the standard NoFlo Component properties, can be specifie
     super({
       description: 'Does lots of nice things',
       icon: 'science'
-      inPorts: ['foo', 'bar'], // This will be automatically converted to `datatype: all` ports
+      inPorts: ['foo', 'bar'],
       outPorts: ['boo', 'baz'],
       validates: ['subitem.id'], // See Validation section below
     });
   }
 ```
 
+##### Compact port definition syntax
+
+Normal way to define a ports collection in NoFlo is using verbose syntax:
+
+```javascript
+inPorts: {
+  foo: {
+    datatype: 'object',
+    description: 'Something',
+  },
+  bar: {
+    datatype: 'string',
+    description: 'Else',
+  },
+}
+```
+
+However, when prototyping it may be useful to default to `datatype: 'all'` and reduce to just listing the port names:
+
+```javascript
+inPorts: ['foo', 'bar'],
+```
+
+This compact record will be automatically expanded by `Component` constructor.
+
 #### Multi-route components
 
-TODO
+Components with multiple input or output ports should not skip port definition and should provide a complete NoFlo process function taking `input` and `output` as arguments.
+
+```javascript
+class MountEngine extends Component {
+  constructor() {
+    super({
+      description: 'Mounts 3rd party engine on chassis',
+      inPorts: {
+        in: {
+          datatype: 'object',
+          description: 'Assembly',
+        },
+        engine: {
+          datatype: 'string',
+          description: 'Engine name',
+          control: true,
+        },
+      },
+      validates: { chassis: 'obj' },
+    });
+  }
+  handle(input, output) {
+    if (!input.hasData('in', 'engine')) { return null; }
+
+    const msg = input.getData('in');
+    const engine = input.getData('engine');
+
+    // Message validation is explicit if there are multiple inports
+    if (!this.validate(msg)) {
+      return output.sendDone(msg);
+    }
+
+    msg.chassis.engine = engine;
+
+    return output.sendDone(msg);
+  }
+}
+```
+
+This example demonstrates verbose form of port declaration. The `handle` method is a normal NoFlo `process` handler function, the name `handle` is used because `process` is already taken.
+
+For more on input validation and sending errors see below.
 
 ### Validation and errors
 
