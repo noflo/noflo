@@ -23,7 +23,7 @@ The `BuildBody` and `BuildChassis` are actually subgraphs consisting of other co
 
 ## Documentation
 
-For introduction, underlying conventions and best practices please see [project Wiki](https://github.com/noflo/noflo-assembly/wiki).
+For introduction, underlying conventions and best practices please see **[NoFlo Assemblipedia](https://github.com/noflo/noflo-assembly/wiki)**.
 
 Below is a quick start guide and technical reference for the NPM package.
 
