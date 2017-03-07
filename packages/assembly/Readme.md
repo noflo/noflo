@@ -11,7 +11,7 @@ Industrial approach to writing NoFlo applications
   - Follow best practices for concurrency, error handling, etc. to avoid common pitfalls
   - ES6-first
 
-## Demo
+## Example
 
 A rather abstract [example](https://github.com/trustmaster/noflo-assembly/tree/master/example) is embedded into this repository. We use it in [tests](https://github.com/trustmaster/noflo-assembly/tree/master/spec), but it also gives an idea what Assembly Line components and graphs look like.
 
@@ -27,7 +27,7 @@ For introduction, underlying conventions and best practices please see [project 
 
 Below is a quick start guide and technical reference for the NPM package.
 
-### Installation
+## Installation
 
 The package can be installed via NPM:
 
@@ -35,7 +35,7 @@ The package can be installed via NPM:
 npm install --save noflo-assembly
 ```
 
-### Component interface
+## Component interface
 
 To use features provided by the library, your components should derive from `noflo-assembly.Component` rather than `noflo.Component`. All `noflo.Component` features are also inherited.
 
@@ -45,7 +45,7 @@ Importing the `Component` class in ES6 way:
 import Component from 'noflo-assembly';
 ```
 
-#### Simple relay-type components
+### Simple relay-type components
 
 Components having just one input port called `in` and one output port called `out` are called relay-type components and benefit from conveniences such as optional definition of ports and built-in input validation.
 
@@ -62,7 +62,7 @@ class Hello extends Component {
 
 Note that it only applies if the `in` expects a valid assembly message rather than other data type.
 
-#### Component constructor options
+### Component constructor options
 
 More details, including the standard NoFlo Component properties, can be specified by calling the constructor of the parent class:
 
@@ -78,7 +78,7 @@ More details, including the standard NoFlo Component properties, can be specifie
   }
 ```
 
-##### Compact port definition syntax
+#### Compact port definition syntax
 
 Normal way to define a ports collection in NoFlo is using verbose syntax:
 
@@ -103,7 +103,7 @@ inPorts: ['foo', 'bar'],
 
 This compact record will be automatically expanded by `Component` constructor.
 
-#### Multi-route components
+### Multi-route components
 
 Components with multiple input or output ports should not skip port definition and should provide a complete NoFlo process function taking `input` and `output` as arguments.
 
@@ -148,10 +148,10 @@ This example demonstrates verbose form of port declaration. The `handle` method 
 
 For more on input validation and sending errors see below.
 
-### Validation and errors
+## Validation and errors
 
 TODO
 
-### Concurrency helpers
+## Concurrency helpers
 
 TODO
