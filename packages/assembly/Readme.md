@@ -45,6 +45,8 @@ Importing the `Component` class in ES6 way:
 import Component from 'noflo-assembly';
 ```
 
+We highly recommend declaring named classes instead of instantiating `Component` directly (like many NoFlo examples do), because it makes correct class names appear in stack traces when an error occurs.
+
 ### Simple relay-type components
 
 Components having just one input port called `in` and one output port called `out` are called relay-type components and benefit from conveniences such as optional definition of ports and built-in input validation.
