@@ -199,6 +199,8 @@ checkDeprecation = (config, func) ->
     platform.deprecated 'noflo.helpers.WirePattern postpone and resume are deprecated. Please port to Process API'
   unless config.async
     platform.deprecated 'noflo.helpers.WirePattern synchronous is deprecated. Please port to Process API'
+  unless config.error is 'error'
+    platform.deprecated 'noflo.helpers.WirePattern custom error port name is deprecated. Please switch to "error" or port to WirePattern'
   return
 
 # Updates component port definitions to control prots for WirePattern
