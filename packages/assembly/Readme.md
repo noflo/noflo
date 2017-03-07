@@ -13,17 +13,17 @@ Industrial approach to writing NoFlo applications
 
 ## Example
 
-A rather abstract [example](https://github.com/trustmaster/noflo-assembly/tree/master/example) is embedded into this repository. We use it in [tests](https://github.com/trustmaster/noflo-assembly/tree/master/spec), but it also gives an idea what Assembly Line components and graphs look like.
+A rather abstract [example](https://github.com/noflo/noflo-assembly/tree/master/example) is embedded into this repository. We use it in [tests](https://github.com/noflo/noflo-assembly/tree/master/spec), but it also gives an idea what Assembly Line components and graphs look like.
 
 So, this is how you build a car with NoFlo:
 
-![BuildCar.fbp](https://github.com/trustmaster/noflo-assembly/wiki/images/BuildCar.fbp.png)
+![BuildCar.fbp](https://github.com/noflo/noflo-assembly/wiki/images/BuildCar.fbp.png)
 
 The `BuildBody` and `BuildChassis` are actually subgraphs consisting of other components. You can copy and paste `.fbp` code into [NoFlo Visualize](https://noflojs.org/visualize/) to get the picture of those subgraphs.
 
 ## Documentation
 
-For introduction, underlying conventions and best practices please see [project Wiki](https://github.com/trustmaster/noflo-assembly/wiki).
+For introduction, underlying conventions and best practices please see [project Wiki](https://github.com/noflo/noflo-assembly/wiki).
 
 Below is a quick start guide and technical reference for the NPM package.
 
