@@ -2,7 +2,7 @@
 
 Industrial approach to writing NoFlo applications
 
-[![Build Status](https://travis-ci.org/trustmaster/noflo-assembly.svg?branch=master)](https://travis-ci.org/trustmaster/noflo-assembly)
+[![Build Status](https://travis-ci.org/noflo/noflo-assembly.svg?branch=master)](https://travis-ci.org/noflo/noflo-assembly)
 
 ## Goals
 
