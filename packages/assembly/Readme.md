@@ -152,6 +152,8 @@ For more on input validation and sending errors see below.
 
 ## Validation and errors
 
+See also [Error handling](https://github.com/noflo/noflo-assembly/wiki/Error-handling) page in Wiki.
+
 Relay-type components check and validate assembly messages automatically before calling the `relay` method. However, if a component has multiple inputs or needs to check for errors inside the process function, facilities below may come helpful.
 
 ### Throwing errors
