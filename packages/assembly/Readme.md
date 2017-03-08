@@ -177,6 +177,22 @@ fail(msg, [err1, err2, err3]);
 output.sendDone({ out1: msg, out2: msg });
 ```
 
+### Checking failed state
+
+A quick way to check if the message failed earlier and forward it is
+
+```javascript
+import { failed } from 'noflo-assembly';
+
+// ...
+const msg = input.getData('msg');
+const foo = input.getData('foo');
+// Right after process precondition and getting the input
+if (failed(msg)) {
+  return output.sendDone(msg);
+}
+```
+
 ## Concurrency helpers
 
 TODO
