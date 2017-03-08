@@ -275,7 +275,7 @@ setupSendDefaults = (component) ->
       component.inPorts[port].detach tempSocket
 
 populateParams = (config, input) ->
-  return unless config.params.length
+  return {} unless config.params.length
   params = {}
   for paramPort in config.params
     if input.ports[paramPort].isAddressable()
