@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.8.3 (git master)
+
+* Don't mark the network as finished if we still have running components
+
 ## 0.8.2 (March 5th 2017)
 
 * Improved subgraph instantiation error handling

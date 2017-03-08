@@ -696,6 +696,7 @@ class Network extends EventEmitter
     unless @debouncedEnd
       @debouncedEnd = utils.debounce =>
         return if @abortDebounce
+        return if @isRunning()
         @setStarted false
       , 50
     do @debouncedEnd
