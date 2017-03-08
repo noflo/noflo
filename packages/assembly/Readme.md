@@ -152,7 +152,30 @@ For more on input validation and sending errors see below.
 
 ## Validation and errors
 
-TODO
+Relay-type components check and validate assembly messages automatically before calling the `relay` method. However, if a component has multiple inputs or needs to check for errors inside the process function, facilities below may come helpful.
+
+### Throwing errors
+
+Once a component encounters an error, the best thing to do is to include this error in the assembly message and send it to all subscribed outputs right away. The `fail()` helper can be used to include errors in the message:
+
+```javascript
+import { fail } from 'noflo-assembly';
+
+// ...
+// Got an error somewhere in process
+if (err) {
+  return output.sendDone(fail(msg, err));
+}
+```
+
+It is important to stop any further processing at this point and send a failed message to all outputs of the assembly message type. Other ways to use the fail helper:
+
+```javascript
+// fail modifies its first argument and returns it as well for convenience
+// multiple errors can be added via array
+fail(msg, [err1, err2, err3]);
+output.sendDone({ out1: msg, out2: msg });
+```
 
 ## Concurrency helpers
 
