@@ -150,7 +150,7 @@ This example demonstrates verbose form of port declaration. The `handle` method 
 
 For more on input validation and sending errors see below.
 
-## Validation and errors
+## Errors
 
 See also [Error handling](https://github.com/noflo/noflo-assembly/wiki/Error-handling) page in Wiki.
 
@@ -192,6 +192,70 @@ const foo = input.getData('foo');
 // Right after process precondition and getting the input
 if (failed(msg)) {
   return output.sendDone(msg);
+}
+```
+
+## Message validation
+
+Components intending to be reliable and reusable should check their input. With assembly messages, it makes sense to check if fields required by a component are present and match some validation rules.
+
+### Validation rules
+
+Simple validation rules for message fields are set by using `validates` property of the class, e.g.:
+
+```javascript
+constructor() {
+  super({
+    description: 'Does lots of nice things',
+    validates: {
+      id: 'num',
+      'user.name': 'str',
+      'user.age': '>0',
+      text: 'ok',
+    },
+  });
+}
+```
+
+Full list of available validators can be found in [source file](https://github.com/noflo/noflo-assembly/blob/master/index.js#L3).
+
+If you want to just check for presence of some fields, use short array syntax that applies `ok` validator to each of the items:
+
+```javascript
+validates: ['id', 'user.name', 'user.age', 'text'],
+```
+
+### Applying validation
+
+For components with just `in` port, validation rules are applied automatically before calling the `relay()` method.
+
+Other components can invoke validation using `validate()` method:
+
+```javascript
+const msg = input.getData('line');
+
+if (!this.validate(msg)) {
+  return output.sendDone(msg);
+}
+```
+
+The `validate()` method does 3 things:
+
+ - checks if the message already contains errors;
+ - applies validators to the message;
+ - puts errors into message if validation failed.
+
+By default it checks for validation rules in `this.validates` property. You can specify different rules by passing them as second argument:
+
+```javascript
+const msg1 = input.getData('msg1');
+const msg2 = input.getData('msg2');
+
+if (!this.validate(msg1, { id: 'num', 'site.url': 'ok' })) {
+  output.sendDone(msg1);
+}
+if (!this.validate(msg2, { id: 'num', 'user.name': 'str' })) {
+  output.sendDone(msg2);
 }
 ```
 
