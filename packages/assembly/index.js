@@ -62,21 +62,25 @@ function normalizePorts(options, direction) {
   return result;
 }
 
+function normalizeValidators(rules) {
+  if (Array.isArray(rules)) {
+    // Normalize array to hashmap
+    const res = {};
+    rules.forEach((f) => {
+      res[f] = 'ok';
+    });
+    return res;
+  }
+  return rules;
+}
+
 export default class Component extends NoFloComponent {
   constructor(options = {}) {
     let opts = normalizePorts(options, 'in');
     opts = normalizePorts(opts, 'out');
     super(opts);
     if (options.validates) {
-      if (Array.isArray(options.validates)) {
-        // Normalize array to hashmap
-        this.validates = {};
-        options.validates.forEach((f) => {
-          this.validates[f] = 'ok';
-        });
-      } else {
-        this.validates = options.validates;
-      }
+      this.validates = normalizeValidators(options.validates);
     }
     if (typeof this.relay === 'function') {
       this.process((input, output) => {
@@ -94,9 +98,7 @@ export default class Component extends NoFloComponent {
     }
   }
 
-  checkFields(msg) {
-    if ((typeof msg !== 'object') || (typeof this.validates !== 'object')) { return []; }
-    const fields = this.validates;
+  checkFields(msg, rules) {
     const errors = [];
     function checkField(obj, objPath, path, validator) {
       if (!obj || (path.length <= 0)) { return; }
@@ -111,21 +113,22 @@ export default class Component extends NoFloComponent {
       }
     }
 
-    Object.keys(fields).forEach((f) => {
+    Object.keys(rules).forEach((f) => {
       const path = f.indexOf('.') > 0 ? f.split('.') : [f];
-      let v = fields[f];
+      let v = rules[f];
       if (!(v in validators)) { v = 'ok'; }
       checkField(msg, 'msg', path, v);
     });
     return errors;
   }
 
-  validate(msg) {
+  validate(msg, rules = this.validates) {
     if (failed(msg)) {
       return false;
     }
-    if (this.validates) {
-      const errs = this.checkFields(msg);
+    if (rules && typeof rules === 'object') {
+      rules = normalizeValidators(rules);
+      const errs = this.checkFields(msg, rules);
       if (errs.length > 0) {
         fail(msg, errs);
         return false;

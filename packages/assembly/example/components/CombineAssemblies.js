@@ -14,10 +14,10 @@ export class CombineAssemblies extends Component {
     const c = input.getData('c');
 
     // Validate each of message ports
-    if (!this.validate(b)) {
+    if (!this.validate(b, ['body.id'])) {
       return output.sendDone(b);
     }
-    if (!this.validate(c)) {
+    if (!this.validate(c, ['chassis.id'])) {
       return output.sendDone(c);
     }
 
