@@ -261,4 +261,56 @@ if (!this.validate(msg2, { id: 'num', 'user.name': 'str' })) {
 
 ## Concurrency helpers
 
-TODO
+See [Concurrency handling](https://github.com/noflo/noflo-assembly/wiki/Concurrency-handling#parallel-branches) section in the Wiki for theory behind this feature.
+
+### Forking
+
+Use `fork()` before sending the message to parallel branches:
+
+```javascript
+import { fork } from 'noflo-assembly';
+
+// ...
+const m1 = fork(msg);
+const m2 = fork(msg);
+
+output.sendDone({
+  out0: msg,
+  out1: m1,
+  out2: m2,
+});
+```
+
+If some properties of the original message should not be included in the forks, use the `excludeKeys` parameter:
+
+```javascript
+msg.excludeMe = 'This property will not be copied or cloned';
+const m1 = fork(msg, ['excludeMe']);
+```
+
+If some properties of the original message should be cloned rather than copied by reference, use the `cloneKeys` parameter:
+
+```javascript
+msg.cloneMe = {
+  str: 'This object is critical to be cloned, no parallel access please',
+  nested: { alsoCloned: true },
+};
+const m1 = fork(msg, [], ['cloneMe']);
+```
+
+### Merging
+
+One parallel processing of a job is finished, forked messages should be merged back. The `merge()` function is here to help with it:
+
+```javascript
+import { merge } from 'noflo-assembly';
+
+// ...
+const m0 = input.getData('m0');
+const m1 = input.getData('m1');
+const m2 = input.getData('m2');
+let msg = merge(m0, m1);
+msg = merge(msg, m2);
+```
+
+The assembly message in the first parameter has priority over the second parameter, meaning that if the second argument has a property with the same name as the first argument has, it will not overwrite the existing property.
