@@ -72,7 +72,7 @@ More details, including the standard NoFlo Component properties, can be specifie
   constructor() {
     super({
       description: 'Does lots of nice things',
-      icon: 'science'
+      icon: 'science',
       inPorts: ['foo', 'bar'],
       outPorts: ['boo', 'baz'],
       validates: ['subitem.id'], // See Validation section below
