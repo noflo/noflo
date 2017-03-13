@@ -1,7 +1,7 @@
 /* eslint-env node, mocha */
 import 'mocha';
 import { expect } from 'chai';
-import Tester from 'noflo-tester';
+import Wrapper from 'noflo-wrapper';
 import { ComponentLoader } from 'noflo';
 import { resolve } from 'path';
 
@@ -20,7 +20,7 @@ describe('Assembly Graph', function bar() {
 
   describe('A simple pipeline graph', () => {
     before((done) => {
-      c = new Tester('', { loader });
+      c = new Wrapper('', { loader });
       c.component = 'example/BuildChassis';
       c.start((err) => {
         if (err) { done(err); return; }
@@ -56,7 +56,7 @@ describe('Assembly Graph', function bar() {
 
   describe('A graph with branches', () => {
     before((done) => {
-      c = new Tester('', { loader });
+      c = new Wrapper('', { loader });
       c.component = 'example/BuildBody';
       c.start((err) => {
         if (err) { done(err); return; }
@@ -90,7 +90,7 @@ describe('Assembly Graph', function bar() {
 
   describe('A top level graph with subgraphs', () => {
     before((done) => {
-      c = new Tester('', { loader });
+      c = new Wrapper('', { loader });
       c.component = 'example/BuildCar';
       c.start((err) => {
         if (err) { done(err); return; }

@@ -1,7 +1,7 @@
 /* eslint-env node, mocha */
 import 'mocha';
 import { expect } from 'chai';
-import Tester from 'noflo-tester';
+import Wrapper from 'noflo-wrapper';
 import { getComponent as getBuildFrame } from '../example/components/BuildFrame';
 import { getComponent as getMountEngine } from '../example/components/MountEngine';
 
@@ -9,7 +9,7 @@ describe('Assembly Component', () => {
   describe('of simple relay kind', () => {
     let c;
     before((done) => {
-      c = new Tester(getBuildFrame);
+      c = new Wrapper(getBuildFrame);
       c.start((err) => {
         if (err) { done(err); return; }
         done();
@@ -56,7 +56,7 @@ describe('Assembly Component', () => {
   describe('with multiple inports', () => {
     let c;
     before((done) => {
-      c = new Tester(getMountEngine);
+      c = new Wrapper(getMountEngine);
       c.start((err) => {
         if (err) { done(err); return; }
         done();
