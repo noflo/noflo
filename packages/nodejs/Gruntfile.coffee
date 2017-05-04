@@ -1,4 +1,5 @@
 {spawn} = require 'child_process'
+path = require 'path'
 
 module.exports = ->
   runtimeSecret  = process.env.FBP_PROTOCOL_SECRET or 'noflo-nodejs'
@@ -29,7 +30,11 @@ module.exports = ->
     # FBP Network Protocol tests
     exec:
       fbp_test:
-        command: "FBP_PROTOCOL_SECRET=#{runtimeSecret} ./node_modules/.bin/fbp-test --colors"
+        command: "node #{path.resolve(__dirname, 'node_modules/fbp-protocol/bin/fbp-test')} --colors"
+        options:
+          env:
+            FBP_PROTOCOL_SECRET: runtimeSecret
+            PATH: process.env.PATH
 
   @loadNpmTasks 'grunt-coffeelint'
   @loadNpmTasks 'grunt-mocha-test'
