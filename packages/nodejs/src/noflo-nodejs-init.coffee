@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 flowhub = require 'flowhub-registry'
 uuid = require 'uuid'
-lib = require '../index'
+lib = require './settings'
 
 defaults = lib.getDefaults()
 stored = lib.getStored()

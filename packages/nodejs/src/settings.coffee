@@ -3,7 +3,7 @@ path = require 'path'
 os = require 'os'
 
 exports.getLibraryConfig = ->
-  packagePath = path.resolve(__dirname, 'package.json')
+  packagePath = path.resolve(__dirname, '../package.json')
   JSON.parse fs.readFileSync(packagePath, 'utf-8')
 
 # user settings

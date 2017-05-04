@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 clc = require 'cli-color'
 http = require 'http'
-lib = require '../index'
+lib = require './settings'
 noflo = require 'noflo'
 trace = require('noflo-runtime-base').trace
 runtime = require 'noflo-runtime-websocket'
