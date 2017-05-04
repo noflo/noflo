@@ -30,10 +30,11 @@ module.exports = ->
     # FBP Network Protocol tests
     exec:
       fbp_test:
-        command: "node #{path.resolve(__dirname, 'node_modules/.bin/fbp-test')} --colors"
+        command: "node #{path.resolve(__dirname, 'node_modules/fbp-protocol/bin/fbp-test')} --colors"
         options:
           env:
             FBP_PROTOCOL_SECRET: runtimeSecret
+            PATH: process.env.PATH
 
   @loadNpmTasks 'grunt-coffeelint'
   @loadNpmTasks 'grunt-mocha-test'
