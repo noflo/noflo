@@ -2,6 +2,62 @@ fs = require 'fs'
 path = require 'path'
 os = require 'os'
 
+exports.options = ->
+  return options =
+    label:
+      description: 'Human-readable label for the runtime.'
+    id:
+      description: 'Unique identifier (UUID) for the runtime'
+    graph:
+      description: 'Path to a graph file to start'
+    'capture-output':
+      default: false
+      description: 'Catch writes to stdout and send to the FBP protocol client'
+      type: 'boolean'
+    'catch-exceptions':
+      default: true
+      description: 'Catch exceptions and report to the FBP protocol client'
+      type: 'boolean'
+    debug:
+      default: false
+      description: 'Start the runtime in debug mode'
+      type: 'boolean'
+    verbose:
+      default: false
+      description: 'Log in verbose format'
+      type: 'boolean'
+    cache:
+      default: false
+      description: 'Enable component cache'
+      type: 'boolean'
+    batch:
+      default: false
+      description: 'Exit when the graph finished'
+    trace:
+      default: false
+      description: 'Record flowtrace. If batch is enabled, will'
+    ide:
+      description: 'Url where the noflo-ui runs.'
+    host:
+      default: 'autodetect'
+      description: 'Hostname or IP for the runtime. Use "autodetect" or "autodetect(<iface>)" for dynamic detection.'
+    port:
+      default: 3569
+      description: 'Port for the runtime.'
+      type: 'number'
+    secret:
+      description: 'Secret string to be used for the connection.'
+    permissions:
+      default: 'protocol:component,protocol:runtime,protocol:graph,protocol:network,component:getsource,component:setsource'
+      description: 'Permissions'
+    register:
+      default: true
+      description: 'Register the runtime with Flowhub'
+      type: 'boolean'
+    user:
+      description: 'Unique Identifier for the runtime owner.'
+      type: 'string'
+
 exports.getLibraryConfig = ->
   packagePath = path.resolve(__dirname, '../package.json')
   JSON.parse fs.readFileSync(packagePath, 'utf-8')
