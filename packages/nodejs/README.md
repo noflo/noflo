@@ -1,4 +1,4 @@
-NoFlo Node.js runtime environment
+NoFlo Node.js runtime environment [![Build Status](https://travis-ci.org/noflo/noflo-nodejs.svg?branch=master)](https://travis-ci.org/noflo/noflo-nodejs)
 =================================
 
 This tool is designed to be used together with the [Flowhub](http://flowhub.io/) development environment for running [NoFlo](http://noflojs.org/) networks on [Node.js](http://nodejs.org/).
