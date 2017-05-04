@@ -135,6 +135,7 @@ startServer = (program, defaultGraph) ->
     catchExceptions: program.catchExceptions
     permissions: program.permissions
     cache: program.cache
+    id: program.id
 
   tracer = new trace.Tracer {}
 
