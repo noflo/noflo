@@ -471,6 +471,50 @@ describe 'Component', ->
 
       sin1.post new noflo.IP 'data', 'first'
 
+    it 'should be able to send falsy IPs', (done) ->
+      expected = [
+        port: 'out1'
+        data: 1
+      ,
+        port: 'out2'
+        data: 0
+      ]
+      c = new noflo.Component
+        inPorts:
+          foo:
+            datatype: 'string'
+        outPorts:
+          out1:
+            datatype: 'int'
+          out2:
+            datatype: 'int'
+        process: (input, output) ->
+          return unless input.has 'foo'
+          packet = input.get 'foo'
+          output.sendDone
+            out1: 1
+            out2: 0
+
+      c.inPorts.foo.attach sin1
+      c.outPorts.out1.attach sout1, 1
+      c.outPorts.out2.attach sout2, 0
+
+      sout1.on 'ip', (ip) ->
+        exp = expected.shift()
+        received =
+          port: 'out1'
+          data: ip.data
+        chai.expect(received).to.eql exp
+        done() unless expected.length
+      sout2.on 'ip', (ip) ->
+        exp = expected.shift()
+        received =
+          port: 'out2'
+          data: ip.data
+        chai.expect(received).to.eql exp
+        done() unless expected.length
+      sin1.post new noflo.IP 'data', 'first'
+
     it 'should not be triggered by non-triggering ports', (done) ->
       triggered = []
       c = new noflo.Component
