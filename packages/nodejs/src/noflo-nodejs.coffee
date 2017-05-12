@@ -193,7 +193,7 @@ normalizeOptions = (program) ->
 
   return program
 
-main = () ->
+exports.main = main = () ->
   program = normalizeOptions program
 
   flowhubRuntime = getRuntime program
@@ -223,4 +223,4 @@ main = () ->
   else
     startServer program, noflo.graph.createGraph("main"), flowhubRuntime, callback
 
-main()
+main() if not module.parent
