@@ -1,6 +1,6 @@
 {
   "name": "noflo-nodejs",
-  "version": "0.8.1",
+  "version": "0.8.3",
   "description": "Node.js runtime for NoFlo",
   "main": "index.js",
   "scripts": {
