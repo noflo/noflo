@@ -227,6 +227,8 @@ exports.main = main = () ->
       return callback err if err
       startServer program, graph, flowhubRuntime, callback
   else
-    startServer program, noflo.graph.createGraph("main"), flowhubRuntime, callback
+    graph = noflo.graph.createGraph("main")
+    graph.setProperties { environment: { type: 'noflo-nodejs' } }
+    startServer program, graph, flowhubRuntime, callback
 
 main() if not module.parent
