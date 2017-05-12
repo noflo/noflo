@@ -1,7 +1,7 @@
 
 ## noflo-nodejs 0.8.3 (unreleased)
 
-Decpreations
+Deprecations
 
 * `noflo-nodejs --register` is **deprecated**, in favor of `flowhub-registry-register` or accessing the live URL.
 Support will be removed in 0.9.x.
