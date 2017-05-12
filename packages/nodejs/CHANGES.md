@@ -1,5 +1,5 @@
 
-## noflo-nodejs 0.8.3 (unreleased)
+## noflo-nodejs 0.8.3 (12-05-2017)
 
 Deprecations
 
@@ -12,6 +12,7 @@ Breaking changes
 
 Additions
 
+* All options/features are now available on `noflo-nodejs`, so `noflo-nodejs-init` can be skipped
 * Support pinging Flowhub registry using option `--ping true` or envvar `NOFLO_RUNTIME_PING=true`
 * Support specifying runtime id using `NOFLO_RUNTIME_ID` envvar
 * Support passing runtime `id` in live URLs
