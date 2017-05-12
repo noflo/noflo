@@ -133,7 +133,7 @@ startServer = (program, defaultGraph) ->
     baseDir: baseDir
     captureOutput: program.captureOutput
     catchExceptions: program.catchExceptions
-    permissions: stored.permissions
+    permissions: program.permissions
     cache: program.cache
 
   tracer = new trace.Tracer {}
