@@ -8,43 +8,20 @@ runtime = require 'noflo-runtime-websocket'
 flowhub = require 'flowhub-registry'
 querystring = require 'querystring'
 path = require 'path'
+uuid = require 'uuid'
+
+packageInfo = lib.getLibraryConfig()
 
 options = lib.options()
 program = (require 'yargs')
   .options(options)
   .usage('Usage: $0 [options]')
-  .version(lib.getLibraryConfig().version, 'V').alias('V', 'version')
+  .version('version', packageInfo.version).alias('V', 'version')
   .help('h').alias('h', 'help')
   .wrap(null)
   .argv
 
-program.permissions = program.permissions.split ','
-
 require 'coffee-cache' if program.cache
-
-program.id = program.uuid if program.uuid
-delete program.uuid
-
-stored = lib.getStored program
-baseDir = process.env.PROJECT_HOME or process.cwd()
-interval = 10 * 60 * 1000
-flowhubRuntime = null
-if program.register
-  unless stored.id
-    console.error 'No configuration found at ' + lib.getStoredPath() + '. Please run noflo-nodejs-init first if you want the runtime to showup on flowhub. You can also pass a UUID via --uuid'
-    process.exit 1
-  try
-    flowhubRuntime = new flowhub.Runtime
-      label: stored.label
-      id: stored.id
-      user: stored.user
-      secret: stored.secret
-      protocol: 'websocket'
-      address: 'ws://' + stored.host + ':' + stored.port
-      type: 'noflo-nodejs'
-  catch e
-    console.error 'Failed to initialize runtime with configuration:', e.message
-    process.exit 1
 
 addDebug = (network, verbose, logSubgraph) ->
 
@@ -77,16 +54,18 @@ addDebug = (network, verbose, logSubgraph) ->
     return if data.subgraph and not logSubgraph
     console.log "#{identifier(data)} #{clc.yellow('DISC')}"
 
-startServer = (program, defaultGraph) ->
+startServer = (program, defaultGraph, flowhubRuntime, callback) ->
   server = http.createServer ->
 
   rt = runtime server,
     defaultGraph: defaultGraph
-    baseDir: baseDir
+    baseDir: program.baseDir
     captureOutput: program.captureOutput
     catchExceptions: program.catchExceptions
-    permissions: stored.permissions
+    permissions: program.permissions
     cache: program.cache
+    id: program.id
+    namespace: program.namespace
 
   tracer = new trace.Tracer {}
 
@@ -119,38 +98,100 @@ startServer = (program, defaultGraph) ->
         else
           cleanup()
 
-  server.listen stored.port, ->
-    address = 'ws://' + stored.host + ':' + stored.port
-    params = 'protocol=websocket&address=' + address
-    params += '&secret=' + stored.secret if stored.secret
-    console.log 'NoFlo runtime listening at ' + address
-    console.log 'Using ' + baseDir + ' for component loading'
-    console.log 'Live IDE URL: ' + stored.ide + '#runtime/endpoint?' + querystring.escape(params)
-    if flowhubRuntime
+  server.listen program.port, ->
+    if program.register
       # Register the runtime with Flowhub so that it will show up in the UI
       flowhubRuntime.register (err, ok) ->
         if err
           console.log 'Registration with Flowhub failed: ' + err.message
           return
         console.log 'Registered with Flowhub. The Runtime should now be accessible in the UI'
-        # Ping Flowhub periodically to let the user know that the
-        # runtime is still available
-        setInterval ->
-          flowhubRuntime.ping()
-        , interval
-        return
-    return
-  return
 
+    if program.ping
+      # Ping Flowhub periodically to indicate runtime is available
+      pingResponse = (err) ->
+        if err
+          msg = err.response.body?.message or err.response.text or 'no error message'
+          console.log "WARNING: Failed to ping: #{err.status} '#{msg}'"
+      flowhubRuntime.ping pingResponse
+      setInterval ->
+        flowhubRuntime.ping pingResponse
+      , program.pingInterval
 
-if program.graph
-  program.graph = path.resolve process.cwd(), program.graph
-  console.log 'Loading main graph: ' + program.graph
-  noflo.graph.loadFile program.graph, (err, graph) ->
+    return callback null
+
+liveUrl = (options) ->
+  address = 'ws://' + options.host + ':' + options.port
+  params = 'protocol=websocket&address=' + address
+  params += '&id=' + options.id if options.id
+  params += '&secret=' + options.secret if options.secret
+  u = options.ide + '#runtime/endpoint?' + querystring.escape(params)
+  return u
+
+getRuntime = (options) ->
+  rt = new flowhub.Runtime
+    label: options.label
+    id: options.id
+    user: options.user
+    secret: options.secret
+    protocol: 'websocket'
+    address: 'ws://' + options.host + ':' + options.port
+    type: 'noflo-nodejs'
+  return rt
+
+normalizeOptions = (program) ->
+  program.permissions = program.permissions.split ','
+  program.id = program.uuid if program.uuid
+  delete program.uuid
+  program = lib.getStored program
+
+  program.id = process.env.NOFLO_RUNTIME_ID if not program.id
+  program.ping = (process.env.NOFLO_RUNTIME_PING == 'true') if not program.ping?
+
+  program.id = uuid.v4() if not program.id
+  program.baseDir = process.env.PROJECT_HOME or process.cwd()
+  program.pingInterval = 10 * 60 * 1000
+  program.graph = path.resolve process.cwd(), program.graph if program.graph
+
+  l = new noflo.ComponentLoader program.baseDir
+  program.namespace = l.getModulePrefix packageInfo.name
+
+  return program
+
+exports.main = main = () ->
+  program = normalizeOptions program
+
+  flowhubRuntime = getRuntime program
+
+  callback = (err) ->
     if err
       console.error err
       process.exit 1
-    startServer program, graph
-else
-  startServer program, noflo.graph.createGraph "main"
 
+    console.log "NoFlo runtime listening at ws://#{program.host}:#{program.port}"
+    if program.secret
+      console.log 'Live IDE URL: ', liveUrl program
+
+  if program.register
+    deprecationWarning = """DEPRECATED: Option --register is deprecated:\
+      Register the runtime by accessing live URL, or use CLI tool flowhub-registry-register"""
+    console.error deprecationWarning
+    program.ping = true
+    return callback new Error "Cannot register without a user" if not program.user
+    return callback new Error "Cannot register without a secret" if not program.secret
+
+  if not program.secret
+    console.log "WARNING: Runtime secret not specified, will not be able to connect to runtime"
+
+  console.log 'Using ' + program.baseDir + ' for component loading'
+  if program.graph
+    console.log 'Loading main graph: ' + program.graph
+    noflo.graph.loadFile program.graph, (err, graph) ->
+      return callback err if err
+      startServer program, graph, flowhubRuntime, callback
+  else
+    graph = noflo.graph.createGraph("main")
+    graph.setProperties { environment: { type: 'noflo-nodejs' } }
+    startServer program, graph, flowhubRuntime, callback
+
+main() if not module.parent

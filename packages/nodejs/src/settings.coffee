@@ -51,12 +51,16 @@ exports.options = ->
       default: 'protocol:component,protocol:runtime,protocol:graph,protocol:network,component:getsource,component:setsource'
       description: 'Permissions'
     register:
-      default: true
+      default: false
       description: 'Register the runtime with Flowhub'
       type: 'boolean'
     user:
       description: 'Unique Identifier for the runtime owner.'
       type: 'string'
+    ping:
+      type: 'boolean'
+      default: null
+      describe: 'Ping Flowhub registry periodically to signal aliveness'
 
 exports.getLibraryConfig = ->
   packagePath = path.resolve(__dirname, '../package.json')
@@ -110,9 +114,8 @@ exports.getStored = (program) ->
     stored = JSON.parse fs.readFileSync(storedPath)
   # Let commandline args override
   if program
-    options = ['host', 'port', 'secret', 'ide']
-    for name in options when program[name]
-      stored[name] = program[name]
+    for key, value of program
+      stored[key] = value if value?
     # Permissions are added and not replaced
     if program.secret
       stored.permissions ?= {}
