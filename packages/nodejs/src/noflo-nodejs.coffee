@@ -178,8 +178,7 @@ getRuntime = (options) ->
     type: 'noflo-nodejs'
   return rt
 
-main = () ->
-  # normalize options
+normalizeOptions = (program) ->
   program.permissions = program.permissions.split ','
   program.id = program.uuid if program.uuid
   delete program.uuid
@@ -189,6 +188,11 @@ main = () ->
   program.baseDir = process.env.PROJECT_HOME or process.cwd()
   program.pingInterval = 10 * 60 * 1000
   program.graph = path.resolve process.cwd(), program.graph if program.graph
+
+  return program
+
+main = () ->
+  program = normalizeOptions program
 
   flowhubRuntime = getRuntime program
 
