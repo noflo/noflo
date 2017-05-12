@@ -8,6 +8,7 @@ Support will be removed in 0.9.x.
 
 Additions
 
+* Support pinging Flowhub registry using option `--ping true` or envvar `NOFLO_RUNTIME_PING=true`
 * Support specifying runtime id using `NOFLO_RUNTIME_ID` envvar
 * Support passing runtime `id` in live URLs
 * Now gives a warning when no `secret` is passed, since will not be able to connect over WebSocket (no permissions)
