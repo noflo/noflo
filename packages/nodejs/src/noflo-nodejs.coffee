@@ -200,6 +200,9 @@ main = () ->
     return callback new Error "Cannot register without a user" if not program.user
     return callback new Error "Cannot register without a secret" if not program.secret
 
+  if not program.secret
+    console.log "WARNING: Runtime secret not specified, will not be able to connect to runtime"
+
   if program.graph
     program.graph = path.resolve process.cwd(), program.graph
     console.log 'Loading main graph: ' + program.graph
