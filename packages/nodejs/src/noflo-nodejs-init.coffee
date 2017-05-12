@@ -1,36 +1,23 @@
 #!/usr/bin/env node
 flowhub = require 'flowhub-registry'
 uuid = require 'uuid'
-lib = require '../index'
+lib = require './settings'
 
 defaults = lib.getDefaults()
 stored = lib.getStored()
 
+options = lib.options()
+for key, val of options
+  continue if key is 'permissions'
+  if stored[key]
+    val.default = stored[key]
+    continue
+  if defaults[key]
+    val.default = defaults[key]
+    continue
+
 program = (require 'yargs')
-  .options(
-    user:
-      default: stored.user or defaults.user
-      describe: 'Unique Identifier for the runtime owner.'
-    host:
-      default: stored.host or defaults.host
-      describe: 'Hostname or IP for the runtime. Use "autodetect" or "autodetect(<iface>)" for dynamic detection.'
-    port:
-      default: stored.port or defaults.port
-      describe: 'Port for the runtime.'
-      type: 'number'
-    label:
-      default: stored.label
-      describe: 'Human-readable label for the runtime.'
-    secret:
-      default: stored.secret
-      describe: 'Secret string to be used for the connection.'
-    id:
-      default: stored.id
-      describe: 'Unique Identifier for the runtime instance.'
-    permissions:
-      default: 'protocol:component,protocol:runtime,protocol:graph,protocol:network,component:getsource,component:setsource'
-      describe: 'Permissions'
-  )
+  .options(options)
   .usage('Usage: $0 [options]')
   .version(lib.getLibraryConfig().version, 'V').alias('V', 'version')
   .help('h').alias('h', 'help')

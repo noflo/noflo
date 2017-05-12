@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 clc = require 'cli-color'
 http = require 'http'
-lib = require '../index'
+lib = require './settings'
 noflo = require 'noflo'
 trace = require('noflo-runtime-base').trace
 runtime = require 'noflo-runtime-websocket'
@@ -9,57 +9,9 @@ flowhub = require 'flowhub-registry'
 querystring = require 'querystring'
 path = require 'path'
 
+options = lib.options()
 program = (require 'yargs')
-  .options(
-    graph:
-      description: 'Path to a graph file to start'
-    'capture-output':
-      default: false
-      description: 'Catch writes to stdout and send to the FBP protocol client'
-      type: 'boolean'
-    'catch-exceptions':
-      default: true
-      description: 'Catch exceptions and report to the FBP protocol client'
-      type: 'boolean'
-    debug:
-      default: false
-      description: 'Start the runtime in debug mode'
-      type: 'boolean'
-    verbose:
-      default: false
-      description: 'Log in verbose format'
-      type: 'boolean'
-    cache:
-      default: false
-      description: 'Enable component cache'
-      type: 'boolean'
-    batch:
-      default: false
-      description: 'Exit when the graph finished'
-    trace:
-      default: false
-      description: 'Record flowtrace. If batch is enabled, will'
-    ide:
-      description: 'Url where the noflo-ui runs.'
-    uuid:
-      description: 'Runtime UUID'
-    host:
-      default: 'autodetect'
-      describe: 'Hostname or IP for the runtime. Use "autodetect" or "autodetect(<iface>)" for dynamic detection.'
-    port:
-      default: 3569
-      describe: 'Port for the runtime.'
-      type: 'number'
-    secret:
-      describe: 'Secret string to be used for the connection.'
-    permissions:
-      default: 'protocol:component,protocol:runtime,protocol:graph,protocol:network,component:getsource,component:setsource'
-      describe: 'Permissions'
-    register:
-      default: true
-      description: 'Register the runtime with Flowhub'
-      type: 'boolean'
-  )
+  .options(options)
   .usage('Usage: $0 [options]')
   .version(lib.getLibraryConfig().version, 'V').alias('V', 'version')
   .help('h').alias('h', 'help')
