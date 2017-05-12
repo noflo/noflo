@@ -100,7 +100,7 @@ addDebug = (network, verbose, logSubgraph) ->
     return if data.subgraph and not logSubgraph
     console.log "#{identifier(data)} #{clc.yellow('DISC')}"
 
-startServer = (program, defaultGraph, flowhubRuntime) ->
+startServer = (program, defaultGraph, flowhubRuntime, callback) ->
   server = http.createServer ->
 
   rt = runtime server,
@@ -144,12 +144,6 @@ startServer = (program, defaultGraph, flowhubRuntime) ->
           cleanup()
 
   server.listen program.port, ->
-    address = 'ws://' + program.host + ':' + program.port
-    params = 'protocol=websocket&address=' + address
-    params += '&secret=' + program.secret if program.secret
-    console.log 'NoFlo runtime listening at ' + address
-    console.log 'Using ' + program.baseDir + ' for component loading'
-    console.log 'Live IDE URL: ' + program.ide + '#runtime/endpoint?' + querystring.escape(params)
     if program.register
       # Register the runtime with Flowhub so that it will show up in the UI
       flowhubRuntime.register (err, ok) ->
@@ -162,10 +156,16 @@ startServer = (program, defaultGraph, flowhubRuntime) ->
         setInterval ->
           flowhubRuntime.ping()
         , program.pingInterval
-        return
-    return
-  return
 
+    return callback null
+
+liveUrl = (options) ->
+  address = 'ws://' + options.host + ':' + options.port
+  params = 'protocol=websocket&address=' + address
+  params += '&id=' + options.id if options.id
+  params += '&secret=' + options.secret if options.secret
+  u = options.ide + '#runtime/endpoint?' + querystring.escape(params)
+  return u
 
 getRuntime = (options) ->
   rt = new flowhub.Runtime
@@ -188,6 +188,7 @@ main = () ->
   program.id = uuid.v4() if not program.id
   program.baseDir = process.env.PROJECT_HOME or process.cwd()
   program.pingInterval = 10 * 60 * 1000
+  program.graph = path.resolve process.cwd(), program.graph if program.graph
 
   flowhubRuntime = getRuntime program
 
@@ -196,6 +197,10 @@ main = () ->
       console.error err
       process.exit 1
 
+    console.log "NoFlo runtime listening at ws://#{program.host}:#{program.port}"
+    if program.secret
+      console.log 'Live IDE URL: ', liveUrl program
+
   if program.register
     return callback new Error "Cannot register without a user" if not program.user
     return callback new Error "Cannot register without a secret" if not program.secret
@@ -203,13 +208,13 @@ main = () ->
   if not program.secret
     console.log "WARNING: Runtime secret not specified, will not be able to connect to runtime"
 
+  console.log 'Using ' + program.baseDir + ' for component loading'
   if program.graph
-    program.graph = path.resolve process.cwd(), program.graph
     console.log 'Loading main graph: ' + program.graph
     noflo.graph.loadFile program.graph, (err, graph) ->
       return callback err if err
-      startServer program, graph, flowhubRuntime
+      startServer program, graph, flowhubRuntime, callback
   else
-    startServer program, noflo.graph.createGraph("main"), flowhubRuntime
+    startServer program, noflo.graph.createGraph("main"), flowhubRuntime, callback
 
 main()
