@@ -187,6 +187,8 @@ normalizeOptions = (program) ->
   delete program.uuid
   program = lib.getStored program
 
+  program.id = process.env.NOFLO_RUNTIME_ID if not program.id
+
   program.id = uuid.v4() if not program.id
   program.baseDir = process.env.PROJECT_HOME or process.cwd()
   program.pingInterval = 10 * 60 * 1000
