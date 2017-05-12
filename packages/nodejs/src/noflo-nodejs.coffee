@@ -225,6 +225,9 @@ exports.main = main = () ->
       console.log 'Live IDE URL: ', liveUrl program
 
   if program.register
+    deprecationWarning = """DEPRECATED: Option --register is deprecated:\
+      Register the runtime by accessing live URL, or use CLI tool flowhub-registry-register"""
+    console.error deprecationWarning
     program.ping = true
     return callback new Error "Cannot register without a user" if not program.user
     return callback new Error "Cannot register without a secret" if not program.secret
