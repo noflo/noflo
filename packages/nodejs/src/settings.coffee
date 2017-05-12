@@ -51,7 +51,7 @@ exports.options = ->
       default: 'protocol:component,protocol:runtime,protocol:graph,protocol:network,component:getsource,component:setsource'
       description: 'Permissions'
     register:
-      default: true
+      default: false
       description: 'Register the runtime with Flowhub'
       type: 'boolean'
     user:

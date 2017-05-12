@@ -6,6 +6,10 @@ Deprecations
 * `noflo-nodejs --register` is **deprecated**, in favor of `flowhub-registry-register` or accessing the live URL.
 Support will be removed in 0.9.x.
 
+Breaking changes
+
+* Registration with Flowhub is no longer done by default. Must be enabled using `--register true`
+
 Additions
 
 * Support pinging Flowhub registry using option `--ping true` or envvar `NOFLO_RUNTIME_PING=true`
