@@ -113,6 +113,7 @@ startServer = (program, defaultGraph, flowhubRuntime, callback) ->
     permissions: program.permissions
     cache: program.cache
     id: program.id
+    namespace: program.namespace
 
   tracer = new trace.Tracer {}
 
@@ -190,6 +191,9 @@ normalizeOptions = (program) ->
   program.baseDir = process.env.PROJECT_HOME or process.cwd()
   program.pingInterval = 10 * 60 * 1000
   program.graph = path.resolve process.cwd(), program.graph if program.graph
+
+  l = new noflo.ComponentLoader program.baseDir
+  program.namespace = l.getModulePrefix packageInfo.name
 
   return program
 
