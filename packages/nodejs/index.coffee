@@ -54,9 +54,8 @@ exports.getStored = (program) ->
     stored = JSON.parse fs.readFileSync(storedPath)
   # Let commandline args override
   if program
-    options = ['host', 'port', 'secret', 'ide']
-    for name in options when program[name]
-      stored[name] = program[name]
+    for key, value of program
+      stored[key] = value if value?
     # Permissions are added and not replaced
     if program.secret
       stored.permissions ?= {}
