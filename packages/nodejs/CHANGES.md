@@ -1,4 +1,31 @@
 
+## noflo-nodejs 0.8.3 (unreleased)
+
+Decpreations
+
+* `noflo-nodejs --register` is **deprecated**, in favor of `flowhub-registry-register` or accessing the live URL.
+Support will be removed in 0.9.x.
+
+Additions
+
+* Support specifying runtime id using `NOFLO_RUNTIME_ID` envvar
+* Support passing runtime `id` in live URLs
+* Now gives a warning when no `secret` is passed, since will not be able to connect over WebSocket (no permissions)
+* Supports Flowhub "Edit as Project" feature, by passing component namespace via FBP protocol
+
+Bugfixes:
+
+* Fixed --version being called --0.8.x
+* Fixed --permissions not having effect on commandline
+
+## noflo-nodejs 0.8.1 (2017-03-01)
+
+* Updated to **NoFlo 0.8.x**
+
+## noflo-nodejs 0.7.0 (2016-03-31)
+
+* Updated to **NoFlo 0.7.x**
+
 ## noflo-nodejs 0.6.1
 
 * Support for [Flowtrace](https://github.com/flowbased/flowtrace) when using `--trace` option.
