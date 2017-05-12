@@ -10,6 +10,8 @@ querystring = require 'querystring'
 path = require 'path'
 uuid = require 'uuid'
 
+packageInfo = lib.getLibraryConfig()
+
 program = (require 'yargs')
   .options(
     graph:
@@ -62,7 +64,7 @@ program = (require 'yargs')
       type: 'boolean'
   )
   .usage('Usage: $0 [options]')
-  .version(lib.getLibraryConfig().version, 'V').alias('V', 'version')
+  .version('version', packageInfo.version).alias('V', 'version')
   .help('h').alias('h', 'help')
   .wrap(null)
   .argv
