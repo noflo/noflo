@@ -55,6 +55,10 @@ program = (require 'yargs')
       type: 'number'
     secret:
       describe: 'Secret string to be used for the connection.'
+    ping:
+      type: 'boolean'
+      default: null
+      describe: 'Ping Flowhub registry periodically to signal aliveness'
     permissions:
       default: 'protocol:component,protocol:runtime,protocol:graph,protocol:network,component:getsource,component:setsource'
       describe: 'Permissions'
@@ -154,11 +158,17 @@ startServer = (program, defaultGraph, flowhubRuntime, callback) ->
           console.log 'Registration with Flowhub failed: ' + err.message
           return
         console.log 'Registered with Flowhub. The Runtime should now be accessible in the UI'
-        # Ping Flowhub periodically to let the user know that the
-        # runtime is still available
-        setInterval ->
-          flowhubRuntime.ping()
-        , program.pingInterval
+
+    if program.ping
+      # Ping Flowhub periodically to indicate runtime is available
+      pingResponse = (err) ->
+        if err
+          msg = err.response.body?.message or err.response.text or 'no error message'
+          console.log "WARNING: Failed to ping: #{err.status} '#{msg}'"
+      flowhubRuntime.ping pingResponse
+      setInterval ->
+        flowhubRuntime.ping pingResponse
+      , program.pingInterval
 
     return callback null
 
@@ -188,6 +198,7 @@ normalizeOptions = (program) ->
   program = lib.getStored program
 
   program.id = process.env.NOFLO_RUNTIME_ID if not program.id
+  program.ping = (process.env.NOFLO_RUNTIME_PING == 'true') if not program.ping?
 
   program.id = uuid.v4() if not program.id
   program.baseDir = process.env.PROJECT_HOME or process.cwd()
@@ -214,6 +225,7 @@ exports.main = main = () ->
       console.log 'Live IDE URL: ', liveUrl program
 
   if program.register
+    program.ping = true
     return callback new Error "Cannot register without a user" if not program.user
     return callback new Error "Cannot register without a secret" if not program.secret
 
