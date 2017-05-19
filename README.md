@@ -13,9 +13,9 @@ It also fits well in Alan Kay's [original idea of object-oriented programming](h
 
 > I thought of objects being like biological cells and/or individual computers on a network, only able to communicate with messages (so messaging came at the very beginning -- it took a while to see how to do messaging in a programming language efficiently enough to be useful).
 
-NoFlo has been written in [CoffeeScript](http://jashkenas.github.com/coffee-script) for simplicity. The system is heavily inspired by [J. Paul Morrison's](http://www.jpaulmorrison.com/) book [Flow-Based Programming](http://www.jpaulmorrison.com/fbp/#More). 
+NoFlo components can be written in any language that transpiles down to JavaScript, including ES6. The system is heavily inspired by [J. Paul Morrison's](http://www.jpaulmorrison.com/) book [Flow-Based Programming](http://www.jpaulmorrison.com/fbp/#More).
 
-Read more at <http://noflojs.org/>.
+Read more at <https://noflojs.org/>.
 
 ## Suitability
 
