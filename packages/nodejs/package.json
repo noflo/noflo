@@ -29,7 +29,7 @@
     "yargs": "~8.0.1"
   },
   "devDependencies": {
-    "chai": "^3.4.1",
+    "chai": "^4.0.0",
     "coffeelint": "^1.13.0",
     "fbp-protocol": "^0.8.0",
     "grunt": "^1.0.1",
