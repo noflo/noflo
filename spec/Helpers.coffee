@@ -1937,7 +1937,7 @@ describe 'Component traits', ->
             return actual.push ip.data
           if ip.type is 'data'
             data = ip.data
-            chai.expect(data).to.be.an.error
+            chai.expect(data).to.be.an 'error'
             chai.expect(data.kind).to.equal 'form_error'
             errCount++
           if ip.type is 'closeBracket'

@@ -1600,7 +1600,7 @@ describe 'Component', ->
             chai.expect(ip.data).to.equal 'delay'
           when 2
             chai.expect(ip.type).to.equal 'data'
-            chai.expect(ip.data).to.be.an.error
+            chai.expect(ip.data).to.be.an 'error'
           when 3
             chai.expect(ip.type).to.equal 'closeBracket'
             chai.expect(ip.data).to.equal 'delay'
@@ -1937,7 +1937,7 @@ describe 'Component', ->
           done new Error 'Unexpected baz'
         sout2.once 'ip', (ip) ->
           chai.expect(ip).to.be.an 'object'
-          chai.expect(ip.data).to.be.an.error
+          chai.expect(ip.data).to.be.an 'error'
           chai.expect(ip.data.message).to.contain 'Bar'
           done()
 

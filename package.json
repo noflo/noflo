@@ -21,7 +21,7 @@
     "fbp-manifest": "~0.1.13"
   },
   "devDependencies": {
-    "chai": "^3.5.0",
+    "chai": "^4.0.0",
     "coffee-loader": "^0.7.2",
     "fbp-loader": "^0.1.1",
     "grunt": "^1.0.1",
