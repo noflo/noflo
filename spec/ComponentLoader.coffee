@@ -44,7 +44,7 @@ describe 'ComponentLoader with no external packages installed', ->
   it 'should not initially be processing', ->
     chai.expect(l.processing).to.be.false
   it 'should not have any packages in the checked list', ->
-    chai.expect(l.checked).to.be.empty
+    chai.expect(l.checked).to.not.exist
 
   describe 'normalizing names', ->
     it 'should return simple module names as-is', ->
