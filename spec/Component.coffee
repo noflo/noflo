@@ -2105,6 +2105,58 @@ describe 'Component', ->
         sin1.post new noflo.IP 'data', 'moose'
         sin1.post new noflo.IP 'closeBracket', 'foo'
         sin1.post new noflo.IP 'closeBracket'
+      it 'should trigger only when a full stream has been received even when forwarding', (done) ->
+        c = new noflo.Component
+          inPorts:
+            in:
+              datatype: 'string'
+          outPorts:
+            out:
+              datatype: 'int'
+            stream:
+              datatype: 'boolean'
+          forwardBrackets:
+            in: ['out']
+          process: (input, output) ->
+            hasStream = input.hasStream 'in'
+            return if input.ip.type isnt 'data' and not hasStream
+            output.send
+              stream: hasStream
+            return output.done() unless hasStream
+            data = input.getStream 'in'
+            output.sendDone
+              out: data.length
+
+        expected = [
+          ['stream', 'data', false] # First data
+          ['stream', 'data', false] # Second data
+          ['stream', 'data', false] # Third data
+          ['stream', 'data', true] # last closeBracket giving us a stream
+          ['out', 'openBracket', 'foo']
+          ['out', 'data', 3]
+          ['out', 'closeBracket', 'foo']
+        ]
+        received = []
+        sout1.on 'ip', (ip) ->
+          received.push ['stream', ip.type, ip.data]
+          return unless received.length is expected.length
+          chai.expect(received).to.eql expected
+          done()
+        sout2.on 'ip', (ip) ->
+          received.push ['out', ip.type, ip.data]
+          return unless received.length is expected.length
+          chai.expect(received).to.eql expected
+          done()
+        c.inPorts.in.attach sin1
+        c.outPorts.stream.attach sout1
+        c.outPorts.out.attach sout2
+        sin1.post new noflo.IP 'openBracket', 'foo'
+        sin1.post new noflo.IP 'data', 'moose'
+        sin1.post new noflo.IP 'openBracket', 'bar'
+        sin1.post new noflo.IP 'data', 'is'
+        sin1.post new noflo.IP 'closeBracket', 'bar'
+        sin1.post new noflo.IP 'data', 'big'
+        sin1.post new noflo.IP 'closeBracket', 'foo'
 
     describe 'with a simple ordered stream', ->
       it 'should send packets with brackets in expected order when synchronous', (done) ->
