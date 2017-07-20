@@ -652,7 +652,9 @@ class Network extends EventEmitter
 
     @abortDebounce = true if @debouncedEnd
 
-    return callback null unless @started
+    unless @started
+      @stopped = true
+      return callback null
 
     # Disconnect all connections
     for connection in @connections
