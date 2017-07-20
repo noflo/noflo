@@ -143,6 +143,55 @@ describe 'Network Lifecycle', ->
       loader.registerComponent 'legacy', 'Sync', legacyBasic
       done()
 
+  describe 'with single Process API component', ->
+    c = null
+    out = null
+    before (done) ->
+      fbpData = "
+      OUTPORT=Pc.OUT:OUT
+      'hello' -> IN Pc(process/Async)
+      "
+      noflo.graph.loadFBP fbpData, (err, g) ->
+        return done err if err
+        loader.registerComponent 'scope', 'Connected', g
+        loader.load 'scope/Connected', (err, instance) ->
+          return done err if err
+          c = instance
+          done()
+    beforeEach ->
+      out = noflo.internalSocket.createSocket()
+      c.outPorts.out.attach out
+    afterEach (done) ->
+      c.outPorts.out.detach out
+      out = null
+      c.shutdown done
+    it 'should execute and finish', (done) ->
+      expected = [
+        'DATA helloPc'
+      ]
+      received = []
+      out.on 'ip', (ip) ->
+        switch ip.type
+          when 'openBracket'
+            received.push "< #{ip.data}"
+          when 'data'
+            received.push "DATA #{ip.data}"
+          when 'closeBracket'
+            received.push '>'
+      wasStarted = false
+      checkStart = ->
+        chai.expect(wasStarted).to.equal false
+        wasStarted = true
+      checkEnd = ->
+        chai.expect(received).to.eql expected
+        chai.expect(wasStarted).to.equal true
+        done()
+      c.network.once 'start', checkStart
+      c.network.once 'end', checkEnd
+
+      c.start (err) ->
+        return done err if err
+
   describe 'with WirePattern sending to Process API', ->
     c = null
     ins = null
