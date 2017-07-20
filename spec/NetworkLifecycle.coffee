@@ -211,7 +211,9 @@ describe 'Network Lifecycle', ->
         wasStarted = true
       checkEnd = ->
         chai.expect(wasStarted).to.equal true
-        if received.length <= expected.length
+        if received.length < expected.length
+          wasStarted = false
+          c.network.once 'start', checkStart
           c.network.once 'end', checkEnd
           g.addInitial 'world', 'Pc', 'in'
           return
