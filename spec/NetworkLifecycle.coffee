@@ -191,6 +191,36 @@ describe 'Network Lifecycle', ->
       c.network.once 'end', checkEnd
       c.start (err) ->
         return done err if err
+    it 'should execute twice if IIP changes', (done) ->
+      expected = [
+        'DATA helloPc'
+        'DATA worldPc'
+      ]
+      received = []
+      out.on 'ip', (ip) ->
+        switch ip.type
+          when 'openBracket'
+            received.push "< #{ip.data}"
+          when 'data'
+            received.push "DATA #{ip.data}"
+          when 'closeBracket'
+            received.push '>'
+      wasStarted = false
+      checkStart = ->
+        chai.expect(wasStarted).to.equal false
+        wasStarted = true
+      checkEnd = ->
+        chai.expect(wasStarted).to.equal true
+        if received.length <= expected.length
+          c.network.once 'end', checkEnd
+          g.addInitial 'world', 'Pc', 'in'
+          return
+        chai.expect(received).to.eql expected
+        done()
+      c.network.once 'start', checkStart
+      c.network.once 'end', checkEnd
+      c.start (err) ->
+        return done err if err
 
   describe 'with WirePattern sending to Process API', ->
     c = null
