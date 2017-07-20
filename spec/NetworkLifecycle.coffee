@@ -143,24 +143,25 @@ describe 'Network Lifecycle', ->
       loader.registerComponent 'legacy', 'Sync', legacyBasic
       done()
 
-  describe 'with single Process API component', ->
+  describe 'with single Process API component receiving IIP', ->
     c = null
+    g = null
     out = null
-    before (done) ->
+    beforeEach (done) ->
       fbpData = "
       OUTPORT=Pc.OUT:OUT
       'hello' -> IN Pc(process/Async)
       "
-      noflo.graph.loadFBP fbpData, (err, g) ->
+      noflo.graph.loadFBP fbpData, (err, graph) ->
         return done err if err
-        loader.registerComponent 'scope', 'Connected', g
+        g = graph
+        loader.registerComponent 'scope', 'Connected', graph
         loader.load 'scope/Connected', (err, instance) ->
           return done err if err
           c = instance
+          out = noflo.internalSocket.createSocket()
+          c.outPorts.out.attach out
           done()
-    beforeEach ->
-      out = noflo.internalSocket.createSocket()
-      c.outPorts.out.attach out
     afterEach (done) ->
       c.outPorts.out.detach out
       out = null
@@ -188,7 +189,6 @@ describe 'Network Lifecycle', ->
         done()
       c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
-
       c.start (err) ->
         return done err if err
 
