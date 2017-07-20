@@ -223,6 +223,41 @@ describe 'Network Lifecycle', ->
       c.network.once 'end', checkEnd
       c.start (err) ->
         return done err if err
+    it 'should not send new IIP if network was stopped', (done) ->
+      expected = [
+        'DATA helloPc'
+      ]
+      received = []
+      out.on 'ip', (ip) ->
+        switch ip.type
+          when 'openBracket'
+            received.push "< #{ip.data}"
+          when 'data'
+            received.push "DATA #{ip.data}"
+          when 'closeBracket'
+            received.push '>'
+      wasStarted = false
+      checkStart = ->
+        chai.expect(wasStarted).to.equal false
+        wasStarted = true
+      checkEnd = ->
+        chai.expect(wasStarted).to.equal true
+        c.network.stop (err) ->
+          return done err if err
+          chai.expect(c.network.isStopped()).to.equal true
+          c.network.once 'start', ->
+            throw new Error 'Unexpected network start'
+          c.network.once 'end', ->
+            throw new Error 'Unexpected network end'
+          g.addInitial 'world', 'Pc', 'in'
+          setTimeout ->
+            chai.expect(received).to.eql expected
+            done()
+          , 1000
+      c.network.once 'start', checkStart
+      c.network.once 'end', checkEnd
+      c.start (err) ->
+        return done err if err
 
   describe 'with WirePattern sending to Process API', ->
     c = null
