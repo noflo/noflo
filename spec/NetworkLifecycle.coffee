@@ -143,6 +143,122 @@ describe 'Network Lifecycle', ->
       loader.registerComponent 'legacy', 'Sync', legacyBasic
       done()
 
+  describe 'with single Process API component receiving IIP', ->
+    c = null
+    g = null
+    out = null
+    beforeEach (done) ->
+      fbpData = "
+      OUTPORT=Pc.OUT:OUT
+      'hello' -> IN Pc(process/Async)
+      "
+      noflo.graph.loadFBP fbpData, (err, graph) ->
+        return done err if err
+        g = graph
+        loader.registerComponent 'scope', 'Connected', graph
+        loader.load 'scope/Connected', (err, instance) ->
+          return done err if err
+          c = instance
+          out = noflo.internalSocket.createSocket()
+          c.outPorts.out.attach out
+          done()
+    afterEach (done) ->
+      c.outPorts.out.detach out
+      out = null
+      c.shutdown done
+    it 'should execute and finish', (done) ->
+      expected = [
+        'DATA helloPc'
+      ]
+      received = []
+      out.on 'ip', (ip) ->
+        switch ip.type
+          when 'openBracket'
+            received.push "< #{ip.data}"
+          when 'data'
+            received.push "DATA #{ip.data}"
+          when 'closeBracket'
+            received.push '>'
+      wasStarted = false
+      checkStart = ->
+        chai.expect(wasStarted).to.equal false
+        wasStarted = true
+      checkEnd = ->
+        chai.expect(received).to.eql expected
+        chai.expect(wasStarted).to.equal true
+        done()
+      c.network.once 'start', checkStart
+      c.network.once 'end', checkEnd
+      c.start (err) ->
+        return done err if err
+    it 'should execute twice if IIP changes', (done) ->
+      expected = [
+        'DATA helloPc'
+        'DATA worldPc'
+      ]
+      received = []
+      out.on 'ip', (ip) ->
+        switch ip.type
+          when 'openBracket'
+            received.push "< #{ip.data}"
+          when 'data'
+            received.push "DATA #{ip.data}"
+          when 'closeBracket'
+            received.push '>'
+      wasStarted = false
+      checkStart = ->
+        chai.expect(wasStarted).to.equal false
+        wasStarted = true
+      checkEnd = ->
+        chai.expect(wasStarted).to.equal true
+        if received.length < expected.length
+          wasStarted = false
+          c.network.once 'start', checkStart
+          c.network.once 'end', checkEnd
+          g.addInitial 'world', 'Pc', 'in'
+          return
+        chai.expect(received).to.eql expected
+        done()
+      c.network.once 'start', checkStart
+      c.network.once 'end', checkEnd
+      c.start (err) ->
+        return done err if err
+    it 'should not send new IIP if network was stopped', (done) ->
+      expected = [
+        'DATA helloPc'
+      ]
+      received = []
+      out.on 'ip', (ip) ->
+        switch ip.type
+          when 'openBracket'
+            received.push "< #{ip.data}"
+          when 'data'
+            received.push "DATA #{ip.data}"
+          when 'closeBracket'
+            received.push '>'
+      wasStarted = false
+      checkStart = ->
+        chai.expect(wasStarted).to.equal false
+        wasStarted = true
+      checkEnd = ->
+        chai.expect(wasStarted).to.equal true
+        c.network.stop (err) ->
+          return done err if err
+          chai.expect(c.network.isStopped()).to.equal true
+          c.network.once 'start', ->
+            throw new Error 'Unexpected network start'
+          c.network.once 'end', ->
+            throw new Error 'Unexpected network end'
+          g.addInitial 'world', 'Pc', 'in'
+          setTimeout ->
+            chai.expect(received).to.eql expected
+            done()
+          , 1000
+      c.network.once 'start', checkStart
+      c.network.once 'end', checkEnd
+      c.start (err) ->
+        return done err if err
+
   describe 'with WirePattern sending to Process API', ->
     c = null
     ins = null

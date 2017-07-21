@@ -48,6 +48,7 @@ class Network extends EventEmitter
     @defaults = []
     @graph = graph
     @started = false
+    @stopped = true
     @debug = true
     @eventBuffer = []
 
@@ -520,7 +521,14 @@ class Network extends EventEmitter
     @initials.push init
     @nextInitials.push init
 
-    do @sendInitials if @isStarted()
+    if @isRunning()
+      # Network is running now, send initials immediately
+      do @sendInitials
+    else if not @isStopped()
+      # Network has finished but hasn't been stopped, set
+      # started and set
+      @setStarted true
+      do @sendInitials
 
     callback()
 
@@ -563,6 +571,8 @@ class Network extends EventEmitter
 
   isStarted: ->
     @started
+  isStopped: ->
+    @stopped
 
   isRunning: ->
     return false unless @started
@@ -642,7 +652,9 @@ class Network extends EventEmitter
 
     @abortDebounce = true if @debouncedEnd
 
-    return callback null unless @started
+    unless @started
+      @stopped = true
+      return callback null
 
     # Disconnect all connections
     for connection in @connections
@@ -657,9 +669,11 @@ class Network extends EventEmitter
       count++
       if count is length
         @setStarted false
+        @stopped = true
         callback()
     unless @processes and Object.keys(@processes).length
       @setStarted false
+      @stopped = true
       return callback()
     # Tell processes to shut down
     for id, process of @processes
@@ -687,6 +701,7 @@ class Network extends EventEmitter
     # Starting the execution
     @startupDate = new Date unless @startupDate
     @started = true
+    @stopped = false
     @bufferedEmit 'start',
       start: @startupDate
 
