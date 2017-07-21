@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.8.4 (git master)
+## 0.8.4 (July 21st 2017)
 
 * Send newly-added IIPs even if network has finished, but not after stopping the network
 
