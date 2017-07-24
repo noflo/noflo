@@ -392,6 +392,15 @@ describe 'Scope isolation', ->
         scope: 'x'
       in1.post new noflo.IP 'closeBracket', 1,
         scope: 'x'
+    it 'should not forward when scopes don\'t match', (done) ->
+      out.on 'ip', (ip) ->
+        throw new Error "Received unexpected #{ip.type} packet"
+      c.network.once 'end', ->
+        done()
+      in2.post new noflo.IP 'data', 'two', scope: 2
+      in1.post new noflo.IP 'openBracket', 1, scope: 1
+      in1.post new noflo.IP 'data', 'one', scope: 1
+      in1.post new noflo.IP 'closeBracket', 1, scope: 1
 
   describe 'Process API with IIPs and scopes', ->
     c = null
