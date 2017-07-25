@@ -19,6 +19,7 @@ class InPort extends BasePort
 
     options.buffered ?= false
     options.control ?= false
+    options.scoped ?= true
     options.triggering ?= true
 
     if not process and options and options.process
@@ -118,7 +119,7 @@ class InPort extends BasePort
 
   prepareBufferForIP: (ip) ->
     if @isAddressable()
-      if ip.scope?
+      if ip.scope? and @options.scoped
         @scopedBuffer[ip.scope] = [] unless ip.scope of @scopedBuffer
         @scopedBuffer[ip.scope][ip.index] = [] unless ip.index of @scopedBuffer[ip.scope]
         return @scopedBuffer[ip.scope][ip.index]
@@ -127,7 +128,7 @@ class InPort extends BasePort
         return @iipBuffer[ip.index]
       @indexedBuffer[ip.index] = [] unless ip.index of @indexedBuffer
       return @indexedBuffer[ip.index]
-    if ip.scope?
+    if ip.scope? and @options.scoped
       @scopedBuffer[ip.scope] = [] unless ip.scope of @scopedBuffer
       return @scopedBuffer[ip.scope]
     if ip.initial
@@ -155,7 +156,7 @@ class InPort extends BasePort
 
   getBuffer: (scope, idx, initial = false) ->
     if @isAddressable()
-      if scope?
+      if scope? and @options.scoped
         return undefined unless scope of @scopedBuffer
         return undefined unless idx of @scopedBuffer[scope]
         return @scopedBuffer[scope][idx]
@@ -164,7 +165,7 @@ class InPort extends BasePort
         return @iipBuffer[idx]
       return undefined unless idx of @indexedBuffer
       return @indexedBuffer[idx]
-    if scope?
+    if scope? and @options.scoped
       return undefined unless scope of @scopedBuffer
       return @scopedBuffer[scope]
     if initial
