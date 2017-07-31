@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.8.5 (git master)
+
+* It is now possible to set individual ports to _unscoped_ mode by setting the `scoped: false` parameter. This is useful for components that mix unscoped and scoped inputs
+
 ## 0.8.4 (July 21st 2017)
 
 * Send newly-added IIPs even if network has finished, but not after stopping the network
