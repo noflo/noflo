@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "coffee-script": "~1.12.0",
-    "debug": "^2.5.2",
+    "debug": "^3.0.0",
     "fbp": "~1.5.0",
     "fbp-graph": "^0.1.0",
     "fbp-manifest": "~0.1.13"
