@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "chai": "^4.0.0",
-    "coffee-loader": "^0.7.2",
+    "coffee-loader": "^0.8.0",
     "fbp-loader": "^0.1.1",
     "grunt": "^1.0.1",
     "grunt-cli": "^1.2.0",
