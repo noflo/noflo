@@ -51,6 +51,7 @@ class BasePort extends EventEmitter
     "#{@node} #{@name.toUpperCase()}"
 
   getDataType: -> @options.datatype
+  getSchema: -> @options.schema or null
   getDescription: -> @options.description
 
   attach: (socket, index = null) ->

@@ -21,7 +21,7 @@ describe 'Inport Port', ->
       schema: 'text/url'
     it 'should retain the type', ->
       chai.expect(p.getDataType()).to.equal 'string'
-      chai.expect(p.options.schema).to.equal 'text/url'
+      chai.expect(p.getSchema()).to.equal 'text/url'
 
   describe 'without attached sockets', ->
     p = new noflo.InPort
