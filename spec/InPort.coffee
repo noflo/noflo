@@ -18,10 +18,10 @@ describe 'Inport Port', ->
   describe 'with custom type', ->
     p = new noflo.InPort
       datatype: 'string'
-      type: 'text/url'
+      schema: 'text/url'
     it 'should retain the type', ->
       chai.expect(p.getDataType()).to.equal 'string'
-      chai.expect(p.options.type).to.equal 'text/url'
+      chai.expect(p.options.schema).to.equal 'text/url'
 
   describe 'without attached sockets', ->
     p = new noflo.InPort
