@@ -25,6 +25,7 @@ class Port extends EventEmitter
     "#{@node} #{@name.toUpperCase()}"
 
   getDataType: -> @type
+  getSchema: -> null
   getDescription: -> @description
 
   attach: (socket) ->
