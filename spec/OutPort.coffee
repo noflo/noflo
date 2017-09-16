@@ -212,3 +212,56 @@ describe 'Outport Port', ->
 
       p.data obj,
         clonable: true
+
+    it 'should stamp an IP object with the port\'s datatype', (done) ->
+      p = new noflo.OutPort
+        datatype: 'string'
+      p.attach s1
+      s1.on 'ip', (data) ->
+        chai.expect(data).to.be.an 'object'
+        chai.expect(data.type).to.equal 'data'
+        chai.expect(data.data).to.equal 'Hello'
+        chai.expect(data.datatype).to.equal 'string'
+        done()
+      p.data 'Hello'
+    it 'should keep an IP object\'s datatype as-is if already set', (done) ->
+      p = new noflo.OutPort
+        datatype: 'string'
+      p.attach s1
+      s1.on 'ip', (data) ->
+        chai.expect(data).to.be.an 'object'
+        chai.expect(data.type).to.equal 'data'
+        chai.expect(data.data).to.equal 123
+        chai.expect(data.datatype).to.equal 'integer'
+        done()
+      p.sendIP new noflo.IP 'data', 123,
+        datatype: 'integer'
+
+    it 'should stamp an IP object with the port\'s schema', (done) ->
+      p = new noflo.OutPort
+        datatype: 'string'
+        schema: 'text/markdown'
+      p.attach s1
+      s1.on 'ip', (data) ->
+        chai.expect(data).to.be.an 'object'
+        chai.expect(data.type).to.equal 'data'
+        chai.expect(data.data).to.equal 'Hello'
+        chai.expect(data.datatype).to.equal 'string'
+        chai.expect(data.schema).to.equal 'text/markdown'
+        done()
+      p.data 'Hello'
+    it 'should keep an IP object\'s schema as-is if already set', (done) ->
+      p = new noflo.OutPort
+        datatype: 'string'
+        schema: 'text/markdown'
+      p.attach s1
+      s1.on 'ip', (data) ->
+        chai.expect(data).to.be.an 'object'
+        chai.expect(data.type).to.equal 'data'
+        chai.expect(data.data).to.equal 'Hello'
+        chai.expect(data.datatype).to.equal 'string'
+        chai.expect(data.schema).to.equal 'text/plain'
+        done()
+      p.sendIP new noflo.IP 'data', 'Hello',
+        datatype: 'string'
+        schema: 'text/plain'

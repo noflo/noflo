@@ -61,6 +61,14 @@ class OutPort extends BasePort
       ip = new IP type, data, options
     sockets = @getSockets socketId
     @checkRequired sockets
+
+    if ip.datatype is 'all'
+      # Stamp non-specific IP objects with port datatype
+      ip.datatype = @getDataType()
+    if @getSchema() and not ip.schema
+      # Stamp non-specific IP objects with port schema
+      ip.schema = @getSchema()
+
     if @isCaching() and data isnt @cache[socketId]?.data
       @cache[socketId] = ip
     pristine = true
