@@ -162,6 +162,9 @@ describe 'NoFlo Network', ->
       g.addInitial 'Foo', 'Merge', 'in'
       n.once 'process-error', (err) ->
         chai.expect(err).to.be.an 'object'
+        chai.expect(err.id).to.equal 'Callback'
+        chai.expect(err.metadata).to.be.an 'object'
+        chai.expect(err.error).to.be.an 'error'
         chai.expect(err.error.message).to.equal 'got Foo'
         done()
       n.sendInitials()
