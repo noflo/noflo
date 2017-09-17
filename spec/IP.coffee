@@ -29,9 +29,12 @@ describe 'IP object', ->
       owner: 'SomeProc'
       scope: 'request-12345'
       clonable: true
+      datatype: 'string'
+      schema: 'text/plain'
     d2 = d1.clone()
     chai.expect(d2).not.to.equal d1
     chai.expect(d2.type).to.equal d1.type
+    chai.expect(d2.schema).to.equal d1.schema
     chai.expect(d2.data).to.eql d1.data
     chai.expect(d2.groups).to.eql d2.groups
     chai.expect(d2.owner).not.to.equal d1.owner

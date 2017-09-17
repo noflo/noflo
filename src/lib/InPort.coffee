@@ -71,6 +71,12 @@ class InPort extends BasePort
     return if @options.control and ip.type isnt 'data'
     ip.owner = @nodeInstance
     ip.index = id if @isAddressable()
+    if ip.datatype is 'all'
+      # Stamp non-specific IP objects with port datatype
+      ip.datatype = @getDataType()
+    if @getSchema() and not ip.schema
+      # Stamp non-specific IP objects with port schema
+      ip.schema = @getSchema()
 
     buf = @prepareBufferForIP ip
     buf.push ip

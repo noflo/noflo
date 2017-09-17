@@ -18,10 +18,10 @@ describe 'Inport Port', ->
   describe 'with custom type', ->
     p = new noflo.InPort
       datatype: 'string'
-      type: 'text/url'
+      schema: 'text/url'
     it 'should retain the type', ->
       chai.expect(p.getDataType()).to.equal 'string'
-      chai.expect(p.options.type).to.equal 'text/url'
+      chai.expect(p.getSchema()).to.equal 'text/url'
 
   describe 'without attached sockets', ->
     p = new noflo.InPort
@@ -307,3 +307,52 @@ describe 'Inport Port', ->
       ps.inPorts.in.attach s
       chai.expect(ps.inPorts.in.listAttached()).to.eql [0]
       s.post new noflo.IP 'data', 'some-data'
+
+    it 'should stamp an IP object with the port\'s datatype', (done) ->
+      p = new noflo.InPort
+        datatype: 'string'
+      p.on 'ip', (data) ->
+        chai.expect(data).to.be.an 'object'
+        chai.expect(data.type).to.equal 'data'
+        chai.expect(data.data).to.equal 'Hello'
+        chai.expect(data.datatype).to.equal 'string'
+        done()
+      p.handleIP new noflo.IP 'data', 'Hello'
+    it 'should keep an IP object\'s datatype as-is if already set', (done) ->
+      p = new noflo.InPort
+        datatype: 'string'
+      p.on 'ip', (data) ->
+        chai.expect(data).to.be.an 'object'
+        chai.expect(data.type).to.equal 'data'
+        chai.expect(data.data).to.equal 123
+        chai.expect(data.datatype).to.equal 'integer'
+        done()
+      p.handleIP new noflo.IP 'data', 123,
+        datatype: 'integer'
+
+    it 'should stamp an IP object with the port\'s schema', (done) ->
+      p = new noflo.InPort
+        datatype: 'string'
+        schema: 'text/markdown'
+      p.on 'ip', (data) ->
+        chai.expect(data).to.be.an 'object'
+        chai.expect(data.type).to.equal 'data'
+        chai.expect(data.data).to.equal 'Hello'
+        chai.expect(data.datatype).to.equal 'string'
+        chai.expect(data.schema).to.equal 'text/markdown'
+        done()
+      p.handleIP new noflo.IP 'data', 'Hello'
+    it 'should keep an IP object\'s schema as-is if already set', (done) ->
+      p = new noflo.InPort
+        datatype: 'string'
+        schema: 'text/markdown'
+      p.on 'ip', (data) ->
+        chai.expect(data).to.be.an 'object'
+        chai.expect(data.type).to.equal 'data'
+        chai.expect(data.data).to.equal 'Hello'
+        chai.expect(data.datatype).to.equal 'string'
+        chai.expect(data.schema).to.equal 'text/plain'
+        done()
+      p.handleIP new noflo.IP 'data', 'Hello',
+        datatype: 'string'
+        schema: 'text/plain'

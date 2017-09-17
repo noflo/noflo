@@ -37,8 +37,11 @@ class BasePort extends EventEmitter
     if validTypes.indexOf(options.datatype) is -1
       throw new Error "Invalid port datatype '#{options.datatype}' specified, valid are #{validTypes.join(', ')}"
 
-    if options.type and options.type.indexOf('/') is -1
-      throw new Error "Invalid port type '#{options.type}' specified. Should be URL or MIME type"
+    if options.type and not options.schema
+      options.schema = options.type
+      delete options.type
+    if options.schema and options.schema.indexOf('/') is -1
+      throw new Error "Invalid port schema '#{options.schema}' specified. Should be URL or MIME type"
 
     @options = options
 
@@ -48,6 +51,7 @@ class BasePort extends EventEmitter
     "#{@node} #{@name.toUpperCase()}"
 
   getDataType: -> @options.datatype
+  getSchema: -> @options.schema or null
   getDescription: -> @options.description
 
   attach: (socket, index = null) ->

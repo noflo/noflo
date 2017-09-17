@@ -21,6 +21,8 @@ module.exports = class IP
     @owner = null # packet owner process
     @clonable = false # cloning safety flag
     @index = null # addressable port index
+    @schema = null
+    @datatype = 'all'
     for key, val of options
       this[key] = val
 

@@ -614,6 +614,105 @@ describe 'Component', ->
       sin2.post new noflo.IP 'data', 'bar',
         groups: ['bar']
 
+    it 'should stamp IP objects with the datatype of the outport when sending', (done) ->
+      c = new noflo.Component
+        inPorts:
+          foo: datatype: 'all'
+        outPorts:
+          baz: datatype: 'string'
+        process: (input, output) ->
+          return unless input.has 'foo'
+          foo = input.get 'foo'
+          output.sendDone
+            baz: foo
+
+      c.inPorts.foo.attach sin1
+      c.outPorts.baz.attach sout1
+
+      sout1.once 'ip', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.type).to.equal 'data'
+        chai.expect(ip.data).to.equal 'foo'
+        chai.expect(ip.datatype).to.equal 'string'
+        done()
+
+      sin1.post new noflo.IP 'data', 'foo'
+    it 'should stamp IP objects with the datatype of the inport when receiving', (done) ->
+      c = new noflo.Component
+        inPorts:
+          foo: datatype: 'string'
+        outPorts:
+          baz: datatype: 'all'
+        process: (input, output) ->
+          return unless input.has 'foo'
+          foo = input.get 'foo'
+          output.sendDone
+            baz: foo
+
+      c.inPorts.foo.attach sin1
+      c.outPorts.baz.attach sout1
+
+      sout1.once 'ip', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.type).to.equal 'data'
+        chai.expect(ip.data).to.equal 'foo'
+        chai.expect(ip.datatype).to.equal 'string'
+        done()
+
+      sin1.post new noflo.IP 'data', 'foo'
+    it 'should stamp IP objects with the schema of the outport when sending', (done) ->
+      c = new noflo.Component
+        inPorts:
+          foo: datatype: 'all'
+        outPorts:
+          baz:
+            datatype: 'string'
+            schema: 'text/markdown'
+        process: (input, output) ->
+          return unless input.has 'foo'
+          foo = input.get 'foo'
+          output.sendDone
+            baz: foo
+
+      c.inPorts.foo.attach sin1
+      c.outPorts.baz.attach sout1
+
+      sout1.once 'ip', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.type).to.equal 'data'
+        chai.expect(ip.data).to.equal 'foo'
+        chai.expect(ip.datatype).to.equal 'string'
+        chai.expect(ip.schema).to.equal 'text/markdown'
+        done()
+
+      sin1.post new noflo.IP 'data', 'foo'
+    it 'should stamp IP objects with the schema of the inport when receiving', (done) ->
+      c = new noflo.Component
+        inPorts:
+          foo:
+            datatype: 'string'
+            schema: 'text/markdown'
+        outPorts:
+          baz: datatype: 'all'
+        process: (input, output) ->
+          return unless input.has 'foo'
+          foo = input.get 'foo'
+          output.sendDone
+            baz: foo
+
+      c.inPorts.foo.attach sin1
+      c.outPorts.baz.attach sout1
+
+      sout1.once 'ip', (ip) ->
+        chai.expect(ip).to.be.an 'object'
+        chai.expect(ip.type).to.equal 'data'
+        chai.expect(ip.data).to.equal 'foo'
+        chai.expect(ip.datatype).to.equal 'string'
+        chai.expect(ip.schema).to.equal 'text/markdown'
+        done()
+
+      sin1.post new noflo.IP 'data', 'foo'
+
     it 'should receive and send just IP data if wanted', (done) ->
       c = new noflo.Component
         inPorts:
