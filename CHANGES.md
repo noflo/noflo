@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.8.5 (git master)
+## 0.8.5 (September 17th 2017)
 
 * It is now possible to set individual ports to _unscoped_ mode by setting the `scoped: false` parameter. This is useful for components that mix unscoped and scoped inputs
 * Ports and IP objects can now be annotated with a JSON schema for their payloads using the `schema` key. Ports with a schema annotate their IP objects automatically with the schema unless the IP object already has a specific schema
