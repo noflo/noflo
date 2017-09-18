@@ -26,7 +26,7 @@
     "noflo-runtime-base": "~0.8.3",
     "password-maker": "~1.1.3",
     "uuid": "~3.0.1",
-    "yargs": "~8.0.1"
+    "yargs": "~9.0.1"
   },
   "devDependencies": {
     "chai": "^4.0.0",
