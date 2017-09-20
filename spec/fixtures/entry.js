@@ -1,5 +1,5 @@
 var exported = {
-  noflo: require('../../src/lib/NoFlo.coffee')
+  noflo: require('../../lib/NoFlo')
 };
 
 if (window) {
