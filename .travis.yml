@@ -8,7 +8,7 @@ script:
 - ./node_modules/.bin/nyc report
 - ./node_modules/.bin/nyc check-coverage --lines 75
 after_success:
-- ./node_modules/.bin/nyc report --reporter=text-lcov | ./node_modules/.bin/coveralls"
+- ./node_modules/.bin/nyc report --reporter=text-lcov | ./node_modules/.bin/coveralls
 deploy:
   provider: npm
   email: henri.bergius@iki.fi
