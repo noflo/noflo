@@ -24,6 +24,7 @@
     "chai": "^4.0.0",
     "coffee-coverage": "^2.0.1",
     "coffee-loader": "^0.8.0",
+    "coveralls": "^2.13.1",
     "fbp-loader": "^0.1.1",
     "grunt": "^1.0.1",
     "grunt-cli": "^1.2.0",
@@ -56,6 +57,8 @@
     "project_name": "NoFlo"
   },
   "nyc": {
-    "include": ["src/**/*.coffee"]
+    "include": [
+      "src/**/*.coffee"
+    ]
   }
 }
