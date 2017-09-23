@@ -152,6 +152,7 @@ describe 'NoFlo Network', ->
 
     it 'should have started in debug mode', ->
       chai.expect(n.debug).to.equal true
+      chai.expect(n.getDebug()).to.equal true
 
     it 'should emit a process-error when a component throws', (done) ->
       g.removeInitial 'Callback', 'callback'
