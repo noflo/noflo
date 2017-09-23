@@ -22,7 +22,9 @@
   },
   "devDependencies": {
     "chai": "^4.0.0",
+    "coffee-coverage": "^2.0.1",
     "coffee-loader": "^0.8.0",
+    "coveralls": "^2.13.1",
     "fbp-loader": "^0.1.1",
     "grunt": "^1.0.1",
     "grunt-cli": "^1.2.0",
@@ -34,7 +36,8 @@
     "grunt-mocha-test": "^0.13.2",
     "grunt-noflo-browser": "^1.1.4",
     "json-loader": "^0.5.4",
-    "mocha": "^3.1.2"
+    "mocha": "^3.1.2",
+    "nyc": "^11.2.1"
   },
   "main": "./lib/NoFlo",
   "bin": {
@@ -52,5 +55,10 @@
   "docco_husky": {
     "output_dir": "docs",
     "project_name": "NoFlo"
+  },
+  "nyc": {
+    "include": [
+      "src/**/*.coffee"
+    ]
   }
 }

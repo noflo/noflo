@@ -1,6 +1,8 @@
 .node_shell
 /node_modules/
 /components/
+/coverage/
+/.nyc_output/
 /browser/
 bin/*.js
 /lib/
