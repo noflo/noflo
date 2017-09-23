@@ -109,6 +109,20 @@ $ TESTS="Network Lifecycle" grunt watch
 
 To quit thew watcher, just end the process with Ctrl-C.
 
+### Checking test coverage
+
+NoFlo tests are instrumented for [Istanbul](https://istanbul.js.org/) test coverage reporting. To collect coverage information, run tests with:
+
+```bash
+$ ./node_modules/.bin/nyc npm test
+```
+
+After you've collected coverage statistics, a report can be displayed with:
+
+```bash
+$ ./node_modules/.bin/nyc report
+```
+
 ## Discussion
 
 There is an IRC channel `#fbp` on FreeNode, and questions can be posted with the [`noflo` tag on Stack Overflow](http://stackoverflow.com/questions/tagged/noflo). See <http://noflojs.org/support/> for other ways to get in touch.
