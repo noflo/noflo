@@ -5,7 +5,7 @@ utils = require '../Utils'
 fbpGraph = require 'fbp-graph'
 
 # We allow components to be un-compiled CoffeeScript
-CoffeeScript = require 'coffee-script'
+CoffeeScript = require 'coffeescript'
 if typeof CoffeeScript.register != 'undefined'
   CoffeeScript.register()
 
