@@ -3,8 +3,7 @@ sudo: false
 node_js:
 - '4.6'
 script:
-- ./node_modules/.bin/nyc --reporter=lcov npm test
-- ./node_modules/.bin/nyc report
+- npm test
 - ./node_modules/.bin/nyc check-coverage --lines 75
 after_success:
 - ./node_modules/.bin/nyc report --reporter=text-lcov | ./node_modules/.bin/coveralls

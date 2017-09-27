@@ -50,7 +50,7 @@
     "url": "git://github.com/noflo/noflo.git"
   },
   "scripts": {
-    "test": "./node_modules/.bin/grunt test"
+    "test": "nyc grunt test"
   },
   "docco_husky": {
     "output_dir": "docs",

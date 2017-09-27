@@ -152,6 +152,7 @@ describe 'NoFlo Network', ->
 
     it 'should have started in debug mode', ->
       chai.expect(n.debug).to.equal true
+      chai.expect(n.getDebug()).to.equal true
 
     it 'should emit a process-error when a component throws', (done) ->
       g.removeInitial 'Callback', 'callback'
@@ -205,6 +206,22 @@ describe 'NoFlo Network', ->
         n.stop ->
           chai.expect(n.isStarted()).to.equal false
           done()
+
+    describe 'without the delay option', ->
+      it 'should auto-start', (done) ->
+        newGraph = noflo.graph.loadJSON g.toJSON(), (err, graph) ->
+          return done err if err
+          cb = done
+          # Pass the already-initialized component loader
+          graph.componentLoader = n.loader
+          graph.removeInitial 'Func', 'callback'
+          graph.addInitial (data) ->
+            chai.expect(data).to.equal 'Foo'
+            cb()
+          , 'Func', 'callback'
+          noflo.createNetwork graph, (err, nw) ->
+            return done err if err
+          return
 
   describe 'with nodes containing default ports', ->
     g = null
