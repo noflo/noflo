@@ -33,6 +33,12 @@ NoFlo itself is just a library for implementing flow-based programs in JavaScrip
 
 See also the [list of reusable NoFlo modules on NPM](https://www.npmjs.com/browse/keyword/noflo).
 
+## Support
+[![Flowhub logo](https://flowhub.io/assets/banner-github.png)](https://flowhub.io)
+
+NoFlo is a part of [Flowhub](https://flowhub.io), a platform for building robust [IoT systems](https://flowhub.io/iot) and web services.<br>
+We offer an [Integrated Development Environment](https://app.flowhub.io) and [consulting services](https://flowhub.io/consulting).
+
 ## Requirements and installing
 
 NoFlo is available for Node.js [via NPM](https://npmjs.org/package/noflo), so you can install it with:
