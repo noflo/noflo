@@ -96,6 +96,58 @@ processMerge = ->
     output.sendDone
       out: "1#{first}:2#{second}:#{c.nodeId}"
 
+processSync = ->
+  c = new noflo.Component
+  c.inPorts.add 'in',
+    datatype: 'string'
+  c.outPorts.add 'out',
+    datatype: 'string'
+  c.process (input, output) ->
+    data = input.getData 'in'
+    output.send
+      out: data + c.nodeId
+    output.done()
+
+processBracketize = ->
+  c = new noflo.Component
+  c.inPorts.add 'in',
+    datatype: 'string'
+  c.outPorts.add 'out',
+    datatype: 'string'
+  c.counter = 0
+  c.tearDown = (callback) ->
+    c.counter = 0
+    do callback
+  c.process (input, output) ->
+    data = input.getData 'in'
+    output.send
+      out: new noflo.IP 'openBracket', c.counter
+    output.send
+      out: data
+    output.send
+      out: new noflo.IP 'closeBracket', c.counter
+    c.counter++
+    output.done()
+
+processNonSending = ->
+  c = new noflo.Component
+  c.inPorts.add 'in',
+    datatype: 'string'
+  c.inPorts.add 'in2',
+    datatype: 'string'
+  c.outPorts.add 'out',
+    datatype: 'string'
+  c.forwardBrackets = {}
+  c.process (input, output) ->
+    if input.hasData 'in2'
+      input.getData 'in2'
+      output.done()
+      return
+    return unless input.hasData 'in'
+    data = input.getData 'in'
+    output.send data + c.nodeId
+    output.done()
+
 processGenerator = ->
   c = new noflo.Component
   c.inPorts.add 'start',
@@ -138,7 +190,10 @@ describe 'Network Lifecycle', ->
       loader.registerComponent 'wirepattern', 'Async', wirePatternAsync
       loader.registerComponent 'wirepattern', 'Merge', wirePatternMerge
       loader.registerComponent 'process', 'Async', processAsync
+      loader.registerComponent 'process', 'Sync', processSync
       loader.registerComponent 'process', 'Merge', processMerge
+      loader.registerComponent 'process', 'Bracketize', processBracketize
+      loader.registerComponent 'process', 'NonSending', processNonSending
       loader.registerComponent 'process', 'Generator', processGenerator
       loader.registerComponent 'legacy', 'Sync', legacyBasic
       done()
@@ -254,6 +309,61 @@ describe 'Network Lifecycle', ->
             chai.expect(received).to.eql expected
             done()
           , 1000
+      c.network.once 'start', checkStart
+      c.network.once 'end', checkEnd
+      c.start (err) ->
+        return done err if err
+
+  describe 'with synchronous Process API', ->
+    c = null
+    g = null
+    out = null
+    beforeEach (done) ->
+      fbpData = "
+      OUTPORT=Sync.OUT:OUT
+      'foo' -> IN2 NonSending(process/NonSending)
+      'hello' -> IN Bracketize(process/Bracketize)
+      Bracketize OUT -> IN NonSending(process/NonSending)
+      NonSending OUT -> IN Sync(process/Sync)
+      Sync OUT -> IN2 NonSending
+      "
+      noflo.graph.loadFBP fbpData, (err, graph) ->
+        return done err if err
+        g = graph
+        loader.registerComponent 'scope', 'Connected', graph
+        loader.load 'scope/Connected', (err, instance) ->
+          return done err if err
+          c = instance
+          out = noflo.internalSocket.createSocket()
+          c.outPorts.out.attach out
+          done()
+    afterEach (done) ->
+      c.outPorts.out.detach out
+      out = null
+      c.shutdown done
+    it 'should execute and finish', (done) ->
+      expected = [
+        'DATA helloNonSendingSync'
+      ]
+      received = []
+      out.on 'ip', (ip) ->
+        switch ip.type
+          when 'openBracket'
+            received.push "< #{ip.data}"
+          when 'data'
+            received.push "DATA #{ip.data}"
+          when 'closeBracket'
+            received.push '>'
+      wasStarted = false
+      checkStart = ->
+        chai.expect(wasStarted).to.equal false
+        wasStarted = true
+      checkEnd = ->
+        setTimeout ->
+          chai.expect(received).to.eql expected
+          chai.expect(wasStarted).to.equal true
+          done()
+        , 100
       c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
       c.start (err) ->

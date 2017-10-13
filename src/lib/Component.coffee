@@ -357,8 +357,8 @@ class Component extends EventEmitter
 
   processOutputQueue: ->
     while @outputQ.length > 0
-      result = @outputQ[0]
-      break unless result.__resolved
+      break unless @outputQ[0].__resolved
+      result = @outputQ.shift()
       @addBracketForwards result
       for port, ips of result
         continue if port.indexOf('__') is 0
@@ -386,7 +386,6 @@ class Component extends EventEmitter
           else
             debugSend "#{@nodeId} sending #{portIdentifier} DATA"
           @outPorts[port].sendIP ip
-      @outputQ.shift()
 
   activate: (context) ->
     return if context.activated # prevent double activation
