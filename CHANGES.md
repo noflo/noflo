@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 0.8.6 (git master)
+## 0.8.6 (October 21st 2017)
 
 * Fixed an issue with synchronous components causing Process API output streams to be replayed in some situations
 * Improved error handling when trying to load a graph with misconfigured edges
