@@ -475,3 +475,54 @@ describe 'NoFlo Network', ->
           nw.start (err) ->
             return done err if err
       return
+
+  describe 'with a faulty graph', ->
+    loader = null
+    before (done) ->
+      loader = new noflo.ComponentLoader root
+      loader.listComponents (err) ->
+        return done err if err
+        loader.components.Split = Split
+        done()
+    it 'should fail on connect with non-existing component', (done) ->
+      g = new noflo.Graph
+      g.addNode 'Repeat1', 'Baz'
+      g.addNode 'Repeat2', 'Split'
+      g.addEdge 'Repeat1', 'out', 'Repeat2', 'in'
+      nw = new noflo.Network g
+      nw.loader = loader
+      nw.connect (err) ->
+        chai.expect(err).to.be.an 'error'
+        done()
+    it 'should fail on connect with missing target port', (done) ->
+      g = new noflo.Graph
+      g.addNode 'Repeat1', 'Split'
+      g.addNode 'Repeat2', 'Split'
+      g.addEdge 'Repeat1', 'out', 'Repeat2', 'foo'
+      nw = new noflo.Network g
+      nw.loader = loader
+      nw.connect (err) ->
+        chai.expect(err).to.be.an 'error'
+        done()
+    it 'should fail on connect with missing source port', (done) ->
+      g = new noflo.Graph
+      g.addNode 'Repeat1', 'Split'
+      g.addNode 'Repeat2', 'Split'
+      g.addEdge 'Repeat1', 'foo', 'Repeat2', 'in'
+      nw = new noflo.Network g
+      nw = new noflo.Network g
+      nw.loader = loader
+      nw.connect (err) ->
+        chai.expect(err).to.be.an 'error'
+        done()
+    it 'should fail on connect with missing IIP target port', (done) ->
+      g = new noflo.Graph
+      g.addNode 'Repeat1', 'Split'
+      g.addNode 'Repeat2', 'Split'
+      g.addEdge 'Repeat1', 'out', 'Repeat2', 'in'
+      g.addInitial 'hello', 'Repeat1', 'baz'
+      nw = new noflo.Network g
+      nw.loader = loader
+      nw.connect (err) ->
+        chai.expect(err).to.be.an 'error'
+        done()
