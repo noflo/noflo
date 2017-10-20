@@ -1,6 +1,11 @@
 NoFlo ChangeLog
 ===============
 
+## 0.8.6 (git master)
+
+* Fixed an issue with synchronous components causing Process API output streams to be replayed in some situations
+* Improved error handling when trying to load a graph with misconfigured edges
+
 ## 0.8.5 (September 17th 2017)
 
 * It is now possible to set individual ports to _unscoped_ mode by setting the `scoped: false` parameter. This is useful for components that mix unscoped and scoped inputs
