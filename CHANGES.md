@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 0.8.7 (git master)
+
+* Improved errors thrown when trying to read from non-existing ports
+
 ## 0.8.6 (October 21st 2017)
 
 * Fixed an issue with synchronous components causing Process API output streams to be replayed in some situations
