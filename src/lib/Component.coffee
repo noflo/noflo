@@ -449,6 +449,8 @@ class ProcessInput
     args = ['in'] unless args.length
     res = []
     for port in args
+      unless @ports[port]
+        throw new Error "Node #{@nodeInstance.nodeId} has no port '#{port}'"
       res.push @ports[port].listAttached()
     return res.pop() if args.length is 1
     res
@@ -469,10 +471,14 @@ class ProcessInput
       validate = -> true
     for port in args
       if Array.isArray port
+        unless @ports[port[0]]
+          throw new Error "Node #{@nodeInstance.nodeId} has no port '#{port[0]}'"
         unless @ports[port[0]].isAddressable()
           throw new Error "Non-addressable ports, access must be with string #{port[0]}"
         return false unless @ports[port[0]].has @scope, port[1], validate
         continue
+      unless @ports[port]
+        throw new Error "Node #{@nodeInstance.nodeId} has no port '#{port}'"
       if @ports[port].isAddressable()
         throw new Error "For addressable ports, access must be with array [#{port}, idx]"
       return false unless @ports[port].has @scope, validate

@@ -175,6 +175,91 @@ describe 'Component', ->
           inPorts:
             '$%^&*a': {}
       chai.expect(shorthand).to.throw()
+  describe 'with non-existing ports', ->
+    getComponent = ->
+      c = new noflo.Component
+        inPorts:
+          in: {}
+        outPorts:
+          out: {}
+    getAddressableComponent = ->
+      c = new noflo.Component
+        inPorts:
+          in:
+            addressable: true
+        outPorts:
+          out:
+            addressable: true
+    it 'should throw an error when checking attached for non-existing port', (done) ->
+      c = getComponent()
+      c.process (input, output) ->
+        try
+          input.attached 'foo'
+        catch e
+          chai.expect(e).to.be.an 'Error'
+          chai.expect(e.message).to.contain 'foo'
+          done()
+          return
+        done new Error 'Expected a throw'
+      sin1 = noflo.internalSocket.createSocket()
+      c.inPorts.in.attach sin1
+      sin1.send 'hello'
+    it 'should throw an error when checking IP for non-existing port', (done) ->
+      c = getComponent()
+      c.process (input, output) ->
+        try
+          input.has 'foo'
+        catch e
+          chai.expect(e).to.be.an 'Error'
+          chai.expect(e.message).to.contain 'foo'
+          done()
+          return
+        done new Error 'Expected a throw'
+      sin1 = noflo.internalSocket.createSocket()
+      c.inPorts.in.attach sin1
+      sin1.send 'hello'
+    it 'should throw an error when checking IP for non-existing addressable port', (done) ->
+      c = getComponent()
+      c.process (input, output) ->
+        try
+          input.has ['foo', 0]
+        catch e
+          chai.expect(e).to.be.an 'Error'
+          chai.expect(e.message).to.contain 'foo'
+          done()
+          return
+        done new Error 'Expected a throw'
+      sin1 = noflo.internalSocket.createSocket()
+      c.inPorts.in.attach sin1
+      sin1.send 'hello'
+    it 'should throw an error when checking data for non-existing port', (done) ->
+      c = getComponent()
+      c.process (input, output) ->
+        try
+          input.hasData 'foo'
+        catch e
+          chai.expect(e).to.be.an 'Error'
+          chai.expect(e.message).to.contain 'foo'
+          done()
+          return
+        done new Error 'Expected a throw'
+      sin1 = noflo.internalSocket.createSocket()
+      c.inPorts.in.attach sin1
+      sin1.send 'hello'
+    it 'should throw an error when checking stream for non-existing port', (done) ->
+      c = getComponent()
+      c.process (input, output) ->
+        try
+          input.hasStream 'foo'
+        catch e
+          chai.expect(e).to.be.an 'Error'
+          chai.expect(e.message).to.contain 'foo'
+          done()
+          return
+        done new Error 'Expected a throw'
+      sin1 = noflo.internalSocket.createSocket()
+      c.inPorts.in.attach sin1
+      sin1.send 'hello'
 
   describe 'starting a component', ->
 
