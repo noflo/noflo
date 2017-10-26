@@ -374,6 +374,8 @@ class Component extends EventEmitter
                 debugSend "#{@nodeId} sending #{portIdentifier} > '#{ip.data}'"
               else
                 debugSend "#{@nodeId} sending #{portIdentifier} DATA"
+              unless @outPorts[port].options.scoped
+                ip.scope = null
               @outPorts[port].sendIP ip
           continue
         continue unless @outPorts.ports[port].isAttached()
@@ -385,6 +387,8 @@ class Component extends EventEmitter
             debugSend "#{@nodeId} sending #{portIdentifier} > '#{ip.data}'"
           else
             debugSend "#{@nodeId} sending #{portIdentifier} DATA"
+          unless @outPorts[port].options.scoped
+            ip.scope = null
           @outPorts[port].sendIP ip
 
   activate: (context) ->
@@ -689,6 +693,8 @@ class ProcessOutput
     if @nodeInstance.isOrdered()
       @nodeInstance.addToResult @result, port, ip
       return
+    unless @nodeInstance.outPorts[port].options.scoped
+      ip.scope = null
     @nodeInstance.outPorts[port].sendIP ip
 
   # Sends packets for each port as a key in the map
