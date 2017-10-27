@@ -51,13 +51,11 @@ You can make a browser build of NoFlo using webpack. For webpack builds, you nee
 
 ### Installing from Git
 
-NoFlo requires a reasonably recent version of [Node.js](http://nodejs.org/), and some [npm](http://npmjs.org/) packages. Ensure you have the `grunt-cli` package installed (`grunt` command should be available on command line) and NoFlo checked out from Git. Build NoFlo with:
+NoFlo requires a reasonably recent version of [Node.js](http://nodejs.org/), and some [npm](http://npmjs.org/) packages. Ensure that you have NoFlo checked out from Git, and all NPM dependencies installed. Build NoFlo with:
 
 ```bash
-$ grunt build
+$ npm run build
 ```
-
-You can also build NoFlo only for the desired target platform with either *grunt build:nodejs* or *grunt build:browser*.
 
 Then you can install everything needed by a simple:
 
@@ -113,7 +111,7 @@ If you want to only run a particular part of the test suite, you can filter them
 $ TESTS="Network Lifecycle" grunt watch
 ```
 
-To quit thew watcher, just end the process with Ctrl-C.
+To quit the watcher, just end the process with Ctrl-C.
 
 ## Discussion
 
