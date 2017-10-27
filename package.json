@@ -23,7 +23,7 @@
   "devDependencies": {
     "chai": "^4.0.0",
     "coffee-coverage": "^2.0.1",
-    "coffee-loader": "^0.8.0",
+    "coffee-loader": "^0.7.2",
     "coveralls": "^3.0.0",
     "fbp-loader": "^0.1.1",
     "grunt": "^1.0.1",
