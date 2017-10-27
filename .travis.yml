@@ -1,7 +1,7 @@
 language: node_js
 sudo: false
 node_js:
-- '4.6'
+- '6'
 script:
 - npm test
 - ./node_modules/.bin/nyc check-coverage --lines 75
