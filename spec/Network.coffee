@@ -170,10 +170,6 @@ describe 'NoFlo Network', ->
         done()
       n.sendInitials()
 
-    describe 'once started', ->
-      it 'should be marked as started', ->
-        chai.expect(n.isStarted()).to.equal true
-
     describe 'with a renamed node', ->
       it 'should have the process in a new location', (done) ->
         g.once 'renameNode', ->
