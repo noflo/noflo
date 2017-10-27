@@ -109,6 +109,19 @@ class Network extends EventEmitter
         @emit ev.type, ev.payload
       @eventBuffer = []
 
+    if event is 'ip'
+      # Emit also the legacy events from IP
+      switch payload.type
+        when 'openBracket'
+          @bufferedEmit 'begingroup', payload
+          return
+        when 'closeBracket'
+          @bufferedEmit 'endgroup', payload
+          return
+        when 'data'
+          @bufferedEmit 'data', payload
+          return
+
   # ## Loading components
   #
   # Components can be passed to the NoFlo network in two ways:
@@ -354,11 +367,6 @@ class Network extends EventEmitter
         data.subgraph = [node.id]
       @bufferedEmit type, data
 
-    node.component.network.on 'connect', (data) -> emitSub 'connect', data
-    node.component.network.on 'begingroup', (data) -> emitSub 'begingroup', data
-    node.component.network.on 'data', (data) -> emitSub 'data', data
-    node.component.network.on 'endgroup', (data) -> emitSub 'endgroup', data
-    node.component.network.on 'disconnect', (data) -> emitSub 'disconnect', data
     node.component.network.on 'ip', (data) -> emitSub 'ip', data
     node.component.network.on 'process-error', (data) ->
       emitSub 'process-error', data
@@ -372,50 +380,22 @@ class Network extends EventEmitter
         socket: socket
         data: ip.data
         metadata: socket.metadata
-    socket.on 'connect', =>
-      if source and source.component.isLegacy()
-        # Handle activation for legacy components
-        source.component.__openConnections = 0 unless source.component.__openConnections
-        source.component.__openConnections++
-      @bufferedEmit 'connect',
-        id: socket.getId()
-        socket: socket
-        metadata: socket.metadata
-    socket.on 'begingroup', (group) =>
-      @bufferedEmit 'begingroup',
-        id: socket.getId()
-        socket: socket
-        group: group
-        metadata: socket.metadata
-    socket.on 'data', (data) =>
-      @bufferedEmit 'data',
-        id: socket.getId()
-        socket: socket
-        data: data
-        metadata: socket.metadata
-    socket.on 'endgroup', (group) =>
-      @bufferedEmit 'endgroup',
-        id: socket.getId()
-        socket: socket
-        group: group
-        metadata: socket.metadata
-    socket.on 'disconnect', =>
-      @bufferedEmit 'disconnect',
-        id: socket.getId()
-        socket: socket
-        metadata: socket.metadata
-      if source and source.component.isLegacy()
-        # Handle deactivation for legacy components
-        source.component.__openConnections--
-        if source.component.__openConnections < 0
-          source.component.__openConnections = 0
-        if source.component.__openConnections is 0
-          @checkIfFinished()
     socket.on 'error', (event) =>
       if @listeners('process-error').length is 0
         throw event.error if event.id and event.metadata and event.error
         throw event
       @bufferedEmit 'process-error', event
+    return unless source?.component?.isLegacy()
+    # Handle activation for legacy components via connects/disconnects
+    socket.on 'connect', =>
+      source.component.__openConnections = 0 unless source.component.__openConnections
+      source.component.__openConnections++
+    socket.on 'disconnect', =>
+      source.component.__openConnections--
+      if source.component.__openConnections < 0
+        source.component.__openConnections = 0
+      if source.component.__openConnections is 0
+        @checkIfFinished()
 
   subscribeNode: (node) ->
     node.component.on 'deactivate', (load) =>
