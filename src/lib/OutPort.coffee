@@ -9,6 +9,8 @@ IP = require './IP'
 class OutPort extends BasePort
   constructor: (options) ->
     @cache = {}
+    options ?= {}
+    options.scoped ?= true
     super options
 
   attach: (socket, index = null) ->
