@@ -34,7 +34,7 @@
     "grunt-contrib-watch": "~1.0.0",
     "grunt-mocha-phantomjs": "^4.0.0",
     "grunt-mocha-test": "^0.13.2",
-    "grunt-noflo-browser": "^1.1.4",
+    "grunt-noflo-browser": "^1.4.0",
     "json-loader": "^0.5.4",
     "mocha": "^4.0.0",
     "nyc": "^11.2.1"
