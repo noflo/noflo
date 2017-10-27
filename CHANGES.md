@@ -4,6 +4,7 @@ NoFlo ChangeLog
 ## 0.8.7 (git master)
 
 * Improved errors thrown when trying to read from non-existing ports
+* Added _unscoped_ support for outports. Setting `scoped: false` on an outport will force all packets sent to that port to be unscoped
 
 ## 0.8.6 (October 21st 2017)
 
