@@ -980,17 +980,11 @@ describe 'Network Lifecycle', ->
     it 'should forward new-style brackets as expected', (done) ->
       expected = [
         'START'
-        'DATA -> IN Leg2() CONN'
-        'Leg2() OUT -> IN2 PcMerge() CONN'
         'DATA -> IN Leg2() DATA foo'
         'Leg2() OUT -> IN2 PcMerge() DATA fooLeg2'
-        'Leg2() OUT -> IN2 PcMerge() DISC'
-        'DATA -> IN Leg2() DISC'
-        'Leg1() OUT -> IN1 PcMerge() CONN'
         'Leg1() OUT -> IN1 PcMerge() < 1'
         'Leg1() OUT -> IN1 PcMerge() < a'
         'Leg1() OUT -> IN1 PcMerge() DATA bazLeg1'
-        'PcMerge() OUT -> IN Wp() CONN'
         'PcMerge() OUT -> IN Wp() < 1'
         'PcMerge() OUT -> IN Wp() < a'
         'PcMerge() OUT -> IN Wp() DATA 1bazLeg1:2fooLeg2:PcMerge'
@@ -998,15 +992,11 @@ describe 'Network Lifecycle', ->
         'PcMerge() OUT -> IN Wp() > a'
         'Leg1() OUT -> IN1 PcMerge() > 1'
         'PcMerge() OUT -> IN Wp() > 1'
-        'PcMerge() OUT -> IN Wp() DISC'
-        'Leg1() OUT -> IN1 PcMerge() DISC'
-        'Wp() OUT -> IN Leg3() CONN'
         'Wp() OUT -> IN Leg3() < 1'
         'Wp() OUT -> IN Leg3() < a'
         'Wp() OUT -> IN Leg3() DATA 1bazLeg1:2fooLeg2:PcMergeWp'
         'Wp() OUT -> IN Leg3() > a'
         'Wp() OUT -> IN Leg3() > 1'
-        'Wp() OUT -> IN Leg3() DISC'
         'END'
       ]
       received = []
