@@ -186,3 +186,4 @@ exports.debounce = debounce
 exports.unique = unique
 exports.intersection = intersection
 exports.getValues = getValues
+exports.isArray = isArray

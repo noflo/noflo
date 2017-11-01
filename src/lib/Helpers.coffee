@@ -7,10 +7,6 @@ platform = require './Platform'
 utils = require './Utils'
 debug = require('debug') 'noflo:helpers'
 
-isArray = (obj) ->
-  return Array.isArray(obj) if Array.isArray
-  return Object.prototype.toString.call(arg) == '[object Array]'
-
 # WirePattern makes your component collect data from several inports
 # and activates a handler `proc` only when a tuple from all of these
 # ports is complete. The signature of handler function is:
@@ -50,10 +46,10 @@ isArray = (obj) ->
 exports.WirePattern = (component, config, proc) ->
   # In ports
   inPorts = if 'in' of config then config.in else 'in'
-  inPorts = [ inPorts ] unless isArray inPorts
+  inPorts = [ inPorts ] unless utils.isArray inPorts
   # Out ports
   outPorts = if 'out' of config then config.out else 'out'
-  outPorts = [ outPorts ] unless isArray outPorts
+  outPorts = [ outPorts ] unless utils.isArray outPorts
   # Error port
   config.error = 'error' unless 'error' of config
   # For async process
@@ -194,7 +190,7 @@ setupBracketForwarding = (component, config) ->
   return unless config.forwardGroups
   # By default we forward from all inports
   inPorts = config.inPorts
-  if isArray config.forwardGroups
+  if utils.isArray config.forwardGroups
     # Selective forwarding enabled
     inPorts = config.forwardGroups
   for inPort in inPorts
