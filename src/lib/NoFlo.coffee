@@ -64,7 +64,6 @@ exports.OutPort = require './OutPort'
 
 # The old Port API is available for backwards compatibility
 exports.Port = require('./Port').Port
-exports.ArrayPort = require('./ArrayPort').ArrayPort
 
 # ### NoFlo sockets
 #

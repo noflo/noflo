@@ -16,7 +16,7 @@ class Split extends noflo.Component
     @inPorts =
       in: new noflo.Port
     @outPorts =
-      out: new noflo.ArrayPort
+      out: new noflo.Port
     @inPorts.in.on 'connect', (data) =>
       @outPorts.out.connect()
     @inPorts.in.on 'data', (data) =>
