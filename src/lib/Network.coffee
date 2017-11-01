@@ -385,7 +385,7 @@ class Network extends EventEmitter
       @bufferedEmit 'process-error', event
     return unless source?.component?.isLegacy()
     # Handle activation for legacy components via connects/disconnects
-    socket.on 'connect', =>
+    socket.on 'connect', ->
       source.component.__openConnections = 0 unless source.component.__openConnections
       source.component.__openConnections++
     socket.on 'disconnect', =>
