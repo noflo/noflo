@@ -42,6 +42,16 @@ module.exports = ->
     noflo_browser:
       options:
         baseDir: './'
+        webpack:
+          module:
+            rules: [
+              test: /\.js$/,
+              use: [
+                loader: 'babel-loader'
+                options:
+                  presets: ['es2015']
+              ]
+            ]
       build:
         files:
           'browser/noflo.js': ['spec/fixtures/entry.js']

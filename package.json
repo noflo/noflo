@@ -21,11 +21,12 @@
     "fbp-manifest": "~0.2.0"
   },
   "devDependencies": {
+    "babel-core": "^6.26.0",
+    "babel-loader": "^7.1.2",
+    "babel-preset-es2015": "^6.24.1",
     "chai": "^4.0.0",
     "coffee-coverage": "^2.0.1",
-    "coffee-loader": "^0.9.0",
     "coveralls": "^3.0.0",
-    "fbp-loader": "^0.1.1",
     "grunt": "^1.0.1",
     "grunt-cli": "^1.2.0",
     "grunt-coffeelint": "^0.0.16",
@@ -35,7 +36,6 @@
     "grunt-mocha-phantomjs": "^4.0.0",
     "grunt-mocha-test": "^0.13.2",
     "grunt-noflo-browser": "^1.4.0",
-    "json-loader": "^0.5.4",
     "mocha": "^4.0.0",
     "nyc": "^11.2.1"
   },
