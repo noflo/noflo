@@ -8,13 +8,7 @@ IP = require './IP'
 platform = require './Platform'
 
 class InPort extends BasePort
-  constructor: (options, process) ->
-    @process = null
-
-    if not process and typeof options is 'function'
-      process = options
-      options = {}
-
+  constructor: (options) ->
     options ?= {}
 
     options.buffered ?= false
@@ -22,15 +16,9 @@ class InPort extends BasePort
     options.scoped ?= true
     options.triggering ?= true
 
-    if not process and options and options.process
-      process = options.process
+    if options.process
+      platform.deprecated 'InPort process callback is deprecated. Please use Process API'
       delete options.process
-
-    if process
-      platform.deprecated 'InPort process callback is deprecated. Please use Process API or the InPort handle option'
-      unless typeof process is 'function'
-        throw new Error 'process must be a function'
-      @process = process
 
     if options.handle
       platform.deprecated 'InPort handle callback is deprecated. Please use Process API'
@@ -67,7 +55,6 @@ class InPort extends BasePort
       @handleIP ip, localId
 
   handleIP: (ip, id) ->
-    return if @process
     return if @options.control and ip.type isnt 'data'
     ip.owner = @nodeInstance
     ip.index = id if @isAddressable()
@@ -97,18 +84,10 @@ class InPort extends BasePort
 
       # Notify receiver
       if @isAddressable()
-        @process event, id, @nodeInstance if @process
         @emit event, id
       else
-        @process event, @nodeInstance if @process
         @emit event
       return
-
-    if @process
-      if @isAddressable()
-        @process event, payload, id, @nodeInstance
-      else
-        @process event, payload, @nodeInstance
 
     # Emit port event
     return @emit event, payload, id if @isAddressable()
