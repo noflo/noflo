@@ -62,9 +62,6 @@ exports.OutPorts = ports.OutPorts
 exports.InPort = require './InPort'
 exports.OutPort = require './OutPort'
 
-# The old Port API is available for backwards compatibility
-exports.Port = require('./Port').Port
-
 # ### NoFlo sockets
 #
 # The NoFlo [internalSocket](InternalSocket.html) is used for connecting ports of
