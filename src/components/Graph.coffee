@@ -94,15 +94,6 @@ class Graph extends noflo.Component
       continue unless priv.process is nodeName and priv.port is portName
       return pub
 
-    # Then we check ambiguous ports, and if needed, fix them
-    for exported in @network.graph.exports
-      continue unless exported.process is nodeName and exported.port is portName
-      @network.graph.checkTransactionStart()
-      @network.graph.removeExport exported.public
-      @network.graph.addInport exported.public, exported.process, exported.port, exported.metadata
-      @network.graph.checkTransactionEnd()
-      return exported.public
-
     # Component has exported ports and this isn't one of them
     false
 
@@ -111,15 +102,6 @@ class Graph extends noflo.Component
     for pub, priv of @network.graph.outports
       continue unless priv.process is nodeName and priv.port is portName
       return pub
-
-    # Then we check ambiguous ports, and if needed, fix them
-    for exported in @network.graph.exports
-      continue unless exported.process is nodeName and exported.port is portName
-      @network.graph.checkTransactionStart()
-      @network.graph.removeExport exported.public
-      @network.graph.addOutport exported.public, exported.process, exported.port, exported.metadata
-      @network.graph.checkTransactionEnd()
-      return exported.public
 
     # Component has exported ports and this isn't one of them
     false
