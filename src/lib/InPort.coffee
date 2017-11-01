@@ -11,7 +11,6 @@ class InPort extends BasePort
   constructor: (options) ->
     options ?= {}
 
-    options.buffered ?= false
     options.control ?= false
     options.scoped ?= true
     options.triggering ?= true
@@ -66,20 +65,6 @@ class InPort extends BasePort
     @emit 'ip', ip, id
 
   handleSocketEvent: (event, payload, id) ->
-    # Handle buffering the old way
-    if @isBuffered()
-      @buffer.push
-        event: event
-        payload: payload
-        id: id
-
-      # Notify receiver
-      if @isAddressable()
-        @emit event, id
-      else
-        @emit event
-      return
-
     # Emit port event
     return @emit event, payload, id if @isAddressable()
     @emit event, payload
@@ -88,10 +73,15 @@ class InPort extends BasePort
     return @options.default isnt undefined
 
   prepareBuffer: ->
+    if @isAddressable()
+      @scopedBuffer = {} if @options.scoped
+      @indexedBuffer = {}
+      @iipBuffer = {}
+      return
+    @scopedBuffer = {} if @options.scoped
+    @iipBuffer = []
     @buffer = []
-    @indexedBuffer = {} if @isAddressable()
-    @scopedBuffer = {}
-    @iipBuffer = if @isAddressable() then {} else []
+    return
 
   prepareBufferForIP: (ip) ->
     if @isAddressable()
@@ -115,20 +105,6 @@ class InPort extends BasePort
     return unless @options.values
     if @options.values.indexOf(data) is -1
       throw new Error "Invalid data='#{data}' received, not in [#{@options.values}]"
-
-  # Returns the next packet in the (legacy) buffer
-  receive: ->
-    platform.deprecated 'InPort.receive is deprecated. Use InPort.get instead'
-    unless @isBuffered()
-      throw new Error 'Receive is only possible on buffered ports'
-    @buffer.shift()
-
-  # Returns the number of data packets in a (legacy) buffered inport
-  contains: ->
-    platform.deprecated 'InPort.contains is deprecated. Use InPort.has instead'
-    unless @isBuffered()
-      throw new Error 'Contains query is only possible on buffered ports'
-    @buffer.filter((packet) -> return true if packet.event is 'data').length
 
   getBuffer: (scope, idx, initial = false) ->
     if @isAddressable()
