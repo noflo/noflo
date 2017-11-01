@@ -13,26 +13,6 @@ isArray = (obj) ->
   return Array.isArray(obj) if Array.isArray
   return Object.prototype.toString.call(arg) == '[object Array]'
 
-# MapComponent maps a single inport to a single outport, forwarding all
-# groups from in to out and calling `func` on each incoming packet
-exports.MapComponent = (component, func, config) ->
-  platform.deprecated 'noflo.helpers.MapComponent is deprecated. Please port to Process API'
-  config = {} unless config
-  config.inPort = 'in' unless config.inPort
-  config.outPort = 'out' unless config.outPort
-
-  # Set up bracket forwarding
-  component.forwardBrackets = {} unless component.forwardBrackets
-  component.forwardBrackets[config.inPort] = [config.outPort]
-
-  component.process (input, output) ->
-    return unless input.hasData config.inPort
-    data = input.getData config.inPort
-    groups = getGroupContext component, config.inPort, input
-    outProxy = getOutputProxy [config.outPort], output
-    func data, groups, outProxy
-    output.done()
-
 # WirePattern makes your component collect data from several inports
 # and activates a handler `proc` only when a tuple from all of these
 # ports is complete. The signature of handler function is:
