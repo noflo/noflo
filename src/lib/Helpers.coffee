@@ -138,19 +138,6 @@ processApiWirePattern = (component, config, func) ->
     resume = ->
       throw new Error 'noflo.helpers.WirePattern resume is deprecated'
 
-    unless config.async
-      # Set up custom error handlers
-      errorHandler = setupErrorHandler component, config, output
-      # Synchronous WirePattern, call done here
-      func.call component, data, groups, outProxy, postpone, resume, input.scope
-      # No need to call done if component called fail
-      return if output.result.__resolved
-      # Let error handler send any remaining errors
-      do errorHandler
-      # Call done
-      output.done()
-      return
-
     # Async WirePattern will call the output.done callback itself
     errorHandler = setupErrorHandler component, config, output
     func.call component, data, groups, outProxy, (err) ->
@@ -169,7 +156,9 @@ checkDeprecation = (config, func) ->
   if func.length > 4
     platform.deprecated 'noflo.helpers.WirePattern postpone and resume are deprecated. Please port to Process API'
   unless config.async
-    platform.deprecated 'noflo.helpers.WirePattern synchronous is deprecated. Please port to Process API'
+    throw new Error 'noflo.helpers.WirePattern synchronous is deprecated. Please use async: true'
+  if func.length < 4
+    throw new Error 'noflo.helpers.WirePattern callback doesn\'t use callback argument'
   unless config.error is 'error'
     platform.deprecated 'noflo.helpers.WirePattern custom error port name is deprecated. Please switch to "error" or port to WirePattern'
   return

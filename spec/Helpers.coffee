@@ -46,10 +46,12 @@ describe 'Component traits', ->
           out: 'point'
           group: true
           forwardGroups: true
-        , (data, groups, out) ->
+          async: true
+        , (data, groups, out, callback) ->
           chai.expect(groups.length).to.be.above 0
           chai.expect(data).to.deep.equal src[groups[0]]
           out.send data
+          do callback
 
         groups = []
         count = 0
@@ -80,9 +82,11 @@ describe 'Component traits', ->
         noflo.helpers.WirePattern c,
           in: ['x', 'y', 'z']
           out: 'point'
-        , (data, groups, out) ->
+          async: true
+        , (data, groups, out, callback) ->
           chai.expect(groups.length).to.equal 0
           out.send {x: data.x, y: data.y, z: data.z}
+          do callback
 
         p.once 'data', (data) ->
           chai.expect(data).to.deep.equal {x: 123, y: 456, z: 789}
@@ -118,8 +122,10 @@ describe 'Component traits', ->
           out: 'point'
           group: true
           forwardGroups: true
-        , (data, groups, out) ->
+          async: true
+        , (data, groups, out, callback) ->
           out.send {x: data.x, y: data.y, z: data.z}
+          do callback
 
         groups = []
 
@@ -200,8 +206,10 @@ describe 'Component traits', ->
         noflo.helpers.WirePattern c,
           in: ['x', 'y']
           out: 'point'
-        , (data, groups, out) ->
+          async: true
+        , (data, groups, out, callback) ->
           out.send { x: data.x, y: data.y }
+          do callback
 
         counter = 0
         hadData = false
@@ -234,8 +242,10 @@ describe 'Component traits', ->
           in: ['x', 'y', 'z']
           out: 'point'
           forwardGroups: 'y'
-        , (data, groups, out) ->
+          async: true
+        , (data, groups, out, callback) ->
           out.send { x: data.x, y: data.y, z: data.z }
+          do callback
 
         groups = []
         p.on 'begingroup', (grp) ->
@@ -269,8 +279,10 @@ describe 'Component traits', ->
           in: ['x', 'y', 'z']
           out: 'point'
           forwardGroups: [ 'x', 'z' ]
-        , (data, groups, out) ->
+          async: true
+        , (data, groups, out, callback) ->
           out.send { x: data.x, y: data.y, z: data.z }
+          do callback
 
         groups = []
         p.on 'begingroup', (grp) ->
@@ -318,25 +330,6 @@ describe 'Component traits', ->
       it 'should correctly bind component to `this` context', (done) ->
         noflo.helpers.WirePattern c,
           in: ['x', 'y', 'z']
-          out: 'point'
-        , (data, groups, out) ->
-          chai.expect(this).to.deep.equal c
-          out.send {x: data.x, y: data.y, z: data.z}
-
-        p.once 'data', (data) ->
-          chai.expect(data).to.deep.equal {x: 123, y: 456, z: 789}
-          done()
-
-        x.send 123
-        x.disconnect()
-        y.send 456
-        y.disconnect()
-        z.send 789
-        z.disconnect()
-
-      it 'should correctly bind component to `this` context in async mode', (done) ->
-        noflo.helpers.WirePattern c,
-          in: ['x', 'y', 'z']
           async: true
           out: 'point'
         , (data, groups, out, callback) ->
@@ -354,7 +347,7 @@ describe 'Component traits', ->
         z.send 789
         z.disconnect()
 
-    describe 'when in async mode and packet order matters', ->
+    describe 'when packet order matters', ->
       c = new noflo.Component
       c.inPorts.add 'delay', datatype: 'int'
       .add 'msg', datatype: 'string'
@@ -408,6 +401,25 @@ describe 'Component traits', ->
           delay.disconnect()
           msg.disconnect()
           idx++
+
+      it 'should throw if sync mode is used', (done) ->
+        f = ->
+          noflo.helpers.WirePattern c,
+            in: ['delay', 'msg']
+          , (data, groups, res) ->
+
+        chai.expect(f).to.throw Error
+        done()
+
+      it 'should throw if async callback doesn\'t have needed amount of arguments', (done) ->
+        f = ->
+          noflo.helpers.WirePattern c,
+            in: ['delay', 'msg']
+            async: true
+          , (data, groups, res) ->
+
+        chai.expect(f).to.throw Error
+        done()
 
       it 'should throw if receiveStreams is used', (done) ->
         f = ->
@@ -767,7 +779,8 @@ describe 'Component traits', ->
           in: ['data1', 'data2']
           out: 'out'
           params: ['param1', 'param2', 'param3']
-        , (input, groups, out) ->
+          async: true
+        , (input, groups, out, callback) ->
           res =
             p1: c.params.param1
             p2: c.params.param2
@@ -775,6 +788,7 @@ describe 'Component traits', ->
             d1: input.data1
             d2: input.data2
           out.send res
+          do callback
         err.on 'data', (data) ->
           done data
         out.once 'data', (data) ->
@@ -861,13 +875,15 @@ describe 'Component traits', ->
           in: ['data1', 'data2']
           out: 'out'
           params: ['param1', 'param2', 'param3']
-        , (input, groups, out) ->
+          async: true
+        , (input, groups, out, callback) ->
           out.send
             p1: c.params.param1
             p2: c.params.param2
             p3: c.params.param3
             d1: input.data1
             d2: input.data2
+          do callback
 
         d1.send 'boo'
         d1.disconnect()
@@ -890,7 +906,8 @@ describe 'Component traits', ->
           out: 'out'
           params: ['param1', 'param2', 'param3']
           dropInput: true
-        , (input, groups, out) ->
+          async: true
+        , (input, groups, out, callback) ->
           res =
             p1: c.params.param1
             p2: c.params.param2
@@ -898,6 +915,7 @@ describe 'Component traits', ->
             d1: input.data1
             d2: input.data2
           out.send res
+          do callback
 
         err.on 'data', (data) ->
           done data
@@ -958,7 +976,7 @@ describe 'Component traits', ->
         foo.send 'foo'
         foo.disconnect()
 
-    describe 'with many inputs and groups in async mode', ->
+    describe 'with many inputs and groups', ->
       ins = noflo.internalSocket.createSocket()
       msg = noflo.internalSocket.createSocket()
       rep = noflo.internalSocket.createSocket()
@@ -990,93 +1008,6 @@ describe 'Component traits', ->
             out.endGroup()
             do callback
           , 300
-        c.inPorts.in.attach ins
-        c.inPorts.message.attach msg
-        c.inPorts.repository.attach rep
-        c.inPorts.path.attach pth
-        c.inPorts.token.attach tkn
-        c.outPorts.out.attach out
-        c.outPorts.error.attach err
-
-      it 'should handle mixed flow well', (done) ->
-        groups = []
-        refGroups = [
-          'foo'
-          'http://techcrunch.com/2013/03/26/embedly-now/'
-          'path data'
-        ]
-        ends = 0
-        packets = []
-        refData = ['message data']
-        out.on 'begingroup', (grp) ->
-          groups.push grp
-        out.on 'endgroup', ->
-          ends++
-        out.on 'data', (data) ->
-          packets.push data
-        out.on 'disconnect', ->
-          chai.expect(groups).to.deep.equal refGroups
-          chai.expect(ends).to.equal 3
-          chai.expect(packets).to.deep.equal refData
-          done()
-
-        err.on 'data', (data) ->
-          done data
-
-        rep.beginGroup 'foo'
-        rep.beginGroup 'http://techcrunch.com/2013/03/26/embedly-now/'
-        rep.send 'repo data'
-        rep.endGroup()
-        rep.endGroup()
-        ins.beginGroup 'foo'
-        ins.beginGroup 'http://techcrunch.com/2013/03/26/embedly-now/'
-        ins.send 'ins data'
-        msg.beginGroup 'foo'
-        msg.beginGroup 'http://techcrunch.com/2013/03/26/embedly-now/'
-        msg.send 'message data'
-        msg.endGroup()
-        msg.endGroup()
-        ins.endGroup()
-        ins.endGroup()
-        ins.disconnect()
-        msg.disconnect()
-        pth.beginGroup 'foo'
-        pth.beginGroup 'http://techcrunch.com/2013/03/26/embedly-now/'
-        pth.send 'path data'
-        pth.endGroup()
-        pth.endGroup()
-        pth.disconnect()
-        rep.disconnect()
-    describe 'with many inputs and groups in sync mode', ->
-      ins = noflo.internalSocket.createSocket()
-      msg = noflo.internalSocket.createSocket()
-      rep = noflo.internalSocket.createSocket()
-      pth = noflo.internalSocket.createSocket()
-      tkn = noflo.internalSocket.createSocket()
-      out = noflo.internalSocket.createSocket()
-      err = noflo.internalSocket.createSocket()
-      before ->
-        c = new noflo.Component
-        c.token = null
-        c.inPorts.add 'in', datatype: 'string'
-        .add 'message', datatype: 'string'
-        .add 'repository', datatype: 'string'
-        .add 'path', datatype: 'string'
-        .add 'token', datatype: 'string', (event, payload) ->
-          c.token = payload if event is 'data'
-        c.outPorts.add 'out', datatype: 'string'
-        .add 'error', datatype: 'object'
-
-        noflo.helpers.WirePattern c,
-          in: ['in', 'message', 'repository', 'path']
-          out: 'out'
-          async: false
-          forwardGroups: true
-        , (data, groups, out) ->
-          out.beginGroup data.path
-          out.send data.message
-          out.endGroup()
-
         c.inPorts.in.attach ins
         c.inPorts.message.attach msg
         c.inPorts.repository.attach rep
@@ -1166,9 +1097,11 @@ describe 'Component traits', ->
           in: 'num'
           out: 'out'
           forwardGroups: true
-        , (num, groups, out) ->
+          async: true
+        , (num, groups, out, callback) ->
           dbl = 2*num
           out.send dbl
+          do callback
       newAdder = ->
         adder = new noflo.Component
         adder.inPorts.add 'num1', datatype: 'int'
@@ -1190,15 +1123,11 @@ describe 'Component traits', ->
       newSeqsum = ->
         seqsum = new noflo.Component
         seqsum.sum = 0
-        seqsum.inPorts.add 'seq', datatype: 'int', (event, payload) ->
-          switch event
-            when 'data'
-              seqsum.sum += payload
-            when 'disconnect'
-              seqsum.outPorts.sum.send seqsum.sum
-              seqsum.sum = 0
-              seqsum.outPorts.sum.disconnect()
+        seqsum.inPorts.add 'seq', datatype: 'int'
         seqsum.outPorts.add 'sum', datatype: 'int'
+        seqsum.process (input, output) ->
+          return unless input.hasData 'seq'
+          seqsum.sum += input.getData 'seq'
         return seqsum
 
       cntA = noflo.internalSocket.createSocket()
@@ -1292,9 +1221,11 @@ describe 'Component traits', ->
           in: 'num'
           out: 'out'
           forwardGroups: true
-        , (num, groups, out) ->
+          async: true
+        , (num, groups, out, callback) ->
           chai.expect(groups).to.deep.equal ['foo', 'bar']
           out.send num
+          do callback
 
         expected = ['<foo>', '<bar>', 0, 1, 2, '</bar>', '</foo>']
         actual = []
@@ -1368,10 +1299,12 @@ describe 'Component traits', ->
           arrayPolicy: # default values
             in: 'any'
             params: 'all'
-        , (input, groups, out) ->
+          async: true
+        , (input, groups, out, callback) ->
           chai.expect(c.params.p1).to.deep.equal { 0: 1, 1: 2, 2: 3 }
           chai.expect(input.d1).to.deep.equal {0: 1}
           chai.expect(input.d2).to.equal 'foo'
+          do callback
           done()
 
         d2.send 'foo'
@@ -1393,10 +1326,12 @@ describe 'Component traits', ->
           arrayPolicy: # inversed
             in: 'all'
             params: 'any'
-        , (input, groups, out) ->
+          async: true
+        , (input, groups, out, callback) ->
           chai.expect(c.params.p1).to.deep.equal {0: 1}
           chai.expect(input.d1).to.deep.equal { 0: 1, 1: 2, 2: 3 }
           chai.expect(input.d2).to.equal 'foo'
+          do callback
           done()
 
         out.on 'disconnect', ->
@@ -1423,8 +1358,10 @@ describe 'Component traits', ->
           out: 'out'
           arrayPolicy:
             in: 'all'
-        , (input, groups, out) ->
+          async: true
+        , (input, groups, out, callback) ->
           chai.expect(input).to.deep.equal { 0: 1, 1: 2, 2: 3 }
+          do callback
           done()
 
         d11.send 1
@@ -1456,8 +1393,10 @@ describe 'Component traits', ->
           in: 'in'
           out: 'out'
           forwardGroups: true
-        , (input, groups, out) ->
+          async: true
+        , (input, groups, out, callback) ->
           out.send input
+          do callback
         d3 = noflo.internalSocket.createSocket()
         c2.inPorts.in.attach d3
         c2.outPorts.out.attach d11
@@ -1465,8 +1404,10 @@ describe 'Component traits', ->
         noflo.helpers.WirePattern c,
           in: 'd1'
           out: 'out'
-        , (input, groups, out) ->
+          async: true
+        , (input, groups, out, callback) ->
           chai.expect(input).to.deep.equal {0: 'My string'}
+          do callback
           done()
 
         d3.send 'My string'
