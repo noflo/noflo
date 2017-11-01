@@ -105,13 +105,9 @@ describe 'Inport Port', ->
   describe 'with buffering', ->
     it 'should buffer incoming packets until `receive()`d', (done) ->
       expectedEvents = [
-        'connect'
         'data'
         'data'
-        'disconnect'
-        'connect'
         'data'
-        'disconnect'
       ]
       expectedData = [
         'buffered-data-1'
@@ -121,9 +117,9 @@ describe 'Inport Port', ->
 
       p = new noflo.InPort
         buffered: true
-      , (eventName) ->
+      p.on 'ip', (ip) ->
         expectedEvent = expectedEvents.shift()
-        chai.expect(eventName).to.equal expectedEvent
+        chai.expect(ip.type).to.equal expectedEvent
         packet = p.receive()
         chai.expect(packet).to.be.an 'object'
         chai.expect(packet.event).to.equal expectedEvent
@@ -197,19 +193,6 @@ describe 'Inport Port', ->
       chai.expect(-> s.send('terrific')).to.throw
 
   describe 'with processing shorthand', ->
-    it 'should create a port with a callback', ->
-      s = new noflo.internalSocket.InternalSocket
-      ps =
-        outPorts: new noflo.OutPorts
-          out: new noflo.OutPort
-        inPorts: new noflo.InPorts
-      ps.inPorts.add 'in', (event, payload) ->
-        return unless event is 'data'
-        chai.expect(payload).to.equal 'some-data'
-      chai.assert ps.inPorts.in instanceof noflo.InPort
-      ps.inPorts.in.attach s
-      s.send 'some-data'
-
     it 'should also accept metadata (i.e. options) when provided', (done) ->
       s = new noflo.internalSocket.InternalSocket
       expectedEvents = [
@@ -224,10 +207,9 @@ describe 'Inport Port', ->
       ps.inPorts.add 'in',
         datatype: 'string'
         required: true
-      , (event, payload) ->
-        chai.expect(event).to.equal expectedEvents.shift()
-        return unless event is 'data'
-        chai.expect(payload).to.equal 'some-data'
+      ps.inPorts.in.on 'ip', (ip) ->
+        return unless ip.type is 'data'
+        chai.expect(ip.data).to.equal 'some-data'
         done()
       ps.inPorts.in.attach s
       chai.expect(ps.inPorts.in.listAttached()).to.eql [0]

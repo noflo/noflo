@@ -38,16 +38,19 @@ describe 'Component', ->
           in:
             datatype: 'string'
             required: true
-            process: (event, packet, component) ->
-              return unless event is 'data'
-              chai.expect(packet).to.equal 'some-data'
-              chai.expect(component).to.equal c
-
-          just_processor: (event, packet, component) ->
-            return unless event is 'data'
+          just_processor: {}
+        process: (input, output) ->
+          if input.hasData 'in'
+            packet = input.getData 'in'
             chai.expect(packet).to.equal 'some-data'
-            chai.expect(component).to.equal c
+            output.done()
+            return
+          if input.hasData 'just_processor'
+            packet = input.getData 'just_processor'
+            chai.expect(packet).to.equal 'some-data'
+            output.done()
             done()
+            return
 
       s1 = new noflo.internalSocket.InternalSocket
       c.inPorts.in.attach s1
@@ -64,12 +67,11 @@ describe 'Component', ->
           in:
             datatype: 'string'
             required: true
-            process: (event, packet, component) ->
-              return unless event is 'data'
-              chai.expect(packet).to.equal 'some-data'
-              chai.expect(component).to.equal c
-              chai.expect(-> c.error(new Error)).to.throw Error
-              done()
+        process: (input, output) ->
+          packet = input.getData 'in'
+          chai.expect(packet).to.equal 'some-data'
+          chai.expect(-> output.error(new Error)).to.throw Error
+          done()
 
       s1 = new noflo.internalSocket.InternalSocket
       c.inPorts.in.attach s1
@@ -82,16 +84,15 @@ describe 'Component', ->
           in:
             datatype: 'string'
             required: true
-            process: (event, packet, component) ->
-              return unless event is 'data'
-              chai.expect(packet).to.equal 'some-data'
-              chai.expect(component).to.equal c
-              chai.expect(-> c.error(new Error)).to.throw Error
-              done()
         outPorts:
           error:
             datatype: 'object'
             required: true
+        process: (input, output) ->
+          packet = input.getData 'in'
+          chai.expect(packet).to.equal 'some-data'
+          chai.expect(-> output.error(new Error)).to.throw Error
+          done()
 
       s1 = new noflo.internalSocket.InternalSocket
       c.inPorts.in.attach s1
@@ -104,15 +105,14 @@ describe 'Component', ->
           in:
             datatype: 'string'
             required: true
-            process: (event, packet, component) ->
-              return unless event is 'data'
-              chai.expect(packet).to.equal 'some-data'
-              chai.expect(component).to.equal c
-              c.error new Error
-              done()
         outPorts:
           error:
             required: no
+        process: (input, output) ->
+          packet = input.getData 'in'
+          chai.expect(packet).to.equal 'some-data'
+          c.error new Error
+          done()
 
       s1 = new noflo.internalSocket.InternalSocket
       c.inPorts.in.attach s1
@@ -126,15 +126,14 @@ describe 'Component', ->
           in:
             datatype: 'string'
             required: true
-            process: (event, packet, component) ->
-              grps.push packet if event is 'begingroup'
-              return unless event is 'data'
-              chai.expect(packet).to.equal 'some-data'
-              chai.expect(component).to.equal c
-              c.error new Error, grps
         outPorts:
           error:
             datatype: 'object'
+        process: (input, output) ->
+          return unless input.hasData 'in'
+          packet = input.getData 'in'
+          chai.expect(packet).to.equal 'some-data'
+          output.done new Error()
 
       s1 = new noflo.internalSocket.InternalSocket
       s2 = new noflo.internalSocket.InternalSocket
