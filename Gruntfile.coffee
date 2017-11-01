@@ -32,6 +32,8 @@ module.exports = ->
       spec:
         options:
           bare: true
+          transpile:
+            presets: ['es2015']
         expand: true
         cwd: 'spec'
         src: ['**.coffee']
