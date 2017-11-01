@@ -46,7 +46,6 @@ exports.ComponentLoader = require('./ComponentLoader').ComponentLoader
 #
 # These baseclasses can be used for defining NoFlo components.
 exports.Component = require('./Component').Component
-exports.AsyncComponent = require('./AsyncComponent').AsyncComponent
 
 # ### Component helpers
 #
