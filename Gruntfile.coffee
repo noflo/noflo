@@ -6,18 +6,24 @@ module.exports = ->
     # CoffeeScript compilation
     coffee:
       libraries:
+        options:
+          bare: true
         expand: true
         cwd: 'src/lib'
         src: ['**.coffee']
         dest: 'lib'
         ext: '.js'
       components:
+        options:
+          bare: true
         expand: true
         cwd: 'src/components'
         src: ['**.coffee']
         dest: 'components'
         ext: '.js'
       libraries_loaders:
+        options:
+          bare: true
         expand: true
         cwd: 'src/lib/loader'
         src: ['**.coffee']
