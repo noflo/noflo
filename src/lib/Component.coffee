@@ -18,6 +18,7 @@ class Component extends EventEmitter
   icon: null
 
   constructor: (options) ->
+    super()
     options = {} unless options
     options.inPorts = {} unless options.inPorts
     if options.inPorts instanceof ports.InPorts

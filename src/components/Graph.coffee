@@ -8,7 +8,9 @@
 noflo = require "../lib/NoFlo"
 
 class Graph extends noflo.Component
-  constructor: (@metadata) ->
+  constructor: (metadata) ->
+    super()
+    @metadata = metadata
     @network = null
     @ready = true
     @started = false

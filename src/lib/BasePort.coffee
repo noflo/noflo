@@ -23,6 +23,7 @@ validTypes = [
 
 class BasePort extends EventEmitter
   constructor: (options) ->
+    super()
     @handleOptions options
     @sockets = []
     @node = null
