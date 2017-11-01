@@ -634,6 +634,10 @@ class Network extends EventEmitter
           return callback err if err
           @setStarted true
           callback null
+          return
+        return
+      return
+    return
 
   stop: (callback) ->
     unless callback

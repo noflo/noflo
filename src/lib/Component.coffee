@@ -75,11 +75,13 @@ class Component extends EventEmitter
   # at start-up
   setUp: (callback) ->
     do callback
+    return
 
   # The tearDown method is for component-specific cleanup. Called
   # at shutdown
   tearDown: (callback) ->
     do callback
+    return
 
   start: (callback) ->
     return callback() if @isStarted()
@@ -88,6 +90,8 @@ class Component extends EventEmitter
       @started = true
       @emit 'start'
       callback null
+      return
+    return
 
   shutdown: (callback) ->
     finalize = =>
@@ -104,6 +108,7 @@ class Component extends EventEmitter
       @started = false
       @emit 'end'
       callback()
+      return
 
     # Tell the component that it is time to shut down
     @tearDown (err) =>
@@ -114,9 +119,12 @@ class Component extends EventEmitter
           return if load > 0
           @removeListener 'deactivate', checkLoad
           finalize()
+          return
         @on 'deactivate', checkLoad
         return
       finalize()
+      return
+    return
 
   isStarted: -> @started
 
