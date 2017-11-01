@@ -1,29 +1,6 @@
 #     NoFlo - Flow-Based Programming for JavaScript
 #     (c) 2014-2017 Flowhub UG
 #     NoFlo may be freely distributed under the MIT license
-#
-# Generic object clone. From CS cookbook
-clone = (obj) ->
-  if not obj? or typeof obj isnt 'object'
-    return obj
-
-  if obj instanceof Date
-    return new Date(obj.getTime())
-
-  if obj instanceof RegExp
-    flags = ''
-    flags += 'g' if obj.global?
-    flags += 'i' if obj.ignoreCase?
-    flags += 'm' if obj.multiline?
-    flags += 'y' if obj.sticky?
-    return new RegExp(obj.source, flags)
-
-  newInstance = new obj.constructor()
-
-  for key of obj
-    newInstance[key] = clone obj[key]
-
-  return newInstance
 
 # Guess language from filename
 guessLanguageFromFilename = (filename) ->
@@ -33,15 +10,6 @@ guessLanguageFromFilename = (filename) ->
 isArray = (obj) ->
   return Array.isArray(obj) if Array.isArray
   return Object.prototype.toString.call(arg) == '[object Array]'
-
-isObject = (obj) ->
-  type = typeof(obj)
-  type == 'function' or type == 'object' and ! !obj
-
-unique = (array) ->
-  output = {}
-  output[array[key]] = array[key] for key in [0...array.length]
-  value for key, value of output
 
 # the following functions are from http://underscorejs.org/docs/underscore.html
 # Underscore.js 1.8.3 http://underscorejs.org
@@ -130,60 +98,7 @@ debounce = (func, wait, immediate) ->
       context = args = null
     result
 
-#  Retrieve the names of an object’s own properties.
-# Delegates to ECMAScript 5‘s native Object.keys
-getKeys = (obj) ->
-  if !isObject obj
-    return []
-  if Object.keys
-    return Object.keys(obj)
-  keys = []
-  for key of obj
-    if obj.has key
-      keys.push key
-  keys
-
-# Retrieve the values of an object’s properties.
-getValues = (obj) ->
-  keys = getKeys obj
-  length = keys.length
-  values = Array(length)
-  i = 0
-  while i < length
-    values[i] = obj[keys[i]]
-    i++
-  values
-
-# Determine if the array or object contains a given item (using ===).
-# Aliased as includes and include.
-contains = (obj, item, fromIndex) ->
-  if !isArray obj
-    obj = getValues obj
-  if typeof fromIndex != 'number' or guard
-    fromIndex = 0
-  obj.indexOf(item) >= 0
-
-# Produce an array that contains every item
-# shared between all the passed-in arrays.
-intersection = (array) ->
-  result = []
-  argsLength = arguments.length
-  for i in [0..array.length]
-    item = array[i]
-    continue if contains result, item
-
-    for j in [1..argsLength]
-      break if !contains arguments[j], item
-
-    result.push item if j is argsLength
-  result
-
-exports.clone = clone
 exports.guessLanguageFromFilename = guessLanguageFromFilename
-exports.optimizeCb = optimizeCb
 exports.reduceRight = reduceRight
 exports.debounce = debounce
-exports.unique = unique
-exports.intersection = intersection
-exports.getValues = getValues
 exports.isArray = isArray
