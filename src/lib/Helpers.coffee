@@ -14,35 +14,18 @@ debug = require('debug') 'noflo:helpers'
 # proc = (combinedInputData, inputGroups, outputPorts, asyncCallback) ->
 # ```
 #
-# With `config.group = true` it checks incoming group IPs and collates
-# data with matching group IPs. By default this kind of grouping is `false`.
-# Set `config.group` to a RegExp object to correlate inputs only if the
-# group matches the expression (e.g. `^req_`). For non-matching groups
-# the component will act normally.
-#
-# With `config.field = 'fieldName' it collates incoming data by specified
-# field. The component's proc function is passed a combined object with
-# port names used as keys. This kind of grouping is disabled by default.
-#
 # With `config.forwardGroups = true` it would forward group IPs from
 # inputs to the output sending them along with the data. This option also
 # accepts string or array values, if you want to forward groups from specific
 # port(s) only. By default group forwarding is `false`.
 #
-# `config.receiveStreams = [portNames]` feature makes the component expect
-# substreams on specific inports instead of separate IPs (brackets and data).
-# It makes select inports emit `Substream` objects on `data` event
-# and silences `beginGroup` and `endGroup` events.
-#
-# `config.sendStreams = [portNames]` feature makes the component emit entire
-# substreams of packets atomically to the outport. Atomically means that a
 # substream cannot be interrupted by other packets, which is important when
 # doing asynchronous processing. In fact, `sendStreams` is enabled by default
 # on all outports when `config.async` is `true`.
 #
-# WirePattern supports both sync and async `proc` handlers. In latter case
-# pass `config.async = true` and make sure that `proc` accepts callback as
-# 4th parameter and calls it when async operation completes or fails.
+# WirePattern supports async `proc` handlers. Set `config.async = true` and 
+# make sure that `proc` accepts callback as 4th parameter and calls it when
+# async operation completes or fails.
 exports.WirePattern = (component, config, proc) ->
   # In ports
   inPorts = if 'in' of config then config.in else 'in'
