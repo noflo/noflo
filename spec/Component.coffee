@@ -2437,7 +2437,8 @@ describe 'Component', ->
       c.on 'start', ->
         chai.expect(c.started).to.be.true
         done()
-      c.start()
+      c.start (err) ->
+        return done err if err
 
     it 'should emit activate/deactivate event on every tick', (done) ->
       @timeout 100

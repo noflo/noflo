@@ -385,7 +385,8 @@ describe 'NoFlo Graph component', ->
           o.once 'data', (data) ->
             chai.expect(data).to.equal 'default-value'
             done()
-          inst.start()
+          inst.start (err) ->
+            return done err if err
       return
 
     it 'should send initials', (done) ->
@@ -402,7 +403,8 @@ describe 'NoFlo Graph component', ->
           o.once 'data', (data) ->
             chai.expect(data).to.equal 'initial-value'
             done()
-          inst.start()
+          inst.start (err) ->
+            return done err if err
       return
 
     it 'should not send defaults when an inport is attached externally', (done) ->
@@ -421,6 +423,7 @@ describe 'NoFlo Graph component', ->
           o.once 'data', (data) ->
             chai.expect(data).to.equal 'Foo'
             done()
-          inst.start()
+          inst.start (err) ->
+            return done err if err
           i.send 'Foo'
       return
