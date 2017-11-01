@@ -23,7 +23,7 @@ debug = require('debug') 'noflo:helpers'
 # doing asynchronous processing. In fact, `sendStreams` is enabled by default
 # on all outports when `config.async` is `true`.
 #
-# WirePattern supports async `proc` handlers. Set `config.async = true` and 
+# WirePattern supports async `proc` handlers. Set `config.async = true` and
 # make sure that `proc` accepts callback as 4th parameter and calls it when
 # async operation completes or fails.
 exports.WirePattern = (component, config, proc) ->
