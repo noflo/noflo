@@ -216,57 +216,6 @@ describe 'Inport Port', ->
       s.send 'some-data'
       s.disconnect()
 
-  describe 'with IP handle callback option', ->
-    it 'should pass IP objects to handler', (done) ->
-      s = new noflo.internalSocket.InternalSocket
-      ps =
-        outPorts: new noflo.OutPorts
-          out: new noflo.OutPort
-        inPorts: new noflo.InPorts
-      ps.inPorts.add 'in',
-        datatype: 'string'
-        required: true
-        handle: (ip) ->
-          chai.expect(ip).to.be.an 'object'
-          return unless ip.type is 'data'
-          chai.expect(ip.data).to.equal 'some-data'
-          done()
-
-      ps.inPorts.in.attach s
-      chai.expect(ps.inPorts.in.listAttached()).to.eql [0]
-      s.send new noflo.IP 'data', 'some-data'
-
-    it 'should translate legacy events to IP objects', (done) ->
-      s = new noflo.internalSocket.InternalSocket
-      expectedEvents = [
-        'openBracket'
-        'data'
-        'closeBracket'
-      ]
-      ps =
-        outPorts: new noflo.OutPorts
-          out: new noflo.OutPort
-        inPorts: new noflo.InPorts
-      ps.inPorts.add 'in',
-        datatype: 'string'
-        required: true
-        handle: (ip) ->
-          chai.expect(ip).to.be.an 'object'
-          chai.expect(ip.type).to.equal expectedEvents.shift()
-          if ip.type is 'data'
-            chai.expect(ip.data).to.equal 'some-data'
-          # if ip.type is 'openBracket'
-          #   chai.expect(ip.groups).to.be.an 'array'
-          if ip.type is 'closeBracket'
-            done()
-
-      ps.inPorts.in.attach s
-      chai.expect(ps.inPorts.in.listAttached()).to.eql [0]
-      s.beginGroup 'foo'
-      s.send 'some-data'
-      s.endGroup()
-      s.disconnect()
-
     it 'should translate IP objects to legacy events', (done) ->
       s = new noflo.internalSocket.InternalSocket
       expectedEvents = [
@@ -274,6 +223,7 @@ describe 'Inport Port', ->
         'data'
         'disconnect'
       ]
+      receivedEvents = []
       ps =
         outPorts: new noflo.OutPorts
           out: new noflo.OutPort
@@ -281,10 +231,13 @@ describe 'Inport Port', ->
       ps.inPorts.add 'in',
         datatype: 'string'
         required: true
-      , (event, payload) ->
-        chai.expect(event).to.equal expectedEvents.shift()
-        return unless event is 'data'
-        chai.expect(payload).to.equal 'some-data'
+      ps.inPorts.in.on 'connect', ->
+        receivedEvents.push 'connect'
+      ps.inPorts.in.on 'data', ->
+        receivedEvents.push 'data'
+      ps.inPorts.in.on 'disconnect', ->
+        receivedEvents.push 'disconnect'
+        chai.expect(receivedEvents).to.eql expectedEvents
         done()
       ps.inPorts.in.attach s
       chai.expect(ps.inPorts.in.listAttached()).to.eql [0]
