@@ -153,7 +153,7 @@ class Graph extends noflo.Component
         @setUp callback
       return
     return callback null unless @network
-    @network.start (err) ->
+    @network.start (err) =>
       return callback err if err
       @starting = false
       do callback
