@@ -11,15 +11,17 @@ else
   root = 'noflo'
   urlPrefix = '/'
 
-Split =
-  getComponent: ->
-    new noflo.Component
+class Split extends noflo.Component
+  constructor: ->
+    options =
       inPorts:
         in: {}
       outPorts:
         out: {}
       process: (input, output) ->
         output.sendDone input.get 'in'
+    super options
+Split.getComponent = -> new Split
 
 Merge = ->
   inst = new noflo.Component
@@ -170,13 +172,15 @@ describe 'ComponentLoader with no external packages installed', ->
         done()
 
   describe 'register a component at runtime', ->
-    Split =
-      getComponent: ->
-        new noflo.Component
+    class Split extends noflo.Component
+      constructor: ->
+        options =
           inPorts:
             in: {}
           outPorts:
             out: {}
+        super options
+    Split.getComponent = -> new Split
     instance = null
     l.libraryIcons.foo = 'star'
     it 'should be available in the components list', ->
