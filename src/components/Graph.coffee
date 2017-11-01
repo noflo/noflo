@@ -136,9 +136,8 @@ class Graph extends noflo.Component
       , 0
 
   findEdgePorts: (name, process) ->
-    # FIXME: direct process.component.inPorts/outPorts access is only for legacy compat
-    inPorts = process.component.inPorts.ports or process.component.inPorts
-    outPorts = process.component.outPorts.ports or process.component.outPorts
+    inPorts = process.component.inPorts.ports
+    outPorts = process.component.outPorts.ports
 
     for portName, port of inPorts
       targetPortName = @isExportedInport port, name, portName

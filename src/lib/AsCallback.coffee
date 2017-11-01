@@ -30,9 +30,8 @@ prepareNetwork = (component, options, callback) ->
     nodeName = options.name
     graph.addNode nodeName, component
     # Expose ports
-    # FIXME: direct process.component.inPorts/outPorts access is only for legacy compat
-    inPorts = instance.inPorts.ports or instance.inPorts
-    outPorts = instance.outPorts.ports or instance.outPorts
+    inPorts = instance.inPorts.ports
+    outPorts = instance.outPorts.ports
     for port, def of inPorts
       graph.addInport port, nodeName, port
     for port, def of outPorts
