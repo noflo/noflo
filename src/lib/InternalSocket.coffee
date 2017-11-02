@@ -33,7 +33,9 @@ class InternalSocket extends EventEmitter
         error: error
         metadata: @metadata
 
-  constructor: (@metadata = {}) ->
+  constructor: (metadata = {}) ->
+    super()
+    @metadata = metadata
     @brackets = []
     @connected = false
     @dataDelegate = null

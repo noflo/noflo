@@ -10,7 +10,10 @@ fbpGraph = require 'fbp-graph'
 registerLoader = require './loader/register'
 
 class ComponentLoader extends EventEmitter
-  constructor: (@baseDir, @options = {}) ->
+  constructor: (baseDir, options = {}) ->
+    super()
+    @baseDir = baseDir
+    @options = options
     @components = null
     @libraryIcons = {}
     @processing = false

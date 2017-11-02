@@ -6,18 +6,24 @@ module.exports = ->
     # CoffeeScript compilation
     coffee:
       libraries:
+        options:
+          bare: true
         expand: true
         cwd: 'src/lib'
         src: ['**.coffee']
         dest: 'lib'
         ext: '.js'
       components:
+        options:
+          bare: true
         expand: true
         cwd: 'src/components'
         src: ['**.coffee']
         dest: 'components'
         ext: '.js'
       libraries_loaders:
+        options:
+          bare: true
         expand: true
         cwd: 'src/lib/loader'
         src: ['**.coffee']
@@ -26,6 +32,8 @@ module.exports = ->
       spec:
         options:
           bare: true
+          transpile:
+            presets: ['es2015']
         expand: true
         cwd: 'spec'
         src: ['**.coffee']
@@ -36,6 +44,16 @@ module.exports = ->
     noflo_browser:
       options:
         baseDir: './'
+        webpack:
+          module:
+            rules: [
+              test: /\.js$/,
+              use: [
+                loader: 'babel-loader'
+                options:
+                  presets: ['es2015']
+              ]
+            ]
       build:
         files:
           'browser/noflo.js': ['spec/fixtures/entry.js']
@@ -52,7 +70,7 @@ module.exports = ->
         options:
           reporter: 'spec'
           require: [
-            'coffee-script/register'
+            'coffeescript/register'
             'coffee-coverage/register-istanbul'
           ]
           grep: process.env.TESTS

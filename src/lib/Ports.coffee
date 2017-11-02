@@ -11,6 +11,7 @@ OutPort = require './OutPort'
 class Ports extends EventEmitter
   model: InPort
   constructor: (ports) ->
+    super()
     @ports = {}
     return unless ports
     for name, options of ports

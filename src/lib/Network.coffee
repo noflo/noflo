@@ -40,7 +40,9 @@ class Network extends EventEmitter
   # The network will also listen to graph changes and modify itself
   # accordingly, including removing connections, adding new nodes,
   # and sending new IIPs.
-  constructor: (graph, @options = {}) ->
+  constructor: (graph, options = {}) ->
+    super()
+    @options = options
     @processes = {}
     @connections = []
     @initials = []
@@ -632,6 +634,10 @@ class Network extends EventEmitter
           return callback err if err
           @setStarted true
           callback null
+          return
+        return
+      return
+    return
 
   stop: (callback) ->
     unless callback

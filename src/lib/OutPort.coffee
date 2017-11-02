@@ -7,11 +7,10 @@ BasePort = require './BasePort'
 IP = require './IP'
 
 class OutPort extends BasePort
-  constructor: (options) ->
-    @cache = {}
-    options ?= {}
+  constructor: (options = {}) ->
     options.scoped ?= true
     super options
+    @cache = {}
 
   attach: (socket, index = null) ->
     super socket, index

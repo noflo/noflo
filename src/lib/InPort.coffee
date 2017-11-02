@@ -8,9 +8,7 @@ IP = require './IP'
 platform = require './Platform'
 
 class InPort extends BasePort
-  constructor: (options) ->
-    options ?= {}
-
+  constructor: (options = {}) ->
     options.control ?= false
     options.scoped ?= true
     options.triggering ?= true
