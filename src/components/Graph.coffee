@@ -146,6 +146,9 @@ class Graph extends noflo.Component
   isSubgraph: ->
     true
 
+  isLegacy: ->
+    false
+
   setUp: (callback) ->
     @starting = true
     unless @isReady()
