@@ -145,8 +145,6 @@ class Component extends EventEmitter
   isLegacy: ->
     # Process API
     return false if @handle
-    # WirePattern
-    return false if @_wpData
     # Legacy
     true
 
