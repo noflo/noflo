@@ -1,8 +1,22 @@
 NoFlo ChangeLog
 ===============
 
-## 0.8.7 (git master)
+## 1.0.0-beta1 (git master)
 
+* The shipping NoFlo build is now using ES6 syntax, as provided by the [CoffeeScript 2.x compiler](http://coffeescript.org/). If you need to support older browsers or Node.js versions, you can transpile the code to ES5 using [Babel](https://babeljs.io/)
+* The APIs deprecated in NoFlo 0.8 were removed:
+  - `noflo.AsyncComponent` class -- use WirePattern or Process API instead
+  - `noflo.ArrayPort` class -- use InPort/OutPort with `addressable: true` instead
+  - `noflo.Port` class -- use InPort/OutPort instead
+  - `noflo.helpers.MapComponent` function -- use WirePattern or Process API instead
+  - `noflo.helpers.WirePattern` legacy mode -- now WirePattern always uses Process API internally
+  - `noflo.helpers.WirePattern` synchronous mode -- use `async: true` and callback
+  - `noflo.helpers.MultiError` function -- send errors via callback or error port
+  - `noflo.InPort` process callback -- use Process API
+  - `noflo.InPort` handle callback -- use Process API
+  - `noflo.InPort` receive method -- use Process API getX methods
+  - `noflo.InPort` contains method -- use Process API hasX methods
+  - Subgraph `EXPORTS` mechanism -- disambiguate with INPORT/OUTPORT
 * Improved errors thrown when trying to read from non-existing ports
 * Added _unscoped_ support for outports. Setting `scoped: false` on an outport will force all packets sent to that port to be unscoped
 
