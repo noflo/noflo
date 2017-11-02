@@ -1,2 +1,7 @@
 .git*
 /components/*/
+/browser/
+/spec/*.js
+/spec/*.xml
+/coverage/
+/.nyc_output/
