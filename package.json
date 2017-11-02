@@ -16,9 +16,9 @@
   "dependencies": {
     "coffeescript": "^2.0.0",
     "debug": "^3.0.0",
-    "fbp": "~1.5.0",
+    "fbp": "^1.5.0",
     "fbp-graph": "^0.1.0",
-    "fbp-manifest": "~0.2.0"
+    "fbp-manifest": "^0.2.0"
   },
   "devDependencies": {
     "babel-core": "^6.26.0",
@@ -32,7 +32,7 @@
     "grunt-coffeelint": "^0.0.16",
     "grunt-contrib-coffee": "^2.0.0",
     "grunt-contrib-connect": "^1.0.1",
-    "grunt-contrib-watch": "~1.0.0",
+    "grunt-contrib-watch": "^1.0.0",
     "grunt-mocha-phantomjs": "^4.0.0",
     "grunt-mocha-test": "^0.13.2",
     "grunt-noflo-browser": "^1.4.0",
