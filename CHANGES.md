@@ -19,6 +19,7 @@ NoFlo ChangeLog
   - Subgraph `EXPORTS` mechanism -- disambiguate with INPORT/OUTPORT
 * Improved errors thrown when trying to read from non-existing ports
 * Added _unscoped_ support for outports. Setting `scoped: false` on an outport will force all packets sent to that port to be unscoped
+* Added a deprecation warning when loading legacy API components
 * More information on preparing for NoFlo 1.0 can be found from [this blog post](http://bergie.iki.fi/blog/noflo-10-prep/)
 
 ## 0.8.6 (October 21st 2017)
