@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 1.0.0-beta1 (git master)
+## 1.0.0 (git master)
 
 * The shipping NoFlo build is now using ES6 syntax, as provided by the [CoffeeScript 2.x compiler](http://coffeescript.org/). If you need to support older browsers or Node.js versions, you can transpile the code to ES5 using [Babel](https://babeljs.io/)
 * The APIs deprecated in NoFlo 0.8 were removed:
@@ -19,6 +19,7 @@ NoFlo ChangeLog
   - Subgraph `EXPORTS` mechanism -- disambiguate with INPORT/OUTPORT
 * Improved errors thrown when trying to read from non-existing ports
 * Added _unscoped_ support for outports. Setting `scoped: false` on an outport will force all packets sent to that port to be unscoped
+* More information on preparing for NoFlo 1.0 can be found from [this blog post](http://bergie.iki.fi/blog/noflo-10-prep/)
 
 ## 0.8.6 (October 21st 2017)
 
