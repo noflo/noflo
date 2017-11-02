@@ -16,11 +16,11 @@ class InPort extends BasePort
     options.triggering ?= true
 
     if options.process
-      platform.deprecated 'InPort process callback is deprecated. Please use Process API'
+      throw new Error 'InPort process callback is deprecated. Please use Process API'
       delete options.process
 
     if options.handle
-      platform.deprecated 'InPort handle callback is deprecated. Please use Process API'
+      throw new Error 'InPort handle callback is deprecated. Please use Process API'
       delete options.handle
 
     super options
