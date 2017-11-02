@@ -5,3 +5,5 @@
 /spec/*.xml
 /coverage/
 /.nyc_output/
+.travis.yml
+appveyor.yml
