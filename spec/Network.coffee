@@ -235,19 +235,17 @@ describe 'NoFlo Network', ->
         required: true
         datatype: 'string'
         default: 'default-value',
-        (e, data) =>
-          if e is 'data'
-            c.outPorts.out.send data
-            c.outPorts.out.disconnect()
       c.outPorts.add 'out'
+      c.process (input, output) ->
+        output.sendDone input.get 'in'
 
       cb = new noflo.Component
       cb.inPorts.add 'in',
         required: true
         datatype: 'all'
-        (e, data) =>
-          if e is 'data'
-            testCallback(data)
+      cb.process (input, output) ->
+        return unless input.hasData 'in'
+        testCallback input.getData 'in'
 
       g = new noflo.Graph
       g.baseDir = root

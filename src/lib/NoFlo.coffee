@@ -46,13 +46,11 @@ exports.ComponentLoader = require('./ComponentLoader').ComponentLoader
 #
 # These baseclasses can be used for defining NoFlo components.
 exports.Component = require('./Component').Component
-exports.AsyncComponent = require('./AsyncComponent').AsyncComponent
 
 # ### Component helpers
 #
 # These helpers aid in providing specific behavior in components with minimal overhead.
 exports.helpers = require './Helpers'
-exports.streams = require './Streams'
 
 # ### NoFlo ports
 #
@@ -62,10 +60,6 @@ exports.InPorts = ports.InPorts
 exports.OutPorts = ports.OutPorts
 exports.InPort = require './InPort'
 exports.OutPort = require './OutPort'
-
-# The old Port API is available for backwards compatibility
-exports.Port = require('./Port').Port
-exports.ArrayPort = require('./ArrayPort').ArrayPort
 
 # ### NoFlo sockets
 #

@@ -163,9 +163,8 @@ class Network extends EventEmitter
       process.componentName = node.component
 
       # Inform the ports of the node name
-      # FIXME: direct process.component.inPorts/outPorts access is only for legacy compat
-      inPorts = process.component.inPorts.ports or process.component.inPorts
-      outPorts = process.component.outPorts.ports or process.component.outPorts
+      inPorts = process.component.inPorts.ports
+      outPorts = process.component.outPorts.ports
       for name, port of inPorts
         port.node = node.id
         port.nodeInstance = instance
@@ -200,9 +199,8 @@ class Network extends EventEmitter
     process.id = newId
 
     # Inform the ports of the node name
-    # FIXME: direct process.component.inPorts/outPorts access is only for legacy compat
-    inPorts = process.component.inPorts.ports or process.component.inPorts
-    outPorts = process.component.outPorts.ports or process.component.outPorts
+    inPorts = process.component.inPorts.ports
+    outPorts = process.component.outPorts.ports
     for name, port of inPorts
       continue unless port
       port.node = newId
@@ -387,7 +385,7 @@ class Network extends EventEmitter
       @bufferedEmit 'process-error', event
     return unless source?.component?.isLegacy()
     # Handle activation for legacy components via connects/disconnects
-    socket.on 'connect', =>
+    socket.on 'connect', ->
       source.component.__openConnections = 0 unless source.component.__openConnections
       source.component.__openConnections++
     socket.on 'disconnect', =>

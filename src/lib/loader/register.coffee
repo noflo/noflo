@@ -1,5 +1,5 @@
 {isBrowser} = require '../Platform'
 if isBrowser()
-  module.exports = require './ComponentIo'
+  throw new Error 'Generate NoFlo component loader for browsers with noflo-component-loader'
 else
   module.exports = require './NodeJs'

@@ -38,16 +38,19 @@ describe 'Component', ->
           in:
             datatype: 'string'
             required: true
-            process: (event, packet, component) ->
-              return unless event is 'data'
-              chai.expect(packet).to.equal 'some-data'
-              chai.expect(component).to.equal c
-
-          just_processor: (event, packet, component) ->
-            return unless event is 'data'
+          just_processor: {}
+        process: (input, output) ->
+          if input.hasData 'in'
+            packet = input.getData 'in'
             chai.expect(packet).to.equal 'some-data'
-            chai.expect(component).to.equal c
+            output.done()
+            return
+          if input.hasData 'just_processor'
+            packet = input.getData 'just_processor'
+            chai.expect(packet).to.equal 'some-data'
+            output.done()
             done()
+            return
 
       s1 = new noflo.internalSocket.InternalSocket
       c.inPorts.in.attach s1
@@ -64,12 +67,11 @@ describe 'Component', ->
           in:
             datatype: 'string'
             required: true
-            process: (event, packet, component) ->
-              return unless event is 'data'
-              chai.expect(packet).to.equal 'some-data'
-              chai.expect(component).to.equal c
-              chai.expect(-> c.error(new Error)).to.throw Error
-              done()
+        process: (input, output) ->
+          packet = input.getData 'in'
+          chai.expect(packet).to.equal 'some-data'
+          chai.expect(-> output.error(new Error)).to.throw Error
+          done()
 
       s1 = new noflo.internalSocket.InternalSocket
       c.inPorts.in.attach s1
@@ -82,16 +84,15 @@ describe 'Component', ->
           in:
             datatype: 'string'
             required: true
-            process: (event, packet, component) ->
-              return unless event is 'data'
-              chai.expect(packet).to.equal 'some-data'
-              chai.expect(component).to.equal c
-              chai.expect(-> c.error(new Error)).to.throw Error
-              done()
         outPorts:
           error:
             datatype: 'object'
             required: true
+        process: (input, output) ->
+          packet = input.getData 'in'
+          chai.expect(packet).to.equal 'some-data'
+          chai.expect(-> output.error(new Error)).to.throw Error
+          done()
 
       s1 = new noflo.internalSocket.InternalSocket
       c.inPorts.in.attach s1
@@ -104,15 +105,14 @@ describe 'Component', ->
           in:
             datatype: 'string'
             required: true
-            process: (event, packet, component) ->
-              return unless event is 'data'
-              chai.expect(packet).to.equal 'some-data'
-              chai.expect(component).to.equal c
-              c.error new Error
-              done()
         outPorts:
           error:
             required: no
+        process: (input, output) ->
+          packet = input.getData 'in'
+          chai.expect(packet).to.equal 'some-data'
+          c.error new Error
+          done()
 
       s1 = new noflo.internalSocket.InternalSocket
       c.inPorts.in.attach s1
@@ -126,15 +126,14 @@ describe 'Component', ->
           in:
             datatype: 'string'
             required: true
-            process: (event, packet, component) ->
-              grps.push packet if event is 'begingroup'
-              return unless event is 'data'
-              chai.expect(packet).to.equal 'some-data'
-              chai.expect(component).to.equal c
-              c.error new Error, grps
         outPorts:
           error:
             datatype: 'object'
+        process: (input, output) ->
+          return unless input.hasData 'in'
+          packet = input.getData 'in'
+          chai.expect(packet).to.equal 'some-data'
+          output.done new Error()
 
       s1 = new noflo.internalSocket.InternalSocket
       s2 = new noflo.internalSocket.InternalSocket
@@ -303,19 +302,11 @@ describe 'Component', ->
         inPorts:
           in:
             datatype: 'string'
-            handle: (ip, component) ->
-              chai.expect(ip).to.be.an 'object'
-              chai.expect(ip.type).to.equal 'data'
-              chai.expect(ip.groups).to.be.an 'array'
-              chai.expect(ip.groups).to.eql ['foo']
-              chai.expect(ip.data).to.be.a 'string'
-              chai.expect(ip.data).to.equal 'some-data'
-
-              c.outPorts.out.data 'bar',
-                groups: ['foo']
         outPorts:
           out:
             datatype: 'string'
+        process: (input, output) ->
+          output.sendDone input.get 'in'
 
       s1 = new noflo.internalSocket.InternalSocket
       s2 = new noflo.internalSocket.InternalSocket
@@ -326,7 +317,7 @@ describe 'Component', ->
         chai.expect(ip.groups).to.be.an 'array'
         chai.expect(ip.groups).to.eql ['foo']
         chai.expect(ip.data).to.be.a 'string'
-        chai.expect(ip.data).to.equal 'bar'
+        chai.expect(ip.data).to.equal 'some-data'
         done()
 
       c.inPorts.in.attach s1
@@ -337,26 +328,28 @@ describe 'Component', ->
 
     it 'should support substreams', (done) ->
       c = new noflo.Component
+        forwardBrackets: {}
         inPorts:
           tags:
             datatype: 'string'
-            handle: (ip) ->
-              chai.expect(ip).to.be.an 'object'
-              switch ip.type
-                when 'openBracket'
-                  c.str += "<#{ip.data}>"
-                  c.level++
-                when 'data'
-                  c.str += ip.data
-                when 'closeBracket'
-                  c.str += "</#{ip.data}>"
-                  c.level--
-                  if c.level is 0
-                    c.outPorts.html.data c.str
-                    c.str = ''
         outPorts:
           html:
             datatype: 'string'
+        process: (input, output) ->
+          ip = input.get 'tags'
+          switch ip.type
+            when 'openBracket'
+              c.str += "<#{ip.data}>"
+              c.level++
+            when 'data'
+              c.str += ip.data
+            when 'closeBracket'
+              c.str += "</#{ip.data}>"
+              c.level--
+              if c.level is 0
+                output.send html: c.str
+                c.str = ''
+          output.done()
       c.str = ''
       c.level = 0
 
@@ -364,19 +357,21 @@ describe 'Component', ->
         inPorts:
           bang:
             datatype: 'bang'
-            handle: (ip) ->
-              d.outPorts.tags.openBracket 'p'
-              .openBracket 'em'
-              .data 'Hello'
-              .closeBracket 'em'
-              .data ', '
-              .openBracket 'strong'
-              .data 'World!'
-              .closeBracket 'strong'
-              .closeBracket 'p'
         outPorts:
           tags:
             datatype: 'string'
+        process: (input, output) ->
+          input.getData 'bang'
+          output.send tags: new noflo.IP 'openBracket', 'p'
+          output.send tags: new noflo.IP 'openBracket', 'em'
+          output.send tags: new noflo.IP 'data', 'Hello'
+          output.send tags: new noflo.IP 'closeBracket', 'em'
+          output.send tags: new noflo.IP 'data', ', '
+          output.send tags: new noflo.IP 'openBracket', 'strong'
+          output.send tags: new noflo.IP 'data', 'World!'
+          output.send tags: new noflo.IP 'closeBracket', 'strong'
+          output.send tags: new noflo.IP 'closeBracket', 'p'
+          outout.done()
 
       s1 = new noflo.internalSocket.InternalSocket
       s2 = new noflo.internalSocket.InternalSocket

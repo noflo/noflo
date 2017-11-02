@@ -102,78 +102,6 @@ describe 'Inport Port', ->
       chai.expect(-> f 'text/javascript').to.not.throw()
       chai.expect(-> f 'neither-a-url-nor-mime').to.throw()
 
-  describe 'with buffering', ->
-    it 'should buffer incoming packets until `receive()`d', (done) ->
-      expectedEvents = [
-        'connect'
-        'data'
-        'data'
-        'disconnect'
-        'connect'
-        'data'
-        'disconnect'
-      ]
-      expectedData = [
-        'buffered-data-1'
-        'buffered-data-2'
-        'buffered-data-3'
-      ]
-
-      p = new noflo.InPort
-        buffered: true
-      , (eventName) ->
-        expectedEvent = expectedEvents.shift()
-        chai.expect(eventName).to.equal expectedEvent
-        packet = p.receive()
-        chai.expect(packet).to.be.an 'object'
-        chai.expect(packet.event).to.equal expectedEvent
-        if packet.event is 'data'
-          chai.expect(packet.payload).to.equal expectedData.shift()
-        if expectedEvents.length is 0
-          done()
-      s = new noflo.internalSocket.InternalSocket
-      p.attach s
-      s.send 'buffered-data-1'
-      s.send 'buffered-data-2'
-      s.disconnect()
-      s.send 'buffered-data-3'
-      s.disconnect()
-
-    it 'should be able to tell the number of contained data packets', ->
-      p = new noflo.InPort
-        buffered: true
-      s = new noflo.internalSocket.InternalSocket
-      p.attach s
-      s.send 'buffered-data-1'
-      s.beginGroup 'foo'
-      s.send 'buffered-data-2'
-      s.endGroup()
-      s.disconnect()
-      s.send 'buffered-data-3'
-      s.disconnect()
-      chai.expect(p.contains()).to.equal 3
-
-    it 'should return undefined when buffer is empty', ->
-      p = new noflo.InPort
-        buffered: true
-      chai.expect(p.receive()).to.be.undefined
-
-    it 'shouldn\'t expose the receive method without buffering', ->
-      p = new noflo.InPort
-        # Specified here simply for illustrative purpose, otherwise implied
-        # `false`
-        buffered: false
-      s = new noflo.internalSocket.InternalSocket
-      p.attach s
-
-      p.once 'data', (data) ->
-        chai.expect(data).to.equal 'data'
-        # Receive is not available for non-buffering ports
-        chai.expect(-> p.receive()).to.throw()
-        # Contains is not available for non-buffering ports
-        chai.expect(-> p.contains()).to.throw()
-      s.send 'data'
-
   describe 'with accepted enumerated values', ->
     it 'should accept certain values', (done) ->
       p = new noflo.InPort
@@ -197,19 +125,6 @@ describe 'Inport Port', ->
       chai.expect(-> s.send('terrific')).to.throw
 
   describe 'with processing shorthand', ->
-    it 'should create a port with a callback', ->
-      s = new noflo.internalSocket.InternalSocket
-      ps =
-        outPorts: new noflo.OutPorts
-          out: new noflo.OutPort
-        inPorts: new noflo.InPorts
-      ps.inPorts.add 'in', (event, payload) ->
-        return unless event is 'data'
-        chai.expect(payload).to.equal 'some-data'
-      chai.assert ps.inPorts.in instanceof noflo.InPort
-      ps.inPorts.in.attach s
-      s.send 'some-data'
-
     it 'should also accept metadata (i.e. options) when provided', (done) ->
       s = new noflo.internalSocket.InternalSocket
       expectedEvents = [
@@ -224,65 +139,13 @@ describe 'Inport Port', ->
       ps.inPorts.add 'in',
         datatype: 'string'
         required: true
-      , (event, payload) ->
-        chai.expect(event).to.equal expectedEvents.shift()
-        return unless event is 'data'
-        chai.expect(payload).to.equal 'some-data'
+      ps.inPorts.in.on 'ip', (ip) ->
+        return unless ip.type is 'data'
+        chai.expect(ip.data).to.equal 'some-data'
         done()
       ps.inPorts.in.attach s
       chai.expect(ps.inPorts.in.listAttached()).to.eql [0]
       s.send 'some-data'
-      s.disconnect()
-
-  describe 'with IP handle callback option', ->
-    it 'should pass IP objects to handler', (done) ->
-      s = new noflo.internalSocket.InternalSocket
-      ps =
-        outPorts: new noflo.OutPorts
-          out: new noflo.OutPort
-        inPorts: new noflo.InPorts
-      ps.inPorts.add 'in',
-        datatype: 'string'
-        required: true
-        handle: (ip) ->
-          chai.expect(ip).to.be.an 'object'
-          return unless ip.type is 'data'
-          chai.expect(ip.data).to.equal 'some-data'
-          done()
-
-      ps.inPorts.in.attach s
-      chai.expect(ps.inPorts.in.listAttached()).to.eql [0]
-      s.send new noflo.IP 'data', 'some-data'
-
-    it 'should translate legacy events to IP objects', (done) ->
-      s = new noflo.internalSocket.InternalSocket
-      expectedEvents = [
-        'openBracket'
-        'data'
-        'closeBracket'
-      ]
-      ps =
-        outPorts: new noflo.OutPorts
-          out: new noflo.OutPort
-        inPorts: new noflo.InPorts
-      ps.inPorts.add 'in',
-        datatype: 'string'
-        required: true
-        handle: (ip) ->
-          chai.expect(ip).to.be.an 'object'
-          chai.expect(ip.type).to.equal expectedEvents.shift()
-          if ip.type is 'data'
-            chai.expect(ip.data).to.equal 'some-data'
-          # if ip.type is 'openBracket'
-          #   chai.expect(ip.groups).to.be.an 'array'
-          if ip.type is 'closeBracket'
-            done()
-
-      ps.inPorts.in.attach s
-      chai.expect(ps.inPorts.in.listAttached()).to.eql [0]
-      s.beginGroup 'foo'
-      s.send 'some-data'
-      s.endGroup()
       s.disconnect()
 
     it 'should translate IP objects to legacy events', (done) ->
@@ -292,6 +155,7 @@ describe 'Inport Port', ->
         'data'
         'disconnect'
       ]
+      receivedEvents = []
       ps =
         outPorts: new noflo.OutPorts
           out: new noflo.OutPort
@@ -299,10 +163,13 @@ describe 'Inport Port', ->
       ps.inPorts.add 'in',
         datatype: 'string'
         required: true
-      , (event, payload) ->
-        chai.expect(event).to.equal expectedEvents.shift()
-        return unless event is 'data'
-        chai.expect(payload).to.equal 'some-data'
+      ps.inPorts.in.on 'connect', ->
+        receivedEvents.push 'connect'
+      ps.inPorts.in.on 'data', ->
+        receivedEvents.push 'data'
+      ps.inPorts.in.on 'disconnect', ->
+        receivedEvents.push 'disconnect'
+        chai.expect(receivedEvents).to.eql expectedEvents
         done()
       ps.inPorts.in.attach s
       chai.expect(ps.inPorts.in.listAttached()).to.eql [0]

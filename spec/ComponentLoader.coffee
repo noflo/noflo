@@ -13,16 +13,14 @@ else
 
 class Split extends noflo.Component
   constructor: ->
-    @inPorts =
-      in: new noflo.Port
-    @outPorts =
-      out: new noflo.ArrayPort
-    @inPorts.in.on 'connect', (data) =>
-      @outPorts.out.connect()
-    @inPorts.in.on 'data', (data) =>
-      @outPorts.out.send data
-    @inPorts.in.on 'disconnect', =>
-      @outPorts.out.disconnect()
+    options =
+      inPorts:
+        in: {}
+      outPorts:
+        out: {}
+      process: (input, output) ->
+        output.sendDone input.get 'in'
+    super options
 Split.getComponent = -> new Split
 
 Merge = ->
@@ -176,10 +174,12 @@ describe 'ComponentLoader with no external packages installed', ->
   describe 'register a component at runtime', ->
     class Split extends noflo.Component
       constructor: ->
-        @inPorts =
-          in: new noflo.Port
-        @outPorts =
-          out: new noflo.Port
+        options =
+          inPorts:
+            in: {}
+          outPorts:
+            out: {}
+        super options
     Split.getComponent = -> new Split
     instance = null
     l.libraryIcons.foo = 'star'
@@ -193,8 +193,8 @@ describe 'ComponentLoader with no external packages installed', ->
         instance = split
         done()
     it 'should have the correct ports', ->
-      chai.expect(instance.inPorts).to.have.keys ['in']
-      chai.expect(instance.outPorts).to.have.keys ['out']
+      chai.expect(instance.inPorts.ports).to.have.keys ['in']
+      chai.expect(instance.outPorts.ports).to.have.keys ['out']
     it 'should have inherited its icon from the library', ->
       chai.expect(instance.getIcon()).to.equal 'star'
     it 'should emit an event on icon change', (done) ->
