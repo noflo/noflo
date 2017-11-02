@@ -8,6 +8,7 @@ internalSocket = require './InternalSocket'
 fbpGraph = require 'fbp-graph'
 {EventEmitter} = require 'events'
 registerLoader = require './loader/register'
+platform = require './Platform'
 
 class ComponentLoader extends EventEmitter
   constructor: (baseDir, options = {}) ->
@@ -85,6 +86,9 @@ class ComponentLoader extends EventEmitter
 
       instance.baseDir = @baseDir if name is 'Graph'
       instance.componentName = name if typeof name is 'string'
+
+      if instance.isLegacy()
+        platform.deprecated "Component #{name} uses legacy NoFlo APIs. Please port to Process API"
 
       @setIcon name, instance
       callback null, instance
