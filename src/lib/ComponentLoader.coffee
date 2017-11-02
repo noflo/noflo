@@ -68,7 +68,7 @@ class ComponentLoader extends EventEmitter
         return
 
     if @isGraph component
-      if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
+      unless platform.isBrowser()
         # nextTick is faster on Node.js
         process.nextTick =>
           @loadGraph name, component, callback, metadata
