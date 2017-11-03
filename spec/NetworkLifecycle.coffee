@@ -198,6 +198,32 @@ describe 'Network Lifecycle', ->
       loader.registerComponent 'legacy', 'Sync', legacyBasic
       done()
 
+  describe 'recognizing API level', ->
+    it 'should recognize legacy component as such', (done) ->
+      loader.load 'legacy/Sync', (err, inst) ->
+        return done err if err
+        chai.expect(inst.isLegacy()).to.equal true
+        done()
+      return
+    it 'should recognize WirePattern component as non-legacy', (done) ->
+      loader.load 'wirepattern/Async', (err, inst) ->
+        return done err if err
+        chai.expect(inst.isLegacy()).to.equal false
+        done()
+      return
+    it 'should recognize Process API component as non-legacy', (done) ->
+      loader.load 'process/Async', (err, inst) ->
+        return done err if err
+        chai.expect(inst.isLegacy()).to.equal false
+        done()
+      return
+    it 'should recognize Graph component as non-legacy', (done) ->
+      loader.load 'Graph', (err, inst) ->
+        return done err if err
+        chai.expect(inst.isLegacy()).to.equal false
+        done()
+      return
+
   describe 'with single Process API component receiving IIP', ->
     c = null
     g = null
