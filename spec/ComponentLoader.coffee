@@ -170,7 +170,7 @@ describe 'ComponentLoader with no external packages installed', ->
         done()
 
   describe 'register a component at runtime', ->
-    class Split extends noflo.Component
+    class FooSplit extends noflo.Component
       constructor: ->
         options =
           inPorts:
@@ -178,11 +178,11 @@ describe 'ComponentLoader with no external packages installed', ->
           outPorts:
             out: {}
         super options
-    Split.getComponent = -> new Split
+    FooSplit.getComponent = -> new FooSplit
     instance = null
     l.libraryIcons.foo = 'star'
     it 'should be available in the components list', ->
-      l.registerComponent 'foo', 'Split', Split
+      l.registerComponent 'foo', 'Split', FooSplit
       chai.expect(l.components).to.contain.keys ['foo/Split', 'Graph']
     it 'should be able to load the component', (done) ->
       l.load 'foo/Split', (err, split) ->
@@ -207,7 +207,7 @@ describe 'ComponentLoader with no external packages installed', ->
         chai.expect(split.getIcon()).to.equal 'star'
         done()
     it 'after setting an icon for the Component class, new instances should have that', (done) ->
-      Split::icon = 'trophy'
+      FooSplit::icon = 'trophy'
       l.load 'foo/Split', (err, split) ->
         return done err if err
         chai.expect(split).to.be.an 'object'
