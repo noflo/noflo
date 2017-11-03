@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 1.0.0 (git master)
+## 1.0.0 (November 3rd 2017)
 
 * The shipping NoFlo build is now using ES6 syntax, as provided by the [CoffeeScript 2.x compiler](http://coffeescript.org/). If you need to support older browsers or Node.js versions, you can transpile the code to ES5 using [Babel](https://babeljs.io/)
 * The APIs deprecated in NoFlo 0.8 were removed:
