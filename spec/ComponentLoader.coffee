@@ -11,29 +11,27 @@ else
   root = 'noflo'
   urlPrefix = '/'
 
-class Split extends noflo.Component
-  constructor: ->
-    options =
-      inPorts:
-        in: {}
-      outPorts:
-        out: {}
-      process: (input, output) ->
-        output.sendDone input.get 'in'
-    super options
-Split.getComponent = -> new Split
-
-Merge = ->
-  inst = new noflo.Component
-  inst.inPorts.add 'in', (event, payload, instance) ->
-    method = event
-    method = 'send' if event is 'data'
-    instance.outPorts[method] 'out', payload
-  inst.outPorts.add 'out'
-  inst
-
 describe 'ComponentLoader with no external packages installed', ->
   l = new noflo.ComponentLoader root
+  class Split extends noflo.Component
+    constructor: ->
+      options =
+        inPorts:
+          in: {}
+        outPorts:
+          out: {}
+        process: (input, output) ->
+          output.sendDone input.get 'in'
+      super options
+  Split.getComponent = -> new Split
+
+  Merge = ->
+    inst = new noflo.Component
+    inst.inPorts.add 'in'
+    inst.outPorts.add 'out'
+    inst.process (input, output) ->
+      output.sendDone input.get 'in'
+    inst
 
   it 'should initially know of no components', ->
     chai.expect(l.components).to.be.null
