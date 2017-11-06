@@ -21,8 +21,6 @@ program = (require 'yargs')
   .wrap(null)
   .argv
 
-require 'coffee-cache' if program.cache
-
 addDebug = (network, verbose, logSubgraph) ->
 
   identifier = (data) ->
