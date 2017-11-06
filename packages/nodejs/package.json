@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "chai": "^4.0.0",
+    "coffee-script": "^1.12.7",
     "coffeelint": "^2.0.7",
     "fbp-protocol": "^0.8.0",
     "grunt": "^1.0.1",
@@ -36,7 +37,7 @@
     "grunt-exec": "^2.0.0",
     "grunt-mocha-test": "^0.13.2",
     "jshint": "^2.9.3",
-    "mocha": "^4.0.1",
+    "mocha": "^3.5.0",
     "noflo-core": ">= 0.4.0"
   }
 }
