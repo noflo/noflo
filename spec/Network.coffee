@@ -53,6 +53,8 @@ describe 'NoFlo Network', ->
       chai.expect(n.isStarted()).to.equal false
     it 'should initially have no processes', ->
       chai.expect(n.processes).to.be.empty
+    it 'should initially have no active processes', ->
+      chai.expect(n.getActiveProcesses()).to.eql []
     it 'should initially have to connections', ->
       chai.expect(n.connections).to.be.empty
     it 'should initially have no IIPs', ->
