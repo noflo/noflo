@@ -529,3 +529,15 @@ describe 'NoFlo Network', ->
       nw.connect (err) ->
         chai.expect(err).to.be.an 'error'
         done()
+    it 'should fail on connect with node without component', (done) ->
+      g = new noflo.Graph
+      g.addNode 'Repeat1', 'Split'
+      g.addNode 'Repeat2'
+      g.addEdge 'Repeat1', 'out', 'Repeat2', 'in'
+      g.addInitial 'hello', 'Repeat1', 'in'
+      nw = new noflo.Network g
+      nw.loader = loader
+      nw.connect (err) ->
+        chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain 'No component defined'
+        done()
