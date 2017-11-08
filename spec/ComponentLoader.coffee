@@ -336,6 +336,10 @@ describe 'ComponentLoader with no external packages installed', ->
               done()
             ins.send 'ES6'
       describe 'with CoffeeScript', ->
+        before ->
+          # CoffeeScript tests work in browser only if we have CoffeeScript
+          # compiler loaded
+          return @skip() if noflo.isBrowser() and not window.CoffeeScript
         workingSource = """
         noflo = require 'noflo'
         exports.getComponent = ->
