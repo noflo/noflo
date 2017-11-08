@@ -94,7 +94,7 @@ class Network extends EventEmitter
 
   bufferedEmit: (event, payload) ->
     # Errors get emitted immediately, like does network end
-    if event in ['error', 'process-error', 'end']
+    if event in ['icon', 'error', 'process-error', 'end']
       @emit event, payload
       return
     if not @isStarted() and event isnt 'end'
