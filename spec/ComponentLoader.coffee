@@ -296,6 +296,45 @@ describe 'ComponentLoader with no external packages installed', ->
               chai.expect(ip.data).to.equal 'ES5'
               done()
             ins.send 'ES5'
+      describe 'with ES6', ->
+        before ->
+          # PhantomJS doesn't work with ES6
+          return @skip() if noflo.isBrowser()
+        workingSource = """
+        const noflo = require('noflo');
+
+        exports.getComponent = () => {
+          const c = new noflo.Component();
+          c.inPorts.add('in');
+          c.outPorts.add('out');
+          c.process((input, output) => {
+            output.sendDone(input.get('in'));
+          });
+          return c;
+        };"""
+
+        it 'should be able to set the source', (done) ->
+          @timeout 10000
+          unless noflo.isBrowser()
+            workingSource = workingSource.replace "'noflo'", "'../src/lib/NoFlo'"
+          l.setSource 'foo', 'RepeatDataES6', workingSource, 'es6', (err) ->
+            return done err if err
+            done()
+        it 'should be a loadable component', (done) ->
+          l.load 'foo/RepeatDataES6', (err, inst) ->
+            return done err if err
+            chai.expect(inst).to.be.an 'object'
+            chai.expect(inst.inPorts).to.contain.keys ['in']
+            chai.expect(inst.outPorts).to.contain.keys ['out']
+            ins = new noflo.internalSocket.InternalSocket
+            out = new noflo.internalSocket.InternalSocket
+            inst.inPorts.in.attach ins
+            inst.outPorts.out.attach out
+            out.on 'ip', (ip) ->
+              chai.expect(ip.type).to.equal 'data'
+              chai.expect(ip.data).to.equal 'ES6'
+              done()
+            ins.send 'ES6'
       describe 'with CoffeeScript', ->
         workingSource = """
         noflo = require 'noflo'
