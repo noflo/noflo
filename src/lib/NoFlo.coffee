@@ -157,7 +157,7 @@ exports.loadFile = (file, options, callback) ->
 #
 # NoFlo graph files can be saved back into the filesystem with this method.
 exports.saveFile = (graph, file, callback) ->
-  exports.graph.save file, callback
+  graph.save file, callback
 
 # ## Embedding NoFlo in existing JavaScript code
 #
