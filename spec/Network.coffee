@@ -508,6 +508,7 @@ describe 'NoFlo Network', ->
       nw.loader = loader
       nw.connect (err) ->
         chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain 'not available'
         done()
     it 'should fail on connect with missing target port', (done) ->
       g = new noflo.Graph
@@ -518,6 +519,7 @@ describe 'NoFlo Network', ->
       nw.loader = loader
       nw.connect (err) ->
         chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain 'No inport'
         done()
     it 'should fail on connect with missing source port', (done) ->
       g = new noflo.Graph
@@ -529,6 +531,7 @@ describe 'NoFlo Network', ->
       nw.loader = loader
       nw.connect (err) ->
         chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain 'No outport'
         done()
     it 'should fail on connect with missing IIP target port', (done) ->
       g = new noflo.Graph
@@ -540,6 +543,7 @@ describe 'NoFlo Network', ->
       nw.loader = loader
       nw.connect (err) ->
         chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain 'No inport'
         done()
     it 'should fail on connect with node without component', (done) ->
       g = new noflo.Graph
