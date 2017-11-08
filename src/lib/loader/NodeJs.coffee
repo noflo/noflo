@@ -137,7 +137,7 @@ exports.setSource = (loader, packageId, name, source, language, callback) ->
     implementation = moduleImpl.exports
   catch e
     return callback e
-  unless implementation or implementation.getComponent
+  unless typeof implementation is 'function' or typeof implementation.getComponent is 'function'
     return callback new Error 'Provided source failed to create a runnable component'
 
   loader.registerComponent packageId, name, implementation, callback
