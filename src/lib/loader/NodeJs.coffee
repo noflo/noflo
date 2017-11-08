@@ -127,13 +127,6 @@ exports.setSource = (loader, packageId, name, source, language, callback) ->
         bare: true
     catch e
       return callback e
-  else if language in ['es6', 'es2015']
-    try
-      babel = require 'babel-core'
-      source = babel.transform(source).code
-    catch e
-      return callback e
-
   try
     # Use the Node.js module API to evaluate in the correct directory context
     modulePath = path.resolve loader.baseDir, "./components/#{name}.js"
