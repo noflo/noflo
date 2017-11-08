@@ -53,6 +53,8 @@ describe 'NoFlo Network', ->
       chai.expect(n.isStarted()).to.equal false
     it 'should initially have no processes', ->
       chai.expect(n.processes).to.be.empty
+    it 'should initially have no active processes', ->
+      chai.expect(n.getActiveProcesses()).to.eql []
     it 'should initially have to connections', ->
       chai.expect(n.connections).to.be.empty
     it 'should initially have no IIPs', ->
@@ -89,6 +91,13 @@ describe 'NoFlo Network', ->
         chai.expect(n.processes.Graph.component.metadata).to.exist
         chai.expect(n.processes.Graph.component.metadata).to.be.an 'object'
         chai.expect(n.processes.Graph.component.metadata).to.eql g.getNode('Graph').metadata
+      it 'adding the same node again should be a no-op', (done) ->
+        originalProcess = n.getNode 'Graph'
+        graphNode = g.getNode 'Graph'
+        n.addNode graphNode, (err, newProcess) ->
+          return done err if err
+          chai.expect(newProcess).to.equal originalProcess
+          done()
       it 'should not contain the node after removal', (done) ->
         g.once 'removeNode', ->
           setTimeout ->
@@ -96,6 +105,13 @@ describe 'NoFlo Network', ->
             done()
           , 10
         g.removeNode 'Graph'
+      it 'should fail when removing the removed node again', (done) ->
+        n.removeNode
+          id: 'Graph'
+        , (err) ->
+          chai.expect(err).to.be.an 'error'
+          chai.expect(err.message).to.contain 'not found'
+          done()
 
   describe 'with a simple graph', ->
     g = null
@@ -178,6 +194,11 @@ describe 'NoFlo Network', ->
         g.renameNode 'Callback', 'Func'
       it 'shouldn\'t have the process in the old location', ->
         chai.expect(n.processes.Callback).to.be.undefined
+      it 'should fail to rename with the old name', (done) ->
+        n.renameNode 'Callback', 'Func', (err) ->
+          chai.expect(err).to.be.an 'error'
+          chai.expect(err.message).to.contain 'not found'
+          done()
       it 'should have informed the ports of their new node name', ->
         for name, port of n.processes.Func.component.inPorts.ports
           chai.expect(port.name).to.equal name
@@ -487,6 +508,7 @@ describe 'NoFlo Network', ->
       nw.loader = loader
       nw.connect (err) ->
         chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain 'not available'
         done()
     it 'should fail on connect with missing target port', (done) ->
       g = new noflo.Graph
@@ -497,6 +519,7 @@ describe 'NoFlo Network', ->
       nw.loader = loader
       nw.connect (err) ->
         chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain 'No inport'
         done()
     it 'should fail on connect with missing source port', (done) ->
       g = new noflo.Graph
@@ -508,6 +531,7 @@ describe 'NoFlo Network', ->
       nw.loader = loader
       nw.connect (err) ->
         chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain 'No outport'
         done()
     it 'should fail on connect with missing IIP target port', (done) ->
       g = new noflo.Graph
@@ -519,4 +543,53 @@ describe 'NoFlo Network', ->
       nw.loader = loader
       nw.connect (err) ->
         chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain 'No inport'
         done()
+    it 'should fail on connect with node without component', (done) ->
+      g = new noflo.Graph
+      g.addNode 'Repeat1', 'Split'
+      g.addNode 'Repeat2'
+      g.addEdge 'Repeat1', 'out', 'Repeat2', 'in'
+      g.addInitial 'hello', 'Repeat1', 'in'
+      nw = new noflo.Network g
+      nw.loader = loader
+      nw.connect (err) ->
+        chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain 'No component defined'
+        done()
+    it 'should fail to add an edge to a missing outbound node', (done) ->
+      g = new noflo.Graph
+      g.addNode 'Repeat1', 'Split'
+      nw = new noflo.Network g
+      nw.loader = loader
+      nw.connect (err) ->
+        return done err if err
+        nw.addEdge {
+          from:
+            node: 'Repeat2'
+            port: 'out'
+          to:
+            node: 'Repeat1'
+            port: 'in'
+        }, (err) ->
+          chai.expect(err).to.be.an 'error'
+          chai.expect(err.message).to.contain 'No process defined for outbound node'
+          done()
+    it 'should fail to add an edge to a missing inbound node', (done) ->
+      g = new noflo.Graph
+      g.addNode 'Repeat1', 'Split'
+      nw = new noflo.Network g
+      nw.loader = loader
+      nw.connect (err) ->
+        return done err if err
+        nw.addEdge {
+          from:
+            node: 'Repeat1'
+            port: 'out'
+          to:
+            node: 'Repeat2'
+            port: 'in'
+        }, (err) ->
+          chai.expect(err).to.be.an 'error'
+          chai.expect(err.message).to.contain 'No process defined for inbound node'
+          done()

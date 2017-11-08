@@ -186,9 +186,10 @@ class Network extends EventEmitter
       callback null, process
 
   removeNode: (node, callback) ->
-    unless @processes[node.id]
+    process = @getNode node.id
+    unless process
       return callback new Error "Node #{node.id} not found"
-    @processes[node.id].component.shutdown (err) =>
+    process.component.shutdown (err) =>
       return callback err if err
       delete @processes[node.id]
       callback null
@@ -456,7 +457,11 @@ class Network extends EventEmitter
       do callback
 
   addDefaults: (node, callback) ->
-    process = @processes[node.id]
+    process = @getNode node.id
+    unless process
+      return callback new Error "Process #{node.id} not defined"
+    unless process.component
+      return callback new Error "No component defined for node #{node.id}"
 
     unless process.component.isReady()
       process.component.setMaxListeners 0 if process.component.setMaxListeners
@@ -493,6 +498,8 @@ class Network extends EventEmitter
     to = @getNode initializer.to.node
     unless to
       return callback new Error "No process defined for inbound node #{initializer.to.node}"
+    unless to.component
+      return callback new Error "No component defined for inbound node #{initializer.to.node}"
 
     unless to.component.isReady() or to.component.inPorts[initializer.to.port]
       to.component.setMaxListeners 0 if to.component.setMaxListeners
