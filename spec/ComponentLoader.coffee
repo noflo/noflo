@@ -437,6 +437,37 @@ describe 'ComponentLoader with no external packages installed', ->
             chai.expect(err).to.be.an 'error'
             chai.expect(inst).to.be.an 'undefined'
             done()
+      describe 'with deprecated process callback', ->
+        nonWorkingSource = """
+        var noflo = require('noflo');
+        exports.getComponent = function() {
+          var c = new noflo.Component();
+
+          c.inPorts.add('in', {
+            process: function(packet, outPorts) {
+              if (packet.event !== 'data') {
+                return;
+              }
+              // Do something with the packet, then
+              c.outPorts.out.send(packet.data);
+            }
+          });
+
+          c.outPorts.add('out');
+
+          return c;
+        };"""
+
+        it 'should be able to set the source', (done) ->
+          unless noflo.isBrowser()
+            nonWorkingSource = nonWorkingSource.replace "'noflo'", "'../src/lib/NoFlo'"
+          l.setSource 'foo', 'NotWorkingProcess', nonWorkingSource, 'js', done
+        it 'should not be a loadable component', (done) ->
+          l.load 'foo/NotWorkingProcess', (err, inst) ->
+            chai.expect(err).to.be.an 'error'
+            chai.expect(err.message).to.contain 'process callback is deprecated'
+            chai.expect(inst).to.be.an 'undefined'
+            done()
 
 describe 'ComponentLoader with a fixture project', ->
   l = null
