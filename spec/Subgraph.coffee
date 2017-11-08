@@ -406,7 +406,6 @@ describe 'NoFlo Graph component', ->
       return
 
     it 'should not send defaults when an inport is attached externally', (done) ->
-      @timeout 6000
       cl.load 'Defaults', (err, inst) ->
         i = noflo.internalSocket.createSocket()
         o = noflo.internalSocket.createSocket()
@@ -421,7 +420,6 @@ describe 'NoFlo Graph component', ->
       return
 
     it 'should deactivate after processing is complete', (done) ->
-      @timeout 6000
       cl.load 'Defaults', (err, inst) ->
         i = noflo.internalSocket.createSocket()
         o = noflo.internalSocket.createSocket()
