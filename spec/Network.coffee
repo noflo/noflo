@@ -557,3 +557,39 @@ describe 'NoFlo Network', ->
         chai.expect(err).to.be.an 'error'
         chai.expect(err.message).to.contain 'No component defined'
         done()
+    it 'should fail to add an edge to a missing outbound node', (done) ->
+      g = new noflo.Graph
+      g.addNode 'Repeat1', 'Split'
+      nw = new noflo.Network g
+      nw.loader = loader
+      nw.connect (err) ->
+        return done err if err
+        nw.addEdge {
+          from:
+            node: 'Repeat2'
+            port: 'out'
+          to:
+            node: 'Repeat1'
+            port: 'in'
+        }, (err) ->
+          chai.expect(err).to.be.an 'error'
+          chai.expect(err.message).to.contain 'No process defined for outbound node'
+          done()
+    it 'should fail to add an edge to a missing inbound node', (done) ->
+      g = new noflo.Graph
+      g.addNode 'Repeat1', 'Split'
+      nw = new noflo.Network g
+      nw.loader = loader
+      nw.connect (err) ->
+        return done err if err
+        nw.addEdge {
+          from:
+            node: 'Repeat1'
+            port: 'out'
+          to:
+            node: 'Repeat2'
+            port: 'in'
+        }, (err) ->
+          chai.expect(err).to.be.an 'error'
+          chai.expect(err.message).to.contain 'No process defined for inbound node'
+          done()
