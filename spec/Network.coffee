@@ -105,6 +105,13 @@ describe 'NoFlo Network', ->
             done()
           , 10
         g.removeNode 'Graph'
+      it 'should fail when removing the removed node again', (done) ->
+        n.removeNode
+          id: 'Graph'
+        , (err) ->
+          chai.expect(err).to.be.an 'error'
+          chai.expect(err.message).to.contain 'not found'
+          done()
 
   describe 'with a simple graph', ->
     g = null
