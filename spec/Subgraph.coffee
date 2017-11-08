@@ -371,7 +371,8 @@ describe 'NoFlo Graph component', ->
     grInitials.addInitial 'initial-value', 'SplitIn', 'in'
     grInitials.addEdge 'SplitIn', 'out', 'SplitOut', 'in'
 
-    it 'should send defaults', (done) ->
+    cl = null
+    before (done) ->
       @timeout 6000
       cl = new noflo.ComponentLoader root
       cl.listComponents (err, components) ->
@@ -379,51 +380,134 @@ describe 'NoFlo Graph component', ->
         cl.components.Split = createSplit
         cl.components.Defaults = grDefaults
         cl.components.Initials = grInitials
-        cl.load 'Defaults', (err, inst) ->
-          o = noflo.internalSocket.createSocket()
-          inst.outPorts.out.attach o
-          o.once 'data', (data) ->
-            chai.expect(data).to.equal 'default-value'
-            done()
-          inst.start (err) ->
-            return done err if err
+        done()
+      return
+
+    it 'should send defaults', (done) ->
+      cl.load 'Defaults', (err, inst) ->
+        o = noflo.internalSocket.createSocket()
+        inst.outPorts.out.attach o
+        o.once 'data', (data) ->
+          chai.expect(data).to.equal 'default-value'
+          done()
+        inst.start (err) ->
+          return done err if err
       return
 
     it 'should send initials', (done) ->
-      @timeout 6000
-      cl = new noflo.ComponentLoader root
-      cl.listComponents (err, components) ->
-        return done err if err
-        cl.components.Split = createSplit
-        cl.components.Defaults = grDefaults
-        cl.components.Initials = grInitials
-        cl.load 'Initials', (err, inst) ->
-          o = noflo.internalSocket.createSocket()
-          inst.outPorts.out.attach o
-          o.once 'data', (data) ->
-            chai.expect(data).to.equal 'initial-value'
-            done()
-          inst.start (err) ->
-            return done err if err
+      cl.load 'Initials', (err, inst) ->
+        o = noflo.internalSocket.createSocket()
+        inst.outPorts.out.attach o
+        o.once 'data', (data) ->
+          chai.expect(data).to.equal 'initial-value'
+          done()
+        inst.start (err) ->
+          return done err if err
       return
 
     it 'should not send defaults when an inport is attached externally', (done) ->
-      @timeout 6000
-      cl = new noflo.ComponentLoader root
-      cl.listComponents (err, components) ->
-        return done err if err
-        cl.components.Split = createSplit
-        cl.components.Defaults = grDefaults
-        cl.components.Initials = grInitials
-        cl.load 'Defaults', (err, inst) ->
-          i = noflo.internalSocket.createSocket()
-          o = noflo.internalSocket.createSocket()
-          inst.inPorts.in.attach i
-          inst.outPorts.out.attach o
-          o.once 'data', (data) ->
-            chai.expect(data).to.equal 'Foo'
-            done()
-          inst.start (err) ->
-            return done err if err
+      cl.load 'Defaults', (err, inst) ->
+        i = noflo.internalSocket.createSocket()
+        o = noflo.internalSocket.createSocket()
+        inst.inPorts.in.attach i
+        inst.outPorts.out.attach o
+        o.once 'data', (data) ->
+          chai.expect(data).to.equal 'Foo'
+          done()
+        inst.start (err) ->
+          return done err if err
+        i.send 'Foo'
+      return
+
+    it 'should deactivate after processing is complete', (done) ->
+      cl.load 'Defaults', (err, inst) ->
+        i = noflo.internalSocket.createSocket()
+        o = noflo.internalSocket.createSocket()
+        inst.inPorts.in.attach i
+        inst.outPorts.out.attach o
+        expected = [
+          'ACTIVATE 1'
+          'data Foo'
+          'DEACTIVATE 0'
+        ]
+        received = []
+        o.on 'ip', (ip) ->
+          received.push "#{ip.type} #{ip.data}"
+        inst.on 'activate', (load) ->
+          received.push "ACTIVATE #{load}"
+        inst.on 'deactivate', (load) ->
+          received.push "DEACTIVATE #{load}"
+          return unless received.length is expected.length
+          chai.expect(received).to.eql expected
+          done()
+        inst.start (err) ->
+          return done err if err
           i.send 'Foo'
+      return
+
+    it.skip 'should activate automatically when receiving data', (done) ->
+      cl.load 'Defaults', (err, inst) ->
+        i = noflo.internalSocket.createSocket()
+        o = noflo.internalSocket.createSocket()
+        inst.inPorts.in.attach i
+        inst.outPorts.out.attach o
+        expected = [
+          'ACTIVATE 1'
+          'data Foo'
+          'DEACTIVATE 0'
+        ]
+        received = []
+        o.on 'ip', (ip) ->
+          received.push "#{ip.type} #{ip.data}"
+        inst.on 'activate', (load) ->
+          received.push "ACTIVATE #{load}"
+        inst.on 'deactivate', (load) ->
+          received.push "DEACTIVATE #{load}"
+          return unless received.length is expected.length
+          chai.expect(received).to.eql expected
+          done()
+        i.send 'Foo'
+      return
+
+    it 'should reactivate when receiving new data packets', (done) ->
+      cl.load 'Defaults', (err, inst) ->
+        i = noflo.internalSocket.createSocket()
+        o = noflo.internalSocket.createSocket()
+        inst.inPorts.in.attach i
+        inst.outPorts.out.attach o
+        expected = [
+          'ACTIVATE 1'
+          'data Foo'
+          'DEACTIVATE 0'
+          'ACTIVATE 1'
+          'data Bar'
+          'data Baz'
+          'DEACTIVATE 0'
+          'ACTIVATE 1'
+          'data Foobar'
+          'DEACTIVATE 0'
+        ]
+        received = []
+        send = [
+          ['Foo']
+          ['Bar', 'Baz']
+          ['Foobar']
+        ]
+        sendNext = ->
+          return unless send.length
+          sends = send.shift()
+          i.post new noflo.IP 'data', d for d in sends
+        o.on 'ip', (ip) ->
+          received.push "#{ip.type} #{ip.data}"
+        inst.on 'activate', (load) ->
+          received.push "ACTIVATE #{load}"
+        inst.on 'deactivate', (load) ->
+          received.push "DEACTIVATE #{load}"
+          sendNext()
+          return unless received.length is expected.length
+          chai.expect(received).to.eql expected
+          done()
+        inst.start (err) ->
+          return done err if err
+          sendNext()
       return
