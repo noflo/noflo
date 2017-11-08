@@ -91,6 +91,13 @@ describe 'NoFlo Network', ->
         chai.expect(n.processes.Graph.component.metadata).to.exist
         chai.expect(n.processes.Graph.component.metadata).to.be.an 'object'
         chai.expect(n.processes.Graph.component.metadata).to.eql g.getNode('Graph').metadata
+      it 'adding the same node again should be a no-op', (done) ->
+        originalProcess = n.getNode 'Graph'
+        graphNode = g.getNode 'Graph'
+        n.addNode graphNode, (err, newProcess) ->
+          return done err if err
+          chai.expect(newProcess).to.equal originalProcess
+          done()
       it 'should not contain the node after removal', (done) ->
         g.once 'removeNode', ->
           setTimeout ->
