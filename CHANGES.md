@@ -5,6 +5,7 @@ NoFlo ChangeLog
 
 * Subgraphs re-activate themselves when receiving new packets after they've completed running
 * Subgraphs now use the JavaScript implementation of Graph component also on Node.js
+* NoFlo `setSource` on Node.js no longer transpiles ES6 sources using Babel. All supported Node.js versions should run ES6 without issues
 
 ## 1.0.0 (November 3rd 2017)
 
