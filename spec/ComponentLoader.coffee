@@ -162,11 +162,25 @@ describe 'ComponentLoader with no external packages installed', ->
       chai.expect(instance.baseDir).to.equal l.baseDir
 
   describe 'loading a component', ->
+    loader = null
+    before (done) ->
+      loader = new noflo.ComponentLoader root
+      loader.listComponents done
     it 'should return an error on an invalid component type', (done) ->
-      l.components['InvalidComponent'] = true
-      l.load 'InvalidComponent', (err, c) ->
-        chai.expect(err).to.be.instanceOf Error
+      loader.components['InvalidComponent'] = true
+      loader.load 'InvalidComponent', (err, c) ->
+        chai.expect(err).to.be.an 'error'
         chai.expect(err.message).to.equal 'Invalid type boolean for component InvalidComponent.'
+        done()
+    it 'should return an error on a missing component path', (done) ->
+      loader.components['InvalidComponent'] = 'missing-file.js'
+      if noflo.isBrowser()
+        str = 'Dynamic loading of'
+      else
+        str = 'Cannot find module'
+      loader.load 'InvalidComponent', (err, c) ->
+        chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain str
         done()
 
   describe 'register a component at runtime', ->
