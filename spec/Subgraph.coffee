@@ -444,3 +444,70 @@ describe 'NoFlo Graph component', ->
           return done err if err
           i.send 'Foo'
       return
+
+    it 'should activate automatically when receiving data', (done) ->
+      cl.load 'Defaults', (err, inst) ->
+        i = noflo.internalSocket.createSocket()
+        o = noflo.internalSocket.createSocket()
+        inst.inPorts.in.attach i
+        inst.outPorts.out.attach o
+        expected = [
+          'ACTIVATE 1'
+          'data Foo'
+          'DEACTIVATE 0'
+        ]
+        received = []
+        o.on 'ip', (ip) ->
+          received.push "#{ip.type} #{ip.data}"
+        inst.on 'activate', (load) ->
+          received.push "ACTIVATE #{load}"
+        inst.on 'deactivate', (load) ->
+          received.push "DEACTIVATE #{load}"
+          return unless received.length is expected.length
+          chai.expect(received).to.eql expected
+          done()
+        i.send 'Foo'
+      return
+
+    it 'should reactivate when receiving new data packets', (done) ->
+      cl.load 'Defaults', (err, inst) ->
+        i = noflo.internalSocket.createSocket()
+        o = noflo.internalSocket.createSocket()
+        inst.inPorts.in.attach i
+        inst.outPorts.out.attach o
+        expected = [
+          'ACTIVATE 1'
+          'data Foo'
+          'DEACTIVATE 0'
+          'ACTIVATE 1'
+          'data Bar'
+          'data Baz'
+          'DEACTIVATE 0'
+          'ACTIVATE 1'
+          'data Foobar'
+          'DEACTIVATE 0'
+        ]
+        received = []
+        send = [
+          ['Foo']
+          ['Bar', 'Baz']
+          ['Foobar']
+        ]
+        sendNext = ->
+          return unless send.length
+          sends = send.shift()
+          i.post new noflo.IP 'data', d for d in sends
+        o.on 'ip', (ip) ->
+          received.push "#{ip.type} #{ip.data}"
+        inst.on 'activate', (load) ->
+          received.push "ACTIVATE #{load}"
+        inst.on 'deactivate', (load) ->
+          received.push "DEACTIVATE #{load}"
+          sendNext()
+          return unless received.length is expected.length
+          chai.expect(received).to.eql expected
+          done()
+        inst.start (err) ->
+          return done err if err
+          sendNext()
+      return
