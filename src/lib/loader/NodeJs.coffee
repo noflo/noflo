@@ -82,7 +82,7 @@ dynamicLoader =
 registerSubgraph = (loader) ->
   # Inject subgraph component
   if path.extname(__filename) is '.js'
-    graphPath = path.resolve __dirname, '../../src/components/Graph.coffee'
+    graphPath = path.resolve __dirname, '../../components/Graph.js'
   else
     graphPath = path.resolve __dirname, '../../components/Graph.coffee'
   loader.registerComponent null, 'Graph', graphPath
