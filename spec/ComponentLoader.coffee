@@ -370,9 +370,6 @@ describe 'ComponentLoader with no external packages installed', ->
             ins.send 'CoffeeScript'
 
     describe 'with non-working code', ->
-      before ->
-        # setSource not implemented in webpack loader yet
-        return @skip() if noflo.isBrowser()
       nonWorkingSource = """
       var noflo = require('noflo');
       var notFound = require('./this_file_does_not_exist.js');
