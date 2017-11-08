@@ -85,7 +85,10 @@ module.exports = ->
     noflo_browser_mocha:
       all:
         options:
-          scripts: ["../browser/<%=pkg.name%>.js"]
+          scripts: [
+            "../browser/<%=pkg.name%>.js"
+            "https://cdnjs.cloudflare.com/ajax/libs/coffee-script/1.7.1/coffee-script.min.js"
+          ]
         files:
           'spec/runner.html': ['spec/*.js']
     # BDD tests on browser
