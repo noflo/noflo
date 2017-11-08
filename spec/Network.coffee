@@ -194,6 +194,11 @@ describe 'NoFlo Network', ->
         g.renameNode 'Callback', 'Func'
       it 'shouldn\'t have the process in the old location', ->
         chai.expect(n.processes.Callback).to.be.undefined
+      it 'should fail to rename with the old name', (done) ->
+        n.renameNode 'Callback', 'Func', (err) ->
+          chai.expect(err).to.be.an 'error'
+          chai.expect(err.message).to.contain 'not found'
+          done()
       it 'should have informed the ports of their new node name', ->
         for name, port of n.processes.Func.component.inPorts.ports
           chai.expect(port.name).to.equal name
