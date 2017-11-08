@@ -260,9 +260,6 @@ describe 'ComponentLoader with no external packages installed', ->
 
   describe 'writing sources', ->
     describe 'with working code', ->
-      before ->
-        # setSource not implemented in webpack loader yet
-        return @skip() if noflo.isBrowser()
       workingSource = """
       var noflo = require('noflo');
 
