@@ -51,6 +51,7 @@
   },
   "scripts": {
     "test": "nyc grunt test",
+    "posttest": "nyc check-coverage --lines 75",
     "build": "grunt build"
   },
   "docco_husky": {
