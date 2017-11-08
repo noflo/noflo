@@ -419,3 +419,30 @@ describe 'NoFlo Graph component', ->
           return done err if err
         i.send 'Foo'
       return
+
+    it 'should deactivate after processing is complete', (done) ->
+      @timeout 6000
+      cl.load 'Defaults', (err, inst) ->
+        i = noflo.internalSocket.createSocket()
+        o = noflo.internalSocket.createSocket()
+        inst.inPorts.in.attach i
+        inst.outPorts.out.attach o
+        expected = [
+          'ACTIVATE 1'
+          'data Foo'
+          'DEACTIVATE 0'
+        ]
+        received = []
+        o.on 'ip', (ip) ->
+          received.push "#{ip.type} #{ip.data}"
+        inst.on 'activate', (load) ->
+          received.push "ACTIVATE #{load}"
+        inst.on 'deactivate', (load) ->
+          received.push "DEACTIVATE #{load}"
+          return unless received.length is expected.length
+          chai.expect(received).to.eql expected
+          done()
+        inst.start (err) ->
+          return done err if err
+          i.send 'Foo'
+      return
