@@ -1,6 +1,11 @@
 NoFlo ChangeLog
 ===============
 
+## 1.0.1 (git master)
+
+* Subgraphs re-activate themselves when receiving new packets after they've completed running
+* Subgraphs now use the JavaScript implementation of Graph component also on Node.js
+
 ## 1.0.0 (November 3rd 2017)
 
 * The shipping NoFlo build is now using ES6 syntax, as provided by the [CoffeeScript 2.x compiler](http://coffeescript.org/). If you need to support older browsers or Node.js versions, you can transpile the code to ES5 using [Babel](https://babeljs.io/)
