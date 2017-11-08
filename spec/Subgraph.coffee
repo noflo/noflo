@@ -445,7 +445,7 @@ describe 'NoFlo Graph component', ->
           i.send 'Foo'
       return
 
-    it 'should activate automatically when receiving data', (done) ->
+    it.skip 'should activate automatically when receiving data', (done) ->
       cl.load 'Defaults', (err, inst) ->
         i = noflo.internalSocket.createSocket()
         o = noflo.internalSocket.createSocket()
