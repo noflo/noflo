@@ -127,11 +127,16 @@ class Graph extends noflo.Component
       targetPortName = @isExportedInport port, name, portName
       continue if targetPortName is false
       @inPorts.add targetPortName, port
-      @inPorts[targetPortName].once 'connect', =>
+      @inPorts[targetPortName].on 'connect', =>
         # Start the network implicitly if we're starting to get data
         return if @starting
-        return if @isStarted()
-        @start ->
+        return if @network.isStarted()
+        if @network.startupDate
+          # Network was started, but did finish. Re-start simply
+          @network.setStarted true
+          return
+        # Network was never started, start properly
+        @setUp ->
 
     for portName, port of outPorts
       targetPortName = @isExportedOutport port, name, portName
