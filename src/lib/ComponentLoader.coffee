@@ -108,10 +108,16 @@ class ComponentLoader extends EventEmitter
 
     # Attempt to create the component instance using the `getComponent` method.
     if typeof implementation.getComponent is 'function'
-      instance = implementation.getComponent metadata
+      try
+        instance = implementation.getComponent metadata
+      catch e
+        return callback e
     # Attempt to create a component using a factory function.
     else if typeof implementation is 'function'
-      instance = implementation metadata
+      try
+        instance = implementation metadata
+      catch e
+        return callback e
     else
       callback new Error "Invalid type #{typeof(implementation)} for component #{name}."
       return
