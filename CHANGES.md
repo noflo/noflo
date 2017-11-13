@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 1.0.1 (git master)
+## 1.0.1 (November 13th 2017)
 
 * Subgraphs re-activate themselves when receiving new packets after they've completed running
 * Subgraphs now use the JavaScript implementation of Graph component also on Node.js
