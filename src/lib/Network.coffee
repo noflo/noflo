@@ -363,7 +363,7 @@ class Network extends EventEmitter
       if data.subgraph
         unless data.subgraph.unshift
           data.subgraph = [data.subgraph]
-        data.subgraph = data.subgraph.unshift node.id
+        data.subgraph.unshift node.id
       else
         data.subgraph = [node.id]
       @bufferedEmit type, data

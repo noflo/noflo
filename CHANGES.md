@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 1.0.2 (git master)
+
+* Fix sub-subgraph identification in network events
+
 ## 1.0.1 (November 13th 2017)
 
 * Subgraphs re-activate themselves when receiving new packets after they've completed running
