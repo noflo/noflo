@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 1.0.2 (git master)
+## 1.0.2 (November 17th 2017)
 
 * Fix sub-subgraph identification in network events
 
