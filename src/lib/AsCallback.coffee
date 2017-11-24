@@ -22,6 +22,16 @@ normalizeOptions = (options, component) ->
   options
 
 prepareNetwork = (component, options, callback) ->
+  # If we were given a graph instance, then just create a network
+  if typeof component is 'object'
+    component.componentLoader = options.loader
+    network = new Network component, options
+    # Wire the network up
+    network.connect (err) ->
+      return callback err if err
+      callback null, network
+    return
+
   # Start by loading the component
   options.loader.load component, (err, instance) ->
     return callback err if err
