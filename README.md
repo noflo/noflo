@@ -39,6 +39,8 @@ See also the [list of reusable NoFlo modules on NPM](https://www.npmjs.com/brows
 NoFlo is a part of [Flowhub](https://flowhub.io), a platform for building robust [IoT systems](https://flowhub.io/iot) and web services.<br>
 We offer an [Integrated Development Environment](https://app.flowhub.io) and [consulting services](https://flowhub.io/consulting).
 
+By [subscribing to Flowhub](https://plans.flowhub.io) you directly support NoFlo development, and help us all get to the future of programming faster.
+
 ## Requirements and installing
 
 NoFlo is available for Node.js [via NPM](https://npmjs.org/package/noflo), so you can install it with:
