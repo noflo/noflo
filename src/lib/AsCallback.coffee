@@ -1,14 +1,28 @@
 #     NoFlo - Flow-Based Programming for JavaScript
 #     (c) 2017 Flowhub UG
 #     NoFlo may be freely distributed under the MIT license
-#
-# asCallback helper embedding NoFlo components or graphs in other JavaScript programs.
 ComponentLoader = require('./ComponentLoader').ComponentLoader
 Network = require('./Network').Network
 IP = require('./IP')
 internalSocket = require './InternalSocket'
 Graph = require('fbp-graph').Graph
 
+# ## asCallback embedding API
+#
+# asCallback is a helper for embedding NoFlo components or
+# graphs in other JavaScript programs.
+#
+# By using the `noflo.asCallback` function, you can turn any
+# NoFlo component or NoFlo Graph instance into a regular,
+# Node.js-style JavaScript function.
+#
+# Each call to that function starts a new NoFlo network where
+# the given input arguments are sent as IP objects to matching
+# inports. Once the network finishes, the IP objects received
+# from the network will be sent to the callback function.
+#
+# If there was anything sent to an `error` outport, this will
+# be provided as the error argument to the callback.
 normalizeOptions = (options, component) ->
   options = {} unless options
   options.name = component unless options.name
