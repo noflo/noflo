@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 1.0.3 (git master)
+## 1.0.3 (November 24th 2017)
 
 * Added support for running arbitrary NoFlo graphs via `noflo.asCallback`. You can call this function now with either a component name, or a `noflo.Graph` instance
 
