@@ -2,14 +2,24 @@
 #     (c) 2013-2017 Flowhub UG
 #     (c) 2013 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
-#
-# This is the browser version of the ComponentLoader.
-internalSocket = require './InternalSocket'
 fbpGraph = require 'fbp-graph'
 {EventEmitter} = require 'events'
 registerLoader = require './loader/register'
 platform = require './Platform'
 
+# ## The NoFlo Component Loader
+#
+# The Component Loader is responsible for discovering components
+# available in the running system, as well as for instantiating
+# them.
+#
+# Internally the loader uses a registered, platform-specific
+# loader. NoFlo ships with a loader for Node.js that discovers
+# components from the current project's `components/` and
+# `graphs/` folders, as well as those folders of any installed
+# NPM dependencies. For browsers and embedded devices it is
+# possible to generate a statically configured component
+# loader using the [noflo-component-loader](https://github.com/noflo/noflo-component-loader) webpack plugin.
 class ComponentLoader extends EventEmitter
   constructor: (baseDir, options = {}) ->
     super()
@@ -21,12 +31,23 @@ class ComponentLoader extends EventEmitter
     @ready = false
     @setMaxListeners 0 if typeof @setMaxListeners is 'function'
 
+  # Get the library prefix for a given module name. This
+  # is mostly used for generating valid names for namespaced
+  # NPM modules, as well as for convenience renaming all
+  # `noflo-` prefixed modules with just their base name.
+  #
+  # Examples:
+  #
+  # * `my-project` becomes `my-project`
+  # * `@foo/my-project` becomes `my-project`
+  # * `noflo-core` becomes `core`
   getModulePrefix: (name) ->
     return '' unless name
     return '' if name is 'noflo'
     name = name.replace /\@[a-z\-]+\//, '' if name[0] is '@'
-    name.replace 'noflo-', ''
+    name.replace /^noflo-/, ''
 
+  # Get the list of all available components
   listComponents: (callback) ->
     if @processing
       @once 'ready', =>
@@ -48,6 +69,10 @@ class ComponentLoader extends EventEmitter
       callback null, @components if callback
     return
 
+  # Load an instance of a specific component. If the
+  # registered component is a JSON or FBP graph, it will
+  # be loaded as an instance of the NoFlo subgraph
+  # component.
   load: (name, callback, metadata) ->
     unless @ready
       @listComponents (err) =>
@@ -124,6 +149,7 @@ class ComponentLoader extends EventEmitter
 
     callback null, instance
 
+  # Check if a given filesystem path is actually a graph
   isGraph: (cPath) ->
     # Live graph instance
     return true if typeof cPath is 'object' and cPath instanceof fbpGraph.Graph
@@ -133,10 +159,10 @@ class ComponentLoader extends EventEmitter
     # Graph file path
     cPath.indexOf('.fbp') isnt -1 or cPath.indexOf('.json') isnt -1
 
+  # Load a graph as a NoFlo subgraph component instance
   loadGraph: (name, component, callback, metadata) ->
     @createComponent name, @components['Graph'], metadata, (err, graph) =>
       return callback err if err
-      graphSocket = internalSocket.createSocket()
       graph.loader = @
       graph.baseDir = @baseDir
       graph.inPorts.remove 'graph'
@@ -147,6 +173,11 @@ class ComponentLoader extends EventEmitter
       return
     return
 
+  # Set icon for the component instance. If the instance
+  # has an icon set, then this is a no-op. Otherwise we
+  # determine an icon based on the module it is coming
+  # from, or use a fallback icon separately for subgraphs
+  # and elementary components.
   setIcon: (name, instance) ->
     # See if component has an icon
     return if not instance.getIcon or instance.getIcon()
@@ -179,17 +210,35 @@ class ComponentLoader extends EventEmitter
     fullName = name unless packageId
     fullName
 
+  # ### Registering components at runtime
+  #
+  # In addition to components discovered by the loader,
+  # it is possible to register components at runtime.
+  #
+  # With the `registerComponent` method you can register
+  # a NoFlo Component constructor or factory method
+  # as a component available for loading.
   registerComponent: (packageId, name, cPath, callback) ->
     fullName = @normalizeName packageId, name
     @components[fullName] = cPath
     do callback if callback
 
+  # With the `registerGraph` method you can register new
+  # graphs as loadable components.
   registerGraph: (packageId, name, gPath, callback) ->
     @registerComponent packageId, name, gPath, callback
 
+  # With `registerLoader` you can register custom component
+  # loaders. They will be called immediately and can register
+  # any components or graphs they wish.
   registerLoader: (loader, callback) ->
     loader @, callback
 
+  # With `setSource` you can register a component by providing
+  # a source code string. Supported languages and techniques
+  # depend on the runtime environment, for example CoffeeScript
+  # components can only be registered via `setSource` if
+  # the environment has a CoffeeScript compiler loaded.
   setSource: (packageId, name, source, language, callback) ->
     unless registerLoader.setSource
       return callback new Error 'setSource not allowed'
@@ -202,6 +251,8 @@ class ComponentLoader extends EventEmitter
 
     registerLoader.setSource @, packageId, name, source, language, callback
 
+  # `getSource` allows fetching the source code of a registered
+  # component as a string.
   getSource: (name, callback) ->
     unless registerLoader.getSource
       return callback new Error 'getSource not allowed'

@@ -1,6 +1,26 @@
 #     NoFlo - Flow-Based Programming for JavaScript
 #     (c) 2016-2017 Flowhub UG
 #     NoFlo may be freely distributed under the MIT license
+
+# ## Information Packets
+#
+# IP objects are the way information is transmitted between
+# components running in a NoFlo network. IP objects contain
+# a `type` that defines whether they're regular `data` IPs
+# or whether they are the beginning or end of a stream
+# (`openBracket`, `closeBracket`).
+#
+# The component currently holding an IP object is identified
+# with the `owner` key.
+#
+# By default, IP objects may be sent to multiple components.
+# If they're set to be clonable, each component will receive
+# its own clone of the IP. This should be enabled for any
+# IP object working with data that is safe to clone.
+#
+# It is also possible to carry metadata with an IP object.
+# For example, the `datatype` and `schema` of the sending
+# port is transmitted with the IP object.
 module.exports = class IP
   # Valid IP types
   @types: [

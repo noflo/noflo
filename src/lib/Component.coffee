@@ -2,8 +2,6 @@
 #     (c) 2013-2017 Flowhub UG
 #     (c) 2011-2012 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
-#
-# Baseclass for regular NoFlo components.
 {EventEmitter} = require 'events'
 
 ports = require './Ports'
@@ -13,6 +11,10 @@ debug = require('debug') 'noflo:component'
 debugBrackets = require('debug') 'noflo:component:brackets'
 debugSend = require('debug') 'noflo:component:send'
 
+# ## NoFlo Component Base class
+#
+# The `noflo.Component` interface provides a way to instantiate
+# and extend NoFlo components.
 class Component extends EventEmitter
   description: ''
   icon: null
@@ -20,35 +22,61 @@ class Component extends EventEmitter
   constructor: (options) ->
     super()
     options = {} unless options
+
+    # Prepare inports, if any were given in options.
+    # They can also be set up imperatively after component
+    # instantiation by using the `component.inPorts.add`
+    # method.
     options.inPorts = {} unless options.inPorts
     if options.inPorts instanceof ports.InPorts
       @inPorts = options.inPorts
     else
       @inPorts = new ports.InPorts options.inPorts
 
+    # Prepare outports, if any were given in options.
+    # They can also be set up imperatively after component
+    # instantiation by using the `component.outPorts.add`
+    # method.
     options.outPorts = {} unless options.outPorts
     if options.outPorts instanceof ports.OutPorts
       @outPorts = options.outPorts
     else
       @outPorts = new ports.OutPorts options.outPorts
 
+    # Set the default component icon and description
     @icon = options.icon if options.icon
     @description = options.description if options.description
 
+    # Initially the component is not started
     @started = false
     @load = 0
+
+    # Whether the component should keep send packets
+    # out in the order they were received
     @ordered = options.ordered ? false
     @autoOrdering = options.autoOrdering ? null
+
+    # Queue for handling ordered output packets
     @outputQ = []
+
+    # Context used for bracket forwarding
     @bracketContext =
       in: {}
       out: {}
-    @activateOnInput = options.activateOnInput ? true
-    @forwardBrackets = in: ['out', 'error']
 
+    # Whether the component should activate when it
+    # receives packets
+    @activateOnInput = options.activateOnInput ? true
+
+    # Bracket forwarding rules. By default we forward
+    # brackets from `in` port to `out` and `error` ports.
+    @forwardBrackets = in: ['out', 'error']
     if 'forwardBrackets' of options
       @forwardBrackets = options.forwardBrackets
 
+    # The component's process function can either be
+    # passed in options, or given imperatively after
+    # instantation using the `component.process` method.
     if typeof options.process is 'function'
       @process options.process
 
@@ -62,27 +90,45 @@ class Component extends EventEmitter
     @emit 'icon', @icon
   getIcon: -> @icon
 
+  # ### Error emitting helper
+  #
+  # If component has an `error` outport that is connected, errors
+  # are sent as IP objects there. If the port is not connected,
+  # errors are thrown.
   error: (e, groups = [], errorPort = 'error', scope = null) =>
     if @outPorts[errorPort] and (@outPorts[errorPort].isAttached() or not @outPorts[errorPort].isRequired())
       @outPorts[errorPort].openBracket group, scope: scope for group in groups
       @outPorts[errorPort].data e, scope: scope
       @outPorts[errorPort].closeBracket group, scope: scope for group in groups
-      # @outPorts[errorPort].disconnect()
       return
     throw e
 
-  # The setUp method is for component-specific initialization. Called
-  # at start-up
+  # ### Setup
+  #
+  # The setUp method is for component-specific initialization.
+  # Called at network start-up.
+  #
+  # Override in component implementation to do component-specific
+  # setup work.
   setUp: (callback) ->
     do callback
     return
 
+  # ### Setup
+  #
   # The tearDown method is for component-specific cleanup. Called
-  # at shutdown
+  # at network shutdown
+  #
+  # Override in component implementation to do component-specific
+  # cleanup work, like clearing any accumulated state.
   tearDown: (callback) ->
     do callback
     return
 
+  # ### Start
+  #
+  # Called when network starts. This sets calls the setUp
+  # method and sets the component to a started state.
   start: (callback) ->
     return callback() if @isStarted()
     @setUp (err) =>
@@ -93,6 +139,14 @@ class Component extends EventEmitter
       return
     return
 
+  # ### Shutdown
+  #
+  # Called when network is shut down. This sets calls the
+  # tearDown method and sets the component back to a
+  # non-started state.
+  #
+  # The callback is called when tearDown finishes and
+  # all active processing contexts have ended.
   shutdown: (callback) ->
     finalize = =>
       # Clear contents of inport buffers
@@ -142,6 +196,8 @@ class Component extends EventEmitter
       else
         @forwardBrackets[inPort] = tmp
 
+  # Method for determining if a component is using the modern
+  # NoFlo Process API
   isLegacy: ->
     # Process API
     return false if @handle
@@ -163,6 +219,8 @@ class Component extends EventEmitter
           @handleIP ip, port
     @
 
+  # Method for checking if a given inport is set up for
+  # automatic bracket forwarding
   isForwardingInport: (port) ->
     if typeof port is 'string'
       portName = port
@@ -172,6 +230,8 @@ class Component extends EventEmitter
       return true
     false
 
+  # Method for checking if a given outport is set up for
+  # automatic bracket forwarding
   isForwardingOutport: (inport, outport) ->
     if typeof inport is 'string'
       inportName = inport
@@ -185,14 +245,18 @@ class Component extends EventEmitter
     return true if @forwardBrackets[inportName].indexOf(outportName) isnt -1
     false
 
+  # Method for checking whether the component sends packets
+  # in the same order they were received.
   isOrdered: ->
     return true if @ordered
     return true if @autoOrdering
     false
 
-  # The component has received an Information Packet. Call the processing function
-  # so that firing pattern preconditions can be checked and component can do
-  # processing as needed.
+  # ### Handling IP objects
+  #
+  # The component has received an Information Packet. Call the
+  # processing function so that firing pattern preconditions can
+  # be checked and component can do processing as needed.
   handleIP: (ip, port) ->
     unless port.options.triggering
       # If port is non-triggering, we can skip the process function call
@@ -252,12 +316,15 @@ class Component extends EventEmitter
       output.sendDone e
 
     return if context.activated
+    # If receiving an IP object didn't cause the component to
+    # activate, log that input conditions were not met
     if port.isAddressable()
       debug "#{@nodeId} packet on '#{port.name}[#{ip.index}]' didn't match preconditions: #{ip.type}"
       return
     debug "#{@nodeId} packet on '#{port.name}' didn't match preconditions: #{ip.type}"
     return
 
+  # Get the current bracket forwarding context for an IP object
   getBracketContext: (type, port, scope, idx) ->
     {name, index} = ports.normalizePortName port
     index = idx if idx?
@@ -269,6 +336,8 @@ class Component extends EventEmitter
     @bracketContext[type][port][scope] = [] unless @bracketContext[type][port][scope]
     return @bracketContext[type][port][scope]
 
+  # Add an IP object to the list of results to be sent in
+  # order
   addToResult: (result, port, ip, before = false) ->
     {name, index} = ports.normalizePortName port
     method = if before then 'unshift' else 'push'
@@ -282,6 +351,8 @@ class Component extends EventEmitter
     result[name] = [] unless result[name]
     result[name][method] ip
 
+  # Get contexts that can be forwarded with this in/outport
+  # pair.
   getForwardableContexts: (inport, outport, contexts) ->
     {name, index} = ports.normalizePortName outport
     forwardable = []
@@ -298,6 +369,7 @@ class Component extends EventEmitter
       forwardable.push ctx
     return forwardable
 
+  # Add any bracket forwards needed to the result queue
   addBracketForwards: (result) ->
     if result.__bracketClosingBefore?.length
       for context in result.__bracketClosingBefore
@@ -362,6 +434,8 @@ class Component extends EventEmitter
     delete result.__bracketContext
     delete result.__bracketClosingAfter
 
+  # Whenever an execution context finishes, send all resolved
+  # output from the queue in the order it is in.
   processOutputQueue: ->
     while @outputQ.length > 0
       break unless @outputQ[0].__resolved
@@ -398,6 +472,8 @@ class Component extends EventEmitter
             ip.scope = null
           @outPorts[port].sendIP ip
 
+  # Signal that component has activated. There may be multiple
+  # activated contexts at the same time
   activate: (context) ->
     return if context.activated # prevent double activation
     context.activated = true
@@ -407,6 +483,9 @@ class Component extends EventEmitter
     if @ordered or @autoOrdering
       @outputQ.push context.result
 
+
+  # Signal that component has deactivated. There may be multiple
+  # activated contexts at the same time
   deactivate: (context) ->
     return if context.deactivated # prevent double deactivation
     context.deactivated = true
@@ -415,8 +494,6 @@ class Component extends EventEmitter
       @processOutputQueue()
     @load--
     @emit 'deactivate', @load
-
-exports.Component = Component
 
 class ProcessContext
   constructor: (@ip, @nodeInstance, @port, @result) ->
@@ -785,3 +862,5 @@ class ProcessOutput
     debug "#{@nodeInstance.nodeId} finished processing #{@nodeInstance.load}"
 
     @nodeInstance.deactivate @context
+
+exports.Component = Component

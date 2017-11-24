@@ -1,10 +1,13 @@
 #     NoFlo - Flow-Based Programming for JavaScript
 #     (c) 2014-2017 Flowhub UG
 #     NoFlo may be freely distributed under the MIT license
-#
-# Base port type used for options normalization
 {EventEmitter} = require 'events'
 
+# ## NoFlo Port Base class
+#
+# Base port type used for options normalization. Both inports and outports extend this class.
+
+# The list of valid datatypes for ports.
 validTypes = [
   'all'
   'string'
@@ -24,27 +27,39 @@ validTypes = [
 class BasePort extends EventEmitter
   constructor: (options) ->
     super()
-    @handleOptions options
+    # Options holds all options of the current port
+    @options = @handleOptions options
+    # Sockets list contains all currently attached
+    # connections to the port
     @sockets = []
+    # Name of the graph node this port is in
     @node = null
+    # Name of the port
     @name = null
 
   handleOptions: (options) ->
     options = {} unless options
+    # We default to the `all` type if no explicit datatype
+    # was provided
     options.datatype = 'all' unless options.datatype
+    # By default ports are not required for graph execution
     options.required = false if options.required is undefined
 
+    # Normalize the legacy `integer` type to `int`.
     options.datatype = 'int' if options.datatype is 'integer'
+
+    # Ensure datatype defined for the port is valid
     if validTypes.indexOf(options.datatype) is -1
       throw new Error "Invalid port datatype '#{options.datatype}' specified, valid are #{validTypes.join(', ')}"
 
+    # Ensure schema defined for the port is valid
     if options.type and not options.schema
       options.schema = options.type
       delete options.type
     if options.schema and options.schema.indexOf('/') is -1
       throw new Error "Invalid port schema '#{options.schema}' specified. Should be URL or MIME type"
 
-    @options = options
+    options
 
   getId: ->
     unless @node and @name

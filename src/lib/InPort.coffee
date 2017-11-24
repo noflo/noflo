@@ -1,12 +1,13 @@
 #     NoFlo - Flow-Based Programming for JavaScript
 #     (c) 2014-2017 Flowhub UG
 #     NoFlo may be freely distributed under the MIT license
-#
-# Input Port (inport) implementation for NoFlo components
 BasePort = require './BasePort'
 IP = require './IP'
-platform = require './Platform'
 
+# ## NoFlo inport
+#
+# Input Port (inport) implementation for NoFlo components. These
+# ports are the way a component receives Information Packets.
 class InPort extends BasePort
   constructor: (options = {}) ->
     options.control ?= false

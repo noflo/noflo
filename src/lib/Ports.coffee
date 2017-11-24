@@ -1,13 +1,14 @@
 #     NoFlo - Flow-Based Programming for JavaScript
 #     (c) 2014-2017 Flowhub UG
 #     NoFlo may be freely distributed under the MIT license
-#
-# Ports collection classes for NoFlo components
 {EventEmitter} = require 'events'
-
 InPort = require './InPort'
 OutPort = require './OutPort'
 
+# NoFlo ports collections
+#
+# Ports collection classes for NoFlo components. These are
+# used to hold a set of input or output ports of a component.
 class Ports extends EventEmitter
   model: InPort
   constructor: (ports) ->

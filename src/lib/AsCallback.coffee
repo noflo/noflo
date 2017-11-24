@@ -1,14 +1,35 @@
 #     NoFlo - Flow-Based Programming for JavaScript
 #     (c) 2017 Flowhub UG
 #     NoFlo may be freely distributed under the MIT license
-#
-# asCallback helper embedding NoFlo components or graphs in other JavaScript programs.
 ComponentLoader = require('./ComponentLoader').ComponentLoader
 Network = require('./Network').Network
 IP = require('./IP')
 internalSocket = require './InternalSocket'
 Graph = require('fbp-graph').Graph
 
+# ## asCallback embedding API
+#
+# asCallback is a helper for embedding NoFlo components or
+# graphs in other JavaScript programs.
+#
+# By using the `noflo.asCallback` function, you can turn any
+# NoFlo component or NoFlo Graph instance into a regular,
+# Node.js-style JavaScript function.
+#
+# Each call to that function starts a new NoFlo network where
+# the given input arguments are sent as IP objects to matching
+# inports. Once the network finishes, the IP objects received
+# from the network will be sent to the callback function.
+#
+# If there was anything sent to an `error` outport, this will
+# be provided as the error argument to the callback.
+
+# ### Option normalization
+#
+# Here we handle the input valus given to the `asCallback`
+# function. This allows passing things like a pre-initialized
+# NoFlo ComponentLoader, or giving the component loading
+# baseDir context.
 normalizeOptions = (options, component) ->
   options = {} unless options
   options.name = component unless options.name
@@ -21,6 +42,11 @@ normalizeOptions = (options, component) ->
   options.raw = false unless options.raw
   options
 
+# ### Network preparation
+#
+# Each invocation of the asCallback-wrapped NoFlo graph
+# creates a new network. This way we can isolate multiple
+# executions of the function in their own contexts.
 prepareNetwork = (component, options, callback) ->
   # If we were given a graph instance, then just create a network
   if typeof component is 'object'
@@ -54,6 +80,16 @@ prepareNetwork = (component, options, callback) ->
       return callback err if err
       callback null, network
 
+# ### Network execution
+#
+# Once network is ready, we connect to all of its exported
+# in and outports and start the network.
+#
+# Input data is sent to the inports, and we collect IP
+# packets received on the outports.
+#
+# Once the network finishes, we send the resulting IP
+# objects to the callback.
 runNetwork = (network, inputs, options, callback) ->
   # Prepare inports
   inPorts = Object.keys network.graph.inports

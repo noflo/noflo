@@ -7,6 +7,11 @@ platform = require './Platform'
 utils = require './Utils'
 debug = require('debug') 'noflo:helpers'
 
+# ## NoFlo WirePattern helper
+#
+# **Note:** WirePattern is no longer the recommended way to build
+# NoFlo components. Please use [Process API](https://noflojs.org/documentation/components/) instead.
+#
 # WirePattern makes your component collect data from several inports
 # and activates a handler `proc` only when a tuple from all of these
 # ports is complete. The signature of handler function is:
