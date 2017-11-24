@@ -23,6 +23,13 @@ Graph = require('fbp-graph').Graph
 #
 # If there was anything sent to an `error` outport, this will
 # be provided as the error argument to the callback.
+
+# ### Option normalization
+#
+# Here we handle the input valus given to the `asCallback`
+# function. This allows passing things like a pre-initialized
+# NoFlo ComponentLoader, or giving the component loading
+# baseDir context.
 normalizeOptions = (options, component) ->
   options = {} unless options
   options.name = component unless options.name
@@ -35,6 +42,11 @@ normalizeOptions = (options, component) ->
   options.raw = false unless options.raw
   options
 
+# ### Network preparation
+#
+# Each invocation of the asCallback-wrapped NoFlo graph
+# creates a new network. This way we can isolate multiple
+# executions of the function in their own contexts.
 prepareNetwork = (component, options, callback) ->
   # If we were given a graph instance, then just create a network
   if typeof component is 'object'
@@ -68,6 +80,16 @@ prepareNetwork = (component, options, callback) ->
       return callback err if err
       callback null, network
 
+# ### Network execution
+#
+# Once network is ready, we connect to all of its exported
+# in and outports and start the network.
+#
+# Input data is sent to the inports, and we collect IP
+# packets received on the outports.
+#
+# Once the network finishes, we send the resulting IP
+# objects to the callback.
 runNetwork = (network, inputs, options, callback) ->
   # Prepare inports
   inPorts = Object.keys network.graph.inports
