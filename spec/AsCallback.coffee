@@ -235,3 +235,35 @@ describe 'asCallback interface', ->
             'closeBracket 1'
           ]
           done()
+  describe 'with a graph instead of component name', ->
+    graph = null
+    wrapped = null
+    before (done) ->
+      noflo.graph.loadFBP """
+      INPORT=Async.IN:IN
+      OUTPORT=Stream.OUT:OUT
+      Async(process/Async) OUT -> IN Stream(process/Streamify)
+      """, (err, g) ->
+        return done err if err
+        graph = g
+        wrapped = noflo.asCallback graph,
+          loader: loader
+        done()
+    it 'should execute network with input map and provide output map with streams as arrays', (done) ->
+      wrapped
+        in: 'hello world'
+      , (err, out) ->
+        return done err if err
+        chai.expect(out.out).to.eql [
+          ['h','e','l','l','o']
+          ['w','o','r','l','d']
+        ]
+        done()
+    it 'should execute network with simple input and and provide simple output with streams as arrays', (done) ->
+      wrapped 'hello there', (err, out) ->
+        return done err if err
+        chai.expect(out).to.eql [
+          ['h','e','l','l','o']
+          ['t','h','e','r','e']
+        ]
+        done()

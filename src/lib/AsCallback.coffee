@@ -22,6 +22,16 @@ normalizeOptions = (options, component) ->
   options
 
 prepareNetwork = (component, options, callback) ->
+  # If we were given a graph instance, then just create a network
+  if typeof component is 'object'
+    component.componentLoader = options.loader
+    network = new Network component, options
+    # Wire the network up
+    network.connect (err) ->
+      return callback err if err
+      callback null, network
+    return
+
   # Start by loading the component
   options.loader.load component, (err, instance) ->
     return callback err if err
@@ -45,20 +55,26 @@ prepareNetwork = (component, options, callback) ->
       callback null, network
 
 runNetwork = (network, inputs, options, callback) ->
-  process = network.getNode options.name
   # Prepare inports
   inPorts = Object.keys network.graph.inports
   inSockets = {}
   inPorts.forEach (inport) ->
+    portDef = network.graph.inports[inport]
+    process = network.getNode portDef.process
     inSockets[inport] = internalSocket.createSocket()
-    process.component.inPorts[inport].attach inSockets[inport]
+    process.component.inPorts[portDef.port].attach inSockets[inport]
   # Subscribe outports
   received = []
   outPorts = Object.keys network.graph.outports
   outSockets = {}
   outPorts.forEach (outport) ->
+    portDef = network.graph.outports[outport]
+    process = network.getNode portDef.process
     outSockets[outport] = internalSocket.createSocket()
-    process.component.outPorts[outport].attach outSockets[outport]
+    process.component.outPorts[portDef.port].attach outSockets[outport]
+    outSockets[outport].from =
+      process: process
+      port: portDef.port
     outSockets[outport].on 'ip', (ip) ->
       res = {}
       res[outport] = ip
@@ -67,7 +83,7 @@ runNetwork = (network, inputs, options, callback) ->
   network.once 'end', ->
     # Clear listeners
     for port, socket of outSockets
-      process.component.outPorts[port].detach socket
+      socket.from.process.component.outPorts[socket.from.port].detach socket
     outSockets = {}
     inSockets = {}
     callback null, received
