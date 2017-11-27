@@ -5,7 +5,7 @@
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/trustmaster/noflo-assembly.git"
+    "url": "https://github.com/noflo/noflo-assembly.git"
   },
   "scripts": {
     "pretest": "./node_modules/.bin/eslint index.es6.js example/components/*.js spec/*.js && ./node_modules/.bin/babel index.es6.js --out-file index.js",
@@ -17,9 +17,9 @@
   "author": "Vladimir Sibirov",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/trustmaster/noflo-assembly/issues"
+    "url": "https://github.com/noflo/noflo-assembly/issues"
   },
-  "homepage": "https://github.com/trustmaster/noflo-assembly",
+  "homepage": "https://github.com/noflo/noflo-assembly",
   "dependencies": {
     "noflo": "1.0.3"
   },
