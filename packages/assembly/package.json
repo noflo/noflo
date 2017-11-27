@@ -8,7 +8,7 @@
     "url": "https://github.com/noflo/noflo-assembly.git"
   },
   "scripts": {
-    "pretest": "./node_modules/.bin/eslint index.es6.js example/components/*.js spec/*.js",
+    "pretest": "./node_modules/.bin/eslint index.js example/components/*.js spec/*.js",
     "test": "./node_modules/.bin/mocha -R spec spec/*.js"
   },
   "keywords": [
