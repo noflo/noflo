@@ -1,6 +1,8 @@
-import Component, { fork } from '../../index';
+const Component = require('../../index');
 
-export class SplitAssemblies extends Component {
+const { fork } = Component;
+
+class SplitAssemblies extends Component {
   constructor() {
     super({
       description: 'Split production into concurrent lines',
@@ -28,6 +30,4 @@ export class SplitAssemblies extends Component {
   }
 }
 
-export function getComponent() {
-  return new SplitAssemblies();
-}
+exports.getComponent = () => new SplitAssemblies();

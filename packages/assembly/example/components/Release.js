@@ -1,6 +1,8 @@
-import Component, { failed } from '../../index';
+const Component = require('../../index');
 
-export class Release extends Component {
+const { failed } = Component;
+
+class Release extends Component {
   constructor() {
     super({
       description: 'Release a car to the outer world',
@@ -24,6 +26,4 @@ export class Release extends Component {
   }
 }
 
-export function getComponent() {
-  return new Release();
-}
+exports.getComponent = () => new Release();
