@@ -21,7 +21,7 @@
   },
   "homepage": "https://github.com/noflo/noflo-assembly",
   "dependencies": {
-    "noflo": "1.0.3"
+    "noflo": "^1.0.3"
   },
   "devDependencies": {
     "babel-cli": "^6.24.1",
