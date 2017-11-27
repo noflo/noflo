@@ -1,6 +1,6 @@
-import Component from '../../index';
+const Component = require('../../index');
 
-export class MountEngine extends Component {
+class MountEngine extends Component {
   constructor() {
     super({
       description: 'Mounts 3rd party engine on chassis',
@@ -35,6 +35,4 @@ export class MountEngine extends Component {
   }
 }
 
-export function getComponent() {
-  return new MountEngine();
-}
+exports.getComponent = () => new MountEngine();

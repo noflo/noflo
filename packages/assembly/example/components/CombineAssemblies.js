@@ -1,6 +1,8 @@
-import Component, { merge, fail } from '../../index';
+const Component = require('../../index');
 
-export class CombineAssemblies extends Component {
+const { merge, fail } = Component;
+
+class CombineAssemblies extends Component {
   constructor() {
     super({
       description: 'Combines sub-assemblies into a complete car',
@@ -42,6 +44,4 @@ export class CombineAssemblies extends Component {
   }
 }
 
-export function getComponent() {
-  return new CombineAssemblies();
-}
+exports.getComponent = () => new CombineAssemblies();

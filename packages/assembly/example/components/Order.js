@@ -1,7 +1,7 @@
-import { IP } from 'noflo';
-import Component from '../../index';
+const { IP } = require('noflo');
+const Component = require('../../index');
 
-export class Order extends Component {
+class Order extends Component {
   constructor() {
     super({
       description: 'Place an order of a new car production',
@@ -23,6 +23,4 @@ export class Order extends Component {
   }
 }
 
-export function getComponent() {
-  return new Order();
-}
+exports.getComponent = () => new Order();

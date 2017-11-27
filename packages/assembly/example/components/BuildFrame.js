@@ -1,6 +1,6 @@
-import Component from '../../index';
+const Component = require('../../index');
 
-export class BuildFrame extends Component {
+class BuildFrame extends Component {
   constructor() {
     super({
       description: 'Builds car frame',
@@ -17,6 +17,4 @@ export class BuildFrame extends Component {
   }
 }
 
-export function getComponent() {
-  return new BuildFrame();
-}
+exports.getComponent = () => new BuildFrame();

@@ -5,11 +5,11 @@
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/trustmaster/noflo-assembly.git"
+    "url": "https://github.com/noflo/noflo-assembly.git"
   },
   "scripts": {
-    "pretest": "./node_modules/.bin/eslint index.es6.js example/components/*.js spec/*.js && ./node_modules/.bin/babel index.es6.js --out-file index.js",
-    "test": "./node_modules/.bin/mocha --compilers js:babel-core/register -R spec spec/*.js"
+    "pretest": "./node_modules/.bin/eslint index.js example/components/*.js spec/*.js",
+    "test": "./node_modules/.bin/mocha -R spec spec/*.js"
   },
   "keywords": [
     "noflo"
@@ -17,21 +17,18 @@
   "author": "Vladimir Sibirov",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/trustmaster/noflo-assembly/issues"
+    "url": "https://github.com/noflo/noflo-assembly/issues"
   },
-  "homepage": "https://github.com/trustmaster/noflo-assembly",
+  "homepage": "https://github.com/noflo/noflo-assembly",
   "dependencies": {
-    "noflo": "0.x >= 0.8"
+    "noflo": "^1.0.3"
   },
   "devDependencies": {
-    "babel-cli": "^6.24.1",
-    "babel-core": "^6.23.1",
-    "babel-preset-es2015": "^6.22.0",
-    "chai": "^3.5.0",
-    "eslint": "^3.14.1",
-    "eslint-config-airbnb-base": "^11.0.1",
+    "chai": "^4.1.2",
+    "eslint": "^4.12.0",
+    "eslint-config-airbnb-base": "^12.1.0",
     "eslint-plugin-import": "^2.2.0",
-    "mocha": "^3.2.0",
-    "noflo-wrapper": "^0.1.0"
+    "mocha": "^4.0.1",
+    "noflo-wrapper": "^0.2.1"
   }
 }

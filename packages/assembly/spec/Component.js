@@ -1,9 +1,9 @@
 /* eslint-env node, mocha */
-import 'mocha';
-import { expect } from 'chai';
-import Wrapper from 'noflo-wrapper';
-import { getComponent as getBuildFrame } from '../example/components/BuildFrame';
-import { getComponent as getMountEngine } from '../example/components/MountEngine';
+const { expect } = require('chai');
+const Wrapper = require('noflo-wrapper');
+
+const getBuildFrame = require('../example/components/BuildFrame').getComponent;
+const getMountEngine = require('../example/components/MountEngine').getComponent;
 
 describe('Assembly Component', () => {
   describe('of simple relay kind', () => {

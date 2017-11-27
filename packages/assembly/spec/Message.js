@@ -1,7 +1,11 @@
 /* eslint-env node, mocha */
-import 'mocha';
-import { expect } from 'chai';
-import { fail, failed, fork, merge } from '../index';
+const { expect } = require('chai');
+const {
+  fail,
+  failed,
+  fork,
+  merge,
+} = require('../index');
 
 describe('Message Helpers', () => {
   describe('failing and detection', () => {

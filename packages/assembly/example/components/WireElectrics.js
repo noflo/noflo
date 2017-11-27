@@ -1,6 +1,6 @@
-import Component from '../../index';
+const Component = require('../../index');
 
-export class WireElectrics extends Component {
+class WireElectrics extends Component {
   constructor() {
     super({
       description: 'Wires body electrics',
@@ -28,6 +28,4 @@ export class WireElectrics extends Component {
   }
 }
 
-export function getComponent() {
-  return new WireElectrics();
-}
+exports.getComponent = () => new WireElectrics();

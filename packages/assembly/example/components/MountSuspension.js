@@ -1,6 +1,6 @@
-import Component from '../../index';
+const Component = require('../../index');
 
-export class MountSuspension extends Component {
+class MountSuspension extends Component {
   // Can skip constructor
   relay(msg, output) {
     msg.chassis.suspension = {
@@ -12,8 +12,6 @@ export class MountSuspension extends Component {
   }
 }
 
-export function getComponent() {
-  return new MountSuspension({
-    description: 'Mounts suspension',
-  });
-}
+exports.getComponent = () => new MountSuspension({
+  description: 'Mounts suspension',
+});

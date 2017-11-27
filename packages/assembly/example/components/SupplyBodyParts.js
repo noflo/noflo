@@ -1,6 +1,6 @@
-import Component from '../../index';
+const Component = require('../../index');
 
-export class SupplyBodyParts extends Component {
+class SupplyBodyParts extends Component {
   constructor() {
     super({
       description: 'Example component with multiple ins and outs',
@@ -73,6 +73,4 @@ export class SupplyBodyParts extends Component {
   }
 }
 
-export function getComponent() {
-  return new SupplyBodyParts();
-}
+exports.getComponent = () => new SupplyBodyParts();

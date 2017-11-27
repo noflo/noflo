@@ -1,9 +1,8 @@
 /* eslint-env node, mocha */
-import 'mocha';
-import { expect } from 'chai';
-import Wrapper from 'noflo-wrapper';
-import { ComponentLoader } from 'noflo';
-import { resolve } from 'path';
+const { expect } = require('chai');
+const Wrapper = require('noflo-wrapper');
+const { ComponentLoader } = require('noflo');
+const { resolve } = require('path');
 
 describe('Assembly Graph', function bar() {
   this.timeout(5000);
