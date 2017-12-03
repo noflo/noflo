@@ -596,7 +596,7 @@ describe 'NoFlo Graph component', ->
           chai.expect(network.processes).not.to.be.empty
           chai.expect(network.processes.Sub).to.exist
           done()
-        , 10
+        , 100
         graph.addNode 'Sub', 'foo/AB2'
         graph.addNode 'Split', 'Split'
         graph.addEdge 'Sub', 'out', 'Split', 'in'
