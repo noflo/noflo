@@ -78,6 +78,23 @@ describe 'ComponentLoader with no external packages installed', ->
       # Browser component registry can be synchronous
       chai.expect(l.processing, 'should have started processing').to.equal true
 
+  describe 'calling listComponents twice simultaneously', ->
+    it 'should return the same results', (done) ->
+      loader = new noflo.ComponentLoader root
+      received = []
+      loader.listComponents (err, components) ->
+        return done err if err
+        received.push components
+        return unless received.length is 2
+        chai.expect(received[0]).to.equal received[1]
+        done()
+      loader.listComponents (err, components) ->
+        return done err if err
+        received.push components
+        return unless received.length is 2
+        chai.expect(received[0]).to.equal received[1]
+        done()
+
   describe 'after listing components', ->
     it 'should have the Graph component registered', ->
       chai.expect(l.components.Graph).not.to.be.empty
