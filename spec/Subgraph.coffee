@@ -512,48 +512,121 @@ describe 'NoFlo Graph component', ->
           sendNext()
       return
   describe 'event forwarding on parent network', ->
-    graph = null
-    network = null
-    before (done) ->
-      graph = new noflo.Graph 'main'
-      graph.baseDir = root
-      network = new noflo.Network graph
-      network.loader.listComponents (err) ->
-        return done err if err
-        network.loader.components.Split = Split
-        network.loader.components.Merge = SubgraphMerge
-        sg = new noflo.Graph 'Subgraph'
-        sg.addNode 'A', 'Split'
-        sg.addNode 'B', 'Merge'
-        sg.addEdge 'A', 'out', 'B', 'in'
-        sg.addInport 'in', 'A', 'in'
-        sg.addOutport 'out', 'B', 'out'
-        network.loader.registerGraph 'foo', 'AB', sg, (err) ->
+    describe 'with a single level subgraph', ->
+      graph = null
+      network = null
+      before (done) ->
+        graph = new noflo.Graph 'main'
+        graph.baseDir = root
+        network = new noflo.Network graph
+        network.loader.listComponents (err) ->
           return done err if err
-          network.connect done
-    it 'should instantiate the subgraph when node is added', (done) ->
-      setTimeout ->
-        chai.expect(network.processes).not.to.be.empty
-        chai.expect(network.processes.Sub).to.exist
-        done()
-      , 10
-      graph.addNode 'Sub', 'foo/AB'
-      graph.addNode 'Split', 'Split'
-      graph.addEdge 'Sub', 'out', 'Split', 'in'
-    it 'should be possible to start the graph', (done) ->
-      network.start done
-    it 'should forward IP events', (done) ->
-      network.once 'ip', (ip) ->
-        chai.expect(ip.id).to.equal 'DATA -> IN Sub()'
-        chai.expect(ip.type).to.equal 'data'
-        chai.expect(ip.data).to.equal 'foo'
-        chai.expect(ip.subgraph).to.be.undefined
+          network.loader.components.Split = Split
+          network.loader.components.Merge = SubgraphMerge
+          sg = new noflo.Graph 'Subgraph'
+          sg.addNode 'A', 'Split'
+          sg.addNode 'B', 'Merge'
+          sg.addEdge 'A', 'out', 'B', 'in'
+          sg.addInport 'in', 'A', 'in'
+          sg.addOutport 'out', 'B', 'out'
+          network.loader.registerGraph 'foo', 'AB', sg, (err) ->
+            return done err if err
+            network.connect done
+      it 'should instantiate the subgraph when node is added', (done) ->
+        setTimeout ->
+          chai.expect(network.processes).not.to.be.empty
+          chai.expect(network.processes.Sub).to.exist
+          done()
+        , 10
+        graph.addNode 'Sub', 'foo/AB'
+        graph.addNode 'Split', 'Split'
+        graph.addEdge 'Sub', 'out', 'Split', 'in'
+      it 'should be possible to start the graph', (done) ->
+        network.start done
+      it 'should forward IP events', (done) ->
         network.once 'ip', (ip) ->
-          chai.expect(ip.id).to.equal 'A() OUT -> IN B()'
+          chai.expect(ip.id).to.equal 'DATA -> IN Sub()'
           chai.expect(ip.type).to.equal 'data'
           chai.expect(ip.data).to.equal 'foo'
-          chai.expect(ip.subgraph).to.eql [
-            'Sub'
-          ]
+          chai.expect(ip.subgraph).to.be.undefined
+          network.once 'ip', (ip) ->
+            chai.expect(ip.id).to.equal 'A() OUT -> IN B()'
+            chai.expect(ip.type).to.equal 'data'
+            chai.expect(ip.data).to.equal 'foo'
+            chai.expect(ip.subgraph).to.eql [
+              'Sub'
+            ]
+            network.once 'ip', (ip) ->
+              chai.expect(ip.id).to.equal 'Sub() OUT -> IN Split()'
+              chai.expect(ip.type).to.equal 'data'
+              chai.expect(ip.data).to.equal 'foo'
+              chai.expect(ip.subgraph).to.be.undefined
+              done()
+        graph.addInitial 'foo', 'Sub', 'in'
+    describe 'with two levels of subgraphs', ->
+      graph = null
+      network = null
+      before (done) ->
+        graph = new noflo.Graph 'main'
+        graph.baseDir = root
+        network = new noflo.Network graph
+        network.loader.listComponents (err) ->
+          return done err if err
+          network.loader.components.Split = Split
+          network.loader.components.Merge = SubgraphMerge
+          sg = new noflo.Graph 'Subgraph'
+          sg.addNode 'A', 'Split'
+          sg.addNode 'B', 'Merge'
+          sg.addEdge 'A', 'out', 'B', 'in'
+          sg.addInport 'in', 'A', 'in'
+          sg.addOutport 'out', 'B', 'out'
+          sg2 = new noflo.Graph 'Subgraph'
+          sg2.addNode 'A', 'foo/AB'
+          sg2.addNode 'B', 'Merge'
+          sg2.addEdge 'A', 'out', 'B', 'in'
+          sg2.addInport 'in', 'A', 'in'
+          sg2.addOutport 'out', 'B', 'out'
+          network.loader.registerGraph 'foo', 'AB', sg, (err) ->
+            return done err if err
+            network.loader.registerGraph 'foo', 'AB2', sg2, (err) ->
+              return done err if err
+              network.connect done
+      it 'should instantiate the subgraphs when node is added', (done) ->
+        setTimeout ->
+          chai.expect(network.processes).not.to.be.empty
+          chai.expect(network.processes.Sub).to.exist
           done()
-      graph.addInitial 'foo', 'Sub', 'in'
+        , 10
+        graph.addNode 'Sub', 'foo/AB2'
+        graph.addNode 'Split', 'Split'
+        graph.addEdge 'Sub', 'out', 'Split', 'in'
+      it 'should be possible to start the graph', (done) ->
+        network.start done
+      it 'should forward IP events', (done) ->
+        network.once 'ip', (ip) ->
+          chai.expect(ip.id).to.equal 'DATA -> IN Sub()'
+          chai.expect(ip.type).to.equal 'data'
+          chai.expect(ip.data).to.equal 'foo'
+          chai.expect(ip.subgraph).to.be.undefined
+          network.once 'ip', (ip) ->
+            chai.expect(ip.id).to.equal 'A() OUT -> IN B()'
+            chai.expect(ip.type).to.equal 'data'
+            chai.expect(ip.data).to.equal 'foo'
+            chai.expect(ip.subgraph).to.eql [
+              'Sub'
+              'A'
+            ]
+            network.once 'ip', (ip) ->
+              chai.expect(ip.id).to.equal 'A() OUT -> IN B()'
+              chai.expect(ip.type).to.equal 'data'
+              chai.expect(ip.data).to.equal 'foo'
+              chai.expect(ip.subgraph).to.eql [
+                'Sub'
+              ]
+              network.once 'ip', (ip) ->
+                chai.expect(ip.id).to.equal 'Sub() OUT -> IN Split()'
+                chai.expect(ip.type).to.equal 'data'
+                chai.expect(ip.data).to.equal 'foo'
+                chai.expect(ip.subgraph).to.be.undefined
+                done()
+        graph.addInitial 'foo', 'Sub', 'in'
