@@ -112,6 +112,36 @@ describe 'NoFlo Network', ->
           chai.expect(err).to.be.an 'error'
           chai.expect(err.message).to.contain 'not found'
           done()
+    describe 'with new edge', ->
+      before ->
+        n.loader.components.Split = Split
+        g.addNode 'A', 'Split',
+        g.addNode 'B', 'Split',
+      after ->
+        g.removeNode 'A'
+        g.removeNode 'B'
+      it 'should contain the edge', (done) ->
+        g.once 'addEdge', ->
+          setTimeout ->
+            chai.expect(n.connections).not.to.be.empty
+            chai.expect(n.connections[0].from).to.eql
+              process: n.getNode 'A'
+              port: 'out'
+              index: undefined
+            chai.expect(n.connections[0].to).to.eql
+              process: n.getNode 'B'
+              port: 'in'
+              index: undefined
+            done()
+          , 10
+        g.addEdge 'A', 'out', 'B', 'in'
+      it 'should not contain the edge after removal', (done) ->
+        g.once 'removeEdge', ->
+          setTimeout ->
+            chai.expect(n.connections).to.be.empty
+            done()
+          , 10
+        g.removeEdge 'A', 'out', 'B', 'in'
 
   describe 'with a simple graph', ->
     g = null
