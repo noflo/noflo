@@ -115,8 +115,8 @@ describe 'NoFlo Network', ->
     describe 'with new edge', ->
       before ->
         n.loader.components.Split = Split
-        g.addNode 'A', 'Split',
-        g.addNode 'B', 'Split',
+        g.addNode 'A', 'Split'
+        g.addNode 'B', 'Split'
       after ->
         g.removeNode 'A'
         g.removeNode 'B'
@@ -640,3 +640,29 @@ describe 'NoFlo Network', ->
       n = new noflo.Network g
       chai.expect(n.baseDir).to.equal root
       chai.expect(n.loader.baseDir).to.equal root
+  describe 'debug setting', ->
+    n = null
+    g = null
+    before (done) ->
+      g = new noflo.Graph
+      g.baseDir = root
+      n = new noflo.Network g
+      n.loader.listComponents (err, components) ->
+        return done err if err
+        n.loader.components.Split = Split
+        g.addNode 'A', 'Split'
+        g.addNode 'B', 'Split'
+        g.addEdge 'A', 'out', 'B', 'in'
+        n.connect done
+    it 'should initially have debug enabled', ->
+      chai.expect(n.getDebug()).to.equal true
+    it 'should have propagated debug setting to connections', ->
+      chai.expect(n.connections[0].debug).to.equal n.getDebug()
+    it 'calling setDebug with same value should be no-op', ->
+      n.setDebug true
+      chai.expect(n.getDebug()).to.equal true
+      chai.expect(n.connections[0].debug).to.equal n.getDebug()
+    it 'disabling debug should get propagated to connections', ->
+      n.setDebug false
+      chai.expect(n.getDebug()).to.equal false
+      chai.expect(n.connections[0].debug).to.equal n.getDebug()
