@@ -471,9 +471,7 @@ class Network extends EventEmitter
 
     for key, port of process.component.inPorts.ports
       # Attach a socket to any defaulted inPorts as long as they aren't already attached.
-      # TODO: hasDefault existence check is for backwards compatibility, clean
-      #       up when legacy ports are removed.
-      if typeof port.hasDefault is 'function' and port.hasDefault() and not port.isAttached()
+      if port.hasDefault() and not port.isAttached()
         socket = internalSocket.createSocket()
         socket.setDebug @debug
 
