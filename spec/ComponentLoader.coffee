@@ -271,6 +271,18 @@ describe 'ComponentLoader with no external packages installed', ->
           chai.expect(src.code).to.not.be.empty
           chai.expect(src.language).to.equal 'json'
           done()
+    it 'should be able to get the source for non-ready ComponentLoader', (done) ->
+      loader = new noflo.ComponentLoader root
+      loader.getSource 'Graph', (err, component) ->
+        return done err if err
+        chai.expect(component).to.be.an 'object'
+        chai.expect(component.code).to.be.a 'string'
+        chai.expect(component.code.indexOf('noflo.Component')).to.not.equal -1
+        chai.expect(component.code.indexOf('exports.getComponent')).to.not.equal -1
+        chai.expect(component.name).to.equal 'Graph'
+        chai.expect(component.library).to.equal ''
+        chai.expect(component.language).to.equal shippingLanguage
+        done()
 
   describe 'writing sources', ->
     describe 'with working code', ->
@@ -310,6 +322,10 @@ describe 'ComponentLoader with no external packages installed', ->
               chai.expect(ip.data).to.equal 'ES5'
               done()
             ins.send 'ES5'
+        it 'should be able to set the source for non-ready ComponentLoader', (done) ->
+          @timeout 10000
+          loader = new noflo.ComponentLoader root
+          loader.setSource 'foo', 'RepeatData', workingSource, 'javascript', done
       describe 'with ES6', ->
         before ->
           # PhantomJS doesn't work with ES6
