@@ -623,3 +623,13 @@ describe 'NoFlo Network', ->
           chai.expect(err).to.be.an 'error'
           chai.expect(err.message).to.contain 'No process defined for inbound node'
           done()
+  describe 'baseDir setting', ->
+    it 'should set baseDir based on given graph', ->
+      g = new noflo.Graph
+      g.baseDir = root
+      n = new noflo.Network g
+      chai.expect(n.baseDir).to.equal root
+    it 'should fall back to CWD if graph has no baseDir', ->
+      g = new noflo.Graph
+      n = new noflo.Network g
+      chai.expect(n.baseDir).to.equal process.cwd()
