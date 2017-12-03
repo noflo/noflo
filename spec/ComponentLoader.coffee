@@ -120,6 +120,14 @@ describe 'ComponentLoader with no external packages installed', ->
     it 'should be able to provide an icon for the Graph', ->
       chai.expect(instance.getIcon()).to.be.a 'string'
       chai.expect(instance.getIcon()).to.equal 'sitemap'
+    it 'should be able to load the component with non-ready ComponentLoader', (done) ->
+      loader = new noflo.ComponentLoader root
+      loader.load 'Graph', (err, inst) ->
+        return done err if err
+        chai.expect(inst).to.be.an 'object'
+        chai.expect(inst.componentName).to.equal 'Graph'
+        instance = inst
+        done()
 
   describe 'loading a subgraph', ->
     l = new noflo.ComponentLoader root
