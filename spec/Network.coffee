@@ -630,6 +630,7 @@ describe 'NoFlo Network', ->
       n = new noflo.Network g
       chai.expect(n.baseDir).to.equal root
     it 'should fall back to CWD if graph has no baseDir', ->
+      return @skip() if noflo.isBrowser()
       g = new noflo.Graph
       n = new noflo.Network g
       chai.expect(n.baseDir).to.equal process.cwd()
