@@ -50,7 +50,7 @@ manifestLoader =
     options.runtimes = loader.options.runtimes or []
     options.runtimes.push 'noflo' if options.runtimes.indexOf('noflo') is -1
     options.recursive = if typeof loader.options.recursive is 'undefined' then true else loader.options.recursive
-    options.manifest = 'fbp.json' unless options.manifest
+    options.manifest = loader.options.manifest or 'fbp.json'
     options
 
   listComponents: (loader, manifestOptions, callback) ->
