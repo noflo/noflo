@@ -607,3 +607,27 @@ describe 'ComponentLoader with a fixture project and caching', ->
     l.load 'componentloader/Missing', (err, instance) ->
       chai.expect(err).to.be.an 'error'
       done()
+  it 'should fail with missing manifest without discover option', (done) ->
+    l = new noflo.ComponentLoader fixtureRoot,
+      cache: true
+      discover: false
+      manifest: 'fbp2.json'
+    l.listComponents (err) ->
+      chai.expect(err).to.be.an 'error'
+      done()
+  it 'should be able to use a custom manifest file', (done) ->
+    @timeout 8000
+    manifestPath = path.resolve fixtureRoot, 'fbp2.json'
+    l = new noflo.ComponentLoader fixtureRoot,
+      cache: true
+      discover: true
+      manifest: 'fbp2.json'
+    l.listComponents (err, components) ->
+      return done err if err
+      chai.expect(l.processing).to.equal false
+      chai.expect(l.components).not.to.be.empty
+      done()
+  it 'should have saved the new manifest', (done) ->
+    manifestPath = path.resolve fixtureRoot, 'fbp2.json'
+    { unlink } = require 'fs'
+    unlink manifestPath, done
