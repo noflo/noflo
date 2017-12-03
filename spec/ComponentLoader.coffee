@@ -78,6 +78,23 @@ describe 'ComponentLoader with no external packages installed', ->
       # Browser component registry can be synchronous
       chai.expect(l.processing, 'should have started processing').to.equal true
 
+  describe 'calling listComponents twice simultaneously', ->
+    it 'should return the same results', (done) ->
+      loader = new noflo.ComponentLoader root
+      received = []
+      loader.listComponents (err, components) ->
+        return done err if err
+        received.push components
+        return unless received.length is 2
+        chai.expect(received[0]).to.equal received[1]
+        done()
+      loader.listComponents (err, components) ->
+        return done err if err
+        received.push components
+        return unless received.length is 2
+        chai.expect(received[0]).to.equal received[1]
+        done()
+
   describe 'after listing components', ->
     it 'should have the Graph component registered', ->
       chai.expect(l.components.Graph).not.to.be.empty
@@ -103,6 +120,14 @@ describe 'ComponentLoader with no external packages installed', ->
     it 'should be able to provide an icon for the Graph', ->
       chai.expect(instance.getIcon()).to.be.a 'string'
       chai.expect(instance.getIcon()).to.equal 'sitemap'
+    it 'should be able to load the component with non-ready ComponentLoader', (done) ->
+      loader = new noflo.ComponentLoader root
+      loader.load 'Graph', (err, inst) ->
+        return done err if err
+        chai.expect(inst).to.be.an 'object'
+        chai.expect(inst.componentName).to.equal 'Graph'
+        instance = inst
+        done()
 
   describe 'loading a subgraph', ->
     l = new noflo.ComponentLoader root
@@ -271,6 +296,18 @@ describe 'ComponentLoader with no external packages installed', ->
           chai.expect(src.code).to.not.be.empty
           chai.expect(src.language).to.equal 'json'
           done()
+    it 'should be able to get the source for non-ready ComponentLoader', (done) ->
+      loader = new noflo.ComponentLoader root
+      loader.getSource 'Graph', (err, component) ->
+        return done err if err
+        chai.expect(component).to.be.an 'object'
+        chai.expect(component.code).to.be.a 'string'
+        chai.expect(component.code.indexOf('noflo.Component')).to.not.equal -1
+        chai.expect(component.code.indexOf('exports.getComponent')).to.not.equal -1
+        chai.expect(component.name).to.equal 'Graph'
+        chai.expect(component.library).to.equal ''
+        chai.expect(component.language).to.equal shippingLanguage
+        done()
 
   describe 'writing sources', ->
     describe 'with working code', ->
@@ -310,6 +347,10 @@ describe 'ComponentLoader with no external packages installed', ->
               chai.expect(ip.data).to.equal 'ES5'
               done()
             ins.send 'ES5'
+        it 'should be able to set the source for non-ready ComponentLoader', (done) ->
+          @timeout 10000
+          loader = new noflo.ComponentLoader root
+          loader.setSource 'foo', 'RepeatData', workingSource, 'javascript', done
       describe 'with ES6', ->
         before ->
           # PhantomJS doesn't work with ES6
@@ -534,3 +575,100 @@ describe 'ComponentLoader with a fixture project', ->
     l.load 'componentloader/Missing', (err, instance) ->
       chai.expect(err).to.be.an 'error'
       done()
+
+describe 'ComponentLoader with a fixture project and caching', ->
+  l = null
+  fixtureRoot = null
+  before ->
+    return @skip() if noflo.isBrowser()
+    fixtureRoot = path.resolve __dirname, 'fixtures/componentloader'
+  after (done) ->
+    return done() if noflo.isBrowser()
+    manifestPath = path.resolve fixtureRoot, 'fbp.json'
+    { unlink } = require 'fs'
+    unlink manifestPath, done
+  it 'should be possible to pre-heat the cache file', (done) ->
+    @timeout 8000
+    { exec } = require 'child_process'
+    exec "node #{path.resolve(__dirname, '../bin/noflo-cache-preheat')}",
+      cwd: fixtureRoot
+    , done
+  it 'should have populated a fbp-manifest file', (done) ->
+    manifestPath = path.resolve fixtureRoot, 'fbp.json'
+    { stat } = require 'fs'
+    stat manifestPath, (err, stats) ->
+      return done err if err
+      chai.expect(stats.isFile()).to.equal true
+      done()
+  it 'should be possible to instantiate', ->
+    l = new noflo.ComponentLoader fixtureRoot,
+      cache: true
+  it 'should initially know of no components', ->
+    chai.expect(l.components).to.be.a 'null'
+  it 'should not initially be ready', ->
+    chai.expect(l.ready).to.be.false
+  it 'should be able to read a list of components', (done) ->
+    ready = false
+    l.once 'ready', ->
+      chai.expect(l.ready).to.equal true
+      ready = l.ready
+    l.listComponents (err, components) ->
+      return done err if err
+      chai.expect(l.processing).to.equal false
+      chai.expect(l.components).not.to.be.empty
+      chai.expect(components).to.equal l.components
+      chai.expect(l.ready).to.equal true
+      chai.expect(ready).to.equal true
+      done()
+    chai.expect(l.processing).to.equal true
+  it 'should be able to load a local component', (done) ->
+    l.load 'componentloader/Output', (err, instance) ->
+      chai.expect(err).to.be.a 'null'
+      chai.expect(instance.description).to.equal 'Output stuff'
+      chai.expect(instance.icon).to.equal 'cloud'
+      done()
+  it 'should be able to load a component from a dependency', (done) ->
+    l.load 'example/Forward', (err, instance) ->
+      chai.expect(err).to.be.a 'null'
+      chai.expect(instance.description).to.equal 'Forward stuff'
+      chai.expect(instance.icon).to.equal 'car'
+      done()
+  it 'should be able to load a dynamically registered component from a dependency', (done) ->
+    l.load 'example/Hello', (err, instance) ->
+      chai.expect(err).to.be.a 'null'
+      chai.expect(instance.description).to.equal 'Hello stuff'
+      chai.expect(instance.icon).to.equal 'bicycle'
+      done()
+  it 'should be able to load core Graph component', (done) ->
+    l.load 'Graph', (err, instance) ->
+      chai.expect(err).to.be.a 'null'
+      chai.expect(instance.icon).to.equal 'sitemap'
+      done()
+  it 'should fail loading a missing component', (done) ->
+    l.load 'componentloader/Missing', (err, instance) ->
+      chai.expect(err).to.be.an 'error'
+      done()
+  it 'should fail with missing manifest without discover option', (done) ->
+    l = new noflo.ComponentLoader fixtureRoot,
+      cache: true
+      discover: false
+      manifest: 'fbp2.json'
+    l.listComponents (err) ->
+      chai.expect(err).to.be.an 'error'
+      done()
+  it 'should be able to use a custom manifest file', (done) ->
+    @timeout 8000
+    manifestPath = path.resolve fixtureRoot, 'fbp2.json'
+    l = new noflo.ComponentLoader fixtureRoot,
+      cache: true
+      discover: true
+      manifest: 'fbp2.json'
+    l.listComponents (err, components) ->
+      return done err if err
+      chai.expect(l.processing).to.equal false
+      chai.expect(l.components).not.to.be.empty
+      done()
+  it 'should have saved the new manifest', (done) ->
+    manifestPath = path.resolve fixtureRoot, 'fbp2.json'
+    { unlink } = require 'fs'
+    unlink manifestPath, done

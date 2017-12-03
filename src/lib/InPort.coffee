@@ -16,11 +16,9 @@ class InPort extends BasePort
 
     if options.process
       throw new Error 'InPort process callback is deprecated. Please use Process API'
-      delete options.process
 
     if options.handle
       throw new Error 'InPort handle callback is deprecated. Please use Process API'
-      delete options.handle
 
     super options
 
