@@ -29,7 +29,7 @@ class ComponentLoader extends EventEmitter
     @libraryIcons = {}
     @processing = false
     @ready = false
-    @setMaxListeners 0 if typeof @setMaxListeners is 'function'
+    @setMaxListeners 0
 
   # Get the library prefix for a given module name. This
   # is mostly used for generating valid names for namespaced

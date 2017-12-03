@@ -464,7 +464,7 @@ class Network extends EventEmitter
       return callback new Error "No component defined for node #{node.id}"
 
     unless process.component.isReady()
-      process.component.setMaxListeners 0 if process.component.setMaxListeners
+      process.component.setMaxListeners 0
       process.component.once "ready", =>
         @addDefaults process, callback
       return
@@ -500,7 +500,7 @@ class Network extends EventEmitter
       return callback new Error "No component defined for inbound node #{initializer.to.node}"
 
     unless to.component.isReady() or to.component.inPorts[initializer.to.port]
-      to.component.setMaxListeners 0 if to.component.setMaxListeners
+      to.component.setMaxListeners 0
       to.component.once "ready", =>
         @addInitial initializer, callback
       return
