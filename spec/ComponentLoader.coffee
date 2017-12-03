@@ -534,3 +534,76 @@ describe 'ComponentLoader with a fixture project', ->
     l.load 'componentloader/Missing', (err, instance) ->
       chai.expect(err).to.be.an 'error'
       done()
+
+describe 'ComponentLoader with a fixture project and caching', ->
+  l = null
+  fixtureRoot = null
+  before ->
+    return @skip() if noflo.isBrowser()
+    fixtureRoot = path.resolve __dirname, 'fixtures/componentloader'
+  after (done) ->
+    return done() if noflo.isBrowser()
+    manifestPath = path.resolve fixtureRoot, 'fbp.json'
+    { unlink } = require 'fs'
+    unlink manifestPath, done
+  it 'should be possible to pre-heat the cache file', (done) ->
+    @timeout 8000
+    { exec } = require 'child_process'
+    exec "node #{path.resolve(__dirname, '../bin/noflo-cache-preheat')}",
+      cwd: fixtureRoot
+    , done
+  it 'should have populated a fbp-manifest file', (done) ->
+    manifestPath = path.resolve fixtureRoot, 'fbp.json'
+    { stat } = require 'fs'
+    stat manifestPath, (err, stats) ->
+      return done err if err
+      chai.expect(stats.isFile()).to.equal true
+      done()
+  it 'should be possible to instantiate', ->
+    l = new noflo.ComponentLoader fixtureRoot,
+      cache: true
+  it 'should initially know of no components', ->
+    chai.expect(l.components).to.be.a 'null'
+  it 'should not initially be ready', ->
+    chai.expect(l.ready).to.be.false
+  it 'should be able to read a list of components', (done) ->
+    ready = false
+    l.once 'ready', ->
+      chai.expect(l.ready).to.equal true
+      ready = l.ready
+    l.listComponents (err, components) ->
+      return done err if err
+      chai.expect(l.processing).to.equal false
+      chai.expect(l.components).not.to.be.empty
+      chai.expect(components).to.equal l.components
+      chai.expect(l.ready).to.equal true
+      chai.expect(ready).to.equal true
+      done()
+    chai.expect(l.processing).to.equal true
+  it 'should be able to load a local component', (done) ->
+    l.load 'componentloader/Output', (err, instance) ->
+      chai.expect(err).to.be.a 'null'
+      chai.expect(instance.description).to.equal 'Output stuff'
+      chai.expect(instance.icon).to.equal 'cloud'
+      done()
+  it 'should be able to load a component from a dependency', (done) ->
+    l.load 'example/Forward', (err, instance) ->
+      chai.expect(err).to.be.a 'null'
+      chai.expect(instance.description).to.equal 'Forward stuff'
+      chai.expect(instance.icon).to.equal 'car'
+      done()
+  it 'should be able to load a dynamically registered component from a dependency', (done) ->
+    l.load 'example/Hello', (err, instance) ->
+      chai.expect(err).to.be.a 'null'
+      chai.expect(instance.description).to.equal 'Hello stuff'
+      chai.expect(instance.icon).to.equal 'bicycle'
+      done()
+  it 'should be able to load core Graph component', (done) ->
+    l.load 'Graph', (err, instance) ->
+      chai.expect(err).to.be.a 'null'
+      chai.expect(instance.icon).to.equal 'sitemap'
+      done()
+  it 'should fail loading a missing component', (done) ->
+    l.load 'componentloader/Missing', (err, instance) ->
+      chai.expect(err).to.be.an 'error'
+      done()
