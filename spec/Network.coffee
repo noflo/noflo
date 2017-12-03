@@ -633,3 +633,9 @@ describe 'NoFlo Network', ->
       g = new noflo.Graph
       n = new noflo.Network g
       chai.expect(n.baseDir).to.equal process.cwd()
+    it 'should set the baseDir for the component loader', ->
+      g = new noflo.Graph
+      g.baseDir = root
+      n = new noflo.Network g
+      chai.expect(n.baseDir).to.equal root
+      chai.expect(n.loader.baseDir).to.equal root
