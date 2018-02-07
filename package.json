@@ -14,7 +14,7 @@
     "node": ">= 6"
   },
   "dependencies": {
-    "coffeescript": "^2.0.0",
+    "coffeescript": "^2.2.1",
     "debug": "^3.0.0",
     "fbp": "^1.5.0",
     "fbp-graph": "^0.3.1",
