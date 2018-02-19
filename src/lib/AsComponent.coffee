@@ -11,6 +11,7 @@ exports.asComponent = (func, options) ->
   c = new Component options
   for p in params
     c.inPorts.add p.param
+    c.forwardBrackets[p.param] = ['out', 'error']
   unless params.length
     c.inPorts.add 'in',
       datatype: 'bang'

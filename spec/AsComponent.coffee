@@ -38,6 +38,35 @@ describe 'asComponent interface', ->
           return done err if err
           chai.expect(res).to.equal 'Hello World'
           done()
+      it 'should forward brackets to OUT port', (done) ->
+        loader.load 'ascomponent/sync-one', (err, instance) ->
+          return done err if err
+          ins = new noflo.internalSocket.createSocket()
+          out = new noflo.internalSocket.createSocket()
+          error = new noflo.internalSocket.createSocket()
+          instance.inPorts.hello.attach ins
+          instance.outPorts.out.attach out
+          instance.outPorts.error.attach error
+          received = []
+          expected = [
+            'openBracket a'
+            'data Hello Foo'
+            'data Hello Bar'
+            'data Hello Baz'
+            'closeBracket a'
+          ]
+          error.once 'data', (data) ->
+            done data
+          out.on 'ip', (ip) ->
+            received.push "#{ip.type} #{ip.data}"
+            return unless received.length is expected.length
+            chai.expect(received).to.eql expected
+            done()
+          ins.post new noflo.IP 'openBracket', 'a'
+          ins.post new noflo.IP 'data', 'Foo'
+          ins.post new noflo.IP 'data', 'Bar'
+          ins.post new noflo.IP 'data', 'Baz'
+          ins.post new noflo.IP 'closeBracket', 'a'
     describe 'with a thrown exception', ->
       func = (hello) ->
         throw new Error "Hello #{hello}"
