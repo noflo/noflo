@@ -27,6 +27,23 @@ getParams = require 'get-function-params'
 #         description: 'Generate a random number',
 #       });
 #     };
+#
+# ### Wrapping built-in functions
+#
+# Built-in JavaScript functions don't make their arguments introspectable. Because of this, these
+# cannot be directly converted to components. You'll have to provide a wrapper JavaScript function to make
+# the arguments appear as ports.
+#
+# Example:
+#
+#     exports.getComponent = function () {
+#       return noflo.asComponent(function (selector) {
+#         return document.querySelector(selector);
+#       }, {
+#         description: 'Return an element matching the CSS selector',
+#         icon: 'html5',
+#       });
+#     };
 exports.asComponent = (func, options) ->
   hasCallback = false
   params = getParams(func).filter (p) ->
