@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 1.1.1 (February 19th 2018)
+
+* Fixed `noflo.asComponent` handling of functions that return a `NULL`
+
 ## 1.1.0 (February 19th 2018)
 
 * Added [noflo.asComponent](https://github.com/noflo/noflo/pull/591) for easy mapping of JavaScript functions into NoFlo components. Each argument will get its own inport with the name of the argument, and output is handled based on the type of function being wrapped:
