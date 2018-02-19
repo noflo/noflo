@@ -107,6 +107,8 @@ describe 'asComponent interface', ->
             out: 'Hei Maailma'
           done()
     describe 'with a default value', ->
+      before ->
+        @skip() if isBrowser
       func = (name, greeting = 'Hello') ->
         return "#{greeting} #{name}"
       it 'should be possible to componentize', (done) ->
@@ -137,8 +139,7 @@ describe 'asComponent interface', ->
   describe 'with a function returning a Promise', ->
     describe 'with a resolved promise', ->
       before ->
-        if isBrowser and typeof window.Promise is 'undefined'
-          return @skip()
+        @skip() if isBrowser and typeof window.Promise is 'undefined'
       func = (hello) ->
         return new Promise (resolve, reject) ->
           setTimeout ->
