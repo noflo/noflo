@@ -94,11 +94,6 @@ runNetwork = (network, inputs, options, callback) ->
   # Prepare inports
   inPorts = Object.keys network.graph.inports
   inSockets = {}
-  inPorts.forEach (inport) ->
-    portDef = network.graph.inports[inport]
-    process = network.getNode portDef.process
-    inSockets[inport] = internalSocket.createSocket()
-    process.component.inPorts[portDef.port].attach inSockets[inport]
   # Subscribe outports
   received = []
   outPorts = Object.keys network.graph.outports
@@ -129,6 +124,11 @@ runNetwork = (network, inputs, options, callback) ->
     # Send inputs
     for inputMap in inputs
       for port, value of inputMap
+        unless inSockets[port]
+          portDef = network.graph.inports[port]
+          process = network.getNode portDef.process
+          inSockets[port] = internalSocket.createSocket()
+          process.component.inPorts[portDef.port].attach inSockets[port]
         if IP.isIP value
           inSockets[port].post value
           continue
