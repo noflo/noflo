@@ -72,9 +72,9 @@ describe 'asComponent interface', ->
         return null
       it 'should be possible to componentize', (done) ->
         component = -> noflo.asComponent func
-        loader.registerComponent 'ascomponent', 'sync-one', component, done
+        loader.registerComponent 'ascomponent', 'sync-null', component, done
       it 'should send to OUT port', (done) ->
-        wrapped = noflo.asCallback 'ascomponent/sync-one',
+        wrapped = noflo.asCallback 'ascomponent/sync-null',
           loader: loader
         wrapped 'World', (err, res) ->
           return done err if err
