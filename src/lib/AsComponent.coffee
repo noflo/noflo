@@ -22,8 +22,11 @@ getParams = require 'get-function-params'
 #
 # Usage example:
 #
-#     exports.getComponent = -> noflo.asComponent Math.random,
-#       description: 'Create a random number'
+#     exports.getComponent = function () {
+#       return noflo.asComponent(Math.random, {
+#         description: 'Generate a random number',
+#       });
+#     };
 exports.asComponent = (func, options) ->
   hasCallback = false
   params = getParams(func).filter (p) ->
