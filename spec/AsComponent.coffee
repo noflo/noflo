@@ -67,6 +67,19 @@ describe 'asComponent interface', ->
           ins.post new noflo.IP 'data', 'Bar'
           ins.post new noflo.IP 'data', 'Baz'
           ins.post new noflo.IP 'closeBracket', 'a'
+    describe 'with returned NULL', ->
+      func = (hello) ->
+        return null
+      it 'should be possible to componentize', (done) ->
+        component = -> noflo.asComponent func
+        loader.registerComponent 'ascomponent', 'sync-null', component, done
+      it 'should send to OUT port', (done) ->
+        wrapped = noflo.asCallback 'ascomponent/sync-null',
+          loader: loader
+        wrapped 'World', (err, res) ->
+          return done err if err
+          chai.expect(res).to.be.a 'null'
+          done()
     describe 'with a thrown exception', ->
       func = (hello) ->
         throw new Error "Hello #{hello}"
