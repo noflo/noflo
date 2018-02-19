@@ -1,5 +1,5 @@
 #     NoFlo - Flow-Based Programming for JavaScript
-#     (c) 2013-2017 Flowhub UG
+#     (c) 2013-2018 Flowhub UG
 #     (c) 2011-2012 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
 #
@@ -177,5 +177,13 @@ exports.asCallback = require('./AsCallback').asCallback
 
 # ## Generating components from JavaScript functions
 #
+# The `asComponent` helper makes it easy to expose a JavaScript function as a
+# NoFlo component. All input arguments become input ports, and the function's
+# result will be sent to either `out` or `error` port.
 #
+#     exports.getComponent = function () {
+#       return noflo.asComponent(Math.random, {
+#         description: 'Generate a random number',
+#       });
+#     };
 exports.asComponent = require('./AsComponent').asComponent
