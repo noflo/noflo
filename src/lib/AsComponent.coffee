@@ -94,7 +94,7 @@ exports.asComponent = (func, options) ->
       return
 
     res = func.apply null, values
-    if typeof res is 'object' and typeof res.then is 'function'
+    if res and typeof res is 'object' and typeof res.then is 'function'
       # Result is a Promise, resolve and handle
       res.then (val) ->
         output.sendDone val
