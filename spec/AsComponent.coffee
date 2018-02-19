@@ -116,6 +116,26 @@ describe 'asComponent interface', ->
           chai.expect(err).to.be.an 'error'
           chai.expect(err.message).to.equal 'Hello Error'
           done()
+  describe 'with a synchronous function taking zero parameters', ->
+    describe 'with returned value', ->
+      func = () ->
+        return "Hello there"
+      it 'should be possible to componentize', (done) ->
+        component = -> noflo.asComponent func
+        loader.registerComponent 'ascomponent', 'sync-zero', component, done
+      it 'should contain correct ports', (done) ->
+        loader.load 'ascomponent/sync-zero', (err, instance) ->
+          return done err if err
+          chai.expect(Object.keys(instance.inPorts.ports)).to.eql ['in']
+          chai.expect(Object.keys(instance.outPorts.ports)).to.eql ['out', 'error']
+          done()
+      it 'should send to OUT port', (done) ->
+        wrapped = noflo.asCallback 'ascomponent/sync-zero',
+          loader: loader
+        wrapped 'bang', (err, res) ->
+          return done err if err
+          chai.expect(res).to.equal 'Hello there'
+          done()
   describe 'with an asynchronous function taking a single parameter and callback', ->
     describe 'with successful callback', ->
       func = (hello, callback) ->

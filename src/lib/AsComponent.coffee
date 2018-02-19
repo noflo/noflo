@@ -10,17 +10,23 @@ exports.asComponent = (func, options) ->
 
   c = new Component options
   for p in params
-    if p.param is 'callback'
-      hasCallback = true
-      continue
     c.inPorts.add p.param
+  unless params.length
+    c.inPorts.add 'in',
+      datatype: 'bang'
+
   c.outPorts.add 'out'
   c.outPorts.add 'error'
   c.process (input, output) ->
-    for p in params
-      return unless input.hasData p.param
-    values = params.map (p) ->
-      input.getData p.param
+    if params.length
+      for p in params
+        return unless input.hasData p.param
+      values = params.map (p) ->
+        input.getData p.param
+    else
+      return unless input.hasData 'in'
+      input.getData 'in'
+      values = []
 
     if hasCallback
       values.push (err, res) ->
