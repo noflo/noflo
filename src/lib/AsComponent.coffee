@@ -44,6 +44,14 @@ getParams = require 'get-function-params'
 #         icon: 'html5',
 #       });
 #     };
+#
+# ### Default values
+#
+# Function arguments with a default value are supported in ES6 environments. The default arguments are visible via the component's
+# port interface.
+#
+# However, ES5 transpilation doesn't work with default values. In these cases the port with a default won't be visible. It is
+# recommended to use default values only with components that don't need to run in legacy browsers.
 exports.asComponent = (func, options) ->
   hasCallback = false
   params = getParams(func).filter (p) ->
