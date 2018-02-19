@@ -2,9 +2,17 @@ getParams = require 'get-function-params'
 {Component} = require './Component'
 
 exports.asComponent = (func, options) ->
-  params = getParams func
+  hasCallback = false
+  params = getParams(func).filter (p) ->
+    return true unless p.param is 'callback'
+    hasCallback = true
+    false
+
   c = new Component options
   for p in params
+    if p.param is 'callback'
+      hasCallback = true
+      continue
     c.inPorts.add p.param
   c.outPorts.add 'out'
   c.outPorts.add 'error'
@@ -13,6 +21,14 @@ exports.asComponent = (func, options) ->
       return unless input.hasData p.param
     values = params.map (p) ->
       input.getData p.param
+
+    if hasCallback
+      values.push (err, res) ->
+        return output.done err if err
+        output.sendDone res
+      res = func.apply null, values
+      return
+
     res = func.apply null, values
     if typeof res is 'object' and typeof res.then is 'function'
       # Result is a Promise, resolve and handle
