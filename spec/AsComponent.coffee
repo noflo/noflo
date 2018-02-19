@@ -108,7 +108,7 @@ describe 'asComponent interface', ->
           done()
     describe 'with a default value', ->
       before ->
-        @skip() if isBrowser
+        @skip() if isBrowser # Browser runs with ES5 which didn't have defaults
       func = (name, greeting = 'Hello') ->
         return "#{greeting} #{name}"
       it 'should be possible to componentize', (done) ->
