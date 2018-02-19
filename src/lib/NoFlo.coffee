@@ -174,3 +174,8 @@ exports.saveFile = (graph, file, callback) ->
 #       // Do something with results
 #     });
 exports.asCallback = require('./AsCallback').asCallback
+
+# ## Generating components from JavaScript functions
+#
+#
+exports.asComponent = require('./AsComponent').asComponent
