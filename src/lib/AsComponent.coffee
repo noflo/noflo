@@ -10,7 +10,12 @@ exports.asComponent = (func, options) ->
 
   c = new Component options
   for p in params
-    c.inPorts.add p.param
+    portOptions =
+      required: true
+    unless typeof p.default is 'undefined'
+      portOptions.default = p.default
+      portOptions.required = false
+    c.inPorts.add p.param, portOptions
     c.forwardBrackets[p.param] = ['out', 'error']
   unless params.length
     c.inPorts.add 'in',

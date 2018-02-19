@@ -106,6 +106,34 @@ describe 'asComponent interface', ->
           chai.expect(res).to.eql
             out: 'Hei Maailma'
           done()
+    describe 'with a default value', ->
+      func = (name, greeting = 'Hello') ->
+        return "#{greeting} #{name}"
+      it 'should be possible to componentize', (done) ->
+        component = -> noflo.asComponent func
+        loader.registerComponent 'ascomponent', 'sync-default', component, done
+      it 'should be loadable', (done) ->
+        loader.load 'ascomponent/sync-default', done
+      it 'should contain correct ports', (done) ->
+        loader.load 'ascomponent/sync-default', (err, instance) ->
+          return done err if err
+          chai.expect(Object.keys(instance.inPorts.ports)).to.eql ['name', 'greeting']
+          chai.expect(Object.keys(instance.outPorts.ports)).to.eql ['out', 'error']
+          chai.expect(instance.inPorts.name.isRequired()).to.equal true
+          chai.expect(instance.inPorts.name.hasDefault()).to.equal false
+          chai.expect(instance.inPorts.greeting.isRequired()).to.equal false
+          chai.expect(instance.inPorts.greeting.hasDefault()).to.equal true
+          done()
+      it 'should send to OUT port', (done) ->
+        wrapped = noflo.asCallback 'ascomponent/sync-default',
+          loader: loader
+        wrapped
+          name: 'Maailma'
+        , (err, res) ->
+          return done err if err
+          chai.expect(res).to.eql
+            out: 'Hello Maailma'
+          done()
   describe 'with a function returning a Promise', ->
     describe 'with a resolved promise', ->
       before ->
