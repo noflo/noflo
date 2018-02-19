@@ -78,10 +78,10 @@ describe 'asComponent interface', ->
             out: 'Hei Maailma'
           done()
   describe 'with a function returning a Promise', ->
-    before ->
-      if isBrowser and typeof window.Promise is 'undefined'
-        return @skip()
     describe 'with a resolved promise', ->
+      before ->
+        if isBrowser and typeof window.Promise is 'undefined'
+          return @skip()
       func = (hello) ->
         return new Promise (resolve, reject) ->
           setTimeout ->
@@ -98,6 +98,9 @@ describe 'asComponent interface', ->
           chai.expect(res).to.equal 'Hello World'
           done()
     describe 'with a rejected promise', ->
+      before ->
+        if isBrowser and typeof window.Promise is 'undefined'
+          return @skip()
       func = (hello) ->
         return new Promise (resolve, reject) ->
           setTimeout ->
