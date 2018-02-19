@@ -1,6 +1,13 @@
 NoFlo ChangeLog
 ===============
 
+## 1.1.0 (February 19th 2018)
+
+* Added [noflo.asComponent](https://github.com/noflo/noflo/pull/591) for easy mapping of JavaScript functions into NoFlo components. Each argument will get its own inport with the name of the argument, and output is handled based on the type of function being wrapped:
+  - Regular synchronous functions: return value gets sent to `out`. Thrown errors get sent to `error`
+  - Functions returning a Promise: resolved promises get sent to `out`, rejected promises to `error`
+  - Functions taking a Node.js style asynchronous callback: `err` argument to callback gets sent to `error`, result gets sent to `out`
+
 ## 1.0.3 (November 24th 2017)
 
 * Added support for running arbitrary NoFlo graphs via `noflo.asCallback`. You can call this function now with either a component name, or a `noflo.Graph` instance
