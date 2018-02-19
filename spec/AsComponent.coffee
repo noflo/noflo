@@ -4,10 +4,12 @@ if typeof process isnt 'undefined' and process.execPath and process.execPath.mat
   path = require 'path'
   root = path.resolve __dirname, '../'
   urlPrefix = './'
+  isBrowser = false
 else
   noflo = require 'noflo'
   root = 'noflo'
   urlPrefix = '/'
+  isBrowser = true
 
 describe 'asComponent interface', ->
   loader = null
@@ -77,7 +79,7 @@ describe 'asComponent interface', ->
           done()
   describe 'with a function returning a Promise', ->
     before ->
-      if typeof Promise is 'undefined'
+      if isBrowser and typeof window.Promise is 'undefined'
         return @skip()
     describe 'with a resolved promise', ->
       func = (hello) ->
