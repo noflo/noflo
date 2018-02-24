@@ -193,7 +193,7 @@ class ComponentLoader extends EventEmitter
       instance.setIcon 'sitemap'
       return
 
-    instance.setIcon 'square'
+    instance.setIcon 'gear'
     return
 
   getLibraryIcon: (prefix) ->
