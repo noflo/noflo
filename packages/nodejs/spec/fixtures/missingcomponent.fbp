@@ -1,0 +1,1 @@
+'hello world' -> IN repeat(foo/Bar) OUT -> IN stdout(core/Output)

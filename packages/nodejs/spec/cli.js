@@ -30,4 +30,14 @@ describe('noflo-nodejs', () => {
       expect(stdout.toLowerCase()).to.include('wrote flowtrace to:');
     });
   });
+  describe('--graph=missingcomponent.fbp', () => {
+    const graph = path.resolve(__dirname, './fixtures/missingcomponent.fbp');
+    it('should fail with an error telling about the missing component', (done) => {
+      const cmd = `${prog} --graph=${graph}`;
+      exec(cmd, (err, o, e) => {
+        expect(err.message).to.contain('Component foo/Bar not available');
+        done();
+      });
+    }).timeout(10 * 1000);
+  });
 });
