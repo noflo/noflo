@@ -1,4 +1,4 @@
-NoFlo Node.js runtime environment [![Build Status](https://travis-ci.org/noflo/noflo-nodejs.svg?branch=master)](https://travis-ci.org/noflo/noflo-nodejs)
+Command-line tool for running NoFlo programs on Node.js [![Build Status](https://travis-ci.org/noflo/noflo-nodejs.svg?branch=master)](https://travis-ci.org/noflo/noflo-nodejs)
 =================================
 
 This tool is designed to be used together with the [Flowhub](http://flowhub.io/) development environment
@@ -16,7 +16,7 @@ $ npm install noflo --save
 $ npm install noflo-nodejs --save
 ```
 
-Continue by installing whatever [NoFlo component libraries](http://noflojs.org/library/) you need, for example:
+Continue by installing whatever [NoFlo component libraries](https://www.npmjs.com/browse/keyword/noflo) you need, for example:
 
 ```shell
 $ npm install noflo-core --save
@@ -75,12 +75,10 @@ For instance, you can get a human readable log using `flowtrace-show`
 By default `noflo-nodejs` will attempt to autodetect the public hostname/IP of your system.
 If this fails, you can specify `--host myhostname` manually.
 
-
 ## Signalling aliveness
 
 `noflo-nodejs` can *optionally* ping Flowhub registry periodically to signal aliveness.
 Enable by specifying `--ping true` on commandline, or set the envvar `NOFLO_RUNTIME_PING=true`
-
 
 ## Persistent runtime configuration
 

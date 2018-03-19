@@ -6,26 +6,12 @@ module.exports = ->
   # Project configuration
   @initConfig
     pkg: @file.readJSON 'package.json'
-
-    coffeelint:
-      sources:
-        files:
-          src: [
-            'index.coffee'
-            'src/*.coffee'
-          ]
-        options:
-          max_line_length:
-            value: 80
-            level: 'warn'
-
     # Tests
     mochaTest:
       nodejs:
-        src: ['spec/*.coffee']
+        src: ['spec/*.js']
         options:
           reporter: 'spec'
-          require: 'coffeescript/register'
           grep: process.env.TESTS
     # FBP Network Protocol tests
     exec:
@@ -36,12 +22,10 @@ module.exports = ->
             FBP_PROTOCOL_SECRET: runtimeSecret
             PATH: process.env.PATH
 
-  @loadNpmTasks 'grunt-coffeelint'
   @loadNpmTasks 'grunt-mocha-test'
   @loadNpmTasks 'grunt-exec'
 
   @registerTask 'test', [
-    'coffeelint'
     'mochaTest'
     'startRuntime'
     'exec:fbp_test'
