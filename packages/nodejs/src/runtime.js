@@ -85,6 +85,8 @@ exports.ping = (rt, options) => new Promise((resolve) => {
     protocol: 'websocket',
     address: server.getUrl(options),
     type: 'noflo-nodejs',
+  }, {
+    host: options.registry,
   });
   doPing(flowhubRt);
   setInterval(() => doPing(flowhubRt), options.pingInterval);

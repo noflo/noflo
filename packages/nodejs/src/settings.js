@@ -86,10 +86,14 @@ const config = {
     default: 'http://app.flowhub.io',
   },
   pingInterval: {
-    cli: 'ping-interval',
+    cli: 'registry-ping',
     description: 'How often to ping the runtime registry',
     convert: val => parseInt(val, 10),
     default: 10 * 60 * 1000,
+  },
+  registry: {
+    description: 'URL for the runtime registry',
+    default: 'https://api.flowhub.io',
   },
 };
 
