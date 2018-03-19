@@ -46,9 +46,10 @@ module.exports = ->
       '--port=8080'
       "--secret=#{runtimeSecret}"
     ]
-    setTimeout ->
-      done()
-    , 4000
+    runtime.stdout.on 'data', (data) ->
+      message = data.toString 'utf8'
+      if message.indexOf('now listening') isnt -1
+        done()
   @registerTask 'stopRuntime', ->
     return unless runtime
     done = @async()
