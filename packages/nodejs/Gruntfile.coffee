@@ -48,6 +48,7 @@ module.exports = ->
     ]
     runtime.stdout.on 'data', (data) ->
       message = data.toString 'utf8'
+      console.log message
       if message.indexOf('now listening') isnt -1
         done()
   @registerTask 'stopRuntime', ->
