@@ -32,7 +32,7 @@ Once you have installed the runtime, it is time to start it:
 $ node node_modules/.bin/noflo-nodejs --secret some-password
 ```
 
-This will start a WebSocket-based NoFlo Runtime server. When started, it will 
+This will start a WebSocket-based NoFlo Runtime server. When started, it will output an URL with the connection details needed by Flowhub.
 
 Copy paste this URL into the browser. The Flowhub IDE will open, and automatically connect to your runtime.
 To make changes hit 'Edit as Project'. You should be able to see available components and build up your system.
@@ -44,9 +44,9 @@ The noflo-nodejs runtime can be secured using TLS. Place the key and certificate
 For example, to use self-signed keys, you could do the following:
 
 ```shell
-openssl genrsa -out localhost.key 2048
-openssl req -new -x509 -key localhost.key -out localhost.cert -days 3650 -subj /CN=localhost
-noflo-nodejs --tls-key=localhost.key --tls-cert=localhost.cert
+$ openssl genrsa -out localhost.key 2048
+$ openssl req -new -x509 -key localhost.key -out localhost.cert -days 3650 -subj /CN=localhost
+$ noflo-nodejs --tls-key=localhost.key --tls-cert=localhost.cert
 ```
 
 Note: browsers may refuse to connect to a WebSocket with a self-signed certificate by default. You can visit the runtime URL with your browser first to accept the sertificate before connecting to it in the IDE.
@@ -67,25 +67,31 @@ If you want the process to exit when the network stops, you can pass `--batch`.
 noflo-nodejs supports [flowtrace](https://github.com/flowbased/flowtrace) allows to trace & store the execution of the FBP program,
 so you can debug any issues that would occur. Specify `--trace` to enable tracing.
 
-    noflo-nodejs --graph graphs/MyMainGraph.json --trace
+```shell
+$ noflo-nodejs --graph graphs/MyMainGraph.json --trace
+```
 
 If you are running in `--batch` mode, the file will be dumped to disk when the program terminates.
 Otherwise you can send the `SIGUSR2` to trigger dumping the file to disk.
 
-    kill -SIGUSR2 $PID_OF_PROCESS
-    ... Wrote flowtrace to: /tmp/1151020-12063-ami5vq.json
+```shell
+$ kill -SIGUSR2 $PID_OF_PROCESS
+... Wrote flowtrace to: /tmp/1151020-12063-ami5vq.json
+```
 
 You can now use various flowtrace tools to introspect the data.
 For instance, you can get a human readable log using `flowtrace-show`
 
-    flowtrace-show /tmp/1151020-12063-ami5vq.json
+```shell
+$ flowtrace-show /tmp/1151020-12063-ami5vq.json
 
-    -> IN repeat CONN
-    -> IN repeat DATA hello world
-    -> IN stdout CONN
-    -> IN stdout DATA hello world
-    -> IN repeat DISC
-    -> IN stdout DISC
+-> IN repeat CONN
+-> IN repeat DATA hello world
+-> IN stdout CONN
+-> IN stdout DATA hello world
+-> IN repeat DISC
+-> IN stdout DISC
+```
 
 ## Host address autodetection
 
@@ -98,7 +104,7 @@ If this fails, you can specify `--host myhostname` manually.
 
 ## Persistent runtime configuration
 
-Settings can also be loaded from a  `flowhub.json` file.
+Settings can be loaded from a  `flowhub.json` file.
 By default the configuration will be read from the current working directory,
 but you can change this by setting the `PROJECT_HOME` environment variable.
 
