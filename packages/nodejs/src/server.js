@@ -1,12 +1,17 @@
 const http = require('http');
+const https = require('https');
 const url = require('url');
+const fs = require('fs');
 const querystring = require('querystring');
 const runtime = require('noflo-runtime-websocket');
 
 exports.getUrl = (options) => {
-  // TODO: wss vs. ws
+  let protocol = 'ws:';
+  if (options.tlsKey && options.tlsCert) {
+    protocol = 'wss:';
+  }
   const rtUrl = {
-    protocol: 'ws:',
+    protocol,
     slashes: true,
     hostname: options.host,
     port: `${options.port}`,
@@ -17,8 +22,12 @@ exports.getUrl = (options) => {
 
 exports.liveUrl = (options) => {
   const liveUrl = url.parse(options.ide);
-  // TODO: https vs. http
   liveUrl.pathname = '/';
+  if ((!options.tlsKey || !options.tlsCert) && liveUrl.protocol === 'https:') {
+    console.warn('Browsers will reject connections from HTTPS pages to unsecured WebSockets');
+    console.warn('You can use insecure version of the IDE, or enable secure WebSockets with --tls-key and --tls-cert options');
+    liveUrl.protocol = 'http:';
+  }
   const query = [
     'protocol=websocket',
     `address=${exports.getUrl(options)}`,
@@ -29,12 +38,21 @@ exports.liveUrl = (options) => {
   return url.format(liveUrl);
 };
 
+function handleRequest(req, res) {
+  // TODO: Redirect to Flowhub?
+  res.end();
+}
+
 exports.create = (graph, options) => new Promise((resolve) => {
-  // TODO: SSL support
-  const server = http.createServer((req, res) => {
-    // TODO: Redirect to Flowhub?
-    res.end();
-  });
+  let server = null;
+  if (options.tlsKey && options.tlsCert) {
+    server = https.createServer({
+      key: fs.readFileSync(options.tlsKey),
+      cert: fs.readFileSync(options.tlsCert),
+    }, handleRequest);
+  } else {
+    server = http.createServer(handleRequest);
+  }
   const rt = runtime(server, {
     defaultGraph: graph,
     baseDir: options.baseDir,

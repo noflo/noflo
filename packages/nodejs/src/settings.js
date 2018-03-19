@@ -39,6 +39,14 @@ const config = {
     description: 'Port for the runtime',
     default: 3569,
   },
+  tlsKey: {
+    cli: 'tls-key',
+    description: 'Path to TLS key file',
+  },
+  tlsCert: {
+    cli: 'tls-cert',
+    description: 'Path to TLS cert file',
+  },
   secret: {
     description: 'Password to be used by FBP protocol clients',
     generate: () => generatePassword(),
@@ -83,7 +91,7 @@ const config = {
   },
   ide: {
     description: 'URL for the FBP protocol client',
-    default: 'http://app.flowhub.io',
+    default: 'https://app.flowhub.io',
   },
   pingInterval: {
     cli: 'registry-ping',
