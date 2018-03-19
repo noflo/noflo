@@ -56,6 +56,13 @@ exports.subscribe = (rt, options) => new Promise((resolve) => {
       });
   });
 
+  if (!options.catchExceptions) {
+    process.on('uncaughtException', (err) => {
+      debug.showError(err);
+      process.exit(1);
+    });
+  }
+
   rt.network.on('addnetwork', (network) => {
     if (options.trace) {
       tracer.attach(network);

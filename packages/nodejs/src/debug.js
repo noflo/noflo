@@ -71,3 +71,13 @@ exports.add = (network, options) => {
   // - process-error
   // - icon
 };
+
+exports.showError = (err) => {
+  let stack = err.stack.split('\n');
+  console.error(clc.red(err.message));
+  if (stack.length > 10) {
+    stack = stack.slice(1, 9);
+    stack.push('    ...');
+  }
+  console.error(clc.cyan(stack.join('\n')));
+};

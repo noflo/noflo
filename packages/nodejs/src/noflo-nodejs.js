@@ -1,6 +1,7 @@
 const settings = require('./settings');
 const server = require('./server');
 const runtime = require('./runtime');
+const debug = require('./debug');
 
 exports.main = () => {
   settings.load()
@@ -16,7 +17,7 @@ exports.main = () => {
         }
       }))
     .catch((err) => {
-      console.error(err);
+      debug.showError(err);
       process.exit(1);
     });
 };
