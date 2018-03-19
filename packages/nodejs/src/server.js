@@ -41,7 +41,7 @@ exports.liveUrl = (options) => {
 exports.create = (graph, options) => new Promise((resolve) => {
   const handleRequest = (req, res) => {
     res.writeHead(302, {
-      'Location': exports.liveUrl(options),
+      Location: exports.liveUrl(options),
     });
     res.end();
   };
