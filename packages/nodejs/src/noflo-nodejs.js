@@ -11,6 +11,9 @@ exports.main = () => {
       .then(rt => server.start(rt, options))
       .then(rt => runtime.ping(rt, options))
       .then(() => {
+        if (options.batch) {
+          return;
+        }
         console.log(`NoFlo runtime is now listening at ${server.getUrl(options)}`);
         if (options.secret) {
           console.log(`Live IDE URL: ${server.liveUrl(options)}`);
