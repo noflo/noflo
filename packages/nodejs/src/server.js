@@ -38,12 +38,14 @@ exports.liveUrl = (options) => {
   return url.format(liveUrl);
 };
 
-function handleRequest(req, res) {
-  // TODO: Redirect to Flowhub?
-  res.end();
-}
-
 exports.create = (graph, options) => new Promise((resolve) => {
+  const handleRequest = (req, res) => {
+    res.writeHead(302, {
+      'Location': exports.liveUrl(options),
+    });
+    res.end();
+  };
+
   let server = null;
   if (options.tlsKey && options.tlsCert) {
     server = https.createServer({
