@@ -34,6 +34,18 @@ exports.loadGraph = options => new Promise((resolve, reject) => {
   });
 });
 
+function stopNetwork(network) {
+  return new Promise((resolve, reject) => {
+    network.stop((err) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(network);
+    });
+  });
+}
+
 function stopRuntime(rt, options, tracer) {
   exports.writeTrace(options, tracer)
     .then(() => server.stop(rt))
@@ -48,6 +60,7 @@ function stopRuntime(rt, options, tracer) {
 
 exports.subscribe = (rt, options) => new Promise((resolve) => {
   const tracer = new trace.Tracer();
+  const networks = [];
 
   process.on('SIGUSR2', () => {
     exports.writeTrace(options, tracer)
@@ -57,11 +70,11 @@ exports.subscribe = (rt, options) => new Promise((resolve) => {
   });
 
   process.on('SIGTERM', () => {
-    exports.writeTrace(options, tracer)
-      .then(() => {
-        process.exit(0);
-      }, (e) => {
-        debug.showError(e);
+    Promise.all(networks.map(stopNetwork))
+      .then(() => exports.writeTrace(options, tracer))
+      .then(() => process.exit(0))
+      .catch((err) => {
+        debug.showError(err);
         process.exit(1);
       });
   });
@@ -89,6 +102,19 @@ exports.subscribe = (rt, options) => new Promise((resolve) => {
     if (options.batch && options.graph) {
       network.on('end', () => stopRuntime(rt, options, tracer));
     }
+    networks.push(network);
+  });
+  rt.network.on('removenetwork', (network) => {
+    if (networks.indexOf(network) === -1) {
+      return;
+    }
+    if (options.trace) {
+      exports.writeTrace(options, tracer)
+        .then(() => {
+          tracer.detach(network);
+        });
+    }
+    networks.splice(networks.indexOf(network), 1);
   });
   resolve(rt);
 });
