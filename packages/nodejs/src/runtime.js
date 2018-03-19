@@ -59,7 +59,17 @@ exports.subscribe = (rt, options) => new Promise((resolve) => {
   if (!options.catchExceptions) {
     process.on('uncaughtException', (err) => {
       debug.showError(err);
-      process.exit(1);
+      if (!options.trace) {
+        process.exit(1);
+        return;
+      }
+      exports.writeTrace(options, tracer)
+        .then(() => {
+          process.exit(1);
+        }, (e) => {
+          debug.showError(e);
+          process.exit(1);
+        });
     });
   }
 
