@@ -93,7 +93,7 @@ const config = {
     description: 'URL for the FBP protocol client',
     default: 'https://app.flowhub.io',
   },
-  pingInterval: {
+  registryPing: {
     cli: 'registry-ping',
     description: 'How often to ping the runtime registry',
     convert: val => parseInt(val, 10),

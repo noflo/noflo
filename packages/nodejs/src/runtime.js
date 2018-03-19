@@ -92,7 +92,7 @@ function doPing(flowhubRt) {
 }
 
 exports.ping = (rt, options) => new Promise((resolve) => {
-  if (!options.id) {
+  if (!options.id || !options.registryPing) {
     resolve(rt);
     return;
   }
@@ -106,6 +106,6 @@ exports.ping = (rt, options) => new Promise((resolve) => {
     host: options.registry,
   });
   doPing(flowhubRt);
-  setInterval(() => doPing(flowhubRt), options.pingInterval);
+  setInterval(() => doPing(flowhubRt), options.registryPing);
   resolve(rt);
 });
