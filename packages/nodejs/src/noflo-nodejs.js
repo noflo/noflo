@@ -19,7 +19,8 @@ exports.main = () => {
         if (options.secret) {
           console.log(`Live IDE URL: ${server.liveUrl(options)}`);
         }
-        opn(server.liveUrl(options));
+        opn(server.liveUrl(options, true))
+          .catch(() => {});
       }))
     .catch((err) => {
       debug.showError(err);
