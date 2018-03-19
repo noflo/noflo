@@ -37,7 +37,6 @@ module.exports = ->
     done = @async()
     runtime = spawn 'node', [
       'bin/noflo-nodejs'
-      '--register=false'
       '--host=localhost'
       '--port=8080'
       "--secret=#{runtimeSecret}"
