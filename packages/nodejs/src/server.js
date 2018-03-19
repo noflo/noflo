@@ -20,12 +20,14 @@ exports.getUrl = (options) => {
   return url.format(rtUrl);
 };
 
-exports.liveUrl = (options) => {
+exports.liveUrl = (options, silent = false) => {
   const liveUrl = url.parse(options.ide);
   liveUrl.pathname = '/';
   if ((!options.tlsKey || !options.tlsCert) && liveUrl.protocol === 'https:') {
-    console.warn('Browsers will reject connections from HTTPS pages to unsecured WebSockets');
-    console.warn('You can use insecure version of the IDE, or enable secure WebSockets with --tls-key and --tls-cert options');
+    if (!silent) {
+      console.warn('Browsers will reject connections from HTTPS pages to unsecured WebSockets');
+      console.warn('You can use insecure version of the IDE, or enable secure WebSockets with --tls-key and --tls-cert options');
+    }
     liveUrl.protocol = 'http:';
   }
   const query = [
