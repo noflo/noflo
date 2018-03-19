@@ -56,13 +56,19 @@ exports.subscribe = (rt, options) => new Promise((resolve) => {
       });
   });
 
+  process.on('SIGTERM', () => {
+    exports.writeTrace(options, tracer)
+      .then(() => {
+        process.exit(0);
+      }, (e) => {
+        debug.showError(e);
+        process.exit(1);
+      });
+  });
+
   if (!options.catchExceptions) {
     process.on('uncaughtException', (err) => {
       debug.showError(err);
-      if (!options.trace) {
-        process.exit(1);
-        return;
-      }
       exports.writeTrace(options, tracer)
         .then(() => {
           process.exit(1);
