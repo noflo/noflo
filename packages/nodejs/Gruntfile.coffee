@@ -27,10 +27,15 @@ module.exports = ->
 
   @registerTask 'test', [
     'mochaTest'
+    'clearConfig'
     'startRuntime'
     'exec:fbp_test'
     'stopRuntime'
   ]
+
+  grunt = @
+  @registerTask 'clearConfig', ->
+    grunt.file.delete path.resolve __dirname, 'flowhub.json'
 
   runtime = null
   @registerTask 'startRuntime', ->
