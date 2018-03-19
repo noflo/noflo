@@ -8,6 +8,7 @@ New features:
 * Uncaught exceptions are now printed in a more readable format, with a truncated stack trace
 * The runtime registry URL can now be configured with the `--registry` option
 * Runtime registry pinging can be disabled with `--registry-ping=0`
+* If running on a desktop machine, the runtime will be automatically opened in user's default browser
 
 Removal of deprecated features:
 

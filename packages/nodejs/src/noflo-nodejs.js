@@ -1,3 +1,4 @@
+const opn = require('opn');
 const settings = require('./settings');
 const server = require('./server');
 const runtime = require('./runtime');
@@ -18,6 +19,7 @@ exports.main = () => {
         if (options.secret) {
           console.log(`Live IDE URL: ${server.liveUrl(options)}`);
         }
+        opn(server.liveUrl(options));
       }))
     .catch((err) => {
       debug.showError(err);
