@@ -34,7 +34,7 @@ exports.loadGraph = options => new Promise((resolve, reject) => {
   });
 });
 
-function handleBatchEnd(rt, options, tracer) {
+function stopRuntime(rt, options, tracer) {
   exports.writeTrace(options, tracer)
     .then(() => server.stop(rt))
     .then(() => {
@@ -64,7 +64,7 @@ exports.subscribe = (rt, options) => new Promise((resolve) => {
       debug.add(network, options);
     }
     if (options.batch && options.graph) {
-      network.on('end', () => handleBatchEnd(rt, options, tracer));
+      network.on('end', () => stopRuntime(rt, options, tracer));
     }
   });
   resolve(rt);
