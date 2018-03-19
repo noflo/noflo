@@ -1,3 +1,27 @@
+## noflo-nodejs 0.10.0 (git master)
+
+New features:
+
+* Changed  configuration file `flowhub.json` to be automatically saved from command-line arguments, persisting settings like runtime ID and secret between runs
+* Added support for encrypted WebSockets with `--tls-key` and `--tls-cert` options
+* When Flowtracing is enabled with the `--trace` option, uncaught exceptions also trigger the trace to be saved
+* Uncaught exceptions are now printed in a more readable format, with a truncated stack trace
+* The runtime registry URL can now be configured with the `--registry` option
+* Runtime registry pinging can be disabled with `--registry-ping=0`
+* If running on a desktop machine, the runtime will be automatically opened in user's default browser
+
+Removal of deprecated features:
+
+* Removed deprecated `noflo-nodejs-init` tool
+* Removed deprecated `--register` option. Your runtime can be registered with Flowhub by opening it there
+
+Internal changes:
+
+* Ported noflo-nodejs from CoffeeScript to ES6
+
+## noflo-nodejs 0.9.0 (05-11-2017)
+
+* Compatibility with NoFlo 1.x
 
 ## noflo-nodejs 0.8.3 (12-05-2017)
 

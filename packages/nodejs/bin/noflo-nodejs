@@ -1,3 +1,2 @@
 #!/usr/bin/env node
-require('coffeescript/register');
-require("../src/noflo-nodejs.coffee").main();
+require("../src/noflo-nodejs.js").main();
