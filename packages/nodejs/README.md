@@ -49,7 +49,7 @@ $ openssl req -new -x509 -key localhost.key -out localhost.cert -days 3650 -subj
 $ noflo-nodejs --tls-key=localhost.key --tls-cert=localhost.cert
 ```
 
-Note: browsers may refuse to connect to a WebSocket with a self-signed certificate by default. You can visit the runtime URL with your browser first to accept the sertificate before connecting to it in the IDE.
+Note: browsers may refuse to connect to a WebSocket with a self-signed certificate by default. You can visit the runtime URL with your browser first to accept the certificate before connecting to it in the IDE.
 
 ## Starting an existing graph
 

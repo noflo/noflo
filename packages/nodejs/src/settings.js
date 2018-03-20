@@ -20,16 +20,19 @@ const config = {
   },
   graph: {
     description: 'Path to graph file to run',
+    skipSave: true,
   },
   baseDir: {
     cli: 'base-dir',
     env: 'PROJECT_HOME',
     description: 'Project base directory used for component loading',
     default: process.cwd(),
+    skipSave: true,
   },
   batch: {
     description: 'Exit program when graph finishes',
     boolean: true,
+    skipSave: true,
   },
   host: {
     description: 'Hostname or IP for the runtime. Use "autodetect" for dynamic detection',
@@ -67,19 +70,23 @@ const config = {
     cli: 'capture-output',
     boolean: true,
     description: 'Catch writes to STDOUT and send to FBP protocol client',
+    skipSave: true,
   },
   catchExceptions: {
     cli: 'catch-exceptions',
     boolean: true,
     description: 'Catch exceptions and send to FBP protocol client',
+    skipSave: true,
   },
   debug: {
     boolean: true,
     description: 'Log NoFlo packet events to STDOUT',
+    skipSave: true,
   },
   verbose: {
     boolean: true,
     description: 'Log NoFlo packet contents to STDOUT',
+    skipSave: true,
   },
   cache: {
     boolean: true,
@@ -102,6 +109,10 @@ const config = {
   registry: {
     description: 'URL for the runtime registry',
     default: 'https://api.flowhub.io',
+  },
+  register: {
+    boolean: true,
+    description: 'Deprecated: Register runtime to runtime registry',
   },
 };
 
@@ -165,20 +176,29 @@ const applyEnv = () => new Promise((resolve) => {
 
 const parseArguments = () => {
   const options = commander.version(nofloNodejs.version, '-v --version');
+  const convertBoolean = val => String(val) === 'true';
   Object.keys(config).forEach((key) => {
     const conf = config[key];
     const optionKey = conf.cli || key;
+    let { description } = conf;
+    if (conf.skipSave) {
+      description = `${description} [not saved to flowhub.json]`;
+    }
     if (config[key].boolean) {
-      options.option(`--${optionKey}`, conf.description, conf.default);
+      options.option(`--${optionKey} [true]`, description, convertBoolean, conf.default);
       return;
     }
     if (config[key].convert) {
-      options.option(`--${optionKey} <${optionKey}>`, conf.description, conf.convert, conf.default);
+      options.option(`--${optionKey} <${optionKey}>`, description, conf.convert, conf.default);
       return;
     }
-    options.option(`--${optionKey} <${optionKey}>`, conf.description, conf.default);
+    options.option(`--${optionKey} <${optionKey}>`, description, conf.default);
   });
   options.parse(process.argv);
+  if (typeof options.register !== 'undefined') {
+    console.warn('noflo-nodejs --register is deprecated and has no effect');
+    delete options.register;
+  }
   return options;
 };
 
@@ -237,6 +257,9 @@ const loadSettings = settings => new Promise((resolve, reject) => {
         if (typeof applied[key] !== 'undefined') {
           return;
         }
+        if (config[key].skipSave) {
+          return;
+        }
         applied[key] = savedSettings[key];
       });
       resolve(applied);
@@ -254,6 +277,9 @@ const saveSettings = settings => new Promise((resolve, reject) => {
       return;
     }
     if (settings[key] === config[key].default) {
+      return;
+    }
+    if (config[key].skipSave) {
       return;
     }
     saveables[key] = settings[key];

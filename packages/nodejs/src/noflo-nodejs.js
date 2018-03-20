@@ -15,12 +15,14 @@ exports.main = () => {
         if (options.batch) {
           return;
         }
-        console.log(`NoFlo runtime is now listening at ${server.getUrl(options)}`);
-        if (options.secret) {
-          console.log(`Live IDE URL: ${server.liveUrl(options)}`);
-        }
-        opn(server.liveUrl(options, true))
-          .catch(() => {});
+        setTimeout(() => {
+          console.log(`NoFlo runtime is now listening at ${server.getUrl(options)}`);
+          if (options.secret) {
+            console.log(`Live IDE URL: ${server.liveUrl(options)}`);
+          }
+          opn(server.liveUrl(options, true))
+            .catch(() => {});
+        }, 10);
       }))
     .catch((err) => {
       debug.showError(err);
