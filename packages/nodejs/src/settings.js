@@ -20,16 +20,19 @@ const config = {
   },
   graph: {
     description: 'Path to graph file to run',
+    skipSave: true,
   },
   baseDir: {
     cli: 'base-dir',
     env: 'PROJECT_HOME',
     description: 'Project base directory used for component loading',
     default: process.cwd(),
+    skipSave: true,
   },
   batch: {
     description: 'Exit program when graph finishes',
     boolean: true,
+    skipSave: true,
   },
   host: {
     description: 'Hostname or IP for the runtime. Use "autodetect" for dynamic detection',
@@ -67,19 +70,23 @@ const config = {
     cli: 'capture-output',
     boolean: true,
     description: 'Catch writes to STDOUT and send to FBP protocol client',
+    skipSave: true,
   },
   catchExceptions: {
     cli: 'catch-exceptions',
     boolean: true,
     description: 'Catch exceptions and send to FBP protocol client',
+    skipSave: true,
   },
   debug: {
     boolean: true,
     description: 'Log NoFlo packet events to STDOUT',
+    skipSave: true,
   },
   verbose: {
     boolean: true,
     description: 'Log NoFlo packet contents to STDOUT',
+    skipSave: true,
   },
   cache: {
     boolean: true,
@@ -173,15 +180,19 @@ const parseArguments = () => {
   Object.keys(config).forEach((key) => {
     const conf = config[key];
     const optionKey = conf.cli || key;
+    let description = conf.description;
+    if (conf.skipSave) {
+      description = `${description} [not saved to flowhub.json]`;
+    }
     if (config[key].boolean) {
-      options.option(`--${optionKey} [true]`, conf.description, convertBoolean, conf.default);
+      options.option(`--${optionKey} [true]`, description, convertBoolean, conf.default);
       return;
     }
     if (config[key].convert) {
-      options.option(`--${optionKey} <${optionKey}>`, conf.description, conf.convert, conf.default);
+      options.option(`--${optionKey} <${optionKey}>`, description, conf.convert, conf.default);
       return;
     }
-    options.option(`--${optionKey} <${optionKey}>`, conf.description, conf.default);
+    options.option(`--${optionKey} <${optionKey}>`, description, conf.default);
   });
   options.parse(process.argv);
   if (typeof options.register !== 'undefined') {
@@ -246,6 +257,9 @@ const loadSettings = settings => new Promise((resolve, reject) => {
         if (typeof applied[key] !== 'undefined') {
           return;
         }
+        if (config[key].skipSave) {
+          return;
+        }
         applied[key] = savedSettings[key];
       });
       resolve(applied);
@@ -263,6 +277,9 @@ const saveSettings = settings => new Promise((resolve, reject) => {
       return;
     }
     if (settings[key] === config[key].default) {
+      return;
+    }
+    if (config[key].skipSave) {
       return;
     }
     saveables[key] = settings[key];
