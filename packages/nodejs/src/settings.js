@@ -224,7 +224,7 @@ const convertNamespace = (name) => {
   }
   let cleanedName = name;
   if (cleanedName[0] === '@') {
-    cleanedName = cleanedName.replace(/\@[a-z\-]+\//, '');
+    cleanedName = cleanedName.replace(/@[a-z-]+\//, '');
   }
   return cleanedName.replace(/^noflo-/, '');
 };
