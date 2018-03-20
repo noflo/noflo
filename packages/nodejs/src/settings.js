@@ -176,11 +176,11 @@ const applyEnv = () => new Promise((resolve) => {
 
 const parseArguments = () => {
   const options = commander.version(nofloNodejs.version, '-v --version');
-  const convertBoolean = (val) => String(val) === 'true';
+  const convertBoolean = val => String(val) === 'true';
   Object.keys(config).forEach((key) => {
     const conf = config[key];
     const optionKey = conf.cli || key;
-    let description = conf.description;
+    let { description } = conf;
     if (conf.skipSave) {
       description = `${description} [not saved to flowhub.json]`;
     }
