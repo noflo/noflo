@@ -103,6 +103,10 @@ const config = {
     description: 'URL for the runtime registry',
     default: 'https://api.flowhub.io',
   },
+  register: {
+    boolean: true,
+    description: 'Deprecated: Register runtime to runtime registry',
+  },
 };
 
 function discoverIp(preferred) {
@@ -180,6 +184,10 @@ const parseArguments = () => {
     options.option(`--${optionKey} <${optionKey}>`, conf.description, conf.default);
   });
   options.parse(process.argv);
+  if (typeof options.register !== 'undefined') {
+    console.warn('noflo-nodejs --register is deprecated and has no effect');
+    delete options.register;
+  }
   return options;
 };
 
