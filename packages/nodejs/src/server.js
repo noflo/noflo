@@ -62,10 +62,13 @@ exports.create = (graph, options) => new Promise((resolve) => {
     baseDir: options.baseDir,
     captureOutput: options.captureOutput,
     catchExceptions: options.catchExceptions,
+    defaultPermissions: [],
     permissions: options.permissions,
     cache: options.cache,
     id: options.id,
+    label: options.label,
     namespace: options.namespace,
+    repository: options.repository,
   });
   rt.webServer = server;
   resolve(rt);

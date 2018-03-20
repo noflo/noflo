@@ -215,6 +215,20 @@ const applyArguments = settings => new Promise((resolve) => {
   resolve(applied);
 });
 
+const convertNamespace = (name) => {
+  if (!name) {
+    return '';
+  }
+  if (name === 'noflo') {
+    return '';
+  }
+  let cleanedName = name;
+  if (cleanedName[0] === '@') {
+    cleanedName = cleanedName.replace(/@[a-z-]+\//, '');
+  }
+  return cleanedName.replace(/^noflo-/, '');
+};
+
 const generateValues = (settings) => {
   const applied = clone(settings);
   return readPackage(applied.baseDir)
@@ -237,6 +251,12 @@ const generateValues = (settings) => {
         } else {
           delete applied.permissions;
         }
+      }
+      if (packageData.repository && packageData.repository.url) {
+        applied.repository = packageData.repository.url;
+      }
+      if (packageData.name) {
+        applied.namespace = convertNamespace(packageData.name);
       }
       return applied;
     });
