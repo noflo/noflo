@@ -165,11 +165,12 @@ const applyEnv = () => new Promise((resolve) => {
 
 const parseArguments = () => {
   const options = commander.version(nofloNodejs.version, '-v --version');
+  const convertBoolean = (val) => String(val) === 'true';
   Object.keys(config).forEach((key) => {
     const conf = config[key];
     const optionKey = conf.cli || key;
     if (config[key].boolean) {
-      options.option(`--${optionKey}`, conf.description, conf.default);
+      options.option(`--${optionKey} [true]`, conf.description, convertBoolean, conf.default);
       return;
     }
     if (config[key].convert) {
