@@ -1,4 +1,4 @@
-## noflo-nodejs 0.10.0 (git master)
+## noflo-nodejs 0.10.0 (22-03-2017)
 
 New features:
 
@@ -9,6 +9,7 @@ New features:
 * The runtime registry URL can now be configured with the `--registry` option
 * Runtime registry pinging can be disabled with `--registry-ping=0`
 * If running on a desktop machine, the runtime will be automatically opened in user's default browser
+* Added compatibility with FBP Protocol version 0.7
 
 Removal of deprecated features:
 
