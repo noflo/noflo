@@ -41,5 +41,9 @@
     "grunt-mocha-test": "^0.13.2",
     "mocha": "^3.5.0",
     "noflo-core": ">= 0.4.0"
-  }
+  },
+  "keywords": [
+    "noflo",
+    "ecosystem:noflo"
+  ]
 }
