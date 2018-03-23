@@ -15,5 +15,6 @@ server/static/js/*.js
 docs_tmp/
 docs/
 npm-debug.log
+package-lock.json
 .DS_Store
 .noflo.json
