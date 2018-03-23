@@ -110,9 +110,17 @@ exports.dynamicLoad = (name, cPath, metadata, callback) ->
     return
 
   if typeof implementation.getComponent is 'function'
-    instance = implementation.getComponent metadata
+    try
+      instance = implementation.getComponent metadata
+    catch e
+      callback e
+      return
   else if typeof implementation is 'function'
-    instance = implementation metadata
+    try
+      instance = implementation metadata
+    catch e
+      callback e
+      return
   else
     callback new Error "Unable to instantiate #{cPath}"
     return
