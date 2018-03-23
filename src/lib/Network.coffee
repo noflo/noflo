@@ -399,6 +399,8 @@ class Network extends EventEmitter
         @checkIfFinished()
 
   subscribeNode: (node) ->
+    node.component.on 'activate', (load) =>
+      @abortDebounce = true if @debouncedEnd
     node.component.on 'deactivate', (load) =>
       return if load > 0
       @checkIfFinished()
