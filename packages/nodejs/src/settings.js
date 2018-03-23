@@ -100,6 +100,12 @@ const config = {
     description: 'URL for the FBP protocol client',
     default: 'https://app.flowhub.io',
   },
+  open: {
+    boolean: true,
+    description: 'Open the runtime in IDE in user\'s default browser',
+    skipSave: true,
+    default: true,
+  },
   registryPing: {
     cli: 'registry-ping',
     description: 'How often to ping the runtime registry',
@@ -211,7 +217,6 @@ const applyArguments = settings => new Promise((resolve) => {
     }
     applied[key] = options[key];
   });
-
   resolve(applied);
 });
 

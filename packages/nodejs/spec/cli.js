@@ -9,7 +9,7 @@ describe('noflo-nodejs', () => {
     let stderr = '';
     const graph = path.resolve(__dirname, './fixtures/helloworld.fbp');
     it('should execute graph and exit', (done) => {
-      const cmd = `${prog} --graph=${graph} --batch --trace`;
+      const cmd = `${prog} --graph=${graph} --batch --trace --open=false`;
       exec(cmd, (err, o, e) => {
         if (err) {
           done(err);
@@ -33,7 +33,7 @@ describe('noflo-nodejs', () => {
   describe('--graph=missingcomponent.fbp', () => {
     const graph = path.resolve(__dirname, './fixtures/missingcomponent.fbp');
     it('should fail with an error telling about the missing component', (done) => {
-      const cmd = `${prog} --graph=${graph}`;
+      const cmd = `${prog} --graph=${graph} --open=false`;
       exec(cmd, (err, o, e) => {
         expect(err.message).to.contain('Component foo/Bar not available');
         done();

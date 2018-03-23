@@ -20,6 +20,9 @@ exports.main = () => {
           if (options.secret) {
             console.log(`Live IDE URL: ${server.liveUrl(options)}`);
           }
+          if (!options.open) {
+            return;
+          }
           opn(server.liveUrl(options, true))
             .catch(() => {});
         }, 10);

@@ -1,4 +1,10 @@
-## noflo-nodejs 0.10.0 (22-03-2017)
+## noflo-nodejs 0.10.1 (23-03-2018)
+
+New features:
+
+* Added `--open` option to control whether to open the runtime in user's IDE when started. Defaults to `true`.
+
+## noflo-nodejs 0.10.0 (22-03-2018)
 
 New features:
 

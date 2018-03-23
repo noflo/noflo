@@ -44,6 +44,7 @@ module.exports = ->
       'bin/noflo-nodejs'
       '--host=localhost'
       '--port=8080'
+      '--open=false'
       "--secret=#{runtimeSecret}"
     ]
     runtime.stdout.on 'data', (data) ->
