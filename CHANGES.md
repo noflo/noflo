@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 1.1.2 (March 24th 2018)
+
+* Improved detection of when network finishes to not stop synchronous networks too early
+
 ## 1.1.1 (February 19th 2018)
 
 * Fixed `noflo.asComponent` handling of functions that return a `NULL`
