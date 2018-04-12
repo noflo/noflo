@@ -9,6 +9,13 @@ CoffeeScript = require 'coffeescript'
 if typeof CoffeeScript.register != 'undefined'
   CoffeeScript.register()
 
+registerCustomLoaders = (loader, componentLoaders, callback) ->
+  return callback null unless componentLoaders.length
+  customLoader = require componentLoaders.shift()
+  loader.registerLoader customLoader, (err) ->
+    return callback err if err
+    registerCustomLoaders loader, componentLoaders, callback
+
 registerModules = (loader, modules, callback) ->
   compatible = modules.filter (m) -> m.runtime in ['noflo', 'noflo-nodejs']
   componentLoaders = []
@@ -22,16 +29,7 @@ registerModules = (loader, modules, callback) ->
     for c in m.components
       loader.registerComponent m.name, c.name, path.resolve loader.baseDir, c.path
 
-  return callback null unless componentLoaders.length
-  done = ->
-    if --componentLoaders.length < 1
-      return callback.apply this, arguments
-    return
-  componentLoaders.forEach (loaderPath) =>
-    cLoader = require loaderPath
-    loader.registerLoader cLoader, (err) ->
-      return callback err if err
-      done null
+  registerCustomLoaders loader, componentLoaders, callback
 
 manifestLoader =
   writeCache: (loader, options, manifest, callback) ->
