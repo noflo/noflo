@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 1.1.3 (April 12th 2018)
+
+* Fixed issue with custom component loaders on Node.js
+
 ## 1.1.2 (March 24th 2018)
 
 * Improved detection of when network finishes to not stop synchronous networks too early
