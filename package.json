@@ -37,7 +37,7 @@
     "grunt-mocha-test": "^0.13.2",
     "grunt-noflo-browser": "^1.5.2",
     "mocha": "^5.0.0",
-    "nyc": "^11.2.1"
+    "nyc": "^12.0.1"
   },
   "main": "./lib/NoFlo",
   "bin": {
