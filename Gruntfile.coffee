@@ -71,7 +71,6 @@ module.exports = ->
           reporter: 'spec'
           require: [
             'coffeescript/register'
-            'coffee-coverage/register-istanbul'
           ]
           grep: process.env.TESTS
 
