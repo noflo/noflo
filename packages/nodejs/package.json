@@ -33,7 +33,7 @@
     "chai": "^4.0.0",
     "coffee-script": "^1.12.7",
     "eslint": "^5.0.0",
-    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-config-airbnb-base": "^13.0.0",
     "eslint-plugin-import": "^2.9.0",
     "fbp-protocol": "^0.9.1",
     "grunt": "^1.0.1",
