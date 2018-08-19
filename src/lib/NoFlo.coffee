@@ -26,7 +26,7 @@ exports.Journal = fbpGraph.Journal
 # ## Network interface
 #
 # [Network](../Network/) is used for running NoFlo graphs.
-exports.Network = require('./Network').Network
+exports.Network = require('./LegacyNetwork').Network
 
 # ### Platform detection
 #

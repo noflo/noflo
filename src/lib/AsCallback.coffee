@@ -2,7 +2,7 @@
 #     (c) 2017-2018 Flowhub UG
 #     NoFlo may be freely distributed under the MIT license
 ComponentLoader = require('./ComponentLoader').ComponentLoader
-Network = require('./Network').Network
+Network = require('./LegacyNetwork').Network
 IP = require('./IP')
 internalSocket = require './InternalSocket'
 Graph = require('fbp-graph').Graph
