@@ -16,7 +16,6 @@ describe 'NoFlo Graph component', ->
   before (done) ->
     loader = new noflo.ComponentLoader root
     loader.listComponents done
-    done
   beforeEach (done) ->
     loader.load 'Graph', (err, instance) ->
       return done err if err
