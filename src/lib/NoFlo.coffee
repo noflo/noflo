@@ -27,7 +27,9 @@ exports.Journal = fbpGraph.Journal
 #
 # [Network](../Network/) is used for running NoFlo graphs. The direct Network inteface is only provided
 # for backwards compatibility purposes. Use `createNetwork` instead.
+Network = require('./Network').Network
 exports.Network = require('./LegacyNetwork').Network
+{ deprecated } = require './Platform'
 
 # ### Platform detection
 #
@@ -95,15 +97,28 @@ exports.IP = require './IP'
 #         console.log('Network is now running!');
 #       })
 #     }, true);
-exports.createNetwork = (graph, callback, options) ->
-  unless typeof options is 'object'
+exports.createNetwork = (graph, options, callback) ->
+  if typeof options is 'function'
+    opts = callback
+    callback = options
+    options = opts
+  if typeof options is 'boolean'
     options =
       delay: options
+  unless typeof options is 'object'
+    options = {}
+  if typeof options.subscribeGraph is 'undefined'
+    # Default to legacy network for backwards compatibility.
+    options.subscribeGraph = true
   unless typeof callback is 'function'
+    deprecated 'Calling noflo.createNetwork without a callback is deprecated'
     callback = (err) ->
       throw err if err
 
-  network = new exports.Network graph, options
+  # Choose legacy or modern network based on whether graph
+  # subscription is needed
+  NetworkType = if options.subscribeGraph then Network else exports.Network
+  network = new NetworkType graph, options
 
   networkReady = (network) ->
     # Send IIPs
@@ -114,13 +129,14 @@ exports.createNetwork = (graph, callback, options) ->
   # Ensure components are loaded before continuing
   network.loader.listComponents (err) ->
     return callback err if err
-    # Empty network, no need to connect it up
-    return networkReady network if graph.nodes.length is 0
 
     # In case of delayed execution we don't wire it up
     if options.delay
       callback null, network
       return
+
+    # Empty network, no need to connect it up
+    return networkReady network if graph.nodes.length is 0
 
     # Wire the network up and start execution
     network.connect (err) ->
