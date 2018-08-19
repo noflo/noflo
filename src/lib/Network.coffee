@@ -22,10 +22,14 @@ class Network extends BaseNetwork
 
   # Add a process to the network. The node will also be registered
   # with the current graph.
-  addNode: (node, callback) ->
-    super node, (err, process) =>
+  addNode: (node, options, callback) ->
+    if typeof options is 'function'
+      callback = options
+      options = {}
+    super node, options, (err, process) =>
       return callback err if err
-      @graph.addNode node.id, node.component, node.metadata
+      unless options.initial
+        @graph.addNode node.id, node.component, node.metadata
       callback null, process
 
   # Remove a process from the network. The node will also be removed
@@ -46,10 +50,14 @@ class Network extends BaseNetwork
 
   # Add a connection to the network. The edge will also be registered
   # with the current graph.
-  addEdge: (edge, callback) ->
-    super edge, (err) =>
+  addEdge: (edge, options, callback) ->
+    if typeof options is 'function'
+      callback = options
+      options = {}
+    super edge, options, (err) =>
       return callback err if err
-      @graph.addEdgeIndex edge.from.node, edge.from.port, edge.from.index, edge.to.node, edge.to.port, edge.to.index, edge.metadata
+      unless options.initial
+        @graph.addEdgeIndex edge.from.node, edge.from.port, edge.from.index, edge.to.node, edge.to.port, edge.to.index, edge.metadata
       callback()
 
   # Remove a connection from the network. The edge will also be removed
@@ -62,10 +70,14 @@ class Network extends BaseNetwork
 
   # Add an IIP to the network. The IIP will also be registered with the
   # current graph. If the network is running, the IIP will be sent immediately.
-  addInitial: (iip, callback) ->
-    super iip, (err) =>
+  addInitial: (iip, options, callback) ->
+    if typeof options is 'function'
+      callback = options
+      options = {}
+    super iip, options, (err) =>
       return callback err if err
-      @graph.addInitialIndex iip.from.data, iip.to.node, iip.to.port, iip.to.index, iip.metadata
+      unless options.initial
+        @graph.addInitialIndex iip.from.data, iip.to.node, iip.to.port, iip.to.index, iip.metadata
       callback()
 
   # Remove an IIP from the network. The IIP will also be removed from the

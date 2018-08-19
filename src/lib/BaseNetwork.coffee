@@ -137,7 +137,10 @@ class BaseNetwork extends EventEmitter
   #
   # * `id`: Identifier of the process in the network. Typically a string
   # * `component`: Filename or path of a NoFlo component, or a component instance object
-  addNode: (node, callback) ->
+  addNode: (node, options, callback) ->
+    if typeof options is 'function'
+      callback = options
+      options = {}
     # Processes are treated as singletons by their identifier. If
     # we already have a process with the given ID, return that.
     if @processes[node.id]
@@ -223,7 +226,9 @@ class BaseNetwork extends EventEmitter
       (type) =>
         # Add either a Node, an Initial, or an Edge and move on to the next one
         # when done
-        this["add#{type}"] add, (err) ->
+        this["add#{type}"] add,
+          initial: true
+        , (err) ->
           return done err if err
           callStack++
           if callStack % 100 is 0
@@ -347,7 +352,10 @@ class BaseNetwork extends EventEmitter
         id: node.id
         icon: node.component.getIcon()
 
-  addEdge: (edge, callback) ->
+  addEdge: (edge, options, callback) ->
+    if typeof options is 'function'
+      callback = options
+      options = {}
     socket = internalSocket.createSocket edge.metadata
     socket.setDebug @debug
 
@@ -395,7 +403,11 @@ class BaseNetwork extends EventEmitter
       @connections.splice @connections.indexOf(connection), 1
       do callback
 
-  addDefaults: (node, callback) ->
+  addDefaults: (node, options, callback) ->
+    if typeof options is 'function'
+      callback = options
+      options = {}
+
     process = @getNode node.id
     unless process
       return callback new Error "Process #{node.id} not defined"
@@ -425,7 +437,11 @@ class BaseNetwork extends EventEmitter
 
     callback()
 
-  addInitial: (initializer, callback) ->
+  addInitial: (initializer, options, callback) ->
+    if typeof options is 'function'
+      callback = options
+      options = {}
+
     socket = internalSocket.createSocket initializer.metadata
     socket.setDebug @debug
 
