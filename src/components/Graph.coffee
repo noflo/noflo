@@ -62,7 +62,10 @@ class Graph extends noflo.Component
     graph.name = @nodeId unless graph.name
     graph.componentLoader = @loader
 
-    noflo.createNetwork graph, (err, @network) =>
+    noflo.createNetwork graph,
+      delay: true
+      subscribeGraph: false
+    , (err, @network) =>
       return callback err if err
       @emit 'network', @network
       # Subscribe to network lifecycle
@@ -77,7 +80,6 @@ class Graph extends noflo.Component
         # Finally set ourselves as "ready"
         do @setToReady
         do callback
-    , true
 
   subscribeNetwork: (network) ->
     contexts = []

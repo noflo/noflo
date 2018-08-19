@@ -2,7 +2,7 @@
 #     (c) 2017-2018 Flowhub UG
 #     NoFlo may be freely distributed under the MIT license
 ComponentLoader = require('./ComponentLoader').ComponentLoader
-Network = require('./LegacyNetwork').Network
+Network = require('./Network').Network
 IP = require('./IP')
 internalSocket = require './InternalSocket'
 Graph = require('fbp-graph').Graph
@@ -51,6 +51,7 @@ prepareNetwork = (component, options, callback) ->
   # If we were given a graph instance, then just create a network
   if typeof component is 'object'
     component.componentLoader = options.loader
+
     network = new Network component, options
     # Wire the network up
     network.connect (err) ->
