@@ -4,9 +4,9 @@ NoFlo ChangeLog
 ## 1.2.0 (git master)
 
 * Deprecated constructing networks with `new noflo.Network`. Use `noflo.createNetwork` instead, with the following options available:
-  - `LegacyNetwork`: modifies network topology based on changes in graph. This can cause some types of errors to be silent. Triggered with `subscribeGraph: true`
-  - `Network`: network topology can be changed with network's methods (`addNode`, `removeEdge`, etc) and will be also written to the graph. Triggered with `subscribeGraph: false`
-  For backwards compatibility reasons, `subscribeGraph` defaults to `true`. Adapt your applications to use `false` instead.
+  - `subscribeGraph: true`: Uses `LegacyNetwork` which modifies network topology based on changes in graph. This can cause some types of errors to be silent.
+  - `subscribeGraph: false`: Uses `Network`: network topology can be changed with network's methods (`addNode`, `removeEdge`, etc) and will be also written to the graph.
+  For backwards compatibility reasons, `subscribeGraph` defaults to `true`. Adapt your applications to use `false` instead and start utilizing Network methods for any changes to a running graph.
 * Added support for a more standard `noflo.createNetwork(graph, options, callback)` signature, with backwards compatibility for the legacy `noflo.createNetwork(graph, callback, options)` signature
 
 ## 1.1.3 (April 12th 2018)
