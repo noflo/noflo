@@ -178,11 +178,15 @@ exports.loadFile = (file, options, callback) ->
   if callback and typeof options isnt 'object'
     options =
       baseDir: options
+  if typeof options isnt 'object'
+    options = {}
+  unless options.subscribeGraph
+    options.subscribeGraph = false
 
   exports.graph.loadFile file, (err, net) ->
     return callback err if err
     net.baseDir = options.baseDir if options.baseDir
-    exports.createNetwork net, callback, options
+    exports.createNetwork net, options, callback
 
 # ### Saving a network definition
 #
