@@ -208,6 +208,7 @@ exports.saveFile = (graph, file, callback) ->
 #     }, function (err, results) {
 #       // Do something with results
 #     });
+#
 exports.asCallback = require('./AsCallback').asCallback
 
 # ## Generating components from JavaScript functions
@@ -221,4 +222,5 @@ exports.asCallback = require('./AsCallback').asCallback
 #         description: 'Generate a random number',
 #       });
 #     };
+#
 exports.asComponent = require('./AsComponent').asComponent
