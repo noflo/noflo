@@ -169,7 +169,7 @@ describe 'Scope isolation', ->
           c = instance
           ins = noflo.internalSocket.createSocket()
           c.inPorts.in.attach ins
-          done()
+          c.setUp done
     beforeEach ->
       out = noflo.internalSocket.createSocket()
       c.outPorts.out.attach out
@@ -298,7 +298,7 @@ describe 'Scope isolation', ->
           c.inPorts.in1.attach in1
           in2 = noflo.internalSocket.createSocket()
           c.inPorts.in2.attach in2
-          done()
+          c.setUp done
     beforeEach ->
       out = noflo.internalSocket.createSocket()
       c.outPorts.out.attach out
@@ -437,7 +437,7 @@ describe 'Scope isolation', ->
           c = instance
           in1 = noflo.internalSocket.createSocket()
           c.inPorts.in1.attach in1
-          done()
+          c.setUp done
     beforeEach ->
       out = noflo.internalSocket.createSocket()
       c.outPorts.out.attach out
@@ -495,7 +495,7 @@ describe 'Scope isolation', ->
           c.inPorts.in1.attach in1
           in2 = noflo.internalSocket.createSocket()
           c.inPorts.in2.attach in2
-          done()
+          c.setUp done
     beforeEach ->
       out = noflo.internalSocket.createSocket()
       c.outPorts.out.attach out
@@ -611,7 +611,7 @@ describe 'Scope isolation', ->
           c.inPorts.in1.attach in1
           in2 = noflo.internalSocket.createSocket()
           c.inPorts.in2.attach in2
-          done()
+          c.setUp done
     beforeEach ->
       out = noflo.internalSocket.createSocket()
       c.outPorts.out.attach out
@@ -725,7 +725,7 @@ describe 'Scope isolation', ->
           c = instance
           in1 = noflo.internalSocket.createSocket()
           c.inPorts.in1.attach in1
-          done()
+          c.setUp done
     beforeEach ->
       out = noflo.internalSocket.createSocket()
       c.outPorts.out.attach out
