@@ -3,6 +3,7 @@
 #     (c) 2011-2012 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
 BaseNetwork = require './BaseNetwork'
+{ deprecated } = require './Platform'
 
 # ## The NoFlo network coordinator
 #
@@ -22,6 +23,7 @@ class LegacyNetwork extends BaseNetwork
   # accordingly, including removing connections, adding new nodes,
   # and sending new IIPs.
   constructor: (graph, options = {}) ->
+    deprecated 'noflo.Network construction is deprecated, use noflo.createNetwork'
     super graph, options
 
   connect: (done = ->) ->
