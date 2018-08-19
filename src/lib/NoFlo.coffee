@@ -97,6 +97,20 @@ exports.IP = require './IP'
 #         console.log('Network is now running!');
 #       })
 #     }, true);
+#
+# ### Network options
+#
+# It is possible to pass some options to control the behavior of network creation:
+#
+# * `delay`: (default: FALSE) Whether the network should be started later. Defaults to immediate execution
+# * `subscribeGraph`: (default: TRUE) Whether the network should monitor the underlying graph for changes
+#
+# Options can be passed as a second argument before the callback:
+#
+#     noflo.createNetwork(someGraph, options, callback);
+#
+# The options object can also be used for setting ComponentLoader options in this
+# network.
 exports.createNetwork = (graph, options, callback) ->
   if typeof options is 'function'
     opts = callback
