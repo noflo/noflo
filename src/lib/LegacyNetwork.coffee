@@ -1,5 +1,5 @@
 #     NoFlo - Flow-Based Programming for JavaScript
-#     (c) 2013-2017 Flowhub UG
+#     (c) 2013-2018 Flowhub UG
 #     (c) 2011-2012 Henri Bergius, Nemein
 #     NoFlo may be freely distributed under the MIT license
 BaseNetwork = require './BaseNetwork'
@@ -19,7 +19,7 @@ class LegacyNetwork extends BaseNetwork
   # they will load all the needed components, instantiate them, and
   # set up the defined connections and IIPs.
   #
-  # The legac network will also listen to graph changes and modify itself
+  # The legacy network will also listen to graph changes and modify itself
   # accordingly, including removing connections, adding new nodes,
   # and sending new IIPs.
   constructor: (graph, options = {}) ->
