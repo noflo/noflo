@@ -61,12 +61,12 @@ class ComponentLoader extends EventEmitter
     @components = {}
     registerLoader.register @, (err) =>
       if err
-        return callback err if callback
+        return callback err
         throw err
       @processing = false
       @ready = true
       @emit 'ready', true
-      callback null, @components if callback
+      callback null, @components
     return
 
   # Load an instance of a specific component. If the
