@@ -93,14 +93,7 @@ class ComponentLoader extends EventEmitter
         return
 
     if @isGraph component
-      unless platform.isBrowser()
-        # nextTick is faster on Node.js
-        process.nextTick =>
-          @loadGraph name, component, callback, metadata
-      else
-        setTimeout =>
-          @loadGraph name, component, callback, metadata
-        , 0
+      @loadGraph name, component, callback, metadata
       return
 
     @createComponent name, component, metadata, (err, instance) =>
