@@ -131,7 +131,7 @@ exports.createNetwork = (graph, options, callback) ->
 
   # Choose legacy or modern network based on whether graph
   # subscription is needed
-  NetworkType = if options.subscribeGraph then Network else exports.Network
+  NetworkType = if options.subscribeGraph then exports.Network else Network
   network = new NetworkType graph, options
 
   networkReady = (network) ->
