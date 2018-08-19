@@ -28,7 +28,7 @@
     "chai": "^4.0.0",
     "coveralls": "^3.0.0",
     "grunt": "^1.0.1",
-    "grunt-cli": "^1.2.0",
+    "grunt-cli": "~1.2.0",
     "grunt-coffeelint": "^0.0.16",
     "grunt-contrib-coffee": "^2.0.0",
     "grunt-contrib-connect": "^1.0.1",

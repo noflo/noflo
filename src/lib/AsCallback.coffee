@@ -51,6 +51,7 @@ prepareNetwork = (component, options, callback) ->
   # If we were given a graph instance, then just create a network
   if typeof component is 'object'
     component.componentLoader = options.loader
+
     network = new Network component, options
     # Wire the network up
     network.connect (err) ->

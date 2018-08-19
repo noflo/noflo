@@ -61,12 +61,12 @@ class ComponentLoader extends EventEmitter
     @components = {}
     registerLoader.register @, (err) =>
       if err
-        return callback err if callback
+        return callback err
         throw err
       @processing = false
       @ready = true
       @emit 'ready', true
-      callback null, @components if callback
+      callback null, @components
     return
 
   # Load an instance of a specific component. If the
@@ -93,14 +93,7 @@ class ComponentLoader extends EventEmitter
         return
 
     if @isGraph component
-      unless platform.isBrowser()
-        # nextTick is faster on Node.js
-        process.nextTick =>
-          @loadGraph name, component, callback, metadata
-      else
-        setTimeout =>
-          @loadGraph name, component, callback, metadata
-        , 0
+      @loadGraph name, component, callback, metadata
       return
 
     @createComponent name, component, metadata, (err, instance) =>

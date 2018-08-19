@@ -25,8 +25,11 @@ exports.Journal = fbpGraph.Journal
 
 # ## Network interface
 #
-# [Network](../Network/) is used for running NoFlo graphs.
-exports.Network = require('./Network').Network
+# [Network](../Network/) is used for running NoFlo graphs. The direct Network inteface is only provided
+# for backwards compatibility purposes. Use `createNetwork` instead.
+Network = require('./Network').Network
+exports.Network = require('./LegacyNetwork').Network
+{ deprecated } = require './Platform'
 
 # ### Platform detection
 #
@@ -94,15 +97,42 @@ exports.IP = require './IP'
 #         console.log('Network is now running!');
 #       })
 #     }, true);
-exports.createNetwork = (graph, callback, options) ->
-  unless typeof options is 'object'
+#
+# ### Network options
+#
+# It is possible to pass some options to control the behavior of network creation:
+#
+# * `delay`: (default: FALSE) Whether the network should be started later. Defaults to immediate execution
+# * `subscribeGraph`: (default: TRUE) Whether the network should monitor the underlying graph for changes
+#
+# Options can be passed as a second argument before the callback:
+#
+#     noflo.createNetwork(someGraph, options, callback);
+#
+# The options object can also be used for setting ComponentLoader options in this
+# network.
+exports.createNetwork = (graph, options, callback) ->
+  if typeof options is 'function'
+    opts = callback
+    callback = options
+    options = opts
+  if typeof options is 'boolean'
     options =
       delay: options
+  unless typeof options is 'object'
+    options = {}
+  if typeof options.subscribeGraph is 'undefined'
+    # Default to legacy network for backwards compatibility.
+    options.subscribeGraph = true
   unless typeof callback is 'function'
+    deprecated 'Calling noflo.createNetwork without a callback is deprecated'
     callback = (err) ->
       throw err if err
 
-  network = new exports.Network graph, options
+  # Choose legacy or modern network based on whether graph
+  # subscription is needed
+  NetworkType = if options.subscribeGraph then exports.Network else Network
+  network = new NetworkType graph, options
 
   networkReady = (network) ->
     # Send IIPs
@@ -113,13 +143,14 @@ exports.createNetwork = (graph, callback, options) ->
   # Ensure components are loaded before continuing
   network.loader.listComponents (err) ->
     return callback err if err
-    # Empty network, no need to connect it up
-    return networkReady network if graph.nodes.length is 0
 
     # In case of delayed execution we don't wire it up
     if options.delay
       callback null, network
       return
+
+    # Empty network, no need to connect it up
+    return networkReady network if graph.nodes.length is 0
 
     # Wire the network up and start execution
     network.connect (err) ->
@@ -147,11 +178,15 @@ exports.loadFile = (file, options, callback) ->
   if callback and typeof options isnt 'object'
     options =
       baseDir: options
+  if typeof options isnt 'object'
+    options = {}
+  unless options.subscribeGraph
+    options.subscribeGraph = false
 
   exports.graph.loadFile file, (err, net) ->
     return callback err if err
     net.baseDir = options.baseDir if options.baseDir
-    exports.createNetwork net, callback, options
+    exports.createNetwork net, options, callback
 
 # ### Saving a network definition
 #
@@ -173,6 +208,7 @@ exports.saveFile = (graph, file, callback) ->
 #     }, function (err, results) {
 #       // Do something with results
 #     });
+#
 exports.asCallback = require('./AsCallback').asCallback
 
 # ## Generating components from JavaScript functions
@@ -186,4 +222,5 @@ exports.asCallback = require('./AsCallback').asCallback
 #         description: 'Generate a random number',
 #       });
 #     };
+#
 exports.asComponent = require('./AsComponent').asComponent

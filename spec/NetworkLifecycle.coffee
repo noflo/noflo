@@ -296,7 +296,14 @@ describe 'Network Lifecycle', ->
           wasStarted = false
           c.network.once 'start', checkStart
           c.network.once 'end', checkEnd
-          g.addInitial 'world', 'Pc', 'in'
+          c.network.addInitial
+            from:
+              data: 'world'
+            to:
+              node: 'Pc'
+              port: 'in'
+           , (err) ->
+             return done err if err
           return
         chai.expect(received).to.eql expected
         done()
@@ -330,7 +337,14 @@ describe 'Network Lifecycle', ->
             throw new Error 'Unexpected network start'
           c.network.once 'end', ->
             throw new Error 'Unexpected network end'
-          g.addInitial 'world', 'Pc', 'in'
+          c.network.addInitial
+            from:
+              data: 'world'
+            to:
+              node: 'Pc'
+              port: 'in'
+           , (err) ->
+             return done err if err
           setTimeout ->
             chai.expect(received).to.eql expected
             done()
@@ -1061,16 +1075,23 @@ describe 'Network Lifecycle', ->
       c.network.on 'disconnect', receiveDisconnect
       c.network.once 'end', checkEnd
 
-      c.network.graph.addInitial 'foo', 'Leg2', 'in'
-      c.start (err) ->
-        return done err if err
-        in1.connect()
-        in1.beginGroup 1
-        in1.beginGroup 'a'
-        in1.send 'baz'
-        in1.endGroup()
-        in1.endGroup()
-        in1.disconnect()
+      c.network.addInitial
+        from:
+          data: 'foo'
+        to:
+          node: 'Leg2'
+          port: 'in'
+       , (err) ->
+         return done err if err
+        c.start (err) ->
+          return done err if err
+          in1.connect()
+          in1.beginGroup 1
+          in1.beginGroup 'a'
+          in1.send 'baz'
+          in1.endGroup()
+          in1.endGroup()
+          in1.disconnect()
     it 'should forward new-style brackets as expected regardless of sending order', (done) ->
       expected = [
         'CONN'

@@ -27,4 +27,7 @@ graph.addInitial "#{__dirname}/hello.jade", "Read Template", "in"
 graph.addEdge "Read Template", "out", "Render", "template"
 graph.addEdge "Render", "out", "Write Response", "string"
 
-noflo.createNetwork graph
+noflo.createNetwork graph, (err) ->
+  if err
+    console.error err
+    process.exit 1

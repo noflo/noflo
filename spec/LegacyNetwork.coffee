@@ -7,7 +7,7 @@ else
   noflo = require 'noflo'
   root = 'noflo'
 
-describe 'NoFlo Network', ->
+describe 'NoFlo Legacy Network', ->
   Split = ->
     new noflo.Component
       inPorts:
@@ -47,13 +47,8 @@ describe 'NoFlo Network', ->
     before (done) ->
       g = new noflo.Graph
       g.baseDir = root
-      noflo.createNetwork g,
-        subscribeGraph: false
-        delay: true
-      , (err, network) ->
-        return done err if err
-        n = network
-        n.connect done
+      n = new noflo.Network g
+      n.connect done
     it 'should initially be marked as stopped', ->
       chai.expect(n.isStarted()).to.equal false
     it 'should initially have no processes', ->
@@ -84,16 +79,14 @@ describe 'NoFlo Network', ->
 
     describe 'with new node', ->
       it 'should contain the node', (done) ->
-        n.addNode
-          id: 'Graph'
-          component: 'Graph'
-          metadata:
-            foo: 'Bar'
-        , done
-      it 'should have registered the node with the graph', ->
-        node = g.getNode 'Graph'
-        chai.expect(node).to.be.an 'object'
-        chai.expect(node.component).to.equal 'Graph'
+        g.once 'addNode', ->
+          setTimeout ->
+            chai.expect(n.processes).not.to.be.empty
+            chai.expect(n.processes.Graph).to.exist
+            done()
+          , 10
+        g.addNode 'Graph', 'Graph',
+          foo: 'Bar'
       it 'should have transmitted the node metadata to the process', ->
         chai.expect(n.processes.Graph.component.metadata).to.exist
         chai.expect(n.processes.Graph.component.metadata).to.be.an 'object'
@@ -106,15 +99,12 @@ describe 'NoFlo Network', ->
           chai.expect(newProcess).to.equal originalProcess
           done()
       it 'should not contain the node after removal', (done) ->
-        n.removeNode
-          id: 'Graph'
-        , (err) ->
-          return done err if err
-          chai.expect(n.processes).to.be.empty
-          done()
-      it 'should have removed the node from the graph', ->
-        node = g.getNode 'graph'
-        chai.expect(node).to.be.a 'null'
+        g.once 'removeNode', ->
+          setTimeout ->
+            chai.expect(n.processes).to.be.empty
+            done()
+          , 10
+        g.removeNode 'Graph'
       it 'should fail when removing the removed node again', (done) ->
         n.removeNode
           id: 'Graph'
@@ -123,63 +113,35 @@ describe 'NoFlo Network', ->
           chai.expect(err.message).to.contain 'not found'
           done()
     describe 'with new edge', ->
-      before (done) ->
+      before ->
         n.loader.components.Split = Split
-        n.addNode
-          id: 'A'
-          component: 'Split'
-        , (err) ->
-          return done err if err
-          n.addNode
-            id: 'B'
-            component: 'Split'
-          , done
-      after (done) ->
-        n.removeNode
-          id: 'A'
-        , (err) ->
-          return done err if err
-          n.removeNode
-            id: 'B'
-          , done
+        g.addNode 'A', 'Split'
+        g.addNode 'B', 'Split'
+      after ->
+        g.removeNode 'A'
+        g.removeNode 'B'
       it 'should contain the edge', (done) ->
-        n.addEdge
-          from:
-            node: 'A'
-            port: 'out'
-          to:
-            node: 'B'
-            port: 'in'
-        , (err) ->
-          return done err if err
-          chai.expect(n.connections).not.to.be.empty
-          chai.expect(n.connections[0].from).to.eql
-            process: n.getNode 'A'
-            port: 'out'
-            index: undefined
-          chai.expect(n.connections[0].to).to.eql
-            process: n.getNode 'B'
-            port: 'in'
-            index: undefined
-          done()
-      it 'should have registered the edge with the graph', ->
-        edge = g.getEdge 'A', 'out', 'B', 'in'
-        chai.expect(edge).to.not.be.a 'null'
+        g.once 'addEdge', ->
+          setTimeout ->
+            chai.expect(n.connections).not.to.be.empty
+            chai.expect(n.connections[0].from).to.eql
+              process: n.getNode 'A'
+              port: 'out'
+              index: undefined
+            chai.expect(n.connections[0].to).to.eql
+              process: n.getNode 'B'
+              port: 'in'
+              index: undefined
+            done()
+          , 10
+        g.addEdge 'A', 'out', 'B', 'in'
       it 'should not contain the edge after removal', (done) ->
-        n.removeEdge
-          from:
-            node: 'A'
-            port: 'out'
-          to:
-            node: 'B'
-            port: 'in'
-        , (err) ->
-          return done err if err
-          chai.expect(n.connections).to.be.empty
-          done()
-      it 'should have removed the edge from the graph', ->
-        edge = g.getEdge 'A', 'out', 'B', 'in'
-        chai.expect(edge).to.be.a 'null'
+        g.once 'removeEdge', ->
+          setTimeout ->
+            chai.expect(n.connections).to.be.empty
+            done()
+          , 10
+        g.removeEdge 'A', 'out', 'B', 'in'
 
   describe 'with a simple graph', ->
     g = null
@@ -197,16 +159,16 @@ describe 'NoFlo Network', ->
         cb()
       , 'Callback', 'callback'
       g.addInitial 'Foo', 'Merge', 'in'
-      noflo.createNetwork g,
-        subscribeGraph: false
-        delay: true
-      , (err, nw) ->
+      noflo.createNetwork g, (err, nw) ->
         return done err if err
         nw.loader.components.Split = Split
         nw.loader.components.Merge = Merge
         nw.loader.components.Callback = Callback
         n = nw
-        nw.connect done
+        nw.connect (err) ->
+          return done err if err
+          done()
+      , true
 
     it 'should send some initials when started', (done) ->
       chai.expect(n.initials).not.to.be.empty
@@ -239,55 +201,29 @@ describe 'NoFlo Network', ->
       chai.expect(n.getDebug()).to.equal true
 
     it 'should emit a process-error when a component throws', (done) ->
-      n.removeInitial
-        to:
-          node: 'Callback'
-          port: 'callback'
-      , (err) ->
-        return done err if err
-        n.removeInitial
-          to:
-            node: 'Merge'
-            port: 'in'
-        , (err) ->
-          return done err if err
-          n.addInitial
-            from:
-              data: (data) -> throw new Error 'got Foo'
-            to:
-              node: 'Callback'
-              port: 'callback'
-          , (err) ->
-            return done err if err
-            n.addInitial
-              from:
-                data: 'Foo'
-              to:
-                node: 'Merge'
-                port: 'in'
-            , (err) ->
-              return done err if err
-              n.once 'process-error', (err) ->
-                chai.expect(err).to.be.an 'object'
-                chai.expect(err.id).to.equal 'Callback'
-                chai.expect(err.metadata).to.be.an 'object'
-                chai.expect(err.error).to.be.an 'error'
-                chai.expect(err.error.message).to.equal 'got Foo'
-                done()
-              n.sendInitials (err) ->
-                return done err if err
+      g.removeInitial 'Callback', 'callback'
+      g.removeInitial 'Merge', 'in'
+      g.addInitial (data) ->
+        throw new Error 'got Foo'
+      , 'Callback', 'callback'
+      g.addInitial 'Foo', 'Merge', 'in'
+      n.once 'process-error', (err) ->
+        chai.expect(err).to.be.an 'object'
+        chai.expect(err.id).to.equal 'Callback'
+        chai.expect(err.metadata).to.be.an 'object'
+        chai.expect(err.error).to.be.an 'error'
+        chai.expect(err.error.message).to.equal 'got Foo'
+        done()
+      n.sendInitials()
 
     describe 'with a renamed node', ->
       it 'should have the process in a new location', (done) ->
-        n.renameNode 'Callback', 'Func', (err) ->
-          return done err if err
+        g.once 'renameNode', ->
           chai.expect(n.processes.Func).to.be.an 'object'
           done()
+        g.renameNode 'Callback', 'Func'
       it 'shouldn\'t have the process in the old location', ->
         chai.expect(n.processes.Callback).to.be.undefined
-      it 'should have updated the name in the graph', ->
-        chai.expect(n.getNode('Callback')).to.not.exist
-        chai.expect(n.getNode('Func')).to.exist
       it 'should fail to rename with the old name', (done) ->
         n.renameNode 'Callback', 'Func', (err) ->
           chai.expect(err).to.be.an 'error'
@@ -322,17 +258,15 @@ describe 'NoFlo Network', ->
       it 'should auto-start', (done) ->
         newGraph = noflo.graph.loadJSON g.toJSON(), (err, graph) ->
           return done err if err
+          cb = done
           # Pass the already-initialized component loader
           graph.componentLoader = n.loader
           graph.removeInitial 'Func', 'callback'
           graph.addInitial (data) ->
             chai.expect(data).to.equal 'Foo'
-            done()
+            cb()
           , 'Func', 'callback'
-          noflo.createNetwork graph,
-            subscribeGraph: false
-            delay: false
-          , (err, nw) ->
+          noflo.createNetwork graph, (err, nw) ->
             return done err if err
           return
 
@@ -375,10 +309,7 @@ describe 'NoFlo Network', ->
       testCallback = (data) ->
         chai.expect(data).to.equal 'default-value'
         done()
-      noflo.createNetwork g,
-        subscribeGraph: false
-        delay: true
-      , (err, nw) ->
+      noflo.createNetwork g, (err, nw) ->
         return done err if err
         nw.loader.components.Def = -> c
         nw.loader.components.Cb = -> cb
@@ -386,6 +317,7 @@ describe 'NoFlo Network', ->
           return done err if err
           nw.start (err) ->
             return done err if err
+      , true
 
     it 'should not send default values to nodes with an edge', (done) ->
       @timeout 60 * 1000
@@ -395,10 +327,7 @@ describe 'NoFlo Network', ->
       g.addNode 'Merge', 'Merge'
       g.addEdge 'Merge', 'out', 'Def', 'in'
       g.addInitial 'from-edge', 'Merge', 'in'
-      noflo.createNetwork g,
-        subscribeGraph: false
-        delay: true
-      , (err, nw) ->
+      noflo.createNetwork g, (err, nw) ->
         return done err if err
         nw.loader.components.Def = -> c
         nw.loader.components.Cb = -> cb
@@ -407,6 +336,7 @@ describe 'NoFlo Network', ->
           return done err if err
           nw.start (err) ->
             return done err if err
+      , true
 
     it 'should not send default values to nodes with IIP', (done) ->
       @timeout 60 * 1000
@@ -414,10 +344,7 @@ describe 'NoFlo Network', ->
         chai.expect(data).to.equal 'from-IIP'
         done()
       g.addInitial 'from-IIP', 'Def', 'in'
-      noflo.createNetwork g,
-        subscribeGraph: false
-        delay: true
-      , (err, nw) ->
+      noflo.createNetwork g, (err, nw) ->
         return done err if err
         nw.loader.components.Def = -> c
         nw.loader.components.Cb = -> cb
@@ -426,6 +353,7 @@ describe 'NoFlo Network', ->
           return done err if err
           nw.start (err) ->
             return done err if err
+      , true
 
   describe 'with an existing IIP', ->
     g = null
@@ -444,10 +372,7 @@ describe 'NoFlo Network', ->
       g.addInitial cb, 'Callback', 'callback'
       g.addInitial 'Foo', 'Repeat', 'in'
       setTimeout ->
-        noflo.createNetwork g,
-          delay: true
-          subscribeGraph: false
-        , (err, nw) ->
+        noflo.createNetwork g, (err, nw) ->
           return done err if err
           nw.loader.components.Split = Split
           nw.loader.components.Merge = Merge
@@ -457,45 +382,29 @@ describe 'NoFlo Network', ->
             return done err if err
             nw.start (err) ->
               return done err if err
+        , true
       , 10
     it 'should allow removing the IIPs', (done) ->
-      n.removeInitial
-        to:
-          node: 'Callback'
-          port: 'callback'
-      , (err) ->
-        return done err if err
-        n.removeInitial
-          to:
-            node: 'Repeat'
-            port: 'in'
-        , (err) ->
-          return done err if err
-          chai.expect(n.initials.length).to.equal 0, 'No IIPs left'
-          chai.expect(n.connections.length).to.equal 1, 'Only one connection'
-          done()
+      @timeout 6000
+      removed = 0
+      onRemove = ->
+        removed++
+        return if removed < 2
+        chai.expect(n.initials.length).to.equal 0, 'No IIPs left'
+        chai.expect(n.connections.length).to.equal 1, 'Only one connection'
+        g.removeListener 'removeInitial', onRemove
+        done()
+      g.on 'removeInitial', onRemove
+      g.removeInitial 'Callback', 'callback'
+      g.removeInitial 'Repeat', 'in'
     it 'new IIPs to replace original ones should work correctly', (done) ->
       cb = (packet) ->
         chai.expect(packet).to.equal 'Baz'
         done()
-      n.addInitial
-        from:
-          data: cb
-        to:
-          node: 'Callback'
-          port: 'callback'
-      , (err) ->
+      g.addInitial cb, 'Callback', 'callback'
+      g.addInitial 'Baz', 'Repeat', 'in'
+      n.start (err) ->
         return done err if err
-        n.addInitial
-          from:
-            data: 'Baz'
-          to:
-            node: 'Repeat'
-            port: 'in'
-        , (err) ->
-          return done err if err
-          n.start (err) ->
-            return done err if err
 
     describe 'on stopping', ->
       it 'processes should be running before the stop call', ->
@@ -529,10 +438,8 @@ describe 'NoFlo Network', ->
       for n in [0..10000]
         g.addInitial n, "Repeat#{n}", 'in'
 
-      noflo.createNetwork g,
-        delay: true
-        subscribeGraph: false
-      , (err, nw) ->
+      nw = new noflo.Network g
+      nw.loader.listComponents (err) ->
         return done err if err
         nw.loader.components.Split = Split
         nw.loader.components.Callback = Callback
@@ -558,187 +465,126 @@ describe 'NoFlo Network', ->
       g.addNode 'Repeat1', 'Baz'
       g.addNode 'Repeat2', 'Split'
       g.addEdge 'Repeat1', 'out', 'Repeat2', 'in'
-      noflo.createNetwork g,
-        delay: true
-        subscribeGraph: false
-      , (err, nw) ->
-        return done err if err
-        nw.loader = loader
-        nw.connect (err) ->
-          chai.expect(err).to.be.an 'error'
-          chai.expect(err.message).to.contain 'not available'
-          done()
+      nw = new noflo.Network g
+      nw.loader = loader
+      nw.connect (err) ->
+        chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain 'not available'
+        done()
     it 'should fail on connect with missing target port', (done) ->
       g = new noflo.Graph
       g.addNode 'Repeat1', 'Split'
       g.addNode 'Repeat2', 'Split'
       g.addEdge 'Repeat1', 'out', 'Repeat2', 'foo'
-      noflo.createNetwork g,
-        delay: true
-        subscribeGraph: false
-      , (err, nw) ->
-        return done err if err
-        nw.loader = loader
-        nw.connect (err) ->
-          chai.expect(err).to.be.an 'error'
-          chai.expect(err.message).to.contain 'No inport'
-          done()
+      nw = new noflo.Network g
+      nw.loader = loader
+      nw.connect (err) ->
+        chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain 'No inport'
+        done()
     it 'should fail on connect with missing source port', (done) ->
       g = new noflo.Graph
       g.addNode 'Repeat1', 'Split'
       g.addNode 'Repeat2', 'Split'
       g.addEdge 'Repeat1', 'foo', 'Repeat2', 'in'
-      noflo.createNetwork g,
-        delay: true
-        subscribeGraph: false
-      , (err, nw) ->
-        return done err if err
-        nw.loader = loader
-        nw.connect (err) ->
-          chai.expect(err).to.be.an 'error'
-          chai.expect(err.message).to.contain 'No outport'
-          done()
+      nw = new noflo.Network g
+      nw = new noflo.Network g
+      nw.loader = loader
+      nw.connect (err) ->
+        chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain 'No outport'
+        done()
     it 'should fail on connect with missing IIP target port', (done) ->
       g = new noflo.Graph
       g.addNode 'Repeat1', 'Split'
       g.addNode 'Repeat2', 'Split'
       g.addEdge 'Repeat1', 'out', 'Repeat2', 'in'
       g.addInitial 'hello', 'Repeat1', 'baz'
-      noflo.createNetwork g,
-        delay: true
-        subscribeGraph: false
-      , (err, nw) ->
-        return done err if err
-        nw.loader = loader
-        nw.connect (err) ->
-          chai.expect(err).to.be.an 'error'
-          chai.expect(err.message).to.contain 'No inport'
-          done()
+      nw = new noflo.Network g
+      nw.loader = loader
+      nw.connect (err) ->
+        chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain 'No inport'
+        done()
     it 'should fail on connect with node without component', (done) ->
       g = new noflo.Graph
       g.addNode 'Repeat1', 'Split'
       g.addNode 'Repeat2'
       g.addEdge 'Repeat1', 'out', 'Repeat2', 'in'
       g.addInitial 'hello', 'Repeat1', 'in'
-      noflo.createNetwork g,
-        delay: true
-        subscribeGraph: false
-      , (err, nw) ->
-        return done err if err
-        nw.loader = loader
-        nw.connect (err) ->
-          chai.expect(err).to.be.an 'error'
-          chai.expect(err.message).to.contain 'No component defined'
-          done()
+      nw = new noflo.Network g
+      nw.loader = loader
+      nw.connect (err) ->
+        chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain 'No component defined'
+        done()
     it 'should fail to add an edge to a missing outbound node', (done) ->
       g = new noflo.Graph
       g.addNode 'Repeat1', 'Split'
-      noflo.createNetwork g,
-        delay: true
-        subscribeGraph: false
-      , (err, nw) ->
+      nw = new noflo.Network g
+      nw.loader = loader
+      nw.connect (err) ->
         return done err if err
-        nw.loader = loader
-        nw.connect (err) ->
-          return done err if err
-          nw.addEdge {
-            from:
-              node: 'Repeat2'
-              port: 'out'
-            to:
-              node: 'Repeat1'
-              port: 'in'
-          }, (err) ->
-            chai.expect(err).to.be.an 'error'
-            chai.expect(err.message).to.contain 'No process defined for outbound node'
-            done()
+        nw.addEdge {
+          from:
+            node: 'Repeat2'
+            port: 'out'
+          to:
+            node: 'Repeat1'
+            port: 'in'
+        }, (err) ->
+          chai.expect(err).to.be.an 'error'
+          chai.expect(err.message).to.contain 'No process defined for outbound node'
+          done()
     it 'should fail to add an edge to a missing inbound node', (done) ->
       g = new noflo.Graph
       g.addNode 'Repeat1', 'Split'
-      noflo.createNetwork g,
-        delay: true
-        subscribeGraph: false
-      , (err, nw) ->
+      nw = new noflo.Network g
+      nw.loader = loader
+      nw.connect (err) ->
         return done err if err
-        nw.loader = loader
-        nw.connect (err) ->
-          return done err if err
-          nw.addEdge {
-            from:
-              node: 'Repeat1'
-              port: 'out'
-            to:
-              node: 'Repeat2'
-              port: 'in'
-          }, (err) ->
-            chai.expect(err).to.be.an 'error'
-            chai.expect(err.message).to.contain 'No process defined for inbound node'
-            done()
+        nw.addEdge {
+          from:
+            node: 'Repeat1'
+            port: 'out'
+          to:
+            node: 'Repeat2'
+            port: 'in'
+        }, (err) ->
+          chai.expect(err).to.be.an 'error'
+          chai.expect(err.message).to.contain 'No process defined for inbound node'
+          done()
   describe 'baseDir setting', ->
-    it 'should set baseDir based on given graph', (done) ->
+    it 'should set baseDir based on given graph', ->
       g = new noflo.Graph
       g.baseDir = root
-      noflo.createNetwork g,
-        delay: true
-        subscribeGraph: false
-      , (err, nw) ->
-        return done err if err
-        chai.expect(nw.baseDir).to.equal root
-        done()
-    it 'should fall back to CWD if graph has no baseDir', (done) ->
+      n = new noflo.Network g
+      chai.expect(n.baseDir).to.equal root
+    it 'should fall back to CWD if graph has no baseDir', ->
       return @skip() if noflo.isBrowser()
       g = new noflo.Graph
-      noflo.createNetwork g,
-        delay: true
-        subscribeGraph: false
-      , (err, nw) ->
-        return done err if err
-        chai.expect(nw.baseDir).to.equal process.cwd()
-        done()
-    it 'should set the baseDir for the component loader', (done) ->
+      n = new noflo.Network g
+      chai.expect(n.baseDir).to.equal process.cwd()
+    it 'should set the baseDir for the component loader', ->
       g = new noflo.Graph
       g.baseDir = root
-      noflo.createNetwork g,
-        delay: true
-        subscribeGraph: false
-      , (err, nw) ->
-        return done err if err
-        chai.expect(nw.baseDir).to.equal root
-        chai.expect(nw.loader.baseDir).to.equal root
-        done()
+      n = new noflo.Network g
+      chai.expect(n.baseDir).to.equal root
+      chai.expect(n.loader.baseDir).to.equal root
   describe 'debug setting', ->
     n = null
     g = null
     before (done) ->
       g = new noflo.Graph
       g.baseDir = root
-      noflo.createNetwork g,
-        subscribeGraph: false
-        default: true
-      , (err, network) ->
+      n = new noflo.Network g
+      n.loader.listComponents (err, components) ->
         return done err if err
-        n = network
         n.loader.components.Split = Split
-        n.addNode
-          id: 'A'
-          component: 'Split'
-        , (err) ->
-          return done err if err
-          n.addNode
-            id: 'B'
-            component: 'Split'
-          , (err) ->
-            return done err if err
-            n.addEdge
-              from:
-                node: 'A'
-                port: 'out'
-              to:
-                node: 'B'
-                port: 'in'
-            , (err) ->
-              return done err if err
-              n.connect done
+        g.addNode 'A', 'Split'
+        g.addNode 'B', 'Split'
+        g.addEdge 'A', 'out', 'B', 'in'
+        n.connect done
     it 'should initially have debug enabled', ->
       chai.expect(n.getDebug()).to.equal true
     it 'should have propagated debug setting to connections', ->

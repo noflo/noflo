@@ -16,7 +16,6 @@ describe 'NoFlo Graph component', ->
   before (done) ->
     loader = new noflo.ComponentLoader root
     loader.listComponents done
-    done
   beforeEach (done) ->
     loader.load 'Graph', (err, instance) ->
       return done err if err
@@ -63,7 +62,6 @@ describe 'NoFlo Graph component', ->
 
   describe 'with JSON graph definition', ->
     it 'should emit a ready event after network has been loaded', (done) ->
-      @timeout 6000
       c.baseDir = root
       c.once 'ready', ->
         chai.expect(c.network).not.to.be.null
@@ -83,7 +81,6 @@ describe 'NoFlo Graph component', ->
           Merge:
             component: 'Merge'
     it 'should expose available ports', (done) ->
-      @timeout 6000
       c.baseDir = root
       c.once 'ready', ->
         chai.expect(c.inPorts.ports).to.have.keys [
@@ -114,7 +111,6 @@ describe 'NoFlo Graph component', ->
         ]
     it 'should update description from the graph', (done) ->
       c.baseDir = root
-      @timeout 6000
       c.once 'ready', ->
         chai.expect(c.network).not.to.be.null
         chai.expect(c.ready).to.be.true
@@ -135,7 +131,6 @@ describe 'NoFlo Graph component', ->
             component: 'Split'
     it 'should expose only exported ports when they exist', (done) ->
       c.baseDir = root
-      @timeout 6000
       c.once 'ready', ->
         chai.expect(c.inPorts.ports).to.have.keys [
           'graph'
@@ -171,7 +166,6 @@ describe 'NoFlo Graph component', ->
         ]
     it 'should be able to run the graph', (done) ->
       c.baseDir = root
-      @timeout 6000
       c.once 'ready', ->
         ins = noflo.internalSocket.createSocket()
         out = noflo.internalSocket.createSocket()
@@ -212,15 +206,16 @@ describe 'NoFlo Graph component', ->
         ]
 
   describe 'with a Graph instance', ->
-    gr = new noflo.Graph 'Hello, world'
-    gr.baseDir = root
-    gr.addNode 'Split', 'Split'
-    gr.addNode 'Merge', 'Merge'
-    gr.addEdge 'Merge', 'out', 'Split', 'in'
-    gr.addInport 'in', 'Merge', 'in'
-    gr.addOutport 'out', 'Split', 'out'
+    gr = null
+    before ->
+      gr = new noflo.Graph 'Hello, world'
+      gr.baseDir = root
+      gr.addNode 'Split', 'Split'
+      gr.addNode 'Merge', 'Merge'
+      gr.addEdge 'Merge', 'out', 'Split', 'in'
+      gr.addInport 'in', 'Merge', 'in'
+      gr.addOutport 'out', 'Split', 'out'
     it 'should emit a ready event after network has been loaded', (done) ->
-      @timeout 6000
       c.baseDir = root
       c.once 'ready', ->
         chai.expect(c.network).not.to.be.null
@@ -237,7 +232,6 @@ describe 'NoFlo Graph component', ->
       chai.expect(c.ready).to.be.false
     it 'should expose available ports', (done) ->
       c.baseDir = root
-      @timeout 6000
       c.once 'ready', ->
         chai.expect(c.inPorts.ports).to.have.keys [
           'graph'
@@ -257,16 +251,19 @@ describe 'NoFlo Graph component', ->
       g.send gr
     it 'should be able to run the graph', (done) ->
       c.baseDir = root
-      @timeout 6000
+      doned = false
       c.once 'ready', ->
         ins = noflo.internalSocket.createSocket()
         out = noflo.internalSocket.createSocket()
         c.inPorts['in'].attach ins
         c.outPorts['out'].attach out
         out.on 'data', (data) ->
-          chai.expect(data).to.equal 'Foo'
+          chai.expect(data).to.equal 'Baz'
+          if doned
+            process.exit 1
           done()
-        ins.send 'Foo'
+          doned = true
+        ins.send 'Baz'
       c.once 'network', ->
         chai.expect(c.ready).to.be.false
         chai.expect(c.network).not.to.be.null
@@ -518,9 +515,12 @@ describe 'NoFlo Graph component', ->
       before (done) ->
         graph = new noflo.Graph 'main'
         graph.baseDir = root
-        network = new noflo.Network graph
-        network.loader.listComponents (err) ->
+        noflo.createNetwork graph,
+          delay: true
+          subscribeGraph: false
+        , (err, nw) ->
           return done err if err
+          network = nw
           network.loader.components.Split = Split
           network.loader.components.Merge = SubgraphMerge
           sg = new noflo.Graph 'Subgraph'
@@ -533,14 +533,28 @@ describe 'NoFlo Graph component', ->
             return done err if err
             network.connect done
       it 'should instantiate the subgraph when node is added', (done) ->
-        setTimeout ->
-          chai.expect(network.processes).not.to.be.empty
-          chai.expect(network.processes.Sub).to.exist
-          done()
-        , 10
-        graph.addNode 'Sub', 'foo/AB'
-        graph.addNode 'Split', 'Split'
-        graph.addEdge 'Sub', 'out', 'Split', 'in'
+        network.addNode
+          id: 'Sub'
+          component: 'foo/AB'
+        , (err) ->
+          return done err if err
+          network.addNode
+            id: 'Split'
+            component: 'Split'
+          , (err) ->
+            return done err if err
+            network.addEdge
+              from:
+                node: 'Sub'
+                port: 'out'
+              to:
+                node: 'Split'
+                port: 'in'
+            , (err) ->
+              return done err if err
+              chai.expect(network.processes).not.to.be.empty
+              chai.expect(network.processes.Sub).to.exist
+              done()
       it 'should be possible to start the graph', (done) ->
         network.start done
       it 'should forward IP events', (done) ->
@@ -562,16 +576,26 @@ describe 'NoFlo Graph component', ->
               chai.expect(ip.data).to.equal 'foo'
               chai.expect(ip.subgraph).to.be.undefined
               done()
-        graph.addInitial 'foo', 'Sub', 'in'
+        network.addInitial
+          from:
+            data: 'foo'
+          to:
+            node: 'Sub'
+            port: 'in'
+        , (err) ->
+          return done err if err
     describe 'with two levels of subgraphs', ->
       graph = null
       network = null
       before (done) ->
         graph = new noflo.Graph 'main'
         graph.baseDir = root
-        network = new noflo.Network graph
-        network.loader.listComponents (err) ->
+        noflo.createNetwork graph,
+          delay: true
+          subscribeGraph: false
+        , (err, net) ->
           return done err if err
+          network = net
           network.loader.components.Split = Split
           network.loader.components.Merge = SubgraphMerge
           sg = new noflo.Graph 'Subgraph'
@@ -592,14 +616,28 @@ describe 'NoFlo Graph component', ->
               return done err if err
               network.connect done
       it 'should instantiate the subgraphs when node is added', (done) ->
-        setTimeout ->
-          chai.expect(network.processes).not.to.be.empty
-          chai.expect(network.processes.Sub).to.exist
-          done()
-        , 100
-        graph.addNode 'Sub', 'foo/AB2'
-        graph.addNode 'Split', 'Split'
-        graph.addEdge 'Sub', 'out', 'Split', 'in'
+        network.addNode
+          id: 'Sub'
+          component: 'foo/AB2'
+        , (err) ->
+          return done err if err
+          network.addNode
+            id: 'Split'
+            component: 'Split'
+          , (err) ->
+            return done err if err
+            network.addEdge
+              from:
+                node: 'Sub'
+                port: 'out'
+              to:
+                node: 'Split'
+                port: 'in'
+            , (err) ->
+              return done err if err
+              chai.expect(network.processes).not.to.be.empty
+              chai.expect(network.processes.Sub).to.exist
+              done()
       it 'should be possible to start the graph', (done) ->
         network.start done
       it 'should forward IP events', (done) ->
@@ -629,4 +667,11 @@ describe 'NoFlo Graph component', ->
                 chai.expect(ip.data).to.equal 'foo'
                 chai.expect(ip.subgraph).to.be.undefined
                 done()
-        graph.addInitial 'foo', 'Sub', 'in'
+        network.addInitial
+          from:
+            data: 'foo'
+          to:
+            node: 'Sub'
+            port: 'in'
+        , (err) ->
+          return done err if err

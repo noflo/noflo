@@ -23,4 +23,7 @@ graph.addEdge "Count Lines", "count", "Display", "in"
 # Kick the process off by sending filename to fileReader
 graph.addInitial fileName, "Read File", "in"
 
-noflo.createNetwork graph
+noflo.createNetwork graph, (err) ->
+  if err
+    console.error err
+    process.exit 1
