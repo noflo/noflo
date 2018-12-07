@@ -256,12 +256,12 @@ describe 'NoFlo Legacy Network', ->
 
     describe 'without the delay option', ->
       it 'should auto-start', (done) ->
+        g.removeInitial 'Func', 'callback'
         newGraph = noflo.graph.loadJSON g.toJSON(), (err, graph) ->
           return done err if err
           cb = done
           # Pass the already-initialized component loader
           graph.componentLoader = n.loader
-          graph.removeInitial 'Func', 'callback'
           graph.addInitial (data) ->
             chai.expect(data).to.equal 'Foo'
             cb()
