@@ -320,11 +320,11 @@ describe 'NoFlo Network', ->
 
     describe 'without the delay option', ->
       it 'should auto-start', (done) ->
+        g.removeInitial 'Func', 'callback'
         newGraph = noflo.graph.loadJSON g.toJSON(), (err, graph) ->
           return done err if err
           # Pass the already-initialized component loader
           graph.componentLoader = n.loader
-          graph.removeInitial 'Func', 'callback'
           graph.addInitial (data) ->
             chai.expect(data).to.equal 'Foo'
             done()
