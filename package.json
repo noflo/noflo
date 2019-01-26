@@ -22,9 +22,9 @@
     "get-function-params": "^2.0.6"
   },
   "devDependencies": {
-    "babel-core": "^6.26.0",
+    "@babel/core": "^7.1.6",
+    "@babel/preset-env": "^7.1.6",
     "babel-loader": "^8.0.0",
-    "babel-preset-es2015": "^6.24.1",
     "chai": "^4.0.0",
     "coveralls": "^3.0.0",
     "grunt": "^1.0.1",

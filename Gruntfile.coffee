@@ -33,7 +33,7 @@ module.exports = ->
         options:
           bare: true
           transpile:
-            presets: ['es2015']
+            presets: ['env']
         expand: true
         cwd: 'spec'
         src: ['**.coffee']
@@ -51,7 +51,7 @@ module.exports = ->
               use: [
                 loader: 'babel-loader'
                 options:
-                  presets: ['es2015']
+                  presets: ['env']
               ]
             ]
       build:
