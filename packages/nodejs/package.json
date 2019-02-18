@@ -39,7 +39,7 @@
     "grunt": "^1.0.1",
     "grunt-exec": "^3.0.0",
     "grunt-mocha-test": "^0.13.2",
-    "mocha": "^3.5.0",
+    "mocha": "^6.0.0",
     "noflo-core": ">= 0.4.0"
   },
   "keywords": [
