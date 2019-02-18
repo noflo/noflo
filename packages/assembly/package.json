@@ -28,7 +28,7 @@
     "eslint": "^5.0.0",
     "eslint-config-airbnb-base": "^12.1.0",
     "eslint-plugin-import": "^2.2.0",
-    "mocha": "^5.0.0",
+    "mocha": "^6.0.0",
     "noflo-wrapper": "^0.2.1"
   }
 }
