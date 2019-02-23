@@ -26,6 +26,7 @@ describe('FBP Protocol Compatibility', () => {
   it('should pass the test suite', (done) => {
     exec(tester, {
       env: {
+        ...process.env,
         FBP_PROTOCOL_SECRET: runtimeSecret,
       },
     }, (err, stdout, stderr) => {
