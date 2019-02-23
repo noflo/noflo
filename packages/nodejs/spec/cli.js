@@ -2,7 +2,7 @@ const { exec } = require('child_process');
 const { expect } = require('chai');
 const path = require('path');
 
-describe('noflo-nodejs', () => {
+describe('noflo-nodejs CLI', () => {
   const prog = path.resolve(__dirname, '../bin/noflo-nodejs');
   describe('--graph=helloworld.fbp --batch --trace', () => {
     let stdout = '';
