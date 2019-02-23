@@ -2,7 +2,7 @@
   "name": "noflo-nodejs",
   "version": "0.10.1",
   "description": "Command-line tool for running NoFlo programs on Node.js",
-  "main": "index.js",
+  "main": "src/library.js",
   "scripts": {
     "pretest": "eslint src/*.js spec/*.js",
     "test": "mocha --exit spec/*.js"
