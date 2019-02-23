@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const fbpHealthCheck = require('fbp-protocol-healthcheck');
 const fbpClient = require('fbp-client');
+const fbpGraph = require('fbp-graph');
 
 function healthCheck(address, callback) {
   fbpHealthCheck(address)
@@ -52,6 +53,8 @@ describe('noflo-nodejs CLI', () => {
   });
   describe('--auto-save', () => {
     const baseDir = path.resolve(__dirname, './fixtures/auto-save');
+    const readFile = promisify(fs.readFile);
+    const unlink = promisify(fs.unlink);
     let runtimeProcess;
     let runtimeClient;
     before('start runtime', (done) => {
@@ -96,8 +99,6 @@ exports.getComponent = () => {
   return c;
 };`;
       const componentPath = path.resolve(__dirname, './fixtures/auto-save/components/Plusser.js');
-      const readFile = promisify(fs.readFile);
-      const unlink = promisify(fs.unlink);
       after('clean up file', () => unlink(componentPath));
       it('should be possible to send the source code to the runtime', () => runtimeClient
         .protocol.component.source({
@@ -112,6 +113,58 @@ exports.getComponent = () => {
       )
         .then((contents) => {
           expect(contents).to.eql(source);
+        }));
+    });
+    describe('setting component sources outside of project', () => {
+      let source;
+      const componentPath = path.resolve(__dirname, './fixtures/auto-save/components/Output.js');
+      before('read source code', () => readFile(
+        path.resolve(__dirname, '../node_modules/noflo-core/components/Output.js'),
+        'utf-8',
+      )
+        .then((contents) => {
+          source = contents;
+        }));
+      it('should be possible to send the source code to the runtime', () => runtimeClient
+        .protocol.component.source({
+          name: 'Output',
+          library: 'core',
+          language: 'javascript',
+          code: source,
+        }));
+      it('should not have saved the source code to the fixture folder', () => readFile(
+        componentPath,
+        'utf-8',
+      )
+        .then(
+          () => Promise.reject(new Error('core/Output was saved unexpectedly')),
+          () => Promise.resolve('No Output.js found, as expected'),
+        ));
+    });
+    describe('editing a graph without namespaced name', () => {
+      const graphName = 'Test';
+      const graphPath = path.resolve(__dirname, `./fixtures/auto-save/graphs/${graphName}.json`);
+      const graphInstance = new fbpGraph.Graph(graphName);
+      before('set up graph', () => {
+        graphInstance.setProperties({
+          ...graphInstance.properties,
+          library: 'auto-save',
+        });
+        graphInstance.addNode('one', 'auto-save/Plusser');
+        graphInstance.addNode('two', 'core/Output');
+        graphInstance.addEdge('one', 'out', 'two', 'in');
+        graphInstance.addInitial(1, 'one', 'in');
+      });
+      after('clean up file', () => unlink(graphPath));
+      it('should be possible to send a graph to the runtime', () => runtimeClient
+        .protocol.graph.send(graphInstance));
+      it('should have saved the graph JSON to the fixture folder', () => readFile(
+        graphPath,
+        'utf-8',
+      )
+        .then((contents) => {
+          const graphJson = JSON.parse(contents);
+          expect(graphJson).to.eql(JSON.parse(JSON.stringify(graphInstance.toJSON())));
         }));
     });
   });

@@ -39,6 +39,10 @@ function getComponentName(component, directoryPath) {
   });
 }
 
+function getGraphName(name, graph, directoryPath) {
+  return Promise.resolve(path.resolve(directoryPath, `${name}.json`));
+}
+
 function fileDisplayPath(filePath, rt) {
   return path.relative(rt.options.baseDir, filePath);
 }
@@ -56,6 +60,19 @@ function saveComponent(component, rt) {
       }));
 }
 
+function saveGraph(name, graph, rt) {
+  if (graph.properties.library && graph.properties.library !== rt.options.namespace) {
+    // Skip saving graphs outside of project namespace
+    return Promise.resolve();
+  }
+  return ensureDir('graphs', rt)
+    .then(directoryPath => getGraphName(name, graph, directoryPath))
+    .then(filePath => writeFile(filePath, JSON.stringify(graph.toJSON(), null, 4))
+      .then(() => {
+        console.log(`Saved ${fileDisplayPath(filePath, rt)}`);
+      }));
+}
+
 exports.subscribe = (rt) => {
   if (typeof rt.component.on !== 'function' || typeof rt.graph.on !== 'function') {
     console.log('Skipping auto-save due to noflo-runtime-base being too old');
@@ -64,6 +81,13 @@ exports.subscribe = (rt) => {
 
   rt.component.on('updated', (component) => {
     saveComponent(component, rt)
+      .catch((e) => {
+        console.error(e);
+        process.exit(1);
+      });
+  });
+  rt.graph.on('updated', ({ name, graph }) => {
+    saveGraph(name, graph, rt)
       .catch((e) => {
         console.error(e);
         process.exit(1);
