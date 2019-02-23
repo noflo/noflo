@@ -34,7 +34,7 @@ describe('noflo-nodejs', () => {
     const graph = path.resolve(__dirname, './fixtures/missingcomponent.fbp');
     it('should fail with an error telling about the missing component', (done) => {
       const cmd = `${prog} --graph=${graph} --open=false`;
-      exec(cmd, (err, o, e) => {
+      exec(cmd, (err) => {
         expect(err.message).to.contain('Component foo/Bar not available');
         done();
       });
