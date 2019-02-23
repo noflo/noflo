@@ -4,5 +4,5 @@
   "host": "localhost",
   "port": 8080,
   "collection": "core",
-  "version": "0.5"
+  "version": "0.7"
 }
