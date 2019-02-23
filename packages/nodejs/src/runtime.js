@@ -4,6 +4,7 @@ const { trace } = require('noflo-runtime-base');
 const { Runtime: FlowhubRuntime } = require('flowhub-registry');
 const debug = require('./debug');
 const server = require('./server');
+const autoSave = require('./autoSave');
 
 exports.writeTrace = (options, tracer) => new Promise((resolve, reject) => {
   if (!options.trace) {
@@ -135,6 +136,10 @@ exports.subscribe = (rt, options) => new Promise((resolve) => {
     }
     networks.splice(networks.indexOf(network), 1);
   });
+
+  if (options.autoSave) {
+    autoSave.subscribe(rt);
+  }
   resolve(rt);
 });
 

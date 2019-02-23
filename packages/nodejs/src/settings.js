@@ -114,6 +114,12 @@ const config = {
     boolean: true,
     description: 'Deprecated: Register runtime to runtime registry',
   },
+  autoSave: {
+    cli: 'auto-save',
+    boolean: true,
+    description: 'Save edited graphs and components to disk automatically',
+    default: false,
+  },
 };
 
 function discoverIp(preferred) {

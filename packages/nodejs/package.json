@@ -39,7 +39,7 @@
     "fbp-protocol": "^0.9.1",
     "fbp-protocol-healthcheck": "^1.1.0",
     "mocha": "^6.0.0",
-    "noflo-core": ">= 0.4.0"
+    "noflo-core": ">= 0.6.0"
   },
   "keywords": [
     "noflo",

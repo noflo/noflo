@@ -1,3 +1,10 @@
+## noflo-nodejs 0.11.0 (git master)
+
+New features:
+
+* noflo-nodejs is now much easier to embed in existing Node.js applications as a library
+* Added `--auto-save` option to enable saving edited graphs and components to disk automatically
+
 ## noflo-nodejs 0.10.1 (23-03-2018)
 
 New features:
