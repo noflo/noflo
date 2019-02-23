@@ -1,3 +1,4 @@
+const path = require('path');
 const fbpGraph = require('fbp-graph');
 const { trace } = require('noflo-runtime-base');
 const { Runtime: FlowhubRuntime } = require('flowhub-registry');
@@ -33,6 +34,24 @@ exports.loadGraph = options => new Promise((resolve, reject) => {
     resolve(graph);
   });
 });
+
+exports.startGraph = (graphPath, runtime, settings) => exports.loadGraph({
+  graph: graphPath,
+}).then(graphInstance => new Promise((resolve, reject) => {
+  const graph = graphInstance;
+  graph.name = graph.name || path.basename(graphPath, path.extname(graphPath));
+  graph.baseDir = settings.baseDir;
+  const graphName = `${settings.namespace}/${graph.name}`;
+  runtime.graph.registerGraph(graphName, graph);
+  runtime.network._startNetwork(graph, graphName, 'none', (err) => { // eslint-disable-line
+    if (err) {
+      reject(err);
+      return;
+    }
+    runtime.runtime.setMainGraph(graphName);
+    resolve(runtime);
+  });
+}));
 
 function stopNetwork(network) {
   return new Promise((resolve, reject) => {

@@ -7,6 +7,7 @@ const path = require('path');
 const fbpGraph = require('fbp-graph');
 const clone = require('clone');
 const nofloNodejs = require('../package.json');
+const permissions = require('./permissions');
 
 const config = {
   id: {
@@ -57,14 +58,7 @@ const config = {
   permissions: {
     description: 'Permissions for the FBP protocol clients',
     convert: val => val.split(','),
-    default: [
-      'protocol:component',
-      'protocol:runtime',
-      'protocol:graph',
-      'protocol:network',
-      'component:getsource',
-      'component:setsource',
-    ],
+    default: permissions.all(),
   },
   captureOutput: {
     cli: 'capture-output',
@@ -208,9 +202,8 @@ const parseArguments = () => {
   return options;
 };
 
-const applyArguments = settings => new Promise((resolve) => {
+const applyOptions = (settings, options) => new Promise((resolve) => {
   const applied = clone(settings);
-  const options = parseArguments();
   Object.keys(config).forEach((key) => {
     if (typeof options[key] === 'undefined') {
       return;
@@ -219,6 +212,25 @@ const applyArguments = settings => new Promise((resolve) => {
   });
   resolve(applied);
 });
+
+const applyDefaults = settings => new Promise((resolve) => {
+  const applied = clone(settings);
+  Object.keys(config).forEach((key) => {
+    if (typeof config[key].default === 'undefined') {
+      return;
+    }
+    if (typeof applied[key] !== 'undefined') {
+      return;
+    }
+    applied[key] = config[key].default;
+  });
+  resolve(applied);
+});
+
+const applyArguments = (settings) => {
+  const options = parseArguments();
+  return applyOptions(settings, options);
+};
 
 const convertNamespace = (name) => {
   if (!name) {
@@ -350,4 +362,10 @@ exports.load = () => applyEnv()
   .then(settings => loadSettings(settings))
   .then(settings => generateValues(settings))
   .then(settings => saveSettings(settings))
+  .then(settings => autodetect(settings));
+
+exports.loadForLibrary = options => applyEnv()
+  .then(settings => applyOptions(settings, options))
+  .then(settings => applyDefaults(settings))
+  .then(settings => generateValues(settings))
   .then(settings => autodetect(settings));
