@@ -1,5 +1,11 @@
 const { spawn, exec } = require('child_process');
 const path = require('path');
+const fbpHealthCheck = require('fbp-protocol-healthcheck');
+
+function healthCheck(callback) {
+  fbpHealthCheck('ws://localhost:8080')
+    .then(() => callback(), () => healthCheck(callback));
+}
 
 describe('FBP Protocol Compatibility', () => {
   const prog = path.resolve(__dirname, '../bin/noflo-nodejs');
@@ -13,7 +19,7 @@ describe('FBP Protocol Compatibility', () => {
       '--open=false',
       `--secret=${runtimeSecret}`,
     ]);
-    done();
+    healthCheck(done);
   });
   after('stop runtime', (done) => {
     if (!progProcess) {
