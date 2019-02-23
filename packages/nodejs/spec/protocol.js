@@ -34,5 +34,5 @@ describe('FBP Protocol Compatibility', () => {
       console.error(stderr);
       done(err);
     });
-  }).timeout(20000);
+  }).timeout(60000);
 });
