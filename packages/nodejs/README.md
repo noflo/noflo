@@ -113,3 +113,69 @@ This file will be automatically saved when you run noflo-nodejs, meaning that se
 Environment variables and command-line options will override settings specified in config file.
 
 Since the values are often machine and/or user specific, you usually don't want to add this file to version control.
+
+## Embedding runtime in an existing service
+
+In addition to running noflo-nodejs as a command-line program that starts and runs your NoFlo graphs, you can embed it into an existing Node.js application. Here is a quick example how to do it:
+
+```javascript
+const server = require('noflo-nodejs/src/server');
+const runtime = require('noflo-nodejs/src/runtime');
+
+// Set up the permissions you want your users to have
+const allPermissions = [
+  'protocol:component',
+  'protocol:runtime',
+  'protocol:graph',
+  'protocol:network',
+  'component:getsource',
+  'component:setsource'
+]
+
+// This function returns a Promise that resolves when the NoFlo runtime has started up
+startRuntime(secret, options = {}) {
+  const permissions = {};
+  // Associate the permissions with the given secret
+  permissions[secret] = allPermissions.slice(0);
+
+  // Configure noflo-nodejs. Options here map roughly to the standard command-line arguments
+  const settings = {
+    id: '9f1432b1-a259-454a-bb67-e9d91525cc63', // Set an unique UUID for your application instance
+    label: 'My cool app',
+    baseDir: __dirname,
+    host: 'localhost',
+    port: 3569,
+    secret,
+    registryPing: 10 * 60 * 1000,
+    permissions,
+    namespace: 'my-project',
+    ...options,
+  };
+  const graphName = `${settings.namespace}/main`;
+
+  // Start the runtime
+  return server.create(null, settings)
+    // Load and set up a main graph
+    .then(rt => runtime.loadGraph({
+      graph: '/path/to/my/main/graph.json',
+    })
+      .then((graph) => {
+        graph.baseDir = settings.baseDir,
+        rt.graph.registerGraph(graphName, graph);
+        return Promise.resolve(rt);
+      }))
+    .then(rt => new Promise((resolve, reject) => {
+      // Start the main graph
+      rt.network._startNetwork(rt.graph.graphs[graphName], graphName, 'none', (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(rt);
+      });
+    }))
+    // Start the WebSocket server
+    .then(rt => server.start(rt, settings).then(() => rt))
+    .then(rt => runtime.ping(rt, settings));
+}
+```
