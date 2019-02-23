@@ -4,7 +4,7 @@
   "description": "Command-line tool for running NoFlo programs on Node.js",
   "main": "index.js",
   "scripts": {
-    "pretest": "eslint src/*.js",
+    "pretest": "eslint src/*.js spec/*.js",
     "test": "mocha --exit spec/*.js"
   },
   "bin": {
