@@ -12,6 +12,12 @@ function healthCheck(address, callback) {
     .then(() => callback(), () => healthCheck(address, callback));
 }
 
+function waitFor(time) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, time);
+  });
+}
+
 describe('noflo-nodejs CLI', () => {
   const prog = path.resolve(__dirname, '../bin/noflo-nodejs');
   const runtimeSecret = process.env.FBP_PROTOCOL_SECRET || 'noflo-nodejs';
@@ -158,10 +164,11 @@ exports.getComponent = () => {
       after('clean up file', () => unlink(graphPath));
       it('should be possible to send a graph to the runtime', () => runtimeClient
         .protocol.graph.send(graphInstance, false));
-      it('should have saved the graph JSON to the fixture folder', () => readFile(
-        graphPath,
-        'utf-8',
-      )
+      it('should have saved the graph JSON to the fixture folder', () => waitFor(100)
+        .then(() => readFile(
+          graphPath,
+          'utf-8',
+        ))
         .then((contents) => {
           const graphJson = JSON.parse(contents);
           expect(graphJson).to.eql(JSON.parse(JSON.stringify(graphInstance.toJSON())));
@@ -184,10 +191,11 @@ exports.getComponent = () => {
       after('clean up file', () => unlink(graphPath));
       it('should be possible to send a graph to the runtime', () => runtimeClient
         .protocol.graph.send(graphInstance, true));
-      it('should have saved the graph JSON to the fixture folder', () => readFile(
-        graphPath,
-        'utf-8',
-      )
+      it('should have saved the graph JSON to the fixture folder', () => waitFor(100)
+        .then(() => readFile(
+          graphPath,
+          'utf-8',
+        ))
         .then((contents) => {
           const graphJson = JSON.parse(contents);
           expect(graphJson).to.eql(JSON.parse(JSON.stringify(graphInstance.toJSON())));
