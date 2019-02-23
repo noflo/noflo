@@ -21,7 +21,7 @@ function ensureDir(dirName, rt) {
     });
 }
 
-function getComponentName(component, directoryPath) {
+function getComponentPath(component, directoryPath) {
   const componentName = path.basename(component.name);
   return new Promise((resolve, reject) => {
     let suffix;
@@ -40,7 +40,7 @@ function getComponentName(component, directoryPath) {
   });
 }
 
-function getGraphName(name, graph, directoryPath) {
+function getGraphPath(name, graph, directoryPath) {
   const graphName = path.basename(name);
   return Promise.resolve(path.resolve(directoryPath, `${graphName}.json`));
 }
@@ -55,7 +55,7 @@ function saveComponent(component, rt) {
     return Promise.resolve();
   }
   return ensureDir('components', rt)
-    .then(directoryPath => getComponentName(component, directoryPath))
+    .then(directoryPath => getComponentPath(component, directoryPath))
     .then(filePath => writeFile(filePath, component.code)
       .then(() => {
         console.log(`Saved ${fileDisplayPath(filePath, rt)}`);
@@ -68,7 +68,7 @@ function saveGraph(name, graph, rt) {
     return Promise.resolve();
   }
   return ensureDir('graphs', rt)
-    .then(directoryPath => getGraphName(name, graph, directoryPath))
+    .then(directoryPath => getGraphPath(name, graph, directoryPath))
     .then(filePath => writeFile(filePath, JSON.stringify(graph.toJSON(), null, 4))
       .then(() => {
         console.log(`Saved ${fileDisplayPath(filePath, rt)}`);
