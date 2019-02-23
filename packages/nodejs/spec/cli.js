@@ -157,7 +157,33 @@ exports.getComponent = () => {
       });
       after('clean up file', () => unlink(graphPath));
       it('should be possible to send a graph to the runtime', () => runtimeClient
-        .protocol.graph.send(graphInstance));
+        .protocol.graph.send(graphInstance, false));
+      it('should have saved the graph JSON to the fixture folder', () => readFile(
+        graphPath,
+        'utf-8',
+      )
+        .then((contents) => {
+          const graphJson = JSON.parse(contents);
+          expect(graphJson).to.eql(JSON.parse(JSON.stringify(graphInstance.toJSON())));
+        }));
+    });
+    describe('editing a graph with namespaced name', () => {
+      const graphName = 'default/main';
+      const graphPath = path.resolve(__dirname, './fixtures/auto-save/graphs/main.json');
+      const graphInstance = new fbpGraph.Graph(graphName);
+      before('set up graph', () => {
+        graphInstance.setProperties({
+          ...graphInstance.properties,
+          library: 'auto-save',
+        });
+        graphInstance.addNode('one', 'auto-save/Plusser');
+        graphInstance.addNode('two', 'core/Output');
+        graphInstance.addEdge('one', 'out', 'two', 'in');
+        graphInstance.addInitial(1, 'one', 'in');
+      });
+      after('clean up file', () => unlink(graphPath));
+      it('should be possible to send a graph to the runtime', () => runtimeClient
+        .protocol.graph.send(graphInstance, true));
       it('should have saved the graph JSON to the fixture folder', () => readFile(
         graphPath,
         'utf-8',

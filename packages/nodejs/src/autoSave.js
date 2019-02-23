@@ -22,6 +22,7 @@ function ensureDir(dirName, rt) {
 }
 
 function getComponentName(component, directoryPath) {
+  const componentName = path.basename(component.name);
   return new Promise((resolve, reject) => {
     let suffix;
     switch (component.language) {
@@ -35,12 +36,13 @@ function getComponentName(component, directoryPath) {
       default:
         reject(new Error(`Unsupported component language ${component.language}`));
     }
-    resolve(path.resolve(directoryPath, `${component.name}.${suffix}`));
+    resolve(path.resolve(directoryPath, `${componentName}.${suffix}`));
   });
 }
 
 function getGraphName(name, graph, directoryPath) {
-  return Promise.resolve(path.resolve(directoryPath, `${name}.json`));
+  const graphName = path.basename(name);
+  return Promise.resolve(path.resolve(directoryPath, `${graphName}.json`));
 }
 
 function fileDisplayPath(filePath, rt) {
