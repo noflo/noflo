@@ -1,4 +1,4 @@
-## noflo-nodejs 0.11.0 (git master)
+## noflo-nodejs 0.11.0 (25-02-2019)
 
 New features:
 
