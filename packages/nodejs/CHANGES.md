@@ -1,3 +1,9 @@
+## noflo-nodejs 0.11.1 (26-02-2019)
+
+Bugfixes:
+
+* noflo-nodejs library mode also subscribes to runtime now, so that `autoSave` mode works
+
 ## noflo-nodejs 0.11.0 (25-02-2019)
 
 New features:
