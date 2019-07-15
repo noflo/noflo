@@ -34,6 +34,16 @@ describe 'asCallback interface', ->
     c.process (input, output) ->
       data = input.getData 'in'
       output.done new Error "Received #{data}"
+  processValues = ->
+    c = new noflo.Component
+    c.inPorts.add 'in',
+      datatype: 'string'
+      values: ['green', 'blue']
+    c.outPorts.add 'out',
+      datatype: 'string'
+    c.process (input, output) ->
+      data = input.getData 'in'
+      output.sendDone data
   neverSend = ->
     c = new noflo.Component
     c.inPorts.add 'in',
@@ -64,6 +74,7 @@ describe 'asCallback interface', ->
       return done err if err
       loader.registerComponent 'process', 'Async', processAsync
       loader.registerComponent 'process', 'Error', processError
+      loader.registerComponent 'process', 'Values', processValues
       loader.registerComponent 'process', 'NeverSend', neverSend
       loader.registerComponent 'process', 'Streamify', streamify
       done()
@@ -188,11 +199,44 @@ describe 'asCallback interface', ->
         chai.expect(err).to.be.an 'error'
         chai.expect(err.message).to.contain expected
         done()
+  describe 'with a component supporting only certain values', ->
+    wrapped = null
+    before ->
+      wrapped = noflo.asCallback 'process/Values',
+        loader: loader
+    it 'should execute network with input map and provide output map', (done) ->
+      expected ='blue'
+      wrapped
+        in: expected
+      , (err, out) ->
+        return done err if err
+        chai.expect(out.out).to.eql expected
+        done()
+    it 'should execute network with simple input and provide simple output', (done) ->
+      expected = 'blue'
+      wrapped expected, (err, out) ->
+        return done err if err
+        chai.expect(out).to.eql expected
+        done()
+    it 'should execute network with wrong map and provide error', (done) ->
+      expected = 'red'
+      wrapped
+        in: 'red'
+      , (err) ->
+        chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain 'Invalid data=\'red\' received, not in [green,blue]'
+        done()
+    it 'should execute network with wrong input and provide error', (done) ->
+      wrapped 'red', (err) ->
+        chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain 'Invalid data=\'red\' received, not in [green,blue]'
+        done()
   describe 'with a component sending streams', ->
     wrapped = null
     before ->
       wrapped = noflo.asCallback 'process/Streamify',
         loader: loader
+      return
     it 'should execute network with input map and provide output map with streams as arrays', (done) ->
       wrapped
         in: 'hello world'
@@ -202,6 +246,7 @@ describe 'asCallback interface', ->
           ['w','o','r','l','d']
         ]
         done()
+      return
     it 'should execute network with simple input and and provide simple output with streams as arrays', (done) ->
       wrapped 'hello there', (err, out) ->
         chai.expect(out).to.eql [
@@ -209,6 +254,7 @@ describe 'asCallback interface', ->
           ['t','h','e','r','e']
         ]
         done()
+      return
     describe 'with the raw option', ->
       it 'should execute network with input map and provide output map with IP objects', (done) ->
         wrappedRaw = noflo.asCallback 'process/Streamify',
@@ -266,4 +312,45 @@ describe 'asCallback interface', ->
           ['h','e','l','l','o']
           ['t','h','e','r','e']
         ]
+        done()
+  describe 'with a graph containing a component supporting only certain values', ->
+    graph = null
+    wrapped = null
+    before (done) ->
+      noflo.graph.loadFBP """
+      INPORT=Async.IN:IN
+      OUTPORT=Values.OUT:OUT
+      Async(process/Async) OUT -> IN Values(process/Values)
+      """, (err, g) ->
+        return done err if err
+        graph = g
+        wrapped = noflo.asCallback graph,
+          loader: loader
+        done()
+    it 'should execute network with input map and provide output map', (done) ->
+      expected ='blue'
+      wrapped
+        in: expected
+      , (err, out) ->
+        return done err if err
+        chai.expect(out.out).to.eql expected
+        done()
+    it 'should execute network with simple input and provide simple output', (done) ->
+      expected = 'blue'
+      wrapped expected, (err, out) ->
+        return done err if err
+        chai.expect(out).to.eql expected
+        done()
+    it 'should execute network with wrong map and provide error', (done) ->
+      expected = 'red'
+      wrapped
+        in: 'red'
+      , (err) ->
+        chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain 'Invalid data=\'red\' received, not in [green,blue]'
+        done()
+    it 'should execute network with wrong input and provide error', (done) ->
+      wrapped 'red', (err) ->
+        chai.expect(err).to.be.an 'error'
+        chai.expect(err.message).to.contain 'Invalid data=\'red\' received, not in [green,blue]'
         done()

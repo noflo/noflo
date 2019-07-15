@@ -111,14 +111,21 @@ runNetwork = (network, inputs, options, callback) ->
       res = {}
       res[outport] = ip
       received.push res
+  # Subscribe to process errors
+  onError = (err) ->
+    callback err.error
+    network.removeListener 'end', onEnd
+  network.once 'process-error', onError
   # Subscribe network finish
-  network.once 'end', ->
+  onEnd = ->
     # Clear listeners
     for port, socket of outSockets
       socket.from.process.component.outPorts[socket.from.port].detach socket
     outSockets = {}
     inSockets = {}
     callback null, received
+    network.removeListener 'process-error', onError
+  network.once 'end', onEnd
   # Start network
   network.start (err) ->
     return callback err if err
@@ -130,10 +137,16 @@ runNetwork = (network, inputs, options, callback) ->
           process = network.getNode portDef.process
           inSockets[port] = internalSocket.createSocket()
           process.component.inPorts[portDef.port].attach inSockets[port]
-        if IP.isIP value
-          inSockets[port].post value
-          continue
-        inSockets[port].post new IP 'data', value
+        try
+          if IP.isIP value
+            inSockets[port].post value
+            continue
+          inSockets[port].post new IP 'data', value
+        catch e
+          callback e
+          network.removeListener 'process-error', onError
+          network.removeListener 'end', onEnd
+          return
 
 getType = (inputs, network) ->
   # Scalar values are always simple inputs
