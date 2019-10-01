@@ -6,11 +6,11 @@ const debug = require('./debug');
 
 exports.main = () => {
   settings.load()
-    .then(options => runtime.loadGraph(options)
-      .then(graph => server.create(graph, options))
-      .then(rt => runtime.subscribe(rt, options))
-      .then(rt => server.start(rt, options))
-      .then(rt => runtime.ping(rt, options))
+    .then((options) => runtime.loadGraph(options)
+      .then((graph) => server.create(graph, options))
+      .then((rt) => runtime.subscribe(rt, options))
+      .then((rt) => server.start(rt, options))
+      .then((rt) => runtime.ping(rt, options))
       .then(() => {
         if (options.batch) {
           return;

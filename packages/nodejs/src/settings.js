@@ -17,7 +17,7 @@ const config = {
   },
   label: {
     description: 'Human-readable label for the runtime',
-    generate: project => `${project.name} NoFlo runtime`,
+    generate: (project) => `${project.name} NoFlo runtime`,
   },
   graph: {
     description: 'Path to graph file to run',
@@ -57,7 +57,7 @@ const config = {
   },
   permissions: {
     description: 'Permissions for the FBP protocol clients',
-    convert: val => val.split(','),
+    convert: (val) => val.split(','),
     default: permissions.all(),
   },
   captureOutput: {
@@ -103,7 +103,7 @@ const config = {
   registryPing: {
     cli: 'registry-ping',
     description: 'How often to ping the runtime registry',
-    convert: val => parseInt(val, 10),
+    convert: (val) => parseInt(val, 10),
     default: 10 * 60 * 1000,
   },
   registry: {
@@ -151,7 +151,7 @@ function discoverIp(preferred) {
   return externalAddress || internalAddress;
 }
 
-const readPackage = baseDir => new Promise((resolve, reject) => {
+const readPackage = (baseDir) => new Promise((resolve, reject) => {
   const packagePath = path.resolve(baseDir, './package.json');
   fs.readFile(packagePath, 'utf8', (err, contents) => {
     if (err) {
@@ -182,7 +182,7 @@ const applyEnv = () => new Promise((resolve) => {
 
 const parseArguments = () => {
   const options = commander.version(nofloNodejs.version, '-v --version');
-  const convertBoolean = val => String(val) === 'true';
+  const convertBoolean = (val) => String(val) === 'true';
   Object.keys(config).forEach((key) => {
     const conf = config[key];
     const optionKey = conf.cli || key;
@@ -219,7 +219,7 @@ const applyOptions = (settings, options) => new Promise((resolve) => {
   resolve(applied);
 });
 
-const applyDefaults = settings => new Promise((resolve) => {
+const applyDefaults = (settings) => new Promise((resolve) => {
   const applied = clone(settings);
   Object.keys(config).forEach((key) => {
     if (typeof config[key].default === 'undefined') {
@@ -285,7 +285,7 @@ const generateValues = (settings) => {
     });
 };
 
-const loadSettings = settings => new Promise((resolve, reject) => {
+const loadSettings = (settings) => new Promise((resolve, reject) => {
   const applied = clone(settings);
   const settingsPath = path.resolve(applied.baseDir, 'flowhub.json');
   fs.readFile(settingsPath, 'utf8', (err, contents) => {
@@ -313,7 +313,7 @@ const loadSettings = settings => new Promise((resolve, reject) => {
   });
 });
 
-const saveSettings = settings => new Promise((resolve, reject) => {
+const saveSettings = (settings) => new Promise((resolve, reject) => {
   const saveables = {};
   Object.keys(config).forEach((key) => {
     if (typeof settings[key] === 'undefined') {
@@ -338,7 +338,7 @@ const saveSettings = settings => new Promise((resolve, reject) => {
 });
 
 // These settings may change for each execution so they're done after saving
-const autodetect = settings => new Promise((resolve) => {
+const autodetect = (settings) => new Promise((resolve) => {
   const applied = clone(settings);
   if (applied.host === 'autodetect') {
     applied.host = discoverIp();
@@ -364,14 +364,14 @@ const autodetect = settings => new Promise((resolve) => {
 // - Generated, as needed
 
 exports.load = () => applyEnv()
-  .then(settings => applyArguments(settings))
-  .then(settings => loadSettings(settings))
-  .then(settings => generateValues(settings))
-  .then(settings => saveSettings(settings))
-  .then(settings => autodetect(settings));
+  .then((settings) => applyArguments(settings))
+  .then((settings) => loadSettings(settings))
+  .then((settings) => generateValues(settings))
+  .then((settings) => saveSettings(settings))
+  .then((settings) => autodetect(settings));
 
-exports.loadForLibrary = options => applyEnv()
-  .then(settings => applyOptions(settings, options))
-  .then(settings => applyDefaults(settings))
-  .then(settings => generateValues(settings))
-  .then(settings => autodetect(settings));
+exports.loadForLibrary = (options) => applyEnv()
+  .then((settings) => applyOptions(settings, options))
+  .then((settings) => applyDefaults(settings))
+  .then((settings) => generateValues(settings))
+  .then((settings) => autodetect(settings));

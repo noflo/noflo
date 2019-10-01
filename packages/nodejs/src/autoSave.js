@@ -55,8 +55,8 @@ function saveComponent(component, rt) {
     return Promise.resolve();
   }
   return ensureDir('components', rt)
-    .then(directoryPath => getComponentPath(component, directoryPath))
-    .then(filePath => writeFile(filePath, component.code)
+    .then((directoryPath) => getComponentPath(component, directoryPath))
+    .then((filePath) => writeFile(filePath, component.code)
       .then(() => {
         console.log(`Saved ${fileDisplayPath(filePath, rt)}`);
       }));
@@ -68,8 +68,8 @@ function saveGraph(name, graph, rt) {
     return Promise.resolve();
   }
   return ensureDir('graphs', rt)
-    .then(directoryPath => getGraphPath(name, graph, directoryPath))
-    .then(filePath => writeFile(filePath, JSON.stringify(graph.toJSON(), null, 4))
+    .then((directoryPath) => getGraphPath(name, graph, directoryPath))
+    .then((filePath) => writeFile(filePath, JSON.stringify(graph.toJSON(), null, 4))
       .then(() => {
         console.log(`Saved ${fileDisplayPath(filePath, rt)}`);
       }));
