@@ -84,7 +84,7 @@ exports.start = (rt, options) => new Promise((resolve, reject) => {
   });
 });
 
-exports.stop = rt => new Promise((resolve, reject) => {
+exports.stop = (rt) => new Promise((resolve, reject) => {
   rt.webServer.close((err) => {
     if (err) {
       reject(err);

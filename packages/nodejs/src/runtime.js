@@ -21,7 +21,7 @@ exports.writeTrace = (options, tracer) => new Promise((resolve, reject) => {
   });
 });
 
-exports.loadGraph = options => new Promise((resolve, reject) => {
+exports.loadGraph = (options) => new Promise((resolve, reject) => {
   if (typeof options.graph === 'object') {
     // Graph instance provided, return as-is
     resolve(options.graph);
@@ -38,7 +38,7 @@ exports.loadGraph = options => new Promise((resolve, reject) => {
 
 exports.startGraph = (graphPath, runtime, settings) => exports.loadGraph({
   graph: graphPath,
-}).then(graphInstance => new Promise((resolve, reject) => {
+}).then((graphInstance) => new Promise((resolve, reject) => {
   const graph = graphInstance;
   graph.name = graph.name || path.basename(graphPath, path.extname(graphPath));
   graph.baseDir = settings.baseDir;
