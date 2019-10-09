@@ -17,7 +17,7 @@
     "url": "git://github.com/noflo/noflo-nodejs.git"
   },
   "dependencies": {
-    "cli-color": "^1.2.0",
+    "cli-color": "^2.0.0",
     "clone": "^2.1.1",
     "commander": "^3.0.2",
     "fbp-graph": "^0.4.0",
