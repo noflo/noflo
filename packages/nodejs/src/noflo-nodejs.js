@@ -10,6 +10,7 @@ exports.main = () => {
       .then((graph) => server.create(graph, options))
       .then((rt) => runtime.subscribe(rt, options))
       .then((rt) => server.start(rt, options))
+      .then((rt) => runtime.advertiseMdns(rt, options))
       .then((rt) => runtime.ping(rt, options))
       .then(() => {
         if (options.batch) {

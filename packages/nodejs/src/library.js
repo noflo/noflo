@@ -13,4 +13,6 @@ module.exports = (mainGraph, options = {}, preStart = () => Promise.resolve()) =
     .then((rt) => runtime.startGraph(mainGraph, rt, config))
     // Start the WebSocket server
     .then((rt) => server.start(rt, config))
+    // Register service
+    .then((rt) => runtime.advertiseMdns(rt, options))
     .then((rt) => runtime.ping(rt, config)));
