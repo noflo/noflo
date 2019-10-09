@@ -22,6 +22,7 @@
     "commander": "^3.0.2",
     "fbp-graph": "^0.4.0",
     "flowhub-registry": "^0.1.3",
+    "mdns-js": "^1.0.3",
     "noflo": "^1.0.0",
     "noflo-runtime-base": "^0.10.0",
     "noflo-runtime-websocket": "^0.10.0",

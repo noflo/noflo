@@ -1,3 +1,7 @@
+## noflo-nodejs 0.12.0 (git master)
+
+* Added support for discovering the noflo-nodejs runtime via mDNS
+
 ## noflo-nodejs 0.11.1 (26-02-2019)
 
 Bugfixes:

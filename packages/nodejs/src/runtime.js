@@ -2,6 +2,8 @@ const path = require('path');
 const fbpGraph = require('fbp-graph');
 const { trace } = require('noflo-runtime-base');
 const { Runtime: FlowhubRuntime } = require('flowhub-registry');
+const os = require('os');
+const mdns = require('mdns-js');
 const debug = require('./debug');
 const server = require('./server');
 const autoSave = require('./autoSave');
@@ -143,6 +145,32 @@ exports.subscribe = (rt, options) => new Promise((resolve) => {
   resolve(rt);
 });
 
+function getDefinition(options) {
+  return {
+    id: options.id,
+    label: options.label || options.host,
+    protocol: 'websocket',
+    type: 'noflo-nodejs',
+  };
+}
+
+exports.advertiseMdns = (rt, options) => new Promise((resolve) => {
+  if (!options.mdns) {
+    resolve(rt);
+    return;
+  }
+  const definition = getDefinition(options);
+  const service = mdns.createAdvertisement(mdns.tcp('_fbp-ws'), options.port, {
+    name: os.hostname().split('.').shift(),
+    txt: {
+      txtvers: '1',
+      ...definition,
+    },
+  });
+  service.start();
+  resolve(rt);
+});
+
 function doPing(flowhubRt) {
   flowhubRt.ping(() => {});
 }
@@ -152,12 +180,10 @@ exports.ping = (rt, options) => new Promise((resolve) => {
     resolve(rt);
     return;
   }
+  const definition = getDefinition(options);
   const flowhubRt = new FlowhubRuntime({
-    id: options.id,
-    label: options.label,
-    protocol: 'websocket',
     address: server.getUrl(options),
-    type: 'noflo-nodejs',
+    ...definition,
   }, {
     host: options.registry,
   });

@@ -100,6 +100,11 @@ const config = {
     skipSave: true,
     default: true,
   },
+  mdns: {
+    boolean: true,
+    description: 'Advertise runtime via mDNS',
+    default: true,
+  },
   registryPing: {
     cli: 'registry-ping',
     description: 'How often to ping the runtime registry',
