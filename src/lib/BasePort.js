@@ -1,3 +1,13 @@
+/* eslint-disable
+    class-methods-use-this,
+    consistent-return,
+    no-continue,
+    no-param-reassign,
+    no-plusplus,
+    no-return-assign,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS102: Remove unnecessary code created because of implicit returns
@@ -6,7 +16,7 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
-const {EventEmitter} = require('events');
+const { EventEmitter } = require('events');
 
 // ## NoFlo Port Base class
 //
@@ -26,7 +36,7 @@ const validTypes = [
   'bang',
   'function',
   'buffer',
-  'stream'
+  'stream',
 ];
 
 class BasePort extends EventEmitter {
@@ -79,7 +89,9 @@ class BasePort extends EventEmitter {
   }
 
   getDataType() { return this.options.datatype; }
+
   getSchema() { return this.options.schema || null; }
+
   getDescription() { return this.options.description; }
 
   attach(socket, index = null) {
@@ -95,7 +107,7 @@ class BasePort extends EventEmitter {
     this.emit('attach', socket);
   }
 
-  attachSocket() {  }
+  attachSocket() { }
 
   detach(socket) {
     const index = this.sockets.indexOf(socket);
@@ -152,7 +164,7 @@ class BasePort extends EventEmitter {
     }
 
     let connected = false;
-    this.sockets.forEach(function(socket) {
+    this.sockets.forEach((socket) => {
       if (!socket) { return; }
       if (socket.isConnected()) {
         return connected = true;
