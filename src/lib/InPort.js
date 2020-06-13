@@ -1,170 +1,223 @@
-#     NoFlo - Flow-Based Programming for JavaScript
-#     (c) 2014-2017 Flowhub UG
-#     NoFlo may be freely distributed under the MIT license
-BasePort = require './BasePort'
-IP = require './IP'
+/*
+ * decaffeinate suggestions:
+ * DS101: Remove unnecessary use of Array.from
+ * DS102: Remove unnecessary code created because of implicit returns
+ * DS207: Consider shorter variations of null checks
+ * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ */
+//     NoFlo - Flow-Based Programming for JavaScript
+//     (c) 2014-2017 Flowhub UG
+//     NoFlo may be freely distributed under the MIT license
+let InPort;
+const BasePort = require('./BasePort');
+const IP = require('./IP');
 
-# ## NoFlo inport
-#
-# Input Port (inport) implementation for NoFlo components. These
-# ports are the way a component receives Information Packets.
-module.exports = class InPort extends BasePort
-  constructor: (options = {}) ->
-    options.control ?= false
-    options.scoped ?= true
-    options.triggering ?= true
+// ## NoFlo inport
+//
+// Input Port (inport) implementation for NoFlo components. These
+// ports are the way a component receives Information Packets.
+module.exports = (InPort = class InPort extends BasePort {
+  constructor(options) {
+    if (options == null) { options = {}; }
+    if (options.control == null) { options.control = false; }
+    if (options.scoped == null) { options.scoped = true; }
+    if (options.triggering == null) { options.triggering = true; }
 
-    if options.process
-      throw new Error 'InPort process callback is deprecated. Please use Process API'
+    if (options.process) {
+      throw new Error('InPort process callback is deprecated. Please use Process API');
+    }
 
-    if options.handle
-      throw new Error 'InPort handle callback is deprecated. Please use Process API'
+    if (options.handle) {
+      throw new Error('InPort handle callback is deprecated. Please use Process API');
+    }
 
-    super options
+    super(options);
 
-    @prepareBuffer()
+    this.prepareBuffer();
+  }
 
-  # Assign a delegate for retrieving data should this inPort
-  attachSocket: (socket, localId = null) ->
-    # have a default value.
-    if @hasDefault()
-      socket.setDataDelegate => @options.default
+  // Assign a delegate for retrieving data should this inPort
+  attachSocket(socket, localId = null) {
+    // have a default value.
+    if (this.hasDefault()) {
+      socket.setDataDelegate(() => this.options.default);
+    }
 
-    socket.on 'connect', =>
-      @handleSocketEvent 'connect', socket, localId
-    socket.on 'begingroup', (group) =>
-      @handleSocketEvent 'begingroup', group, localId
-    socket.on 'data', (data) =>
-      @validateData data
-      @handleSocketEvent 'data', data, localId
-    socket.on 'endgroup', (group) =>
-      @handleSocketEvent 'endgroup', group, localId
-    socket.on 'disconnect', =>
-      @handleSocketEvent 'disconnect', socket, localId
-    socket.on 'ip', (ip) =>
-      @handleIP ip, localId
-    return
+    socket.on('connect', () => {
+      return this.handleSocketEvent('connect', socket, localId);
+    });
+    socket.on('begingroup', group => {
+      return this.handleSocketEvent('begingroup', group, localId);
+    });
+    socket.on('data', data => {
+      this.validateData(data);
+      return this.handleSocketEvent('data', data, localId);
+    });
+    socket.on('endgroup', group => {
+      return this.handleSocketEvent('endgroup', group, localId);
+    });
+    socket.on('disconnect', () => {
+      return this.handleSocketEvent('disconnect', socket, localId);
+    });
+    socket.on('ip', ip => {
+      return this.handleIP(ip, localId);
+    });
+  }
 
-  handleIP: (ip, id) ->
-    return if @options.control and ip.type isnt 'data'
-    ip.owner = @nodeInstance
-    ip.index = id if @isAddressable()
-    if ip.datatype is 'all'
-      # Stamp non-specific IP objects with port datatype
-      ip.datatype = @getDataType()
-    if @getSchema() and not ip.schema
-      # Stamp non-specific IP objects with port schema
-      ip.schema = @getSchema()
+  handleIP(ip, id) {
+    if (this.options.control && (ip.type !== 'data')) { return; }
+    ip.owner = this.nodeInstance;
+    if (this.isAddressable()) { ip.index = id; }
+    if (ip.datatype === 'all') {
+      // Stamp non-specific IP objects with port datatype
+      ip.datatype = this.getDataType();
+    }
+    if (this.getSchema() && !ip.schema) {
+      // Stamp non-specific IP objects with port schema
+      ip.schema = this.getSchema();
+    }
 
-    buf = @prepareBufferForIP ip
-    buf.push ip
-    buf.shift() if @options.control and buf.length > 1
+    const buf = this.prepareBufferForIP(ip);
+    buf.push(ip);
+    if (this.options.control && (buf.length > 1)) { buf.shift(); }
 
-    @emit 'ip', ip, id
-    return
+    this.emit('ip', ip, id);
+  }
 
-  handleSocketEvent: (event, payload, id) ->
-    # Emit port event
-    if @isAddressable()
-      return @emit event, payload, id
-    return @emit event, payload
+  handleSocketEvent(event, payload, id) {
+    // Emit port event
+    if (this.isAddressable()) {
+      return this.emit(event, payload, id);
+    }
+    return this.emit(event, payload);
+  }
 
-  hasDefault: ->
-    return @options.default isnt undefined
+  hasDefault() {
+    return this.options.default !== undefined;
+  }
 
-  prepareBuffer: ->
-    if @isAddressable()
-      @scopedBuffer = {} if @options.scoped
-      @indexedBuffer = {}
-      @iipBuffer = {}
-      return
-    @scopedBuffer = {} if @options.scoped
-    @iipBuffer = []
-    @buffer = []
-    return
+  prepareBuffer() {
+    if (this.isAddressable()) {
+      if (this.options.scoped) { this.scopedBuffer = {}; }
+      this.indexedBuffer = {};
+      this.iipBuffer = {};
+      return;
+    }
+    if (this.options.scoped) { this.scopedBuffer = {}; }
+    this.iipBuffer = [];
+    this.buffer = [];
+  }
 
-  prepareBufferForIP: (ip) ->
-    if @isAddressable()
-      if ip.scope? and @options.scoped
-        @scopedBuffer[ip.scope] = [] unless ip.scope of @scopedBuffer
-        @scopedBuffer[ip.scope][ip.index] = [] unless ip.index of @scopedBuffer[ip.scope]
-        return @scopedBuffer[ip.scope][ip.index]
-      if ip.initial
-        @iipBuffer[ip.index] = [] unless ip.index of @iipBuffer
-        return @iipBuffer[ip.index]
-      @indexedBuffer[ip.index] = [] unless ip.index of @indexedBuffer
-      return @indexedBuffer[ip.index]
-    if ip.scope? and @options.scoped
-      @scopedBuffer[ip.scope] = [] unless ip.scope of @scopedBuffer
-      return @scopedBuffer[ip.scope]
-    if ip.initial
-      return @iipBuffer
-    return @buffer
+  prepareBufferForIP(ip) {
+    if (this.isAddressable()) {
+      if ((ip.scope != null) && this.options.scoped) {
+        if (!(ip.scope in this.scopedBuffer)) { this.scopedBuffer[ip.scope] = []; }
+        if (!(ip.index in this.scopedBuffer[ip.scope])) { this.scopedBuffer[ip.scope][ip.index] = []; }
+        return this.scopedBuffer[ip.scope][ip.index];
+      }
+      if (ip.initial) {
+        if (!(ip.index in this.iipBuffer)) { this.iipBuffer[ip.index] = []; }
+        return this.iipBuffer[ip.index];
+      }
+      if (!(ip.index in this.indexedBuffer)) { this.indexedBuffer[ip.index] = []; }
+      return this.indexedBuffer[ip.index];
+    }
+    if ((ip.scope != null) && this.options.scoped) {
+      if (!(ip.scope in this.scopedBuffer)) { this.scopedBuffer[ip.scope] = []; }
+      return this.scopedBuffer[ip.scope];
+    }
+    if (ip.initial) {
+      return this.iipBuffer;
+    }
+    return this.buffer;
+  }
 
-  validateData: (data) ->
-    return unless @options.values
-    if @options.values.indexOf(data) is -1
-      throw new Error "Invalid data='#{data}' received, not in [#{@options.values}]"
+  validateData(data) {
+    if (!this.options.values) { return; }
+    if (this.options.values.indexOf(data) === -1) {
+      throw new Error(`Invalid data='${data}' received, not in [${this.options.values}]`);
+    }
+  }
 
-  getBuffer: (scope, idx, initial = false) ->
-    if @isAddressable()
-      if scope? and @options.scoped
-        return undefined unless scope of @scopedBuffer
-        return undefined unless idx of @scopedBuffer[scope]
-        return @scopedBuffer[scope][idx]
-      if initial
-        return undefined unless idx of @iipBuffer
-        return @iipBuffer[idx]
-      return undefined unless idx of @indexedBuffer
-      return @indexedBuffer[idx]
-    if scope? and @options.scoped
-      return undefined unless scope of @scopedBuffer
-      return @scopedBuffer[scope]
-    if initial
-      return @iipBuffer
-    return @buffer
+  getBuffer(scope, idx, initial) {
+    if (initial == null) { initial = false; }
+    if (this.isAddressable()) {
+      if ((scope != null) && this.options.scoped) {
+        if (!(scope in this.scopedBuffer)) { return undefined; }
+        if (!(idx in this.scopedBuffer[scope])) { return undefined; }
+        return this.scopedBuffer[scope][idx];
+      }
+      if (initial) {
+        if (!(idx in this.iipBuffer)) { return undefined; }
+        return this.iipBuffer[idx];
+      }
+      if (!(idx in this.indexedBuffer)) { return undefined; }
+      return this.indexedBuffer[idx];
+    }
+    if ((scope != null) && this.options.scoped) {
+      if (!(scope in this.scopedBuffer)) { return undefined; }
+      return this.scopedBuffer[scope];
+    }
+    if (initial) {
+      return this.iipBuffer;
+    }
+    return this.buffer;
+  }
 
-  getFromBuffer: (scope, idx, initial = false) ->
-    buf = @getBuffer scope, idx, initial
-    return undefined unless buf?.length
-    return if @options.control then buf[buf.length - 1] else buf.shift()
+  getFromBuffer(scope, idx, initial) {
+    if (initial == null) { initial = false; }
+    const buf = this.getBuffer(scope, idx, initial);
+    if (!(buf != null ? buf.length : undefined)) { return undefined; }
+    if (this.options.control) { return buf[buf.length - 1]; } else { return buf.shift(); }
+  }
 
-  # Fetches a packet from the port
-  get: (scope, idx) ->
-    res = @getFromBuffer scope, idx
-    return res if res isnt undefined
-    # Try to find an IIP instead
-    return @getFromBuffer null, idx, true
+  // Fetches a packet from the port
+  get(scope, idx) {
+    const res = this.getFromBuffer(scope, idx);
+    if (res !== undefined) { return res; }
+    // Try to find an IIP instead
+    return this.getFromBuffer(null, idx, true);
+  }
 
-  hasIPinBuffer: (scope, idx, validate, initial = false) ->
-    buf = @getBuffer scope, idx, initial
-    return false unless buf?.length
-    for packet in buf
-      return true if validate packet
-    return false
+  hasIPinBuffer(scope, idx, validate, initial) {
+    if (initial == null) { initial = false; }
+    const buf = this.getBuffer(scope, idx, initial);
+    if (!(buf != null ? buf.length : undefined)) { return false; }
+    for (let packet of Array.from(buf)) {
+      if (validate(packet)) { return true; }
+    }
+    return false;
+  }
 
-  hasIIP: (idx, validate) ->
-    return @hasIPinBuffer null, idx, validate, true
+  hasIIP(idx, validate) {
+    return this.hasIPinBuffer(null, idx, validate, true);
+  }
 
-  # Returns true if port contains packet(s) matching the validator
-  has: (scope, idx, validate) ->
-    unless @isAddressable()
-      validate = idx
-      idx = null
-    return true if @hasIPinBuffer scope, idx, validate
-    return true if @hasIIP idx, validate
-    return false
+  // Returns true if port contains packet(s) matching the validator
+  has(scope, idx, validate) {
+    if (!this.isAddressable()) {
+      validate = idx;
+      idx = null;
+    }
+    if (this.hasIPinBuffer(scope, idx, validate)) { return true; }
+    if (this.hasIIP(idx, validate)) { return true; }
+    return false;
+  }
 
-  # Returns the number of data packets in an inport
-  length: (scope, idx) ->
-    buf = @getBuffer scope, idx
-    return 0 unless buf
-    return buf.length
+  // Returns the number of data packets in an inport
+  length(scope, idx) {
+    const buf = this.getBuffer(scope, idx);
+    if (!buf) { return 0; }
+    return buf.length;
+  }
 
-  # Tells if buffer has packets or not
-  ready: (scope, idx) ->
-    return @length(scope) > 0
+  // Tells if buffer has packets or not
+  ready(scope, idx) {
+    return this.length(scope) > 0;
+  }
 
-  # Clears inport buffers
-  clear: ->
-    return @prepareBuffer()
+  // Clears inport buffers
+  clear() {
+    return this.prepareBuffer();
+  }
+});
