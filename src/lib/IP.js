@@ -1,3 +1,15 @@
+/* eslint-disable
+    guard-for-in,
+    no-continue,
+    no-multi-assign,
+    no-param-reassign,
+    no-restricted-syntax,
+    no-shadow,
+    no-underscore-dangle,
+    no-unused-vars,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS207: Consider shorter variations of null checks
@@ -30,10 +42,10 @@
 // Valid IP types
 let IP;
 const validTypes = [
-    'data',
-    'openBracket',
-    'closeBracket'
-  ];
+  'data',
+  'openBracket',
+  'closeBracket',
+];
 
 module.exports = (IP = class IP {
   // Detects if an arbitrary value is an IP
@@ -55,7 +67,7 @@ module.exports = (IP = class IP {
     this.index = null; // addressable port index
     this.schema = null;
     this.datatype = 'all';
-    for (let key in options) {
+    for (const key in options) {
       const val = options[key];
       this[key] = val;
     }
@@ -65,11 +77,11 @@ module.exports = (IP = class IP {
   // Creates a new IP copying its contents by value not reference
   clone() {
     const ip = new IP(this.type);
-    for (let key in this) {
+    for (const key in this) {
       const val = this[key];
       if (['owner'].indexOf(key) !== -1) { continue; }
       if (val === null) { continue; }
-      if (typeof(val) === 'object') {
+      if (typeof (val) === 'object') {
         ip[key] = JSON.parse(JSON.stringify(val));
       } else {
         ip[key] = val;
@@ -87,6 +99,6 @@ module.exports = (IP = class IP {
 
   // Frees IP contents
   drop() {
-    for (let key in this) { const val = this[key]; delete this[key]; }
+    for (const key in this) { const val = this[key]; delete this[key]; }
   }
 });
