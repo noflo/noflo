@@ -45,9 +45,9 @@ module.exports = class IP {
     this.index = null; // addressable port index
     this.schema = null;
     this.datatype = 'all';
-    Object.keys(options).forEach((key) => {
-      this[key] = options[key];
-    });
+    if (typeof options === 'object') {
+      Object.keys(options).forEach((key) => { this[key] = options[key]; });
+    }
     return this;
   }
 
