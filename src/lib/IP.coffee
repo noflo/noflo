@@ -21,17 +21,18 @@
 # It is also possible to carry metadata with an IP object.
 # For example, the `datatype` and `schema` of the sending
 # port is transmitted with the IP object.
-module.exports = class IP
-  # Valid IP types
-  @types: [
+
+# Valid IP types
+validTypes = [
     'data'
     'openBracket'
     'closeBracket'
   ]
 
+module.exports = class IP
   # Detects if an arbitrary value is an IP
   @isIP: (obj) ->
-    obj and typeof obj is 'object' and obj._isIP is true
+    return obj and typeof obj is 'object' and obj._isIP is true
 
   # Creates as new IP object
   # Valid types: 'data', 'openBracket', 'closeBracket'
@@ -45,6 +46,7 @@ module.exports = class IP
     @datatype = 'all'
     for key, val of options
       this[key] = val
+    return @
 
   # Creates a new IP copying its contents by value not reference
   clone: ->
@@ -56,12 +58,14 @@ module.exports = class IP
         ip[key] = JSON.parse JSON.stringify val
       else
         ip[key] = val
-    ip
+    return ip
 
   # Moves an IP to a different owner
   move: (@owner) ->
     # no-op
+    return @
 
   # Frees IP contents
   drop: ->
     delete this[key] for key, val of @
+    return
