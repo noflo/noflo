@@ -1,3 +1,13 @@
+/* eslint-disable
+    max-len,
+    no-multi-assign,
+    no-param-reassign,
+    no-restricted-syntax,
+    no-shadow,
+    no-unused-vars,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS101: Remove unnecessary use of Array.from
@@ -43,25 +53,15 @@ module.exports = (InPort = class InPort extends BasePort {
       socket.setDataDelegate(() => this.options.default);
     }
 
-    socket.on('connect', () => {
-      return this.handleSocketEvent('connect', socket, localId);
-    });
-    socket.on('begingroup', group => {
-      return this.handleSocketEvent('begingroup', group, localId);
-    });
-    socket.on('data', data => {
+    socket.on('connect', () => this.handleSocketEvent('connect', socket, localId));
+    socket.on('begingroup', (group) => this.handleSocketEvent('begingroup', group, localId));
+    socket.on('data', (data) => {
       this.validateData(data);
       return this.handleSocketEvent('data', data, localId);
     });
-    socket.on('endgroup', group => {
-      return this.handleSocketEvent('endgroup', group, localId);
-    });
-    socket.on('disconnect', () => {
-      return this.handleSocketEvent('disconnect', socket, localId);
-    });
-    socket.on('ip', ip => {
-      return this.handleIP(ip, localId);
-    });
+    socket.on('endgroup', (group) => this.handleSocketEvent('endgroup', group, localId));
+    socket.on('disconnect', () => this.handleSocketEvent('disconnect', socket, localId));
+    socket.on('ip', (ip) => this.handleIP(ip, localId));
   }
 
   handleIP(ip, id) {
@@ -168,7 +168,7 @@ module.exports = (InPort = class InPort extends BasePort {
     if (initial == null) { initial = false; }
     const buf = this.getBuffer(scope, idx, initial);
     if (!(buf != null ? buf.length : undefined)) { return undefined; }
-    if (this.options.control) { return buf[buf.length - 1]; } else { return buf.shift(); }
+    if (this.options.control) { return buf[buf.length - 1]; } return buf.shift();
   }
 
   // Fetches a packet from the port
@@ -183,7 +183,7 @@ module.exports = (InPort = class InPort extends BasePort {
     if (initial == null) { initial = false; }
     const buf = this.getBuffer(scope, idx, initial);
     if (!(buf != null ? buf.length : undefined)) { return false; }
-    for (let packet of Array.from(buf)) {
+    for (const packet of Array.from(buf)) {
       if (validate(packet)) { return true; }
     }
     return false;
