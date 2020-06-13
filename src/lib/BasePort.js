@@ -1,138 +1,167 @@
-#     NoFlo - Flow-Based Programming for JavaScript
-#     (c) 2014-2017 Flowhub UG
-#     NoFlo may be freely distributed under the MIT license
-{EventEmitter} = require 'events'
+/*
+ * decaffeinate suggestions:
+ * DS102: Remove unnecessary code created because of implicit returns
+ * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ */
+//     NoFlo - Flow-Based Programming for JavaScript
+//     (c) 2014-2017 Flowhub UG
+//     NoFlo may be freely distributed under the MIT license
+const {EventEmitter} = require('events');
 
-# ## NoFlo Port Base class
-#
-# Base port type used for options normalization. Both inports and outports extend this class.
+// ## NoFlo Port Base class
+//
+// Base port type used for options normalization. Both inports and outports extend this class.
 
-# The list of valid datatypes for ports.
-validTypes = [
-  'all'
-  'string'
-  'number'
-  'int'
-  'object'
-  'array'
-  'boolean'
-  'color'
-  'date'
-  'bang'
-  'function'
-  'buffer'
+// The list of valid datatypes for ports.
+const validTypes = [
+  'all',
+  'string',
+  'number',
+  'int',
+  'object',
+  'array',
+  'boolean',
+  'color',
+  'date',
+  'bang',
+  'function',
+  'buffer',
   'stream'
-]
+];
 
-class BasePort extends EventEmitter
-  constructor: (options) ->
-    super()
-    # Options holds all options of the current port
-    @options = @handleOptions options
-    # Sockets list contains all currently attached
-    # connections to the port
-    @sockets = []
-    # Name of the graph node this port is in
-    @node = null
-    # Name of the port
-    @name = null
+class BasePort extends EventEmitter {
+  constructor(options) {
+    super();
+    // Options holds all options of the current port
+    this.options = this.handleOptions(options);
+    // Sockets list contains all currently attached
+    // connections to the port
+    this.sockets = [];
+    // Name of the graph node this port is in
+    this.node = null;
+    // Name of the port
+    this.name = null;
+  }
 
-  handleOptions: (options) ->
-    options = {} unless options
-    # We default to the `all` type if no explicit datatype
-    # was provided
-    options.datatype = 'all' unless options.datatype
-    # By default ports are not required for graph execution
-    options.required = false if options.required is undefined
+  handleOptions(options) {
+    if (!options) { options = {}; }
+    // We default to the `all` type if no explicit datatype
+    // was provided
+    if (!options.datatype) { options.datatype = 'all'; }
+    // By default ports are not required for graph execution
+    if (options.required === undefined) { options.required = false; }
 
-    # Normalize the legacy `integer` type to `int`.
-    options.datatype = 'int' if options.datatype is 'integer'
+    // Normalize the legacy `integer` type to `int`.
+    if (options.datatype === 'integer') { options.datatype = 'int'; }
 
-    # Ensure datatype defined for the port is valid
-    if validTypes.indexOf(options.datatype) is -1
-      throw new Error "Invalid port datatype '#{options.datatype}' specified, valid are #{validTypes.join(', ')}"
+    // Ensure datatype defined for the port is valid
+    if (validTypes.indexOf(options.datatype) === -1) {
+      throw new Error(`Invalid port datatype '${options.datatype}' specified, valid are ${validTypes.join(', ')}`);
+    }
 
-    # Ensure schema defined for the port is valid
-    if options.type and not options.schema
-      options.schema = options.type
-      delete options.type
-    if options.schema and options.schema.indexOf('/') is -1
-      throw new Error "Invalid port schema '#{options.schema}' specified. Should be URL or MIME type"
+    // Ensure schema defined for the port is valid
+    if (options.type && !options.schema) {
+      options.schema = options.type;
+      delete options.type;
+    }
+    if (options.schema && (options.schema.indexOf('/') === -1)) {
+      throw new Error(`Invalid port schema '${options.schema}' specified. Should be URL or MIME type`);
+    }
 
-    return options
+    return options;
+  }
 
-  getId: ->
-    unless @node and @name
-      return 'Port'
-    return "#{@node} #{@name.toUpperCase()}"
+  getId() {
+    if (!this.node || !this.name) {
+      return 'Port';
+    }
+    return `${this.node} ${this.name.toUpperCase()}`;
+  }
 
-  getDataType: -> return @options.datatype
-  getSchema: -> return @options.schema or null
-  getDescription: -> return @options.description
+  getDataType() { return this.options.datatype; }
+  getSchema() { return this.options.schema || null; }
+  getDescription() { return this.options.description; }
 
-  attach: (socket, index = null) ->
-    if not @isAddressable() or index is null
-      index = @sockets.length
-    @sockets[index] = socket
-    @attachSocket socket, index
-    if @isAddressable()
-      @emit 'attach', socket, index
-      return
-    @emit 'attach', socket
-    return
+  attach(socket, index = null) {
+    if (!this.isAddressable() || (index === null)) {
+      index = this.sockets.length;
+    }
+    this.sockets[index] = socket;
+    this.attachSocket(socket, index);
+    if (this.isAddressable()) {
+      this.emit('attach', socket, index);
+      return;
+    }
+    this.emit('attach', socket);
+  }
 
-  attachSocket: -> return
+  attachSocket() {  }
 
-  detach: (socket) ->
-    index = @sockets.indexOf socket
-    if index is -1
-      return
-    @sockets[index] = undefined
-    if @isAddressable()
-      @emit 'detach', socket, index
-      return
-    @emit 'detach', socket
-    return
+  detach(socket) {
+    const index = this.sockets.indexOf(socket);
+    if (index === -1) {
+      return;
+    }
+    this.sockets[index] = undefined;
+    if (this.isAddressable()) {
+      this.emit('detach', socket, index);
+      return;
+    }
+    this.emit('detach', socket);
+  }
 
-  isAddressable: ->
-    return true if @options.addressable
-    return false
+  isAddressable() {
+    if (this.options.addressable) { return true; }
+    return false;
+  }
 
-  isBuffered: ->
-    return true if @options.buffered
-    return false
+  isBuffered() {
+    if (this.options.buffered) { return true; }
+    return false;
+  }
 
-  isRequired: ->
-    return true if @options.required
-    return false
+  isRequired() {
+    if (this.options.required) { return true; }
+    return false;
+  }
 
-  isAttached: (socketId = null) ->
-    if @isAddressable() and socketId isnt null
-      return true if @sockets[socketId]
-      return false
-    return true if @sockets.length
-    return false
+  isAttached(socketId = null) {
+    if (this.isAddressable() && (socketId !== null)) {
+      if (this.sockets[socketId]) { return true; }
+      return false;
+    }
+    if (this.sockets.length) { return true; }
+    return false;
+  }
 
-  listAttached: ->
-    attached = []
-    for socket, idx in @sockets
-      continue unless socket
-      attached.push idx
-    return attached
+  listAttached() {
+    const attached = [];
+    for (let idx = 0; idx < this.sockets.length; idx++) {
+      const socket = this.sockets[idx];
+      if (!socket) { continue; }
+      attached.push(idx);
+    }
+    return attached;
+  }
 
-  isConnected: (socketId = null) ->
-    if @isAddressable()
-      throw new Error "#{@getId()}: Socket ID required" if socketId is null
-      throw new Error "#{@getId()}: Socket #{socketId} not available" unless @sockets[socketId]
-      return @sockets[socketId].isConnected()
+  isConnected(socketId = null) {
+    if (this.isAddressable()) {
+      if (socketId === null) { throw new Error(`${this.getId()}: Socket ID required`); }
+      if (!this.sockets[socketId]) { throw new Error(`${this.getId()}: Socket ${socketId} not available`); }
+      return this.sockets[socketId].isConnected();
+    }
 
-    connected = false
-    @sockets.forEach (socket) ->
-      return unless socket
-      if socket.isConnected()
-        connected = true
-    return connected
+    let connected = false;
+    this.sockets.forEach(function(socket) {
+      if (!socket) { return; }
+      if (socket.isConnected()) {
+        return connected = true;
+      }
+    });
+    return connected;
+  }
 
-  canAttach: -> return true
+  canAttach() { return true; }
+}
 
-module.exports = BasePort
+module.exports = BasePort;
