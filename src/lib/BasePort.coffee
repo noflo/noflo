@@ -59,16 +59,16 @@ class BasePort extends EventEmitter
     if options.schema and options.schema.indexOf('/') is -1
       throw new Error "Invalid port schema '#{options.schema}' specified. Should be URL or MIME type"
 
-    options
+    return options
 
   getId: ->
     unless @node and @name
       return 'Port'
-    "#{@node} #{@name.toUpperCase()}"
+    return "#{@node} #{@name.toUpperCase()}"
 
-  getDataType: -> @options.datatype
-  getSchema: -> @options.schema or null
-  getDescription: -> @options.description
+  getDataType: -> return @options.datatype
+  getSchema: -> return @options.schema or null
+  getDescription: -> return @options.description
 
   attach: (socket, index = null) ->
     if not @isAddressable() or index is null
@@ -79,8 +79,9 @@ class BasePort extends EventEmitter
       @emit 'attach', socket, index
       return
     @emit 'attach', socket
+    return
 
-  attachSocket: ->
+  attachSocket: -> return
 
   detach: (socket) ->
     index = @sockets.indexOf socket
@@ -91,32 +92,33 @@ class BasePort extends EventEmitter
       @emit 'detach', socket, index
       return
     @emit 'detach', socket
+    return
 
   isAddressable: ->
     return true if @options.addressable
-    false
+    return false
 
   isBuffered: ->
     return true if @options.buffered
-    false
+    return false
 
   isRequired: ->
     return true if @options.required
-    false
+    return false
 
   isAttached: (socketId = null) ->
     if @isAddressable() and socketId isnt null
       return true if @sockets[socketId]
       return false
     return true if @sockets.length
-    false
+    return false
 
   listAttached: ->
     attached = []
     for socket, idx in @sockets
       continue unless socket
       attached.push idx
-    attached
+    return attached
 
   isConnected: (socketId = null) ->
     if @isAddressable()
@@ -131,6 +133,6 @@ class BasePort extends EventEmitter
         connected = true
     return connected
 
-  canAttach: -> true
+  canAttach: -> return true
 
 module.exports = BasePort
