@@ -8,7 +8,7 @@ IP = require './IP'
 #
 # Input Port (inport) implementation for NoFlo components. These
 # ports are the way a component receives Information Packets.
-class InPort extends BasePort
+module.exports = class InPort extends BasePort
   constructor: (options = {}) ->
     options.control ?= false
     options.scoped ?= true
@@ -43,6 +43,7 @@ class InPort extends BasePort
       @handleSocketEvent 'disconnect', socket, localId
     socket.on 'ip', (ip) =>
       @handleIP ip, localId
+    return
 
   handleIP: (ip, id) ->
     return if @options.control and ip.type isnt 'data'
@@ -60,11 +61,13 @@ class InPort extends BasePort
     buf.shift() if @options.control and buf.length > 1
 
     @emit 'ip', ip, id
+    return
 
   handleSocketEvent: (event, payload, id) ->
     # Emit port event
-    return @emit event, payload, id if @isAddressable()
-    @emit event, payload
+    if @isAddressable()
+      return @emit event, payload, id
+    return @emit event, payload
 
   hasDefault: ->
     return @options.default isnt undefined
@@ -131,17 +134,17 @@ class InPort extends BasePort
     res = @getFromBuffer scope, idx
     return res if res isnt undefined
     # Try to find an IIP instead
-    @getFromBuffer null, idx, true
+    return @getFromBuffer null, idx, true
 
   hasIPinBuffer: (scope, idx, validate, initial = false) ->
     buf = @getBuffer scope, idx, initial
     return false unless buf?.length
     for packet in buf
       return true if validate packet
-    false
+    return false
 
   hasIIP: (idx, validate) ->
-    @hasIPinBuffer null, idx, validate, true
+    return @hasIPinBuffer null, idx, validate, true
 
   # Returns true if port contains packet(s) matching the validator
   has: (scope, idx, validate) ->
@@ -150,7 +153,7 @@ class InPort extends BasePort
       idx = null
     return true if @hasIPinBuffer scope, idx, validate
     return true if @hasIIP idx, validate
-    false
+    return false
 
   # Returns the number of data packets in an inport
   length: (scope, idx) ->
@@ -164,6 +167,4 @@ class InPort extends BasePort
 
   # Clears inport buffers
   clear: ->
-    @prepareBuffer()
-
-module.exports = InPort
+    return @prepareBuffer()
