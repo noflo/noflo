@@ -1,3 +1,4 @@
+import 'babel-polyfill';
 var exported = {
   noflo: require('../../lib/NoFlo')
 };
