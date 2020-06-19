@@ -18,6 +18,7 @@ class OutPort extends BasePort
     super socket, index
     if @isCaching() and @cache[index]?
       @send @cache[index], index
+    return
 
   connect: (socketId = null) ->
     sockets = @getSockets socketId
@@ -25,6 +26,7 @@ class OutPort extends BasePort
     for socket in sockets
       continue unless socket
       socket.connect()
+    return
 
   beginGroup: (group, socketId = null) ->
     sockets = @getSockets socketId
@@ -32,6 +34,7 @@ class OutPort extends BasePort
     sockets.forEach (socket) ->
       return unless socket
       return socket.beginGroup group
+    return
 
   send: (data, socketId = null) ->
     sockets = @getSockets socketId
@@ -41,6 +44,7 @@ class OutPort extends BasePort
     sockets.forEach (socket) ->
       return unless socket
       return socket.send data
+    return
 
   endGroup: (socketId = null) ->
     sockets = @getSockets socketId
@@ -48,6 +52,7 @@ class OutPort extends BasePort
     for socket in sockets
       continue unless socket
       socket.endGroup()
+    return
 
   disconnect: (socketId = null) ->
     sockets = @getSockets socketId
@@ -55,6 +60,7 @@ class OutPort extends BasePort
     for socket in sockets
       continue unless socket
       socket.disconnect()
+    return
 
   sendIP: (type, data, options, socketId, autoConnect = true) ->
     if IP.isIP type
@@ -83,20 +89,21 @@ class OutPort extends BasePort
       else
         ip = ip.clone() if ip.clonable
         socket.post ip, autoConnect
-    @
+    return @
 
   openBracket: (data = null, options = {}, socketId = null) ->
-    @sendIP 'openBracket', data, options, socketId
+    return @sendIP 'openBracket', data, options, socketId
 
   data: (data, options = {}, socketId = null) ->
-    @sendIP 'data', data, options, socketId
+    return @sendIP 'data', data, options, socketId
 
   closeBracket: (data = null, options = {}, socketId = null) ->
-    @sendIP 'closeBracket', data, options, socketId
+    return @sendIP 'closeBracket', data, options, socketId
 
   checkRequired: (sockets) ->
     if sockets.length is 0 and @isRequired()
       throw new Error "#{@getId()}: No connections available"
+    return
 
   getSockets: (socketId) ->
     # Addressable sockets affect only one connection at time
@@ -105,10 +112,10 @@ class OutPort extends BasePort
       return [] unless @sockets[socketId]
       return [@sockets[socketId]]
     # Regular sockets affect all outbound connections
-    @sockets
+    return @sockets
 
   isCaching: ->
     return true if @options.caching
-    false
+    return false
 
 module.exports = OutPort
