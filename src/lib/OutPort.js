@@ -1,18 +1,3 @@
-/* eslint-disable
-    consistent-return,
-    max-len,
-    no-continue,
-    no-param-reassign,
-    no-restricted-syntax,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
@@ -23,11 +8,11 @@ const IP = require('./IP');
 //
 // Outport Port (outport) implementation for NoFlo components.
 // These ports are the way a component sends Information Packets.
-class OutPort extends BasePort {
-  constructor(options) {
-    if (options == null) { options = {}; }
-    if (options.scoped == null) { options.scoped = true; }
-    super(options);
+module.exports = class OutPort extends BasePort {
+  constructor(options = {}) {
+    const opts = options;
+    if (opts.scoped == null) { opts.scoped = true; }
+    super(opts);
     this.cache = {};
   }
 
@@ -38,64 +23,64 @@ class OutPort extends BasePort {
     }
   }
 
-  connect(socketId = null) {
-    const sockets = this.getSockets(socketId);
+  connect(index = null) {
+    const sockets = this.getSockets(index);
     this.checkRequired(sockets);
-    for (const socket of Array.from(sockets)) {
-      if (!socket) { continue; }
+    sockets.forEach((socket) => {
+      if (!socket) { return; }
       socket.connect();
-    }
-  }
-
-  beginGroup(group, socketId = null) {
-    const sockets = this.getSockets(socketId);
-    this.checkRequired(sockets);
-    sockets.forEach((socket) => {
-      if (!socket) { return; }
-      return socket.beginGroup(group);
     });
   }
 
-  send(data, socketId = null) {
-    const sockets = this.getSockets(socketId);
+  beginGroup(group, index = null) {
+    const sockets = this.getSockets(index);
     this.checkRequired(sockets);
-    if (this.isCaching() && (data !== this.cache[socketId])) {
-      this.cache[socketId] = data;
-    }
     sockets.forEach((socket) => {
       if (!socket) { return; }
-      return socket.send(data);
+      socket.beginGroup(group);
     });
   }
 
-  endGroup(socketId = null) {
-    const sockets = this.getSockets(socketId);
+  send(data, index = null) {
+    const sockets = this.getSockets(index);
     this.checkRequired(sockets);
-    for (const socket of Array.from(sockets)) {
-      if (!socket) { continue; }
+    if (this.isCaching() && (data !== this.cache[index])) {
+      this.cache[index] = data;
+    }
+    sockets.forEach((socket) => {
+      if (!socket) { return; }
+      socket.send(data);
+    });
+  }
+
+  endGroup(index = null) {
+    const sockets = this.getSockets(index);
+    this.checkRequired(sockets);
+    sockets.forEach((socket) => {
+      if (!socket) { return; }
       socket.endGroup();
-    }
+    });
   }
 
-  disconnect(socketId = null) {
-    const sockets = this.getSockets(socketId);
+  disconnect(index = null) {
+    const sockets = this.getSockets(index);
     this.checkRequired(sockets);
-    for (const socket of Array.from(sockets)) {
-      if (!socket) { continue; }
+    sockets.forEach((socket) => {
+      if (!socket) { return; }
       socket.disconnect();
-    }
+    });
   }
 
-  sendIP(type, data, options, socketId, autoConnect) {
+  sendIP(type, data, options, index, autoConnect = true) {
     let ip;
-    if (autoConnect == null) { autoConnect = true; }
+    let idx = index;
     if (IP.isIP(type)) {
       ip = type;
-      socketId = ip.index;
+      idx = ip.index;
     } else {
       ip = new IP(type, data, options);
     }
-    const sockets = this.getSockets(socketId);
+    const sockets = this.getSockets(idx);
     this.checkRequired(sockets);
 
     if (ip.datatype === 'all') {
@@ -107,12 +92,13 @@ class OutPort extends BasePort {
       ip.schema = this.getSchema();
     }
 
-    if (this.isCaching() && (data !== (this.cache[socketId] != null ? this.cache[socketId].data : undefined))) {
-      this.cache[socketId] = ip;
+    const cachedData = this.cache[idx] != null ? this.cache[idx].data : undefined;
+    if (this.isCaching() && data !== cachedData) {
+      this.cache[idx] = ip;
     }
     let pristine = true;
-    for (const socket of Array.from(sockets)) {
-      if (!socket) { continue; }
+    sockets.forEach((socket) => {
+      if (!socket) { return; }
       if (pristine) {
         socket.post(ip, autoConnect);
         pristine = false;
@@ -120,23 +106,20 @@ class OutPort extends BasePort {
         if (ip.clonable) { ip = ip.clone(); }
         socket.post(ip, autoConnect);
       }
-    }
+    });
     return this;
   }
 
-  openBracket(data = null, options, socketId = null) {
-    if (options == null) { options = {}; }
-    return this.sendIP('openBracket', data, options, socketId);
+  openBracket(data = null, options = {}, index = null) {
+    return this.sendIP('openBracket', data, options, index);
   }
 
-  data(data, options, socketId = null) {
-    if (options == null) { options = {}; }
-    return this.sendIP('data', data, options, socketId);
+  data(data, options = {}, index = null) {
+    return this.sendIP('data', data, options, index);
   }
 
-  closeBracket(data = null, options, socketId = null) {
-    if (options == null) { options = {}; }
-    return this.sendIP('closeBracket', data, options, socketId);
+  closeBracket(data = null, options = {}, index = null) {
+    return this.sendIP('closeBracket', data, options, index);
   }
 
   checkRequired(sockets) {
@@ -145,12 +128,12 @@ class OutPort extends BasePort {
     }
   }
 
-  getSockets(socketId) {
+  getSockets(index) {
     // Addressable sockets affect only one connection at time
     if (this.isAddressable()) {
-      if (socketId === null) { throw new Error(`${this.getId()} Socket ID required`); }
-      if (!this.sockets[socketId]) { return []; }
-      return [this.sockets[socketId]];
+      if (index === null) { throw new Error(`${this.getId()} Socket ID required`); }
+      if (!this.sockets[index]) { return []; }
+      return [this.sockets[index]];
     }
     // Regular sockets affect all outbound connections
     return this.sockets;
@@ -160,6 +143,4 @@ class OutPort extends BasePort {
     if (this.options.caching) { return true; }
     return false;
   }
-}
-
-module.exports = OutPort;
+};
