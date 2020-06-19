@@ -1,101 +1,121 @@
-#     NoFlo - Flow-Based Programming for JavaScript
-#     (c) 2014-2017 Flowhub UG
-#     NoFlo may be freely distributed under the MIT license
-{EventEmitter} = require 'events'
-InPort = require './InPort'
-OutPort = require './OutPort'
+/*
+ * decaffeinate suggestions:
+ * DS207: Consider shorter variations of null checks
+ * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ */
+//     NoFlo - Flow-Based Programming for JavaScript
+//     (c) 2014-2017 Flowhub UG
+//     NoFlo may be freely distributed under the MIT license
+let InPorts, OutPorts;
+const {EventEmitter} = require('events');
+const InPort = require('./InPort');
+const OutPort = require('./OutPort');
 
-# NoFlo ports collections
-#
-# Ports collection classes for NoFlo components. These are
-# used to hold a set of input or output ports of a component.
-class Ports extends EventEmitter
-  constructor: (ports, model) ->
-    super()
-    @model = model
-    @ports = {}
-    return unless ports
-    for name, options of ports
-      @add name, options
+// NoFlo ports collections
+//
+// Ports collection classes for NoFlo components. These are
+// used to hold a set of input or output ports of a component.
+class Ports extends EventEmitter {
+  constructor(ports, model) {
+    super();
+    this.model = model;
+    this.ports = {};
+    if (!ports) { return; }
+    for (let name in ports) {
+      const options = ports[name];
+      this.add(name, options);
+    }
+  }
 
-  add: (name, options, process) ->
-    if name is 'add' or name is 'remove'
-      throw new Error 'Add and remove are restricted port names'
+  add(name, options, process) {
+    if ((name === 'add') || (name === 'remove')) {
+      throw new Error('Add and remove are restricted port names');
+    }
 
-    unless name.match /^[a-z0-9_\.\/]+$/
-      throw new Error "Port names can only contain lowercase alphanumeric characters and underscores. '#{name}' not allowed"
+    if (!name.match(/^[a-z0-9_\.\/]+$/)) {
+      throw new Error(`Port names can only contain lowercase alphanumeric characters and underscores. '${name}' not allowed`);
+    }
 
-    # Remove previous implementation
-    @remove name if @ports[name]
+    // Remove previous implementation
+    if (this.ports[name]) { this.remove(name); }
 
-    if typeof options is 'object' and options.canAttach
-      @ports[name] = options
-    else
-      @ports[name] = new @model options, process
+    if ((typeof options === 'object') && options.canAttach) {
+      this.ports[name] = options;
+    } else {
+      this.ports[name] = new this.model(options, process);
+    }
 
-    @[name] = @ports[name]
+    this[name] = this.ports[name];
 
-    @emit 'add', name
+    this.emit('add', name);
 
-    return @ # chainable
+    return this; // chainable
+  }
 
-  remove: (name) ->
-    throw new Error "Port #{name} not defined" unless @ports[name]
-    delete @ports[name]
-    delete @[name]
-    @emit 'remove', name
+  remove(name) {
+    if (!this.ports[name]) { throw new Error(`Port ${name} not defined`); }
+    delete this.ports[name];
+    delete this[name];
+    this.emit('remove', name);
 
-    return @ # chainable
+    return this; // chainable
+  }
+}
 
-exports.InPorts = class InPorts extends Ports
-  constructor: (ports) ->
-    super ports, InPort
+exports.InPorts = (InPorts = class InPorts extends Ports {
+  constructor(ports) {
+    super(ports, InPort);
+  }
 
-  on: (name, event, callback) ->
-    throw new Error "Port #{name} not available" unless @ports[name]
-    @ports[name].on event, callback
-    return
-  once: (name, event, callback) ->
-    throw new Error "Port #{name} not available" unless @ports[name]
-    @ports[name].once event, callback
-    return
+  on(name, event, callback) {
+    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
+    this.ports[name].on(event, callback);
+  }
+  once(name, event, callback) {
+    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
+    this.ports[name].once(event, callback);
+  }
+});
 
-exports.OutPorts = class OutPorts extends Ports
-  constructor: (ports) ->
-    super ports, OutPort
+exports.OutPorts = (OutPorts = class OutPorts extends Ports {
+  constructor(ports) {
+    super(ports, OutPort);
+  }
 
-  connect: (name, socketId) ->
-    throw new Error "Port #{name} not available" unless @ports[name]
-    @ports[name].connect socketId
-    return
-  beginGroup: (name, group, socketId) ->
-    throw new Error "Port #{name} not available" unless @ports[name]
-    @ports[name].beginGroup group, socketId
-    return
-  send: (name, data, socketId) ->
-    throw new Error "Port #{name} not available" unless @ports[name]
-    @ports[name].send data, socketId
-    return
-  endGroup: (name, socketId) ->
-    throw new Error "Port #{name} not available" unless @ports[name]
-    @ports[name].endGroup socketId
-    return
-  disconnect: (name, socketId) ->
-    throw new Error "Port #{name} not available" unless @ports[name]
-    @ports[name].disconnect socketId
-    return
+  connect(name, socketId) {
+    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
+    this.ports[name].connect(socketId);
+  }
+  beginGroup(name, group, socketId) {
+    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
+    this.ports[name].beginGroup(group, socketId);
+  }
+  send(name, data, socketId) {
+    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
+    this.ports[name].send(data, socketId);
+  }
+  endGroup(name, socketId) {
+    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
+    this.ports[name].endGroup(socketId);
+  }
+  disconnect(name, socketId) {
+    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
+    this.ports[name].disconnect(socketId);
+  }
+});
 
-# Port name normalization:
-# returns object containing keys name and index for ports names in
-# format `portname` or `portname[index]`.
-exports.normalizePortName = (name) ->
-  port =
-    name: name
-  # Regular port
-  return port if name.indexOf('[') is -1
-  # Addressable port with index
-  matched = name.match /(.*)\[([0-9]+)\]/
-  return name unless matched?.length
-  port.name = matched[1]
-  port.index = matched[2]
-  return port
+// Port name normalization:
+// returns object containing keys name and index for ports names in
+// format `portname` or `portname[index]`.
+exports.normalizePortName = function(name) {
+  const port =
+    {name};
+  // Regular port
+  if (name.indexOf('[') === -1) { return port; }
+  // Addressable port with index
+  const matched = name.match(/(.*)\[([0-9]+)\]/);
+  if (!(matched != null ? matched.length : undefined)) { return name; }
+  port.name = matched[1];
+  port.index = matched[2];
+  return port;
+};
