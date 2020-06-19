@@ -1,3 +1,17 @@
+/* eslint-disable
+    func-names,
+    guard-for-in,
+    max-classes-per-file,
+    new-cap,
+    no-multi-assign,
+    no-restricted-syntax,
+    no-shadow,
+    no-unused-vars,
+    no-useless-escape,
+    prefer-destructuring,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS207: Consider shorter variations of null checks
@@ -6,8 +20,9 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
-let InPorts, OutPorts;
-const {EventEmitter} = require('events');
+let InPorts; let
+  OutPorts;
+const { EventEmitter } = require('events');
 const InPort = require('./InPort');
 const OutPort = require('./OutPort');
 
@@ -21,7 +36,7 @@ class Ports extends EventEmitter {
     this.model = model;
     this.ports = {};
     if (!ports) { return; }
-    for (let name in ports) {
+    for (const name in ports) {
       const options = ports[name];
       this.add(name, options);
     }
@@ -71,6 +86,7 @@ exports.InPorts = (InPorts = class InPorts extends Ports {
     if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
     this.ports[name].on(event, callback);
   }
+
   once(name, event, callback) {
     if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
     this.ports[name].once(event, callback);
@@ -86,18 +102,22 @@ exports.OutPorts = (OutPorts = class OutPorts extends Ports {
     if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
     this.ports[name].connect(socketId);
   }
+
   beginGroup(name, group, socketId) {
     if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
     this.ports[name].beginGroup(group, socketId);
   }
+
   send(name, data, socketId) {
     if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
     this.ports[name].send(data, socketId);
   }
+
   endGroup(name, socketId) {
     if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
     this.ports[name].endGroup(socketId);
   }
+
   disconnect(name, socketId) {
     if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
     this.ports[name].disconnect(socketId);
@@ -107,9 +127,8 @@ exports.OutPorts = (OutPorts = class OutPorts extends Ports {
 // Port name normalization:
 // returns object containing keys name and index for ports names in
 // format `portname` or `portname[index]`.
-exports.normalizePortName = function(name) {
-  const port =
-    {name};
+exports.normalizePortName = function (name) {
+  const port = { name };
   // Regular port
   if (name.indexOf('[') === -1) { return port; }
   // Addressable port with index
