@@ -1,3 +1,12 @@
+/* eslint-disable
+    consistent-return,
+    max-len,
+    no-continue,
+    no-param-reassign,
+    no-restricted-syntax,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS101: Remove unnecessary use of Array.from
@@ -32,7 +41,7 @@ class OutPort extends BasePort {
   connect(socketId = null) {
     const sockets = this.getSockets(socketId);
     this.checkRequired(sockets);
-    for (let socket of Array.from(sockets)) {
+    for (const socket of Array.from(sockets)) {
       if (!socket) { continue; }
       socket.connect();
     }
@@ -41,7 +50,7 @@ class OutPort extends BasePort {
   beginGroup(group, socketId = null) {
     const sockets = this.getSockets(socketId);
     this.checkRequired(sockets);
-    sockets.forEach(function(socket) {
+    sockets.forEach((socket) => {
       if (!socket) { return; }
       return socket.beginGroup(group);
     });
@@ -53,7 +62,7 @@ class OutPort extends BasePort {
     if (this.isCaching() && (data !== this.cache[socketId])) {
       this.cache[socketId] = data;
     }
-    sockets.forEach(function(socket) {
+    sockets.forEach((socket) => {
       if (!socket) { return; }
       return socket.send(data);
     });
@@ -62,7 +71,7 @@ class OutPort extends BasePort {
   endGroup(socketId = null) {
     const sockets = this.getSockets(socketId);
     this.checkRequired(sockets);
-    for (let socket of Array.from(sockets)) {
+    for (const socket of Array.from(sockets)) {
       if (!socket) { continue; }
       socket.endGroup();
     }
@@ -71,7 +80,7 @@ class OutPort extends BasePort {
   disconnect(socketId = null) {
     const sockets = this.getSockets(socketId);
     this.checkRequired(sockets);
-    for (let socket of Array.from(sockets)) {
+    for (const socket of Array.from(sockets)) {
       if (!socket) { continue; }
       socket.disconnect();
     }
@@ -102,7 +111,7 @@ class OutPort extends BasePort {
       this.cache[socketId] = ip;
     }
     let pristine = true;
-    for (let socket of Array.from(sockets)) {
+    for (const socket of Array.from(sockets)) {
       if (!socket) { continue; }
       if (pristine) {
         socket.post(ip, autoConnect);
