@@ -10,9 +10,9 @@ OutPort = require './OutPort'
 # Ports collection classes for NoFlo components. These are
 # used to hold a set of input or output ports of a component.
 class Ports extends EventEmitter
-  model: InPort
-  constructor: (ports) ->
+  constructor: (ports, model) ->
     super()
+    @model = model
     @ports = {}
     return unless ports
     for name, options of ports
@@ -37,7 +37,7 @@ class Ports extends EventEmitter
 
     @emit 'add', name
 
-    @ # chainable
+    return @ # chainable
 
   remove: (name) ->
     throw new Error "Port #{name} not defined" unless @ports[name]
@@ -45,34 +45,45 @@ class Ports extends EventEmitter
     delete @[name]
     @emit 'remove', name
 
-    @ # chainable
+    return @ # chainable
 
 exports.InPorts = class InPorts extends Ports
+  constructor: (ports) ->
+    super ports, InPort
+
   on: (name, event, callback) ->
     throw new Error "Port #{name} not available" unless @ports[name]
     @ports[name].on event, callback
+    return
   once: (name, event, callback) ->
     throw new Error "Port #{name} not available" unless @ports[name]
     @ports[name].once event, callback
+    return
 
 exports.OutPorts = class OutPorts extends Ports
-  model: OutPort
+  constructor: (ports) ->
+    super ports, OutPort
 
   connect: (name, socketId) ->
     throw new Error "Port #{name} not available" unless @ports[name]
     @ports[name].connect socketId
+    return
   beginGroup: (name, group, socketId) ->
     throw new Error "Port #{name} not available" unless @ports[name]
     @ports[name].beginGroup group, socketId
+    return
   send: (name, data, socketId) ->
     throw new Error "Port #{name} not available" unless @ports[name]
     @ports[name].send data, socketId
+    return
   endGroup: (name, socketId) ->
     throw new Error "Port #{name} not available" unless @ports[name]
     @ports[name].endGroup socketId
+    return
   disconnect: (name, socketId) ->
     throw new Error "Port #{name} not available" unless @ports[name]
     @ports[name].disconnect socketId
+    return
 
 # Port name normalization:
 # returns object containing keys name and index for ports names in
