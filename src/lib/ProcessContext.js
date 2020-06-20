@@ -1,18 +1,9 @@
-/* eslint-disable
-    no-multi-assign,
-    no-shadow,
-    no-underscore-dangle,
-    no-unused-vars,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2013-2020 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
 
-let ProcessContext;
-module.exports = (ProcessContext = class ProcessContext {
+module.exports = class ProcessContext {
   constructor(ip, nodeInstance, port, result) {
     this.ip = ip;
     this.nodeInstance = nodeInstance;
@@ -25,6 +16,7 @@ module.exports = (ProcessContext = class ProcessContext {
 
   activate() {
     // Push a new result value if previous has been sent already
+    /* eslint-disable no-underscore-dangle */
     if (this.result.__resolved || (this.nodeInstance.outputQ.indexOf(this.result) === -1)) {
       this.result = {};
     }
@@ -35,4 +27,4 @@ module.exports = (ProcessContext = class ProcessContext {
     if (!this.result.__resolved) { this.result.__resolved = true; }
     this.nodeInstance.deactivate(this);
   }
-});
+};
