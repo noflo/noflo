@@ -1,3 +1,19 @@
+/* eslint-disable
+    class-methods-use-this,
+    consistent-return,
+    guard-for-in,
+    max-len,
+    no-constant-condition,
+    no-continue,
+    no-multi-assign,
+    no-param-reassign,
+    no-restricted-syntax,
+    no-shadow,
+    no-underscore-dangle,
+    no-unused-vars,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS101: Remove unnecessary use of Array.from
@@ -34,8 +50,8 @@ module.exports = (ProcessOutput = class ProcessOutput {
     let e;
     const multiple = Array.isArray(err);
     if (!multiple) { err = [err]; }
-    if ('error' in this.ports &&
-    (this.ports.error.isAttached() || !this.ports.error.isRequired())) {
+    if ('error' in this.ports
+    && (this.ports.error.isAttached() || !this.ports.error.isRequired())) {
       if (multiple) { this.sendIP('error', new IP('openBracket')); }
       for (e of Array.from(err)) { this.sendIP('error', e); }
       if (multiple) { this.sendIP('error', new IP('closeBracket')); }
@@ -112,7 +128,7 @@ module.exports = (ProcessOutput = class ProcessOutput {
     if (!('out' in this.ports)) {
       throw new Error('output.pass() requires port "out" to be present');
     }
-    for (let key in options) {
+    for (const key in options) {
       const val = options[key];
       this.ip[key] = val;
     }
@@ -130,7 +146,7 @@ module.exports = (ProcessOutput = class ProcessOutput {
 
     const isLast = () => {
       // We only care about real output sets with processing data
-      const resultsOnly = this.nodeInstance.outputQ.filter(function(q) {
+      const resultsOnly = this.nodeInstance.outputQ.filter((q) => {
         if (!q.__resolved) { return true; }
         if ((Object.keys(q).length === 2) && q.__bracketClosingAfter) {
           return false;
@@ -140,7 +156,7 @@ module.exports = (ProcessOutput = class ProcessOutput {
       const pos = resultsOnly.indexOf(this.result);
       const len = resultsOnly.length;
       const {
-        load
+        load,
       } = this.nodeInstance;
       if (pos === (len - 1)) { return true; }
       if ((pos === -1) && (load === (len + 1))) { return true; }
@@ -151,7 +167,7 @@ module.exports = (ProcessOutput = class ProcessOutput {
       // We're doing bracket forwarding. See if there are
       // dangling closeBrackets in buffer since we're the
       // last running process function.
-      for (let port in this.nodeInstance.bracketContext.in) {
+      for (const port in this.nodeInstance.bracketContext.in) {
         const contexts = this.nodeInstance.bracketContext.in[port];
         if (!contexts[this.scope]) { continue; }
         const nodeContext = contexts[this.scope];
