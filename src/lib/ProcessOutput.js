@@ -1,136 +1,177 @@
-#     NoFlo - Flow-Based Programming for JavaScript
-#     (c) 2013-2020 Flowhub UG
-#     (c) 2011-2012 Henri Bergius, Nemein
-#     NoFlo may be freely distributed under the MIT license
-debug = require('debug') 'noflo:component'
+/*
+ * decaffeinate suggestions:
+ * DS101: Remove unnecessary use of Array.from
+ * DS102: Remove unnecessary code created because of implicit returns
+ * DS207: Consider shorter variations of null checks
+ * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ */
+//     NoFlo - Flow-Based Programming for JavaScript
+//     (c) 2013-2020 Flowhub UG
+//     (c) 2011-2012 Henri Bergius, Nemein
+//     NoFlo may be freely distributed under the MIT license
+let ProcessOutput;
+const debug = require('debug')('noflo:component');
 
-IP = require './IP'
+const IP = require('./IP');
 
-module.exports = class ProcessOutput
-  constructor: (@ports, @context) ->
-    @nodeInstance = @context.nodeInstance
-    @ip = @context.ip
-    @result = @context.result
-    @scope = @context.scope
+module.exports = (ProcessOutput = class ProcessOutput {
+  constructor(ports, context) {
+    this.ports = ports;
+    this.context = context;
+    this.nodeInstance = this.context.nodeInstance;
+    this.ip = this.context.ip;
+    this.result = this.context.result;
+    this.scope = this.context.scope;
+  }
 
-  # Checks if a value is an Error
-  isError: (err) ->
-    return err instanceof Error or Array.isArray(err) and err.length > 0 and err[0] instanceof Error
+  // Checks if a value is an Error
+  isError(err) {
+    return err instanceof Error || (Array.isArray(err) && (err.length > 0) && err[0] instanceof Error);
+  }
 
-  # Sends an error object
-  error: (err) ->
-    multiple = Array.isArray err
-    err = [err] unless multiple
-    if 'error' of @ports and
-    (@ports.error.isAttached() or not @ports.error.isRequired())
-      @sendIP 'error', new IP 'openBracket' if multiple
-      @sendIP 'error', e for e in err
-      @sendIP 'error', new IP 'closeBracket' if multiple
-    else
-      throw e for e in err
-    return
+  // Sends an error object
+  error(err) {
+    let e;
+    const multiple = Array.isArray(err);
+    if (!multiple) { err = [err]; }
+    if ('error' in this.ports &&
+    (this.ports.error.isAttached() || !this.ports.error.isRequired())) {
+      if (multiple) { this.sendIP('error', new IP('openBracket')); }
+      for (e of Array.from(err)) { this.sendIP('error', e); }
+      if (multiple) { this.sendIP('error', new IP('closeBracket')); }
+    } else {
+      for (e of Array.from(err)) { throw e; }
+    }
+  }
 
-  # Sends a single IP object to a port
-  sendIP: (port, packet) ->
-    unless IP.isIP packet
-      ip = new IP 'data', packet
-    else
-      ip = packet
-    ip.scope = @scope if @scope isnt null and ip.scope is null
+  // Sends a single IP object to a port
+  sendIP(port, packet) {
+    let ip;
+    if (!IP.isIP(packet)) {
+      ip = new IP('data', packet);
+    } else {
+      ip = packet;
+    }
+    if ((this.scope !== null) && (ip.scope === null)) { ip.scope = this.scope; }
 
-    if @nodeInstance.outPorts[port].isAddressable() and ip.index is null
-      throw new Error 'Sending packets to addressable ports requires specifying index'
+    if (this.nodeInstance.outPorts[port].isAddressable() && (ip.index === null)) {
+      throw new Error('Sending packets to addressable ports requires specifying index');
+    }
 
-    if @nodeInstance.isOrdered()
-      @nodeInstance.addToResult @result, port, ip
-      return
-    unless @nodeInstance.outPorts[port].options.scoped
-      ip.scope = null
-    @nodeInstance.outPorts[port].sendIP ip
-    return
+    if (this.nodeInstance.isOrdered()) {
+      this.nodeInstance.addToResult(this.result, port, ip);
+      return;
+    }
+    if (!this.nodeInstance.outPorts[port].options.scoped) {
+      ip.scope = null;
+    }
+    this.nodeInstance.outPorts[port].sendIP(ip);
+  }
 
-  # Sends packets for each port as a key in the map
-  # or sends Error or a list of Errors if passed such
-  send: (outputMap) ->
-    return @error outputMap if @isError outputMap
+  // Sends packets for each port as a key in the map
+  // or sends Error or a list of Errors if passed such
+  send(outputMap) {
+    let port;
+    if (this.isError(outputMap)) { return this.error(outputMap); }
 
-    componentPorts = []
-    mapIsInPorts = false
-    for port in Object.keys @ports.ports
-      componentPorts.push port if port isnt 'error' and port isnt 'ports' and port isnt '_callbacks'
-      if not mapIsInPorts and outputMap? and typeof outputMap is 'object' and Object.keys(outputMap).indexOf(port) isnt -1
-        mapIsInPorts = true
+    const componentPorts = [];
+    let mapIsInPorts = false;
+    for (port of Array.from(Object.keys(this.ports.ports))) {
+      if ((port !== 'error') && (port !== 'ports') && (port !== '_callbacks')) { componentPorts.push(port); }
+      if (!mapIsInPorts && (outputMap != null) && (typeof outputMap === 'object') && (Object.keys(outputMap).indexOf(port) !== -1)) {
+        mapIsInPorts = true;
+      }
+    }
 
-    if componentPorts.length is 1 and not mapIsInPorts
-      @sendIP componentPorts[0], outputMap
-      return
+    if ((componentPorts.length === 1) && !mapIsInPorts) {
+      this.sendIP(componentPorts[0], outputMap);
+      return;
+    }
 
-    if componentPorts.length > 1 and not mapIsInPorts
-      throw new Error 'Port must be specified for sending output'
+    if ((componentPorts.length > 1) && !mapIsInPorts) {
+      throw new Error('Port must be specified for sending output');
+    }
 
-    for port, packet of outputMap
-      @sendIP port, packet
-    return
+    for (port in outputMap) {
+      const packet = outputMap[port];
+      this.sendIP(port, packet);
+    }
+  }
 
-  # Sends the argument via `send()` and marks activation as `done()`
-  sendDone: (outputMap) ->
-    @send outputMap
-    @done()
-    return
+  // Sends the argument via `send()` and marks activation as `done()`
+  sendDone(outputMap) {
+    this.send(outputMap);
+    this.done();
+  }
 
-  # Makes a map-style component pass a result value to `out`
-  # keeping all IP metadata received from `in`,
-  # or modifying it if `options` is provided
-  pass: (data, options = {}) ->
-    unless 'out' of @ports
-      throw new Error 'output.pass() requires port "out" to be present'
-    for key, val of options
-      @ip[key] = val
-    @ip.data = data
-    @sendIP 'out', @ip
-    @done()
-    return
+  // Makes a map-style component pass a result value to `out`
+  // keeping all IP metadata received from `in`,
+  // or modifying it if `options` is provided
+  pass(data, options) {
+    if (options == null) { options = {}; }
+    if (!('out' in this.ports)) {
+      throw new Error('output.pass() requires port "out" to be present');
+    }
+    for (let key in options) {
+      const val = options[key];
+      this.ip[key] = val;
+    }
+    this.ip.data = data;
+    this.sendIP('out', this.ip);
+    this.done();
+  }
 
-  # Finishes process activation gracefully
-  done: (error) ->
-    @result.__resolved = true
-    @nodeInstance.activate @context
-    @error error if error
+  // Finishes process activation gracefully
+  done(error) {
+    let context;
+    this.result.__resolved = true;
+    this.nodeInstance.activate(this.context);
+    if (error) { this.error(error); }
 
-    isLast = =>
-      # We only care about real output sets with processing data
-      resultsOnly = @nodeInstance.outputQ.filter (q) ->
-        return true unless q.__resolved
-        if Object.keys(q).length is 2 and q.__bracketClosingAfter
-          return false
-        true
-      pos = resultsOnly.indexOf @result
-      len = resultsOnly.length
-      load = @nodeInstance.load
-      return true if pos is len - 1
-      return true if pos is -1 and load is len + 1
-      return true if len <= 1 and load is 1
-      false
-    if @nodeInstance.isOrdered() and isLast()
-      # We're doing bracket forwarding. See if there are
-      # dangling closeBrackets in buffer since we're the
-      # last running process function.
-      for port, contexts of @nodeInstance.bracketContext.in
-        continue unless contexts[@scope]
-        nodeContext = contexts[@scope]
-        continue unless nodeContext.length
-        context = nodeContext[nodeContext.length - 1]
-        buf = @nodeInstance.inPorts[context.source].getBuffer context.ip.scope, context.ip.index
-        loop
-          break unless buf.length
-          break unless buf[0].type is 'closeBracket'
-          ip = @nodeInstance.inPorts[context.source].get context.ip.scope, context.ip.index
-          ctx = nodeContext.pop()
-          ctx.closeIp = ip
-          @result.__bracketClosingAfter = [] unless @result.__bracketClosingAfter
-          @result.__bracketClosingAfter.push ctx
+    const isLast = () => {
+      // We only care about real output sets with processing data
+      const resultsOnly = this.nodeInstance.outputQ.filter(function(q) {
+        if (!q.__resolved) { return true; }
+        if ((Object.keys(q).length === 2) && q.__bracketClosingAfter) {
+          return false;
+        }
+        return true;
+      });
+      const pos = resultsOnly.indexOf(this.result);
+      const len = resultsOnly.length;
+      const {
+        load
+      } = this.nodeInstance;
+      if (pos === (len - 1)) { return true; }
+      if ((pos === -1) && (load === (len + 1))) { return true; }
+      if ((len <= 1) && (load === 1)) { return true; }
+      return false;
+    };
+    if (this.nodeInstance.isOrdered() && isLast()) {
+      // We're doing bracket forwarding. See if there are
+      // dangling closeBrackets in buffer since we're the
+      // last running process function.
+      for (let port in this.nodeInstance.bracketContext.in) {
+        const contexts = this.nodeInstance.bracketContext.in[port];
+        if (!contexts[this.scope]) { continue; }
+        const nodeContext = contexts[this.scope];
+        if (!nodeContext.length) { continue; }
+        context = nodeContext[nodeContext.length - 1];
+        const buf = this.nodeInstance.inPorts[context.source].getBuffer(context.ip.scope, context.ip.index);
+        while (true) {
+          if (!buf.length) { break; }
+          if (buf[0].type !== 'closeBracket') { break; }
+          const ip = this.nodeInstance.inPorts[context.source].get(context.ip.scope, context.ip.index);
+          const ctx = nodeContext.pop();
+          ctx.closeIp = ip;
+          if (!this.result.__bracketClosingAfter) { this.result.__bracketClosingAfter = []; }
+          this.result.__bracketClosingAfter.push(ctx);
+        }
+      }
+    }
 
-    debug "#{@nodeInstance.nodeId} finished processing #{@nodeInstance.load}"
+    debug(`${this.nodeInstance.nodeId} finished processing ${this.nodeInstance.load}`);
 
-    @nodeInstance.deactivate @context
-    return
+    this.nodeInstance.deactivate(this.context);
+  }
+});
