@@ -1,3 +1,21 @@
+/* eslint-disable
+    consistent-return,
+    func-names,
+    no-constant-condition,
+    no-continue,
+    no-loop-func,
+    no-multi-assign,
+    no-param-reassign,
+    no-restricted-syntax,
+    no-shadow,
+    no-underscore-dangle,
+    no-unused-vars,
+    no-var,
+    prefer-spread,
+    vars-on-top,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS101: Remove unnecessary use of Array.from
@@ -45,7 +63,7 @@ module.exports = (ProcessInput = class ProcessInput {
   attached(...args) {
     if (!args.length) { args = ['in']; }
     const res = [];
-    for (let port of Array.from(args)) {
+    for (const port of Array.from(args)) {
       if (!this.ports[port]) {
         throw new Error(`Node ${this.nodeInstance.nodeId} has no port '${port}'`);
       }
@@ -71,7 +89,7 @@ module.exports = (ProcessInput = class ProcessInput {
     } else {
       validate = () => true;
     }
-    for (let port of Array.from(args)) {
+    for (const port of Array.from(args)) {
       if (Array.isArray(port)) {
         if (!this.ports[port[0]]) {
           throw new Error(`Node ${this.nodeInstance.nodeId} has no port '${port[0]}'`);
@@ -96,7 +114,7 @@ module.exports = (ProcessInput = class ProcessInput {
   // Returns true if the ports contain data packets
   hasData(...args) {
     if (!args.length) { args = ['in']; }
-    args.push(ip => ip.type === 'data');
+    args.push((ip) => ip.type === 'data');
     return this.has.apply(this, args);
   }
 
@@ -111,11 +129,11 @@ module.exports = (ProcessInput = class ProcessInput {
       validateStream = () => true;
     }
 
-    for (let port of Array.from(args)) {
+    for (const port of Array.from(args)) {
       var portBrackets = [];
       const dataBrackets = [];
       var hasData = false;
-      const validate = function(ip) {
+      const validate = function (ip) {
         if (ip.type === 'openBracket') {
           portBrackets.push(ip.data);
           return false;
@@ -150,8 +168,9 @@ module.exports = (ProcessInput = class ProcessInput {
     this.activate();
     if (!args.length) { args = ['in']; }
     const res = [];
-    for (let port of Array.from(args)) {
-      var idx, ip, portname;
+    for (const port of Array.from(args)) {
+      var idx; var ip; var
+        portname;
       if (Array.isArray(port)) {
         [portname, idx] = Array.from(port);
         if (!this.ports[portname].isAddressable()) {
@@ -172,7 +191,7 @@ module.exports = (ProcessInput = class ProcessInput {
       res.push(ip);
     }
 
-    if (args.length === 1) { return res[0]; } else { return res; }
+    if (args.length === 1) { return res[0]; } return res;
   }
 
   __getForForwarding(port, idx) {
@@ -211,7 +230,7 @@ module.exports = (ProcessInput = class ProcessInput {
         this.nodeInstance.getBracketContext('in', port, this.scope, idx).push({
           ip,
           ports: [],
-          source: port
+          source: port,
         });
         continue;
       }
@@ -231,7 +250,7 @@ module.exports = (ProcessInput = class ProcessInput {
     if (!args.length) { args = ['in']; }
 
     const datas = [];
-    for (let port of Array.from(args)) {
+    for (const port of Array.from(args)) {
       let packet = this.get(port);
       if (packet == null) {
         // we add the null packet to the array so when getting
@@ -257,7 +276,7 @@ module.exports = (ProcessInput = class ProcessInput {
   getStream(...args) {
     if (!args.length) { args = ['in']; }
     const datas = [];
-    for (let port of Array.from(args)) {
+    for (const port of Array.from(args)) {
       const portBrackets = [];
       let portPackets = [];
       let hasData = false;
