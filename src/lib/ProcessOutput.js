@@ -1,36 +1,20 @@
-/* eslint-disable
-    class-methods-use-this,
-    consistent-return,
-    guard-for-in,
-    max-len,
-    no-constant-condition,
-    no-continue,
-    no-multi-assign,
-    no-param-reassign,
-    no-restricted-syntax,
-    no-shadow,
-    no-underscore-dangle,
-    no-unused-vars,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2013-2020 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
-let ProcessOutput;
+
+/* eslint-disable no-underscore-dangle */
 const debug = require('debug')('noflo:component');
 
 const IP = require('./IP');
 
-module.exports = (ProcessOutput = class ProcessOutput {
+// Checks if a value is an Error
+function isError(err) {
+  return err instanceof Error
+    || (Array.isArray(err) && (err.length > 0) && err[0] instanceof Error);
+}
+
+module.exports = class ProcessOutput {
   constructor(ports, context) {
     this.ports = ports;
     this.context = context;
@@ -40,23 +24,17 @@ module.exports = (ProcessOutput = class ProcessOutput {
     this.scope = this.context.scope;
   }
 
-  // Checks if a value is an Error
-  isError(err) {
-    return err instanceof Error || (Array.isArray(err) && (err.length > 0) && err[0] instanceof Error);
-  }
-
   // Sends an error object
   error(err) {
-    let e;
+    let errs = err;
     const multiple = Array.isArray(err);
-    if (!multiple) { err = [err]; }
-    if ('error' in this.ports
-    && (this.ports.error.isAttached() || !this.ports.error.isRequired())) {
+    if (!multiple) { errs = [err]; }
+    if ('error' in this.ports && (this.ports.error.isAttached() || !this.ports.error.isRequired())) {
       if (multiple) { this.sendIP('error', new IP('openBracket')); }
-      for (e of Array.from(err)) { this.sendIP('error', e); }
+      errs.forEach((e) => { this.sendIP('error', e); });
       if (multiple) { this.sendIP('error', new IP('closeBracket')); }
     } else {
-      for (e of Array.from(err)) { throw e; }
+      errs.forEach((e) => { throw e; });
     }
   }
 
@@ -87,17 +65,19 @@ module.exports = (ProcessOutput = class ProcessOutput {
   // Sends packets for each port as a key in the map
   // or sends Error or a list of Errors if passed such
   send(outputMap) {
-    let port;
-    if (this.isError(outputMap)) { return this.error(outputMap); }
+    if (isError(outputMap)) {
+      this.error(outputMap);
+      return;
+    }
 
     const componentPorts = [];
     let mapIsInPorts = false;
-    for (port of Array.from(Object.keys(this.ports.ports))) {
+    Object.keys(this.ports.ports).forEach((port) => {
       if ((port !== 'error') && (port !== 'ports') && (port !== '_callbacks')) { componentPorts.push(port); }
       if (!mapIsInPorts && (outputMap != null) && (typeof outputMap === 'object') && (Object.keys(outputMap).indexOf(port) !== -1)) {
         mapIsInPorts = true;
       }
-    }
+    });
 
     if ((componentPorts.length === 1) && !mapIsInPorts) {
       this.sendIP(componentPorts[0], outputMap);
@@ -108,10 +88,10 @@ module.exports = (ProcessOutput = class ProcessOutput {
       throw new Error('Port must be specified for sending output');
     }
 
-    for (port in outputMap) {
+    Object.keys(outputMap).forEach((port) => {
       const packet = outputMap[port];
       this.sendIP(port, packet);
-    }
+    });
   }
 
   // Sends the argument via `send()` and marks activation as `done()`
@@ -123,15 +103,15 @@ module.exports = (ProcessOutput = class ProcessOutput {
   // Makes a map-style component pass a result value to `out`
   // keeping all IP metadata received from `in`,
   // or modifying it if `options` is provided
-  pass(data, options) {
-    if (options == null) { options = {}; }
+  pass(data, options = {}) {
     if (!('out' in this.ports)) {
       throw new Error('output.pass() requires port "out" to be present');
     }
-    for (const key in options) {
+    const that = this;
+    Object.keys(options).forEach((key) => {
       const val = options[key];
-      this.ip[key] = val;
-    }
+      that.ip[key] = val;
+    });
     this.ip.data = data;
     this.sendIP('out', this.ip);
     this.done();
@@ -139,7 +119,6 @@ module.exports = (ProcessOutput = class ProcessOutput {
 
   // Finishes process activation gracefully
   done(error) {
-    let context;
     this.result.__resolved = true;
     this.nodeInstance.activate(this.context);
     if (error) { this.error(error); }
@@ -167,27 +146,26 @@ module.exports = (ProcessOutput = class ProcessOutput {
       // We're doing bracket forwarding. See if there are
       // dangling closeBrackets in buffer since we're the
       // last running process function.
-      for (const port in this.nodeInstance.bracketContext.in) {
+      Object.keys(this.nodeInstance.bracketContext.in).forEach((port) => {
         const contexts = this.nodeInstance.bracketContext.in[port];
-        if (!contexts[this.scope]) { continue; }
+        if (!contexts[this.scope]) { return; }
         const nodeContext = contexts[this.scope];
-        if (!nodeContext.length) { continue; }
-        context = nodeContext[nodeContext.length - 1];
-        const buf = this.nodeInstance.inPorts[context.source].getBuffer(context.ip.scope, context.ip.index);
-        while (true) {
-          if (!buf.length) { break; }
-          if (buf[0].type !== 'closeBracket') { break; }
-          const ip = this.nodeInstance.inPorts[context.source].get(context.ip.scope, context.ip.index);
+        if (!nodeContext.length) { return; }
+        const context = nodeContext[nodeContext.length - 1];
+        const inPorts = this.nodeInstance.inPorts[context.source];
+        const buf = inPorts.getBuffer(context.ip.scope, context.ip.index);
+        while (buf.length > 0 && buf[0].type === 'closeBracket') {
+          const ip = inPorts.get(context.ip.scope, context.ip.index);
           const ctx = nodeContext.pop();
           ctx.closeIp = ip;
           if (!this.result.__bracketClosingAfter) { this.result.__bracketClosingAfter = []; }
           this.result.__bracketClosingAfter.push(ctx);
         }
-      }
+      });
     }
 
     debug(`${this.nodeInstance.nodeId} finished processing ${this.nodeInstance.load}`);
 
     this.nodeInstance.deactivate(this.context);
   }
-});
+};
