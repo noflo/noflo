@@ -50,11 +50,6 @@ exports.ComponentLoader = require('./ComponentLoader').ComponentLoader
 # These baseclasses can be used for defining NoFlo components.
 exports.Component = require('./Component').Component
 
-# ### Component helpers
-#
-# These helpers aid in providing specific behavior in components with minimal overhead.
-exports.helpers = require './Helpers'
-
 # ### NoFlo ports
 #
 # These classes are used for instantiating ports on NoFlo components.

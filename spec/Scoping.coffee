@@ -9,42 +9,6 @@ else
   root = 'noflo'
   urlPrefix = '/'
 
-wirePatternAsync = ->
-  c = new noflo.Component
-  c.inPorts.add 'in',
-    datatype: 'string'
-  c.outPorts.add 'out',
-    datatype: 'string'
-
-  noflo.helpers.WirePattern c,
-    in: 'in'
-    out: 'out'
-    async: true
-    forwardGroups: true
-  , (data, groups, out, callback) ->
-    setTimeout ->
-      out.send data + c.nodeId
-      callback()
-    , 1
-
-wirePatternMerge = ->
-  c = new noflo.Component
-  c.inPorts.add 'in1',
-    datatype: 'string'
-  c.inPorts.add 'in2',
-    datatype: 'string'
-  c.outPorts.add 'out',
-    datatype: 'string'
-
-  noflo.helpers.WirePattern c,
-    in: ['in1', 'in2']
-    out: 'out'
-    async: true
-    forwardGroups: true
-  , (data, groups, out, callback) ->
-    out.send "1#{data['in1']}#{c.nodeId}2#{data['in2']}#{c.nodeId}"
-    callback()
-
 processAsync = ->
   c = new noflo.Component
   c.inPorts.add 'in',
@@ -142,138 +106,12 @@ describe 'Scope isolation', ->
     loader = new noflo.ComponentLoader root
     loader.listComponents (err) ->
       return done err if err
-      loader.registerComponent 'wirepattern', 'Async', wirePatternAsync
-      loader.registerComponent 'wirepattern', 'Merge', wirePatternMerge
       loader.registerComponent 'process', 'Async', processAsync
       loader.registerComponent 'process', 'Merge', processMerge
       loader.registerComponent 'process', 'MergeA', processMergeA
       loader.registerComponent 'process', 'Unscope', processUnscope
       loader.registerComponent 'process', 'MergeUnscoped', processMergeUnscoped
       done()
-
-  describe 'with WirePattern sending to Process API', ->
-    c = null
-    ins = null
-    out = null
-    before (done) ->
-      fbpData = "
-      INPORT=Wp.IN:IN
-      OUTPORT=Pc.OUT:OUT
-      Wp(wirepattern/Async) OUT -> IN Pc(process/Async)
-      "
-      noflo.graph.loadFBP fbpData, (err, g) ->
-        return done err if err
-        loader.registerComponent 'scope', 'Connected', g
-        loader.load 'scope/Connected', (err, instance) ->
-          return done err if err
-          c = instance
-          ins = noflo.internalSocket.createSocket()
-          c.inPorts.in.attach ins
-          c.setUp done
-    beforeEach ->
-      out = noflo.internalSocket.createSocket()
-      c.outPorts.out.attach out
-    afterEach ->
-      c.outPorts.out.detach out
-      out = null
-
-    it 'should forward old-style groups as expected', (done) ->
-      expected = [
-        'CONN'
-        '< 1'
-        '< a'
-        'DATA bazWpPc'
-        '>'
-        '>'
-        'DISC'
-      ]
-      received = []
-
-      out.on 'connect', ->
-        received.push 'CONN'
-      out.on 'begingroup', (group) ->
-        received.push "< #{group}"
-      out.on 'data', (data) ->
-        received.push "DATA #{data}"
-      out.on 'endgroup', ->
-        received.push '>'
-      out.on 'disconnect', ->
-        received.push 'DISC'
-        chai.expect(received).to.eql expected
-        done()
-
-      ins.connect()
-      ins.beginGroup 1
-      ins.beginGroup 'a'
-      ins.send 'baz'
-      ins.endGroup()
-      ins.endGroup()
-      ins.disconnect()
-    it 'should forward new-style brackets as expected', (done) ->
-      expected = [
-        '< 1'
-        '< a'
-        'DATA fooWpPc'
-        '>'
-        '>'
-      ]
-      received = []
-      brackets = []
-
-      out.on 'ip', (ip) ->
-        switch ip.type
-          when 'openBracket'
-            received.push "< #{ip.data}"
-            brackets.push ip.data
-          when 'data'
-            received.push "DATA #{ip.data}"
-          when 'closeBracket'
-            received.push '>'
-            brackets.pop()
-            return if brackets.length
-            chai.expect(received).to.eql expected
-            done()
-
-      ins.post new noflo.IP 'openBracket', 1
-      ins.post new noflo.IP 'openBracket', 'a'
-      ins.post new noflo.IP 'data', 'foo'
-      ins.post new noflo.IP 'closeBracket', 'a'
-      ins.post new noflo.IP 'closeBracket', 1
-    it 'should forward scopes as expected', (done) ->
-      expected = [
-        'x < 1'
-        'x < a'
-        'x DATA barWpPc'
-        'x >'
-        'x >'
-      ]
-      received = []
-      brackets = []
-
-      out.on 'ip', (ip) ->
-        switch ip.type
-          when 'openBracket'
-            received.push "#{ip.scope} < #{ip.data}"
-            brackets.push ip.data
-          when 'data'
-            received.push "#{ip.scope} DATA #{ip.data}"
-          when 'closeBracket'
-            received.push "#{ip.scope} >"
-            brackets.pop()
-            return if brackets.length
-            chai.expect(received).to.eql expected
-            done()
-
-      ins.post new noflo.IP 'openBracket', 1,
-        scope: 'x'
-      ins.post new noflo.IP 'openBracket', 'a',
-        scope: 'x'
-      ins.post new noflo.IP 'data', 'bar',
-        scope: 'x'
-      ins.post new noflo.IP 'closeBracket', 'a',
-        scope: 'x'
-      ins.post new noflo.IP 'closeBracket', 1,
-        scope: 'x'
 
   describe 'pure Process API merging two inputs', ->
     c = null
