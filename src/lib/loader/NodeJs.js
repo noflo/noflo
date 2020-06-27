@@ -13,15 +13,6 @@
     prefer-destructuring,
     vars-on-top,
 */
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 const path = require('path');
 const fs = require('fs');
 const manifest = require('fbp-manifest');
@@ -53,7 +44,7 @@ var registerCustomLoaders = function (loader, componentLoaders, callback) {
 const registerModules = function (loader, modules, callback) {
   const compatible = modules.filter((m) => ['noflo', 'noflo-nodejs'].includes(m.runtime));
   const componentLoaders = [];
-  for (const m of Array.from(compatible)) {
+  for (const m of compatible) {
     if (m.icon) { loader.setLibraryIcon(m.name, m.icon); }
 
     if (m.noflo != null ? m.noflo.loader : undefined) {
@@ -61,7 +52,7 @@ const registerModules = function (loader, modules, callback) {
       componentLoaders.push(loaderPath);
     }
 
-    for (const c of Array.from(m.components)) {
+    for (const c of m.components) {
       loader.registerComponent(m.name, c.name, path.resolve(loader.baseDir, c.path));
     }
   }
