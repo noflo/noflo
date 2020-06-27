@@ -1,35 +1,22 @@
-/* eslint-disable
-    default-case,
-    func-names,
-    max-len,
-    no-multi-assign,
-    no-param-reassign,
-    no-undef,
-    no-unreachable,
-    no-var,
-    prefer-rest-params,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
 
+/* eslint-disable
+    no-param-reassign,
+    prefer-rest-params,
+*/
+
 // Guess language from filename
-const guessLanguageFromFilename = function (filename) {
+function guessLanguageFromFilename(filename) {
   if (/.*\.coffee$/.test(filename)) { return 'coffeescript'; }
   return 'javascript';
-};
+}
 
-const isArray = function (obj) {
+function isArray(obj) {
   if (Array.isArray) { return Array.isArray(obj); }
-  return Object.prototype.toString.call(arg) === '[object Array]';
-};
+  return Object.prototype.toString.call(obj) === '[object Array]';
+}
 
 // the following functions are from http://underscorejs.org/docs/underscore.html
 // Underscore.js 1.8.3 http://underscorejs.org
@@ -39,43 +26,42 @@ const isArray = function (obj) {
 // Internal function that returns an efficient (for current engines)
 // version of the passed-in callback,
 // to be repeatedly applied in other Underscore functions.
-const optimizeCb = function (func, context, argCount) {
+function optimizeCb(func, context, argCount) {
   if (context === undefined) {
     return func;
   }
   switch (argCount === null ? 3 : argCount) {
     case 1:
       return (value) => func.call(context, value);
-      break;
     case 2:
       return (value, other) => func.call(context, value, other);
-      break;
     case 3:
       return (value, index, collection) => func.call(context, value, index, collection);
-      break;
     case 4:
-      return (accumulator, value, index, collection) => func.call(context, accumulator, value, index, collection);
-      break;
+      return (accumulator, value, index, collection) => {
+        func.call(context, accumulator, value, index, collection);
+      };
+    default: // No-op
   }
-  return function () {
+  return function call() {
     return func.apply(context, arguments);
   };
-};
+}
 
 // Create a reducing function iterating left or right.
 // Optimized iterator function as using arguments.length in the main function
 // will deoptimize the, see #1991.
-const createReduce = function (dir) {
-  const iterator = function (obj, iteratee, memo, keys, index, length) {
+function createReduce(dir) {
+  function iterator(obj, iteratee, memo, keys, index, length) {
     while ((index >= 0) && (index < length)) {
       const currentKey = keys ? keys[index] : index;
       memo = iteratee(memo, obj[currentKey], currentKey, obj);
       index += dir;
     }
     return memo;
-  };
+  }
 
-  return function (obj, iteratee, memo, context) {
+  return function reduce(obj, iteratee, memo, context) {
     iteratee = optimizeCb(iteratee, context, 4);
     const keys = Object.keys(obj);
     const {
@@ -88,7 +74,7 @@ const createReduce = function (dir) {
     }
     return iterator(obj, iteratee, memo, keys, index, length);
   };
-};
+}
 
 const reduceRight = createReduce(-1);
 
@@ -97,14 +83,14 @@ const reduceRight = createReduce(-1);
 // The function will be called after it stops being called for N milliseconds.
 // If immediate is passed, trigger the function on the leading edge,
 // instead of the trailing.
-const debounce = function (func, wait, immediate) {
+function debounce(func, wait, immediate) {
   let timeout;
   let args;
   let context;
   let timestamp;
   let result;
 
-  var later = function () {
+  function later() {
     const last = Date.now - timestamp;
     if ((last < wait) && (last >= 0)) {
       timeout = setTimeout(later, wait - last);
@@ -113,13 +99,14 @@ const debounce = function (func, wait, immediate) {
       if (!immediate) {
         result = func.apply(context, args);
         if (!timeout) {
-          context = (args = null);
+          context = null;
+          args = null;
         }
       }
     }
-  };
+  }
 
-  return function () {
+  return function after() {
     context = this;
     args = arguments;
     timestamp = Date.now;
@@ -129,11 +116,12 @@ const debounce = function (func, wait, immediate) {
     }
     if (callNow) {
       result = func.apply(context, args);
-      context = (args = null);
+      context = null;
+      args = null;
     }
     return result;
   };
-};
+}
 
 exports.guessLanguageFromFilename = guessLanguageFromFilename;
 exports.reduceRight = reduceRight;

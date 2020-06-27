@@ -1,7 +1,6 @@
 /* eslint-disable
     global-require,
     import/no-dynamic-require,
-    import/no-unresolved,
     no-underscore-dangle,
     prefer-destructuring,
 */
