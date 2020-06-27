@@ -30,7 +30,8 @@ class Graph extends noflo.Component
       return unless packet.type is 'data'
       @setGraph packet.data, (err) =>
         # TODO: Port this part to Process API and use output.error method instead
-        return @error err if err
+        if err
+          @error err
 
   setGraph: (graph, callback) ->
     @ready = false
@@ -42,18 +43,25 @@ class Graph extends noflo.Component
 
       # JSON definition of a graph
       noflo.graph.loadJSON graph, (err, instance) =>
-        return callback err if err
+        if err
+          callback err
+          return
         instance.baseDir = @baseDir
         @createNetwork instance, callback
+        return
       return
 
     if graph.substr(0, 1) isnt "/" and graph.substr(1, 1) isnt ":" and process and process.cwd
       graph = "#{process.cwd()}/#{graph}"
 
     noflo.graph.loadFile graph, (err, instance) =>
-      return callback err if err
+      if err
+        callback err
+        return
       instance.baseDir = @baseDir
       @createNetwork instance, callback
+      return
+    return
 
   createNetwork: (graph, callback) ->
     @description = graph.properties.description or ''
@@ -66,20 +74,27 @@ class Graph extends noflo.Component
       delay: true
       subscribeGraph: false
     , (err, @network) =>
-      return callback err if err
+      if err
+        callback err
+        return
       @emit 'network', @network
       # Subscribe to network lifecycle
       @subscribeNetwork @network
 
       # Wire the network up
       @network.connect (err) =>
-        return callback err if err
+        if err
+          callback err
+          return
         for name, node of @network.processes
           # Map exported ports to local component
           @findEdgePorts name, node
         # Finally set ourselves as "ready"
         do @setToReady
         do callback
+        return
+      return
+    return
 
   subscribeNetwork: (network) ->
     contexts = []
@@ -91,6 +106,7 @@ class Graph extends noflo.Component
       ctx = contexts.pop()
       return unless ctx
       @deactivate ctx
+      return
 
   isExportedInport: (port, nodeName, portName) ->
     # First we check disambiguated exported ports
@@ -99,7 +115,7 @@ class Graph extends noflo.Component
       return pub
 
     # Component has exported ports and this isn't one of them
-    false
+    return false
 
   isExportedOutport: (port, nodeName, portName) ->
     # First we check disambiguated exported ports
@@ -108,7 +124,7 @@ class Graph extends noflo.Component
       return pub
 
     # Component has exported ports and this isn't one of them
-    false
+    return false
 
   setToReady: ->
     if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
@@ -120,6 +136,7 @@ class Graph extends noflo.Component
         @ready = true
         @emit 'ready'
       , 0
+    return
 
   findEdgePorts: (name, process) ->
     inPorts = process.component.inPorts.ports
@@ -139,6 +156,7 @@ class Graph extends noflo.Component
           return
         # Network was never started, start properly
         @setUp ->
+        return
 
     for portName, port of outPorts
       targetPortName = @isExportedOutport port, name, portName
@@ -148,7 +166,7 @@ class Graph extends noflo.Component
     return true
 
   isReady: ->
-    @ready
+    return @ready
 
   isSubgraph: ->
     true
@@ -161,18 +179,29 @@ class Graph extends noflo.Component
     unless @isReady()
       @once 'ready', =>
         @setUp callback
+        return
       return
-    return callback null unless @network
+    unless @network
+      callback null
+      return
     @network.start (err) =>
-      return callback err if err
+      if err
+        callback err
+        return
       @starting = false
       do callback
+      return
+    return
 
   tearDown: (callback) ->
     @starting = false
     return callback null unless @network
     @network.stop (err) ->
-      return callback err if err
+      if err
+        callback err
+        return
       do callback
+      return
+    return
 
 exports.getComponent = (metadata) -> new Graph metadata
