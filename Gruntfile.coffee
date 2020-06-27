@@ -9,11 +9,17 @@ module.exports = ->
         presets: ['env']
       dist:
         files: [
-          cwd: 'src/lib/'
-          src: ['**/*.js']
-          dest: 'lib/'
-          expand: true
-          ext: '.js'
+            cwd: 'src/lib/'
+            src: ['**/*.js']
+            dest: 'lib/'
+            expand: true
+            ext: '.js'
+          ,
+            cwd: 'src/components/'
+            src: ['**/*.js']
+            dest: 'components/'
+            expand: true
+            ext: '.js'
         ]
 
     # CoffeeScript compilation
@@ -25,22 +31,6 @@ module.exports = ->
         cwd: 'src/lib'
         src: ['**.coffee']
         dest: 'lib'
-        ext: '.js'
-      components:
-        options:
-          bare: true
-        expand: true
-        cwd: 'src/components'
-        src: ['**.coffee']
-        dest: 'components'
-        ext: '.js'
-      libraries_loaders:
-        options:
-          bare: true
-        expand: true
-        cwd: 'src/lib/loader'
-        src: ['**.coffee']
-        dest: 'lib/loader'
         ext: '.js'
       spec:
         options:
