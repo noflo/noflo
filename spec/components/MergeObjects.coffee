@@ -1,7 +1,7 @@
 if typeof process isnt 'undefined' and process.execPath and process.execPath.match /node|iojs/
   chai = require 'chai' unless chai
   component = require '../../src/lib/Component.js'
-  socket = require '../../src/lib/InternalSocket.coffee'
+  socket = require '../../src/lib/InternalSocket.js'
   IP = require '../../src/lib/IP.js'
 else
   component = require 'noflo/src/lib/Component.js'

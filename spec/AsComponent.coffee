@@ -41,9 +41,9 @@ describe 'asComponent interface', ->
       it 'should forward brackets to OUT port', (done) ->
         loader.load 'ascomponent/sync-one', (err, instance) ->
           return done err if err
-          ins = new noflo.internalSocket.createSocket()
-          out = new noflo.internalSocket.createSocket()
-          error = new noflo.internalSocket.createSocket()
+          ins = noflo.internalSocket.createSocket()
+          out = noflo.internalSocket.createSocket()
+          error = noflo.internalSocket.createSocket()
           instance.inPorts.hello.attach ins
           instance.outPorts.out.attach out
           instance.outPorts.error.attach error

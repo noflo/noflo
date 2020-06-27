@@ -1,25 +1,48 @@
-/* eslint-disable
-    class-methods-use-this,
-    consistent-return,
-    default-case,
-    no-param-reassign,
-    no-return-assign,
-    no-unused-vars,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2013-2017 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
 const { EventEmitter } = require('events');
 const IP = require('./IP');
+
+function legacyToIp(event, payload) {
+  // No need to wrap modern IP Objects
+  if (IP.isIP(payload)) { return payload; }
+
+  // Wrap legacy events into appropriate IP objects
+  switch (event) {
+    case 'begingroup':
+      return new IP('openBracket', payload);
+    case 'endgroup':
+      return new IP('closeBracket');
+    case 'data':
+      return new IP('data', payload);
+    default:
+      return null;
+  }
+}
+
+function ipToLegacy(ip) {
+  switch (ip.type) {
+    case 'openBracket':
+      return {
+        event: 'begingroup',
+        payload: ip.data,
+      };
+    case 'data':
+      return {
+        event: 'data',
+        payload: ip.data,
+      };
+    case 'closeBracket':
+      return {
+        event: 'endgroup',
+        payload: ip.data,
+      };
+    default:
+      return null;
+  }
+}
 
 // ## Internal Sockets
 //
@@ -54,8 +77,7 @@ class InternalSocket extends EventEmitter {
     }
   }
 
-  constructor(metadata) {
-    if (metadata == null) { metadata = {}; }
+  constructor(metadata = {}) {
     super();
     this.metadata = metadata;
     this.brackets = [];
@@ -116,7 +138,10 @@ class InternalSocket extends EventEmitter {
   // can be constructed with more flexibility, as file buffers or
   // message queues can be used as additional packet relay mechanisms.
   send(data) {
-    if ((data === undefined) && (typeof this.dataDelegate === 'function')) { data = this.dataDelegate(); }
+    if ((data === undefined) && (typeof this.dataDelegate === 'function')) {
+      this.handleSocketEvent('data', this.dataDelegate());
+      return;
+    }
     this.handleSocketEvent('data', data);
   }
 
@@ -125,9 +150,11 @@ class InternalSocket extends EventEmitter {
   // As _connect_ event is considered as open bracket, it needs to be followed
   // by a _disconnect_ event or a closing bracket. In the new simplified
   // sending semantics single IP objects can be sent without open/close brackets.
-  post(ip, autoDisconnect) {
-    if (autoDisconnect == null) { autoDisconnect = true; }
-    if ((ip === undefined) && (typeof this.dataDelegate === 'function')) { ip = this.dataDelegate(); }
+  post(packet, autoDisconnect = true) {
+    let ip = packet;
+    if ((ip === undefined) && (typeof this.dataDelegate === 'function')) {
+      ip = this.dataDelegate();
+    }
     // Send legacy connect/disconnect if needed
     if (!this.isConnected() && (this.brackets.length === 0)) {
       (this.connect)();
@@ -213,48 +240,10 @@ class InternalSocket extends EventEmitter {
     return `${fromStr(this.from)} -> ${toStr(this.to)}`;
   }
 
-  legacyToIp(event, payload) {
-    // No need to wrap modern IP Objects
-    if (IP.isIP(payload)) { return payload; }
-
-    // Wrap legacy events into appropriate IP objects
-    switch (event) {
-      case 'begingroup':
-        return new IP('openBracket', payload);
-      case 'endgroup':
-        return new IP('closeBracket');
-      case 'data':
-        return new IP('data', payload);
-      default:
-        return null;
-    }
-  }
-
-  ipToLegacy(ip) {
-    let legacy;
-    switch (ip.type) {
-      case 'openBracket':
-        return legacy = {
-          event: 'begingroup',
-          payload: ip.data,
-        };
-      case 'data':
-        return legacy = {
-          event: 'data',
-          payload: ip.data,
-        };
-      case 'closeBracket':
-        return legacy = {
-          event: 'endgroup',
-          payload: ip.data,
-        };
-    }
-  }
-
-  handleSocketEvent(event, payload, autoConnect) {
-    if (autoConnect == null) { autoConnect = true; }
+  /* eslint-disable no-param-reassign */
+  handleSocketEvent(event, payload, autoConnect = true) {
     const isIP = (event === 'ip') && IP.isIP(payload);
-    const ip = isIP ? payload : this.legacyToIp(event, payload);
+    const ip = isIP ? payload : legacyToIp(event, payload);
     if (!ip) { return; }
 
     if (!this.isConnected() && autoConnect && (this.brackets.length === 0)) {
@@ -289,13 +278,8 @@ class InternalSocket extends EventEmitter {
     if (!ip || !ip.type) { return; }
 
     if (isIP) {
-      const legacy = this.ipToLegacy(ip);
-      ({
-        event,
-      } = legacy);
-      ({
-        payload,
-      } = legacy);
+      const legacy = ipToLegacy(ip);
+      ({ event, payload } = legacy);
     }
 
     if (event === 'connect') { this.connected = true; }
