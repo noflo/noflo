@@ -1,26 +1,13 @@
-/* eslint-disable
-    class-methods-use-this,
-    consistent-return,
-    import/no-unresolved,
-    no-param-reassign,
-    no-restricted-syntax,
-    no-shadow,
-    no-unreachable,
-    no-useless-escape,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2013-2017 Flowhub UG
 //     (c) 2013 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
+
+/* eslint-disable
+    class-methods-use-this,
+    import/no-unresolved,
+*/
+
 const fbpGraph = require('fbp-graph');
 const { EventEmitter } = require('events');
 const registerLoader = require('./loader/register');
@@ -40,8 +27,7 @@ const platform = require('./Platform');
 // possible to generate a statically configured component
 // loader using the [noflo-component-loader](https://github.com/noflo/noflo-component-loader) webpack plugin.
 class ComponentLoader extends EventEmitter {
-  constructor(baseDir, options) {
-    if (options == null) { options = {}; }
+  constructor(baseDir, options = {}) {
     super();
     this.baseDir = baseDir;
     this.options = options;
@@ -64,9 +50,10 @@ class ComponentLoader extends EventEmitter {
   // * `noflo-core` becomes `core`
   getModulePrefix(name) {
     if (!name) { return ''; }
-    if (name === 'noflo') { return ''; }
-    if (name[0] === '@') { name = name.replace(/\@[a-z\-]+\//, ''); }
-    return name.replace(/^noflo-/, '');
+    let res = name;
+    if (res === 'noflo') { return ''; }
+    if (res[0] === '@') { res = res.replace(/@[a-z-]+\//, ''); }
+    return res.replace(/^noflo-/, '');
   }
 
   // Get the list of all available components
@@ -75,7 +62,10 @@ class ComponentLoader extends EventEmitter {
       this.once('ready', () => callback(null, this.components));
       return;
     }
-    if (this.components) { return callback(null, this.components); }
+    if (this.components) {
+      callback(null, this.components);
+      return;
+    }
 
     this.ready = false;
     this.processing = true;
@@ -83,13 +73,13 @@ class ComponentLoader extends EventEmitter {
     this.components = {};
     registerLoader.register(this, (err) => {
       if (err) {
-        return callback(err);
-        throw err;
+        callback(err);
+        return;
       }
       this.processing = false;
       this.ready = true;
       this.emit('ready', true);
-      return callback(null, this.components);
+      callback(null, this.components);
     });
   }
 
@@ -98,14 +88,13 @@ class ComponentLoader extends EventEmitter {
   // be loaded as an instance of the NoFlo subgraph
   // component.
   load(name, callback, metadata) {
-    let componentName;
     if (!this.ready) {
       this.listComponents((err) => {
         if (err) {
           callback(err);
           return;
         }
-        return this.load(name, callback, metadata);
+        this.load(name, callback, metadata);
       });
       return;
     }
@@ -113,7 +102,9 @@ class ComponentLoader extends EventEmitter {
     let component = this.components[name];
     if (!component) {
       // Try an alias
-      for (componentName in this.components) {
+      const keys = Object.keys(this.components);
+      for (let i = 0; i < keys.length; i += 1) {
+        const componentName = keys[i];
         if (componentName.split('/')[1] === name) {
           component = this.components[componentName];
           break;
@@ -131,25 +122,26 @@ class ComponentLoader extends EventEmitter {
       return;
     }
 
-    return this.createComponent(name, component, metadata, (err, instance) => {
+    this.createComponent(name, component, metadata, (err, instance) => {
+      const inst = instance;
       if (err) {
         callback(err);
         return;
       }
-      if (!instance) {
+      if (!inst) {
         callback(new Error(`Component ${name} could not be loaded.`));
         return;
       }
 
-      if (name === 'Graph') { instance.baseDir = this.baseDir; }
-      if (typeof name === 'string') { instance.componentName = name; }
+      if (name === 'Graph') { inst.baseDir = this.baseDir; }
+      if (typeof name === 'string') { inst.componentName = name; }
 
-      if (instance.isLegacy()) {
+      if (inst.isLegacy()) {
         platform.deprecated(`Component ${name} uses legacy NoFlo APIs. Please port to Process API`);
       }
 
-      this.setIcon(name, instance);
-      return callback(null, instance);
+      this.setIcon(name, inst);
+      callback(null, inst);
     });
   }
 
@@ -196,7 +188,7 @@ class ComponentLoader extends EventEmitter {
       return;
     }
 
-    return callback(null, instance);
+    callback(null, instance);
   }
 
   // Check if a given filesystem path is actually a graph
@@ -212,21 +204,22 @@ class ComponentLoader extends EventEmitter {
 
   // Load a graph as a NoFlo subgraph component instance
   loadGraph(name, component, callback, metadata) {
-    this.createComponent(name, this.components.Graph, metadata, (err, graph) => {
-      if (err) {
-        callback(err);
+    this.createComponent(name, this.components.Graph, metadata, (error, graph) => {
+      const g = graph;
+      if (error) {
+        callback(error);
         return;
       }
-      graph.loader = this;
-      graph.baseDir = this.baseDir;
-      graph.inPorts.remove('graph');
-      graph.setGraph(component, (err) => {
+      g.loader = this;
+      g.baseDir = this.baseDir;
+      g.inPorts.remove('graph');
+      g.setGraph(component, (err) => {
         if (err) {
           callback(err);
           return;
         }
-        this.setIcon(name, graph);
-        return callback(null, graph);
+        this.setIcon(name, g);
+        callback(null, g);
       });
     });
   }
@@ -241,7 +234,7 @@ class ComponentLoader extends EventEmitter {
     if (!instance.getIcon || instance.getIcon()) { return; }
 
     // See if library has an icon
-    const [library, componentName] = Array.from(name.split('/'));
+    const [library, componentName] = name.split('/');
     if (componentName && this.getLibraryIcon(library)) {
       instance.setIcon(this.getLibraryIcon(library));
       return;
@@ -318,7 +311,7 @@ class ComponentLoader extends EventEmitter {
           callback(err);
           return;
         }
-        return this.setSource(packageId, name, source, language, callback);
+        this.setSource(packageId, name, source, language, callback);
       });
       return;
     }
@@ -339,7 +332,7 @@ class ComponentLoader extends EventEmitter {
           callback(err);
           return;
         }
-        return this.getSource(name, callback);
+        this.getSource(name, callback);
       });
       return;
     }
