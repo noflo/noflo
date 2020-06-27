@@ -2,8 +2,6 @@
     global-require,
     import/no-unresolved,
 */
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
 const { isBrowser } = require('../Platform');
 
 if (isBrowser()) {
