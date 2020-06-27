@@ -15,6 +15,7 @@ IP = require './IP'
 class InternalSocket extends EventEmitter
   regularEmitEvent: (event, data) ->
     @emit event, data
+    return
 
   debugEmitEvent: (event, data) ->
     try
@@ -32,6 +33,8 @@ class InternalSocket extends EventEmitter
         id: @to.process.id
         error: error
         metadata: @metadata
+
+    return
 
   constructor: (metadata = {}) ->
     super()
@@ -71,11 +74,13 @@ class InternalSocket extends EventEmitter
     return if @connected
     @connected = true
     @emitEvent 'connect', null
+    return
 
   disconnect: ->
     return unless @connected
     @connected = false
     @emitEvent 'disconnect', null
+    return
 
   isConnected: -> @connected
 
@@ -93,6 +98,7 @@ class InternalSocket extends EventEmitter
   send: (data) ->
     data = @dataDelegate() if data is undefined and typeof @dataDelegate is 'function'
     @handleSocketEvent 'data', data
+    return
 
   # ## Sending information packets without open bracket
   #
@@ -107,6 +113,7 @@ class InternalSocket extends EventEmitter
     @handleSocketEvent 'ip', ip, false
     if autoDisconnect and @isConnected() and @brackets.length is 0
       do @disconnect
+    return
 
   # ## Information Packet grouping
   #
@@ -139,9 +146,11 @@ class InternalSocket extends EventEmitter
   # intact through the component's processing.
   beginGroup: (group) ->
     @handleSocketEvent 'begingroup', group
+    return
 
   endGroup: ->
     @handleSocketEvent 'endgroup'
+    return
 
   # ## Socket data delegation
   #
@@ -152,6 +161,7 @@ class InternalSocket extends EventEmitter
     unless typeof delegate is 'function'
       throw Error 'A data delegate must be a function.'
     @dataDelegate = delegate
+    return
 
   # ## Socket debug mode
   #
@@ -161,6 +171,7 @@ class InternalSocket extends EventEmitter
   setDebug: (active) ->
     @debug = active
     @emitEvent = if @debug then @debugEmitEvent else @regularEmitEvent
+    return
 
   # ## Socket identifiers
   #
@@ -248,6 +259,7 @@ class InternalSocket extends EventEmitter
     @connected = true if event is 'connect'
     @connected = false if event is 'disconnect'
     @emitEvent event, payload
+    return
 
 exports.InternalSocket = InternalSocket
 
