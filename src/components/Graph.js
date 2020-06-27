@@ -1,207 +1,255 @@
-#     NoFlo - Flow-Based Programming for JavaScript
-#     (c) 2013-2017 Flowhub UG
-#     (c) 2011-2012 Henri Bergius, Nemein
-#     NoFlo may be freely distributed under the MIT license
-#
-# The Graph component is used to wrap NoFlo Networks into components inside
-# another network.
-noflo = require "../lib/NoFlo"
+/*
+ * decaffeinate suggestions:
+ * DS102: Remove unnecessary code created because of implicit returns
+ * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ */
+//     NoFlo - Flow-Based Programming for JavaScript
+//     (c) 2013-2017 Flowhub UG
+//     (c) 2011-2012 Henri Bergius, Nemein
+//     NoFlo may be freely distributed under the MIT license
+//
+// The Graph component is used to wrap NoFlo Networks into components inside
+// another network.
+const noflo = require("../lib/NoFlo");
 
-class Graph extends noflo.Component
-  constructor: (metadata) ->
-    super()
-    @metadata = metadata
-    @network = null
-    @ready = true
-    @started = false
-    @starting = false
-    @baseDir = null
-    @loader = null
-    @load = 0
+class Graph extends noflo.Component {
+  constructor(metadata) {
+    super();
+    this.metadata = metadata;
+    this.network = null;
+    this.ready = true;
+    this.started = false;
+    this.starting = false;
+    this.baseDir = null;
+    this.loader = null;
+    this.load = 0;
 
-    @inPorts = new noflo.InPorts
-      graph:
-        datatype: 'all'
-        description: 'NoFlo graph definition to be used with the subgraph component'
+    this.inPorts = new noflo.InPorts({
+      graph: {
+        datatype: 'all',
+        description: 'NoFlo graph definition to be used with the subgraph component',
         required: true
-    @outPorts = new noflo.OutPorts
+      }
+    });
+    this.outPorts = new noflo.OutPorts;
 
-    @inPorts.graph.on 'ip', (packet) =>
-      return unless packet.type is 'data'
-      @setGraph packet.data, (err) =>
-        # TODO: Port this part to Process API and use output.error method instead
-        if err
-          @error err
+    this.inPorts.graph.on('ip', packet => {
+      if (packet.type !== 'data') { return; }
+      return this.setGraph(packet.data, err => {
+        // TODO: Port this part to Process API and use output.error method instead
+        if (err) {
+          return this.error(err);
+        }
+      });
+    });
+  }
 
-  setGraph: (graph, callback) ->
-    @ready = false
-    if typeof graph is 'object'
-      if typeof graph.addNode is 'function'
-        # Existing Graph object
-        @createNetwork graph, callback
-        return
+  setGraph(graph, callback) {
+    this.ready = false;
+    if (typeof graph === 'object') {
+      if (typeof graph.addNode === 'function') {
+        // Existing Graph object
+        this.createNetwork(graph, callback);
+        return;
+      }
 
-      # JSON definition of a graph
-      noflo.graph.loadJSON graph, (err, instance) =>
-        if err
-          callback err
-          return
-        instance.baseDir = @baseDir
-        @createNetwork instance, callback
-        return
-      return
+      // JSON definition of a graph
+      noflo.graph.loadJSON(graph, (err, instance) => {
+        if (err) {
+          callback(err);
+          return;
+        }
+        instance.baseDir = this.baseDir;
+        this.createNetwork(instance, callback);
+      });
+      return;
+    }
 
-    if graph.substr(0, 1) isnt "/" and graph.substr(1, 1) isnt ":" and process and process.cwd
-      graph = "#{process.cwd()}/#{graph}"
+    if ((graph.substr(0, 1) !== "/") && (graph.substr(1, 1) !== ":") && process && process.cwd) {
+      graph = `${process.cwd()}/${graph}`;
+    }
 
-    noflo.graph.loadFile graph, (err, instance) =>
-      if err
-        callback err
-        return
-      instance.baseDir = @baseDir
-      @createNetwork instance, callback
-      return
-    return
+    noflo.graph.loadFile(graph, (err, instance) => {
+      if (err) {
+        callback(err);
+        return;
+      }
+      instance.baseDir = this.baseDir;
+      this.createNetwork(instance, callback);
+    });
+  }
 
-  createNetwork: (graph, callback) ->
-    @description = graph.properties.description or ''
-    @icon = graph.properties.icon or @icon
+  createNetwork(graph, callback) {
+    this.description = graph.properties.description || '';
+    this.icon = graph.properties.icon || this.icon;
 
-    graph.name = @nodeId unless graph.name
-    graph.componentLoader = @loader
+    if (!graph.name) { graph.name = this.nodeId; }
+    graph.componentLoader = this.loader;
 
-    noflo.createNetwork graph,
-      delay: true
+    noflo.createNetwork(graph, {
+      delay: true,
       subscribeGraph: false
-    , (err, @network) =>
-      if err
-        callback err
-        return
-      @emit 'network', @network
-      # Subscribe to network lifecycle
-      @subscribeNetwork @network
+    }
+    , (err, network) => {
+      this.network = network;
+      if (err) {
+        callback(err);
+        return;
+      }
+      this.emit('network', this.network);
+      // Subscribe to network lifecycle
+      this.subscribeNetwork(this.network);
 
-      # Wire the network up
-      @network.connect (err) =>
-        if err
-          callback err
-          return
-        for name, node of @network.processes
-          # Map exported ports to local component
-          @findEdgePorts name, node
-        # Finally set ourselves as "ready"
-        do @setToReady
-        do callback
-        return
-      return
-    return
+      // Wire the network up
+      this.network.connect(err => {
+        if (err) {
+          callback(err);
+          return;
+        }
+        for (let name in this.network.processes) {
+          // Map exported ports to local component
+          const node = this.network.processes[name];
+          this.findEdgePorts(name, node);
+        }
+        // Finally set ourselves as "ready"
+        (this.setToReady)();
+        callback();
+      });
+    });
+  }
 
-  subscribeNetwork: (network) ->
-    contexts = []
-    @network.on 'start', =>
-      ctx = {}
-      contexts.push ctx
-      @activate ctx
-    @network.on 'end', =>
-      ctx = contexts.pop()
-      return unless ctx
-      @deactivate ctx
-      return
+  subscribeNetwork(network) {
+    const contexts = [];
+    this.network.on('start', () => {
+      const ctx = {};
+      contexts.push(ctx);
+      return this.activate(ctx);
+    });
+    return this.network.on('end', () => {
+      const ctx = contexts.pop();
+      if (!ctx) { return; }
+      this.deactivate(ctx);
+    });
+  }
 
-  isExportedInport: (port, nodeName, portName) ->
-    # First we check disambiguated exported ports
-    for pub, priv of @network.graph.inports
-      continue unless priv.process is nodeName and priv.port is portName
-      return pub
+  isExportedInport(port, nodeName, portName) {
+    // First we check disambiguated exported ports
+    for (let pub in this.network.graph.inports) {
+      const priv = this.network.graph.inports[pub];
+      if ((priv.process !== nodeName) || (priv.port !== portName)) { continue; }
+      return pub;
+    }
 
-    # Component has exported ports and this isn't one of them
-    return false
+    // Component has exported ports and this isn't one of them
+    return false;
+  }
 
-  isExportedOutport: (port, nodeName, portName) ->
-    # First we check disambiguated exported ports
-    for pub, priv of @network.graph.outports
-      continue unless priv.process is nodeName and priv.port is portName
-      return pub
+  isExportedOutport(port, nodeName, portName) {
+    // First we check disambiguated exported ports
+    for (let pub in this.network.graph.outports) {
+      const priv = this.network.graph.outports[pub];
+      if ((priv.process !== nodeName) || (priv.port !== portName)) { continue; }
+      return pub;
+    }
 
-    # Component has exported ports and this isn't one of them
-    return false
+    // Component has exported ports and this isn't one of them
+    return false;
+  }
 
-  setToReady: ->
-    if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
-      process.nextTick =>
-        @ready = true
-        @emit 'ready'
-    else
-      setTimeout =>
-        @ready = true
-        @emit 'ready'
-      , 0
-    return
+  setToReady() {
+    if ((typeof process !== 'undefined') && process.execPath && (process.execPath.indexOf('node') !== -1)) {
+      process.nextTick(() => {
+        this.ready = true;
+        return this.emit('ready');
+      });
+    } else {
+      setTimeout(() => {
+        this.ready = true;
+        return this.emit('ready');
+      }
+      , 0);
+    }
+  }
 
-  findEdgePorts: (name, process) ->
-    inPorts = process.component.inPorts.ports
-    outPorts = process.component.outPorts.ports
+  findEdgePorts(name, process) {
+    let port, portName, targetPortName;
+    const inPorts = process.component.inPorts.ports;
+    const outPorts = process.component.outPorts.ports;
 
-    for portName, port of inPorts
-      targetPortName = @isExportedInport port, name, portName
-      continue if targetPortName is false
-      @inPorts.add targetPortName, port
-      @inPorts[targetPortName].on 'connect', =>
-        # Start the network implicitly if we're starting to get data
-        return if @starting
-        return if @network.isStarted()
-        if @network.startupDate
-          # Network was started, but did finish. Re-start simply
-          @network.setStarted true
-          return
-        # Network was never started, start properly
-        @setUp ->
-        return
+    for (portName in inPorts) {
+      port = inPorts[portName];
+      targetPortName = this.isExportedInport(port, name, portName);
+      if (targetPortName === false) { continue; }
+      this.inPorts.add(targetPortName, port);
+      this.inPorts[targetPortName].on('connect', () => {
+        // Start the network implicitly if we're starting to get data
+        if (this.starting) { return; }
+        if (this.network.isStarted()) { return; }
+        if (this.network.startupDate) {
+          // Network was started, but did finish. Re-start simply
+          this.network.setStarted(true);
+          return;
+        }
+        // Network was never started, start properly
+        this.setUp(function() {});
+      });
+    }
 
-    for portName, port of outPorts
-      targetPortName = @isExportedOutport port, name, portName
-      continue if targetPortName is false
-      @outPorts.add targetPortName, port
+    for (portName in outPorts) {
+      port = outPorts[portName];
+      targetPortName = this.isExportedOutport(port, name, portName);
+      if (targetPortName === false) { continue; }
+      this.outPorts.add(targetPortName, port);
+    }
 
-    return true
+    return true;
+  }
 
-  isReady: ->
-    return @ready
+  isReady() {
+    return this.ready;
+  }
 
-  isSubgraph: ->
-    true
+  isSubgraph() {
+    return true;
+  }
 
-  isLegacy: ->
-    false
+  isLegacy() {
+    return false;
+  }
 
-  setUp: (callback) ->
-    @starting = true
-    unless @isReady()
-      @once 'ready', =>
-        @setUp callback
-        return
-      return
-    unless @network
-      callback null
-      return
-    @network.start (err) =>
-      if err
-        callback err
-        return
-      @starting = false
-      do callback
-      return
-    return
+  setUp(callback) {
+    this.starting = true;
+    if (!this.isReady()) {
+      this.once('ready', () => {
+        this.setUp(callback);
+      });
+      return;
+    }
+    if (!this.network) {
+      callback(null);
+      return;
+    }
+    this.network.start(err => {
+      if (err) {
+        callback(err);
+        return;
+      }
+      this.starting = false;
+      callback();
+    });
+  }
 
-  tearDown: (callback) ->
-    @starting = false
-    return callback null unless @network
-    @network.stop (err) ->
-      if err
-        callback err
-        return
-      do callback
-      return
-    return
+  tearDown(callback) {
+    this.starting = false;
+    if (!this.network) { return callback(null); }
+    this.network.stop(function(err) {
+      if (err) {
+        callback(err);
+        return;
+      }
+      callback();
+    });
+  }
+}
 
-exports.getComponent = (metadata) -> new Graph metadata
+exports.getComponent = metadata => new Graph(metadata);
