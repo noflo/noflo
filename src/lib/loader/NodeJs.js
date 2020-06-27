@@ -1,3 +1,20 @@
+/* eslint-disable
+    consistent-return,
+    func-names,
+    global-require,
+    import/no-dynamic-require,
+    import/no-unresolved,
+    no-param-reassign,
+    no-restricted-syntax,
+    no-shadow,
+    no-underscore-dangle,
+    no-use-before-define,
+    no-var,
+    prefer-destructuring,
+    vars-on-top,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS101: Remove unnecessary use of Array.from
@@ -8,22 +25,23 @@
 const path = require('path');
 const fs = require('fs');
 const manifest = require('fbp-manifest');
-const utils = require('../Utils');
 const fbpGraph = require('fbp-graph');
 
 // We allow components to be un-compiled CoffeeScript
 const CoffeeScript = require('coffeescript');
+const utils = require('../Utils');
+
 if (typeof CoffeeScript.register !== 'undefined') {
   CoffeeScript.register();
 }
 
-var registerCustomLoaders = function(loader, componentLoaders, callback) {
+var registerCustomLoaders = function (loader, componentLoaders, callback) {
   if (!componentLoaders.length) {
     callback(null);
     return;
   }
   const customLoader = require(componentLoaders.shift());
-  loader.registerLoader(customLoader, function(err) {
+  loader.registerLoader(customLoader, (err) => {
     if (err) {
       callback(err);
       return;
@@ -32,10 +50,10 @@ var registerCustomLoaders = function(loader, componentLoaders, callback) {
   });
 };
 
-const registerModules = function(loader, modules, callback) {
-  const compatible = modules.filter(m => ['noflo', 'noflo-nodejs'].includes(m.runtime));
+const registerModules = function (loader, modules, callback) {
+  const compatible = modules.filter((m) => ['noflo', 'noflo-nodejs'].includes(m.runtime));
   const componentLoaders = [];
-  for (let m of Array.from(compatible)) {
+  for (const m of Array.from(compatible)) {
     if (m.icon) { loader.setLibraryIcon(m.name, m.icon); }
 
     if (m.noflo != null ? m.noflo.loader : undefined) {
@@ -43,7 +61,7 @@ const registerModules = function(loader, modules, callback) {
       componentLoaders.push(loaderPath);
     }
 
-    for (let c of Array.from(m.components)) {
+    for (const c of Array.from(m.components)) {
       loader.registerComponent(m.name, c.name, path.resolve(loader.baseDir, c.path));
     }
   }
@@ -55,8 +73,8 @@ const manifestLoader = {
   writeCache(loader, options, manifest, callback) {
     const filePath = path.resolve(loader.baseDir, options.manifest);
     fs.writeFile(filePath, JSON.stringify(manifest, null, 2),
-      {encoding: 'utf-8'}
-    , callback);
+      { encoding: 'utf-8' },
+      callback);
   },
 
   readCache(loader, options, callback) {
@@ -78,7 +96,7 @@ const manifestLoader = {
     this.readCache(loader, manifestOptions, (err, manifest) => {
       if (err) {
         if (!loader.options.discover) {
-          callback(err); 
+          callback(err);
           return;
         }
         dynamicLoader.listComponents(loader, manifestOptions, (err, modules) => {
@@ -88,9 +106,9 @@ const manifestLoader = {
           }
           return this.writeCache(loader, manifestOptions, {
             version: 1,
-            modules
-          }
-          , function(err) {
+            modules,
+          },
+          (err) => {
             if (err) {
               callback(err);
               return;
@@ -100,7 +118,7 @@ const manifestLoader = {
         });
         return;
       }
-      registerModules(loader, manifest.modules, function(err) {
+      registerModules(loader, manifest.modules, (err) => {
         if (err) {
           callback(err);
           return;
@@ -108,7 +126,7 @@ const manifestLoader = {
         callback(null, manifest.modules);
       });
     });
-  }
+  },
 };
 
 var dynamicLoader = {
@@ -119,7 +137,7 @@ var dynamicLoader = {
         callback(err);
         return;
       }
-      registerModules(loader, modules, function(err) {
+      registerModules(loader, modules, (err) => {
         if (err) {
           callback(err);
           return;
@@ -127,10 +145,10 @@ var dynamicLoader = {
         callback(null, modules);
       });
     });
-  }
+  },
 };
 
-const registerSubgraph = function(loader) {
+const registerSubgraph = function (loader) {
   // Inject subgraph component
   let graphPath;
   if (path.extname(__filename) === '.js') {
@@ -141,11 +159,11 @@ const registerSubgraph = function(loader) {
   loader.registerComponent(null, 'Graph', graphPath);
 };
 
-exports.register = function(loader, callback) {
+exports.register = function (loader, callback) {
   const manifestOptions = manifestLoader.prepareManifestOptions(loader);
 
   if (loader.options != null ? loader.options.cache : undefined) {
-    manifestLoader.listComponents(loader, manifestOptions, function(err, modules) {
+    manifestLoader.listComponents(loader, manifestOptions, (err, modules) => {
       if (err) {
         callback(err);
         return;
@@ -156,7 +174,7 @@ exports.register = function(loader, callback) {
     return;
   }
 
-  dynamicLoader.listComponents(loader, manifestOptions, function(err, modules) {
+  dynamicLoader.listComponents(loader, manifestOptions, (err, modules) => {
     if (err) {
       callback(err);
       return;
@@ -166,8 +184,9 @@ exports.register = function(loader, callback) {
   });
 };
 
-exports.dynamicLoad = function(name, cPath, metadata, callback) {
-  let e, implementation, instance;
+exports.dynamicLoad = function (name, cPath, metadata, callback) {
+  let e; let implementation; let
+    instance;
   try {
     implementation = require(cPath);
   } catch (error) {
@@ -200,13 +219,14 @@ exports.dynamicLoad = function(name, cPath, metadata, callback) {
   callback(null, instance);
 };
 
-exports.setSource = function(loader, packageId, name, source, language, callback) {
-  let e, implementation;
+exports.setSource = function (loader, packageId, name, source, language, callback) {
+  let e; let
+    implementation;
   const Module = require('module');
   if (language === 'coffeescript') {
     try {
       source = CoffeeScript.compile(source,
-        {bare: true});
+        { bare: true });
     } catch (error) {
       e = error;
       callback(e);
@@ -234,11 +254,11 @@ exports.setSource = function(loader, packageId, name, source, language, callback
   loader.registerComponent(packageId, name, implementation, callback);
 };
 
-exports.getSource = function(loader, name, callback) {
+exports.getSource = function (loader, name, callback) {
   let component = loader.components[name];
   if (!component) {
     // Try an alias
-    for (let componentName in loader.components) {
+    for (const componentName in loader.components) {
       if (componentName.split('/')[1] === name) {
         component = loader.components[componentName];
         name = componentName;
@@ -264,15 +284,14 @@ exports.getSource = function(loader, name, callback) {
           name: nameParts[1],
           library: nameParts[0],
           code: JSON.stringify(component.toJSON()),
-          language: 'json'
-        }
-        );
+          language: 'json',
+        });
         return;
       }
       callback(new Error(`Can't provide source for ${name}. Not a file`));
       return;
     }
-    fbpGraph.graph.loadFile(component, function(err, graph) {
+    fbpGraph.graph.loadFile(component, (err, graph) => {
       if (err) {
         callback(err);
         return;
@@ -282,9 +301,8 @@ exports.getSource = function(loader, name, callback) {
         name: nameParts[1],
         library: nameParts[0],
         code: JSON.stringify(graph.toJSON()),
-        language: 'json'
-      }
-      );
+        language: 'json',
+      });
     });
     return;
   }
@@ -294,7 +312,7 @@ exports.getSource = function(loader, name, callback) {
     return;
   }
 
-  fs.readFile(component, 'utf-8', function(err, code) {
+  fs.readFile(component, 'utf-8', (err, code) => {
     if (err) {
       callback(err);
       return;
@@ -303,8 +321,7 @@ exports.getSource = function(loader, name, callback) {
       name: nameParts[1],
       library: nameParts[0],
       language: utils.guessLanguageFromFilename(component),
-      code
-    }
-    );
+      code,
+    });
   });
 };
