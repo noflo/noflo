@@ -1,3 +1,16 @@
+/* eslint-disable
+    class-methods-use-this,
+    consistent-return,
+    guard-for-in,
+    import/no-unresolved,
+    no-continue,
+    no-param-reassign,
+    no-restricted-syntax,
+    no-shadow,
+    no-unused-vars,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS102: Remove unnecessary code created because of implicit returns
@@ -10,7 +23,7 @@
 //
 // The Graph component is used to wrap NoFlo Networks into components inside
 // another network.
-const noflo = require("../lib/NoFlo");
+const noflo = require('../lib/NoFlo');
 
 class Graph extends noflo.Component {
   constructor(metadata) {
@@ -28,14 +41,14 @@ class Graph extends noflo.Component {
       graph: {
         datatype: 'all',
         description: 'NoFlo graph definition to be used with the subgraph component',
-        required: true
-      }
+        required: true,
+      },
     });
-    this.outPorts = new noflo.OutPorts;
+    this.outPorts = new noflo.OutPorts();
 
-    this.inPorts.graph.on('ip', packet => {
+    this.inPorts.graph.on('ip', (packet) => {
       if (packet.type !== 'data') { return; }
-      return this.setGraph(packet.data, err => {
+      return this.setGraph(packet.data, (err) => {
         // TODO: Port this part to Process API and use output.error method instead
         if (err) {
           return this.error(err);
@@ -65,7 +78,7 @@ class Graph extends noflo.Component {
       return;
     }
 
-    if ((graph.substr(0, 1) !== "/") && (graph.substr(1, 1) !== ":") && process && process.cwd) {
+    if ((graph.substr(0, 1) !== '/') && (graph.substr(1, 1) !== ':') && process && process.cwd) {
       graph = `${process.cwd()}/${graph}`;
     }
 
@@ -88,9 +101,9 @@ class Graph extends noflo.Component {
 
     noflo.createNetwork(graph, {
       delay: true,
-      subscribeGraph: false
-    }
-    , (err, network) => {
+      subscribeGraph: false,
+    },
+    (err, network) => {
       this.network = network;
       if (err) {
         callback(err);
@@ -101,12 +114,12 @@ class Graph extends noflo.Component {
       this.subscribeNetwork(this.network);
 
       // Wire the network up
-      this.network.connect(err => {
+      this.network.connect((err) => {
         if (err) {
           callback(err);
           return;
         }
-        for (let name in this.network.processes) {
+        for (const name in this.network.processes) {
           // Map exported ports to local component
           const node = this.network.processes[name];
           this.findEdgePorts(name, node);
@@ -134,7 +147,7 @@ class Graph extends noflo.Component {
 
   isExportedInport(port, nodeName, portName) {
     // First we check disambiguated exported ports
-    for (let pub in this.network.graph.inports) {
+    for (const pub in this.network.graph.inports) {
       const priv = this.network.graph.inports[pub];
       if ((priv.process !== nodeName) || (priv.port !== portName)) { continue; }
       return pub;
@@ -146,7 +159,7 @@ class Graph extends noflo.Component {
 
   isExportedOutport(port, nodeName, portName) {
     // First we check disambiguated exported ports
-    for (let pub in this.network.graph.outports) {
+    for (const pub in this.network.graph.outports) {
       const priv = this.network.graph.outports[pub];
       if ((priv.process !== nodeName) || (priv.port !== portName)) { continue; }
       return pub;
@@ -166,13 +179,14 @@ class Graph extends noflo.Component {
       setTimeout(() => {
         this.ready = true;
         return this.emit('ready');
-      }
-      , 0);
+      },
+      0);
     }
   }
 
   findEdgePorts(name, process) {
-    let port, portName, targetPortName;
+    let port; let portName; let
+      targetPortName;
     const inPorts = process.component.inPorts.ports;
     const outPorts = process.component.outPorts.ports;
 
@@ -191,7 +205,7 @@ class Graph extends noflo.Component {
           return;
         }
         // Network was never started, start properly
-        this.setUp(function() {});
+        this.setUp(() => {});
       });
     }
 
@@ -229,7 +243,7 @@ class Graph extends noflo.Component {
       callback(null);
       return;
     }
-    this.network.start(err => {
+    this.network.start((err) => {
       if (err) {
         callback(err);
         return;
@@ -242,7 +256,7 @@ class Graph extends noflo.Component {
   tearDown(callback) {
     this.starting = false;
     if (!this.network) { return callback(null); }
-    this.network.stop(function(err) {
+    this.network.stop((err) => {
       if (err) {
         callback(err);
         return;
@@ -252,4 +266,4 @@ class Graph extends noflo.Component {
   }
 }
 
-exports.getComponent = metadata => new Graph(metadata);
+exports.getComponent = (metadata) => new Graph(metadata);
