@@ -1,3 +1,13 @@
+/* eslint-disable
+    class-methods-use-this,
+    consistent-return,
+    default-case,
+    no-param-reassign,
+    no-return-assign,
+    no-unused-vars,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS102: Remove unnecessary code created because of implicit returns
@@ -8,7 +18,7 @@
 //     (c) 2013-2017 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
-const {EventEmitter} = require('events');
+const { EventEmitter } = require('events');
 const IP = require('./IP');
 
 // ## Internal Sockets
@@ -39,11 +49,9 @@ class InternalSocket extends EventEmitter {
       this.emit('error', {
         id: this.to.process.id,
         error,
-        metadata: this.metadata
-      }
-      );
+        metadata: this.metadata,
+      });
     }
-
   }
 
   constructor(metadata) {
@@ -196,10 +204,10 @@ class InternalSocket extends EventEmitter {
   // but for sockets sending initial information packets to
   // components may also loom like _DATA -> ReadFile:SOURCE_.
   getId() {
-    const fromStr = from => `${from.process.id}() ${from.port.toUpperCase()}`;
-    const toStr = to => `${to.port.toUpperCase()} ${to.process.id}()`;
+    const fromStr = (from) => `${from.process.id}() ${from.port.toUpperCase()}`;
+    const toStr = (to) => `${to.port.toUpperCase()} ${to.process.id}()`;
 
-    if (!this.from && !this.to) { return "UNDEFINED"; }
+    if (!this.from && !this.to) { return 'UNDEFINED'; }
     if (this.from && !this.to) { return `${fromStr(this.from)} -> ANON`; }
     if (!this.from) { return `DATA -> ${toStr(this.to)}`; }
     return `${fromStr(this.from)} -> ${toStr(this.to)}`;
@@ -228,17 +236,17 @@ class InternalSocket extends EventEmitter {
       case 'openBracket':
         return legacy = {
           event: 'begingroup',
-          payload: ip.data
+          payload: ip.data,
         };
       case 'data':
         return legacy = {
           event: 'data',
-          payload: ip.data
+          payload: ip.data,
         };
       case 'closeBracket':
         return legacy = {
           event: 'endgroup',
-          payload: ip.data
+          payload: ip.data,
         };
     }
   }
@@ -283,10 +291,10 @@ class InternalSocket extends EventEmitter {
     if (isIP) {
       const legacy = this.ipToLegacy(ip);
       ({
-        event
+        event,
       } = legacy);
       ({
-        payload
+        payload,
       } = legacy);
     }
 
@@ -298,4 +306,4 @@ class InternalSocket extends EventEmitter {
 
 exports.InternalSocket = InternalSocket;
 
-exports.createSocket = () => new InternalSocket;
+exports.createSocket = () => new InternalSocket();
