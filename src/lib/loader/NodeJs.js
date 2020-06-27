@@ -1,17 +1,9 @@
 /* eslint-disable
-    consistent-return,
-    func-names,
     global-require,
     import/no-dynamic-require,
     import/no-unresolved,
-    no-param-reassign,
-    no-restricted-syntax,
-    no-shadow,
     no-underscore-dangle,
-    no-use-before-define,
-    no-var,
     prefer-destructuring,
-    vars-on-top,
 */
 const path = require('path');
 const fs = require('fs');
@@ -26,7 +18,7 @@ if (typeof CoffeeScript.register !== 'undefined') {
   CoffeeScript.register();
 }
 
-var registerCustomLoaders = function (loader, componentLoaders, callback) {
+function registerCustomLoaders(loader, componentLoaders, callback) {
   if (!componentLoaders.length) {
     callback(null);
     return;
@@ -39,12 +31,12 @@ var registerCustomLoaders = function (loader, componentLoaders, callback) {
     }
     registerCustomLoaders(loader, componentLoaders, callback);
   });
-};
+}
 
-const registerModules = function (loader, modules, callback) {
+function registerModules(loader, modules, callback) {
   const compatible = modules.filter((m) => ['noflo', 'noflo-nodejs'].includes(m.runtime));
   const componentLoaders = [];
-  for (const m of compatible) {
+  compatible.forEach((m) => {
     if (m.icon) { loader.setLibraryIcon(m.name, m.icon); }
 
     if (m.noflo != null ? m.noflo.loader : undefined) {
@@ -52,85 +44,26 @@ const registerModules = function (loader, modules, callback) {
       componentLoaders.push(loaderPath);
     }
 
-    for (const c of m.components) {
+    m.components.forEach((c) => {
       loader.registerComponent(m.name, c.name, path.resolve(loader.baseDir, c.path));
-    }
-  }
+    });
+  });
 
   registerCustomLoaders(loader, componentLoaders, callback);
-};
+}
 
-const manifestLoader = {
-  writeCache(loader, options, manifest, callback) {
-    const filePath = path.resolve(loader.baseDir, options.manifest);
-    fs.writeFile(filePath, JSON.stringify(manifest, null, 2),
-      { encoding: 'utf-8' },
-      callback);
-  },
-
-  readCache(loader, options, callback) {
-    options.discover = false;
-    manifest.load.load(loader.baseDir, options, callback);
-  },
-
-  prepareManifestOptions(loader) {
-    if (!loader.options) { loader.options = {}; }
-    const options = {};
-    options.runtimes = loader.options.runtimes || [];
-    if (options.runtimes.indexOf('noflo') === -1) { options.runtimes.push('noflo'); }
-    options.recursive = typeof loader.options.recursive === 'undefined' ? true : loader.options.recursive;
-    options.manifest = loader.options.manifest || 'fbp.json';
-    return options;
-  },
-
+const dynamicLoader = {
   listComponents(loader, manifestOptions, callback) {
-    this.readCache(loader, manifestOptions, (err, manifest) => {
-      if (err) {
-        if (!loader.options.discover) {
-          callback(err);
-          return;
-        }
-        dynamicLoader.listComponents(loader, manifestOptions, (err, modules) => {
-          if (err) {
-            callback(err);
-            return;
-          }
-          return this.writeCache(loader, manifestOptions, {
-            version: 1,
-            modules,
-          },
-          (err) => {
-            if (err) {
-              callback(err);
-              return;
-            }
-            callback(null, modules);
-          });
-        });
-        return;
-      }
-      registerModules(loader, manifest.modules, (err) => {
-        if (err) {
-          callback(err);
-          return;
-        }
-        callback(null, manifest.modules);
-      });
-    });
-  },
-};
-
-var dynamicLoader = {
-  listComponents(loader, manifestOptions, callback) {
-    manifestOptions.discover = true;
-    manifest.list.list(loader.baseDir, manifestOptions, (err, modules) => {
+    const opts = manifestOptions;
+    opts.discover = true;
+    manifest.list.list(loader.baseDir, opts, (err, modules) => {
       if (err) {
         callback(err);
         return;
       }
-      registerModules(loader, modules, (err) => {
-        if (err) {
-          callback(err);
+      registerModules(loader, modules, (err2) => {
+        if (err2) {
+          callback(err2);
           return;
         }
         callback(null, modules);
@@ -139,18 +72,75 @@ var dynamicLoader = {
   },
 };
 
-const registerSubgraph = function (loader) {
-  // Inject subgraph component
-  let graphPath;
-  if (path.extname(__filename) === '.js') {
-    graphPath = path.resolve(__dirname, '../../components/Graph.js');
-  } else {
-    graphPath = path.resolve(__dirname, '../../components/Graph.coffee');
-  }
-  loader.registerComponent(null, 'Graph', graphPath);
+const manifestLoader = {
+  writeCache(loader, options, manifestContents, callback) {
+    const filePath = path.resolve(loader.baseDir, options.manifest);
+    fs.writeFile(filePath, JSON.stringify(manifestContents, null, 2),
+      { encoding: 'utf-8' },
+      callback);
+  },
+
+  readCache(loader, options, callback) {
+    const opts = options;
+    opts.discover = false;
+    manifest.load.load(loader.baseDir, opts, callback);
+  },
+
+  prepareManifestOptions(loader) {
+    const l = loader;
+    if (!l.options) { l.options = {}; }
+    const options = {};
+    options.runtimes = l.options.runtimes || [];
+    if (options.runtimes.indexOf('noflo') === -1) { options.runtimes.push('noflo'); }
+    options.recursive = typeof l.options.recursive === 'undefined' ? true : l.options.recursive;
+    options.manifest = l.options.manifest || 'fbp.json';
+    return options;
+  },
+
+  listComponents(loader, manifestOptions, callback) {
+    this.readCache(loader, manifestOptions, (err, manifestContents) => {
+      if (err) {
+        if (!loader.options.discover) {
+          callback(err);
+          return;
+        }
+        dynamicLoader.listComponents(loader, manifestOptions, (err2, modules) => {
+          if (err2) {
+            callback(err2);
+            return;
+          }
+          this.writeCache(loader, manifestOptions, {
+            version: 1,
+            modules,
+          },
+          (err3) => {
+            if (err3) {
+              callback(err3);
+              return;
+            }
+            callback(null, modules);
+          });
+        });
+        return;
+      }
+      registerModules(loader, manifestContents.modules, (err2) => {
+        if (err2) {
+          callback(err2);
+          return;
+        }
+        callback(null, manifestContents.modules);
+      });
+    });
+  },
 };
 
-exports.register = function (loader, callback) {
+function registerSubgraph(loader) {
+  // Inject subgraph component
+  const graphPath = path.resolve(__dirname, '../../components/Graph.js');
+  loader.registerComponent(null, 'Graph', graphPath);
+}
+
+exports.register = function register(loader, callback) {
   const manifestOptions = manifestLoader.prepareManifestOptions(loader);
 
   if (loader.options != null ? loader.options.cache : undefined) {
@@ -175,7 +165,7 @@ exports.register = function (loader, callback) {
   });
 };
 
-exports.dynamicLoad = function (name, cPath, metadata, callback) {
+exports.dynamicLoad = function dynamicLoad(name, cPath, metadata, callback) {
   let e; let implementation; let
     instance;
   try {
@@ -210,13 +200,13 @@ exports.dynamicLoad = function (name, cPath, metadata, callback) {
   callback(null, instance);
 };
 
-exports.setSource = function (loader, packageId, name, source, language, callback) {
-  let e; let
-    implementation;
+exports.setSource = function setSource(loader, packageId, name, source, language, callback) {
+  let e; let implementation;
   const Module = require('module');
+  let src = source;
   if (language === 'coffeescript') {
     try {
-      source = CoffeeScript.compile(source,
+      src = CoffeeScript.compile(src,
         { bare: true });
     } catch (error) {
       e = error;
@@ -230,7 +220,7 @@ exports.setSource = function (loader, packageId, name, source, language, callbac
     const moduleImpl = new Module(modulePath, module);
     moduleImpl.paths = Module._nodeModulePaths(path.dirname(modulePath));
     moduleImpl.filename = modulePath;
-    moduleImpl._compile(source, modulePath);
+    moduleImpl._compile(src, modulePath);
     implementation = moduleImpl.exports;
   } catch (error1) {
     e = error1;
@@ -245,24 +235,27 @@ exports.setSource = function (loader, packageId, name, source, language, callbac
   loader.registerComponent(packageId, name, implementation, callback);
 };
 
-exports.getSource = function (loader, name, callback) {
+exports.getSource = function getSource(loader, name, callback) {
+  let componentName = name;
   let component = loader.components[name];
   if (!component) {
     // Try an alias
-    for (const componentName in loader.components) {
-      if (componentName.split('/')[1] === name) {
-        component = loader.components[componentName];
-        name = componentName;
+    const keys = Object.keys(loader.components);
+    for (let i = 0; i < keys.length; i += 1) {
+      const key = keys[i];
+      if (key.split('/')[1] === name) {
+        component = loader.components[key];
+        componentName = key;
         break;
       }
     }
     if (!component) {
-      callback(new Error(`Component ${name} not installed`));
+      callback(new Error(`Component ${componentName} not installed`));
       return;
     }
   }
 
-  const nameParts = name.split('/');
+  const nameParts = componentName.split('/');
   if (nameParts.length === 1) {
     nameParts[1] = nameParts[0];
     nameParts[0] = '';
@@ -279,7 +272,7 @@ exports.getSource = function (loader, name, callback) {
         });
         return;
       }
-      callback(new Error(`Can't provide source for ${name}. Not a file`));
+      callback(new Error(`Can't provide source for ${componentName}. Not a file`));
       return;
     }
     fbpGraph.graph.loadFile(component, (err, graph) => {
@@ -287,8 +280,11 @@ exports.getSource = function (loader, name, callback) {
         callback(err);
         return;
       }
-      if (!graph) { return callback(new Error('Unable to load graph')); }
-      return callback(null, {
+      if (!graph) {
+        callback(new Error('Unable to load graph'));
+        return;
+      }
+      callback(null, {
         name: nameParts[1],
         library: nameParts[0],
         code: JSON.stringify(graph.toJSON()),
@@ -299,7 +295,7 @@ exports.getSource = function (loader, name, callback) {
   }
 
   if (typeof component !== 'string') {
-    callback(new Error(`Can't provide source for ${name}. Not a file`));
+    callback(new Error(`Can't provide source for ${componentName}. Not a file`));
     return;
   }
 
