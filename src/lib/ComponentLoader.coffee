@@ -45,7 +45,7 @@ class ComponentLoader extends EventEmitter
     return '' unless name
     return '' if name is 'noflo'
     name = name.replace /\@[a-z\-]+\//, '' if name[0] is '@'
-    name.replace /^noflo-/, ''
+    return name.replace /^noflo-/, ''
 
   # Get the list of all available components
   listComponents: (callback) ->
@@ -76,7 +76,9 @@ class ComponentLoader extends EventEmitter
   load: (name, callback, metadata) ->
     unless @ready
       @listComponents (err) =>
-        return callback err if err
+        if err
+          callback err
+          return
         @load name, callback, metadata
       return
 
@@ -97,7 +99,9 @@ class ComponentLoader extends EventEmitter
       return
 
     @createComponent name, component, metadata, (err, instance) =>
-      return callback err if err
+      if err
+        callback err
+        return
       if not instance
         callback new Error "Component #{name} could not be loaded."
         return
@@ -115,27 +119,31 @@ class ComponentLoader extends EventEmitter
   createComponent: (name, component, metadata, callback) ->
     implementation = component
     unless implementation
-      return callback new Error "Component #{name} not available"
+      callback new Error "Component #{name} not available"
+      return
 
     # If a string was specified, attempt to `require` it.
     if typeof implementation is 'string'
       if typeof registerLoader.dynamicLoad is 'function'
         registerLoader.dynamicLoad name, implementation, metadata, callback
         return
-      return callback Error "Dynamic loading of #{implementation} for component #{name} not available on this platform."
+      callback Error "Dynamic loading of #{implementation} for component #{name} not available on this platform."
+      return
 
     # Attempt to create the component instance using the `getComponent` method.
     if typeof implementation.getComponent is 'function'
       try
         instance = implementation.getComponent metadata
       catch e
-        return callback e
+        callback e
+        return
     # Attempt to create a component using a factory function.
     else if typeof implementation is 'function'
       try
         instance = implementation metadata
       catch e
-        return callback e
+        callback e
+        return
     else
       callback new Error "Invalid type #{typeof(implementation)} for component #{name}."
       return
@@ -150,17 +158,21 @@ class ComponentLoader extends EventEmitter
     return true if typeof cPath is 'object' and cPath.processes and cPath.connections
     return false unless typeof cPath is 'string'
     # Graph file path
-    cPath.indexOf('.fbp') isnt -1 or cPath.indexOf('.json') isnt -1
+    return cPath.indexOf('.fbp') isnt -1 or cPath.indexOf('.json') isnt -1
 
   # Load a graph as a NoFlo subgraph component instance
   loadGraph: (name, component, callback, metadata) ->
     @createComponent name, @components['Graph'], metadata, (err, graph) =>
-      return callback err if err
+      if err
+        callback err
+        return
       graph.loader = @
       graph.baseDir = @baseDir
       graph.inPorts.remove 'graph'
       graph.setGraph component, (err) =>
-        return callback err if err
+        if err
+          callback err
+          return
         @setIcon name, graph
         callback null, graph
       return
@@ -196,12 +208,13 @@ class ComponentLoader extends EventEmitter
 
   setLibraryIcon: (prefix, icon) ->
     @libraryIcons[prefix] = icon
+    return
 
   normalizeName: (packageId, name) ->
     prefix = @getModulePrefix packageId
     fullName = "#{prefix}/#{name}"
     fullName = name unless packageId
-    fullName
+    return fullName
 
   # ### Registering components at runtime
   #
@@ -215,17 +228,20 @@ class ComponentLoader extends EventEmitter
     fullName = @normalizeName packageId, name
     @components[fullName] = cPath
     do callback if callback
+    return
 
   # With the `registerGraph` method you can register new
   # graphs as loadable components.
   registerGraph: (packageId, name, gPath, callback) ->
     @registerComponent packageId, name, gPath, callback
+    return
 
   # With `registerLoader` you can register custom component
   # loaders. They will be called immediately and can register
   # any components or graphs they wish.
   registerLoader: (loader, callback) ->
     loader @, callback
+    return
 
   # With `setSource` you can register a component by providing
   # a source code string. Supported languages and techniques
@@ -234,32 +250,41 @@ class ComponentLoader extends EventEmitter
   # the environment has a CoffeeScript compiler loaded.
   setSource: (packageId, name, source, language, callback) ->
     unless registerLoader.setSource
-      return callback new Error 'setSource not allowed'
+      callback new Error 'setSource not allowed'
+      return
 
     unless @ready
       @listComponents (err) =>
-        return callback err if err
+        if err
+          callback err
+          return
         @setSource packageId, name, source, language, callback
       return
 
     registerLoader.setSource @, packageId, name, source, language, callback
+    return
 
   # `getSource` allows fetching the source code of a registered
   # component as a string.
   getSource: (name, callback) ->
     unless registerLoader.getSource
-      return callback new Error 'getSource not allowed'
+      callback new Error 'getSource not allowed'
+      return
     unless @ready
       @listComponents (err) =>
-        return callback err if err
+        if err
+          callback err
+          return
         @getSource name, callback
       return
 
     registerLoader.getSource @, name, callback
+    return
 
   clear: ->
     @components = null
     @ready = false
     @processing = false
+    return
 
 exports.ComponentLoader = ComponentLoader
