@@ -1,3 +1,15 @@
+/* eslint-disable
+    class-methods-use-this,
+    consistent-return,
+    import/no-unresolved,
+    no-param-reassign,
+    no-restricted-syntax,
+    no-shadow,
+    no-unreachable,
+    no-useless-escape,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS101: Remove unnecessary use of Array.from
@@ -10,7 +22,7 @@
 //     (c) 2013 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
 const fbpGraph = require('fbp-graph');
-const {EventEmitter} = require('events');
+const { EventEmitter } = require('events');
 const registerLoader = require('./loader/register');
 const platform = require('./Platform');
 
@@ -60,9 +72,7 @@ class ComponentLoader extends EventEmitter {
   // Get the list of all available components
   listComponents(callback) {
     if (this.processing) {
-      this.once('ready', () => {
-        return callback(null, this.components);
-      });
+      this.once('ready', () => callback(null, this.components));
       return;
     }
     if (this.components) { return callback(null, this.components); }
@@ -71,7 +81,7 @@ class ComponentLoader extends EventEmitter {
     this.processing = true;
 
     this.components = {};
-    registerLoader.register(this, err => {
+    registerLoader.register(this, (err) => {
       if (err) {
         return callback(err);
         throw err;
@@ -90,7 +100,7 @@ class ComponentLoader extends EventEmitter {
   load(name, callback, metadata) {
     let componentName;
     if (!this.ready) {
-      this.listComponents(err => {
+      this.listComponents((err) => {
         if (err) {
           callback(err);
           return;
@@ -145,7 +155,8 @@ class ComponentLoader extends EventEmitter {
 
   // Creates an instance of a component.
   createComponent(name, component, metadata, callback) {
-    let e, instance;
+    let e; let
+      instance;
     const implementation = component;
     if (!implementation) {
       callback(new Error(`Component ${name} not available`));
@@ -181,7 +192,7 @@ class ComponentLoader extends EventEmitter {
         return;
       }
     } else {
-      callback(new Error(`Invalid type ${typeof(implementation)} for component ${name}.`));
+      callback(new Error(`Invalid type ${typeof (implementation)} for component ${name}.`));
       return;
     }
 
@@ -201,7 +212,7 @@ class ComponentLoader extends EventEmitter {
 
   // Load a graph as a NoFlo subgraph component instance
   loadGraph(name, component, callback, metadata) {
-    this.createComponent(name, this.components['Graph'], metadata, (err, graph) => {
+    this.createComponent(name, this.components.Graph, metadata, (err, graph) => {
       if (err) {
         callback(err);
         return;
@@ -209,7 +220,7 @@ class ComponentLoader extends EventEmitter {
       graph.loader = this;
       graph.baseDir = this.baseDir;
       graph.inPorts.remove('graph');
-      graph.setGraph(component, err => {
+      graph.setGraph(component, (err) => {
         if (err) {
           callback(err);
           return;
@@ -302,7 +313,7 @@ class ComponentLoader extends EventEmitter {
     }
 
     if (!this.ready) {
-      this.listComponents(err => {
+      this.listComponents((err) => {
         if (err) {
           callback(err);
           return;
@@ -323,7 +334,7 @@ class ComponentLoader extends EventEmitter {
       return;
     }
     if (!this.ready) {
-      this.listComponents(err => {
+      this.listComponents((err) => {
         if (err) {
           callback(err);
           return;
