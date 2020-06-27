@@ -1,6 +1,5 @@
 /* eslint-disable
     global-require,
-    import/no-unresolved,
 */
 const { isBrowser } = require('../Platform');
 
