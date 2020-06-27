@@ -166,30 +166,26 @@ exports.register = function register(loader, callback) {
 };
 
 exports.dynamicLoad = function dynamicLoad(name, cPath, metadata, callback) {
-  let e; let implementation; let
-    instance;
+  let implementation; let instance;
   try {
     implementation = require(cPath);
-  } catch (error) {
-    e = error;
-    callback(e);
+  } catch (err) {
+    callback(err);
     return;
   }
 
   if (typeof implementation.getComponent === 'function') {
     try {
       instance = implementation.getComponent(metadata);
-    } catch (error1) {
-      e = error1;
-      callback(e);
+    } catch (err) {
+      callback(err);
       return;
     }
   } else if (typeof implementation === 'function') {
     try {
       instance = implementation(metadata);
-    } catch (error2) {
-      e = error2;
-      callback(e);
+    } catch (err) {
+      callback(err);
       return;
     }
   } else {
@@ -201,19 +197,18 @@ exports.dynamicLoad = function dynamicLoad(name, cPath, metadata, callback) {
 };
 
 exports.setSource = function setSource(loader, packageId, name, source, language, callback) {
-  let e; let implementation;
   const Module = require('module');
   let src = source;
   if (language === 'coffeescript') {
     try {
       src = CoffeeScript.compile(src,
         { bare: true });
-    } catch (error) {
-      e = error;
-      callback(e);
+    } catch (err) {
+      callback(err);
       return;
     }
   }
+  let implementation;
   try {
     // Use the Node.js module API to evaluate in the correct directory context
     const modulePath = path.resolve(loader.baseDir, `./components/${name}.js`);
@@ -222,9 +217,8 @@ exports.setSource = function setSource(loader, packageId, name, source, language
     moduleImpl.filename = modulePath;
     moduleImpl._compile(src, modulePath);
     implementation = moduleImpl.exports;
-  } catch (error1) {
-    e = error1;
-    callback(e);
+  } catch (err) {
+    callback(err);
     return;
   }
   if ((typeof implementation !== 'function') && (typeof implementation.getComponent !== 'function')) {

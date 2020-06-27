@@ -123,7 +123,7 @@ class Graph extends noflo.Component {
     });
   }
 
-  subscribeNetwork(network) {
+  subscribeNetwork() {
     const contexts = [];
     this.network.on('start', () => {
       const ctx = {};
