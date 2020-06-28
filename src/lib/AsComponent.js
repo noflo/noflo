@@ -1,3 +1,13 @@
+/* eslint-disable
+    consistent-return,
+    func-names,
+    max-len,
+    no-restricted-syntax,
+    no-shadow,
+    prefer-spread,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS101: Remove unnecessary use of Array.from
@@ -8,7 +18,7 @@
 //     (c) 2018 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
 const getParams = require('get-function-params');
-const {Component} = require('./Component');
+const { Component } = require('./Component');
 
 // ## asComponent generator API
 //
@@ -58,10 +68,10 @@ const {Component} = require('./Component');
 //
 // However, ES5 transpilation doesn't work with default values. In these cases the port with a default won't be visible. It is
 // recommended to use default values only with components that don't need to run in legacy browsers.
-exports.asComponent = function(func, options) {
+exports.asComponent = function (func, options) {
   let p;
   let hasCallback = false;
-  const params = getParams(func).filter(function(p) {
+  const params = getParams(func).filter((p) => {
     if (p.param !== 'callback') { return true; }
     hasCallback = true;
     return false;
@@ -69,8 +79,7 @@ exports.asComponent = function(func, options) {
 
   const c = new Component(options);
   for (p of Array.from(params)) {
-    const portOptions =
-      {required: true};
+    const portOptions = { required: true };
     if (typeof p.default !== 'undefined') {
       portOptions.default = p.default;
       portOptions.required = false;
@@ -80,18 +89,19 @@ exports.asComponent = function(func, options) {
   }
   if (!params.length) {
     c.inPorts.add('in',
-      {datatype: 'bang'});
+      { datatype: 'bang' });
   }
 
   c.outPorts.add('out');
   c.outPorts.add('error');
-  c.process(function(input, output) {
-    let res, values;
+  c.process((input, output) => {
+    let res; let
+      values;
     if (params.length) {
       for (p of Array.from(params)) {
         if (!input.hasData(p.param)) { return; }
       }
-      values = params.map(p => input.getData(p.param));
+      values = params.map((p) => input.getData(p.param));
     } else {
       if (!input.hasData('in')) { return; }
       input.getData('in');
@@ -100,7 +110,7 @@ exports.asComponent = function(func, options) {
 
     if (hasCallback) {
       // Handle Node.js style async functions
-      values.push(function(err, res) {
+      values.push((err, res) => {
         if (err) {
           output.done(err);
           return;
@@ -114,8 +124,8 @@ exports.asComponent = function(func, options) {
     res = func.apply(null, values);
     if (res && (typeof res === 'object') && (typeof res.then === 'function')) {
       // Result is a Promise, resolve and handle
-      res.then(val => output.sendDone(val)
-      , err => output.done(err));
+      res.then((val) => output.sendDone(val),
+        (err) => output.done(err));
       return;
     }
     return output.sendDone(res);
