@@ -88,7 +88,9 @@ exports.asComponent = (func, options) ->
     if hasCallback
       # Handle Node.js style async functions
       values.push (err, res) ->
-        return output.done err if err
+        if err
+          output.done err
+          return
         output.sendDone res
       res = func.apply null, values
       return
