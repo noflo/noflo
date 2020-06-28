@@ -1,19 +1,3 @@
-/* eslint-disable
-    consistent-return,
-    func-names,
-    max-len,
-    no-restricted-syntax,
-    no-shadow,
-    prefer-spread,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2018 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
@@ -32,9 +16,12 @@ const { Component } = require('./Component');
 //
 // Variants supported:
 //
-// * Regular synchronous functions: return value gets sent to `out`. Thrown errors get sent to `error`
-// * Functions returning a Promise: resolved promises get sent to `out`, rejected promises to `error`
-// * Functions taking a Node.js style asynchronous callback: `err` argument to callback gets sent to `error`, result gets sent to `out`
+// * Regular synchronous functions: return value gets sent to `out`.
+//   Thrown errors get sent to `error`
+// * Functions returning a Promise: resolved promises get sent to `out`,
+//   rejected promises to `error`
+// * Functions taking a Node.js style asynchronous callback: `err` argument
+//   to callback gets sent to `error`, result gets sent to `out`
 //
 // Usage example:
 //
@@ -46,9 +33,9 @@ const { Component } = require('./Component');
 //
 // ### Wrapping built-in functions
 //
-// Built-in JavaScript functions don't make their arguments introspectable. Because of this, these
-// cannot be directly converted to components. You'll have to provide a wrapper JavaScript function to make
-// the arguments appear as ports.
+// Built-in JavaScript functions don't make their arguments introspectable.
+// Because of this, these cannot be directly converted to components.
+// You'll have to provide a wrapper JavaScript function to make  the arguments appear as ports.
 //
 // Example:
 //
@@ -63,13 +50,13 @@ const { Component } = require('./Component');
 //
 // ### Default values
 //
-// Function arguments with a default value are supported in ES6 environments. The default arguments are visible via the component's
-// port interface.
+// Function arguments with a default value are supported in ES6 environments.
+// The default arguments are visible via the component's port interface.
 //
-// However, ES5 transpilation doesn't work with default values. In these cases the port with a default won't be visible. It is
+// However, ES5 transpilation doesn't work with default values.
+// In these cases the port with a default won't be visible. It is
 // recommended to use default values only with components that don't need to run in legacy browsers.
-exports.asComponent = function (func, options) {
-  let p;
+exports.asComponent = function asComponent(func, options) {
   let hasCallback = false;
   const params = getParams(func).filter((p) => {
     if (p.param !== 'callback') { return true; }
@@ -78,7 +65,7 @@ exports.asComponent = function (func, options) {
   });
 
   const c = new Component(options);
-  for (p of Array.from(params)) {
+  params.forEach((p) => {
     const portOptions = { required: true };
     if (typeof p.default !== 'undefined') {
       portOptions.default = p.default;
@@ -86,7 +73,7 @@ exports.asComponent = function (func, options) {
     }
     c.inPorts.add(p.param, portOptions);
     c.forwardBrackets[p.param] = ['out', 'error'];
-  }
+  });
   if (!params.length) {
     c.inPorts.add('in',
       { datatype: 'bang' });
@@ -95,10 +82,10 @@ exports.asComponent = function (func, options) {
   c.outPorts.add('out');
   c.outPorts.add('error');
   c.process((input, output) => {
-    let res; let
-      values;
+    let values;
     if (params.length) {
-      for (p of Array.from(params)) {
+      for (let i = 0; i < params.length; i += 1) {
+        const p = params[i];
         if (!input.hasData(p.param)) { return; }
       }
       values = params.map((p) => input.getData(p.param));
@@ -115,20 +102,20 @@ exports.asComponent = function (func, options) {
           output.done(err);
           return;
         }
-        return output.sendDone(res);
+        output.sendDone(res);
       });
-      res = func.apply(null, values);
+      func(...values);
       return;
     }
 
-    res = func.apply(null, values);
+    const res = func(...values);
     if (res && (typeof res === 'object') && (typeof res.then === 'function')) {
       // Result is a Promise, resolve and handle
       res.then((val) => output.sendDone(val),
         (err) => output.done(err));
       return;
     }
-    return output.sendDone(res);
+    output.sendDone(res);
   });
   return c;
 };
