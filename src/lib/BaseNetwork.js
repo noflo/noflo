@@ -1,41 +1,66 @@
-/* eslint-disable
-    class-methods-use-this,
-    consistent-return,
-    default-case,
-    func-names,
-    guard-for-in,
-    max-len,
-    no-continue,
-    no-param-reassign,
-    no-plusplus,
-    no-restricted-syntax,
-    no-shadow,
-    no-underscore-dangle,
-    no-unreachable,
-    no-unused-vars,
-    no-var,
-    vars-on-top,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2013-2018 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
-const graph = require('fbp-graph');
+
+/* eslint-disable
+    no-param-reassign,
+    no-underscore-dangle,
+*/
+
 const { EventEmitter } = require('events');
 const internalSocket = require('./InternalSocket');
 const platform = require('./Platform');
 const componentLoader = require('./ComponentLoader');
 const utils = require('./Utils');
 const IP = require('./IP');
+
+function connectPort(socket, process, port, index, inbound, callback) {
+  if (inbound) {
+    socket.to = {
+      process,
+      port,
+      index,
+    };
+
+    if (!process.component.inPorts || !process.component.inPorts[port]) {
+      callback(new Error(`No inport '${port}' defined in process ${process.id} (${socket.getId()})`));
+      return;
+    }
+    if (process.component.inPorts[port].isAddressable()) {
+      process.component.inPorts[port].attach(socket, index);
+      callback();
+      return;
+    }
+    process.component.inPorts[port].attach(socket);
+    callback();
+    return;
+  }
+
+  socket.from = {
+    process,
+    port,
+    index,
+  };
+
+  if (!process.component.outPorts || !process.component.outPorts[port]) {
+    callback(new Error(`No outport '${port}' defined in process ${process.id} (${socket.getId()})`));
+    return;
+  }
+
+  if (process.component.outPorts[port].isAddressable()) {
+    process.component.outPorts[port].attach(socket, index);
+    callback();
+    return;
+  }
+  process.component.outPorts[port].attach(socket);
+  callback();
+}
+
+function sendInitial(initial) {
+  initial.socket.post(new IP('data', initial.data,
+    { initial: true }));
+}
 
 // ## The NoFlo network coordinator
 //
@@ -103,7 +128,7 @@ class BaseNetwork extends EventEmitter {
   getActiveProcesses() {
     const active = [];
     if (!this.started) { return active; }
-    for (const name in this.processes) {
+    Object.keys(this.processes).forEach((name) => {
       const process = this.processes[name];
       if (process.component.load > 0) {
         // Modern component with load
@@ -113,7 +138,7 @@ class BaseNetwork extends EventEmitter {
         // Legacy component
         active.push(name);
       }
-    }
+    });
     return active;
   }
 
@@ -135,9 +160,9 @@ class BaseNetwork extends EventEmitter {
 
     if (event === 'start') {
       // Once network has started we can send the IP-related events
-      for (const ev of Array.from(this.eventBuffer)) {
+      this.eventBuffer.forEach((ev) => {
         this.emit(ev.type, ev.payload);
-      }
+      });
       this.eventBuffer = [];
     }
 
@@ -147,15 +172,13 @@ class BaseNetwork extends EventEmitter {
         case 'openBracket':
           this.bufferedEmit('begingroup', payload);
           return;
-          break;
         case 'closeBracket':
           this.bufferedEmit('endgroup', payload);
           return;
-          break;
         case 'data':
           this.bufferedEmit('data', payload);
-
           break;
+        default:
       }
     }
   }
@@ -201,8 +224,6 @@ class BaseNetwork extends EventEmitter {
 
     // Load the component for the process.
     this.load(node.component, node.metadata, (err, instance) => {
-      let name; let
-        port;
       if (err) {
         callback(err);
         return;
@@ -214,19 +235,19 @@ class BaseNetwork extends EventEmitter {
       // Inform the ports of the node name
       const inPorts = process.component.inPorts.ports;
       const outPorts = process.component.outPorts.ports;
-      for (name in inPorts) {
-        port = inPorts[name];
+      Object.keys(inPorts).forEach((name) => {
+        const port = inPorts[name];
         port.node = node.id;
         port.nodeInstance = instance;
         port.name = name;
-      }
+      });
 
-      for (name in outPorts) {
-        port = outPorts[name];
+      Object.keys(outPorts).forEach((name) => {
+        const port = outPorts[name];
         port.node = node.id;
         port.nodeInstance = instance;
         port.name = name;
-      }
+      });
 
       if (instance.isSubgraph()) { this.subscribeSubgraph(process); }
 
@@ -255,8 +276,6 @@ class BaseNetwork extends EventEmitter {
   }
 
   renameNode(oldId, newId, callback) {
-    let name; let
-      port;
     const process = this.getNode(oldId);
     if (!process) {
       callback(new Error(`Process ${oldId} not found`));
@@ -269,16 +288,16 @@ class BaseNetwork extends EventEmitter {
     // Inform the ports of the node name
     const inPorts = process.component.inPorts.ports;
     const outPorts = process.component.outPorts.ports;
-    for (name in inPorts) {
-      port = inPorts[name];
-      if (!port) { continue; }
+    Object.keys(inPorts).forEach((name) => {
+      const port = inPorts[name];
+      if (!port) { return; }
       port.node = newId;
-    }
-    for (name in outPorts) {
-      port = outPorts[name];
-      if (!port) { continue; }
+    });
+    Object.keys(outPorts).forEach((name) => {
+      const port = outPorts[name];
+      if (!port) { return; }
       port.node = newId;
-    }
+    });
 
     this.processes[newId] = process;
     delete this.processes[oldId];
@@ -290,10 +309,9 @@ class BaseNetwork extends EventEmitter {
     return this.processes[id];
   }
 
-  connect(done) {
+  connect(done = () => {}) {
     // Wrap the future which will be called when done in a function and return
     // it
-    if (done == null) { done = function () {}; }
     let callStack = 0;
     const serialize = (next, add) => (type) => {
       // Add either a Node, an Initial, or an Edge and move on to the next one
@@ -305,7 +323,7 @@ class BaseNetwork extends EventEmitter {
             done(err);
             return;
           }
-          callStack++;
+          callStack += 1;
           if ((callStack % 100) === 0) {
             setTimeout(() => {
               next(type);
@@ -338,48 +356,6 @@ class BaseNetwork extends EventEmitter {
     });
     // Start with node creators
     nodes('Node');
-  }
-
-  connectPort(socket, process, port, index, inbound, callback) {
-    if (inbound) {
-      socket.to = {
-        process,
-        port,
-        index,
-      };
-
-      if (!process.component.inPorts || !process.component.inPorts[port]) {
-        callback(new Error(`No inport '${port}' defined in process ${process.id} (${socket.getId()})`));
-        return;
-      }
-      if (process.component.inPorts[port].isAddressable()) {
-        process.component.inPorts[port].attach(socket, index);
-        callback();
-        return;
-      }
-      process.component.inPorts[port].attach(socket);
-      callback();
-      return;
-    }
-
-    socket.from = {
-      process,
-      port,
-      index,
-    };
-
-    if (!process.component.outPorts || !process.component.outPorts[port]) {
-      callback(new Error(`No outport '${port}' defined in process ${process.id} (${socket.getId()})`));
-      return;
-    }
-
-    if (process.component.outPorts[port].isAddressable()) {
-      process.component.outPorts[port].attach(socket, index);
-      callback();
-      return;
-    }
-    process.component.outPorts[port].attach(socket);
-    callback();
   }
 
   subscribeSubgraph(node) {
@@ -443,10 +419,10 @@ class BaseNetwork extends EventEmitter {
     // Handle activation for legacy components via connects/disconnects
     socket.on('connect', () => {
       if (!source.component.__openConnections) { source.component.__openConnections = 0; }
-      source.component.__openConnections++;
+      source.component.__openConnections += 1;
     });
     socket.on('disconnect', () => {
-      source.component.__openConnections--;
+      source.component.__openConnections -= 1;
       if (source.component.__openConnections < 0) {
         source.component.__openConnections = 0;
       }
@@ -457,7 +433,7 @@ class BaseNetwork extends EventEmitter {
   }
 
   subscribeNode(node) {
-    node.component.on('activate', (load) => {
+    node.component.on('activate', () => {
       if (this.debouncedEnd) { this.abortDebounce = true; }
     });
     node.component.on('deactivate', (load) => {
@@ -518,14 +494,14 @@ class BaseNetwork extends EventEmitter {
     // Subscribe to events from the socket
     this.subscribeSocket(socket, from);
 
-    this.connectPort(socket, to, edge.to.port, edge.to.index, true, (err) => {
+    connectPort(socket, to, edge.to.port, edge.to.index, true, (err) => {
       if (err) {
         callback(err);
         return;
       }
-      this.connectPort(socket, from, edge.from.port, edge.from.index, false, (err) => {
-        if (err) {
-          callback(err);
+      connectPort(socket, from, edge.from.port, edge.from.index, false, (err2) => {
+        if (err2) {
+          callback(err2);
           return;
         }
 
@@ -536,18 +512,22 @@ class BaseNetwork extends EventEmitter {
   }
 
   removeEdge(edge, callback) {
-    for (const connection of Array.from(this.connections)) {
-      if (!connection) { continue; }
-      if ((edge.to.node !== connection.to.process.id) || (edge.to.port !== connection.to.port)) { continue; }
+    this.connections.forEach((connection) => {
+      if (!connection) { return; }
+      if ((edge.to.node !== connection.to.process.id) || (edge.to.port !== connection.to.port)) {
+        return;
+      }
       connection.to.process.component.inPorts[connection.to.port].detach(connection);
       if (edge.from.node) {
-        if (connection.from && (edge.from.node === connection.from.process.id) && (edge.from.port === connection.from.port)) {
+        if (connection.from
+          && (edge.from.node === connection.from.process.id)
+          && (edge.from.port === connection.from.port)) {
           connection.from.process.component.outPorts[connection.from.port].detach(connection);
         }
       }
       this.connections.splice(this.connections.indexOf(connection), 1);
       callback();
-    }
+    });
   }
 
   addDefaults(node, options, callback) {
@@ -574,7 +554,7 @@ class BaseNetwork extends EventEmitter {
       return;
     }
 
-    for (const key in process.component.inPorts.ports) {
+    Object.keys(process.component.inPorts.ports).forEach((key) => {
       // Attach a socket to any defaulted inPorts as long as they aren't already attached.
       const port = process.component.inPorts.ports[key];
       if (port.hasDefault() && !port.isAttached()) {
@@ -584,13 +564,13 @@ class BaseNetwork extends EventEmitter {
         // Subscribe to events from the socket
         this.subscribeSocket(socket);
 
-        this.connectPort(socket, process, key, undefined, true, () => {});
+        connectPort(socket, process, key, undefined, true, () => {});
 
         this.connections.push(socket);
 
         this.defaults.push(socket);
       }
-    }
+    });
 
     callback();
   }
@@ -625,7 +605,7 @@ class BaseNetwork extends EventEmitter {
       return;
     }
 
-    this.connectPort(socket, to, initializer.to.port, initializer.to.index, true, (err) => {
+    connectPort(socket, to, initializer.to.port, initializer.to.index, true, (err) => {
       if (err) {
         callback(err);
         return;
@@ -650,45 +630,40 @@ class BaseNetwork extends EventEmitter {
         (this.sendInitials)();
       }
 
-      return callback();
+      callback();
     });
   }
 
   removeInitial(initializer, callback) {
-    for (const connection of Array.from(this.connections)) {
-      var init;
-      if (!connection) { continue; }
-      if ((initializer.to.node !== connection.to.process.id) || (initializer.to.port !== connection.to.port)) { continue; }
+    this.connections.forEach((connection) => {
+      if (!connection) { return; }
+      if ((initializer.to.node !== connection.to.process.id)
+        || (initializer.to.port !== connection.to.port)) {
+        return;
+      }
       connection.to.process.component.inPorts[connection.to.port].detach(connection);
       this.connections.splice(this.connections.indexOf(connection), 1);
 
-      for (init of Array.from(this.initials)) {
-        if (!init) { continue; }
-        if (init.socket !== connection) { continue; }
+      for (let i = 0; i < this.initials.length; i += 1) {
+        const init = this.initials[i];
+        if (!init) { return; }
+        if (init.socket !== connection) { return; }
         this.initials.splice(this.initials.indexOf(init), 1);
       }
-      for (init of Array.from(this.nextInitials)) {
-        if (!init) { continue; }
-        if (init.socket !== connection) { continue; }
+      for (let i = 0; i < this.nextInitials.length; i += 1) {
+        const init = this.nextInitials[i];
+        if (!init) { return; }
+        if (init.socket !== connection) { return; }
         this.nextInitials.splice(this.nextInitials.indexOf(init), 1);
       }
-    }
+    });
 
     callback();
   }
 
-  sendInitial(initial) {
-    initial.socket.post(new IP('data', initial.data,
-      { initial: true }));
-  }
-
-  sendInitials(callback) {
-    if (!callback) {
-      callback = function () {};
-    }
-
+  sendInitials(callback = () => {}) {
     const send = () => {
-      for (const initial of Array.from(this.initials)) { this.sendInitial(initial); }
+      this.initials.forEach((initial) => { sendInitial(initial); });
       this.initials = [];
       callback();
     };
@@ -713,58 +688,56 @@ class BaseNetwork extends EventEmitter {
     return this.getActiveProcesses().length > 0;
   }
 
-  startComponents(callback) {
-    if (!callback) {
-      callback = function () {};
-    }
-
+  startComponents(callback = () => {}) {
     // Emit start event when all processes are started
     let count = 0;
     const length = this.processes ? Object.keys(this.processes).length : 0;
-    const onProcessStart = function (err) {
+    const onProcessStart = (err) => {
       if (err) {
         callback(err);
         return;
       }
-      count++;
+      count += 1;
       if (count === length) { callback(); }
     };
 
     // Perform any startup routines necessary for every component.
-    if (!this.processes || !Object.keys(this.processes).length) { return callback(); }
-    for (const id in this.processes) {
+    if (!this.processes || !Object.keys(this.processes).length) {
+      callback();
+      return;
+    }
+    Object.keys(this.processes).forEach((id) => {
       const process = this.processes[id];
       if (process.component.isStarted()) {
         onProcessStart();
-        continue;
+        return;
       }
       if (process.component.start.length === 0) {
         platform.deprecated('component.start method without callback is deprecated');
         process.component.start();
         onProcessStart();
-        continue;
+        return;
       }
       process.component.start(onProcessStart);
-    }
+    });
   }
 
-  sendDefaults(callback) {
-    if (!callback) {
-      callback = function () {};
+  sendDefaults(callback = () => {}) {
+    if (!this.defaults.length) {
+      callback();
+      return;
     }
 
-    if (!this.defaults.length) { return callback(); }
-
-    for (const socket of Array.from(this.defaults)) {
+    this.defaults.forEach((socket) => {
       // Don't send defaults if more than one socket is present on the port.
       // This case should only happen when a subgraph is created as a component
       // as its network is instantiated and its inputs are serialized before
       // a socket is attached from the "parent" graph.
-      if (socket.to.process.component.inPorts[socket.to.port].sockets.length !== 1) { continue; }
+      if (socket.to.process.component.inPorts[socket.to.port].sockets.length !== 1) { return; }
       socket.connect();
       socket.send();
       socket.disconnect();
-    }
+    });
 
     callback();
   }
@@ -772,7 +745,7 @@ class BaseNetwork extends EventEmitter {
   start(callback) {
     if (!callback) {
       platform.deprecated('Calling network.start() without callback is deprecated');
-      callback = function () {};
+      callback = () => {};
     }
 
     if (this.debouncedEnd) { this.abortDebounce = true; }
@@ -795,14 +768,14 @@ class BaseNetwork extends EventEmitter {
         callback(err);
         return;
       }
-      this.sendInitials((err) => {
-        if (err) {
-          callback(err);
+      this.sendInitials((err2) => {
+        if (err2) {
+          callback(err2);
           return;
         }
-        this.sendDefaults((err) => {
-          if (err) {
-            callback(err);
+        this.sendDefaults((err3) => {
+          if (err3) {
+            callback(err3);
             return;
           }
           this.setStarted(true);
@@ -815,21 +788,22 @@ class BaseNetwork extends EventEmitter {
   stop(callback) {
     if (!callback) {
       platform.deprecated('Calling network.stop() without callback is deprecated');
-      callback = function () {};
+      callback = () => {};
     }
 
     if (this.debouncedEnd) { this.abortDebounce = true; }
 
     if (!this.started) {
       this.stopped = true;
-      return callback(null);
+      callback(null);
+      return;
     }
 
     // Disconnect all connections
-    for (const connection of Array.from(this.connections)) {
-      if (!connection.isConnected()) { continue; }
+    this.connections.forEach((connection) => {
+      if (!connection.isConnected()) { return; }
       connection.disconnect();
-    }
+    });
 
     // Emit stop event when all processes are stopped
     let count = 0;
@@ -839,7 +813,7 @@ class BaseNetwork extends EventEmitter {
         callback(err);
         return;
       }
-      count++;
+      count += 1;
       if (count === length) {
         this.setStarted(false);
         this.stopped = true;
@@ -849,23 +823,24 @@ class BaseNetwork extends EventEmitter {
     if (!this.processes || !Object.keys(this.processes).length) {
       this.setStarted(false);
       this.stopped = true;
-      return callback();
+      callback();
+      return;
     }
     // Tell processes to shut down
-    for (const id in this.processes) {
+    Object.keys(this.processes).forEach((id) => {
       const process = this.processes[id];
       if (!process.component.isStarted()) {
         onProcessEnd();
-        continue;
+        return;
       }
       if (process.component.shutdown.length === 0) {
         platform.deprecated('component.shutdown method without callback is deprecated');
         process.component.shutdown();
         onProcessEnd();
-        continue;
+        return;
       }
       process.component.shutdown(onProcessEnd);
-    }
+    });
   }
 
   setStarted(started) {
@@ -911,14 +886,14 @@ class BaseNetwork extends EventEmitter {
     if (active === this.debug) { return; }
     this.debug = active;
 
-    for (const socket of Array.from(this.connections)) {
+    this.connections.forEach((socket) => {
       socket.setDebug(active);
-    }
-    for (const processId in this.processes) {
+    });
+    Object.keys(this.processes).forEach((processId) => {
       const process = this.processes[processId];
       const instance = process.component;
       if (instance.isSubgraph()) { instance.network.setDebug(active); }
-    }
+    });
   }
 }
 
