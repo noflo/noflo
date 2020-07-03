@@ -1,19 +1,12 @@
-/* eslint-disable
-    max-len,
-    no-param-reassign,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2013-2018 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
 const BaseNetwork = require('./BaseNetwork');
+
+/* eslint-disable
+    no-param-reassign,
+*/
 
 // ## The NoFlo network coordinator
 //
@@ -28,8 +21,7 @@ class Network extends BaseNetwork {
   // All NoFlo networks are instantiated with a graph. Upon instantiation
   // they will load all the needed components, instantiate them, and
   // set up the defined connections and IIPs.
-  constructor(graph, options) {
-    if (options == null) { options = {}; }
+  constructor(graph, options = {}) {
     super(graph, options);
   }
 
@@ -91,7 +83,15 @@ class Network extends BaseNetwork {
         return;
       }
       if (!options.initial) {
-        this.graph.addEdgeIndex(edge.from.node, edge.from.port, edge.from.index, edge.to.node, edge.to.port, edge.to.index, edge.metadata);
+        this.graph.addEdgeIndex(
+          edge.from.node,
+          edge.from.port,
+          edge.from.index,
+          edge.to.node,
+          edge.to.port,
+          edge.to.index,
+          edge.metadata,
+        );
       }
       callback();
     });
@@ -123,7 +123,13 @@ class Network extends BaseNetwork {
         return;
       }
       if (!options.initial) {
-        this.graph.addInitialIndex(iip.from.data, iip.to.node, iip.to.port, iip.to.index, iip.metadata);
+        this.graph.addInitialIndex(
+          iip.from.data,
+          iip.to.node,
+          iip.to.port,
+          iip.to.index,
+          iip.metadata,
+        );
       }
       callback();
     });
