@@ -1,3 +1,9 @@
+/* eslint-disable
+    max-len,
+    no-param-reassign,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS207: Consider shorter variations of null checks
@@ -49,7 +55,7 @@ class Network extends BaseNetwork {
   // Remove a process from the network. The node will also be removed
   // from the current graph.
   removeNode(node, callback) {
-    super.removeNode(node, err => {
+    super.removeNode(node, (err) => {
       if (err) {
         callback(err);
         return;
@@ -62,7 +68,7 @@ class Network extends BaseNetwork {
   // Rename a process in the network. Renaming a process also modifies
   // the current graph.
   renameNode(oldId, newId, callback) {
-    super.renameNode(oldId, newId, err => {
+    super.renameNode(oldId, newId, (err) => {
       if (err) {
         callback(err);
         return;
@@ -79,7 +85,7 @@ class Network extends BaseNetwork {
       callback = options;
       options = {};
     }
-    super.addEdge(edge, options, err => {
+    super.addEdge(edge, options, (err) => {
       if (err) {
         callback(err);
         return;
@@ -94,7 +100,7 @@ class Network extends BaseNetwork {
   // Remove a connection from the network. The edge will also be removed
   // from the current graph.
   removeEdge(edge, callback) {
-    super.removeEdge(edge, err => {
+    super.removeEdge(edge, (err) => {
       if (err) {
         callback(err);
         return;
@@ -111,7 +117,7 @@ class Network extends BaseNetwork {
       callback = options;
       options = {};
     }
-    super.addInitial(iip, options, err => {
+    super.addInitial(iip, options, (err) => {
       if (err) {
         callback(err);
         return;
@@ -126,7 +132,7 @@ class Network extends BaseNetwork {
   // Remove an IIP from the network. The IIP will also be removed from the
   // current graph.
   removeInitial(iip, callback) {
-    super.removeInitial(iip, err => {
+    super.removeInitial(iip, (err) => {
       if (err) {
         callback(err);
         return;
