@@ -20,30 +20,22 @@ IP = require './IP'
 # components, attach sockets between them, and handle the sending
 # of Initial Information Packets.
 class BaseNetwork extends EventEmitter
-  # Processes contains all the instantiated components for this network
-  processes: {}
-  # Connections contains all the socket connections in the network
-  connections: []
-  # Initials contains all Initial Information Packets (IIPs)
-  initials: []
-  # Container to hold sockets that will be sending default data.
-  defaults: []
-  # The Graph this network is instantiated with
-  graph: null
-  # Start-up timestamp for the network, used for calculating uptime
-  startupDate: null
-
   # All NoFlo networks are instantiated with a graph. Upon instantiation
   # they will load all the needed components, instantiate them, and
   # set up the defined connections and IIPs.
   constructor: (graph, options = {}) ->
     super()
     @options = options
+    # Processes contains all the instantiated components for this network
     @processes = {}
+    # Connections contains all the socket connections in the network
     @connections = []
+    # Initials contains all Initial Information Packets (IIPs)
     @initials = []
     @nextInitials = []
+    # Container to hold sockets that will be sending default data.
     @defaults = []
+    # The Graph this network is instantiated with
     @graph = graph
     @started = false
     @stopped = true
@@ -119,6 +111,7 @@ class BaseNetwork extends EventEmitter
         when 'data'
           @bufferedEmit 'data', payload
           return
+    return
 
   # ## Loading components
   #
@@ -128,6 +121,7 @@ class BaseNetwork extends EventEmitter
   # * As filenames
   load: (component, metadata, callback) ->
     @loader.load component, callback, metadata
+    return
 
   # ## Add a process to the network
   #
@@ -158,7 +152,9 @@ class BaseNetwork extends EventEmitter
 
     # Load the component for the process.
     @load node.component, node.metadata, (err, instance) =>
-      return callback err if err
+      if err
+        callback err
+        return
       instance.nodeId = node.id
       process.component = instance
       process.componentName = node.component
@@ -183,19 +179,28 @@ class BaseNetwork extends EventEmitter
       # Store and return the process instance
       @processes[process.id] = process
       callback null, process
+      return
+    return
 
   removeNode: (node, callback) ->
     process = @getNode node.id
     unless process
-      return callback new Error "Node #{node.id} not found"
+      callback new Error "Node #{node.id} not found"
+      return
     process.component.shutdown (err) =>
-      return callback err if err
+      if err
+        callback err
+        return
       delete @processes[node.id]
       callback null
+      return
+    return
 
   renameNode: (oldId, newId, callback) ->
     process = @getNode oldId
-    return callback new Error "Process #{oldId} not found" unless process
+    unless process
+      callback new Error "Process #{oldId} not found"
+      return
 
     # Inform the process of its ID
     process.id = newId
@@ -213,6 +218,7 @@ class BaseNetwork extends EventEmitter
     @processes[newId] = process
     delete @processes[oldId]
     callback null
+    return
 
   # Get process by its ID.
   getNode: (id) ->
@@ -223,34 +229,48 @@ class BaseNetwork extends EventEmitter
     # it
     callStack = 0
     serialize = (next, add) =>
-      (type) =>
+      return (type) =>
         # Add either a Node, an Initial, or an Edge and move on to the next one
         # when done
         this["add#{type}"] add,
           initial: true
         , (err) ->
-          return done err if err
+          if err
+            done err
+            return
           callStack++
           if callStack % 100 is 0
             setTimeout ->
               next type
+              return
             , 0
             return
           next type
+          return
+        return
 
     # Serialize default socket creation then call callback when done
-    setDefaults = utils.reduceRight @graph.nodes, serialize, -> done()
+    setDefaults = utils.reduceRight @graph.nodes, serialize, ->
+      done()
+      return
 
     # Serialize initializers then call defaults.
-    initializers = utils.reduceRight @graph.initializers, serialize, -> setDefaults "Defaults"
+    initializers = utils.reduceRight @graph.initializers, serialize, ->
+      setDefaults "Defaults"
+      return
 
     # Serialize edge creators then call the initializers.
-    edges = utils.reduceRight @graph.edges, serialize, -> initializers "Initial"
+    edges = utils.reduceRight @graph.edges, serialize, ->
+      initializers "Initial"
+      return
 
     # Serialize node creators then call the edge creators
-    nodes = utils.reduceRight @graph.nodes, serialize, -> edges "Edge"
+    nodes = utils.reduceRight @graph.nodes, serialize, ->
+      edges "Edge"
+      return
     # Start with node creators
     nodes "Node"
+    return
 
   connectPort: (socket, process, port, index, inbound, callback) ->
     if inbound
@@ -291,6 +311,7 @@ class BaseNetwork extends EventEmitter
     unless node.component.isReady()
       node.component.once 'ready', =>
         @subscribeSubgraph node
+        return
       return
 
     return unless node.component.network
@@ -310,9 +331,13 @@ class BaseNetwork extends EventEmitter
         data.subgraph = [node.id]
       @bufferedEmit type, data
 
-    node.component.network.on 'ip', (data) -> emitSub 'ip', data
+    node.component.network.on 'ip', (data) ->
+      emitSub 'ip', data
+      return
     node.component.network.on 'process-error', (data) ->
       emitSub 'process-error', data
+      return
+    return
 
   # Subscribe to events from all connected sockets and re-emit them
   subscribeSocket: (socket, source) ->
@@ -323,34 +348,44 @@ class BaseNetwork extends EventEmitter
         socket: socket
         data: ip.data
         metadata: socket.metadata
+      return
     socket.on 'error', (event) =>
       if @listeners('process-error').length is 0
         throw event.error if event.id and event.metadata and event.error
         throw event
       @bufferedEmit 'process-error', event
-    return unless source?.component?.isLegacy()
+      return
+    unless source and source.component and source.component.isLegacy()
+      return
     # Handle activation for legacy components via connects/disconnects
     socket.on 'connect', ->
       source.component.__openConnections = 0 unless source.component.__openConnections
       source.component.__openConnections++
+      return
     socket.on 'disconnect', =>
       source.component.__openConnections--
       if source.component.__openConnections < 0
         source.component.__openConnections = 0
       if source.component.__openConnections is 0
         @checkIfFinished()
+      return
+    return
 
   subscribeNode: (node) ->
     node.component.on 'activate', (load) =>
       @abortDebounce = true if @debouncedEnd
+      return
     node.component.on 'deactivate', (load) =>
       return if load > 0
       @checkIfFinished()
+      return
     return unless node.component.getIcon
     node.component.on 'icon', =>
       @bufferedEmit 'icon',
         id: node.id
         icon: node.component.getIcon()
+      return
+    return
 
   addEdge: (edge, options, callback) ->
     if typeof options is 'function'
@@ -361,23 +396,29 @@ class BaseNetwork extends EventEmitter
 
     from = @getNode edge.from.node
     unless from
-      return callback new Error "No process defined for outbound node #{edge.from.node}"
+      callback new Error "No process defined for outbound node #{edge.from.node}"
+      return
     unless from.component
-      return callback new Error "No component defined for outbound node #{edge.from.node}"
+      callback new Error "No component defined for outbound node #{edge.from.node}"
+      return
     unless from.component.isReady()
       from.component.once "ready", =>
         @addEdge edge, callback
+        return
 
       return
 
     to = @getNode edge.to.node
     unless to
-      return callback new Error "No process defined for inbound node #{edge.to.node}"
+      callback new Error "No process defined for inbound node #{edge.to.node}"
+      return
     unless to.component
-      return callback new Error "No component defined for inbound node #{edge.to.node}"
+      callback new Error "No component defined for inbound node #{edge.to.node}"
+      return
     unless to.component.isReady()
       to.component.once "ready", =>
         @addEdge edge, callback
+        return
 
       return
 
@@ -385,12 +426,19 @@ class BaseNetwork extends EventEmitter
     @subscribeSocket socket, from
 
     @connectPort socket, to, edge.to.port, edge.to.index, true, (err) =>
-      return callback err if err
+      if err
+        callback err
+        return
       @connectPort socket, from, edge.from.port, edge.from.index, false, (err) =>
-        return callback err if err
+        if err
+          callback err
+          return
 
         @connections.push socket
         callback()
+        return
+      return
+    return
 
   removeEdge: (edge, callback) ->
     for connection in @connections
@@ -402,6 +450,7 @@ class BaseNetwork extends EventEmitter
           connection.from.process.component.outPorts[connection.from.port].detach connection
       @connections.splice @connections.indexOf(connection), 1
       do callback
+    return
 
   addDefaults: (node, options, callback) ->
     if typeof options is 'function'
@@ -410,14 +459,17 @@ class BaseNetwork extends EventEmitter
 
     process = @getNode node.id
     unless process
-      return callback new Error "Process #{node.id} not defined"
+      callback new Error "Process #{node.id} not defined"
+      return
     unless process.component
-      return callback new Error "No component defined for node #{node.id}"
+      callback new Error "No component defined for node #{node.id}"
+      return
 
     unless process.component.isReady()
       process.component.setMaxListeners 0
       process.component.once "ready", =>
         @addDefaults process, callback
+        return
       return
 
     for key, port of process.component.inPorts.ports
@@ -436,6 +488,7 @@ class BaseNetwork extends EventEmitter
         @defaults.push socket
 
     callback()
+    return
 
   addInitial: (initializer, options, callback) ->
     if typeof options is 'function'
@@ -450,18 +503,23 @@ class BaseNetwork extends EventEmitter
 
     to = @getNode initializer.to.node
     unless to
-      return callback new Error "No process defined for inbound node #{initializer.to.node}"
+      callback new Error "No process defined for inbound node #{initializer.to.node}"
+      return
     unless to.component
-      return callback new Error "No component defined for inbound node #{initializer.to.node}"
+      callback new Error "No component defined for inbound node #{initializer.to.node}"
+      return
 
     unless to.component.isReady() or to.component.inPorts[initializer.to.port]
       to.component.setMaxListeners 0
       to.component.once "ready", =>
         @addInitial initializer, callback
+        return
       return
 
     @connectPort socket, to, initializer.to.port, initializer.to.index, true, (err) =>
-      return callback err if err
+      if err
+        callback err
+        return
 
       @connections.push socket
 
@@ -481,6 +539,7 @@ class BaseNetwork extends EventEmitter
         do @sendInitials
 
       callback()
+    return
 
   removeInitial: (initializer, callback) ->
     for connection in @connections
@@ -499,10 +558,12 @@ class BaseNetwork extends EventEmitter
         @nextInitials.splice @nextInitials.indexOf(init), 1
 
     do callback
+    return
 
   sendInitial: (initial) ->
     initial.socket.post new IP 'data', initial.data,
       initial: true
+    return
 
   sendInitials: (callback) ->
     unless callback
@@ -512,12 +573,14 @@ class BaseNetwork extends EventEmitter
       @sendInitial initial for initial in @initials
       @initials = []
       do callback
+      return
 
     if typeof process isnt 'undefined' and process.execPath and process.execPath.indexOf('node') isnt -1
       # nextTick is faster on Node.js
       process.nextTick send
     else
       setTimeout send, 0
+    return
 
   isStarted: ->
     @started
@@ -535,9 +598,12 @@ class BaseNetwork extends EventEmitter
     count = 0
     length = if @processes then Object.keys(@processes).length else 0
     onProcessStart = (err) ->
-      return callback err if err
+      if err
+        callback err
+        return
       count++
       callback() if count is length
+      return
 
     # Perform any startup routines necessary for every component.
     return callback() unless @processes and Object.keys(@processes).length
@@ -551,6 +617,7 @@ class BaseNetwork extends EventEmitter
         onProcessStart()
         continue
       process.component.start onProcessStart
+    return
 
   sendDefaults: (callback) ->
     unless callback
@@ -569,6 +636,7 @@ class BaseNetwork extends EventEmitter
       socket.disconnect()
 
     do callback
+    return
 
   start: (callback) ->
     unless callback
@@ -579,18 +647,27 @@ class BaseNetwork extends EventEmitter
 
     if @started
       @stop (err) =>
-        return callback err if err
+        if err
+          callback err
+          return
         @start callback
+        return
       return
 
     @initials = @nextInitials.slice 0
     @eventBuffer = []
     @startComponents (err) =>
-      return callback err if err
+      if err
+        callback err
+        return
       @sendInitials (err) =>
-        return callback err if err
+        if err
+          callback err
+          return
         @sendDefaults (err) =>
-          return callback err if err
+          if err
+            callback err
+            return
           @setStarted true
           callback null
           return
@@ -618,12 +695,15 @@ class BaseNetwork extends EventEmitter
     count = 0
     length = if @processes then Object.keys(@processes).length else 0
     onProcessEnd = (err) =>
-      return callback err if err
+      if err
+        callback err
+        return
       count++
       if count is length
         @setStarted false
         @stopped = true
         callback()
+      return
     unless @processes and Object.keys(@processes).length
       @setStarted false
       @stopped = true
@@ -639,6 +719,7 @@ class BaseNetwork extends EventEmitter
         onProcessEnd()
         continue
       process.component.shutdown onProcessEnd
+    return
 
   setStarted: (started) ->
     return if @started is started
@@ -657,6 +738,7 @@ class BaseNetwork extends EventEmitter
     @stopped = false
     @bufferedEmit 'start',
       start: @startupDate
+    return
 
   checkIfFinished: ->
     return if @isRunning()
@@ -666,8 +748,10 @@ class BaseNetwork extends EventEmitter
         return if @abortDebounce
         return if @isRunning()
         @setStarted false
+        return
       , 50
     do @debouncedEnd
+    return
 
   getDebug: () ->
     @debug
@@ -681,5 +765,6 @@ class BaseNetwork extends EventEmitter
     for processId, process of @processes
       instance = process.component
       instance.network.setDebug active if instance.isSubgraph()
+    return
 
 module.exports = BaseNetwork
