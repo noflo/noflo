@@ -27,26 +27,38 @@ class Network extends BaseNetwork
       callback = options
       options = {}
     super node, options, (err, process) =>
-      return callback err if err
+      if err
+        callback err
+        return
       unless options.initial
         @graph.addNode node.id, node.component, node.metadata
       callback null, process
+      return
+    return
 
   # Remove a process from the network. The node will also be removed
   # from the current graph.
   removeNode: (node, callback) ->
     super node, (err) =>
-      return callback err if err
+      if err
+        callback err
+        return
       @graph.removeNode node.id
       callback()
+      return
+    return
 
   # Rename a process in the network. Renaming a process also modifies
   # the current graph.
   renameNode: (oldId, newId, callback) ->
     super oldId, newId, (err) =>
-      return callback err if err
+      if err
+        callback err
+        return
       @graph.renameNode oldId, newId
       callback()
+      return
+    return
 
   # Add a connection to the network. The edge will also be registered
   # with the current graph.
@@ -55,18 +67,26 @@ class Network extends BaseNetwork
       callback = options
       options = {}
     super edge, options, (err) =>
-      return callback err if err
+      if err
+        callback err
+        return
       unless options.initial
         @graph.addEdgeIndex edge.from.node, edge.from.port, edge.from.index, edge.to.node, edge.to.port, edge.to.index, edge.metadata
       callback()
+      return
+    return
 
   # Remove a connection from the network. The edge will also be removed
   # from the current graph.
   removeEdge: (edge, callback) ->
     super edge, (err) =>
-      return callback err if err
+      if err
+        callback err
+        return
       @graph.removeEdge edge.from.node, edge.from.port, edge.to.node, edge.to.port
       callback()
+      return
+    return
 
   # Add an IIP to the network. The IIP will also be registered with the
   # current graph. If the network is running, the IIP will be sent immediately.
@@ -75,17 +95,25 @@ class Network extends BaseNetwork
       callback = options
       options = {}
     super iip, options, (err) =>
-      return callback err if err
+      if err
+        callback err
+        return
       unless options.initial
         @graph.addInitialIndex iip.from.data, iip.to.node, iip.to.port, iip.to.index, iip.metadata
       callback()
+      return
+    return
 
   # Remove an IIP from the network. The IIP will also be removed from the
   # current graph.
   removeInitial: (iip, callback) ->
     super iip, (err) =>
-      return callback err if err
+      if err
+        callback err
+        return
       @graph.removeInitial iip.to.node, iip.to.port
       callback()
+      return
+    return
 
 exports.Network = Network
