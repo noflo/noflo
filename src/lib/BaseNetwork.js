@@ -1,3 +1,23 @@
+/* eslint-disable
+    class-methods-use-this,
+    consistent-return,
+    default-case,
+    func-names,
+    guard-for-in,
+    max-len,
+    no-continue,
+    no-param-reassign,
+    no-plusplus,
+    no-restricted-syntax,
+    no-shadow,
+    no-underscore-dangle,
+    no-unreachable,
+    no-unused-vars,
+    no-var,
+    vars-on-top,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS101: Remove unnecessary use of Array.from
@@ -9,9 +29,9 @@
 //     (c) 2013-2018 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
-const internalSocket = require("./InternalSocket");
-const graph = require("fbp-graph");
-const {EventEmitter} = require('events');
+const graph = require('fbp-graph');
+const { EventEmitter } = require('events');
+const internalSocket = require('./InternalSocket');
 const platform = require('./Platform');
 const componentLoader = require('./ComponentLoader');
 const utils = require('./Utils');
@@ -83,7 +103,7 @@ class BaseNetwork extends EventEmitter {
   getActiveProcesses() {
     const active = [];
     if (!this.started) { return active; }
-    for (let name in this.processes) {
+    for (const name in this.processes) {
       const process = this.processes[name];
       if (process.component.load > 0) {
         // Modern component with load
@@ -106,7 +126,7 @@ class BaseNetwork extends EventEmitter {
     if (!this.isStarted() && (event !== 'end')) {
       this.eventBuffer.push({
         type: event,
-        payload
+        payload,
       });
       return;
     }
@@ -115,7 +135,7 @@ class BaseNetwork extends EventEmitter {
 
     if (event === 'start') {
       // Once network has started we can send the IP-related events
-      for (let ev of Array.from(this.eventBuffer)) {
+      for (const ev of Array.from(this.eventBuffer)) {
         this.emit(ev.type, ev.payload);
       }
       this.eventBuffer = [];
@@ -134,7 +154,7 @@ class BaseNetwork extends EventEmitter {
           break;
         case 'data':
           this.bufferedEmit('data', payload);
-          return;
+
           break;
       }
     }
@@ -170,8 +190,7 @@ class BaseNetwork extends EventEmitter {
       return;
     }
 
-    const process =
-      {id: node.id};
+    const process = { id: node.id };
 
     // No component defined, just register the process but don't start.
     if (!node.component) {
@@ -182,7 +201,8 @@ class BaseNetwork extends EventEmitter {
 
     // Load the component for the process.
     this.load(node.component, node.metadata, (err, instance) => {
-      let name, port;
+      let name; let
+        port;
       if (err) {
         callback(err);
         return;
@@ -224,7 +244,7 @@ class BaseNetwork extends EventEmitter {
       callback(new Error(`Node ${node.id} not found`));
       return;
     }
-    process.component.shutdown(err => {
+    process.component.shutdown((err) => {
       if (err) {
         callback(err);
         return;
@@ -235,7 +255,8 @@ class BaseNetwork extends EventEmitter {
   }
 
   renameNode(oldId, newId, callback) {
-    let name, port;
+    let name; let
+      port;
     const process = this.getNode(oldId);
     if (!process) {
       callback(new Error(`Process ${oldId} not found`));
@@ -272,53 +293,51 @@ class BaseNetwork extends EventEmitter {
   connect(done) {
     // Wrap the future which will be called when done in a function and return
     // it
-    if (done == null) { done = function() {}; }
+    if (done == null) { done = function () {}; }
     let callStack = 0;
-    const serialize = (next, add) => {
-      return type => {
-        // Add either a Node, an Initial, or an Edge and move on to the next one
-        // when done
-        this[`add${type}`](add,
-          {initial: true}
-        , function(err) {
+    const serialize = (next, add) => (type) => {
+      // Add either a Node, an Initial, or an Edge and move on to the next one
+      // when done
+      this[`add${type}`](add,
+        { initial: true },
+        (err) => {
           if (err) {
             done(err);
             return;
           }
           callStack++;
           if ((callStack % 100) === 0) {
-            setTimeout(function() {
+            setTimeout(() => {
               next(type);
-            }
-            , 0);
+            },
+            0);
             return;
           }
           next(type);
         });
-      };
     };
 
     // Serialize default socket creation then call callback when done
-    const setDefaults = utils.reduceRight(this.graph.nodes, serialize, function() {
+    const setDefaults = utils.reduceRight(this.graph.nodes, serialize, () => {
       done();
     });
 
     // Serialize initializers then call defaults.
-    const initializers = utils.reduceRight(this.graph.initializers, serialize, function() {
-      setDefaults("Defaults");
+    const initializers = utils.reduceRight(this.graph.initializers, serialize, () => {
+      setDefaults('Defaults');
     });
 
     // Serialize edge creators then call the initializers.
-    const edges = utils.reduceRight(this.graph.edges, serialize, function() {
-      initializers("Initial");
+    const edges = utils.reduceRight(this.graph.edges, serialize, () => {
+      initializers('Initial');
     });
 
     // Serialize node creators then call the edge creators
-    const nodes = utils.reduceRight(this.graph.nodes, serialize, function() {
-      edges("Edge");
+    const nodes = utils.reduceRight(this.graph.nodes, serialize, () => {
+      edges('Edge');
     });
     // Start with node creators
-    nodes("Node");
+    nodes('Node');
   }
 
   connectPort(socket, process, port, index, inbound, callback) {
@@ -326,7 +345,7 @@ class BaseNetwork extends EventEmitter {
       socket.to = {
         process,
         port,
-        index
+        index,
       };
 
       if (!process.component.inPorts || !process.component.inPorts[port]) {
@@ -346,7 +365,7 @@ class BaseNetwork extends EventEmitter {
     socket.from = {
       process,
       port,
-      index
+      index,
     };
 
     if (!process.component.outPorts || !process.component.outPorts[port]) {
@@ -392,27 +411,26 @@ class BaseNetwork extends EventEmitter {
       return this.bufferedEmit(type, data);
     };
 
-    node.component.network.on('ip', function(data) {
+    node.component.network.on('ip', (data) => {
       emitSub('ip', data);
     });
-    node.component.network.on('process-error', function(data) {
+    node.component.network.on('process-error', (data) => {
       emitSub('process-error', data);
     });
   }
 
   // Subscribe to events from all connected sockets and re-emit them
   subscribeSocket(socket, source) {
-    socket.on('ip', ip => {
+    socket.on('ip', (ip) => {
       this.bufferedEmit('ip', {
         id: socket.getId(),
         type: ip.type,
         socket,
         data: ip.data,
-        metadata: socket.metadata
-      }
-      );
+        metadata: socket.metadata,
+      });
     });
-    socket.on('error', event => {
+    socket.on('error', (event) => {
       if (this.listeners('process-error').length === 0) {
         if (event.id && event.metadata && event.error) { throw event.error; }
         throw event;
@@ -423,7 +441,7 @@ class BaseNetwork extends EventEmitter {
       return;
     }
     // Handle activation for legacy components via connects/disconnects
-    socket.on('connect', function() {
+    socket.on('connect', () => {
       if (!source.component.__openConnections) { source.component.__openConnections = 0; }
       source.component.__openConnections++;
     });
@@ -439,10 +457,10 @@ class BaseNetwork extends EventEmitter {
   }
 
   subscribeNode(node) {
-    node.component.on('activate', load => {
+    node.component.on('activate', (load) => {
       if (this.debouncedEnd) { this.abortDebounce = true; }
     });
-    node.component.on('deactivate', load => {
+    node.component.on('deactivate', (load) => {
       if (load > 0) { return; }
       this.checkIfFinished();
     });
@@ -450,9 +468,8 @@ class BaseNetwork extends EventEmitter {
     node.component.on('icon', () => {
       this.bufferedEmit('icon', {
         id: node.id,
-        icon: node.component.getIcon()
-      }
-      );
+        icon: node.component.getIcon(),
+      });
     });
   }
 
@@ -474,7 +491,7 @@ class BaseNetwork extends EventEmitter {
       return;
     }
     if (!from.component.isReady()) {
-      from.component.once("ready", () => {
+      from.component.once('ready', () => {
         this.addEdge(edge, callback);
       });
 
@@ -491,7 +508,7 @@ class BaseNetwork extends EventEmitter {
       return;
     }
     if (!to.component.isReady()) {
-      to.component.once("ready", () => {
+      to.component.once('ready', () => {
         this.addEdge(edge, callback);
       });
 
@@ -501,12 +518,12 @@ class BaseNetwork extends EventEmitter {
     // Subscribe to events from the socket
     this.subscribeSocket(socket, from);
 
-    this.connectPort(socket, to, edge.to.port, edge.to.index, true, err => {
+    this.connectPort(socket, to, edge.to.port, edge.to.index, true, (err) => {
       if (err) {
         callback(err);
         return;
       }
-      this.connectPort(socket, from, edge.from.port, edge.from.index, false, err => {
+      this.connectPort(socket, from, edge.from.port, edge.from.index, false, (err) => {
         if (err) {
           callback(err);
           return;
@@ -519,7 +536,7 @@ class BaseNetwork extends EventEmitter {
   }
 
   removeEdge(edge, callback) {
-    for (let connection of Array.from(this.connections)) {
+    for (const connection of Array.from(this.connections)) {
       if (!connection) { continue; }
       if ((edge.to.node !== connection.to.process.id) || (edge.to.port !== connection.to.port)) { continue; }
       connection.to.process.component.inPorts[connection.to.port].detach(connection);
@@ -551,13 +568,13 @@ class BaseNetwork extends EventEmitter {
 
     if (!process.component.isReady()) {
       process.component.setMaxListeners(0);
-      process.component.once("ready", () => {
+      process.component.once('ready', () => {
         this.addDefaults(process, callback);
       });
       return;
     }
 
-    for (let key in process.component.inPorts.ports) {
+    for (const key in process.component.inPorts.ports) {
       // Attach a socket to any defaulted inPorts as long as they aren't already attached.
       const port = process.component.inPorts.ports[key];
       if (port.hasDefault() && !port.isAttached()) {
@@ -567,7 +584,7 @@ class BaseNetwork extends EventEmitter {
         // Subscribe to events from the socket
         this.subscribeSocket(socket);
 
-        this.connectPort(socket, process, key, undefined, true, function() {});
+        this.connectPort(socket, process, key, undefined, true, () => {});
 
         this.connections.push(socket);
 
@@ -602,13 +619,13 @@ class BaseNetwork extends EventEmitter {
 
     if (!to.component.isReady() && !to.component.inPorts[initializer.to.port]) {
       to.component.setMaxListeners(0);
-      to.component.once("ready", () => {
+      to.component.once('ready', () => {
         this.addInitial(initializer, callback);
       });
       return;
     }
 
-    this.connectPort(socket, to, initializer.to.port, initializer.to.index, true, err => {
+    this.connectPort(socket, to, initializer.to.port, initializer.to.index, true, (err) => {
       if (err) {
         callback(err);
         return;
@@ -618,7 +635,7 @@ class BaseNetwork extends EventEmitter {
 
       const init = {
         socket,
-        data: initializer.from.data
+        data: initializer.from.data,
       };
       this.initials.push(init);
       this.nextInitials.push(init);
@@ -638,7 +655,7 @@ class BaseNetwork extends EventEmitter {
   }
 
   removeInitial(initializer, callback) {
-    for (let connection of Array.from(this.connections)) {
+    for (const connection of Array.from(this.connections)) {
       var init;
       if (!connection) { continue; }
       if ((initializer.to.node !== connection.to.process.id) || (initializer.to.port !== connection.to.port)) { continue; }
@@ -662,17 +679,16 @@ class BaseNetwork extends EventEmitter {
 
   sendInitial(initial) {
     initial.socket.post(new IP('data', initial.data,
-      {initial: true})
-    );
+      { initial: true }));
   }
 
   sendInitials(callback) {
     if (!callback) {
-      callback = function() {};
+      callback = function () {};
     }
 
     const send = () => {
-      for (let initial of Array.from(this.initials)) { this.sendInitial(initial); }
+      for (const initial of Array.from(this.initials)) { this.sendInitial(initial); }
       this.initials = [];
       callback();
     };
@@ -688,6 +704,7 @@ class BaseNetwork extends EventEmitter {
   isStarted() {
     return this.started;
   }
+
   isStopped() {
     return this.stopped;
   }
@@ -698,13 +715,13 @@ class BaseNetwork extends EventEmitter {
 
   startComponents(callback) {
     if (!callback) {
-      callback = function() {};
+      callback = function () {};
     }
 
     // Emit start event when all processes are started
     let count = 0;
     const length = this.processes ? Object.keys(this.processes).length : 0;
-    const onProcessStart = function(err) {
+    const onProcessStart = function (err) {
       if (err) {
         callback(err);
         return;
@@ -715,7 +732,7 @@ class BaseNetwork extends EventEmitter {
 
     // Perform any startup routines necessary for every component.
     if (!this.processes || !Object.keys(this.processes).length) { return callback(); }
-    for (let id in this.processes) {
+    for (const id in this.processes) {
       const process = this.processes[id];
       if (process.component.isStarted()) {
         onProcessStart();
@@ -733,12 +750,12 @@ class BaseNetwork extends EventEmitter {
 
   sendDefaults(callback) {
     if (!callback) {
-      callback = function() {};
+      callback = function () {};
     }
 
     if (!this.defaults.length) { return callback(); }
 
-    for (let socket of Array.from(this.defaults)) {
+    for (const socket of Array.from(this.defaults)) {
       // Don't send defaults if more than one socket is present on the port.
       // This case should only happen when a subgraph is created as a component
       // as its network is instantiated and its inputs are serialized before
@@ -755,13 +772,13 @@ class BaseNetwork extends EventEmitter {
   start(callback) {
     if (!callback) {
       platform.deprecated('Calling network.start() without callback is deprecated');
-      callback = function() {};
+      callback = function () {};
     }
 
     if (this.debouncedEnd) { this.abortDebounce = true; }
 
     if (this.started) {
-      this.stop(err => {
+      this.stop((err) => {
         if (err) {
           callback(err);
           return;
@@ -773,17 +790,17 @@ class BaseNetwork extends EventEmitter {
 
     this.initials = this.nextInitials.slice(0);
     this.eventBuffer = [];
-    this.startComponents(err => {
+    this.startComponents((err) => {
       if (err) {
         callback(err);
         return;
       }
-      this.sendInitials(err => {
+      this.sendInitials((err) => {
         if (err) {
           callback(err);
           return;
         }
-        this.sendDefaults(err => {
+        this.sendDefaults((err) => {
           if (err) {
             callback(err);
             return;
@@ -798,7 +815,7 @@ class BaseNetwork extends EventEmitter {
   stop(callback) {
     if (!callback) {
       platform.deprecated('Calling network.stop() without callback is deprecated');
-      callback = function() {};
+      callback = function () {};
     }
 
     if (this.debouncedEnd) { this.abortDebounce = true; }
@@ -809,7 +826,7 @@ class BaseNetwork extends EventEmitter {
     }
 
     // Disconnect all connections
-    for (let connection of Array.from(this.connections)) {
+    for (const connection of Array.from(this.connections)) {
       if (!connection.isConnected()) { continue; }
       connection.disconnect();
     }
@@ -817,7 +834,7 @@ class BaseNetwork extends EventEmitter {
     // Emit stop event when all processes are stopped
     let count = 0;
     const length = this.processes ? Object.keys(this.processes).length : 0;
-    const onProcessEnd = err => {
+    const onProcessEnd = (err) => {
       if (err) {
         callback(err);
         return;
@@ -835,7 +852,7 @@ class BaseNetwork extends EventEmitter {
       return callback();
     }
     // Tell processes to shut down
-    for (let id in this.processes) {
+    for (const id in this.processes) {
       const process = this.processes[id];
       if (!process.component.isStarted()) {
         onProcessEnd();
@@ -858,19 +875,18 @@ class BaseNetwork extends EventEmitter {
       this.started = false;
       this.bufferedEmit('end', {
         start: this.startupDate,
-        end: new Date,
-        uptime: this.uptime()
-      }
-      );
+        end: new Date(),
+        uptime: this.uptime(),
+      });
       return;
     }
 
     // Starting the execution
-    if (!this.startupDate) { this.startupDate = new Date; }
+    if (!this.startupDate) { this.startupDate = new Date(); }
     this.started = true;
     this.stopped = false;
     this.bufferedEmit('start',
-      {start: this.startupDate});
+      { start: this.startupDate });
   }
 
   checkIfFinished() {
@@ -881,8 +897,8 @@ class BaseNetwork extends EventEmitter {
         if (this.abortDebounce) { return; }
         if (this.isRunning()) { return; }
         this.setStarted(false);
-      }
-      , 50);
+      },
+      50);
     }
     (this.debouncedEnd)();
   }
@@ -895,10 +911,10 @@ class BaseNetwork extends EventEmitter {
     if (active === this.debug) { return; }
     this.debug = active;
 
-    for (let socket of Array.from(this.connections)) {
+    for (const socket of Array.from(this.connections)) {
       socket.setDebug(active);
     }
-    for (let processId in this.processes) {
+    for (const processId in this.processes) {
       const process = this.processes[processId];
       const instance = process.component;
       if (instance.isSubgraph()) { instance.network.setDebug(active); }
