@@ -40,7 +40,7 @@ normalizeOptions = (options, component) ->
   unless options.loader
     options.loader = new ComponentLoader options.baseDir
   options.raw = false unless options.raw
-  options
+  return options
 
 # ### Network preparation
 #
@@ -55,13 +55,18 @@ prepareNetwork = (component, options, callback) ->
     network = new Network component, options
     # Wire the network up
     network.connect (err) ->
-      return callback err if err
+      if err
+        callback err
+        return
       callback null, network
+      return
     return
 
   # Start by loading the component
   options.loader.load component, (err, instance) ->
-    return callback err if err
+    if err
+      callback err
+      return
     # Prepare a graph wrapping the component
     graph = new Graph options.name
     nodeName = options.name
@@ -78,8 +83,13 @@ prepareNetwork = (component, options, callback) ->
     network = new Network graph, options
     # Wire the network up and start execution
     network.connect (err) ->
-      return callback err if err
+      if err
+        callback err
+        return
       callback null, network
+      return
+    return
+  return
 
 # ### Network execution
 #
@@ -111,10 +121,13 @@ runNetwork = (network, inputs, options, callback) ->
       res = {}
       res[outport] = ip
       received.push res
+      return
+    return
   # Subscribe to process errors
   onError = (err) ->
     callback err.error
     network.removeListener 'end', onEnd
+    return
   network.once 'process-error', onError
   # Subscribe network finish
   onEnd = ->
@@ -125,10 +138,13 @@ runNetwork = (network, inputs, options, callback) ->
     inSockets = {}
     callback null, received
     network.removeListener 'process-error', onError
+    return
   network.once 'end', onEnd
   # Start network
   network.start (err) ->
-    return callback err if err
+    if err
+      callback err
+      return
     # Send inputs
     for inputMap in inputs
       for port, value of inputMap
@@ -147,6 +163,8 @@ runNetwork = (network, inputs, options, callback) ->
           network.removeListener 'process-error', onError
           network.removeListener 'end', onEnd
           return
+    return
+  return
 
 getType = (inputs, network) ->
   # Scalar values are always simple inputs
@@ -154,7 +172,7 @@ getType = (inputs, network) ->
 
   if Array.isArray inputs
     maps = inputs.filter (entry) ->
-      getType(entry, network) is 'map'
+      return getType(entry, network) is 'map'
     # If each member if the array is an input map, this is a sequence
     return 'sequence' if maps.length is inputs.length
     # Otherwise arrays must be simple inputs
@@ -200,10 +218,12 @@ normalizeOutput = (values, options) ->
 sendOutputMap = (outputs, resultType, options, callback) ->
   # First check if the output sequence contains errors
   errors = outputs.filter((map) -> map.error?).map (map) -> map.error
-  return callback normalizeOutput errors, options if errors.length
+  if errors.length
+    callback normalizeOutput errors, options
+    return
 
   if resultType is 'sequence'
-    return callback null, outputs.map (map) ->
+    callback null, outputs.map (map) ->
       res = {}
       for key, val of map
         if options.raw
@@ -211,6 +231,7 @@ sendOutputMap = (outputs, resultType, options, callback) ->
           continue
         res[key] = normalizeOutput [val], options
       return res
+    return
 
   # Flatten the sequence
   mappedOutputs = {}
@@ -224,22 +245,32 @@ sendOutputMap = (outputs, resultType, options, callback) ->
     mappedOutputs[outport].length > 0
   if withValue.length is 0
     # No output
-    return callback null
+    callback null
+    return
   if withValue.length is 1 and resultType is 'simple'
     # Single outport
-    return callback null, normalizeOutput mappedOutputs[withValue[0]], options
+    callback null, normalizeOutput mappedOutputs[withValue[0]], options
+    return
   result = {}
   for port, packets of mappedOutputs
     result[port] = normalizeOutput packets, options
   callback null, result
+  return
 
 exports.asCallback = (component, options) ->
   options = normalizeOptions options, component
   return (inputs, callback) ->
     prepareNetwork component, options, (err, network) ->
-      return callback err if err
+      if err
+        callback err
+        return
       resultType = getType inputs, network
       inputMap = prepareInputMap inputs, resultType, network
       runNetwork network, inputMap, options, (err, outputMap) ->
-        return callback err if err
+        if err
+          callback err
+          return
         sendOutputMap outputMap, resultType, options, callback
+        return
+      return
+    return
