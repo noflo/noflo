@@ -123,6 +123,7 @@ exports.createNetwork = (graph, options, callback) ->
     deprecated 'Calling noflo.createNetwork without a callback is deprecated'
     callback = (err) ->
       throw err if err
+      return
 
   # Choose legacy or modern network based on whether graph
   # subscription is needed
@@ -132,12 +133,17 @@ exports.createNetwork = (graph, options, callback) ->
   networkReady = (network) ->
     # Send IIPs
     network.start (err) ->
-      return callback err if err
+      if err
+        callback err
+        return
       callback null, network
+      return
 
   # Ensure components are loaded before continuing
   network.loader.listComponents (err) ->
-    return callback err if err
+    if err
+      callback err
+      return
 
     # In case of delayed execution we don't wire it up
     if options.delay
@@ -145,14 +151,19 @@ exports.createNetwork = (graph, options, callback) ->
       return
 
     # Empty network, no need to connect it up
-    return networkReady network if graph.nodes.length is 0
+    if graph.nodes.length is 0
+      networkReady network
+      return
 
     # Wire the network up and start execution
     network.connect (err) ->
-      return callback err if err
+      if err
+        callback err
+        return
       networkReady network
-
-  network
+      return
+    return
+  return network
 
 # ### Starting a network from a file
 #
@@ -179,15 +190,20 @@ exports.loadFile = (file, options, callback) ->
     options.subscribeGraph = false
 
   exports.graph.loadFile file, (err, net) ->
-    return callback err if err
+    if err
+      callback err
+      return
     net.baseDir = options.baseDir if options.baseDir
     exports.createNetwork net, options, callback
+    return
+  return
 
 # ### Saving a network definition
 #
 # NoFlo graph files can be saved back into the filesystem with this method.
 exports.saveFile = (graph, file, callback) ->
   graph.save file, callback
+  return
 
 # ## Embedding NoFlo in existing JavaScript code
 #
