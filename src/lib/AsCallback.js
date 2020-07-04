@@ -1,3 +1,17 @@
+/* eslint-disable
+    func-names,
+    guard-for-in,
+    no-continue,
+    no-param-reassign,
+    no-restricted-syntax,
+    no-shadow,
+    no-unused-vars,
+    no-use-before-define,
+    no-var,
+    vars-on-top,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS101: Remove unnecessary use of Array.from
@@ -9,16 +23,16 @@
 //     (c) 2017-2018 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
 const {
-  ComponentLoader
+  Graph,
+} = require('fbp-graph');
+const {
+  ComponentLoader,
 } = require('./ComponentLoader');
 const {
-  Network
+  Network,
 } = require('./Network');
 const IP = require('./IP');
 const internalSocket = require('./InternalSocket');
-const {
-  Graph
-} = require('fbp-graph');
 
 // ## asCallback embedding API
 //
@@ -43,7 +57,7 @@ const {
 // function. This allows passing things like a pre-initialized
 // NoFlo ComponentLoader, or giving the component loading
 // baseDir context.
-const normalizeOptions = function(options, component) {
+const normalizeOptions = function (options, component) {
   if (!options) { options = {}; }
   if (!options.name) { options.name = component; }
   if (options.loader) {
@@ -64,7 +78,7 @@ const normalizeOptions = function(options, component) {
 // Each invocation of the asCallback-wrapped NoFlo graph
 // creates a new network. This way we can isolate multiple
 // executions of the function in their own contexts.
-const prepareNetwork = function(component, options, callback) {
+const prepareNetwork = function (component, options, callback) {
   // If we were given a graph instance, then just create a network
   let network;
   if (typeof component === 'object') {
@@ -72,7 +86,7 @@ const prepareNetwork = function(component, options, callback) {
 
     network = new Network(component, options);
     // Wire the network up
-    network.connect(function(err) {
+    network.connect((err) => {
       if (err) {
         callback(err);
         return;
@@ -83,8 +97,9 @@ const prepareNetwork = function(component, options, callback) {
   }
 
   // Start by loading the component
-  options.loader.load(component, function(err, instance) {
-    let def, port;
+  options.loader.load(component, (err, instance) => {
+    let def; let
+      port;
     if (err) {
       callback(err);
       return;
@@ -108,7 +123,7 @@ const prepareNetwork = function(component, options, callback) {
     graph.componentLoader = options.loader;
     network = new Network(graph, options);
     // Wire the network up and start execution
-    network.connect(function(err) {
+    network.connect((err) => {
       if (err) {
         callback(err);
         return;
@@ -128,7 +143,7 @@ const prepareNetwork = function(component, options, callback) {
 //
 // Once the network finishes, we send the resulting IP
 // objects to the callback.
-const runNetwork = function(network, inputs, options, callback) {
+const runNetwork = function (network, inputs, options, callback) {
   // Prepare inports
   const inPorts = Object.keys(network.graph.inports);
   let inSockets = {};
@@ -136,31 +151,31 @@ const runNetwork = function(network, inputs, options, callback) {
   const received = [];
   const outPorts = Object.keys(network.graph.outports);
   let outSockets = {};
-  outPorts.forEach(function(outport) {
+  outPorts.forEach((outport) => {
     const portDef = network.graph.outports[outport];
     const process = network.getNode(portDef.process);
     outSockets[outport] = internalSocket.createSocket();
     process.component.outPorts[portDef.port].attach(outSockets[outport]);
     outSockets[outport].from = {
       process,
-      port: portDef.port
+      port: portDef.port,
     };
-    outSockets[outport].on('ip', function(ip) {
+    outSockets[outport].on('ip', (ip) => {
       const res = {};
       res[outport] = ip;
       received.push(res);
     });
   });
   // Subscribe to process errors
-  const onError = function(err) {
+  const onError = function (err) {
     callback(err.error);
     network.removeListener('end', onEnd);
   };
   network.once('process-error', onError);
   // Subscribe network finish
-  var onEnd = function() {
+  var onEnd = function () {
     // Clear listeners
-    for (let port in outSockets) {
+    for (const port in outSockets) {
       const socket = outSockets[port];
       socket.from.process.component.outPorts[socket.from.port].detach(socket);
     }
@@ -171,14 +186,14 @@ const runNetwork = function(network, inputs, options, callback) {
   };
   network.once('end', onEnd);
   // Start network
-  network.start(function(err) {
+  network.start((err) => {
     if (err) {
       callback(err);
       return;
     }
     // Send inputs
-    for (let inputMap of Array.from(inputs)) {
-      for (let port in inputMap) {
+    for (const inputMap of Array.from(inputs)) {
+      for (const port in inputMap) {
         const value = inputMap[port];
         if (!inSockets[port]) {
           const portDef = network.graph.inports[port];
@@ -203,12 +218,12 @@ const runNetwork = function(network, inputs, options, callback) {
   });
 };
 
-var getType = function(inputs, network) {
+var getType = function (inputs, network) {
   // Scalar values are always simple inputs
   if (typeof inputs !== 'object') { return 'simple'; }
 
   if (Array.isArray(inputs)) {
-    const maps = inputs.filter(entry => getType(entry, network) === 'map');
+    const maps = inputs.filter((entry) => getType(entry, network) === 'map');
     // If each member if the array is an input map, this is a sequence
     if (maps.length === inputs.length) { return 'sequence'; }
     // Otherwise arrays must be simple inputs
@@ -217,14 +232,14 @@ var getType = function(inputs, network) {
 
   // Empty objects can't be maps
   if (!Object.keys(inputs).length) { return 'simple'; }
-  for (let key in inputs) {
+  for (const key in inputs) {
     const value = inputs[key];
     if (!network.graph.inports[key]) { return 'simple'; }
   }
   return 'map';
 };
 
-const prepareInputMap = function(inputs, inputType, network) {
+const prepareInputMap = function (inputs, inputType, network) {
   // Sequence we can use as-is
   if (inputType === 'sequence') { return inputs; }
   // We can turn a map to a sequence by wrapping it in an array
@@ -238,12 +253,12 @@ const prepareInputMap = function(inputs, inputType, network) {
   return [map];
 };
 
-const normalizeOutput = function(values, options) {
+const normalizeOutput = function (values, options) {
   if (options.raw) { return values; }
   const result = [];
   let previous = null;
   let current = result;
-  for (let packet of Array.from(values)) {
+  for (const packet of Array.from(values)) {
     if (packet.type === 'openBracket') {
       previous = current;
       current = [];
@@ -262,18 +277,18 @@ const normalizeOutput = function(values, options) {
   return result;
 };
 
-const sendOutputMap = function(outputs, resultType, options, callback) {
+const sendOutputMap = function (outputs, resultType, options, callback) {
   // First check if the output sequence contains errors
-  const errors = outputs.filter(map => map.error != null).map(map => map.error);
+  const errors = outputs.filter((map) => map.error != null).map((map) => map.error);
   if (errors.length) {
     callback(normalizeOutput(errors, options));
     return;
   }
 
   if (resultType === 'sequence') {
-    callback(null, outputs.map(function(map) {
+    callback(null, outputs.map((map) => {
       const res = {};
-      for (let key in map) {
+      for (const key in map) {
         const val = map[key];
         if (options.raw) {
           res[key] = val;
@@ -282,15 +297,14 @@ const sendOutputMap = function(outputs, resultType, options, callback) {
         res[key] = normalizeOutput([val], options);
       }
       return res;
-    })
-    );
+    }));
     return;
   }
 
   // Flatten the sequence
   const mappedOutputs = {};
-  for (let map of Array.from(outputs)) {
-    for (let key in map) {
+  for (const map of Array.from(outputs)) {
+    for (const key in map) {
       const val = map[key];
       if (!mappedOutputs[key]) { mappedOutputs[key] = []; }
       mappedOutputs[key].push(val);
@@ -298,7 +312,7 @@ const sendOutputMap = function(outputs, resultType, options, callback) {
   }
 
   const outputKeys = Object.keys(mappedOutputs);
-  const withValue = outputKeys.filter(outport => mappedOutputs[outport].length > 0);
+  const withValue = outputKeys.filter((outport) => mappedOutputs[outport].length > 0);
   if (withValue.length === 0) {
     // No output
     callback(null);
@@ -310,24 +324,24 @@ const sendOutputMap = function(outputs, resultType, options, callback) {
     return;
   }
   const result = {};
-  for (let port in mappedOutputs) {
+  for (const port in mappedOutputs) {
     const packets = mappedOutputs[port];
     result[port] = normalizeOutput(packets, options);
   }
   callback(null, result);
 };
 
-exports.asCallback = function(component, options) {
+exports.asCallback = function (component, options) {
   options = normalizeOptions(options, component);
-  return function(inputs, callback) {
-    prepareNetwork(component, options, function(err, network) {
+  return function (inputs, callback) {
+    prepareNetwork(component, options, (err, network) => {
       if (err) {
         callback(err);
         return;
       }
       const resultType = getType(inputs, network);
       const inputMap = prepareInputMap(inputs, resultType, network);
-      runNetwork(network, inputMap, options, function(err, outputMap) {
+      runNetwork(network, inputMap, options, (err, outputMap) => {
         if (err) {
           callback(err);
           return;
