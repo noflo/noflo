@@ -1,102 +1,121 @@
-#     NoFlo - Flow-Based Programming for JavaScript
-#     (c) 2013-2018 Flowhub UG
-#     (c) 2011-2012 Henri Bergius, Nemein
-#     NoFlo may be freely distributed under the MIT license
-BaseNetwork = require './BaseNetwork'
-{ deprecated } = require './Platform'
+/*
+ * decaffeinate suggestions:
+ * DS102: Remove unnecessary code created because of implicit returns
+ * DS207: Consider shorter variations of null checks
+ * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ */
+//     NoFlo - Flow-Based Programming for JavaScript
+//     (c) 2013-2018 Flowhub UG
+//     (c) 2011-2012 Henri Bergius, Nemein
+//     NoFlo may be freely distributed under the MIT license
+const BaseNetwork = require('./BaseNetwork');
+const { deprecated } = require('./Platform');
 
-# ## The NoFlo network coordinator
-#
-# NoFlo networks consist of processes connected to each other
-# via sockets attached from outports to inports.
-#
-# The role of the network coordinator is to take a graph and
-# instantiate all the necessary processes from the designated
-# components, attach sockets between them, and handle the sending
-# of Initial Information Packets.
-class LegacyNetwork extends BaseNetwork
-  # All NoFlo networks are instantiated with a graph. Upon instantiation
-  # they will load all the needed components, instantiate them, and
-  # set up the defined connections and IIPs.
-  #
-  # The legacy network will also listen to graph changes and modify itself
-  # accordingly, including removing connections, adding new nodes,
-  # and sending new IIPs.
-  constructor: (graph, options = {}) ->
-    deprecated 'noflo.Network construction is deprecated, use noflo.createNetwork'
-    super graph, options
+// ## The NoFlo network coordinator
+//
+// NoFlo networks consist of processes connected to each other
+// via sockets attached from outports to inports.
+//
+// The role of the network coordinator is to take a graph and
+// instantiate all the necessary processes from the designated
+// components, attach sockets between them, and handle the sending
+// of Initial Information Packets.
+class LegacyNetwork extends BaseNetwork {
+  // All NoFlo networks are instantiated with a graph. Upon instantiation
+  // they will load all the needed components, instantiate them, and
+  // set up the defined connections and IIPs.
+  //
+  // The legacy network will also listen to graph changes and modify itself
+  // accordingly, including removing connections, adding new nodes,
+  // and sending new IIPs.
+  constructor(graph, options) {
+    if (options == null) { options = {}; }
+    deprecated('noflo.Network construction is deprecated, use noflo.createNetwork');
+    super(graph, options);
+  }
 
-  connect: (done = ->) ->
-    super (err) =>
-      if err
-        done err
-        return
-      @subscribeGraph()
-      done()
-      return
-    return
+  connect(done) {
+    if (done == null) { done = function() {}; }
+    super.connect(err => {
+      if (err) {
+        done(err);
+        return;
+      }
+      this.subscribeGraph();
+      done();
+    });
+  }
 
-  # A NoFlo graph may change after network initialization.
-  # For this, the legacy network subscribes to the change events
-  # from the graph.
-  #
-  # In graph we talk about nodes and edges. Nodes correspond
-  # to NoFlo processes, and edges to connections between them.
-  subscribeGraph: ->
-    graphOps = []
-    processing = false
-    registerOp = (op, details) ->
-      graphOps.push
-        op: op
-        details: details
-      return
-    processOps = (err) =>
-      if err
-        throw err if @listeners('process-error').length is 0
-        @bufferedEmit 'process-error', err
+  // A NoFlo graph may change after network initialization.
+  // For this, the legacy network subscribes to the change events
+  // from the graph.
+  //
+  // In graph we talk about nodes and edges. Nodes correspond
+  // to NoFlo processes, and edges to connections between them.
+  subscribeGraph() {
+    const graphOps = [];
+    let processing = false;
+    const registerOp = function(op, details) {
+      graphOps.push({
+        op,
+        details
+      });
+    };
+    var processOps = err => {
+      if (err) {
+        if (this.listeners('process-error').length === 0) { throw err; }
+        this.bufferedEmit('process-error', err);
+      }
 
-      unless graphOps.length
-        processing = false
-        return
-      processing = true
-      op = graphOps.shift()
-      cb = processOps
-      switch op.op
-        when 'renameNode'
-          @renameNode op.details.from, op.details.to, cb
-        else
-          @[op.op] op.details, cb
-      return
+      if (!graphOps.length) {
+        processing = false;
+        return;
+      }
+      processing = true;
+      const op = graphOps.shift();
+      const cb = processOps;
+      switch (op.op) {
+        case 'renameNode':
+          this.renameNode(op.details.from, op.details.to, cb);
+          break;
+        default:
+          this[op.op](op.details, cb);
+      }
+    };
 
-    @graph.on 'addNode', (node) ->
-      registerOp 'addNode', node
-      do processOps unless processing
-      return
-    @graph.on 'removeNode', (node) ->
-      registerOp 'removeNode', node
-      do processOps unless processing
-      return
-    @graph.on 'renameNode', (oldId, newId) ->
-      registerOp 'renameNode',
-        from: oldId
+    this.graph.on('addNode', function(node) {
+      registerOp('addNode', node);
+      if (!processing) { processOps(); }
+    });
+    this.graph.on('removeNode', function(node) {
+      registerOp('removeNode', node);
+      if (!processing) { processOps(); }
+    });
+    this.graph.on('renameNode', function(oldId, newId) {
+      registerOp('renameNode', {
+        from: oldId,
         to: newId
-      do processOps unless processing
-      return
-    @graph.on 'addEdge', (edge) ->
-      registerOp 'addEdge', edge
-      do processOps unless processing
-      return
-    @graph.on 'removeEdge', (edge) ->
-      registerOp 'removeEdge', edge
-      do processOps unless processing
-      return
-    @graph.on 'addInitial', (iip) ->
-      registerOp 'addInitial', iip
-      do processOps unless processing
-      return
-    @graph.on 'removeInitial', (iip) ->
-      registerOp 'removeInitial', iip
-      do processOps unless processing
-      return
+      }
+      );
+      if (!processing) { processOps(); }
+    });
+    this.graph.on('addEdge', function(edge) {
+      registerOp('addEdge', edge);
+      if (!processing) { processOps(); }
+    });
+    this.graph.on('removeEdge', function(edge) {
+      registerOp('removeEdge', edge);
+      if (!processing) { processOps(); }
+    });
+    this.graph.on('addInitial', function(iip) {
+      registerOp('addInitial', iip);
+      if (!processing) { processOps(); }
+    });
+    return this.graph.on('removeInitial', function(iip) {
+      registerOp('removeInitial', iip);
+      if (!processing) { processOps(); }
+    });
+  }
+}
 
-exports.Network = LegacyNetwork
+exports.Network = LegacyNetwork;
