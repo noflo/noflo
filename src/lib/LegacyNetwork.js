@@ -1,3 +1,10 @@
+/* eslint-disable
+    func-names,
+    no-param-reassign,
+    no-var,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS102: Remove unnecessary code created because of implicit returns
@@ -35,8 +42,8 @@ class LegacyNetwork extends BaseNetwork {
   }
 
   connect(done) {
-    if (done == null) { done = function() {}; }
-    super.connect(err => {
+    if (done == null) { done = function () {}; }
+    super.connect((err) => {
       if (err) {
         done(err);
         return;
@@ -55,13 +62,13 @@ class LegacyNetwork extends BaseNetwork {
   subscribeGraph() {
     const graphOps = [];
     let processing = false;
-    const registerOp = function(op, details) {
+    const registerOp = function (op, details) {
       graphOps.push({
         op,
-        details
+        details,
       });
     };
-    var processOps = err => {
+    var processOps = (err) => {
       if (err) {
         if (this.listeners('process-error').length === 0) { throw err; }
         this.bufferedEmit('process-error', err);
@@ -83,35 +90,34 @@ class LegacyNetwork extends BaseNetwork {
       }
     };
 
-    this.graph.on('addNode', function(node) {
+    this.graph.on('addNode', (node) => {
       registerOp('addNode', node);
       if (!processing) { processOps(); }
     });
-    this.graph.on('removeNode', function(node) {
+    this.graph.on('removeNode', (node) => {
       registerOp('removeNode', node);
       if (!processing) { processOps(); }
     });
-    this.graph.on('renameNode', function(oldId, newId) {
+    this.graph.on('renameNode', (oldId, newId) => {
       registerOp('renameNode', {
         from: oldId,
-        to: newId
-      }
-      );
+        to: newId,
+      });
       if (!processing) { processOps(); }
     });
-    this.graph.on('addEdge', function(edge) {
+    this.graph.on('addEdge', (edge) => {
       registerOp('addEdge', edge);
       if (!processing) { processOps(); }
     });
-    this.graph.on('removeEdge', function(edge) {
+    this.graph.on('removeEdge', (edge) => {
       registerOp('removeEdge', edge);
       if (!processing) { processOps(); }
     });
-    this.graph.on('addInitial', function(iip) {
+    this.graph.on('addInitial', (iip) => {
       registerOp('addInitial', iip);
       if (!processing) { processOps(); }
     });
-    return this.graph.on('removeInitial', function(iip) {
+    return this.graph.on('removeInitial', (iip) => {
       registerOp('removeInitial', iip);
       if (!processing) { processOps(); }
     });
