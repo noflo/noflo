@@ -28,9 +28,13 @@ class LegacyNetwork extends BaseNetwork
 
   connect: (done = ->) ->
     super (err) =>
-      return done err if err
+      if err
+        done err
+        return
       @subscribeGraph()
       done()
+      return
+    return
 
   # A NoFlo graph may change after network initialization.
   # For this, the legacy network subscribes to the change events
@@ -45,6 +49,7 @@ class LegacyNetwork extends BaseNetwork
       graphOps.push
         op: op
         details: details
+      return
     processOps = (err) =>
       if err
         throw err if @listeners('process-error').length is 0
@@ -61,29 +66,37 @@ class LegacyNetwork extends BaseNetwork
           @renameNode op.details.from, op.details.to, cb
         else
           @[op.op] op.details, cb
+      return
 
     @graph.on 'addNode', (node) ->
       registerOp 'addNode', node
       do processOps unless processing
+      return
     @graph.on 'removeNode', (node) ->
       registerOp 'removeNode', node
       do processOps unless processing
+      return
     @graph.on 'renameNode', (oldId, newId) ->
       registerOp 'renameNode',
         from: oldId
         to: newId
       do processOps unless processing
+      return
     @graph.on 'addEdge', (edge) ->
       registerOp 'addEdge', edge
       do processOps unless processing
+      return
     @graph.on 'removeEdge', (edge) ->
       registerOp 'removeEdge', edge
       do processOps unless processing
+      return
     @graph.on 'addInitial', (iip) ->
       registerOp 'addInitial', iip
       do processOps unless processing
+      return
     @graph.on 'removeInitial', (iip) ->
       registerOp 'removeInitial', iip
       do processOps unless processing
+      return
 
 exports.Network = LegacyNetwork
