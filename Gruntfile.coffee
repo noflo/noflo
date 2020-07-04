@@ -111,6 +111,7 @@ module.exports = ->
     @task.run 'babel'
     if target is 'all' or target is 'browser'
       @task.run 'noflo_browser'
+    return
 
   @registerTask 'test', 'Build NoFlo and run automated tests', (target = 'all') =>
     @task.run "build:#{target}"
@@ -122,5 +123,7 @@ module.exports = ->
       @task.run 'noflo_browser_mocha'
       @task.run 'connect'
       @task.run 'mocha_phantomjs'
+    return
 
   @registerTask 'default', ['test']
+  return
