@@ -24,14 +24,6 @@ module.exports = ->
 
     # CoffeeScript compilation
     coffee:
-      libraries:
-        options:
-          bare: true
-        expand: true
-        cwd: 'src/lib'
-        src: ['**.coffee']
-        dest: 'lib'
-        ext: '.js'
       spec:
         options:
           bare: true
@@ -63,7 +55,7 @@ module.exports = ->
 
     # Automated recompilation and testing when developing
     watch:
-      files: ['spec/*.coffee', 'spec/**/*.coffee', 'src/**/*.coffee']
+      files: ['spec/*.coffee', 'spec/**/*.coffee']
       tasks: ['test:nodejs']
 
     # BDD tests on Node.js
@@ -102,25 +94,6 @@ module.exports = ->
           urls: ['http://localhost:8000/spec/runner.html']
           failWithOutput: true
 
-    # Coding standards
-    coffeelint:
-      libraries:
-        files:
-          src: ['src/lib/*.coffee']
-        options:
-          max_line_length:
-            value: 80
-            level: 'ignore'
-          no_trailing_semicolons:
-            level: 'warn'
-      components:
-        files:
-          src: ['src/components/*.coffee']
-        options:
-          max_line_length:
-            value: 80
-            level: 'ignore'
-
   # Grunt plugins used for building
   @loadNpmTasks 'grunt-contrib-coffee'
   @loadNpmTasks 'grunt-babel'
@@ -131,7 +104,6 @@ module.exports = ->
   @loadNpmTasks 'grunt-contrib-connect'
   @loadNpmTasks 'grunt-mocha-test'
   @loadNpmTasks 'grunt-mocha-phantomjs'
-  @loadNpmTasks 'grunt-coffeelint'
 
   # Our local tasks
   @registerTask 'build', 'Build NoFlo for the chosen target platform', (target = 'all') =>
@@ -141,7 +113,6 @@ module.exports = ->
       @task.run 'noflo_browser'
 
   @registerTask 'test', 'Build NoFlo and run automated tests', (target = 'all') =>
-    @task.run 'coffeelint'
     @task.run "build:#{target}"
     if target is 'all' or target is 'nodejs'
       # The components directory has to exist for Node.js 4.x
