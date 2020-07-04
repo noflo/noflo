@@ -1,18 +1,3 @@
-/* eslint-disable
-    func-names,
-    implicit-arrow-linebreak,
-    max-len,
-    no-param-reassign,
-    no-shadow,
-    no-unused-vars,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2013-2018 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
@@ -22,7 +7,11 @@
 // main entry point to the NoFlo network.
 //
 // Find out more about using NoFlo from <http://noflojs.org/documentation/>
-//
+
+/* eslint-disable
+    no-param-reassign,
+*/
+
 // ## Main APIs
 //
 // ### Graph interface
@@ -41,8 +30,8 @@ exports.Journal = fbpGraph.Journal;
 
 // ## Network interface
 //
-// [Network](../Network/) is used for running NoFlo graphs. The direct Network inteface is only provided
-// for backwards compatibility purposes. Use `createNetwork` instead.
+// [Network](../Network/) is used for running NoFlo graphs. The direct Network inteface is only
+// provided for backwards compatibility purposes. Use `createNetwork` instead.
 const {
   Network,
 } = require('./Network');
@@ -116,8 +105,10 @@ exports.IP = require('./IP');
 //
 // It is possible to pass some options to control the behavior of network creation:
 //
-// * `delay`: (default: FALSE) Whether the network should be started later. Defaults to immediate execution
-// * `subscribeGraph`: (default: TRUE) Whether the network should monitor the underlying graph for changes
+// * `delay`: (default: FALSE) Whether the network should be started later. Defaults to
+//   immediate execution
+// * `subscribeGraph`: (default: TRUE) Whether the network should monitor the underlying
+//   graph for changes
 //
 // Options can be passed as a second argument before the callback:
 //
@@ -125,7 +116,7 @@ exports.IP = require('./IP');
 //
 // The options object can also be used for setting ComponentLoader options in this
 // network.
-exports.createNetwork = function (graph, options, callback) {
+exports.createNetwork = function createNetwork(graph, options, callback) {
   if (typeof options === 'function') {
     const opts = callback;
     callback = options;
@@ -143,7 +134,7 @@ exports.createNetwork = function (graph, options, callback) {
   }
   if (typeof callback !== 'function') {
     deprecated('Calling noflo.createNetwork without a callback is deprecated');
-    callback = function (err) {
+    callback = (err) => {
       if (err) { throw err; }
     };
   }
@@ -153,14 +144,15 @@ exports.createNetwork = function (graph, options, callback) {
   const NetworkType = options.subscribeGraph ? exports.Network : Network;
   const network = new NetworkType(graph, options);
 
-  const networkReady = (network) => // Send IIPs
-    network.start((err) => {
+  const networkReady = (net) => { // Send IIPs
+    net.start((err) => {
       if (err) {
         callback(err);
         return;
       }
-      callback(null, network);
+      callback(null, net);
     });
+  };
 
   // Ensure components are loaded before continuing
   network.loader.listComponents((err) => {
@@ -182,9 +174,9 @@ exports.createNetwork = function (graph, options, callback) {
     }
 
     // Wire the network up and start execution
-    network.connect((err) => {
-      if (err) {
-        callback(err);
+    network.connect((err2) => {
+      if (err2) {
+        callback(err2);
         return;
       }
       networkReady(network);
@@ -204,11 +196,10 @@ exports.createNetwork = function (graph, options, callback) {
 //       }
 //       console.log('Network is now running!');
 //     })
-exports.loadFile = function (file, options, callback) {
-  let baseDir;
+exports.loadFile = function loadFile(file, options, callback) {
   if (!callback) {
     callback = options;
-    baseDir = null;
+    options = null;
   }
 
   if (callback && (typeof options !== 'object')) {
@@ -234,7 +225,7 @@ exports.loadFile = function (file, options, callback) {
 // ### Saving a network definition
 //
 // NoFlo graph files can be saved back into the filesystem with this method.
-exports.saveFile = function (graph, file, callback) {
+exports.saveFile = function saveFile(graph, file, callback) {
   graph.save(file, callback);
 };
 
