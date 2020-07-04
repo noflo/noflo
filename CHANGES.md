@@ -3,6 +3,7 @@ NoFlo ChangeLog
 
 ## 1.2.0 (git master)
 
+* Ported NoFlo core from CoffeeScript to ES6
 * Deprecated constructing networks with `new noflo.Network`. Use `noflo.createNetwork` instead, with the following options available:
   - `subscribeGraph: true`: Uses `LegacyNetwork` which modifies network topology based on changes in graph. This can cause some types of errors to be silent.
   - `subscribeGraph: false`: Uses `Network`: network topology can be changed with network's methods (`addNode`, `removeEdge`, etc) and will be also written to the graph.
