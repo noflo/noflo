@@ -1,16 +1,3 @@
-/* eslint-disable
-    func-names,
-    no-param-reassign,
-    no-var,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2013-2018 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
@@ -35,14 +22,12 @@ class LegacyNetwork extends BaseNetwork {
   // The legacy network will also listen to graph changes and modify itself
   // accordingly, including removing connections, adding new nodes,
   // and sending new IIPs.
-  constructor(graph, options) {
-    if (options == null) { options = {}; }
+  constructor(graph, options = {}) {
     deprecated('noflo.Network construction is deprecated, use noflo.createNetwork');
     super(graph, options);
   }
 
-  connect(done) {
-    if (done == null) { done = function () {}; }
+  connect(done = () => {}) {
     super.connect((err) => {
       if (err) {
         done(err);
@@ -62,13 +47,13 @@ class LegacyNetwork extends BaseNetwork {
   subscribeGraph() {
     const graphOps = [];
     let processing = false;
-    const registerOp = function (op, details) {
+    const registerOp = (op, details) => {
       graphOps.push({
         op,
         details,
       });
     };
-    var processOps = (err) => {
+    const processOps = (err) => {
       if (err) {
         if (this.listeners('process-error').length === 0) { throw err; }
         this.bufferedEmit('process-error', err);
