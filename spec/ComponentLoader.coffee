@@ -1,6 +1,6 @@
 if typeof process isnt 'undefined' and process.execPath and process.execPath.match /node|iojs/
   chai = require 'chai' unless chai
-  noflo = require '../src/lib/NoFlo.coffee'
+  noflo = require '../src/lib/NoFlo'
   shippingLanguage = 'javascript'
   path = require 'path'
   root = path.resolve __dirname, '../'
