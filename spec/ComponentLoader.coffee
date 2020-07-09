@@ -11,7 +11,7 @@ else
   root = 'noflo'
   urlPrefix = '/'
 
-describe.only 'ComponentLoader with no external packages installed', ->
+describe 'ComponentLoader with no external packages installed', ->
   l = new noflo.ComponentLoader root
   class Split extends noflo.Component
     constructor: ->
