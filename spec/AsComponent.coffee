@@ -11,7 +11,7 @@ else
   urlPrefix = '/'
   isBrowser = true
 
-describe.only 'asComponent interface', ->
+describe 'asComponent interface', ->
   loader = null
   before (done) ->
     loader = new noflo.ComponentLoader root
