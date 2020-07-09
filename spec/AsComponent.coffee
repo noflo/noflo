@@ -11,36 +11,50 @@ else
   urlPrefix = '/'
   isBrowser = true
 
-describe 'asComponent interface', ->
+describe.only 'asComponent interface', ->
   loader = null
   before (done) ->
     loader = new noflo.ComponentLoader root
     loader.listComponents done
+    return
   describe 'with a synchronous function taking a single parameter', ->
     describe 'with returned value', ->
       func = (hello) ->
         return "Hello #{hello}"
+        return
       it 'should be possible to componentize', (done) ->
         component = -> noflo.asComponent func
         loader.registerComponent 'ascomponent', 'sync-one', component, done
+        return
       it 'should be loadable', (done) ->
         loader.load 'ascomponent/sync-one', done
+        return
       it 'should contain correct ports', (done) ->
         loader.load 'ascomponent/sync-one', (err, instance) ->
-          return done err if err
+          if err
+            done err
+            return
           chai.expect(Object.keys(instance.inPorts.ports)).to.eql ['hello']
           chai.expect(Object.keys(instance.outPorts.ports)).to.eql ['out', 'error']
           done()
+          return
+        return
       it 'should send to OUT port', (done) ->
         wrapped = noflo.asCallback 'ascomponent/sync-one',
           loader: loader
         wrapped 'World', (err, res) ->
-          return done err if err
+          if err
+            done err
+            return
           chai.expect(res).to.equal 'Hello World'
           done()
+          return
+        return
       it 'should forward brackets to OUT port', (done) ->
         loader.load 'ascomponent/sync-one', (err, instance) ->
-          return done err if err
+          if err
+            done err
+            return
           ins = noflo.internalSocket.createSocket()
           out = noflo.internalSocket.createSocket()
           error = noflo.internalSocket.createSocket()
@@ -62,30 +76,43 @@ describe 'asComponent interface', ->
             return unless received.length is expected.length
             chai.expect(received).to.eql expected
             done()
+            return
           ins.post new noflo.IP 'openBracket', 'a'
           ins.post new noflo.IP 'data', 'Foo'
           ins.post new noflo.IP 'data', 'Bar'
           ins.post new noflo.IP 'data', 'Baz'
           ins.post new noflo.IP 'closeBracket', 'a'
+          return
+        return
+      return
     describe 'with returned NULL', ->
       func = (hello) ->
         return null
+        return
       it 'should be possible to componentize', (done) ->
         component = -> noflo.asComponent func
         loader.registerComponent 'ascomponent', 'sync-null', component, done
+        return
       it 'should send to OUT port', (done) ->
         wrapped = noflo.asCallback 'ascomponent/sync-null',
           loader: loader
         wrapped 'World', (err, res) ->
-          return done err if err
+          if err
+            done err
+            return
           chai.expect(res).to.be.a 'null'
           done()
+          return
+        return
+      return
     describe 'with a thrown exception', ->
       func = (hello) ->
         throw new Error "Hello #{hello}"
+        return
       it 'should be possible to componentize', (done) ->
         component = -> noflo.asComponent func
         loader.registerComponent 'ascomponent', 'sync-throw', component, done
+        return
       it 'should send to ERROR port', (done) ->
         wrapped = noflo.asCallback 'ascomponent/sync-throw',
           loader: loader
@@ -93,21 +120,32 @@ describe 'asComponent interface', ->
           chai.expect(err).to.be.an 'error'
           chai.expect(err.message).to.equal 'Hello Error'
           done()
+          return
+        return
+      return
+    return
   describe 'with a synchronous function taking a multiple parameters', ->
     describe 'with returned value', ->
       func = (greeting, name) ->
         return "#{greeting} #{name}"
+        return
       it 'should be possible to componentize', (done) ->
         component = -> noflo.asComponent func
         loader.registerComponent 'ascomponent', 'sync-two', component, done
+        return
       it 'should be loadable', (done) ->
         loader.load 'ascomponent/sync-two', done
+        return
       it 'should contain correct ports', (done) ->
         loader.load 'ascomponent/sync-two', (err, instance) ->
-          return done err if err
+          if err
+            done err
+            return
           chai.expect(Object.keys(instance.inPorts.ports)).to.eql ['greeting', 'name']
           chai.expect(Object.keys(instance.outPorts.ports)).to.eql ['out', 'error']
           done()
+          return
+        return
       it 'should send to OUT port', (done) ->
         wrapped = noflo.asCallback 'ascomponent/sync-two',
           loader: loader
@@ -115,23 +153,33 @@ describe 'asComponent interface', ->
           greeting: 'Hei'
           name: 'Maailma'
         , (err, res) ->
-          return done err if err
+          if err
+            done err
+            return
           chai.expect(res).to.eql
             out: 'Hei Maailma'
           done()
+          return
+        return
+      return
     describe 'with a default value', ->
       before ->
         @skip() if isBrowser # Browser runs with ES5 which didn't have defaults
       func = (name, greeting = 'Hello') ->
         return "#{greeting} #{name}"
+        return
       it 'should be possible to componentize', (done) ->
         component = -> noflo.asComponent func
         loader.registerComponent 'ascomponent', 'sync-default', component, done
+        return
       it 'should be loadable', (done) ->
         loader.load 'ascomponent/sync-default', done
+        return
       it 'should contain correct ports', (done) ->
         loader.load 'ascomponent/sync-default', (err, instance) ->
-          return done err if err
+          if err
+            done err
+            return
           chai.expect(Object.keys(instance.inPorts.ports)).to.eql ['name', 'greeting']
           chai.expect(Object.keys(instance.outPorts.ports)).to.eql ['out', 'error']
           chai.expect(instance.inPorts.name.isRequired()).to.equal true
@@ -139,16 +187,24 @@ describe 'asComponent interface', ->
           chai.expect(instance.inPorts.greeting.isRequired()).to.equal false
           chai.expect(instance.inPorts.greeting.hasDefault()).to.equal true
           done()
+          return
+        return
       it 'should send to OUT port', (done) ->
         wrapped = noflo.asCallback 'ascomponent/sync-default',
           loader: loader
         wrapped
           name: 'Maailma'
         , (err, res) ->
-          return done err if err
+          if err
+            done err
+            return
           chai.expect(res).to.eql
             out: 'Hello Maailma'
           done()
+          return
+        return
+      return
+    return
   describe 'with a function returning a Promise', ->
     describe 'with a resolved promise', ->
       before ->
@@ -158,28 +214,38 @@ describe 'asComponent interface', ->
           setTimeout ->
             resolve "Hello #{hello}"
           , 5
+        return
       it 'should be possible to componentize', (done) ->
         component = -> noflo.asComponent func
         loader.registerComponent 'ascomponent', 'promise-one', component, done
+        return
       it 'should send to OUT port', (done) ->
         wrapped = noflo.asCallback 'ascomponent/promise-one',
           loader: loader
         wrapped 'World', (err, res) ->
-          return done err if err
+          if err
+            done err
+            return
           chai.expect(res).to.equal 'Hello World'
           done()
+          return
+        return
+      return
     describe 'with a rejected promise', ->
       before ->
         if isBrowser and typeof window.Promise is 'undefined'
-          return @skip()
+          @skip()
+        return
       func = (hello) ->
         return new Promise (resolve, reject) ->
           setTimeout ->
             reject new Error "Hello #{hello}"
           , 5
+        return
       it 'should be possible to componentize', (done) ->
         component = -> noflo.asComponent func
         loader.registerComponent 'ascomponent', 'sync-throw', component, done
+        return
       it 'should send to ERROR port', (done) ->
         wrapped = noflo.asCallback 'ascomponent/sync-throw',
           loader: loader
@@ -187,75 +253,115 @@ describe 'asComponent interface', ->
           chai.expect(err).to.be.an 'error'
           chai.expect(err.message).to.equal 'Hello Error'
           done()
+          return
+        return
+      return
+    return
   describe 'with a synchronous function taking zero parameters', ->
     describe 'with returned value', ->
       func = () ->
         return "Hello there"
+        return
       it 'should be possible to componentize', (done) ->
         component = -> noflo.asComponent func
         loader.registerComponent 'ascomponent', 'sync-zero', component, done
+        return
       it 'should contain correct ports', (done) ->
         loader.load 'ascomponent/sync-zero', (err, instance) ->
-          return done err if err
+          if err
+            done err
+            return
           chai.expect(Object.keys(instance.inPorts.ports)).to.eql ['in']
           chai.expect(Object.keys(instance.outPorts.ports)).to.eql ['out', 'error']
           done()
+          return
+        return
       it 'should send to OUT port', (done) ->
         wrapped = noflo.asCallback 'ascomponent/sync-zero',
           loader: loader
         wrapped 'bang', (err, res) ->
-          return done err if err
+          if err
+            done err
+            return
           chai.expect(res).to.equal 'Hello there'
           done()
+          return
+        return
+      return
     describe 'with a built-in function', ->
       it 'should be possible to componentize', (done) ->
         component = -> noflo.asComponent Math.random
         loader.registerComponent 'ascomponent', 'sync-zero', component, done
+        return
       it 'should contain correct ports', (done) ->
         loader.load 'ascomponent/sync-zero', (err, instance) ->
-          return done err if err
+          if err
+            done err
+            return
           chai.expect(Object.keys(instance.inPorts.ports)).to.eql ['in']
           chai.expect(Object.keys(instance.outPorts.ports)).to.eql ['out', 'error']
           done()
+          return
+        return
       it 'should send to OUT port', (done) ->
         wrapped = noflo.asCallback 'ascomponent/sync-zero',
           loader: loader
         wrapped 'bang', (err, res) ->
-          return done err if err
+          if err
+            done err
+            return
           chai.expect(res).to.be.a 'number'
           done()
+          return
+        return
+      return
+    return
   describe 'with an asynchronous function taking a single parameter and callback', ->
     describe 'with successful callback', ->
       func = (hello, callback) ->
         setTimeout ->
           callback null, "Hello #{hello}"
         , 5
+        return
       it 'should be possible to componentize', (done) ->
         component = -> noflo.asComponent func
         loader.registerComponent 'ascomponent', 'async-one', component, done
+        return
       it 'should be loadable', (done) ->
         loader.load 'ascomponent/async-one', done
+        return
       it 'should contain correct ports', (done) ->
         loader.load 'ascomponent/async-one', (err, instance) ->
-          return done err if err
+          if err
+            done err
+            return
           chai.expect(Object.keys(instance.inPorts.ports)).to.eql ['hello']
           chai.expect(Object.keys(instance.outPorts.ports)).to.eql ['out', 'error']
           done()
+          return
+        return
       it 'should send to OUT port', (done) ->
         wrapped = noflo.asCallback 'ascomponent/async-one',
           loader: loader
         wrapped 'World', (err, res) ->
-          return done err if err
+          if err
+            done err
+            return
           chai.expect(res).to.equal 'Hello World'
           done()
+          return
+        return
+      return
     describe 'with failed callback', ->
       func = (hello, callback) ->
         setTimeout ->
           callback new Error "Hello #{hello}"
         , 5
+        return
       it 'should be possible to componentize', (done) ->
         component = -> noflo.asComponent func
         loader.registerComponent 'ascomponent', 'async-throw', component, done
+        return
       it 'should send to ERROR port', (done) ->
         wrapped = noflo.asCallback 'ascomponent/async-throw',
           loader: loader
@@ -263,3 +369,8 @@ describe 'asComponent interface', ->
           chai.expect(err).to.be.an 'error'
           chai.expect(err.message).to.equal 'Hello Error'
           done()
+          return
+        return
+      return
+    return
+  return
