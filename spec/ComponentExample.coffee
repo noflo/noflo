@@ -18,7 +18,9 @@ describe 'MergeObjects component', ->
     title: 'Attorney'
     age: 33
   before (done) ->
-    return @skip() if noflo.isBrowser()
+    if noflo.isBrowser()
+      @skip()
+      return
     MergeObjects = require './components/MergeObjects.coffee'
     c = MergeObjects.getComponent()
     sin1 = new noflo.internalSocket.InternalSocket
@@ -32,21 +34,26 @@ describe 'MergeObjects component', ->
     c.outPorts.result.attach sout1
     c.outPorts.error.attach sout2
     done()
+    return
   beforeEach (done) ->
     sout1.removeAllListeners()
     sout2.removeAllListeners()
     done()
+    return
 
   it 'should not trigger if input is not complete', (done) ->
     sout1.once 'ip', (ip) ->
       done new Error "Premature result"
+      return
     sout2.once 'ip', (ip) ->
       done new Error "Premature error"
+      return
 
     sin1.post new noflo.IP 'data', obj1
     sin2.post new noflo.IP 'data', obj2
 
     setTimeout done, 10
+    return
 
   it 'should merge objects when input is complete', (done) ->
     sout1.once 'ip', (ip) ->
@@ -57,10 +64,13 @@ describe 'MergeObjects component', ->
       chai.expect(ip.data.title).to.equal obj2.title
       chai.expect(ip.data.age).to.equal obj1.age
       done()
+      return
     sout2.once 'ip', (ip) ->
       done ip
+      return
 
     sin3.post new noflo.IP 'data', false
+    return
 
   it 'should obey the overwrite control', (done) ->
     sout1.once 'ip', (ip) ->
@@ -71,9 +81,13 @@ describe 'MergeObjects component', ->
       chai.expect(ip.data.title).to.equal obj2.title
       chai.expect(ip.data.age).to.equal obj2.age
       done()
+      return
     sout2.once 'ip', (ip) ->
       done ip
+      return
 
     sin3.post new noflo.IP 'data', true
     sin1.post new noflo.IP 'data', obj1
     sin2.post new noflo.IP 'data', obj2
+    return
+  return
