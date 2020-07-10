@@ -7,7 +7,7 @@ else
   noflo = require 'noflo'
   root = 'noflo'
 
-describe.only 'NoFlo Legacy Network', ->
+describe 'NoFlo Legacy Network', ->
   Split = ->
     return new noflo.Component
       inPorts:
