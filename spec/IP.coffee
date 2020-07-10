@@ -12,17 +12,17 @@ describe 'IP object', ->
     chai.expect(open.type).to.equal 'openBracket'
     chai.expect(close.type).to.equal 'closeBracket'
     chai.expect(data.type).to.equal 'data'
-
+    return
   it 'should be moved to an owner', ->
     p = new noflo.IP 'data', "Token"
     p.move 'SomeProc'
     chai.expect(p.owner).to.equal 'SomeProc'
-
+    return
   it 'should support sync context scoping', ->
     p = new noflo.IP 'data', "Request-specific"
     p.scope = 'request-12345'
     chai.expect(p.scope).to.equal 'request-12345'
-
+    return
   it 'should be able to clone itself', ->
     d1 = new noflo.IP 'data', "Trooper",
       groups: ['foo', 'bar']
@@ -39,9 +39,11 @@ describe 'IP object', ->
     chai.expect(d2.groups).to.eql d2.groups
     chai.expect(d2.owner).not.to.equal d1.owner
     chai.expect(d2.scope).to.equal d1.scope
-
+    return
   it 'should dispose its contents when dropped', ->
     p = new noflo.IP 'data', "Garbage"
     p.groups = ['foo', 'bar']
     p.drop()
     chai.expect(Object.keys(p)).to.have.lengthOf 0
+    return
+  return
