@@ -17,15 +17,20 @@ legacyBasic = ->
     datatype: 'string'
   c.inPorts.in.on 'connect', ->
     c.outPorts.out.connect()
+    return
   c.inPorts.in.on 'begingroup', (group) ->
     c.outPorts.out.beginGroup group
+    return
   c.inPorts.in.on 'data', (data) ->
     c.outPorts.out.data data + c.nodeId
+    return
   c.inPorts.in.on 'endgroup', (group) ->
     c.outPorts.out.endGroup()
+    return
   c.inPorts.in.on 'disconnect', ->
     c.outPorts.out.disconnect()
-  c
+    return
+  return c
 
 processAsync = ->
   c = new noflo.Component
@@ -38,7 +43,10 @@ processAsync = ->
     data = input.getData 'in'
     setTimeout ->
       output.sendDone data + c.nodeId
+      return
     , 1
+    return
+  return c
 
 processMerge = ->
   c = new noflo.Component
@@ -59,6 +67,8 @@ processMerge = ->
 
     output.sendDone
       out: "1#{first}:2#{second}:#{c.nodeId}"
+    return
+  return c
 
 processSync = ->
   c = new noflo.Component
@@ -71,6 +81,8 @@ processSync = ->
     output.send
       out: data + c.nodeId
     output.done()
+    return
+  return c
 
 processBracketize = ->
   c = new noflo.Component
@@ -81,7 +93,8 @@ processBracketize = ->
   c.counter = 0
   c.tearDown = (callback) ->
     c.counter = 0
-    do callback
+    callback()
+    return
   c.process (input, output) ->
     data = input.getData 'in'
     output.send
@@ -92,6 +105,8 @@ processBracketize = ->
       out: new noflo.IP 'closeBracket', c.counter
     c.counter++
     output.done()
+    return
+  return c
 
 processNonSending = ->
   c = new noflo.Component
@@ -111,6 +126,8 @@ processNonSending = ->
     data = input.getData 'in'
     output.send data + c.nodeId
     output.done()
+    return
+  return c
 
 processGenerator = ->
   c = new noflo.Component
@@ -127,9 +144,11 @@ processGenerator = ->
     clearInterval c.timer.interval
     c.timer.deactivate()
     c.timer = null
+    return
   c.tearDown = (callback) ->
     cleanUp()
     callback()
+    return
 
   c.process (input, output, context) ->
     if input.hasData 'start'
@@ -138,19 +157,27 @@ processGenerator = ->
       c.timer = context
       c.timer.interval = setInterval ->
         output.send out: true
+        return
       , 100
     if input.hasData 'stop'
       input.getData 'stop'
-      return output.done() unless c.timer
+      unless c.timer
+        output.done()
+        return
       cleanUp()
       output.done()
+      return
+    return
+  return c
 
 describe 'Network Lifecycle', ->
   loader = null
   before (done) ->
     loader = new noflo.ComponentLoader root
     loader.listComponents (err) ->
-      return done err if err
+      if err
+        done err
+        return
       loader.registerComponent 'process', 'Async', processAsync
       loader.registerComponent 'process', 'Sync', processSync
       loader.registerComponent 'process', 'Merge', processMerge
@@ -159,27 +186,38 @@ describe 'Network Lifecycle', ->
       loader.registerComponent 'process', 'Generator', processGenerator
       loader.registerComponent 'legacy', 'Sync', legacyBasic
       done()
+      return
 
+    return
   describe 'recognizing API level', ->
     it 'should recognize legacy component as such', (done) ->
       loader.load 'legacy/Sync', (err, inst) ->
-        return done err if err
+        if err
+          done err
+          return
         chai.expect(inst.isLegacy()).to.equal true
         done()
+        return
       return
     it 'should recognize Process API component as non-legacy', (done) ->
       loader.load 'process/Async', (err, inst) ->
-        return done err if err
+        if err
+          done err
+          return
         chai.expect(inst.isLegacy()).to.equal false
         done()
+        return
       return
     it 'should recognize Graph component as non-legacy', (done) ->
       loader.load 'Graph', (err, inst) ->
-        return done err if err
+        if err
+          done err
+          return
         chai.expect(inst.isLegacy()).to.equal false
         done()
+        return
       return
-
+    return
   describe 'with single Process API component receiving IIP', ->
     c = null
     g = null
@@ -190,19 +228,27 @@ describe 'Network Lifecycle', ->
       'hello' -> IN Pc(process/Async)
       "
       noflo.graph.loadFBP fbpData, (err, graph) ->
-        return done err if err
+        if err
+          done err
+          return
         g = graph
         loader.registerComponent 'scope', 'Connected', graph
         loader.load 'scope/Connected', (err, instance) ->
-          return done err if err
+          if err
+            done err
+            return
           c = instance
           out = noflo.internalSocket.createSocket()
           c.outPorts.out.attach out
           done()
+          return
+        return
+      return
     afterEach (done) ->
       c.outPorts.out.detach out
       out = null
       c.shutdown done
+      return
     it 'should execute and finish', (done) ->
       expected = [
         'DATA helloPc'
@@ -216,18 +262,25 @@ describe 'Network Lifecycle', ->
             received.push "DATA #{ip.data}"
           when 'closeBracket'
             received.push '>'
+        return
       wasStarted = false
       checkStart = ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
+        return
       checkEnd = ->
         chai.expect(received).to.eql expected
         chai.expect(wasStarted).to.equal true
         done()
+        return
       c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
       c.start (err) ->
-        return done err if err
+        if err
+          done err
+          return
+        return
+      return
     it 'should execute twice if IIP changes', (done) ->
       expected = [
         'DATA helloPc'
@@ -242,10 +295,12 @@ describe 'Network Lifecycle', ->
             received.push "DATA #{ip.data}"
           when 'closeBracket'
             received.push '>'
+        return
       wasStarted = false
       checkStart = ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
+        return
       checkEnd = ->
         chai.expect(wasStarted).to.equal true
         if received.length < expected.length
@@ -259,14 +314,22 @@ describe 'Network Lifecycle', ->
               node: 'Pc'
               port: 'in'
            , (err) ->
-             return done err if err
+             if err
+              done err
+              return
+            return
           return
         chai.expect(received).to.eql expected
         done()
+        return
       c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
       c.start (err) ->
-        return done err if err
+        if err
+          done err
+          return
+        return
+      return
     it 'should not send new IIP if network was stopped', (done) ->
       expected = [
         'DATA helloPc'
@@ -280,19 +343,25 @@ describe 'Network Lifecycle', ->
             received.push "DATA #{ip.data}"
           when 'closeBracket'
             received.push '>'
+        return
       wasStarted = false
       checkStart = ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
+        return
       checkEnd = ->
         chai.expect(wasStarted).to.equal true
         c.network.stop (err) ->
-          return done err if err
+          if err
+            done err
+            return
           chai.expect(c.network.isStopped()).to.equal true
           c.network.once 'start', ->
             throw new Error 'Unexpected network start'
+            return
           c.network.once 'end', ->
             throw new Error 'Unexpected network end'
+            return
           c.network.addInitial
             from:
               data: 'world'
@@ -300,16 +369,25 @@ describe 'Network Lifecycle', ->
               node: 'Pc'
               port: 'in'
            , (err) ->
-             return done err if err
+            if err
+              done err
+              return
+            return
           setTimeout ->
             chai.expect(received).to.eql expected
             done()
+            return
           , 1000
+          return
       c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
       c.start (err) ->
-        return done err if err
-
+        if err
+          done err
+          return
+        return
+      return
+    return
   describe 'with synchronous Process API', ->
     c = null
     g = null
@@ -324,19 +402,27 @@ describe 'Network Lifecycle', ->
       Sync OUT -> IN2 NonSending
       "
       noflo.graph.loadFBP fbpData, (err, graph) ->
-        return done err if err
+        if err
+          done err
+          return
         g = graph
         loader.registerComponent 'scope', 'Connected', graph
         loader.load 'scope/Connected', (err, instance) ->
-          return done err if err
+          if err
+            done err
+            return
           c = instance
           out = noflo.internalSocket.createSocket()
           c.outPorts.out.attach out
           done()
+          return
+        return
+      return
     afterEach (done) ->
       c.outPorts.out.detach out
       out = null
       c.shutdown done
+      return
     it 'should execute and finish', (done) ->
       expected = [
         'DATA helloNonSendingSync'
@@ -350,21 +436,29 @@ describe 'Network Lifecycle', ->
             received.push "DATA #{ip.data}"
           when 'closeBracket'
             received.push '>'
+        return
       wasStarted = false
       checkStart = ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
+        return
       checkEnd = ->
         setTimeout ->
           chai.expect(received).to.eql expected
           chai.expect(wasStarted).to.equal true
           done()
+          return
         , 100
+        return
       c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
       c.start (err) ->
-        return done err if err
-
+        if err
+          done err
+          return
+        return
+      return
+    return
   describe 'pure Process API merging two inputs', ->
     c = null
     in1 = null
@@ -379,24 +473,33 @@ describe 'Network Lifecycle', ->
       Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)
       "
       noflo.graph.loadFBP fbpData, (err, g) ->
-        return done err if err
+        if err
+          done err
+          return
         loader.registerComponent 'scope', 'Merge', g
         loader.load 'scope/Merge', (err, instance) ->
-          return done err if err
+          if err
+            done err
+            return
           c = instance
           in1 = noflo.internalSocket.createSocket()
           c.inPorts.in1.attach in1
           in2 = noflo.internalSocket.createSocket()
           c.inPorts.in2.attach in2
           done()
+          return
+        return
+      return
     beforeEach ->
       out = noflo.internalSocket.createSocket()
       c.outPorts.out.attach out
+      return
     afterEach (done) ->
       c.outPorts.out.detach out
       out = null
       c.shutdown done
 
+      return
     it 'should forward new-style brackets as expected', (done) ->
       expected = [
         'CONN'
@@ -411,28 +514,37 @@ describe 'Network Lifecycle', ->
 
       out.on 'connect', ->
         received.push 'CONN'
+        return
       out.on 'begingroup', (group) ->
         received.push "< #{group}"
+        return
       out.on 'data', (data) ->
         received.push "DATA #{data}"
+        return
       out.on 'endgroup', ->
         received.push '>'
+        return
       out.on 'disconnect', ->
         received.push 'DISC'
+        return
 
       wasStarted = false
       checkStart = ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
+        return
       checkEnd = ->
         chai.expect(received).to.eql expected
         chai.expect(wasStarted).to.equal true
         done()
+        return
       c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
 
       c.start (err) ->
-        return done err if err
+        if err
+          done err
+          return
         in2.connect()
         in2.send 'foo'
         in2.disconnect()
@@ -443,6 +555,8 @@ describe 'Network Lifecycle', ->
         in1.endGroup()
         in1.endGroup()
         in1.disconnect()
+        return
+      return
     it 'should forward new-style brackets as expected regardless of sending order', (done) ->
       expected = [
         'CONN'
@@ -457,28 +571,37 @@ describe 'Network Lifecycle', ->
 
       out.on 'connect', ->
         received.push 'CONN'
+        return
       out.on 'begingroup', (group) ->
         received.push "< #{group}"
+        return
       out.on 'data', (data) ->
         received.push "DATA #{data}"
+        return
       out.on 'endgroup', ->
         received.push '>'
+        return
       out.on 'disconnect', ->
         received.push 'DISC'
+        return
 
       wasStarted = false
       checkStart = ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
+        return
       checkEnd = ->
         chai.expect(received).to.eql expected
         chai.expect(wasStarted).to.equal true
         done()
+        return
       c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
 
       c.start (err) ->
-        return done err if err
+        if err
+          done err
+          return
         in1.connect()
         in1.beginGroup 1
         in1.beginGroup 'a'
@@ -489,6 +612,8 @@ describe 'Network Lifecycle', ->
         in2.connect()
         in2.send 'foo'
         in2.disconnect()
+        return
+      return
     it 'should forward scopes as expected', (done) ->
       expected = [
         'x < 1'
@@ -508,20 +633,24 @@ describe 'Network Lifecycle', ->
           when 'closeBracket'
             received.push "#{ip.scope} >"
             brackets.pop()
-
+        return
       wasStarted = false
       checkStart = ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
+        return
       checkEnd = ->
         chai.expect(received).to.eql expected
         chai.expect(wasStarted).to.equal true
         done()
+        return
       c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
 
       c.start (err) ->
-        return done err if err
+        if err
+          done err
+          return
         in2.post new noflo.IP 'data', 'two',
           scope: 'x'
         in1.post new noflo.IP 'openBracket', 1,
@@ -530,7 +659,9 @@ describe 'Network Lifecycle', ->
           scope: 'x'
         in1.post new noflo.IP 'closeBracket', 1,
           scope: 'x'
-
+        return
+      return
+    return
   describe 'Process API mixed with legacy merging two inputs', ->
     c = null
     in1 = null
@@ -546,24 +677,33 @@ describe 'Network Lifecycle', ->
       PcMerge OUT -> IN Leg3(legacy/Sync)
       "
       noflo.graph.loadFBP fbpData, (err, g) ->
-        return done err if err
+        if err
+          done err
+          return
         loader.registerComponent 'scope', 'Merge', g
         loader.load 'scope/Merge', (err, instance) ->
-          return done err if err
+          if err
+            done err
+            return
           c = instance
           in1 = noflo.internalSocket.createSocket()
           c.inPorts.in1.attach in1
           in2 = noflo.internalSocket.createSocket()
           c.inPorts.in2.attach in2
           done()
+          return
+        return
+      return
     beforeEach ->
       out = noflo.internalSocket.createSocket()
       c.outPorts.out.attach out
+      return
     afterEach (done) ->
       c.outPorts.out.detach out
       out = null
       c.shutdown done
 
+      return
     it 'should forward new-style brackets as expected', (done) ->
       expected = [
         'CONN'
@@ -578,28 +718,37 @@ describe 'Network Lifecycle', ->
 
       out.on 'connect', ->
         received.push 'CONN'
+        return
       out.on 'begingroup', (group) ->
         received.push "< #{group}"
+        return
       out.on 'data', (data) ->
         received.push "DATA #{data}"
+        return
       out.on 'endgroup', ->
         received.push '>'
+        return
       out.on 'disconnect', ->
         received.push 'DISC'
+        return
 
       wasStarted = false
       checkStart = ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
+        return
       checkEnd = ->
         chai.expect(received).to.eql expected
         chai.expect(wasStarted).to.equal true
         done()
+        return
       c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
 
       c.start (err) ->
-        return done err if err
+        if err
+          done err
+          return
         in2.connect()
         in2.send 'foo'
         in2.disconnect()
@@ -610,6 +759,8 @@ describe 'Network Lifecycle', ->
         in1.endGroup()
         in1.endGroup()
         in1.disconnect()
+        return
+      return
     it 'should forward new-style brackets as expected regardless of sending order', (done) ->
       expected = [
         'CONN'
@@ -624,28 +775,37 @@ describe 'Network Lifecycle', ->
 
       out.on 'connect', ->
         received.push 'CONN'
+        return
       out.on 'begingroup', (group) ->
         received.push "< #{group}"
+        return
       out.on 'data', (data) ->
         received.push "DATA #{data}"
+        return
       out.on 'endgroup', ->
         received.push '>'
+        return
       out.on 'disconnect', ->
         received.push 'DISC'
+        return
 
       wasStarted = false
       checkStart = ->
         chai.expect(wasStarted).to.equal false
         wasStarted = true
+        return
       checkEnd = ->
         chai.expect(received).to.eql expected
         chai.expect(wasStarted).to.equal true
         done()
+        return
       c.network.once 'start', checkStart
       c.network.once 'end', checkEnd
 
       c.start (err) ->
-        return done err if err
+        if err
+          done err
+          return
         in1.connect()
         in1.beginGroup 1
         in1.beginGroup 'a'
@@ -656,7 +816,9 @@ describe 'Network Lifecycle', ->
         in2.connect()
         in2.send 'foo'
         in2.disconnect()
-
+        return
+      return
+    return
   describe 'with a Process API Generator component', ->
     c = null
     start = null
@@ -670,10 +832,14 @@ describe 'Network Lifecycle', ->
       PcGen(process/Generator) OUT -> IN Pc(process/Async)
       "
       noflo.graph.loadFBP fbpData, (err, g) ->
-        return done err if err
+        if err
+          done err
+          return
         loader.registerComponent 'scope', 'Connected', g
         loader.load 'scope/Connected', (err, instance) ->
-          return done err if err
+          if err
+            done err
+            return
           instance.once 'ready', ->
             c = instance
             start = noflo.internalSocket.createSocket()
@@ -681,35 +847,59 @@ describe 'Network Lifecycle', ->
             stop = noflo.internalSocket.createSocket()
             c.inPorts.stop.attach stop
             done()
+            return
+          return
+        return
+      return
     beforeEach ->
       out = noflo.internalSocket.createSocket()
       c.outPorts.out.attach out
+      return
     afterEach (done) ->
       c.outPorts.out.detach out
       out = null
       c.shutdown done
+      return
     it 'should not be running initially', ->
       chai.expect(c.network.isRunning()).to.equal false
+      return
     it 'should not be running even when network starts', (done) ->
       c.start (err) ->
-        return done err if err
+        if err
+          done err
+          return
         chai.expect(c.network.isRunning()).to.equal false
         done()
+        return
+      return
     it 'should start generating when receiving a start packet', (done) ->
       c.start (err) ->
-        return done err if err
+        if err
+          done err
+          return
         out.once 'data', ->
           chai.expect(c.network.isRunning()).to.equal true
           done()
+          return
         start.send true
+        return
+      return
     it 'should stop generating when receiving a stop packet', (done) ->
       c.start (err) ->
-        return done err if err
+        if err
+          done err
+          return
         out.once 'data', ->
           chai.expect(c.network.isRunning()).to.equal true
           stop.send true
           setTimeout ->
             chai.expect(c.network.isRunning()).to.equal false
             done()
+            return
           , 10
+          return
         start.send true
+        return
+      return
+    return
+  return
