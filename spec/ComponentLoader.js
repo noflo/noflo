@@ -1,9 +1,23 @@
+/* eslint-disable
+    func-names,
+    global-require,
+    import/no-extraneous-dependencies,
+    import/no-unresolved,
+    max-classes-per-file,
+    no-shadow,
+    no-undef,
+    no-unused-expressions,
+    no-unused-vars,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS102: Remove unnecessary code created because of implicit returns
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
-let chai, noflo, path, root, shippingLanguage, urlPrefix;
+let chai; let noflo; let path; let root; let shippingLanguage; let
+  urlPrefix;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   if (!chai) { chai = require('chai'); }
   noflo = require('../src/lib/NoFlo');
@@ -18,77 +32,76 @@ if ((typeof process !== 'undefined') && process.execPath && process.execPath.mat
   urlPrefix = '/';
 }
 
-describe('ComponentLoader with no external packages installed', function() {
+describe('ComponentLoader with no external packages installed', () => {
   let l = new noflo.ComponentLoader(root);
   class Split extends noflo.Component {
     constructor() {
       const options = {
         inPorts: {
-          in: {}
+          in: {},
         },
         outPorts: {
-          out: {}
+          out: {},
         },
         process(input, output) {
           output.sendDone(input.get('in'));
-        }
+        },
       };
       super(options);
     }
   }
-  Split.getComponent = () => new Split;
+  Split.getComponent = () => new Split();
 
-  const Merge = function() {
-    const inst = new noflo.Component;
+  const Merge = function () {
+    const inst = new noflo.Component();
     inst.inPorts.add('in');
     inst.outPorts.add('out');
     inst.process((input, output) => output.sendDone(input.get('in')));
     return inst;
   };
 
-  it('should initially know of no components', function() {
+  it('should initially know of no components', () => {
     chai.expect(l.components).to.be.null;
   });
-  it('should not initially be ready', function() {
+  it('should not initially be ready', () => {
     chai.expect(l.ready).to.be.false;
   });
-  it('should not initially be processing', function() {
+  it('should not initially be processing', () => {
     chai.expect(l.processing).to.be.false;
   });
-  it('should not have any packages in the checked list', function() {
+  it('should not have any packages in the checked list', () => {
     chai.expect(l.checked).to.not.exist;
-
   });
-  describe('normalizing names', function() {
-    it('should return simple module names as-is', function() {
+  describe('normalizing names', () => {
+    it('should return simple module names as-is', () => {
       const normalized = l.getModulePrefix('foo');
       chai.expect(normalized).to.equal('foo');
     });
-    it('should return empty for NoFlo core', function() {
+    it('should return empty for NoFlo core', () => {
       const normalized = l.getModulePrefix('noflo');
       chai.expect(normalized).to.equal('');
     });
-    it('should strip noflo-', function() {
+    it('should strip noflo-', () => {
       const normalized = l.getModulePrefix('noflo-image');
       chai.expect(normalized).to.equal('image');
     });
-    it('should strip NPM scopes', function() {
+    it('should strip NPM scopes', () => {
       const normalized = l.getModulePrefix('@noflo/foo');
       chai.expect(normalized).to.equal('foo');
     });
-    it('should strip NPM scopes and noflo-', function() {
+    it('should strip NPM scopes and noflo-', () => {
       const normalized = l.getModulePrefix('@noflo/noflo-image');
       chai.expect(normalized).to.equal('image');
     });
   });
-  it('should be able to read a list of components', function(done) {
+  it('should be able to read a list of components', function (done) {
     this.timeout(60 * 1000);
     let ready = false;
-    l.once('ready', function() {
+    l.once('ready', () => {
       ready = true;
       chai.expect(l.ready, 'should have the ready bit').to.equal(true);
     });
-    l.listComponents(function(err, components) {
+    l.listComponents((err, components) => {
       if (err) {
         done(err);
         return;
@@ -105,13 +118,12 @@ describe('ComponentLoader with no external packages installed', function() {
       // Browser component registry can be synchronous
       chai.expect(l.processing, 'should have started processing').to.equal(true);
     }
-
   });
-  describe('calling listComponents twice simultaneously', function() {
-    it('should return the same results', function(done) {
+  describe('calling listComponents twice simultaneously', () => {
+    it('should return the same results', (done) => {
       const loader = new noflo.ComponentLoader(root);
       const received = [];
-      loader.listComponents(function(err, components) {
+      loader.listComponents((err, components) => {
         if (err) {
           done(err);
           return;
@@ -121,7 +133,7 @@ describe('ComponentLoader with no external packages installed', function() {
         chai.expect(received[0]).to.equal(received[1]);
         done();
       });
-      loader.listComponents(function(err, components) {
+      loader.listComponents((err, components) => {
         if (err) {
           done(err);
           return;
@@ -133,16 +145,15 @@ describe('ComponentLoader with no external packages installed', function() {
       });
     });
   });
-  describe('after listing components', function() {
-    it('should have the Graph component registered', function() {
+  describe('after listing components', () => {
+    it('should have the Graph component registered', () => {
       chai.expect(l.components.Graph).not.to.be.empty;
     });
-
   });
-  describe('loading the Graph component', function() {
+  describe('loading the Graph component', () => {
     let instance = null;
-    it('should be able to load the component', function(done) {
-      l.load('Graph', function(err, inst) {
+    it('should be able to load the component', (done) => {
+      l.load('Graph', (err, inst) => {
         if (err) {
           done(err);
           return;
@@ -153,26 +164,26 @@ describe('ComponentLoader with no external packages installed', function() {
         done();
       });
     });
-    it('should contain input ports', function() {
+    it('should contain input ports', () => {
       chai.expect(instance.inPorts).to.be.an('object');
       chai.expect(instance.inPorts.graph).to.be.an('object');
     });
-    it('should have "on" method on the input port', function() {
+    it('should have "on" method on the input port', () => {
       chai.expect(instance.inPorts.graph.on).to.be.a('function');
     });
-    it('it should know that Graph is a subgraph', function() {
+    it('it should know that Graph is a subgraph', () => {
       chai.expect(instance.isSubgraph()).to.equal(true);
     });
-    it('should know the description for the Graph', function() {
+    it('should know the description for the Graph', () => {
       chai.expect(instance.getDescription()).to.be.a('string');
     });
-    it('should be able to provide an icon for the Graph', function() {
+    it('should be able to provide an icon for the Graph', () => {
       chai.expect(instance.getIcon()).to.be.a('string');
       chai.expect(instance.getIcon()).to.equal('sitemap');
     });
-    it('should be able to load the component with non-ready ComponentLoader', function(done) {
+    it('should be able to load the component with non-ready ComponentLoader', (done) => {
       const loader = new noflo.ComponentLoader(root);
-      loader.load('Graph', function(err, inst) {
+      loader.load('Graph', (err, inst) => {
         if (err) {
           done(err);
           return;
@@ -185,11 +196,11 @@ describe('ComponentLoader with no external packages installed', function() {
     });
   });
 
-  describe('loading a subgraph', function() {
+  describe('loading a subgraph', () => {
     l = new noflo.ComponentLoader(root);
     const file = `${urlPrefix}spec/fixtures/subgraph.fbp`;
-    it('should remove `graph` and `start` ports', function(done) {
-      l.listComponents(function(err, components) {
+    it('should remove `graph` and `start` ports', (done) => {
+      l.listComponents((err, components) => {
         if (err) {
           done(err);
           return;
@@ -197,14 +208,14 @@ describe('ComponentLoader with no external packages installed', function() {
         l.components.Merge = Merge;
         l.components.Subgraph = file;
         l.components.Split = Split;
-        l.load('Subgraph', function(err, inst) {
+        l.load('Subgraph', (err, inst) => {
           if (err) {
             done(err);
             return;
           }
           chai.expect(inst).to.be.an('object');
-          inst.once('ready', function() {
-            chai.expect(inst.inPorts.ports).not.to.have.keys(['graph','start']);
+          inst.once('ready', () => {
+            chai.expect(inst.inPorts.ports).not.to.have.keys(['graph', 'start']);
             chai.expect(inst.inPorts.ports).to.have.keys(['in']);
             chai.expect(inst.outPorts.ports).to.have.keys(['out']);
             done();
@@ -212,8 +223,8 @@ describe('ComponentLoader with no external packages installed', function() {
         });
       });
     });
-    it('should not automatically start the subgraph if there is no `start` port', function(done) {
-      l.listComponents(function(err, components) {
+    it('should not automatically start the subgraph if there is no `start` port', (done) => {
+      l.listComponents((err, components) => {
         if (err) {
           done(err);
           return;
@@ -221,26 +232,26 @@ describe('ComponentLoader with no external packages installed', function() {
         l.components.Merge = Merge;
         l.components.Subgraph = file;
         l.components.Split = Split;
-        l.load('Subgraph', function(err, inst) {
+        l.load('Subgraph', (err, inst) => {
           if (err) {
             done(err);
             return;
           }
           chai.expect(inst).to.be.an('object');
-          inst.once('ready', function() {
+          inst.once('ready', () => {
             chai.expect(inst.started).to.equal(false);
             done();
           });
         });
       });
     });
-    it('should also work with a passed graph object', function(done) {
-      noflo.graph.loadFile(file, function(err, graph) {
+    it('should also work with a passed graph object', (done) => {
+      noflo.graph.loadFile(file, (err, graph) => {
         if (err) {
           done(err);
           return;
         }
-        l.listComponents(function(err, components) {
+        l.listComponents((err, components) => {
           if (err) {
             done(err);
             return;
@@ -248,14 +259,14 @@ describe('ComponentLoader with no external packages installed', function() {
           l.components.Merge = Merge;
           l.components.Subgraph = graph;
           l.components.Split = Split;
-          l.load('Subgraph', function(err, inst) {
+          l.load('Subgraph', (err, inst) => {
             if (err) {
               done(err);
               return;
             }
             chai.expect(inst).to.be.an('object');
-            inst.once('ready', function() {
-              chai.expect(inst.inPorts.ports).not.to.have.keys(['graph','start']);
+            inst.once('ready', () => {
+              chai.expect(inst.inPorts.ports).not.to.have.keys(['graph', 'start']);
               chai.expect(inst.inPorts.ports).to.have.keys(['in']);
               chai.expect(inst.outPorts.ports).to.have.keys(['out']);
               done();
@@ -265,10 +276,10 @@ describe('ComponentLoader with no external packages installed', function() {
       });
     });
   });
-  describe('loading the Graph component', function() {
+  describe('loading the Graph component', () => {
     let instance = null;
-    it('should be able to load the component', function(done) {
-      l.load('Graph', function(err, graph) {
+    it('should be able to load the component', (done) => {
+      l.load('Graph', (err, graph) => {
         if (err) {
           done(err);
           return;
@@ -278,62 +289,62 @@ describe('ComponentLoader with no external packages installed', function() {
         done();
       });
     });
-    it('should have a reference to the Component Loader\'s baseDir', function() {
+    it('should have a reference to the Component Loader\'s baseDir', () => {
       chai.expect(instance.baseDir).to.equal(l.baseDir);
     });
   });
-  describe('loading a component', function() {
+  describe('loading a component', () => {
     let loader = null;
-    before(function(done) {
+    before((done) => {
       loader = new noflo.ComponentLoader(root);
       loader.listComponents(done);
     });
-    it('should return an error on an invalid component type', function(done) {
-      loader.components['InvalidComponent'] = true;
-      loader.load('InvalidComponent', function(err, c) {
+    it('should return an error on an invalid component type', (done) => {
+      loader.components.InvalidComponent = true;
+      loader.load('InvalidComponent', (err, c) => {
         chai.expect(err).to.be.an('error');
         chai.expect(err.message).to.equal('Invalid type boolean for component InvalidComponent.');
         done();
       });
     });
-    it('should return an error on a missing component path', function(done) {
+    it('should return an error on a missing component path', (done) => {
       let str;
-      loader.components['InvalidComponent'] = 'missing-file.js';
+      loader.components.InvalidComponent = 'missing-file.js';
       if (noflo.isBrowser()) {
         str = 'Dynamic loading of';
       } else {
         str = 'Cannot find module';
       }
-      loader.load('InvalidComponent', function(err, c) {
+      loader.load('InvalidComponent', (err, c) => {
         chai.expect(err).to.be.an('error');
         chai.expect(err.message).to.contain(str);
         done();
       });
     });
   });
-  describe('register a component at runtime', function() {
+  describe('register a component at runtime', () => {
     class FooSplit extends noflo.Component {
       constructor() {
         const options = {
           inPorts: {
-            in: {}
+            in: {},
           },
           outPorts: {
-            out: {}
-          }
+            out: {},
+          },
         };
         super(options);
       }
     }
-    FooSplit.getComponent = () => new FooSplit;
+    FooSplit.getComponent = () => new FooSplit();
     let instance = null;
     l.libraryIcons.foo = 'star';
-    it('should be available in the components list', function() {
+    it('should be available in the components list', () => {
       l.registerComponent('foo', 'Split', FooSplit);
       chai.expect(l.components).to.contain.keys(['foo/Split', 'Graph']);
     });
-    it('should be able to load the component', function(done) {
-      l.load('foo/Split', function(err, split) {
+    it('should be able to load the component', (done) => {
+      l.load('foo/Split', (err, split) => {
         if (err) {
           done(err);
           return;
@@ -343,22 +354,22 @@ describe('ComponentLoader with no external packages installed', function() {
         done();
       });
     });
-    it('should have the correct ports', function() {
+    it('should have the correct ports', () => {
       chai.expect(instance.inPorts.ports).to.have.keys(['in']);
       chai.expect(instance.outPorts.ports).to.have.keys(['out']);
     });
-    it('should have inherited its icon from the library', function() {
+    it('should have inherited its icon from the library', () => {
       chai.expect(instance.getIcon()).to.equal('star');
     });
-    it('should emit an event on icon change', function(done) {
-      instance.once('icon', function(newIcon) {
+    it('should emit an event on icon change', (done) => {
+      instance.once('icon', (newIcon) => {
         chai.expect(newIcon).to.equal('smile');
         done();
       });
       instance.setIcon('smile');
     });
-    it('new instances should still contain the original icon', function(done) {
-      l.load('foo/Split', function(err, split) {
+    it('new instances should still contain the original icon', (done) => {
+      l.load('foo/Split', (err, split) => {
         if (err) {
           done(err);
           return;
@@ -369,9 +380,9 @@ describe('ComponentLoader with no external packages installed', function() {
       });
     });
     // TODO reconsider this test after full decaffeination
-    it.skip('after setting an icon for the Component class, new instances should have that', function(done) {
+    it.skip('after setting an icon for the Component class, new instances should have that', (done) => {
       FooSplit.prototype.icon = 'trophy';
-      l.load('foo/Split', function(err, split) {
+      l.load('foo/Split', (err, split) => {
         if (err) {
           done(err);
           return;
@@ -381,20 +392,19 @@ describe('ComponentLoader with no external packages installed', function() {
         done();
       });
     });
-    it('should not affect the original instance', function() {
+    it('should not affect the original instance', () => {
       chai.expect(instance.getIcon()).to.equal('smile');
     });
   });
-  describe('reading sources', function() {
-    before(function() {
+  describe('reading sources', () => {
+    before(function () {
       // getSource not implemented in webpack loader yet
       if (noflo.isBrowser()) {
         this.skip();
-        return;
       }
     });
-    it('should be able to provide source code for a component', function(done) {
-      l.getSource('Graph', function(err, component) {
+    it('should be able to provide source code for a component', (done) => {
+      l.getSource('Graph', (err, component) => {
         if (err) {
           done(err);
           return;
@@ -409,22 +419,22 @@ describe('ComponentLoader with no external packages installed', function() {
         done();
       });
     });
-    it('should return an error for missing components', function(done) {
-      l.getSource('foo/BarBaz', function(err, src) {
+    it('should return an error for missing components', (done) => {
+      l.getSource('foo/BarBaz', (err, src) => {
         chai.expect(err).to.be.an('error');
         done();
       });
     });
-    it('should return an error for non-file components', function(done) {
-      l.getSource('foo/Split', function(err, src) {
+    it('should return an error for non-file components', (done) => {
+      l.getSource('foo/Split', (err, src) => {
         chai.expect(err).to.be.an('error');
         done();
       });
     });
-    it('should be able to provide source for a graph file component', function(done) {
+    it('should be able to provide source for a graph file component', (done) => {
       const file = `${urlPrefix}spec/fixtures/subgraph.fbp`;
       l.components.Subgraph = file;
-      l.getSource('Subgraph', function(err, src) {
+      l.getSource('Subgraph', (err, src) => {
         if (err) {
           done(err);
           return;
@@ -434,15 +444,15 @@ describe('ComponentLoader with no external packages installed', function() {
         done();
       });
     });
-    it('should be able to provide source for a graph object component', function(done) {
+    it('should be able to provide source for a graph object component', (done) => {
       const file = `${urlPrefix}spec/fixtures/subgraph.fbp`;
-      noflo.graph.loadFile(file, function(err, graph) {
+      noflo.graph.loadFile(file, (err, graph) => {
         if (err) {
           done(err);
           return;
         }
         l.components.Subgraph2 = graph;
-        l.getSource('Subgraph2', function(err, src) {
+        l.getSource('Subgraph2', (err, src) => {
           if (err) {
             done(err);
             return;
@@ -453,9 +463,9 @@ describe('ComponentLoader with no external packages installed', function() {
         });
       });
     });
-    it('should be able to get the source for non-ready ComponentLoader', function(done) {
+    it('should be able to get the source for non-ready ComponentLoader', (done) => {
       const loader = new noflo.ComponentLoader(root);
-      loader.getSource('Graph', function(err, component) {
+      loader.getSource('Graph', (err, component) => {
         if (err) {
           done(err);
           return;
@@ -471,9 +481,9 @@ describe('ComponentLoader with no external packages installed', function() {
       });
     });
   });
-  describe('writing sources', function() {
-    describe('with working code', function() {
-      describe('with ES5', function() {
+  describe('writing sources', () => {
+    describe('with working code', () => {
+      describe('with ES5', () => {
         let workingSource = `\
 var noflo = require('noflo');
 
@@ -487,12 +497,12 @@ exports.getComponent = function() {
   return c;
 };`;
 
-        it('should be able to set the source', function(done) {
+        it('should be able to set the source', function (done) {
           this.timeout(10000);
           if (!noflo.isBrowser()) {
             workingSource = workingSource.replace("'noflo'", "'../src/lib/NoFlo'");
           }
-          l.setSource('foo', 'RepeatData', workingSource, 'javascript', function(err) {
+          l.setSource('foo', 'RepeatData', workingSource, 'javascript', (err) => {
             if (err) {
               done(err);
               return;
@@ -500,8 +510,8 @@ exports.getComponent = function() {
             done();
           });
         });
-        it('should be a loadable component', function(done) {
-          l.load('foo/RepeatData', function(err, inst) {
+        it('should be a loadable component', (done) => {
+          l.load('foo/RepeatData', (err, inst) => {
             if (err) {
               done(err);
               return;
@@ -509,11 +519,11 @@ exports.getComponent = function() {
             chai.expect(inst).to.be.an('object');
             chai.expect(inst.inPorts).to.contain.keys(['in']);
             chai.expect(inst.outPorts).to.contain.keys(['out']);
-            const ins = new noflo.internalSocket.InternalSocket;
-            const out = new noflo.internalSocket.InternalSocket;
+            const ins = new noflo.internalSocket.InternalSocket();
+            const out = new noflo.internalSocket.InternalSocket();
             inst.inPorts.in.attach(ins);
             inst.outPorts.out.attach(out);
-            out.on('ip', function(ip) {
+            out.on('ip', (ip) => {
               chai.expect(ip.type).to.equal('data');
               chai.expect(ip.data).to.equal('ES5');
               done();
@@ -521,18 +531,17 @@ exports.getComponent = function() {
             ins.send('ES5');
           });
         });
-        it('should be able to set the source for non-ready ComponentLoader', function(done) {
+        it('should be able to set the source for non-ready ComponentLoader', function (done) {
           this.timeout(10000);
           const loader = new noflo.ComponentLoader(root);
           loader.setSource('foo', 'RepeatData', workingSource, 'javascript', done);
         });
       });
-      describe('with ES6', function() {
-        before(function() {
+      describe('with ES6', () => {
+        before(function () {
           // PhantomJS doesn't work with ES6
           if (noflo.isBrowser()) {
             this.skip();
-            return;
           }
         });
         let workingSource = `\
@@ -548,12 +557,12 @@ exports.getComponent = () => {
   return c;
 };`;
 
-        it('should be able to set the source', function(done) {
+        it('should be able to set the source', function (done) {
           this.timeout(10000);
           if (!noflo.isBrowser()) {
             workingSource = workingSource.replace("'noflo'", "'../src/lib/NoFlo'");
           }
-          l.setSource('foo', 'RepeatDataES6', workingSource, 'es6', function(err) {
+          l.setSource('foo', 'RepeatDataES6', workingSource, 'es6', (err) => {
             if (err) {
               done(err);
               return;
@@ -561,8 +570,8 @@ exports.getComponent = () => {
             done();
           });
         });
-        it('should be a loadable component', function(done) {
-          l.load('foo/RepeatDataES6', function(err, inst) {
+        it('should be a loadable component', (done) => {
+          l.load('foo/RepeatDataES6', (err, inst) => {
             if (err) {
               done(err);
               return;
@@ -570,11 +579,11 @@ exports.getComponent = () => {
             chai.expect(inst).to.be.an('object');
             chai.expect(inst.inPorts).to.contain.keys(['in']);
             chai.expect(inst.outPorts).to.contain.keys(['out']);
-            const ins = new noflo.internalSocket.InternalSocket;
-            const out = new noflo.internalSocket.InternalSocket;
+            const ins = new noflo.internalSocket.InternalSocket();
+            const out = new noflo.internalSocket.InternalSocket();
             inst.inPorts.in.attach(ins);
             inst.outPorts.out.attach(out);
-            out.on('ip', function(ip) {
+            out.on('ip', (ip) => {
               chai.expect(ip.type).to.equal('data');
               chai.expect(ip.data).to.equal('ES6');
               done();
@@ -583,8 +592,8 @@ exports.getComponent = () => {
           });
         });
       });
-      describe('with CoffeeScript', function() {
-        before(function() {
+      describe('with CoffeeScript', () => {
+        before(function () {
           // CoffeeScript tests work in browser only if we have CoffeeScript
           // compiler loaded
           if (noflo.isBrowser() && !window.CoffeeScript) {
@@ -601,12 +610,12 @@ exports.getComponent = ->
     output.sendDone input.get 'in'\
 `;
 
-        it('should be able to set the source', function(done) {
+        it('should be able to set the source', function (done) {
           this.timeout(10000);
           if (!noflo.isBrowser()) {
             workingSource = workingSource.replace("'noflo'", "'../src/lib/NoFlo'");
           }
-          l.setSource('foo', 'RepeatDataCoffee', workingSource, 'coffeescript', function(err) {
+          l.setSource('foo', 'RepeatDataCoffee', workingSource, 'coffeescript', (err) => {
             if (err) {
               done(err);
               return;
@@ -614,8 +623,8 @@ exports.getComponent = ->
             done();
           });
         });
-        it('should be a loadable component', function(done) {
-          l.load('foo/RepeatDataCoffee', function(err, inst) {
+        it('should be a loadable component', (done) => {
+          l.load('foo/RepeatDataCoffee', (err, inst) => {
             if (err) {
               done(err);
               return;
@@ -623,11 +632,11 @@ exports.getComponent = ->
             chai.expect(inst).to.be.an('object');
             chai.expect(inst.inPorts).to.contain.keys(['in']);
             chai.expect(inst.outPorts).to.contain.keys(['out']);
-            const ins = new noflo.internalSocket.InternalSocket;
-            const out = new noflo.internalSocket.InternalSocket;
+            const ins = new noflo.internalSocket.InternalSocket();
+            const out = new noflo.internalSocket.InternalSocket();
             inst.inPorts.in.attach(ins);
             inst.outPorts.out.attach(out);
-            out.on('ip', function(ip) {
+            out.on('ip', (ip) => {
               chai.expect(ip.type).to.equal('data');
               chai.expect(ip.data).to.equal('CoffeeScript');
               done();
@@ -637,8 +646,8 @@ exports.getComponent = ->
         });
       });
     });
-    describe('with non-working code', function() {
-      describe('without exports', function() {
+    describe('with non-working code', () => {
+      describe('without exports', () => {
         let nonWorkingSource = `\
 var noflo = require('noflo');
 var getComponent = function() {
@@ -657,25 +666,25 @@ var getComponent = function() {
   return c;
 };`;
 
-        it('should not be able to set the source', function(done) {
+        it('should not be able to set the source', (done) => {
           if (!noflo.isBrowser()) {
             nonWorkingSource = nonWorkingSource.replace("'noflo'", "'../src/lib/NoFlo'");
           }
-          l.setSource('foo', 'NotWorking', nonWorkingSource, 'js', function(err) {
+          l.setSource('foo', 'NotWorking', nonWorkingSource, 'js', (err) => {
             chai.expect(err).to.be.an('error');
             chai.expect(err.message).to.contain('runnable component');
             done();
           });
         });
-        it('should not be a loadable component', function(done) {
-          l.load('foo/NotWorking', function(err, inst) {
+        it('should not be a loadable component', (done) => {
+          l.load('foo/NotWorking', (err, inst) => {
             chai.expect(err).to.be.an('error');
             chai.expect(inst).to.be.an('undefined');
             done();
           });
         });
       });
-      describe('with non-existing import', function() {
+      describe('with non-existing import', () => {
         let nonWorkingSource = `\
 var noflo = require('noflo');
 var notFound = require('./this_file_does_not_exist.js');
@@ -696,24 +705,24 @@ exports.getComponent = function() {
   return c;
 };`;
 
-        it('should not be able to set the source', function(done) {
+        it('should not be able to set the source', (done) => {
           if (!noflo.isBrowser()) {
             nonWorkingSource = nonWorkingSource.replace("'noflo'", "'../src/lib/NoFlo'");
           }
-          l.setSource('foo', 'NotWorking', nonWorkingSource, 'js', function(err) {
+          l.setSource('foo', 'NotWorking', nonWorkingSource, 'js', (err) => {
             chai.expect(err).to.be.an('error');
             done();
           });
         });
-        it('should not be a loadable component', function(done) {
-          l.load('foo/NotWorking', function(err, inst) {
+        it('should not be a loadable component', (done) => {
+          l.load('foo/NotWorking', (err, inst) => {
             chai.expect(err).to.be.an('error');
             chai.expect(inst).to.be.an('undefined');
             done();
           });
         });
       });
-      describe('with deprecated process callback', function() {
+      describe('with deprecated process callback', () => {
         let nonWorkingSource = `\
 var noflo = require('noflo');
 exports.getComponent = function() {
@@ -734,14 +743,14 @@ exports.getComponent = function() {
   return c;
 };`;
 
-        it('should be able to set the source', function(done) {
+        it('should be able to set the source', (done) => {
           if (!noflo.isBrowser()) {
             nonWorkingSource = nonWorkingSource.replace("'noflo'", "'../src/lib/NoFlo'");
           }
           l.setSource('foo', 'NotWorkingProcess', nonWorkingSource, 'js', done);
         });
-        it('should not be a loadable component', function(done) {
-          l.load('foo/NotWorkingProcess', function(err, inst) {
+        it('should not be a loadable component', (done) => {
+          l.load('foo/NotWorkingProcess', (err, inst) => {
             chai.expect(err).to.be.an('error');
             chai.expect(err.message).to.contain('process callback is deprecated');
             chai.expect(inst).to.be.an('undefined');
@@ -752,32 +761,31 @@ exports.getComponent = function() {
     });
   });
 });
-describe('ComponentLoader with a fixture project', function() {
+describe('ComponentLoader with a fixture project', () => {
   let l = null;
-  before(function() {
+  before(function () {
     if (noflo.isBrowser()) {
       this.skip();
-      return;
     }
   });
-  it('should be possible to instantiate', function() {
+  it('should be possible to instantiate', () => {
     l = new noflo.ComponentLoader(path.resolve(__dirname, 'fixtures/componentloader'));
   });
-  it('should initially know of no components', function() {
+  it('should initially know of no components', () => {
     chai.expect(l.components).to.be.a('null');
   });
-  it('should not initially be ready', function() {
+  it('should not initially be ready', () => {
     chai.expect(l.ready).to.be.false;
   });
-  it('should be able to read a list of components', function(done) {
+  it('should be able to read a list of components', (done) => {
     let ready = false;
-    l.once('ready', function() {
+    l.once('ready', () => {
       chai.expect(l.ready).to.equal(true);
       ({
-        ready
+        ready,
       } = l);
     });
-    l.listComponents(function(err, components) {
+    l.listComponents((err, components) => {
       if (err) {
         done(err);
         return;
@@ -791,55 +799,55 @@ describe('ComponentLoader with a fixture project', function() {
     });
     chai.expect(l.processing).to.equal(true);
   });
-  it('should be able to load a local component', function(done) {
-    l.load('componentloader/Output', function(err, instance) {
+  it('should be able to load a local component', (done) => {
+    l.load('componentloader/Output', (err, instance) => {
       chai.expect(err).to.be.a('null');
       chai.expect(instance.description).to.equal('Output stuff');
       chai.expect(instance.icon).to.equal('cloud');
       done();
     });
   });
-  it('should be able to load a component from a dependency', function(done) {
-    l.load('example/Forward', function(err, instance) {
+  it('should be able to load a component from a dependency', (done) => {
+    l.load('example/Forward', (err, instance) => {
       chai.expect(err).to.be.a('null');
       chai.expect(instance.description).to.equal('Forward stuff');
       chai.expect(instance.icon).to.equal('car');
       done();
     });
   });
-  it('should be able to load a dynamically registered component from a dependency', function(done) {
-    l.load('example/Hello', function(err, instance) {
+  it('should be able to load a dynamically registered component from a dependency', (done) => {
+    l.load('example/Hello', (err, instance) => {
       chai.expect(err).to.be.a('null');
       chai.expect(instance.description).to.equal('Hello stuff');
       chai.expect(instance.icon).to.equal('bicycle');
       done();
     });
   });
-  it('should be able to load core Graph component', function(done) {
-    l.load('Graph', function(err, instance) {
+  it('should be able to load core Graph component', (done) => {
+    l.load('Graph', (err, instance) => {
       chai.expect(err).to.be.a('null');
       chai.expect(instance.icon).to.equal('sitemap');
       done();
     });
   });
-  it('should fail loading a missing component', function(done) {
-    l.load('componentloader/Missing', function(err, instance) {
+  it('should fail loading a missing component', (done) => {
+    l.load('componentloader/Missing', (err, instance) => {
       chai.expect(err).to.be.an('error');
       done();
     });
   });
 });
-describe('ComponentLoader with a fixture project and caching', function() {
+describe('ComponentLoader with a fixture project and caching', () => {
   let l = null;
   let fixtureRoot = null;
-  before(function() {
+  before(function () {
     if (noflo.isBrowser()) {
       this.skip();
       return;
     }
     fixtureRoot = path.resolve(__dirname, 'fixtures/componentloader');
   });
-  after(function(done) {
+  after((done) => {
     if (noflo.isBrowser()) {
       done();
       return;
@@ -848,17 +856,17 @@ describe('ComponentLoader with a fixture project and caching', function() {
     const { unlink } = require('fs');
     unlink(manifestPath, done);
   });
-  it('should be possible to pre-heat the cache file', function(done) {
+  it('should be possible to pre-heat the cache file', function (done) {
     this.timeout(8000);
     const { exec } = require('child_process');
     exec(`node ${path.resolve(__dirname, '../bin/noflo-cache-preheat')}`,
-      {cwd: fixtureRoot}
-    , done);
+      { cwd: fixtureRoot },
+      done);
   });
-  it('should have populated a fbp-manifest file', function(done) {
+  it('should have populated a fbp-manifest file', (done) => {
     const manifestPath = path.resolve(fixtureRoot, 'fbp.json');
     const { stat } = require('fs');
-    stat(manifestPath, function(err, stats) {
+    stat(manifestPath, (err, stats) => {
       if (err) {
         done(err);
         return;
@@ -867,25 +875,25 @@ describe('ComponentLoader with a fixture project and caching', function() {
       done();
     });
   });
-  it('should be possible to instantiate', function() {
+  it('should be possible to instantiate', () => {
     l = new noflo.ComponentLoader(fixtureRoot,
-      {cache: true});
+      { cache: true });
   });
-  it('should initially know of no components', function() {
+  it('should initially know of no components', () => {
     chai.expect(l.components).to.be.a('null');
   });
-  it('should not initially be ready', function() {
+  it('should not initially be ready', () => {
     chai.expect(l.ready).to.be.false;
   });
-  it('should be able to read a list of components', function(done) {
+  it('should be able to read a list of components', (done) => {
     let ready = false;
-    l.once('ready', function() {
+    l.once('ready', () => {
       chai.expect(l.ready).to.equal(true);
       ({
-        ready
+        ready,
       } = l);
     });
-    l.listComponents(function(err, components) {
+    l.listComponents((err, components) => {
       if (err) {
         done(err);
         return;
@@ -899,65 +907,63 @@ describe('ComponentLoader with a fixture project and caching', function() {
     });
     chai.expect(l.processing).to.equal(true);
   });
-  it('should be able to load a local component', function(done) {
-    l.load('componentloader/Output', function(err, instance) {
+  it('should be able to load a local component', (done) => {
+    l.load('componentloader/Output', (err, instance) => {
       chai.expect(err).to.be.a('null');
       chai.expect(instance.description).to.equal('Output stuff');
       chai.expect(instance.icon).to.equal('cloud');
       done();
     });
   });
-  it('should be able to load a component from a dependency', function(done) {
-    l.load('example/Forward', function(err, instance) {
+  it('should be able to load a component from a dependency', (done) => {
+    l.load('example/Forward', (err, instance) => {
       chai.expect(err).to.be.a('null');
       chai.expect(instance.description).to.equal('Forward stuff');
       chai.expect(instance.icon).to.equal('car');
       done();
     });
   });
-  it('should be able to load a dynamically registered component from a dependency', function(done) {
-    l.load('example/Hello', function(err, instance) {
+  it('should be able to load a dynamically registered component from a dependency', (done) => {
+    l.load('example/Hello', (err, instance) => {
       chai.expect(err).to.be.a('null');
       chai.expect(instance.description).to.equal('Hello stuff');
       chai.expect(instance.icon).to.equal('bicycle');
       done();
     });
   });
-  it('should be able to load core Graph component', function(done) {
-    l.load('Graph', function(err, instance) {
+  it('should be able to load core Graph component', (done) => {
+    l.load('Graph', (err, instance) => {
       chai.expect(err).to.be.a('null');
       chai.expect(instance.icon).to.equal('sitemap');
       done();
     });
   });
-  it('should fail loading a missing component', function(done) {
-    l.load('componentloader/Missing', function(err, instance) {
+  it('should fail loading a missing component', (done) => {
+    l.load('componentloader/Missing', (err, instance) => {
       chai.expect(err).to.be.an('error');
       done();
     });
   });
-  it('should fail with missing manifest without discover option', function(done) {
+  it('should fail with missing manifest without discover option', (done) => {
     l = new noflo.ComponentLoader(fixtureRoot, {
       cache: true,
       discover: false,
-      manifest: 'fbp2.json'
-    }
-    );
-    l.listComponents(function(err) {
+      manifest: 'fbp2.json',
+    });
+    l.listComponents((err) => {
       chai.expect(err).to.be.an('error');
       done();
     });
   });
-  it('should be able to use a custom manifest file', function(done) {
+  it('should be able to use a custom manifest file', function (done) {
     this.timeout(8000);
     const manifestPath = path.resolve(fixtureRoot, 'fbp2.json');
     l = new noflo.ComponentLoader(fixtureRoot, {
       cache: true,
       discover: true,
-      manifest: 'fbp2.json'
-    }
-    );
-    l.listComponents(function(err, components) {
+      manifest: 'fbp2.json',
+    });
+    l.listComponents((err, components) => {
       if (err) {
         done(err);
         return;
@@ -967,7 +973,7 @@ describe('ComponentLoader with a fixture project and caching', function() {
       done();
     });
   });
-  it('should have saved the new manifest', function(done) {
+  it('should have saved the new manifest', (done) => {
     const manifestPath = path.resolve(fixtureRoot, 'fbp2.json');
     const { unlink } = require('fs');
     unlink(manifestPath, done);
