@@ -186,12 +186,10 @@ describe('asComponent interface', () => {
       before(function () {
         if (isBrowser) { return this.skip(); }
       }); // Browser runs with ES5 which didn't have defaults
-      const func = function (name, greeting) {
-        if (greeting == null) { greeting = 'Hello'; }
-        return `${greeting} ${name}`;
-      };
       it('should be possible to componentize', (done) => {
-        const component = () => noflo.asComponent(func);
+        const component = () => noflo.asComponent((name, greeting = 'Hello') => {
+          return `${greeting} ${name}`;
+        });
         loader.registerComponent('ascomponent', 'sync-default', component, done);
       });
       it('should be loadable', (done) => {
