@@ -1,9 +1,23 @@
+/* eslint-disable
+    default-case,
+    func-names,
+    global-require,
+    import/no-extraneous-dependencies,
+    import/no-unresolved,
+    no-multi-str,
+    no-shadow,
+    no-undef,
+    no-unused-vars,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS102: Remove unnecessary code created because of implicit returns
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
-let chai, noflo, root, urlPrefix;
+let chai; let noflo; let root; let
+  urlPrefix;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   if (!chai) { chai = require('chai'); }
   noflo = require('../src/lib/NoFlo');
@@ -16,123 +30,114 @@ if ((typeof process !== 'undefined') && process.execPath && process.execPath.mat
   urlPrefix = '/';
 }
 
-const processAsync = function() {
-  const c = new noflo.Component;
+const processAsync = function () {
+  const c = new noflo.Component();
   c.inPorts.add('in',
-    {datatype: 'string'});
+    { datatype: 'string' });
   c.outPorts.add('out',
-    {datatype: 'string'});
+    { datatype: 'string' });
 
-  c.process(function(input, output) {
+  c.process((input, output) => {
     const data = input.getData('in');
-    setTimeout(() => output.sendDone(data + c.nodeId)
-    , 1);
+    setTimeout(() => output.sendDone(data + c.nodeId),
+      1);
   });
   return c;
 };
 
-const processMerge = function() {
-  const c = new noflo.Component;
+const processMerge = function () {
+  const c = new noflo.Component();
   c.inPorts.add('in1',
-    {datatype: 'string'});
+    { datatype: 'string' });
   c.inPorts.add('in2',
-    {datatype: 'string'});
+    { datatype: 'string' });
   c.outPorts.add('out',
-    {datatype: 'string'});
+    { datatype: 'string' });
 
-  c.forwardBrackets =
-    {'in1': ['out']};
+  c.forwardBrackets = { in1: ['out'] };
 
-  c.process(function(input, output) {
-    if (!input.has('in1', 'in2', ip => ip.type === 'data')) { return; }
+  c.process((input, output) => {
+    if (!input.has('in1', 'in2', (ip) => ip.type === 'data')) { return; }
     const first = input.getData('in1');
     const second = input.getData('in2');
 
-    output.sendDone({
-      out: `1${first}:2${second}:${c.nodeId}`});
+    output.sendDone({ out: `1${first}:2${second}:${c.nodeId}` });
   });
   return c;
 };
 
-const processMergeUnscoped = function() {
-  const c = new noflo.Component;
+const processMergeUnscoped = function () {
+  const c = new noflo.Component();
   c.inPorts.add('in1',
-    {datatype: 'string'});
+    { datatype: 'string' });
   c.inPorts.add('in2', {
     datatype: 'string',
-    scoped: false
-  }
-  );
+    scoped: false,
+  });
   c.outPorts.add('out',
-    {datatype: 'string'});
+    { datatype: 'string' });
 
-  c.forwardBrackets =
-    {'in1': ['out']};
+  c.forwardBrackets = { in1: ['out'] };
 
-  c.process(function(input, output) {
-    if (!input.has('in1', 'in2', ip => ip.type === 'data')) { return; }
+  c.process((input, output) => {
+    if (!input.has('in1', 'in2', (ip) => ip.type === 'data')) { return; }
     const first = input.getData('in1');
     const second = input.getData('in2');
 
-    output.sendDone({
-      out: `1${first}:2${second}:${c.nodeId}`});
+    output.sendDone({ out: `1${first}:2${second}:${c.nodeId}` });
   });
   return c;
 };
 
-const processUnscope = function() {
-  const c = new noflo.Component;
+const processUnscope = function () {
+  const c = new noflo.Component();
   c.inPorts.add('in',
-    {datatype: 'string'});
+    { datatype: 'string' });
   c.outPorts.add('out', {
     datatype: 'string',
-    scoped: false
-  }
-  );
+    scoped: false,
+  });
 
-  c.process(function(input, output) {
+  c.process((input, output) => {
     const data = input.getData('in');
-    setTimeout(function() {
+    setTimeout(() => {
       output.sendDone(data + c.nodeId);
-    }
-    , 1);
+    },
+    1);
   });
   return c;
 };
 
 // Merge with an addressable port
-const processMergeA = function() {
-  const c = new noflo.Component;
+const processMergeA = function () {
+  const c = new noflo.Component();
   c.inPorts.add('in1',
-    {datatype: 'string'});
+    { datatype: 'string' });
   c.inPorts.add('in2', {
     datatype: 'string',
-    addressable: true
-  }
-  );
+    addressable: true,
+  });
   c.outPorts.add('out',
-    {datatype: 'string'});
+    { datatype: 'string' });
 
-  c.forwardBrackets =
-    {'in1': ['out']};
+  c.forwardBrackets = { in1: ['out'] };
 
-  c.process(function(input, output) {
+  c.process((input, output) => {
     if (!input.hasData('in1', ['in2', 0], ['in2', 1])) { return; }
     const first = input.getData('in1');
     const second0 = input.getData(['in2', 0]);
     const second1 = input.getData(['in2', 1]);
 
-    output.sendDone({
-      out: `1${first}:2${second0}:2${second1}:${c.nodeId}`});
+    output.sendDone({ out: `1${first}:2${second0}:2${second1}:${c.nodeId}` });
   });
   return c;
 };
 
-describe('Scope isolation', function() {
+describe('Scope isolation', () => {
   let loader = null;
-  before(function(done) {
+  before((done) => {
     loader = new noflo.ComponentLoader(root);
-    loader.listComponents(function(err) {
+    loader.listComponents((err) => {
       if (err) {
         done(err);
         return;
@@ -145,26 +150,26 @@ describe('Scope isolation', function() {
       done();
     });
   });
-  describe('pure Process API merging two inputs', function() {
+  describe('pure Process API merging two inputs', () => {
     let c = null;
     let in1 = null;
     let in2 = null;
     let out = null;
-    before(function(done) {
-      const fbpData = `\
+    before((done) => {
+      const fbpData = '\
 INPORT=Pc1.IN:IN1 \
 INPORT=Pc2.IN:IN2 \
 OUTPORT=PcMerge.OUT:OUT \
 Pc1(process/Async) OUT -> IN1 PcMerge(process/Merge) \
 Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
-`;
-      noflo.graph.loadFBP(fbpData, function(err, g) {
+';
+      noflo.graph.loadFBP(fbpData, (err, g) => {
         if (err) {
           done(err);
           return;
         }
         loader.registerComponent('scope', 'Merge', g);
-        loader.load('scope/Merge', function(err, instance) {
+        loader.load('scope/Merge', (err, instance) => {
           if (err) {
             done(err);
             return;
@@ -178,16 +183,15 @@ Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
         });
       });
     });
-    beforeEach(function() {
+    beforeEach(() => {
       out = noflo.internalSocket.createSocket();
       c.outPorts.out.attach(out);
     });
-    afterEach(function() {
+    afterEach(() => {
       c.outPorts.out.detach(out);
       out = null;
-
     });
-    it('should forward new-style brackets as expected', function(done) {
+    it('should forward new-style brackets as expected', (done) => {
       const expected = [
         'CONN',
         '< 1',
@@ -195,23 +199,23 @@ Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
         'DATA 1bazPc1:2fooPc2:PcMerge',
         '>',
         '>',
-        'DISC'
+        'DISC',
       ];
       const received = [];
 
-      out.on('connect', function() {
+      out.on('connect', () => {
         received.push('CONN');
       });
-      out.on('begingroup', function(group) {
+      out.on('begingroup', (group) => {
         received.push(`< ${group}`);
       });
-      out.on('data', function(data) {
+      out.on('data', (data) => {
         received.push(`DATA ${data}`);
       });
-      out.on('endgroup', function() {
+      out.on('endgroup', () => {
         received.push('>');
       });
-      out.on('disconnect', function() {
+      out.on('disconnect', () => {
         received.push('DISC');
         chai.expect(received).to.eql(expected);
         done();
@@ -228,7 +232,7 @@ Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
       in1.endGroup();
       in1.disconnect();
     });
-    it('should forward new-style brackets as expected regardless of sending order', function(done) {
+    it('should forward new-style brackets as expected regardless of sending order', (done) => {
       const expected = [
         'CONN',
         '< 1',
@@ -236,23 +240,23 @@ Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
         'DATA 1bazPc1:2fooPc2:PcMerge',
         '>',
         '>',
-        'DISC'
+        'DISC',
       ];
       const received = [];
 
-      out.on('connect', function() {
+      out.on('connect', () => {
         received.push('CONN');
       });
-      out.on('begingroup', function(group) {
+      out.on('begingroup', (group) => {
         received.push(`< ${group}`);
       });
-      out.on('data', function(data) {
+      out.on('data', (data) => {
         received.push(`DATA ${data}`);
       });
-      out.on('endgroup', function() {
+      out.on('endgroup', () => {
         received.push('>');
       });
-      out.on('disconnect', function() {
+      out.on('disconnect', () => {
         received.push('DISC');
         chai.expect(received).to.eql(expected);
         done();
@@ -269,16 +273,16 @@ Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
       in2.send('foo');
       in2.disconnect();
     });
-    it('should forward scopes as expected', function(done) {
+    it('should forward scopes as expected', (done) => {
       const expected = [
         'x < 1',
         'x DATA 1onePc1:2twoPc2:PcMerge',
-        'x >'
+        'x >',
       ];
       const received = [];
       const brackets = [];
 
-      out.on('ip', function(ip) {
+      out.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`${ip.scope} < ${ip.data}`);
@@ -298,50 +302,46 @@ Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
       });
 
       in2.post(new noflo.IP('data', 'two',
-        {scope: 'x'})
-      );
+        { scope: 'x' }));
       in1.post(new noflo.IP('openBracket', 1,
-        {scope: 'x'})
-      );
+        { scope: 'x' }));
       in1.post(new noflo.IP('data', 'one',
-        {scope: 'x'})
-      );
+        { scope: 'x' }));
       in1.post(new noflo.IP('closeBracket', 1,
-        {scope: 'x'})
-      );
+        { scope: 'x' }));
     });
-    it('should not forward when scopes don\'t match', function(done) {
-      out.on('ip', function(ip) {
+    it('should not forward when scopes don\'t match', (done) => {
+      out.on('ip', (ip) => {
         throw new Error(`Received unexpected ${ip.type} packet`);
       });
-      c.network.once('end', function() {
+      c.network.once('end', () => {
         done();
       });
-      in2.post(new noflo.IP('data', 'two', {scope: 2}));
-      in1.post(new noflo.IP('openBracket', 1, {scope: 1}));
-      in1.post(new noflo.IP('data', 'one', {scope: 1}));
-      in1.post(new noflo.IP('closeBracket', 1, {scope: 1}));
+      in2.post(new noflo.IP('data', 'two', { scope: 2 }));
+      in1.post(new noflo.IP('openBracket', 1, { scope: 1 }));
+      in1.post(new noflo.IP('data', 'one', { scope: 1 }));
+      in1.post(new noflo.IP('closeBracket', 1, { scope: 1 }));
     });
   });
-  describe('Process API with IIPs and scopes', function() {
+  describe('Process API with IIPs and scopes', () => {
     let c = null;
     let in1 = null;
     const in2 = null;
     let out = null;
-    before(function(done) {
-      const fbpData = `\
+    before((done) => {
+      const fbpData = '\
 INPORT=Pc1.IN:IN1 \
 OUTPORT=PcMerge.OUT:OUT \
 Pc1(process/Async) -> IN1 PcMerge(process/Merge) \
-'twoIIP' -> IN2 PcMerge(process/Merge)\
-`;
-      noflo.graph.loadFBP(fbpData, function(err, g) {
+\'twoIIP\' -> IN2 PcMerge(process/Merge)\
+';
+      noflo.graph.loadFBP(fbpData, (err, g) => {
         if (err) {
           done(err);
           return;
         }
         loader.registerComponent('scope', 'MergeIIP', g);
-        loader.load('scope/MergeIIP', function(err, instance) {
+        loader.load('scope/MergeIIP', (err, instance) => {
           if (err) {
             done(err);
             return;
@@ -353,25 +353,24 @@ Pc1(process/Async) -> IN1 PcMerge(process/Merge) \
         });
       });
     });
-    beforeEach(function() {
+    beforeEach(() => {
       out = noflo.internalSocket.createSocket();
       c.outPorts.out.attach(out);
     });
-    afterEach(function() {
+    afterEach(() => {
       c.outPorts.out.detach(out);
       out = null;
-
     });
-    it('should forward scopes as expected', function(done) {
+    it('should forward scopes as expected', (done) => {
       const expected = [
         'x < 1',
         'x DATA 1onePc1:2twoIIP:PcMerge',
-        'x >'
+        'x >',
       ];
       const received = [];
       const brackets = [];
 
-      out.on('ip', function(ip) {
+      out.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`${ip.scope} < ${ip.data}`);
@@ -390,31 +389,31 @@ Pc1(process/Async) -> IN1 PcMerge(process/Merge) \
         }
       });
 
-      in1.post(new noflo.IP('openBracket', 1, {scope: 'x'}));
-      in1.post(new noflo.IP('data', 'one', {scope: 'x'}));
-      in1.post(new noflo.IP('closeBracket', 1, {scope: 'x'}));
+      in1.post(new noflo.IP('openBracket', 1, { scope: 'x' }));
+      in1.post(new noflo.IP('data', 'one', { scope: 'x' }));
+      in1.post(new noflo.IP('closeBracket', 1, { scope: 'x' }));
     });
   });
-  describe('Process API with unscoped inport and scopes', function() {
+  describe('Process API with unscoped inport and scopes', () => {
     let c = null;
     let in1 = null;
     let in2 = null;
     let out = null;
-    before(function(done) {
-      const fbpData = `\
+    before((done) => {
+      const fbpData = '\
 INPORT=Pc1.IN:IN1 \
 INPORT=Pc2.IN:IN2 \
 OUTPORT=PcMerge.OUT:OUT \
 Pc1(process/Async) -> IN1 PcMerge(process/MergeUnscoped) \
 Pc2(process/Async) -> IN2 PcMerge(process/MergeUnscoped)\
-`;
-      noflo.graph.loadFBP(fbpData, function(err, g) {
+';
+      noflo.graph.loadFBP(fbpData, (err, g) => {
         if (err) {
           done(err);
           return;
         }
         loader.registerComponent('scope', 'MergeUnscoped', g);
-        loader.load('scope/MergeUnscoped', function(err, instance) {
+        loader.load('scope/MergeUnscoped', (err, instance) => {
           if (err) {
             done(err);
             return;
@@ -428,24 +427,24 @@ Pc2(process/Async) -> IN2 PcMerge(process/MergeUnscoped)\
         });
       });
     });
-    beforeEach(function() {
+    beforeEach(() => {
       out = noflo.internalSocket.createSocket();
       c.outPorts.out.attach(out);
     });
-    afterEach(function() {
+    afterEach(() => {
       c.outPorts.out.detach(out);
       out = null;
     });
-    it('should forward scopes as expected', function(done) {
+    it('should forward scopes as expected', (done) => {
       const expected = [
         'x < 1',
         'x DATA 1onePc1:2twoPc2:PcMerge',
-        'x >'
+        'x >',
       ];
       const received = [];
       const brackets = [];
 
-      out.on('ip', function(ip) {
+      out.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`${ip.scope} < ${ip.data}`);
@@ -464,23 +463,23 @@ Pc2(process/Async) -> IN2 PcMerge(process/MergeUnscoped)\
         }
       });
 
-      in1.post(new noflo.IP('openBracket', 1, {scope: 'x'}));
-      in1.post(new noflo.IP('data', 'one', {scope: 'x'}));
-      in1.post(new noflo.IP('closeBracket', 1, {scope: 'x'}));
-      in2.post(new noflo.IP('openBracket', 1, {scope: 'x'}));
-      in2.post(new noflo.IP('data', 'two', {scope: 'x'}));
-      in2.post(new noflo.IP('closeBracket', 1, {scope: 'x'}));
+      in1.post(new noflo.IP('openBracket', 1, { scope: 'x' }));
+      in1.post(new noflo.IP('data', 'one', { scope: 'x' }));
+      in1.post(new noflo.IP('closeBracket', 1, { scope: 'x' }));
+      in2.post(new noflo.IP('openBracket', 1, { scope: 'x' }));
+      in2.post(new noflo.IP('data', 'two', { scope: 'x' }));
+      in2.post(new noflo.IP('closeBracket', 1, { scope: 'x' }));
     });
-    it('should forward packets without scopes', function(done) {
+    it('should forward packets without scopes', (done) => {
       const expected = [
         'null < 1',
         'null DATA 1onePc1:2twoPc2:PcMerge',
-        'null >'
+        'null >',
       ];
       const received = [];
       const brackets = [];
 
-      out.on('ip', function(ip) {
+      out.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`${ip.scope} < ${ip.data}`);
@@ -505,16 +504,16 @@ Pc2(process/Async) -> IN2 PcMerge(process/MergeUnscoped)\
       in2.post(new noflo.IP('data', 'two'));
       in2.post(new noflo.IP('closeBracket', 1));
     });
-    it('should forward scopes also on unscoped packet', function(done) {
+    it('should forward scopes also on unscoped packet', (done) => {
       const expected = [
         'x < 1',
         'x DATA 1onePc1:2twoPc2:PcMerge',
-        'x >'
+        'x >',
       ];
       const received = [];
       const brackets = [];
 
-      out.on('ip', function(ip) {
+      out.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`${ip.scope} < ${ip.data}`);
@@ -535,31 +534,31 @@ Pc2(process/Async) -> IN2 PcMerge(process/MergeUnscoped)\
       in2.post(new noflo.IP('openBracket', 1));
       in2.post(new noflo.IP('data', 'two'));
       in2.post(new noflo.IP('closeBracket', 1));
-      in1.post(new noflo.IP('openBracket', 1, {scope: 'x'}));
-      in1.post(new noflo.IP('data', 'one', {scope: 'x'}));
-      in1.post(new noflo.IP('closeBracket', 1, {scope: 'x'}));
+      in1.post(new noflo.IP('openBracket', 1, { scope: 'x' }));
+      in1.post(new noflo.IP('data', 'one', { scope: 'x' }));
+      in1.post(new noflo.IP('closeBracket', 1, { scope: 'x' }));
     });
   });
-  describe('Process API with unscoped outport and scopes', function() {
+  describe('Process API with unscoped outport and scopes', () => {
     let c = null;
     let in1 = null;
     let in2 = null;
     let out = null;
-    before(function(done) {
-      const fbpData = `\
+    before((done) => {
+      const fbpData = '\
 INPORT=Pc1.IN:IN1 \
 INPORT=Pc2.IN:IN2 \
 OUTPORT=PcMerge.OUT:OUT \
 Pc1(process/Unscope) -> IN1 PcMerge(process/Merge) \
 Pc2(process/Unscope) -> IN2 PcMerge\
-`;
-      noflo.graph.loadFBP(fbpData, function(err, g) {
+';
+      noflo.graph.loadFBP(fbpData, (err, g) => {
         if (err) {
           done(err);
           return;
         }
         loader.registerComponent('scope', 'MergeUnscopedOut', g);
-        loader.load('scope/MergeUnscopedOut', function(err, instance) {
+        loader.load('scope/MergeUnscopedOut', (err, instance) => {
           if (err) {
             done(err);
             return;
@@ -573,24 +572,24 @@ Pc2(process/Unscope) -> IN2 PcMerge\
         });
       });
     });
-    beforeEach(function() {
+    beforeEach(() => {
       out = noflo.internalSocket.createSocket();
       c.outPorts.out.attach(out);
     });
-    afterEach(function() {
+    afterEach(() => {
       c.outPorts.out.detach(out);
       out = null;
     });
-    it('should remove scopes as expected', function(done) {
+    it('should remove scopes as expected', (done) => {
       const expected = [
         'null < 1',
         'null DATA 1onePc1:2twoPc2:PcMerge',
-        'null >'
+        'null >',
       ];
       const received = [];
       const brackets = [];
 
-      out.on('ip', function(ip) {
+      out.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`${ip.scope} < ${ip.data}`);
@@ -609,23 +608,23 @@ Pc2(process/Unscope) -> IN2 PcMerge\
         }
       });
 
-      in1.post(new noflo.IP('openBracket', 1, {scope: 'x'}));
-      in1.post(new noflo.IP('data', 'one', {scope: 'x'}));
-      in1.post(new noflo.IP('closeBracket', 1, {scope: 'x'}));
-      in2.post(new noflo.IP('openBracket', 1, {scope: 'y'}));
-      in2.post(new noflo.IP('data', 'two', {scope: 'y'}));
-      in2.post(new noflo.IP('closeBracket', 1, {scope: 'y'}));
+      in1.post(new noflo.IP('openBracket', 1, { scope: 'x' }));
+      in1.post(new noflo.IP('data', 'one', { scope: 'x' }));
+      in1.post(new noflo.IP('closeBracket', 1, { scope: 'x' }));
+      in2.post(new noflo.IP('openBracket', 1, { scope: 'y' }));
+      in2.post(new noflo.IP('data', 'two', { scope: 'y' }));
+      in2.post(new noflo.IP('closeBracket', 1, { scope: 'y' }));
     });
-    it('should forward packets without scopes', function(done) {
+    it('should forward packets without scopes', (done) => {
       const expected = [
         'null < 1',
         'null DATA 1onePc1:2twoPc2:PcMerge',
-        'null >'
+        'null >',
       ];
       const received = [];
       const brackets = [];
 
-      out.on('ip', function(ip) {
+      out.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`${ip.scope} < ${ip.data}`);
@@ -650,16 +649,16 @@ Pc2(process/Unscope) -> IN2 PcMerge\
       in2.post(new noflo.IP('data', 'two'));
       in2.post(new noflo.IP('closeBracket', 1));
     });
-    it('should remove scopes also on unscoped packet', function(done) {
+    it('should remove scopes also on unscoped packet', (done) => {
       const expected = [
         'null < 1',
         'null DATA 1onePc1:2twoPc2:PcMerge',
-        'null >'
+        'null >',
       ];
       const received = [];
       const brackets = [];
 
-      out.on('ip', function(ip) {
+      out.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`${ip.scope} < ${ip.data}`);
@@ -677,34 +676,34 @@ Pc2(process/Unscope) -> IN2 PcMerge\
             break;
         }
       });
-      in1.post(new noflo.IP('openBracket', 1, {scope: 'x'}));
-      in1.post(new noflo.IP('data', 'one', {scope: 'x'}));
-      in1.post(new noflo.IP('closeBracket', 1, {scope: 'x'}));
+      in1.post(new noflo.IP('openBracket', 1, { scope: 'x' }));
+      in1.post(new noflo.IP('data', 'one', { scope: 'x' }));
+      in1.post(new noflo.IP('closeBracket', 1, { scope: 'x' }));
       in2.post(new noflo.IP('openBracket', 1));
       in2.post(new noflo.IP('data', 'two'));
       in2.post(new noflo.IP('closeBracket', 1));
     });
   });
-  describe('Process API with IIPs to addressable ports and scopes', function() {
+  describe('Process API with IIPs to addressable ports and scopes', () => {
     let c = null;
     let in1 = null;
     const in2 = null;
     let out = null;
-    before(function(done) {
-      const fbpData = `\
+    before((done) => {
+      const fbpData = '\
 INPORT=Pc1.IN:IN1 \
 OUTPORT=PcMergeA.OUT:OUT \
 Pc1(process/Async) -> IN1 PcMergeA(process/MergeA) \
-'twoIIP0' -> IN2[0] PcMergeA \
-'twoIIP1' -> IN2[1] PcMergeA\
-`;
-      noflo.graph.loadFBP(fbpData, function(err, g) {
+\'twoIIP0\' -> IN2[0] PcMergeA \
+\'twoIIP1\' -> IN2[1] PcMergeA\
+';
+      noflo.graph.loadFBP(fbpData, (err, g) => {
         if (err) {
           done(err);
           return;
         }
         loader.registerComponent('scope', 'MergeIIPA', g);
-        loader.load('scope/MergeIIPA', function(err, instance) {
+        loader.load('scope/MergeIIPA', (err, instance) => {
           if (err) {
             done(err);
             return;
@@ -716,25 +715,24 @@ Pc1(process/Async) -> IN1 PcMergeA(process/MergeA) \
         });
       });
     });
-    beforeEach(function() {
+    beforeEach(() => {
       out = noflo.internalSocket.createSocket();
       c.outPorts.out.attach(out);
     });
-    afterEach(function() {
+    afterEach(() => {
       c.outPorts.out.detach(out);
       out = null;
-
     });
-    it('should forward scopes as expected', function(done) {
+    it('should forward scopes as expected', (done) => {
       const expected = [
         'x < 1',
         'x DATA 1onePc1:2twoIIP0:2twoIIP1:PcMergeA',
-        'x >'
+        'x >',
       ];
       const received = [];
       const brackets = [];
 
-      out.on('ip', function(ip) {
+      out.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`${ip.scope} < ${ip.data}`);
@@ -753,9 +751,9 @@ Pc1(process/Async) -> IN1 PcMergeA(process/MergeA) \
         }
       });
 
-      in1.post(new noflo.IP('openBracket', 1, {scope: 'x'}));
-      in1.post(new noflo.IP('data', 'one', {scope: 'x'}));
-      in1.post(new noflo.IP('closeBracket', 1, {scope: 'x'}));
+      in1.post(new noflo.IP('openBracket', 1, { scope: 'x' }));
+      in1.post(new noflo.IP('data', 'one', { scope: 'x' }));
+      in1.post(new noflo.IP('closeBracket', 1, { scope: 'x' }));
     });
   });
 });
