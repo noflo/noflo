@@ -1,3 +1,25 @@
+/* eslint-disable
+    consistent-return,
+    default-case,
+    func-names,
+    global-require,
+    import/no-extraneous-dependencies,
+    import/no-unresolved,
+    no-console,
+    no-plusplus,
+    no-restricted-syntax,
+    no-return-assign,
+    no-shadow,
+    no-undef,
+    no-unreachable,
+    no-unused-expressions,
+    no-unused-vars,
+    no-var,
+    prefer-destructuring,
+    radix,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS101: Remove unnecessary use of Array.from
@@ -6,7 +28,8 @@
  * DS207: Consider shorter variations of null checks
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
-let chai, noflo;
+let chai; let
+  noflo;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   if (!chai) { chai = require('chai'); }
   noflo = require('../src/lib/NoFlo');
@@ -14,50 +37,50 @@ if ((typeof process !== 'undefined') && process.execPath && process.execPath.mat
   noflo = require('noflo');
 }
 
-describe('Component', function() {
-  describe('with required ports', function() {
-    it('should throw an error upon sending packet to an unattached required port', function() {
-      const s2 = new noflo.internalSocket.InternalSocket;
+describe('Component', () => {
+  describe('with required ports', () => {
+    it('should throw an error upon sending packet to an unattached required port', () => {
+      const s2 = new noflo.internalSocket.InternalSocket();
       const c = new noflo.Component({
         outPorts: {
           required_port: {
-            required: true
+            required: true,
           },
-          optional_port: {}
-        }});
+          optional_port: {},
+        },
+      });
       c.outPorts.optional_port.attach(s2);
       chai.expect(() => c.outPorts.required_port.send('foo')).to.throw();
-
     });
-    it('should be cool with an attached port', function() {
-      const s1 = new noflo.internalSocket.InternalSocket;
-      const s2 = new noflo.internalSocket.InternalSocket;
+    it('should be cool with an attached port', () => {
+      const s1 = new noflo.internalSocket.InternalSocket();
+      const s2 = new noflo.internalSocket.InternalSocket();
       const c = new noflo.Component({
         inPorts: {
           required_port: {
-            required: true
+            required: true,
           },
-          optional_port: {}
-        }});
+          optional_port: {},
+        },
+      });
       c.inPorts.required_port.attach(s1);
       c.inPorts.optional_port.attach(s2);
-      const f = function() {
+      const f = function () {
         s1.send('some-more-data');
         s2.send('some-data');
       };
       chai.expect(f).to.not.throw();
     });
-
   });
-  describe('with component creation shorthand', function() {
-    it('should make component creation easy', function(done) {
+  describe('with component creation shorthand', () => {
+    it('should make component creation easy', (done) => {
       const c = new noflo.Component({
         inPorts: {
           in: {
             datatype: 'string',
-            required: true
+            required: true,
           },
-          just_processor: {}
+          just_processor: {},
         },
         process(input, output) {
           let packet;
@@ -72,132 +95,125 @@ describe('Component', function() {
             chai.expect(packet).to.equal('some-data');
             output.done();
             done();
-            return;
-            return;
           }
-        }
+        },
       });
-        
 
-      const s1 = new noflo.internalSocket.InternalSocket;
+      const s1 = new noflo.internalSocket.InternalSocket();
       c.inPorts.in.attach(s1);
       c.inPorts.in.nodeInstance = c;
-      const s2 = new noflo.internalSocket.InternalSocket;
+      const s2 = new noflo.internalSocket.InternalSocket();
       c.inPorts.just_processor.attach(s1);
       c.inPorts.just_processor.nodeInstance = c;
       s1.send('some-data');
       s2.send('some-data');
-
     });
-    it('should throw errors if there is no error port', function(done) {
+    it('should throw errors if there is no error port', (done) => {
       const c = new noflo.Component({
         inPorts: {
           in: {
             datatype: 'string',
-            required: true
-          }
+            required: true,
+          },
         },
         process(input, output) {
           const packet = input.getData('in');
           chai.expect(packet).to.equal('some-data');
-          chai.expect(() => output.error(new Error)).to.throw(Error);
+          chai.expect(() => output.error(new Error())).to.throw(Error);
           done();
-        }
+        },
       });
 
-      const s1 = new noflo.internalSocket.InternalSocket;
+      const s1 = new noflo.internalSocket.InternalSocket();
       c.inPorts.in.attach(s1);
       c.inPorts.in.nodeInstance = c;
       s1.send('some-data');
-
     });
-    it('should throw errors if there is a non-attached error port', function(done) {
+    it('should throw errors if there is a non-attached error port', (done) => {
       const c = new noflo.Component({
         inPorts: {
           in: {
             datatype: 'string',
-            required: true
-          }
+            required: true,
+          },
         },
         outPorts: {
           error: {
             datatype: 'object',
-            required: true
-          }
+            required: true,
+          },
         },
         process(input, output) {
           const packet = input.getData('in');
           chai.expect(packet).to.equal('some-data');
-          chai.expect(() => output.error(new Error)).to.throw(Error);
+          chai.expect(() => output.error(new Error())).to.throw(Error);
           done();
-        }
+        },
       });
 
-      const s1 = new noflo.internalSocket.InternalSocket;
+      const s1 = new noflo.internalSocket.InternalSocket();
       c.inPorts.in.attach(s1);
       c.inPorts.in.nodeInstance = c;
       s1.send('some-data');
-
     });
-    it('should not throw errors if there is a non-required error port', function(done) {
+    it('should not throw errors if there is a non-required error port', (done) => {
       var c = new noflo.Component({
         inPorts: {
           in: {
             datatype: 'string',
-            required: true
-          }
+            required: true,
+          },
         },
         outPorts: {
           error: {
-            required: false
-          }
+            required: false,
+          },
         },
         process(input, output) {
           const packet = input.getData('in');
           chai.expect(packet).to.equal('some-data');
-          c.error(new Error);
+          c.error(new Error());
           done();
-        }
+        },
       });
 
-      const s1 = new noflo.internalSocket.InternalSocket;
+      const s1 = new noflo.internalSocket.InternalSocket();
       c.inPorts.in.attach(s1);
       c.inPorts.in.nodeInstance = c;
       s1.send('some-data');
-
     });
-    it('should send errors if there is a connected error port', function(done) {
+    it('should send errors if there is a connected error port', (done) => {
       const grps = [];
       const c = new noflo.Component({
         inPorts: {
           in: {
             datatype: 'string',
-            required: true
-          }
+            required: true,
+          },
         },
         outPorts: {
           error: {
-            datatype: 'object'
-          }
+            datatype: 'object',
+          },
         },
         process(input, output) {
           if (!input.hasData('in')) { return; }
           const packet = input.getData('in');
           chai.expect(packet).to.equal('some-data');
           output.done(new Error());
-        }
+        },
       });
 
-      const s1 = new noflo.internalSocket.InternalSocket;
-      const s2 = new noflo.internalSocket.InternalSocket;
+      const s1 = new noflo.internalSocket.InternalSocket();
+      const s2 = new noflo.internalSocket.InternalSocket();
       const groups = [
         'foo',
-        'bar'
+        'bar',
       ];
-      s2.on('begingroup', function(grp) {
+      s2.on('begingroup', (grp) => {
         chai.expect(grp).to.equal(groups.shift());
       });
-      s2.on('data', function(err) {
+      s2.on('data', (err) => {
         chai.expect(err).to.be.an.instanceOf(Error);
         chai.expect(groups.length).to.equal(0);
         done();
@@ -210,59 +226,62 @@ describe('Component', function() {
       s1.beginGroup('bar');
       s1.send('some-data');
     });
-
   });
-  describe('defining ports with invalid names', function() {
-    it('should throw an error with uppercase letters in inport', function() {
+  describe('defining ports with invalid names', () => {
+    it('should throw an error with uppercase letters in inport', () => {
       const shorthand = () => new noflo.Component({
         inPorts: {
-          fooPort: {}
-        }});
+          fooPort: {},
+        },
+      });
       chai.expect(shorthand).to.throw();
     });
-    it('should throw an error with uppercase letters in outport', function() {
+    it('should throw an error with uppercase letters in outport', () => {
       const shorthand = () => new noflo.Component({
         outPorts: {
-          BarPort: {}
-        }});
+          BarPort: {},
+        },
+      });
       chai.expect(shorthand).to.throw();
     });
-    it('should throw an error with special characters in inport', function() {
+    it('should throw an error with special characters in inport', () => {
       const shorthand = () => new noflo.Component({
         inPorts: {
-          '$%^&*a': {}
-        }});
+          '$%^&*a': {},
+        },
+      });
       chai.expect(shorthand).to.throw();
     });
   });
-  describe('with non-existing ports', function() {
-    const getComponent = function() {
+  describe('with non-existing ports', () => {
+    const getComponent = function () {
       let c;
       return c = new noflo.Component({
         inPorts: {
-          in: {}
+          in: {},
         },
         outPorts: {
-          out: {}
-        }});
+          out: {},
+        },
+      });
     };
-    const getAddressableComponent = function() {
+    const getAddressableComponent = function () {
       const c = new noflo.Component({
         inPorts: {
           in: {
-            addressable: true
-          }
+            addressable: true,
+          },
         },
         outPorts: {
           out: {
-            addressable: true
-          }
-        }
+            addressable: true,
+          },
+        },
       });
     };
-    it('should throw an error when checking attached for non-existing port', function(done) {
+    it('should throw an error when checking attached for non-existing port', (done) => {
       const c = getComponent();
-      c.process(function(input, output) {
+      c.process((input, output) => {
         try {
           input.attached('foo');
         } catch (e) {
@@ -278,9 +297,9 @@ describe('Component', function() {
       c.inPorts.in.attach(sin1);
       sin1.send('hello');
     });
-    it('should throw an error when checking IP for non-existing port', function(done) {
+    it('should throw an error when checking IP for non-existing port', (done) => {
       const c = getComponent();
-      c.process(function(input, output) {
+      c.process((input, output) => {
         try {
           input.has('foo');
         } catch (e) {
@@ -296,9 +315,9 @@ describe('Component', function() {
       c.inPorts.in.attach(sin1);
       sin1.send('hello');
     });
-    it('should throw an error when checking IP for non-existing addressable port', function(done) {
+    it('should throw an error when checking IP for non-existing addressable port', (done) => {
       const c = getComponent();
-      c.process(function(input, output) {
+      c.process((input, output) => {
         try {
           input.has(['foo', 0]);
         } catch (e) {
@@ -314,9 +333,9 @@ describe('Component', function() {
       c.inPorts.in.attach(sin1);
       sin1.send('hello');
     });
-    it('should throw an error when checking data for non-existing port', function(done) {
+    it('should throw an error when checking data for non-existing port', (done) => {
       const c = getComponent();
-      c.process(function(input, output) {
+      c.process((input, output) => {
         try {
           input.hasData('foo');
         } catch (e) {
@@ -332,9 +351,9 @@ describe('Component', function() {
       c.inPorts.in.attach(sin1);
       sin1.send('hello');
     });
-    it('should throw an error when checking stream for non-existing port', function(done) {
+    it('should throw an error when checking stream for non-existing port', (done) => {
       const c = getComponent();
-      c.process(function(input, output) {
+      c.process((input, output) => {
         try {
           input.hasStream('foo');
         } catch (e) {
@@ -351,19 +370,19 @@ describe('Component', function() {
       sin1.send('hello');
     });
   });
-  describe('starting a component', function() {
-    it('should flag the component as started', function(done) {
+  describe('starting a component', () => {
+    it('should flag the component as started', (done) => {
       const c = new noflo.Component({
         inPorts: {
           in: {
             datatype: 'string',
-            required: true
-          }
-        }
+            required: true,
+          },
+        },
       });
-      const i = new noflo.internalSocket.InternalSocket;
+      const i = new noflo.internalSocket.InternalSocket();
       c.inPorts.in.attach(i);
-      c.start(function(err) {
+      c.start((err) => {
         if (err) {
           done(err);
           return;
@@ -374,25 +393,25 @@ describe('Component', function() {
       });
     });
   });
-  describe('shutting down a component', function() {
-    it('should flag the component as not started', function(done) {
+  describe('shutting down a component', () => {
+    it('should flag the component as not started', (done) => {
       const c = new noflo.Component({
         inPorts: {
           in: {
             datatype: 'string',
-            required: true
-          }
-        }
+            required: true,
+          },
+        },
       });
-      const i = new noflo.internalSocket.InternalSocket;
+      const i = new noflo.internalSocket.InternalSocket();
       c.inPorts.in.attach(i);
-      c.start(function(err) {
+      c.start((err) => {
         if (err) {
           done(err);
           return;
         }
         chai.expect(c.isStarted()).to.equal(true);
-        c.shutdown(function(err) {
+        c.shutdown((err) => {
           if (err) {
             done(err);
             return;
@@ -404,28 +423,28 @@ describe('Component', function() {
       });
     });
   });
-  describe('with object-based IPs', function() {
-    it('should speak IP objects', function(done) {
+  describe('with object-based IPs', () => {
+    it('should speak IP objects', (done) => {
       const c = new noflo.Component({
         inPorts: {
           in: {
-            datatype: 'string'
-          }
+            datatype: 'string',
+          },
         },
         outPorts: {
           out: {
-            datatype: 'string'
-          }
+            datatype: 'string',
+          },
         },
         process(input, output) {
           output.sendDone(input.get('in'));
-        }
+        },
       });
 
-      const s1 = new noflo.internalSocket.InternalSocket;
-      const s2 = new noflo.internalSocket.InternalSocket;
+      const s1 = new noflo.internalSocket.InternalSocket();
+      const s2 = new noflo.internalSocket.InternalSocket();
 
-      s2.on('ip', function(ip) {
+      s2.on('ip', (ip) => {
         chai.expect(ip).to.be.an('object');
         chai.expect(ip.type).to.equal('data');
         chai.expect(ip.groups).to.be.an('array');
@@ -439,21 +458,20 @@ describe('Component', function() {
       c.outPorts.out.attach(s2);
 
       s1.post(new noflo.IP('data', 'some-data',
-        {groups: ['foo']}));
-
+        { groups: ['foo'] }));
     });
-    it('should support substreams', function(done) {
+    it('should support substreams', (done) => {
       var c = new noflo.Component({
         forwardBrackets: {},
         inPorts: {
           tags: {
-            datatype: 'string'
-          }
+            datatype: 'string',
+          },
         },
         outPorts: {
           html: {
-            datatype: 'string'
-          }
+            datatype: 'string',
+          },
         },
         process(input, output) {
           const ip = input.get('tags');
@@ -469,13 +487,13 @@ describe('Component', function() {
               c.str += `</${ip.data}>`;
               c.level--;
               if (c.level === 0) {
-                output.send({html: c.str});
+                output.send({ html: c.str });
                 c.str = '';
               }
               break;
           }
           output.done();
-        }
+        },
       });
       c.str = '';
       c.level = 0;
@@ -483,34 +501,34 @@ describe('Component', function() {
       const d = new noflo.Component({
         inPorts: {
           bang: {
-            datatype: 'bang'
-          }
+            datatype: 'bang',
+          },
         },
         outPorts: {
           tags: {
-            datatype: 'string'
-          }
+            datatype: 'string',
+          },
         },
         process(input, output) {
           input.getData('bang');
-          output.send({tags: new noflo.IP('openBracket', 'p')});
-          output.send({tags: new noflo.IP('openBracket', 'em')});
-          output.send({tags: new noflo.IP('data', 'Hello')});
-          output.send({tags: new noflo.IP('closeBracket', 'em')});
-          output.send({tags: new noflo.IP('data', ', ')});
-          output.send({tags: new noflo.IP('openBracket', 'strong')});
-          output.send({tags: new noflo.IP('data', 'World!')});
-          output.send({tags: new noflo.IP('closeBracket', 'strong')});
-          output.send({tags: new noflo.IP('closeBracket', 'p')});
+          output.send({ tags: new noflo.IP('openBracket', 'p') });
+          output.send({ tags: new noflo.IP('openBracket', 'em') });
+          output.send({ tags: new noflo.IP('data', 'Hello') });
+          output.send({ tags: new noflo.IP('closeBracket', 'em') });
+          output.send({ tags: new noflo.IP('data', ', ') });
+          output.send({ tags: new noflo.IP('openBracket', 'strong') });
+          output.send({ tags: new noflo.IP('data', 'World!') });
+          output.send({ tags: new noflo.IP('closeBracket', 'strong') });
+          output.send({ tags: new noflo.IP('closeBracket', 'p') });
           outout.done();
-        }
+        },
       });
 
-      const s1 = new noflo.internalSocket.InternalSocket;
-      const s2 = new noflo.internalSocket.InternalSocket;
-      const s3 = new noflo.internalSocket.InternalSocket;
+      const s1 = new noflo.internalSocket.InternalSocket();
+      const s2 = new noflo.internalSocket.InternalSocket();
+      const s3 = new noflo.internalSocket.InternalSocket();
 
-      s3.on('ip', function(ip) {
+      s3.on('ip', (ip) => {
         chai.expect(ip).to.be.an('object');
         chai.expect(ip.type).to.equal('data');
         chai.expect(ip.data).to.equal('<p><em>Hello</em>, <strong>World!</strong></p>');
@@ -524,9 +542,8 @@ describe('Component', function() {
 
       s1.post(new noflo.IP('data', 'start'));
     });
-
   });
-  describe('with process function', function() {
+  describe('with process function', () => {
     let c = null;
     let sin1 = null;
     let sin2 = null;
@@ -534,33 +551,31 @@ describe('Component', function() {
     let sout1 = null;
     let sout2 = null;
 
-    beforeEach(function(done) {
-      sin1 = new noflo.internalSocket.InternalSocket;
-      sin2 = new noflo.internalSocket.InternalSocket;
-      sin3 = new noflo.internalSocket.InternalSocket;
-      sout1 = new noflo.internalSocket.InternalSocket;
-      sout2 = new noflo.internalSocket.InternalSocket;
+    beforeEach((done) => {
+      sin1 = new noflo.internalSocket.InternalSocket();
+      sin2 = new noflo.internalSocket.InternalSocket();
+      sin3 = new noflo.internalSocket.InternalSocket();
+      sout1 = new noflo.internalSocket.InternalSocket();
+      sout2 = new noflo.internalSocket.InternalSocket();
       done();
     });
 
-    it('should trigger on IPs', function(done) {
+    it('should trigger on IPs', (done) => {
       let hadIPs = [];
       c = new noflo.Component({
         inPorts: {
-          foo: { datatype: 'string'
-        },
-          bar: { datatype: 'string'
-        }
+          foo: { datatype: 'string' },
+          bar: { datatype: 'string' },
         },
         outPorts: {
-          baz: {datatype: 'boolean'}
+          baz: { datatype: 'boolean' },
         },
         process(input, output) {
           hadIPs = [];
           if (input.has('foo')) { hadIPs.push('foo'); }
           if (input.has('bar')) { hadIPs.push('bar'); }
-          output.sendDone({baz: true});
-        }
+          output.sendDone({ baz: true });
+        },
       });
 
       c.inPorts.foo.attach(sin1);
@@ -568,7 +583,7 @@ describe('Component', function() {
       c.outPorts.baz.attach(sout1);
 
       let count = 0;
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         count++;
         if (count === 1) {
           chai.expect(hadIPs).to.eql(['foo']);
@@ -576,41 +591,39 @@ describe('Component', function() {
         if (count === 2) {
           chai.expect(hadIPs).to.eql(['foo', 'bar']);
           done();
-          return;
         }
       });
 
       sin1.post(new noflo.IP('data', 'first'));
       sin2.post(new noflo.IP('data', 'second'));
-
     });
-    it('should trigger on IPs to addressable ports', function(done) {
+    it('should trigger on IPs to addressable ports', (done) => {
       const receivedIndexes = [];
       c = new noflo.Component({
         inPorts: {
           foo: {
             datatype: 'string',
-            addressable: true
-          }
+            addressable: true,
+          },
         },
         outPorts: {
           baz: {
-            datatype: 'boolean'
-          }
+            datatype: 'boolean',
+          },
         },
         process(input, output) {
           // See what inbound connection indexes have data
-          const indexesWithData = input.attached('foo').filter(idx => input.hasData(['foo', idx]));
+          const indexesWithData = input.attached('foo').filter((idx) => input.hasData(['foo', idx]));
           if (!indexesWithData.length) { return; }
           // Read from the first of them
           const indexToUse = indexesWithData[0];
           const packet = input.get(['foo', indexToUse]);
           receivedIndexes.push({
             idx: indexToUse,
-            payload: packet.data
+            payload: packet.data,
           });
-          output.sendDone({baz: true});
-        }
+          output.sendDone({ baz: true });
+        },
       });
 
       c.inPorts.foo.attach(sin1, 1);
@@ -618,102 +631,98 @@ describe('Component', function() {
       c.outPorts.baz.attach(sout1);
 
       let count = 0;
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         count++;
         if (count === 1) {
           chai.expect(receivedIndexes).to.eql([{
             idx: 1,
-            payload: 'first'
-          }
+            payload: 'first',
+          },
           ]);
         }
         if (count === 2) {
           chai.expect(receivedIndexes).to.eql([{
             idx: 1,
-            payload: 'first'
-          }
-          , {
+            payload: 'first',
+          },
+          {
             idx: 0,
-            payload: 'second'
-          }
+            payload: 'second',
+          },
           ]);
           done();
-          return;
         }
       });
       sin1.post(new noflo.IP('data', 'first'));
       sin2.post(new noflo.IP('data', 'second'));
-
     });
-    it('should be able to send IPs to addressable connections', function(done) {
+    it('should be able to send IPs to addressable connections', (done) => {
       const expected = [{
         data: 'first',
-        index: 1
-      }
-      , {
+        index: 1,
+      },
+      {
         data: 'second',
-        index: 0
-      }
+        index: 0,
+      },
       ];
       c = new noflo.Component({
         inPorts: {
           foo: {
-            datatype: 'string'
-          }
+            datatype: 'string',
+          },
         },
         outPorts: {
           baz: {
             datatype: 'boolean',
-            addressable: true
-          }
+            addressable: true,
+          },
         },
         process(input, output) {
           if (!input.has('foo')) { return; }
           const packet = input.get('foo');
           output.sendDone(new noflo.IP('data', packet.data,
-            {index: expected.length - 1})
-          );
-        }
+            { index: expected.length - 1 }));
+        },
       });
 
       c.inPorts.foo.attach(sin1);
       c.outPorts.baz.attach(sout1, 1);
       c.outPorts.baz.attach(sout2, 0);
 
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         const exp = expected.shift();
         const received = {
           data: ip.data,
-          index: 1
+          index: 1,
         };
         chai.expect(received).to.eql(exp);
         if (!expected.length) { done(); }
       });
-      sout2.on('ip', function(ip) {
+      sout2.on('ip', (ip) => {
         const exp = expected.shift();
         const received = {
           data: ip.data,
-          index: 0
+          index: 0,
         };
         chai.expect(received).to.eql(exp);
         if (!expected.length) { done(); }
       });
       sin1.post(new noflo.IP('data', 'first'));
       sin1.post(new noflo.IP('data', 'second'));
-
     });
-    it('trying to send to addressable port without providing index should fail', function(done) {
+    it('trying to send to addressable port without providing index should fail', (done) => {
       c = new noflo.Component({
         inPorts: {
           foo: {
-            datatype: 'string'
-          }
+            datatype: 'string',
+          },
         },
         outPorts: {
           baz: {
             datatype: 'boolean',
-            addressable: true
-          }
+            addressable: true,
+          },
         },
         process(input, output) {
           if (!input.hasData('foo')) { return; }
@@ -721,96 +730,93 @@ describe('Component', function() {
           const noIndex = new noflo.IP('data', packet.data);
           chai.expect(() => output.sendDone(noIndex)).to.throw(Error);
           done();
-        }
+        },
       });
 
       c.inPorts.foo.attach(sin1);
       c.outPorts.baz.attach(sout1, 1);
       c.outPorts.baz.attach(sout2, 0);
 
-      sout1.on('ip', function(ip) {});
-      sout2.on('ip', function(ip) {});
+      sout1.on('ip', (ip) => {});
+      sout2.on('ip', (ip) => {});
 
       sin1.post(new noflo.IP('data', 'first'));
-
     });
-    it('should be able to send falsy IPs', function(done) {
+    it('should be able to send falsy IPs', (done) => {
       const expected = [{
         port: 'out1',
-        data: 1
-      }
-      , {
+        data: 1,
+      },
+      {
         port: 'out2',
-        data: 0
-      }
+        data: 0,
+      },
       ];
       c = new noflo.Component({
         inPorts: {
           foo: {
-            datatype: 'string'
-          }
+            datatype: 'string',
+          },
         },
         outPorts: {
           out1: {
-            datatype: 'int'
+            datatype: 'int',
           },
           out2: {
-            datatype: 'int'
-          }
+            datatype: 'int',
+          },
         },
         process(input, output) {
           if (!input.has('foo')) { return; }
           const packet = input.get('foo');
           output.sendDone({
             out1: 1,
-            out2: 0
+            out2: 0,
           });
-        }
+        },
       });
 
       c.inPorts.foo.attach(sin1);
       c.outPorts.out1.attach(sout1, 1);
       c.outPorts.out2.attach(sout2, 0);
 
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         const exp = expected.shift();
         const received = {
           port: 'out1',
-          data: ip.data
+          data: ip.data,
         };
         chai.expect(received).to.eql(exp);
         if (!expected.length) { done(); }
       });
-      sout2.on('ip', function(ip) {
+      sout2.on('ip', (ip) => {
         const exp = expected.shift();
         const received = {
           port: 'out2',
-          data: ip.data
+          data: ip.data,
         };
         chai.expect(received).to.eql(exp);
         if (!expected.length) { done(); }
       });
       sin1.post(new noflo.IP('data', 'first'));
-
     });
-    it('should not be triggered by non-triggering ports', function(done) {
+    it('should not be triggered by non-triggering ports', (done) => {
       const triggered = [];
       c = new noflo.Component({
         inPorts: {
           foo: {
             datatype: 'string',
-            triggering: false
+            triggering: false,
           },
-          bar: { datatype: 'string'
-        }
+          bar: { datatype: 'string' },
         },
         outPorts: {
-          baz: {datatype: 'boolean'}
+          baz: { datatype: 'boolean' },
         },
         process(input, output) {
           triggered.push(input.port.name);
-          output.sendDone({baz: true});
-        }
+          output.sendDone({ baz: true });
+        },
       });
 
       c.inPorts.foo.attach(sin1);
@@ -818,7 +824,7 @@ describe('Component', function() {
       c.outPorts.baz.attach(sout1);
 
       let count = 0;
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         count++;
         if (count === 1) {
           chai.expect(triggered).to.eql(['bar']);
@@ -826,7 +832,6 @@ describe('Component', function() {
         if (count === 2) {
           chai.expect(triggered).to.eql(['bar', 'bar']);
           done();
-          return;
         }
       });
 
@@ -834,24 +839,23 @@ describe('Component', function() {
       sin2.post(new noflo.IP('data', 'second'));
       sin1.post(new noflo.IP('data', 'first'));
       sin2.post(new noflo.IP('data', 'second'));
-
     });
-    it('should fetch undefined for premature data', function(done) {
+    it('should fetch undefined for premature data', (done) => {
       c = new noflo.Component({
         inPorts: {
           foo: {
-            datatype: 'string'
+            datatype: 'string',
           },
           bar: {
             datatype: 'boolean',
             triggering: false,
-            control: true
+            control: true,
           },
           baz: {
             datatype: 'string',
             triggering: false,
-            control: true
-          }
+            control: true,
+          },
         },
         process(input, output) {
           if (!input.has('foo')) { return; }
@@ -860,7 +864,7 @@ describe('Component', function() {
           chai.expect(bar).to.be.undefined;
           chai.expect(baz).to.be.undefined;
           done();
-        }
+        },
       });
 
       c.inPorts.foo.attach(sin1);
@@ -870,18 +874,15 @@ describe('Component', function() {
       sin1.post(new noflo.IP('data', 'AZ'));
       sin2.post(new noflo.IP('data', true));
       sin3.post(new noflo.IP('data', 'first'));
-
     });
-    it('should receive and send complete noflo.IP objects', function(done) {
+    it('should receive and send complete noflo.IP objects', (done) => {
       c = new noflo.Component({
         inPorts: {
-          foo: { datatype: 'string'
-        },
-          bar: { datatype: 'string'
-        }
+          foo: { datatype: 'string' },
+          bar: { datatype: 'string' },
         },
         outPorts: {
-          baz: {datatype: 'object'}
+          baz: { datatype: 'object' },
         },
         process(input, output) {
           if (!input.has('foo', 'bar')) { return; }
@@ -890,19 +891,20 @@ describe('Component', function() {
             foo: foo.data,
             bar: bar.data,
             groups: foo.groups,
-            type: bar.type
+            type: bar.type,
           };
           output.sendDone({
             baz: new noflo.IP('data', baz,
-              {groups: ['baz']})});
-        }
+              { groups: ['baz'] }),
+          });
+        },
       });
 
       c.inPorts.foo.attach(sin1);
       c.inPorts.bar.attach(sin2);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once('ip', function(ip) {
+      sout1.once('ip', (ip) => {
         chai.expect(ip).to.be.an('object');
         chai.expect(ip.type).to.equal('data');
         chai.expect(ip.data.foo).to.equal('foo');
@@ -914,31 +916,29 @@ describe('Component', function() {
       });
 
       sin1.post(new noflo.IP('data', 'foo',
-        {groups: ['foo']}));
+        { groups: ['foo'] }));
       sin2.post(new noflo.IP('data', 'bar',
-        {groups: ['bar']}));
-
+        { groups: ['bar'] }));
     });
-    it('should stamp IP objects with the datatype of the outport when sending', function(done) {
+    it('should stamp IP objects with the datatype of the outport when sending', (done) => {
       c = new noflo.Component({
         inPorts: {
-          foo: {datatype: 'all'}
+          foo: { datatype: 'all' },
         },
         outPorts: {
-          baz: {datatype: 'string'}
+          baz: { datatype: 'string' },
         },
         process(input, output) {
           if (!input.has('foo')) { return; }
           const foo = input.get('foo');
-          output.sendDone({
-            baz: foo});
-        }
+          output.sendDone({ baz: foo });
+        },
       });
 
       c.inPorts.foo.attach(sin1);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once('ip', function(ip) {
+      sout1.once('ip', (ip) => {
         chai.expect(ip).to.be.an('object');
         chai.expect(ip.type).to.equal('data');
         chai.expect(ip.data).to.equal('foo');
@@ -948,26 +948,25 @@ describe('Component', function() {
 
       sin1.post(new noflo.IP('data', 'foo'));
     });
-    it('should stamp IP objects with the datatype of the inport when receiving', function(done) {
+    it('should stamp IP objects with the datatype of the inport when receiving', (done) => {
       c = new noflo.Component({
         inPorts: {
-          foo: {datatype: 'string'}
+          foo: { datatype: 'string' },
         },
         outPorts: {
-          baz: {datatype: 'all'}
+          baz: { datatype: 'all' },
         },
         process(input, output) {
           if (!input.has('foo')) { return; }
           const foo = input.get('foo');
-          output.sendDone({
-            baz: foo});
-        }
+          output.sendDone({ baz: foo });
+        },
       });
 
       c.inPorts.foo.attach(sin1);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once('ip', function(ip) {
+      sout1.once('ip', (ip) => {
         chai.expect(ip).to.be.an('object');
         chai.expect(ip.type).to.equal('data');
         chai.expect(ip.data).to.equal('foo');
@@ -977,29 +976,28 @@ describe('Component', function() {
 
       sin1.post(new noflo.IP('data', 'foo'));
     });
-    it('should stamp IP objects with the schema of the outport when sending', function(done) {
+    it('should stamp IP objects with the schema of the outport when sending', (done) => {
       c = new noflo.Component({
         inPorts: {
-          foo: {datatype: 'all'}
+          foo: { datatype: 'all' },
         },
         outPorts: {
           baz: {
             datatype: 'string',
-            schema: 'text/markdown'
-          }
+            schema: 'text/markdown',
+          },
         },
         process(input, output) {
           if (!input.has('foo')) { return; }
           const foo = input.get('foo');
-          output.sendDone({
-            baz: foo});
-        }
+          output.sendDone({ baz: foo });
+        },
       });
 
       c.inPorts.foo.attach(sin1);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once('ip', function(ip) {
+      sout1.once('ip', (ip) => {
         chai.expect(ip).to.be.an('object');
         chai.expect(ip.type).to.equal('data');
         chai.expect(ip.data).to.equal('foo');
@@ -1010,29 +1008,28 @@ describe('Component', function() {
 
       sin1.post(new noflo.IP('data', 'foo'));
     });
-    it('should stamp IP objects with the schema of the inport when receiving', function(done) {
+    it('should stamp IP objects with the schema of the inport when receiving', (done) => {
       c = new noflo.Component({
         inPorts: {
           foo: {
             datatype: 'string',
-            schema: 'text/markdown'
-          }
+            schema: 'text/markdown',
+          },
         },
         outPorts: {
-          baz: {datatype: 'all'}
+          baz: { datatype: 'all' },
         },
         process(input, output) {
           if (!input.has('foo')) { return; }
           const foo = input.get('foo');
-          output.sendDone({
-            baz: foo});
-        }
+          output.sendDone({ baz: foo });
+        },
       });
 
       c.inPorts.foo.attach(sin1);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once('ip', function(ip) {
+      sout1.once('ip', (ip) => {
         chai.expect(ip).to.be.an('object');
         chai.expect(ip.type).to.equal('data');
         chai.expect(ip.data).to.equal('foo');
@@ -1042,36 +1039,32 @@ describe('Component', function() {
       });
 
       sin1.post(new noflo.IP('data', 'foo'));
-
     });
-    it('should receive and send just IP data if wanted', function(done) {
+    it('should receive and send just IP data if wanted', (done) => {
       c = new noflo.Component({
         inPorts: {
-          foo: { datatype: 'string'
-        },
-          bar: { datatype: 'string'
-        }
+          foo: { datatype: 'string' },
+          bar: { datatype: 'string' },
         },
         outPorts: {
-          baz: {datatype: 'object'}
+          baz: { datatype: 'object' },
         },
         process(input, output) {
           if (!input.has('foo', 'bar')) { return; }
           const [foo, bar] = Array.from(input.getData('foo', 'bar'));
           const baz = {
             foo,
-            bar
+            bar,
           };
-          output.sendDone({
-            baz});
-        }
+          output.sendDone({ baz });
+        },
       });
 
       c.inPorts.foo.attach(sin1);
       c.inPorts.bar.attach(sin2);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once('ip', function(ip) {
+      sout1.once('ip', (ip) => {
         chai.expect(ip).to.be.an('object');
         chai.expect(ip.type).to.equal('data');
         chai.expect(ip.data.foo).to.equal('foo');
@@ -1080,25 +1073,22 @@ describe('Component', function() {
       });
 
       sin1.post(new noflo.IP('data', 'foo',
-        {groups: ['foo']}));
+        { groups: ['foo'] }));
       sin2.post(new noflo.IP('data', 'bar',
-        {groups: ['bar']}));
-
+        { groups: ['bar'] }));
     });
-    it('should receive IPs and be able to selectively find them', function(done) {
+    it('should receive IPs and be able to selectively find them', (done) => {
       let called = 0;
       c = new noflo.Component({
         inPorts: {
-          foo: { datatype: 'string'
-        },
-          bar: { datatype: 'string'
-        }
+          foo: { datatype: 'string' },
+          bar: { datatype: 'string' },
         },
         outPorts: {
-          baz: {datatype: 'object'}
+          baz: { datatype: 'object' },
         },
         process(input, output) {
-          const validate = function(ip) {
+          const validate = function (ip) {
             called++;
             return (ip.type === 'data') && (ip.data === 'hello');
           };
@@ -1110,9 +1100,8 @@ describe('Component', function() {
             foo = input.get('foo');
           }
           const bar = input.getData('bar');
-          output.sendDone({
-            baz: `${foo.data}:${bar}`});
-        }
+          output.sendDone({ baz: `${foo.data}:${bar}` });
+        },
       });
 
       c.inPorts.foo.attach(sin1);
@@ -1121,7 +1110,7 @@ describe('Component', function() {
 
       let shouldHaveSent = false;
 
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         chai.expect(shouldHaveSent, 'Should not sent before its time').to.equal(true);
         chai.expect(ip).to.be.an('object');
         chai.expect(ip.type).to.equal('data');
@@ -1132,47 +1121,43 @@ describe('Component', function() {
 
       sin1.post(new noflo.IP('openBracket', 'a'));
       sin1.post(new noflo.IP('data', 'hello',
-      sin1.post(new noflo.IP('closeBracket', 'a')))
-      );
+        sin1.post(new noflo.IP('closeBracket', 'a'))));
       shouldHaveSent = true;
       sin2.post(new noflo.IP('data', 'hello'));
-
     });
-    it('should keep last value for controls', function(done) {
+    it('should keep last value for controls', (done) => {
       c = new noflo.Component({
         inPorts: {
-          foo: { datatype: 'string'
-        },
+          foo: { datatype: 'string' },
           bar: {
             datatype: 'string',
-            control: true
-          }
+            control: true,
+          },
         },
         outPorts: {
-          baz: {datatype: 'object'}
+          baz: { datatype: 'object' },
         },
         process(input, output) {
           if (!input.has('foo', 'bar')) { return; }
           const [foo, bar] = Array.from(input.getData('foo', 'bar'));
           const baz = {
             foo,
-            bar
+            bar,
           };
-          output.sendDone({
-            baz});
-        }
+          output.sendDone({ baz });
+        },
       });
 
       c.inPorts.foo.attach(sin1);
       c.inPorts.bar.attach(sin2);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once('ip', function(ip) {
+      sout1.once('ip', (ip) => {
         chai.expect(ip).to.be.an('object');
         chai.expect(ip.type).to.equal('data');
         chai.expect(ip.data.foo).to.equal('foo');
         chai.expect(ip.data.bar).to.equal('bar');
-        sout1.once('ip', function(ip) {
+        sout1.once('ip', (ip) => {
           chai.expect(ip).to.be.an('object');
           chai.expect(ip.type).to.equal('data');
           chai.expect(ip.data.foo).to.equal('boo');
@@ -1184,43 +1169,40 @@ describe('Component', function() {
       sin1.post(new noflo.IP('data', 'foo'));
       sin2.post(new noflo.IP('data', 'bar'));
       sin1.post(new noflo.IP('data', 'boo'));
-
     });
-    it('should keep last data-typed IP packet for controls', function(done) {
+    it('should keep last data-typed IP packet for controls', (done) => {
       c = new noflo.Component({
         inPorts: {
-          foo: { datatype: 'string'
-        },
+          foo: { datatype: 'string' },
           bar: {
             datatype: 'string',
-            control: true
-          }
+            control: true,
+          },
         },
         outPorts: {
-          baz: {datatype: 'object'}
+          baz: { datatype: 'object' },
         },
         process(input, output) {
           if (!input.has('foo', 'bar')) { return; }
           const [foo, bar] = Array.from(input.getData('foo', 'bar'));
           const baz = {
             foo,
-            bar
+            bar,
           };
-          output.sendDone({
-            baz});
-        }
+          output.sendDone({ baz });
+        },
       });
 
       c.inPorts.foo.attach(sin1);
       c.inPorts.bar.attach(sin2);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once('ip', function(ip) {
+      sout1.once('ip', (ip) => {
         chai.expect(ip).to.be.an('object');
         chai.expect(ip.type).to.equal('data');
         chai.expect(ip.data.foo).to.equal('foo');
         chai.expect(ip.data.bar).to.equal('bar');
-        sout1.once('ip', function(ip) {
+        sout1.once('ip', (ip) => {
           chai.expect(ip).to.be.an('object');
           chai.expect(ip.type).to.equal('data');
           chai.expect(ip.data.foo).to.equal('boo');
@@ -1234,37 +1216,33 @@ describe('Component', function() {
       sin2.post(new noflo.IP('data', 'bar'));
       sin2.post(new noflo.IP('closeBracket'));
       sin1.post(new noflo.IP('data', 'boo'));
-
     });
-    it('should isolate packets with different scopes', function(done) {
+    it('should isolate packets with different scopes', (done) => {
       c = new noflo.Component({
         inPorts: {
-          foo: { datatype: 'string'
-        },
-          bar: { datatype: 'string'
-        }
+          foo: { datatype: 'string' },
+          bar: { datatype: 'string' },
         },
         outPorts: {
-          baz: {datatype: 'string'}
+          baz: { datatype: 'string' },
         },
         process(input, output) {
           if (!input.has('foo', 'bar')) { return; }
           const [foo, bar] = Array.from(input.getData('foo', 'bar'));
-          output.sendDone({
-            baz: `${foo} and ${bar}`});
-        }
+          output.sendDone({ baz: `${foo} and ${bar}` });
+        },
       });
 
       c.inPorts.foo.attach(sin1);
       c.inPorts.bar.attach(sin2);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once('ip', function(ip) {
+      sout1.once('ip', (ip) => {
         chai.expect(ip).to.be.an('object');
         chai.expect(ip.type).to.equal('data');
         chai.expect(ip.scope).to.equal('1');
         chai.expect(ip.data).to.equal('Josh and Laura');
-        sout1.once('ip', function(ip) {
+        sout1.once('ip', (ip) => {
           chai.expect(ip).to.be.an('object');
           chai.expect(ip.type).to.equal('data');
           chai.expect(ip.scope).to.equal('2');
@@ -1273,31 +1251,29 @@ describe('Component', function() {
         });
       });
 
-      sin1.post(new noflo.IP('data', 'Josh', {scope: '1'}));
-      sin2.post(new noflo.IP('data', 'Luke', {scope: '2'}));
-      sin2.post(new noflo.IP('data', 'Laura', {scope: '1'}));
-      sin1.post(new noflo.IP('data', 'Jane', {scope: '2'}));
-
+      sin1.post(new noflo.IP('data', 'Josh', { scope: '1' }));
+      sin2.post(new noflo.IP('data', 'Luke', { scope: '2' }));
+      sin2.post(new noflo.IP('data', 'Laura', { scope: '1' }));
+      sin1.post(new noflo.IP('data', 'Jane', { scope: '2' }));
     });
-    it('should be able to change scope', function(done) {
+    it('should be able to change scope', (done) => {
       c = new noflo.Component({
         inPorts: {
-          foo: {datatype: 'string'}
+          foo: { datatype: 'string' },
         },
         outPorts: {
-          baz: {datatype: 'string'}
+          baz: { datatype: 'string' },
         },
         process(input, output) {
           const foo = input.getData('foo');
-          output.sendDone({
-            baz: new noflo.IP('data', foo, {scope: 'baz'})});
-        }
+          output.sendDone({ baz: new noflo.IP('data', foo, { scope: 'baz' }) });
+        },
       });
 
       c.inPorts.foo.attach(sin1);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once('ip', function(ip) {
+      sout1.once('ip', (ip) => {
         chai.expect(ip).to.be.an('object');
         chai.expect(ip.type).to.equal('data');
         chai.expect(ip.scope).to.equal('baz');
@@ -1305,43 +1281,39 @@ describe('Component', function() {
         done();
       });
 
-      sin1.post(new noflo.IP('data', 'foo', {scope: 'foo'}));
-
+      sin1.post(new noflo.IP('data', 'foo', { scope: 'foo' }));
     });
-    it('should support integer scopes', function(done) {
+    it('should support integer scopes', (done) => {
       c = new noflo.Component({
         inPorts: {
-          foo: { datatype: 'string'
-        },
-          bar: { datatype: 'string'
-        }
+          foo: { datatype: 'string' },
+          bar: { datatype: 'string' },
         },
         outPorts: {
-          baz: {datatype: 'string'}
+          baz: { datatype: 'string' },
         },
         process(input, output) {
           if (!input.has('foo', 'bar')) { return; }
           const [foo, bar] = Array.from(input.getData('foo', 'bar'));
-          output.sendDone({
-            baz: `${foo} and ${bar}`});
-        }
+          output.sendDone({ baz: `${foo} and ${bar}` });
+        },
       });
 
       c.inPorts.foo.attach(sin1);
       c.inPorts.bar.attach(sin2);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once('ip', function(ip) {
+      sout1.once('ip', (ip) => {
         chai.expect(ip).to.be.an('object');
         chai.expect(ip.type).to.equal('data');
         chai.expect(ip.scope).to.equal(1);
         chai.expect(ip.data).to.equal('Josh and Laura');
-        sout1.once('ip', function(ip) {
+        sout1.once('ip', (ip) => {
           chai.expect(ip).to.be.an('object');
           chai.expect(ip.type).to.equal('data');
           chai.expect(ip.scope).to.equal(0);
           chai.expect(ip.data).to.equal('Jane and Luke');
-          sout1.once('ip', function(ip) {
+          sout1.once('ip', (ip) => {
             chai.expect(ip).to.be.an('object');
             chai.expect(ip.type).to.equal('data');
             chai.expect(ip.scope).to.be.null;
@@ -1352,32 +1324,28 @@ describe('Component', function() {
       });
 
       sin1.post(new noflo.IP('data', 'Tom'));
-      sin1.post(new noflo.IP('data', 'Josh', {scope: 1}));
-      sin2.post(new noflo.IP('data', 'Luke', {scope: 0}));
-      sin2.post(new noflo.IP('data', 'Laura', {scope: 1}));
-      sin1.post(new noflo.IP('data', 'Jane', {scope: 0}));
+      sin1.post(new noflo.IP('data', 'Josh', { scope: 1 }));
+      sin2.post(new noflo.IP('data', 'Luke', { scope: 0 }));
+      sin2.post(new noflo.IP('data', 'Laura', { scope: 1 }));
+      sin1.post(new noflo.IP('data', 'Jane', { scope: 0 }));
       sin2.post(new noflo.IP('data', 'Anna'));
-
     });
-    it('should preserve order between input and output', function(done) {
+    it('should preserve order between input and output', (done) => {
       c = new noflo.Component({
         inPorts: {
-          msg: { datatype: 'string'
-        },
-          delay: { datatype: 'int'
-        }
+          msg: { datatype: 'string' },
+          delay: { datatype: 'int' },
         },
         outPorts: {
-          out: {datatype: 'object'}
+          out: { datatype: 'object' },
         },
         ordered: true,
         process(input, output) {
           if (!input.has('msg', 'delay')) { return; }
           const [msg, delay] = Array.from(input.getData('msg', 'delay'));
-          setTimeout(() => output.sendDone({
-            out: { msg, delay }})
-          , delay);
-        }
+          setTimeout(() => output.sendDone({ out: { msg, delay } }),
+            delay);
+        },
       });
 
       c.inPorts.msg.attach(sin1);
@@ -1385,42 +1353,38 @@ describe('Component', function() {
       c.outPorts.out.attach(sout1);
 
       const sample = [
-        { delay: 30, msg: "one" },
-        { delay: 0, msg: "two" },
-        { delay: 20, msg: "three" },
-        { delay: 10, msg: "four" }
+        { delay: 30, msg: 'one' },
+        { delay: 0, msg: 'two' },
+        { delay: 20, msg: 'three' },
+        { delay: 10, msg: 'four' },
       ];
 
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         chai.expect(ip.data).to.eql(sample.shift());
         if (sample.length === 0) { done(); }
       });
 
-      for (let ip of Array.from(sample)) {
+      for (const ip of Array.from(sample)) {
         sin1.post(new noflo.IP('data', ip.msg));
         sin2.post(new noflo.IP('data', ip.delay));
       }
-
     });
-    it('should ignore order between input and output', function(done) {
+    it('should ignore order between input and output', (done) => {
       c = new noflo.Component({
         inPorts: {
-          msg: { datatype: 'string'
-        },
-          delay: { datatype: 'int'
-        }
+          msg: { datatype: 'string' },
+          delay: { datatype: 'int' },
         },
         outPorts: {
-          out: {datatype: 'object'}
+          out: { datatype: 'object' },
         },
         ordered: false,
         process(input, output) {
           if (!input.has('msg', 'delay')) { return; }
           const [msg, delay] = Array.from(input.getData('msg', 'delay'));
-          setTimeout(() => output.sendDone({
-            out: { msg, delay }})
-          , delay);
-        }
+          setTimeout(() => output.sendDone({ out: { msg, delay } }),
+            delay);
+        },
       });
 
       c.inPorts.msg.attach(sin1);
@@ -1428,14 +1392,14 @@ describe('Component', function() {
       c.outPorts.out.attach(sout1);
 
       const sample = [
-        { delay: 30, msg: "one" },
-        { delay: 0, msg: "two" },
-        { delay: 20, msg: "three" },
-        { delay: 10, msg: "four" }
+        { delay: 30, msg: 'one' },
+        { delay: 0, msg: 'two' },
+        { delay: 20, msg: 'three' },
+        { delay: 10, msg: 'four' },
       ];
 
       let count = 0;
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         let src;
         count++;
         switch (count) {
@@ -1448,106 +1412,102 @@ describe('Component', function() {
         if (count === 4) { done(); }
       });
 
-      for (let ip of Array.from(sample)) {
+      for (const ip of Array.from(sample)) {
         sin1.post(new noflo.IP('data', ip.msg));
         sin2.post(new noflo.IP('data', ip.delay));
       }
-
     });
-    it('should throw errors if there is no error port', function(done) {
+    it('should throw errors if there is no error port', (done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
             datatype: 'string',
-            required: true
-          }
+            required: true,
+          },
         },
         process(input, output) {
           const packet = input.get('in');
           chai.expect(packet.data).to.equal('some-data');
           chai.expect(() => output.done(new Error('Should fail'))).to.throw(Error);
           done();
-        }
+        },
       });
 
       c.inPorts.in.attach(sin1);
       sin1.post(new noflo.IP('data', 'some-data'));
-
     });
-    it('should throw errors if there is a non-attached error port', function(done) {
+    it('should throw errors if there is a non-attached error port', (done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
             datatype: 'string',
-            required: true
-          }
+            required: true,
+          },
         },
         outPorts: {
           error: {
             datatype: 'object',
-            required: true
-          }
+            required: true,
+          },
         },
         process(input, output) {
           const packet = input.get('in');
           chai.expect(packet.data).to.equal('some-data');
           chai.expect(() => output.sendDone(new Error('Should fail'))).to.throw(Error);
           done();
-        }
+        },
       });
 
       c.inPorts.in.attach(sin1);
       sin1.post(new noflo.IP('data', 'some-data'));
-
     });
-    it('should not throw errors if there is a non-required error port', function(done) {
+    it('should not throw errors if there is a non-required error port', (done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
             datatype: 'string',
-            required: true
-          }
+            required: true,
+          },
         },
         outPorts: {
           error: {
-            required: false
-          }
+            required: false,
+          },
         },
         process(input, output) {
           const packet = input.get('in');
           chai.expect(packet.data).to.equal('some-data');
           output.sendDone(new Error('Should not fail'));
           done();
-        }
+        },
       });
 
       c.inPorts.in.attach(sin1);
       sin1.post(new noflo.IP('data', 'some-data'));
-
     });
-    it('should send out string other port if there is only one port aside from error', function(done) {
+    it('should send out string other port if there is only one port aside from error', (done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
             datatype: 'all',
-            required: true
-          }
+            required: true,
+          },
         },
         outPorts: {
           out: {
-            required: true
+            required: true,
           },
           error: {
-            required: false
-          }
+            required: false,
+          },
         },
         process(input, output) {
           const packet = input.get('in');
           output.sendDone('some data');
-        }
+        },
       });
 
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         chai.expect(ip).to.be.an('object');
         chai.expect(ip.data).to.equal('some data');
         done();
@@ -1557,33 +1517,32 @@ describe('Component', function() {
       c.outPorts.out.attach(sout1);
 
       sin1.post(new noflo.IP('data', 'first'));
-
     });
-    it('should send object out other port if there is only one port aside from error', function(done) {
+    it('should send object out other port if there is only one port aside from error', (done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
             datatype: 'all',
-            required: true
-          }
+            required: true,
+          },
         },
         outPorts: {
           out: {
-            required: true
+            required: true,
           },
           error: {
-            required: false
-          }
+            required: false,
+          },
         },
         process(input, output) {
           const packet = input.get('in');
-          output.sendDone({some: 'data'});
-        }
+          output.sendDone({ some: 'data' });
+        },
       });
 
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         chai.expect(ip).to.be.an('object');
-        chai.expect(ip.data).to.eql({some: 'data'});
+        chai.expect(ip.data).to.eql({ some: 'data' });
         done();
       });
 
@@ -1591,28 +1550,27 @@ describe('Component', function() {
       c.outPorts.out.attach(sout1);
 
       sin1.post(new noflo.IP('data', 'first'));
-
     });
-    it('should throw an error if sending without specifying a port and there are multiple ports', function(done) {
-      const f = function() {
+    it('should throw an error if sending without specifying a port and there are multiple ports', (done) => {
+      const f = function () {
         c = new noflo.Component({
           inPorts: {
             in: {
               datatype: 'string',
-              required: true
-            }
+              required: true,
+            },
           },
           outPorts: {
             out: {
-              datatype: 'all'
+              datatype: 'all',
             },
             eh: {
-              required: false
-            }
+              required: false,
+            },
           },
           process(input, output) {
             output.sendDone('test');
-          }
+          },
         });
 
         c.inPorts.in.attach(sin1);
@@ -1620,31 +1578,29 @@ describe('Component', function() {
       };
       chai.expect(f).to.throw(Error);
       done();
-      return;
-
     });
-    it('should send errors if there is a connected error port', function(done) {
+    it('should send errors if there is a connected error port', (done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
             datatype: 'string',
-            required: true
-          }
+            required: true,
+          },
         },
         outPorts: {
           error: {
-            datatype: 'object'
-          }
+            datatype: 'object',
+          },
         },
         process(input, output) {
           const packet = input.get('in');
           chai.expect(packet.data).to.equal('some-data');
           chai.expect(packet.scope).to.equal('some-scope');
           output.sendDone(new Error('Should fail'));
-        }
+        },
       });
 
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         chai.expect(ip).to.be.an('object');
         chai.expect(ip.data).to.be.an.instanceOf(Error);
         chai.expect(ip.scope).to.equal('some-scope');
@@ -1654,22 +1610,20 @@ describe('Component', function() {
       c.inPorts.in.attach(sin1);
       c.outPorts.error.attach(sout1);
       sin1.post(new noflo.IP('data', 'some-data',
-        {scope: 'some-scope'})
-      );
-
+        { scope: 'some-scope' }));
     });
-    it('should send substreams with multiple errors per activation', function(done) {
+    it('should send substreams with multiple errors per activation', (done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
             datatype: 'string',
-            required: true
-          }
+            required: true,
+          },
         },
         outPorts: {
           error: {
-            datatype: 'object'
-          }
+            datatype: 'object',
+          },
         },
         process(input, output) {
           const packet = input.get('in');
@@ -1679,19 +1633,19 @@ describe('Component', function() {
           errors.push(new Error('One thing is invalid'));
           errors.push(new Error('Another thing is invalid'));
           output.sendDone(errors);
-        }
+        },
       });
 
       const expected = [
         '<',
         'One thing is invalid',
         'Another thing is invalid',
-        '>'
+        '>',
       ];
       const actual = [];
       let count = 0;
 
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         count++;
         chai.expect(ip).to.be.an('object');
         chai.expect(ip.scope).to.equal('some-scope');
@@ -1704,31 +1658,28 @@ describe('Component', function() {
         if (count === 4) {
           chai.expect(actual).to.eql(expected);
           done();
-          return;
         }
       });
 
       c.inPorts.in.attach(sin1);
       c.outPorts.error.attach(sout1);
       sin1.post(new noflo.IP('data', 'some-data',
-        {scope: 'some-scope'})
-      );
-
+        { scope: 'some-scope' }));
     });
-    it('should forward brackets for map-style components', function(done) {
+    it('should forward brackets for map-style components', (done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
-            datatype: 'string'
-          }
+            datatype: 'string',
+          },
         },
         outPorts: {
           out: {
-            datatype: 'string'
+            datatype: 'string',
           },
           error: {
-            datatype: 'object'
-          }
+            datatype: 'object',
+          },
         },
         process(input, output) {
           const str = input.getData();
@@ -1737,7 +1688,7 @@ describe('Component', function() {
             return;
           }
           output.pass(str.toUpperCase());
-        }
+        },
       });
 
       c.inPorts.in.attach(sin1);
@@ -1748,50 +1699,51 @@ describe('Component', function() {
         '<',
         'foo',
         'bar',
-        '>'
+        '>',
       ];
       const actual = [];
       let count = 0;
 
-      sout1.on('ip', function(ip) {
-        const data = (() => { switch (ip.type) {
-          case 'openBracket': return '<';
-          case 'closeBracket': return '>';
-          default: return ip.data;
-        } })();
+      sout1.on('ip', (ip) => {
+        const data = (() => {
+          switch (ip.type) {
+            case 'openBracket': return '<';
+            case 'closeBracket': return '>';
+            default: return ip.data;
+          }
+        })();
         chai.expect(data).to.equal(source[count].toUpperCase());
         count++;
         if (count === 4) { done(); }
       });
 
-      sout2.on('ip', function(ip) {
+      sout2.on('ip', (ip) => {
         if (ip.type !== 'data') { return; }
         console.log('Unexpected error', ip);
         done(ip.data);
       });
 
-      for (let data of Array.from(source)) {
+      for (const data of Array.from(source)) {
         switch (data) {
           case '<': sin1.post(new noflo.IP('openBracket')); break;
           case '>': sin1.post(new noflo.IP('closeBracket')); break;
           default: sin1.post(new noflo.IP('data', data));
         }
       }
-
     });
-    it('should forward brackets for map-style components with addressable outport', function(done) {
+    it('should forward brackets for map-style components with addressable outport', (done) => {
       let sent = false;
       c = new noflo.Component({
         inPorts: {
           in: {
-            datatype: 'string'
-          }
+            datatype: 'string',
+          },
         },
         outPorts: {
           out: {
             datatype: 'string',
-            addressable: true
-          }
+            addressable: true,
+          },
         },
         process(input, output) {
           if (!input.hasData()) { return; }
@@ -1799,9 +1751,8 @@ describe('Component', function() {
           const idx = sent ? 0 : 1;
           sent = true;
           output.sendDone(new noflo.IP('data', string,
-            {index: idx})
-          );
-        }
+            { index: idx }));
+        },
       });
 
       c.inPorts.in.attach(sin1);
@@ -1818,10 +1769,10 @@ describe('Component', function() {
         '0 DATA second',
         '0 > bar',
         '0 > a',
-        '1 > a'
+        '1 > a',
       ];
       const received = [];
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`1 < ${ip.data}`);
@@ -1837,7 +1788,7 @@ describe('Component', function() {
         chai.expect(received).to.eql(expected);
         done();
       });
-      sout2.on('ip', function(ip) {
+      sout2.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`0 < ${ip.data}`);
@@ -1862,21 +1813,20 @@ describe('Component', function() {
       sin1.post(new noflo.IP('data', 'second'));
       sin1.post(new noflo.IP('closeBracket', 'bar'));
       sin1.post(new noflo.IP('closeBracket', 'a'));
-
     });
-    it('should forward brackets for async map-style components with addressable outport', function(done) {
+    it('should forward brackets for async map-style components with addressable outport', (done) => {
       let sent = false;
       c = new noflo.Component({
         inPorts: {
           in: {
-            datatype: 'string'
-          }
+            datatype: 'string',
+          },
         },
         outPorts: {
           out: {
             datatype: 'string',
-            addressable: true
-          }
+            addressable: true,
+          },
         },
         process(input, output) {
           if (!input.hasData()) { return; }
@@ -1884,10 +1834,9 @@ describe('Component', function() {
           const idx = sent ? 0 : 1;
           sent = true;
           setTimeout(() => output.sendDone(new noflo.IP('data', string,
-            {index: idx})
-          )
-          , 1);
-        }
+            { index: idx })),
+          1);
+        },
       });
 
       c.inPorts.in.attach(sin1);
@@ -1904,10 +1853,10 @@ describe('Component', function() {
         '0 DATA second',
         '0 > bar',
         '0 > a',
-        '1 > a'
+        '1 > a',
       ];
       const received = [];
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`1 < ${ip.data}`);
@@ -1923,7 +1872,7 @@ describe('Component', function() {
         chai.expect(received).to.eql(expected);
         done();
       });
-      sout2.on('ip', function(ip) {
+      sout2.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`0 < ${ip.data}`);
@@ -1948,25 +1897,24 @@ describe('Component', function() {
       sin1.post(new noflo.IP('data', 'second'));
       sin1.post(new noflo.IP('closeBracket', 'bar'));
       sin1.post(new noflo.IP('closeBracket', 'a'));
-
     });
-    it('should forward brackets for map-style components with addressable in/outports', function(done) {
+    it('should forward brackets for map-style components with addressable in/outports', (done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
             datatype: 'string',
-            addressable: true
-          }
+            addressable: true,
+          },
         },
         outPorts: {
           out: {
             datatype: 'string',
-            addressable: true
-          }
+            addressable: true,
+          },
         },
         process(input, output) {
           const indexesWithData = [];
-          for (let idx of Array.from(input.attached())) {
+          for (const idx of Array.from(input.attached())) {
             if (input.hasData(['in', idx])) { indexesWithData.push(idx); }
           }
           if (!indexesWithData.length) { return; }
@@ -1975,7 +1923,7 @@ describe('Component', function() {
           const ip = new noflo.IP('data', data.data);
           ip.index = indexToUse;
           output.sendDone(ip);
-        }
+        },
       });
 
       c.inPorts.in.attach(sin1, 1);
@@ -1991,10 +1939,10 @@ describe('Component', function() {
         '0 < bar',
         '0 DATA second',
         '0 > bar',
-        '1 > a'
+        '1 > a',
       ];
       const received = [];
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`1 < ${ip.data}`);
@@ -2010,7 +1958,7 @@ describe('Component', function() {
         chai.expect(received).to.eql(expected);
         done();
       });
-      sout2.on('ip', function(ip) {
+      sout2.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`0 < ${ip.data}`);
@@ -2036,36 +1984,35 @@ describe('Component', function() {
       sin2.post(new noflo.IP('data', 'second'));
       sin2.post(new noflo.IP('closeBracket', 'bar'));
       sin1.post(new noflo.IP('closeBracket', 'a'));
-
     });
-    it('should forward brackets for async map-style components with addressable in/outports', function(done) {
+    it('should forward brackets for async map-style components with addressable in/outports', (done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
             datatype: 'string',
-            addressable: true
-          }
+            addressable: true,
+          },
         },
         outPorts: {
           out: {
             datatype: 'string',
-            addressable: true
-          }
+            addressable: true,
+          },
         },
         process(input, output) {
           const indexesWithData = [];
-          for (let idx of Array.from(input.attached())) {
+          for (const idx of Array.from(input.attached())) {
             if (input.hasData(['in', idx])) { indexesWithData.push(idx); }
           }
           if (!indexesWithData.length) { return; }
           const data = input.get(['in', indexesWithData[0]]);
-          setTimeout(function() {
+          setTimeout(() => {
             const ip = new noflo.IP('data', data.data);
             ip.index = data.index;
             output.sendDone(ip);
-          }
-          , 1);
-        }
+          },
+          1);
+        },
       });
 
       c.inPorts.in.attach(sin1, 1);
@@ -2081,10 +2028,10 @@ describe('Component', function() {
         '0 < bar',
         '0 DATA second',
         '0 > bar',
-        '1 > a'
+        '1 > a',
       ];
       const received = [];
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`1 < ${ip.data}`);
@@ -2100,7 +2047,7 @@ describe('Component', function() {
         chai.expect(received).to.eql(expected);
         done();
       });
-      sout2.on('ip', function(ip) {
+      sout2.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`0 < ${ip.data}`);
@@ -2125,45 +2072,44 @@ describe('Component', function() {
       sin2.post(new noflo.IP('data', 'second'));
       sin2.post(new noflo.IP('closeBracket', 'bar'));
       sin1.post(new noflo.IP('closeBracket', 'a'));
-
     });
-    it('should forward brackets to error port in async components', function(done) {
+    it('should forward brackets to error port in async components', (done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
-            datatype: 'string'
-          }
+            datatype: 'string',
+          },
         },
         outPorts: {
           out: {
-            datatype: 'string'
+            datatype: 'string',
           },
           error: {
-            datatype: 'object'
-          }
+            datatype: 'object',
+          },
         },
         process(input, output) {
           const str = input.getData();
-          setTimeout(function() {
+          setTimeout(() => {
             if (typeof str !== 'string') {
               output.sendDone(new Error('Input is not string'));
               return;
             }
             output.pass(str.toUpperCase());
-          }
-          , 10);
-        }
+          },
+          10);
+        },
       });
 
       c.inPorts.in.attach(sin1);
       c.outPorts.out.attach(sout1);
       c.outPorts.error.attach(sout2);
 
-      sout1.on('ip', function(ip) {});
-        // done new Error "Unexpected IP: #{ip.type} #{ip.data}"
+      sout1.on('ip', (ip) => {});
+      // done new Error "Unexpected IP: #{ip.type} #{ip.data}"
 
       let count = 0;
-      sout2.on('ip', function(ip) {
+      sout2.on('ip', (ip) => {
         count++;
         switch (count) {
           case 1:
@@ -2183,78 +2129,76 @@ describe('Component', function() {
       sin1.post(new noflo.IP('openBracket', 'foo'));
       sin1.post(new noflo.IP('data', { bar: 'baz' }));
       sin1.post(new noflo.IP('closeBracket', 'foo'));
-
     });
-    it('should not forward brackets if error port is not connected', function(done) {
+    it('should not forward brackets if error port is not connected', (done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
-            datatype: 'string'
-          }
+            datatype: 'string',
+          },
         },
         outPorts: {
           out: {
             datatype: 'string',
-            required: true
+            required: true,
           },
           error: {
             datatype: 'object',
-            required: true
-          }
+            required: true,
+          },
         },
         process(input, output) {
           const str = input.getData();
-          setTimeout(function() {
+          setTimeout(() => {
             if (typeof str !== 'string') {
               output.sendDone(new Error('Input is not string'));
               return;
             }
             output.pass(str.toUpperCase());
-          }
-          , 10);
-        }
+          },
+          10);
+        },
       });
 
       c.inPorts.in.attach(sin1);
       c.outPorts.out.attach(sout1);
       // c.outPorts.error.attach sout2
 
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         if (ip.type === 'closeBracket') { done(); }
       });
 
-      sout2.on('ip', function(ip) {
+      sout2.on('ip', (ip) => {
         done(new Error(`Unexpected error IP: ${ip.type} ${ip.data}`));
       });
 
-      chai.expect(function() {
+      chai.expect(() => {
         sin1.post(new noflo.IP('openBracket', 'foo'));
         sin1.post(new noflo.IP('data', 'bar'));
         sin1.post(new noflo.IP('closeBracket', 'foo'));
-        }).to.not.throw();
-
+      }).to.not.throw();
     });
-    it('should support custom bracket forwarding mappings with auto-ordering', function(done) {
+    it('should support custom bracket forwarding mappings with auto-ordering', (done) => {
       c = new noflo.Component({
         inPorts: {
           msg: {
-            datatype: 'string'
+            datatype: 'string',
           },
           delay: {
-            datatype: 'int'
-          }
+            datatype: 'int',
+          },
         },
         outPorts: {
           out: {
-            datatype: 'string'
+            datatype: 'string',
           },
           error: {
-            datatype: 'object'
-          }
+            datatype: 'object',
+          },
         },
         forwardBrackets: {
           msg: ['out', 'error'],
-          delay: ['error']
+          delay: ['error'],
         },
         process(input, output) {
           if (!input.hasData('msg', 'delay')) { return; }
@@ -2263,12 +2207,11 @@ describe('Component', function() {
             output.sendDone(new Error('Delay is negative'));
             return;
           }
-          setTimeout(function() {
-            output.sendDone({
-              out: { msg, delay }});
-          }
-          , delay);
-        }
+          setTimeout(() => {
+            output.sendDone({ out: { msg, delay } });
+          },
+          delay);
+        },
       });
 
       c.inPorts.msg.attach(sin1);
@@ -2277,16 +2220,16 @@ describe('Component', function() {
       c.outPorts.error.attach(sout2);
 
       const sample = [
-        { delay: 30, msg: "one" },
-        { delay: 0, msg: "two" },
-        { delay: 20, msg: "three" },
-        { delay: 10, msg: "four" },
-        { delay: -40, msg: 'five'}
+        { delay: 30, msg: 'one' },
+        { delay: 0, msg: 'two' },
+        { delay: 20, msg: 'three' },
+        { delay: 10, msg: 'four' },
+        { delay: -40, msg: 'five' },
       ];
 
       let count = 0;
       let errCount = 0;
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         let src = null;
         switch (count) {
           case 0:
@@ -2304,7 +2247,7 @@ describe('Component', function() {
         // done() if count is 6
       });
 
-      sout2.on('ip', function(ip) {
+      sout2.on('ip', (ip) => {
         switch (errCount) {
           case 0:
             chai.expect(ip.type).to.equal('openBracket');
@@ -2334,44 +2277,42 @@ describe('Component', function() {
       sin1.post(new noflo.IP('openBracket', 'msg'));
       sin2.post(new noflo.IP('openBracket', 'delay'));
 
-      for (let ip of Array.from(sample)) {
+      for (const ip of Array.from(sample)) {
         sin1.post(new noflo.IP('data', ip.msg));
         sin2.post(new noflo.IP('data', ip.delay));
       }
 
       sin2.post(new noflo.IP('closeBracket', 'delay'));
       sin1.post(new noflo.IP('closeBracket', 'msg'));
-
     });
-    it('should de-duplicate brackets when asynchronously forwarding from multiple inports', function(done) {
+    it('should de-duplicate brackets when asynchronously forwarding from multiple inports', (done) => {
       c = new noflo.Component({
         inPorts: {
           in1: {
-            datatype: 'string'
+            datatype: 'string',
           },
           in2: {
-            datatype: 'string'
-          }
+            datatype: 'string',
+          },
         },
         outPorts: {
           out: {
-            datatype: 'string'
+            datatype: 'string',
           },
           error: {
-            datatype: 'object'
-          }
+            datatype: 'object',
+          },
         },
         forwardBrackets: {
           in1: ['out', 'error'],
-          in2: ['out', 'error']
+          in2: ['out', 'error'],
         },
         process(input, output) {
           if (!input.hasData('in1', 'in2')) { return; }
           const [one, two] = Array.from(input.getData('in1', 'in2'));
-          setTimeout(() => output.sendDone({
-            out: `${one}:${two}`})
-          , 1);
-        }
+          setTimeout(() => output.sendDone({ out: `${one}:${two}` }),
+            1);
+        },
       });
 
       c.inPorts.in1.attach(sin1);
@@ -2380,7 +2321,7 @@ describe('Component', function() {
       c.outPorts.error.attach(sout2);
 
       // Fail early on errors
-      sout2.on('ip', function(ip) {
+      sout2.on('ip', (ip) => {
         if (ip.type !== 'data') { return; }
         done(ip.data);
       });
@@ -2394,12 +2335,12 @@ describe('Component', function() {
         '> c',
         'DATA three:kolme',
         '> b',
-        '> a'
+        '> a',
       ];
       const received = [
       ];
 
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`< ${ip.data}`);
@@ -2432,36 +2373,34 @@ describe('Component', function() {
       sin2.post(new noflo.IP('data', 'kolme'));
       sin2.post(new noflo.IP('closeBracket', 'b'));
       sin2.post(new noflo.IP('closeBracket', 'a'));
-
     });
-    it('should de-duplicate brackets when synchronously forwarding from multiple inports', function(done) {
+    it('should de-duplicate brackets when synchronously forwarding from multiple inports', (done) => {
       c = new noflo.Component({
         inPorts: {
           in1: {
-            datatype: 'string'
+            datatype: 'string',
           },
           in2: {
-            datatype: 'string'
-          }
+            datatype: 'string',
+          },
         },
         outPorts: {
           out: {
-            datatype: 'string'
+            datatype: 'string',
           },
           error: {
-            datatype: 'object'
-          }
+            datatype: 'object',
+          },
         },
         forwardBrackets: {
           in1: ['out', 'error'],
-          in2: ['out', 'error']
+          in2: ['out', 'error'],
         },
         process(input, output) {
           if (!input.hasData('in1', 'in2')) { return; }
           const [one, two] = Array.from(input.getData('in1', 'in2'));
-          output.sendDone({
-            out: `${one}:${two}`});
-        }
+          output.sendDone({ out: `${one}:${two}` });
+        },
       });
 
       c.inPorts.in1.attach(sin1);
@@ -2470,7 +2409,7 @@ describe('Component', function() {
       c.outPorts.error.attach(sout2);
 
       // Fail early on errors
-      sout2.on('ip', function(ip) {
+      sout2.on('ip', (ip) => {
         if (ip.type !== 'data') { return; }
         done(ip.data);
       });
@@ -2484,12 +2423,12 @@ describe('Component', function() {
         '> c',
         'DATA three:kolme',
         '> b',
-        '> a'
+        '> a',
       ];
       const received = [
       ];
 
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`< ${ip.data}`);
@@ -2522,18 +2461,15 @@ describe('Component', function() {
       sin2.post(new noflo.IP('data', 'kolme'));
       sin2.post(new noflo.IP('closeBracket', 'b'));
       sin2.post(new noflo.IP('closeBracket', 'a'));
-
     });
-    it('should not apply auto-ordering if that option is false', function(done) {
+    it('should not apply auto-ordering if that option is false', (done) => {
       c = new noflo.Component({
         inPorts: {
-          msg: { datatype: 'string'
-        },
-          delay: { datatype: 'int'
-        }
+          msg: { datatype: 'string' },
+          delay: { datatype: 'int' },
         },
         outPorts: {
-          out: {datatype: 'object'}
+          out: { datatype: 'object' },
         },
         ordered: false,
         autoOrdering: false,
@@ -2542,10 +2478,9 @@ describe('Component', function() {
           if (input.ip.type !== 'data') { return input.get(input.port.name); }
           if (!input.has('msg', 'delay')) { return; }
           const [msg, delay] = Array.from(input.getData('msg', 'delay'));
-          setTimeout(() => output.sendDone({
-            out: { msg, delay }})
-          , delay);
-        }
+          setTimeout(() => output.sendDone({ out: { msg, delay } }),
+            delay);
+        },
       });
 
       c.inPorts.msg.attach(sin1);
@@ -2553,14 +2488,14 @@ describe('Component', function() {
       c.outPorts.out.attach(sout1);
 
       const sample = [
-        { delay: 30, msg: "one" },
-        { delay: 0, msg: "two" },
-        { delay: 20, msg: "three" },
-        { delay: 10, msg: "four" }
+        { delay: 30, msg: 'one' },
+        { delay: 0, msg: 'two' },
+        { delay: 20, msg: 'three' },
+        { delay: 10, msg: 'four' },
       ];
 
       let count = 0;
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         let src;
         count++;
         switch (count) {
@@ -2576,29 +2511,28 @@ describe('Component', function() {
       sin1.post(new noflo.IP('openBracket', 'msg'));
       sin2.post(new noflo.IP('openBracket', 'delay'));
 
-      for (let ip of Array.from(sample)) {
+      for (const ip of Array.from(sample)) {
         sin1.post(new noflo.IP('data', ip.msg));
         sin2.post(new noflo.IP('data', ip.delay));
       }
 
       sin1.post(new noflo.IP('closeBracket', 'msg'));
       sin2.post(new noflo.IP('closeBracket', 'delay'));
-
     });
-    it('should forward noflo.IP metadata for map-style components', function(done) {
+    it('should forward noflo.IP metadata for map-style components', (done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
-            datatype: 'string'
-          }
+            datatype: 'string',
+          },
         },
         outPorts: {
           out: {
-            datatype: 'string'
+            datatype: 'string',
           },
           error: {
-            datatype: 'object'
-          }
+            datatype: 'object',
+          },
         },
         process(input, output) {
           const str = input.getData();
@@ -2607,7 +2541,7 @@ describe('Component', function() {
             return;
           }
           output.pass(str.toUpperCase());
-        }
+        },
       });
 
       c.inPorts.in.attach(sin1);
@@ -2617,10 +2551,10 @@ describe('Component', function() {
       const source = [
         'foo',
         'bar',
-        'baz'
+        'baz',
       ];
       let count = 0;
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         chai.expect(ip.type).to.equal('data');
         chai.expect(ip.count).to.be.a('number');
         chai.expect(ip.length).to.be.a('number');
@@ -2630,75 +2564,66 @@ describe('Component', function() {
         if (count === source.length) { done(); }
       });
 
-      sout2.on('ip', function(ip) {
+      sout2.on('ip', (ip) => {
         console.log('Unexpected error', ip);
         done(ip.data);
       });
 
       let n = 0;
-      for (let str of Array.from(source)) {
+      for (const str of Array.from(source)) {
         sin1.post(new noflo.IP('data', str, {
           count: n++,
-          length: source.length
-        }
-        )
-        );
+          length: source.length,
+        }));
       }
-
     });
-    it('should be safe dropping IPs', function(done) {
+    it('should be safe dropping IPs', (done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
-            datatype: 'string'
-          }
+            datatype: 'string',
+          },
         },
         outPorts: {
           out: {
-            datatype: 'string'
+            datatype: 'string',
           },
           error: {
-            datatype: 'object'
-          }
+            datatype: 'object',
+          },
         },
         process(input, output) {
           const data = input.get('in');
           data.drop();
           output.done();
           done();
-        }
+        },
       });
 
       c.inPorts.in.attach(sin1);
       c.outPorts.out.attach(sout1);
       c.outPorts.error.attach(sout2);
 
-      sout1.on('ip', function(ip) {
+      sout1.on('ip', (ip) => {
         done(ip);
       });
 
       sin1.post(new noflo.IP('data', 'foo',
-        {meta: 'bar'})
-      );
-
+        { meta: 'bar' }));
     });
-    describe('with custom callbacks', function() {
-
-      beforeEach(function(done) {
+    describe('with custom callbacks', () => {
+      beforeEach((done) => {
         c = new noflo.Component({
           inPorts: {
-            foo: { datatype: 'string'
-          },
+            foo: { datatype: 'string' },
             bar: {
               datatype: 'int',
-              control: true
-            }
+              control: true,
+            },
           },
           outPorts: {
-            baz: { datatype: 'object'
-          },
-            err: { datatype: 'object'
-          }
+            baz: { datatype: 'object' },
+            err: { datatype: 'object' },
           },
           ordered: true,
           activateOnInput: false,
@@ -2706,41 +2631,35 @@ describe('Component', function() {
             if (!input.has('foo', 'bar')) { return; }
             const [foo, bar] = Array.from(input.getData('foo', 'bar'));
             if ((bar < 0) || (bar > 1000)) {
-              output.sendDone({
-                err: new Error(`Bar is not correct: ${bar}`)});
+              output.sendDone({ err: new Error(`Bar is not correct: ${bar}`) });
               return;
             }
             // Start capturing output
             input.activate();
-            output.send({
-              baz: new noflo.IP('openBracket')});
+            output.send({ baz: new noflo.IP('openBracket') });
             const baz = {
               foo,
-              bar
+              bar,
             };
-            output.send({
-              baz});
-            setTimeout(function() {
-              output.send({
-                baz: new noflo.IP('closeBracket')});
+            output.send({ baz });
+            setTimeout(() => {
+              output.send({ baz: new noflo.IP('closeBracket') });
               output.done();
-            }
-            , bar);
-          }
+            },
+            bar);
+          },
         });
         c.inPorts.foo.attach(sin1);
         c.inPorts.bar.attach(sin2);
         c.outPorts.baz.attach(sout1);
         c.outPorts.err.attach(sout2);
         done();
-        return;
-
       });
-      it('should fail on wrong input', function(done) {
-        sout1.once('ip', function(ip) {
+      it('should fail on wrong input', (done) => {
+        sout1.once('ip', (ip) => {
           done(new Error('Unexpected baz'));
         });
-        sout2.once('ip', function(ip) {
+        sout2.once('ip', (ip) => {
           chai.expect(ip).to.be.an('object');
           chai.expect(ip.data).to.be.an('error');
           chai.expect(ip.data.message).to.contain('Bar');
@@ -2749,12 +2668,11 @@ describe('Component', function() {
 
         sin1.post(new noflo.IP('data', 'fff'));
         sin2.post(new noflo.IP('data', -120));
-
       });
-      it('should send substreams', function(done) {
+      it('should send substreams', (done) => {
         const sample = [
-          { bar: 30, foo: "one" },
-          { bar: 0, foo: "two" }
+          { bar: 30, foo: 'one' },
+          { bar: 0, foo: 'two' },
         ];
         const expected = [
           '<',
@@ -2762,11 +2680,11 @@ describe('Component', function() {
           '>',
           '<',
           'two',
-          '>'
+          '>',
         ];
         const actual = [];
         let count = 0;
-        sout1.on('ip', function(ip) {
+        sout1.on('ip', (ip) => {
           count++;
           switch (ip.type) {
             case 'openBracket':
@@ -2781,42 +2699,40 @@ describe('Component', function() {
           if (count === 6) {
             chai.expect(actual).to.eql(expected);
             done();
-            return;
           }
         });
-        sout2.once('ip', function(ip) {
+        sout2.once('ip', (ip) => {
           done(ip.data);
         });
 
-        for (let item of Array.from(sample)) {
+        for (const item of Array.from(sample)) {
           sin2.post(new noflo.IP('data', item.bar));
           sin1.post(new noflo.IP('data', item.foo));
         }
       });
     });
-    describe('using streams', function() {
-      it('should not trigger without a full stream without getting the whole stream', function(done) {
+    describe('using streams', () => {
+      it('should not trigger without a full stream without getting the whole stream', (done) => {
         c = new noflo.Component({
           inPorts: {
             in: {
-              datatype: 'string'
-            }
+              datatype: 'string',
+            },
           },
           outPorts: {
             out: {
-              datatype: 'string'
-            }
+              datatype: 'string',
+            },
           },
           process(input, output) {
             if (input.hasStream('in')) {
               done(new Error('should never trigger this'));
             }
 
-            if (input.has('in', ip => ip.type === 'closeBracket')) {
+            if (input.has('in', (ip) => ip.type === 'closeBracket')) {
               done();
-              return;
             }
-          }
+          },
         });
 
         c.forwardBrackets = {};
@@ -2827,85 +2743,82 @@ describe('Component', function() {
         sin1.post(new noflo.IP('openBracket'));
         sin1.post(new noflo.IP('data', 'eh'));
         sin1.post(new noflo.IP('closeBracket'));
-
       });
-      it('should trigger when forwardingBrackets because then it is only data with no brackets and is a full stream', function(done) {
+      it('should trigger when forwardingBrackets because then it is only data with no brackets and is a full stream', (done) => {
         c = new noflo.Component({
           inPorts: {
             in: {
-              datatype: 'string'
-            }
+              datatype: 'string',
+            },
           },
           outPorts: {
             out: {
-              datatype: 'string'
-            }
+              datatype: 'string',
+            },
           },
           process(input, output) {
             if (!input.hasStream('in')) { return; }
             done();
-          }
+          },
         });
-        c.forwardBrackets =
-          {in: ['out']};
+        c.forwardBrackets = { in: ['out'] };
 
         c.inPorts.in.attach(sin1);
         sin1.post(new noflo.IP('data', 'eh'));
-
       });
-      it('should get full stream when it has a single packet stream and it should clear it', function(done) {
+      it('should get full stream when it has a single packet stream and it should clear it', (done) => {
         c = new noflo.Component({
           inPorts: {
             eh: {
-              datatype: 'string'
-            }
+              datatype: 'string',
+            },
           },
           outPorts: {
             canada: {
-              datatype: 'string'
-            }
+              datatype: 'string',
+            },
           },
           process(input, output) {
             if (!input.hasStream('eh')) { return; }
             const stream = input.getStream('eh');
-            const packetTypes = stream.map(ip => [ip.type, ip.data]);
+            const packetTypes = stream.map((ip) => [ip.type, ip.data]);
             chai.expect(packetTypes).to.eql([
-              ['data', 'moose']
+              ['data', 'moose'],
             ]);
             chai.expect(input.has('eh')).to.equal(false);
             done();
-          }
+          },
         });
 
         c.inPorts.eh.attach(sin1);
         sin1.post(new noflo.IP('data', 'moose'));
       });
-      it('should get full stream when it has a full stream, and it should clear it', function(done) {
+      it('should get full stream when it has a full stream, and it should clear it', (done) => {
         c = new noflo.Component({
           inPorts: {
             eh: {
-              datatype: 'string'
-            }
+              datatype: 'string',
+            },
           },
           outPorts: {
             canada: {
-              datatype: 'string'
-            }
+              datatype: 'string',
+            },
           },
           process(input, output) {
             if (!input.hasStream('eh')) { return; }
             const stream = input.getStream('eh');
-            const packetTypes = stream.map(ip => [ip.type, ip.data]);
+            const packetTypes = stream.map((ip) => [ip.type, ip.data]);
             chai.expect(packetTypes).to.eql([
               ['openBracket', null],
               ['openBracket', 'foo'],
               ['data', 'moose'],
               ['closeBracket', 'foo'],
-              ['closeBracket', null]
+              ['closeBracket', null],
             ]);
             chai.expect(input.has('eh')).to.equal(false);
             done();
-          }
+          },
         });
 
         c.inPorts.eh.attach(sin1);
@@ -2915,20 +2828,20 @@ describe('Component', function() {
         sin1.post(new noflo.IP('closeBracket', 'foo'));
         sin1.post(new noflo.IP('closeBracket'));
       });
-      it('should get data when it has a full stream', function(done) {
+      it('should get data when it has a full stream', (done) => {
         c = new noflo.Component({
           inPorts: {
             eh: {
-              datatype: 'string'
-            }
+              datatype: 'string',
+            },
           },
           outPorts: {
             canada: {
-              datatype: 'string'
-            }
+              datatype: 'string',
+            },
           },
           forwardBrackets: {
-            eh: ['canada']
+            eh: ['canada'],
           },
           process(input, output) {
             if (!input.hasStream('eh')) { return; }
@@ -2936,7 +2849,7 @@ describe('Component', function() {
             chai.expect(data.type).to.equal('data');
             chai.expect(data.data).to.equal('moose');
             output.sendDone(data);
-          }
+          },
         });
 
         const expected = [
@@ -2944,10 +2857,10 @@ describe('Component', function() {
           ['openBracket', 'foo'],
           ['data', 'moose'],
           ['closeBracket', 'foo'],
-          ['closeBracket', null]
+          ['closeBracket', null],
         ];
         const received = [];
-        sout1.on('ip', function(ip) {
+        sout1.on('ip', (ip) => {
           received.push([ip.type, ip.data]);
           if (received.length !== expected.length) { return; }
           chai.expect(received).to.eql(expected);
@@ -2961,34 +2874,32 @@ describe('Component', function() {
         sin1.post(new noflo.IP('closeBracket', 'foo'));
         sin1.post(new noflo.IP('closeBracket'));
       });
-
     });
-    describe('with a simple ordered stream', function() {
-      it('should send packets with brackets in expected order when synchronous', function(done) {
+    describe('with a simple ordered stream', () => {
+      it('should send packets with brackets in expected order when synchronous', (done) => {
         const received = [];
         c = new noflo.Component({
           inPorts: {
             in: {
-              datatype: 'string'
-            }
+              datatype: 'string',
+            },
           },
           outPorts: {
             out: {
-              datatype: 'string'
-            }
+              datatype: 'string',
+            },
           },
           process(input, output) {
             if (!input.has('in')) { return; }
             const data = input.getData('in');
-            output.sendDone({
-              out: data});
-          }
+            output.sendDone({ out: data });
+          },
         });
         c.nodeId = 'Issue465';
         c.inPorts.in.attach(sin1);
         c.outPorts.out.attach(sout1);
 
-        sout1.on('ip', function(ip) {
+        sout1.on('ip', (ip) => {
           if (ip.type === 'openBracket') {
             if (!ip.data) { return; }
             received.push(`< ${ip.data}`);
@@ -3001,14 +2912,14 @@ describe('Component', function() {
           }
           received.push(ip.data);
         });
-        sout1.on('disconnect', function() {
+        sout1.on('disconnect', () => {
           chai.expect(received).to.eql([
             '< 1',
             '< 2',
             'A',
             '> 2',
             'B',
-            '> 1'
+            '> 1',
           ]);
           done();
         });
@@ -3021,32 +2932,31 @@ describe('Component', function() {
         sin1.endGroup();
         sin1.disconnect();
       });
-      it('should send packets with brackets in expected order when asynchronous', function(done) {
+      it('should send packets with brackets in expected order when asynchronous', (done) => {
         const received = [];
         c = new noflo.Component({
           inPorts: {
             in: {
-              datatype: 'string'
-            }
+              datatype: 'string',
+            },
           },
           outPorts: {
             out: {
-              datatype: 'string'
-            }
+              datatype: 'string',
+            },
           },
           process(input, output) {
             if (!input.has('in')) { return; }
             const data = input.getData('in');
-            setTimeout(() => output.sendDone({
-              out: data})
-            , 1);
-          }
+            setTimeout(() => output.sendDone({ out: data }),
+              1);
+          },
         });
         c.nodeId = 'Issue465';
         c.inPorts.in.attach(sin1);
         c.outPorts.out.attach(sout1);
 
-        sout1.on('ip', function(ip) {
+        sout1.on('ip', (ip) => {
           if (ip.type === 'openBracket') {
             if (!ip.data) { return; }
             received.push(`< ${ip.data}`);
@@ -3059,14 +2969,14 @@ describe('Component', function() {
           }
           received.push(ip.data);
         });
-        sout1.on('disconnect', function() {
+        sout1.on('disconnect', () => {
           chai.expect(received).to.eql([
             '< 1',
             '< 2',
             'A',
             '> 2',
             'B',
-            '> 1'
+            '> 1',
           ]);
           done();
         });
@@ -3082,30 +2992,26 @@ describe('Component', function() {
       });
     });
   });
-  describe('with generator components', function() {
+  describe('with generator components', () => {
     let c = null;
     let sin1 = null;
     let sin2 = null;
     let sin3 = null;
     let sout1 = null;
     let sout2 = null;
-    before(function(done) {
+    before((done) => {
       c = new noflo.Component({
         inPorts: {
           interval: {
             datatype: 'number',
-            control: true
+            control: true,
           },
-          start: { datatype: 'bang'
-        },
-          stop: { datatype: 'bang'
-        }
+          start: { datatype: 'bang' },
+          stop: { datatype: 'bang' },
         },
         outPorts: {
-          out: { datatype: 'bang'
-        },
-          err: { datatype: 'object'
-        }
+          out: { datatype: 'bang' },
+          err: { datatype: 'object' },
         },
         timer: null,
         ordered: false,
@@ -3116,29 +3022,29 @@ describe('Component', function() {
             const start = input.get('start');
             const interval = parseInt(input.getData('interval'));
             if (this.timer) { clearInterval(this.timer); }
-            this.timer = setInterval(function() {
+            this.timer = setInterval(() => {
               context.activate();
-              setTimeout(function() {
+              setTimeout(() => {
                 output.ports.out.sendIP(new noflo.IP('data', true));
                 context.deactivate();
-              }
-              , 5); // delay of 3 to test async
-            }
-            , interval);
+              },
+              5); // delay of 3 to test async
+            },
+            interval);
           }
           if (input.has('stop')) {
             const stop = input.get('stop');
             if (this.timer) { clearInterval(this.timer); }
           }
           output.done();
-        }
+        },
       });
 
-      sin1 = new noflo.internalSocket.InternalSocket;
-      sin2 = new noflo.internalSocket.InternalSocket;
-      sin3 = new noflo.internalSocket.InternalSocket;
-      sout1 = new noflo.internalSocket.InternalSocket;
-      sout2 = new noflo.internalSocket.InternalSocket;
+      sin1 = new noflo.internalSocket.InternalSocket();
+      sin2 = new noflo.internalSocket.InternalSocket();
+      sin3 = new noflo.internalSocket.InternalSocket();
+      sout1 = new noflo.internalSocket.InternalSocket();
+      sout2 = new noflo.internalSocket.InternalSocket();
       c.inPorts.interval.attach(sin1);
       c.inPorts.start.attach(sin2);
       c.inPorts.stop.attach(sin3);
@@ -3147,50 +3053,46 @@ describe('Component', function() {
       done();
     });
 
-    it('should emit start event when started', function(done) {
-      c.on('start', function() {
+    it('should emit start event when started', (done) => {
+      c.on('start', () => {
         chai.expect(c.started).to.be.true;
         done();
       });
-      c.start(function(err) {
+      c.start((err) => {
         if (err) {
           done(err);
-          return;
         }
       });
-
     });
-    it('should emit activate/deactivate event on every tick', function(done) {
+    it('should emit activate/deactivate event on every tick', function (done) {
       this.timeout(100);
       let count = 0;
       let dcount = 0;
-      c.on('activate', function(load) {
+      c.on('activate', (load) => {
         count++;
       });
-      c.on('deactivate', function(load) {
+      c.on('deactivate', (load) => {
         dcount++;
         // Stop when the stack of processes grows
         if ((count === 3) && (dcount === 3)) {
           sin3.post(new noflo.IP('data', true));
           done();
-          return;
         }
       });
       sin1.post(new noflo.IP('data', 2));
       sin2.post(new noflo.IP('data', true));
-
     });
-    it('should emit end event when stopped and no activate after it', function(done) {
-      c.on('end', function() {
+    it('should emit end event when stopped and no activate after it', (done) => {
+      c.on('end', () => {
         chai.expect(c.started).to.be.false;
         done();
       });
-      c.on('activate', function(load) {
+      c.on('activate', (load) => {
         if (!c.started) {
           done(new Error('Unexpected activate after end'));
         }
       });
-      c.shutdown(function(err) {
+      c.shutdown((err) => {
         if (err) { done(err); }
       });
     });
