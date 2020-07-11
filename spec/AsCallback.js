@@ -1,10 +1,27 @@
+/* eslint-disable
+    func-names,
+    global-require,
+    import/no-extraneous-dependencies,
+    import/no-unresolved,
+    no-nested-ternary,
+    no-plusplus,
+    no-restricted-syntax,
+    no-return-assign,
+    no-undef,
+    no-underscore-dangle,
+    no-unused-vars,
+    no-use-before-define,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS101: Remove unnecessary use of Array.from
  * DS102: Remove unnecessary code created because of implicit returns
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
-let chai, noflo, root, urlPrefix;
+let chai; let noflo; let root; let
+  urlPrefix;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   if (!chai) { chai = require('chai'); }
   noflo = require('../src/lib/NoFlo');
@@ -17,71 +34,71 @@ if ((typeof process !== 'undefined') && process.execPath && process.execPath.mat
   urlPrefix = '/';
 }
 
-describe('asCallback interface', function() {
+describe('asCallback interface', () => {
   let loader = null;
 
-  const processAsync = function() {
-    const c = new noflo.Component;
+  const processAsync = function () {
+    const c = new noflo.Component();
     c.inPorts.add('in',
-      {datatype: 'string'});
+      { datatype: 'string' });
     c.outPorts.add('out',
-      {datatype: 'string'});
+      { datatype: 'string' });
 
-    return c.process(function(input, output) {
+    return c.process((input, output) => {
       const data = input.getData('in');
-      setTimeout(() => output.sendDone(data)
-      , 1);
+      setTimeout(() => output.sendDone(data),
+        1);
     });
   };
-  const processError = function() {
-    const c = new noflo.Component;
+  const processError = function () {
+    const c = new noflo.Component();
     c.inPorts.add('in',
-      {datatype: 'string'});
+      { datatype: 'string' });
     c.outPorts.add('out',
-      {datatype: 'string'});
+      { datatype: 'string' });
     c.outPorts.add('error');
-    return c.process(function(input, output) {
+    return c.process((input, output) => {
       const data = input.getData('in');
       output.done(new Error(`Received ${data}`));
     });
   };
-  const processValues = function() {
-    const c = new noflo.Component;
+  const processValues = function () {
+    const c = new noflo.Component();
     c.inPorts.add('in', {
       datatype: 'string',
-      values: ['green', 'blue']
+      values: ['green', 'blue'],
     });
     c.outPorts.add('out',
-      {datatype: 'string'});
-    return c.process(function(input, output) {
+      { datatype: 'string' });
+    return c.process((input, output) => {
       const data = input.getData('in');
       output.sendDone(data);
     });
   };
-  const neverSend = function() {
-    const c = new noflo.Component;
+  const neverSend = function () {
+    const c = new noflo.Component();
     c.inPorts.add('in',
-      {datatype: 'string'});
+      { datatype: 'string' });
     c.outPorts.add('out',
-      {datatype: 'string'});
-    return c.process(function(input, output) {
+      { datatype: 'string' });
+    return c.process((input, output) => {
       const data = input.getData('in');
     });
   };
-  const streamify = function() {
-    const c = new noflo.Component;
+  const streamify = function () {
+    const c = new noflo.Component();
     c.inPorts.add('in',
-      {datatype: 'string'});
+      { datatype: 'string' });
     c.outPorts.add('out',
-      {datatype: 'string'});
-    c.process(function(input, output) {
+      { datatype: 'string' });
+    c.process((input, output) => {
       const data = input.getData('in');
       const words = data.split(' ');
       for (let idx = 0; idx < words.length; idx++) {
         const word = words[idx];
         output.send(new noflo.IP('openBracket', idx));
         const chars = word.split('');
-        for (let char of Array.from(chars)) { output.send(new noflo.IP('data', char)); }
+        for (const char of Array.from(chars)) { output.send(new noflo.IP('data', char)); }
         output.send(new noflo.IP('closeBracket', idx));
       }
       output.done();
@@ -89,9 +106,9 @@ describe('asCallback interface', function() {
     return c;
   };
 
-  before(function(done) {
+  before((done) => {
     loader = new noflo.ComponentLoader(root);
-    loader.listComponents(function(err) {
+    loader.listComponents((err) => {
       if (err) {
         done(err);
         return;
@@ -104,55 +121,54 @@ describe('asCallback interface', function() {
       done();
     });
   });
-  describe('with a non-existing component', function() {
+  describe('with a non-existing component', () => {
     let wrapped = null;
-    before(function() {
+    before(() => {
       wrapped = noflo.asCallback('foo/Bar',
-        {loader});
+        { loader });
     });
-    it('should be able to wrap it', function(done) {
+    it('should be able to wrap it', (done) => {
       chai.expect(wrapped).to.be.a('function');
       chai.expect(wrapped.length).to.equal(2);
       done();
     });
-    it('should fail execution', function(done) {
-      wrapped(1, function(err) {
+    it('should fail execution', (done) => {
+      wrapped(1, (err) => {
         chai.expect(err).to.be.an('error');
         done();
       });
     });
   });
-  describe('with simple asynchronous component', function() {
+  describe('with simple asynchronous component', () => {
     let wrapped = null;
-    before(function() {
+    before(() => {
       wrapped = noflo.asCallback('process/Async',
-        {loader});
+        { loader });
     });
-    it('should be able to wrap it', function(done) {
+    it('should be able to wrap it', (done) => {
       chai.expect(wrapped).to.be.a('function');
       chai.expect(wrapped.length).to.equal(2);
       done();
     });
-    it('should execute network with input map and provide output map', function(done) {
-      const expected =
-        {hello: 'world'};
+    it('should execute network with input map and provide output map', (done) => {
+      const expected = { hello: 'world' };
 
       wrapped(
-        {in: expected}
-      , function(err, out) {
-        if (err) {
-          done(err);
-          return;
-        }
-        chai.expect(out.out).to.eql(expected);
-        done();
-      });
+        { in: expected },
+        (err, out) => {
+          if (err) {
+            done(err);
+            return;
+          }
+          chai.expect(out.out).to.eql(expected);
+          done();
+        },
+      );
     });
-    it('should execute network with simple input and provide simple output', function(done) {
-      const expected =
-        {hello: 'world'};
+    it('should execute network with simple input and provide simple output', (done) => {
+      const expected = { hello: 'world' };
 
-      wrapped(expected, function(err, out) {
+      wrapped(expected, (err, out) => {
         if (err) {
           done(err);
           return;
@@ -161,10 +177,10 @@ describe('asCallback interface', function() {
         done();
       });
     });
-    it('should not mix up simultaneous runs', function(done) {
+    it('should not mix up simultaneous runs', (done) => {
       let received = 0;
-      __range__(0, 100, true).forEach(function(idx) {
-        wrapped(idx, function(err, out) {
+      __range__(0, 100, true).forEach((idx) => {
+        wrapped(idx, (err, out) => {
           if (err) {
             done(err);
             return;
@@ -176,22 +192,18 @@ describe('asCallback interface', function() {
         });
       });
     });
-    it('should execute a network with a sequence and provide output sequence', function(done) {
+    it('should execute a network with a sequence and provide output sequence', (done) => {
       const sent = [
-        {in: 'hello'}
-      ,
-        {in: 'world'}
-      ,
-        {in: 'foo'}
-      ,
-        {in: 'bar'}
+        { in: 'hello' },
+        { in: 'world' },
+        { in: 'foo' },
+        { in: 'bar' },
       ];
-      const expected = sent.map(function(portmap) {
+      const expected = sent.map((portmap) => {
         let res;
-        return res =
-          {out: portmap.in};
+        return res = { out: portmap.in };
       });
-      wrapped(sent, function(err, out) {
+      wrapped(sent, (err, out) => {
         if (err) {
           done(err);
           return;
@@ -200,36 +212,28 @@ describe('asCallback interface', function() {
         done();
       });
     });
-    describe('with the raw option', function() {
-      it('should execute a network with a sequence and provide output sequence', function(done) {
+    describe('with the raw option', () => {
+      it('should execute a network with a sequence and provide output sequence', (done) => {
         const wrappedRaw = noflo.asCallback('process/Async', {
           loader,
-          raw: true
-        }
-        );
+          raw: true,
+        });
         const sent = [
-          {in: new noflo.IP('openBracket', 'a')}
-        ,
-          {in: 'hello'}
-        ,
-          {in: 'world'}
-        ,
-          {in: new noflo.IP('closeBracket', 'a')}
-        ,
-          {in: new noflo.IP('openBracket', 'b')}
-        ,
-          {in: 'foo'}
-        ,
-          {in: 'bar'}
-        ,
-          {in: new noflo.IP('closeBracket', 'b')}
+          { in: new noflo.IP('openBracket', 'a') },
+          { in: 'hello' },
+          { in: 'world' },
+          { in: new noflo.IP('closeBracket', 'a') },
+          { in: new noflo.IP('openBracket', 'b') },
+          { in: 'foo' },
+          { in: 'bar' },
+          { in: new noflo.IP('closeBracket', 'b') },
         ];
-        wrappedRaw(sent, function(err, out) {
+        wrappedRaw(sent, (err, out) => {
           if (err) {
             done(err);
             return;
           }
-          const types = out.map(map => `${map.out.type} ${map.out.data}`);
+          const types = out.map((map) => `${map.out.type} ${map.out.data}`);
           chai.expect(types).to.eql([
             'openBracket a',
             'data hello',
@@ -238,60 +242,62 @@ describe('asCallback interface', function() {
             'openBracket b',
             'data foo',
             'data bar',
-            'closeBracket b'
+            'closeBracket b',
           ]);
           done();
         });
       });
     });
   });
-  describe('with a component sending an error', function() {
+  describe('with a component sending an error', () => {
     let wrapped = null;
-    before(function() {
+    before(() => {
       wrapped = noflo.asCallback('process/Error',
-        {loader});
+        { loader });
     });
-    it('should execute network with input map and provide error', function(done) {
+    it('should execute network with input map and provide error', (done) => {
       const expected = 'hello there';
       wrapped(
-        {in: expected}
-      , function(err) {
-        chai.expect(err).to.be.an('error');
-        chai.expect(err.message).to.contain(expected);
-        done();
-      });
+        { in: expected },
+        (err) => {
+          chai.expect(err).to.be.an('error');
+          chai.expect(err.message).to.contain(expected);
+          done();
+        },
+      );
     });
-    it('should execute network with simple input and provide error', function(done) {
+    it('should execute network with simple input and provide error', (done) => {
       const expected = 'hello world';
-      wrapped(expected, function(err) {
+      wrapped(expected, (err) => {
         chai.expect(err).to.be.an('error');
         chai.expect(err.message).to.contain(expected);
         done();
       });
     });
   });
-  describe('with a component supporting only certain values', function() {
+  describe('with a component supporting only certain values', () => {
     let wrapped = null;
-    before(function() {
+    before(() => {
       wrapped = noflo.asCallback('process/Values',
-        {loader});
+        { loader });
     });
-    it('should execute network with input map and provide output map', function(done) {
-      const expected ='blue';
-      wrapped(
-        {in: expected}
-      , function(err, out) {
-        if (err) {
-          done(err);
-          return;
-        }
-        chai.expect(out.out).to.eql(expected);
-        done();
-      });
-    });
-    it('should execute network with simple input and provide simple output', function(done) {
+    it('should execute network with input map and provide output map', (done) => {
       const expected = 'blue';
-      wrapped(expected, function(err, out) {
+      wrapped(
+        { in: expected },
+        (err, out) => {
+          if (err) {
+            done(err);
+            return;
+          }
+          chai.expect(out.out).to.eql(expected);
+          done();
+        },
+      );
+    });
+    it('should execute network with simple input and provide simple output', (done) => {
+      const expected = 'blue';
+      wrapped(expected, (err, out) => {
         if (err) {
           done(err);
           return;
@@ -300,165 +306,169 @@ describe('asCallback interface', function() {
         done();
       });
     });
-    it('should execute network with wrong map and provide error', function(done) {
+    it('should execute network with wrong map and provide error', (done) => {
       const expected = 'red';
       wrapped(
-        {in: 'red'}
-      , function(err) {
-        chai.expect(err).to.be.an('error');
-        chai.expect(err.message).to.contain('Invalid data=\'red\' received, not in [green,blue]');
-        done();
-      });
+        { in: 'red' },
+        (err) => {
+          chai.expect(err).to.be.an('error');
+          chai.expect(err.message).to.contain('Invalid data=\'red\' received, not in [green,blue]');
+          done();
+        },
+      );
     });
-    it('should execute network with wrong input and provide error', function(done) {
-      wrapped('red', function(err) {
+    it('should execute network with wrong input and provide error', (done) => {
+      wrapped('red', (err) => {
         chai.expect(err).to.be.an('error');
         chai.expect(err.message).to.contain('Invalid data=\'red\' received, not in [green,blue]');
         done();
       });
     });
   });
-  describe('with a component sending streams', function() {
+  describe('with a component sending streams', () => {
     let wrapped = null;
-    before(function() {
+    before(() => {
       wrapped = noflo.asCallback('process/Streamify',
-        {loader});
+        { loader });
     });
-    it('should execute network with input map and provide output map with streams as arrays', function(done) {
+    it('should execute network with input map and provide output map with streams as arrays', (done) => {
       wrapped(
-        {in: 'hello world'}
-      , function(err, out) {
-        chai.expect(out.out).to.eql([
-          ['h','e','l','l','o'],
-          ['w','o','r','l','d']
-        ]);
-        done();
-      });
-    });
-    it('should execute network with simple input and and provide simple output with streams as arrays', function(done) {
-      wrapped('hello there', function(err, out) {
-        chai.expect(out).to.eql([
-          ['h','e','l','l','o'],
-          ['t','h','e','r','e']
-        ]);
-        done();
-      });
-    });
-    describe('with the raw option', function() {
-      it('should execute network with input map and provide output map with IP objects', function(done) {
-        const wrappedRaw = noflo.asCallback('process/Streamify', {
-          loader,
-          raw: true
-        }
-        );
-        wrappedRaw(
-          {in: 'hello world'}
-        , function(err, out) {
-          const types = out.out.map(ip => `${ip.type} ${ip.data}`);
-          chai.expect(types).to.eql([
-            'openBracket 0',
-            'data h',
-            'data e',
-            'data l',
-            'data l',
-            'data o',
-            'closeBracket 0',
-            'openBracket 1',
-            'data w',
-            'data o',
-            'data r',
-            'data l',
-            'data d',
-            'closeBracket 1'
+        { in: 'hello world' },
+        (err, out) => {
+          chai.expect(out.out).to.eql([
+            ['h', 'e', 'l', 'l', 'o'],
+            ['w', 'o', 'r', 'l', 'd'],
           ]);
           done();
+        },
+      );
+    });
+    it('should execute network with simple input and and provide simple output with streams as arrays', (done) => {
+      wrapped('hello there', (err, out) => {
+        chai.expect(out).to.eql([
+          ['h', 'e', 'l', 'l', 'o'],
+          ['t', 'h', 'e', 'r', 'e'],
+        ]);
+        done();
+      });
+    });
+    describe('with the raw option', () => {
+      it('should execute network with input map and provide output map with IP objects', (done) => {
+        const wrappedRaw = noflo.asCallback('process/Streamify', {
+          loader,
+          raw: true,
         });
+        wrappedRaw(
+          { in: 'hello world' },
+          (err, out) => {
+            const types = out.out.map((ip) => `${ip.type} ${ip.data}`);
+            chai.expect(types).to.eql([
+              'openBracket 0',
+              'data h',
+              'data e',
+              'data l',
+              'data l',
+              'data o',
+              'closeBracket 0',
+              'openBracket 1',
+              'data w',
+              'data o',
+              'data r',
+              'data l',
+              'data d',
+              'closeBracket 1',
+            ]);
+            done();
+          },
+        );
       });
     });
   });
-  describe('with a graph instead of component name', function() {
+  describe('with a graph instead of component name', () => {
     let graph = null;
     let wrapped = null;
-    before(function(done) {
+    before((done) => {
       noflo.graph.loadFBP(`\
 INPORT=Async.IN:IN
 OUTPORT=Stream.OUT:OUT
 Async(process/Async) OUT -> IN Stream(process/Streamify)\
-`, function(err, g) {
+`, (err, g) => {
         if (err) {
           done(err);
           return;
         }
         graph = g;
         wrapped = noflo.asCallback(graph,
-          {loader});
+          { loader });
         done();
       });
     });
-    it('should execute network with input map and provide output map with streams as arrays', function(done) {
+    it('should execute network with input map and provide output map with streams as arrays', (done) => {
       wrapped(
-        {in: 'hello world'}
-      , function(err, out) {
-        if (err) {
-          done(err);
-          return;
-        }
-        chai.expect(out.out).to.eql([
-          ['h','e','l','l','o'],
-          ['w','o','r','l','d']
-        ]);
-        done();
-      });
+        { in: 'hello world' },
+        (err, out) => {
+          if (err) {
+            done(err);
+            return;
+          }
+          chai.expect(out.out).to.eql([
+            ['h', 'e', 'l', 'l', 'o'],
+            ['w', 'o', 'r', 'l', 'd'],
+          ]);
+          done();
+        },
+      );
     });
-    it('should execute network with simple input and and provide simple output with streams as arrays', function(done) {
-      wrapped('hello there', function(err, out) {
+    it('should execute network with simple input and and provide simple output with streams as arrays', (done) => {
+      wrapped('hello there', (err, out) => {
         if (err) {
           done(err);
           return;
         }
         chai.expect(out).to.eql([
-          ['h','e','l','l','o'],
-          ['t','h','e','r','e']
+          ['h', 'e', 'l', 'l', 'o'],
+          ['t', 'h', 'e', 'r', 'e'],
         ]);
         done();
       });
     });
   });
-  describe('with a graph containing a component supporting only certain values', function() {
+  describe('with a graph containing a component supporting only certain values', () => {
     let graph = null;
     let wrapped = null;
-    before(function(done) {
+    before((done) => {
       noflo.graph.loadFBP(`\
 INPORT=Async.IN:IN
 OUTPORT=Values.OUT:OUT
 Async(process/Async) OUT -> IN Values(process/Values)\
-`, function(err, g) {
+`, (err, g) => {
         if (err) {
           done(err);
           return;
         }
         graph = g;
         wrapped = noflo.asCallback(graph,
-          {loader});
+          { loader });
         done();
       });
     });
-    it('should execute network with input map and provide output map', function(done) {
-      const expected ='blue';
-      wrapped(
-        {in: expected}
-      , function(err, out) {
-        if (err) {
-          done(err);
-          return;
-        }
-        chai.expect(out.out).to.eql(expected);
-        done();
-      });
-    });
-    it('should execute network with simple input and provide simple output', function(done) {
+    it('should execute network with input map and provide output map', (done) => {
       const expected = 'blue';
-      wrapped(expected, function(err, out) {
+      wrapped(
+        { in: expected },
+        (err, out) => {
+          if (err) {
+            done(err);
+            return;
+          }
+          chai.expect(out.out).to.eql(expected);
+          done();
+        },
+      );
+    });
+    it('should execute network with simple input and provide simple output', (done) => {
+      const expected = 'blue';
+      wrapped(expected, (err, out) => {
         if (err) {
           done(err);
           return;
@@ -467,18 +477,19 @@ Async(process/Async) OUT -> IN Values(process/Values)\
         done();
       });
     });
-    it('should execute network with wrong map and provide error', function(done) {
+    it('should execute network with wrong map and provide error', (done) => {
       const expected = 'red';
       wrapped(
-        {in: 'red'}
-      , function(err) {
-        chai.expect(err).to.be.an('error');
-        chai.expect(err.message).to.contain('Invalid data=\'red\' received, not in [green,blue]');
-        done();
-      });
+        { in: 'red' },
+        (err) => {
+          chai.expect(err).to.be.an('error');
+          chai.expect(err.message).to.contain('Invalid data=\'red\' received, not in [green,blue]');
+          done();
+        },
+      );
     });
-    it('should execute network with wrong input and provide error', function(done) {
-      wrapped('red', function(err) {
+    it('should execute network with wrong input and provide error', (done) => {
+      wrapped('red', (err) => {
         chai.expect(err).to.be.an('error');
         chai.expect(err.message).to.contain('Invalid data=\'red\' received, not in [green,blue]');
         done();
@@ -487,9 +498,9 @@ Async(process/Async) OUT -> IN Values(process/Values)\
   });
 });
 function __range__(left, right, inclusive) {
-  let range = [];
-  let ascending = left < right;
-  let end = !inclusive ? right : ascending ? right + 1 : right - 1;
+  const range = [];
+  const ascending = left < right;
+  const end = !inclusive ? right : ascending ? right + 1 : right - 1;
   for (let i = left; ascending ? i < end : i > end; ascending ? i++ : i--) {
     range.push(i);
   }
