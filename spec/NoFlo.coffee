@@ -10,25 +10,39 @@ else
 describe 'NoFlo interface', ->
   it 'should be able to tell whether it is running on browser', ->
     chai.expect(noflo.isBrowser()).to.equal browser
+    return
   describe 'working with graph files', ->
     targetPath = null
     before ->
       # These features only work on Node.js
-      return @skip() if noflo.isBrowser()
+      if noflo.isBrowser()
+        @skip()
+        return
       targetPath = path.resolve __dirname, 'tmp.json'
+      return
     after (done) ->
-      return done() if noflo.isBrowser()
+      if noflo.isBrowser()
+        done()
+        return
       fs = require 'fs'
       fs.unlink targetPath, done
+      return
     it 'should be able to save a graph file', (done) ->
       graph = new noflo.Graph
       graph.addNode 'G', 'Graph'
       noflo.saveFile graph, targetPath, done
+      return
     it 'should be able to load a graph file', (done) ->
       noflo.loadFile targetPath,
         baseDir: process.cwd()
         delay: true
       , (err, network) ->
-        return done err if err
+        if err
+          done err
+          return
         chai.expect(network.isRunning()).to.equal false
         done()
+        return
+      return
+    return
+  return
