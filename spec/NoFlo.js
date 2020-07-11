@@ -1,4 +1,14 @@
-let browser, chai, noflo, path;
+/* eslint-disable
+    func-names,
+    global-require,
+    import/no-extraneous-dependencies,
+    import/no-unresolved,
+    no-undef,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
+let browser; let chai; let noflo; let
+  path;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   if (!chai) { chai = require('chai'); }
   noflo = require('../src/lib/NoFlo');
@@ -9,13 +19,13 @@ if ((typeof process !== 'undefined') && process.execPath && process.execPath.mat
   browser = true;
 }
 
-describe('NoFlo interface', function() {
-  it('should be able to tell whether it is running on browser', function() {
+describe('NoFlo interface', () => {
+  it('should be able to tell whether it is running on browser', () => {
     chai.expect(noflo.isBrowser()).to.equal(browser);
   });
-  describe('working with graph files', function() {
+  describe('working with graph files', () => {
     let targetPath = null;
-    before(function() {
+    before(function () {
       // These features only work on Node.js
       if (noflo.isBrowser()) {
         this.skip();
@@ -23,7 +33,7 @@ describe('NoFlo interface', function() {
       }
       targetPath = path.resolve(__dirname, 'tmp.json');
     });
-    after(function(done) {
+    after((done) => {
       if (noflo.isBrowser()) {
         done();
         return;
@@ -31,17 +41,17 @@ describe('NoFlo interface', function() {
       const fs = require('fs');
       fs.unlink(targetPath, done);
     });
-    it('should be able to save a graph file', function(done) {
-      const graph = new noflo.Graph;
+    it('should be able to save a graph file', (done) => {
+      const graph = new noflo.Graph();
       graph.addNode('G', 'Graph');
       noflo.saveFile(graph, targetPath, done);
     });
-    it('should be able to load a graph file', function(done) {
+    it('should be able to load a graph file', (done) => {
       noflo.loadFile(targetPath, {
         baseDir: process.cwd(),
-        delay: true
-      }
-      , function(err, network) {
+        delay: true,
+      },
+      (err, network) => {
         if (err) {
           done(err);
           return;
