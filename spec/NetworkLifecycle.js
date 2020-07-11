@@ -1,9 +1,27 @@
+/* eslint-disable
+    default-case,
+    func-names,
+    global-require,
+    import/no-extraneous-dependencies,
+    import/no-unresolved,
+    no-multi-str,
+    no-plusplus,
+    no-shadow,
+    no-undef,
+    no-unreachable,
+    no-unused-vars,
+    no-var,
+    vars-on-top,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS102: Remove unnecessary code created because of implicit returns
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
-let chai, noflo, root, urlPrefix;
+let chai; let noflo; let root; let
+  urlPrefix;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   if (!chai) { chai = require('chai'); }
   noflo = require('../src/lib/NoFlo');
@@ -16,120 +34,114 @@ if ((typeof process !== 'undefined') && process.execPath && process.execPath.mat
   urlPrefix = '/';
 }
 
-const legacyBasic = function() {
-  const c = new noflo.Component;
+const legacyBasic = function () {
+  const c = new noflo.Component();
   c.inPorts.add('in',
-    {datatype: 'string'});
+    { datatype: 'string' });
   c.outPorts.add('out',
-    {datatype: 'string'});
-  c.inPorts.in.on('connect', function() {
+    { datatype: 'string' });
+  c.inPorts.in.on('connect', () => {
     c.outPorts.out.connect();
   });
-  c.inPorts.in.on('begingroup', function(group) {
+  c.inPorts.in.on('begingroup', (group) => {
     c.outPorts.out.beginGroup(group);
   });
-  c.inPorts.in.on('data', function(data) {
+  c.inPorts.in.on('data', (data) => {
     c.outPorts.out.data(data + c.nodeId);
   });
-  c.inPorts.in.on('endgroup', function(group) {
+  c.inPorts.in.on('endgroup', (group) => {
     c.outPorts.out.endGroup();
   });
-  c.inPorts.in.on('disconnect', function() {
+  c.inPorts.in.on('disconnect', () => {
     c.outPorts.out.disconnect();
   });
   return c;
 };
 
-const processAsync = function() {
-  const c = new noflo.Component;
+const processAsync = function () {
+  const c = new noflo.Component();
   c.inPorts.add('in',
-    {datatype: 'string'});
+    { datatype: 'string' });
   c.outPorts.add('out',
-    {datatype: 'string'});
+    { datatype: 'string' });
 
-  c.process(function(input, output) {
+  c.process((input, output) => {
     const data = input.getData('in');
-    setTimeout(function() {
+    setTimeout(() => {
       output.sendDone(data + c.nodeId);
-    }
-    , 1);
+    },
+    1);
   });
   return c;
 };
 
-const processMerge = function() {
-  const c = new noflo.Component;
+const processMerge = function () {
+  const c = new noflo.Component();
   c.inPorts.add('in1',
-    {datatype: 'string'});
+    { datatype: 'string' });
   c.inPorts.add('in2',
-    {datatype: 'string'});
+    { datatype: 'string' });
   c.outPorts.add('out',
-    {datatype: 'string'});
+    { datatype: 'string' });
 
-  c.forwardBrackets =
-    {'in1': ['out']};
+  c.forwardBrackets = { in1: ['out'] };
 
-  c.process(function(input, output) {
-    if (!input.has('in1', 'in2', ip => ip.type === 'data')) { return; }
+  c.process((input, output) => {
+    if (!input.has('in1', 'in2', (ip) => ip.type === 'data')) { return; }
     const first = input.getData('in1');
     const second = input.getData('in2');
 
-    output.sendDone({
-      out: `1${first}:2${second}:${c.nodeId}`});
+    output.sendDone({ out: `1${first}:2${second}:${c.nodeId}` });
   });
   return c;
 };
 
-const processSync = function() {
-  const c = new noflo.Component;
+const processSync = function () {
+  const c = new noflo.Component();
   c.inPorts.add('in',
-    {datatype: 'string'});
+    { datatype: 'string' });
   c.outPorts.add('out',
-    {datatype: 'string'});
-  c.process(function(input, output) {
+    { datatype: 'string' });
+  c.process((input, output) => {
     const data = input.getData('in');
-    output.send({
-      out: data + c.nodeId});
+    output.send({ out: data + c.nodeId });
     output.done();
   });
   return c;
 };
 
-const processBracketize = function() {
-  const c = new noflo.Component;
+const processBracketize = function () {
+  const c = new noflo.Component();
   c.inPorts.add('in',
-    {datatype: 'string'});
+    { datatype: 'string' });
   c.outPorts.add('out',
-    {datatype: 'string'});
+    { datatype: 'string' });
   c.counter = 0;
-  c.tearDown = function(callback) {
+  c.tearDown = function (callback) {
     c.counter = 0;
     callback();
   };
-  c.process(function(input, output) {
+  c.process((input, output) => {
     const data = input.getData('in');
-    output.send({
-      out: new noflo.IP('openBracket', c.counter)});
-    output.send({
-      out: data});
-    output.send({
-      out: new noflo.IP('closeBracket', c.counter)});
+    output.send({ out: new noflo.IP('openBracket', c.counter) });
+    output.send({ out: data });
+    output.send({ out: new noflo.IP('closeBracket', c.counter) });
     c.counter++;
     output.done();
   });
   return c;
 };
 
-const processNonSending = function() {
-  const c = new noflo.Component;
+const processNonSending = function () {
+  const c = new noflo.Component();
   c.inPorts.add('in',
-    {datatype: 'string'});
+    { datatype: 'string' });
   c.inPorts.add('in2',
-    {datatype: 'string'});
+    { datatype: 'string' });
   c.outPorts.add('out',
-    {datatype: 'string'});
+    { datatype: 'string' });
   c.forwardBrackets = {};
-  c.process(function(input, output) {
+  c.process((input, output) => {
     if (input.hasData('in2')) {
       input.getData('in2');
       output.done();
@@ -143,36 +155,36 @@ const processNonSending = function() {
   return c;
 };
 
-const processGenerator = function() {
-  const c = new noflo.Component;
+const processGenerator = function () {
+  const c = new noflo.Component();
   c.inPorts.add('start',
-    {datatype: 'bang'});
+    { datatype: 'bang' });
   c.inPorts.add('stop',
-    {datatype: 'bang'});
+    { datatype: 'bang' });
   c.outPorts.add('out',
-    {datatype: 'bang'});
+    { datatype: 'bang' });
   c.autoOrdering = false;
 
-  const cleanUp = function() {
+  const cleanUp = function () {
     if (!c.timer) { return; }
     clearInterval(c.timer.interval);
     c.timer.deactivate();
     c.timer = null;
   };
-  c.tearDown = function(callback) {
+  c.tearDown = function (callback) {
     cleanUp();
     callback();
   };
 
-  c.process(function(input, output, context) {
+  c.process((input, output, context) => {
     if (input.hasData('start')) {
       if (c.timer) { cleanUp(); }
       input.getData('start');
       c.timer = context;
-      c.timer.interval = setInterval(function() {
-        output.send({out: true});
-      }
-      , 100);
+      c.timer.interval = setInterval(() => {
+        output.send({ out: true });
+      },
+      100);
     }
     if (input.hasData('stop')) {
       input.getData('stop');
@@ -182,17 +194,16 @@ const processGenerator = function() {
       }
       cleanUp();
       output.done();
-      return;
     }
   });
   return c;
 };
 
-describe('Network Lifecycle', function() {
+describe('Network Lifecycle', () => {
   let loader = null;
-  before(function(done) {
+  before((done) => {
     loader = new noflo.ComponentLoader(root);
-    loader.listComponents(function(err) {
+    loader.listComponents((err) => {
       if (err) {
         done(err);
         return;
@@ -206,11 +217,10 @@ describe('Network Lifecycle', function() {
       loader.registerComponent('legacy', 'Sync', legacyBasic);
       done();
     });
-
   });
-  describe('recognizing API level', function() {
-    it('should recognize legacy component as such', function(done) {
-      loader.load('legacy/Sync', function(err, inst) {
+  describe('recognizing API level', () => {
+    it('should recognize legacy component as such', (done) => {
+      loader.load('legacy/Sync', (err, inst) => {
         if (err) {
           done(err);
           return;
@@ -219,8 +229,8 @@ describe('Network Lifecycle', function() {
         done();
       });
     });
-    it('should recognize Process API component as non-legacy', function(done) {
-      loader.load('process/Async', function(err, inst) {
+    it('should recognize Process API component as non-legacy', (done) => {
+      loader.load('process/Async', (err, inst) => {
         if (err) {
           done(err);
           return;
@@ -229,8 +239,8 @@ describe('Network Lifecycle', function() {
         done();
       });
     });
-    it('should recognize Graph component as non-legacy', function(done) {
-      loader.load('Graph', function(err, inst) {
+    it('should recognize Graph component as non-legacy', (done) => {
+      loader.load('Graph', (err, inst) => {
         if (err) {
           done(err);
           return;
@@ -240,23 +250,23 @@ describe('Network Lifecycle', function() {
       });
     });
   });
-  describe('with single Process API component receiving IIP', function() {
+  describe('with single Process API component receiving IIP', () => {
     let c = null;
     let g = null;
     let out = null;
-    beforeEach(function(done) {
-      const fbpData = `\
+    beforeEach((done) => {
+      const fbpData = '\
 OUTPORT=Pc.OUT:OUT \
-'hello' -> IN Pc(process/Async)\
-`;
-      noflo.graph.loadFBP(fbpData, function(err, graph) {
+\'hello\' -> IN Pc(process/Async)\
+';
+      noflo.graph.loadFBP(fbpData, (err, graph) => {
         if (err) {
           done(err);
           return;
         }
         g = graph;
         loader.registerComponent('scope', 'Connected', graph);
-        loader.load('scope/Connected', function(err, instance) {
+        loader.load('scope/Connected', (err, instance) => {
           if (err) {
             done(err);
             return;
@@ -268,17 +278,17 @@ OUTPORT=Pc.OUT:OUT \
         });
       });
     });
-    afterEach(function(done) {
+    afterEach((done) => {
       c.outPorts.out.detach(out);
       out = null;
       c.shutdown(done);
     });
-    it('should execute and finish', function(done) {
+    it('should execute and finish', (done) => {
       const expected = [
-        'DATA helloPc'
+        'DATA helloPc',
       ];
       const received = [];
-      out.on('ip', function(ip) {
+      out.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`< ${ip.data}`);
@@ -292,31 +302,30 @@ OUTPORT=Pc.OUT:OUT \
         }
       });
       let wasStarted = false;
-      const checkStart = function() {
+      const checkStart = function () {
         chai.expect(wasStarted).to.equal(false);
         wasStarted = true;
       };
-      const checkEnd = function() {
+      const checkEnd = function () {
         chai.expect(received).to.eql(expected);
         chai.expect(wasStarted).to.equal(true);
         done();
       };
       c.network.once('start', checkStart);
       c.network.once('end', checkEnd);
-      c.start(function(err) {
+      c.start((err) => {
         if (err) {
           done(err);
-          return;
         }
       });
     });
-    it('should execute twice if IIP changes', function(done) {
+    it('should execute twice if IIP changes', (done) => {
       const expected = [
         'DATA helloPc',
-        'DATA worldPc'
+        'DATA worldPc',
       ];
       const received = [];
-      out.on('ip', function(ip) {
+      out.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`< ${ip.data}`);
@@ -330,11 +339,11 @@ OUTPORT=Pc.OUT:OUT \
         }
       });
       let wasStarted = false;
-      const checkStart = function() {
+      const checkStart = function () {
         chai.expect(wasStarted).to.equal(false);
         wasStarted = true;
       };
-      var checkEnd = function() {
+      var checkEnd = function () {
         chai.expect(wasStarted).to.equal(true);
         if (received.length < expected.length) {
           wasStarted = false;
@@ -342,17 +351,16 @@ OUTPORT=Pc.OUT:OUT \
           c.network.once('end', checkEnd);
           c.network.addInitial({
             from: {
-              data: 'world'
+              data: 'world',
             },
             to: {
               node: 'Pc',
-              port: 'in'
-            }
-          }
-           , function(err) {
-             if (err) {
+              port: 'in',
+            },
+          },
+          (err) => {
+            if (err) {
               done(err);
-              return;
             }
           });
           return;
@@ -363,19 +371,18 @@ OUTPORT=Pc.OUT:OUT \
       };
       c.network.once('start', checkStart);
       c.network.once('end', checkEnd);
-      c.start(function(err) {
+      c.start((err) => {
         if (err) {
           done(err);
-          return;
         }
       });
     });
-    it('should not send new IIP if network was stopped', function(done) {
+    it('should not send new IIP if network was stopped', (done) => {
       const expected = [
-        'DATA helloPc'
+        'DATA helloPc',
       ];
       const received = [];
-      out.on('ip', function(ip) {
+      out.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`< ${ip.data}`);
@@ -389,77 +396,75 @@ OUTPORT=Pc.OUT:OUT \
         }
       });
       let wasStarted = false;
-      const checkStart = function() {
+      const checkStart = function () {
         chai.expect(wasStarted).to.equal(false);
         wasStarted = true;
       };
-      const checkEnd = function() {
+      const checkEnd = function () {
         chai.expect(wasStarted).to.equal(true);
-        return c.network.stop(function(err) {
+        return c.network.stop((err) => {
           if (err) {
             done(err);
             return;
           }
           chai.expect(c.network.isStopped()).to.equal(true);
-          c.network.once('start', function() {
+          c.network.once('start', () => {
             throw new Error('Unexpected network start');
           });
-          c.network.once('end', function() {
+          c.network.once('end', () => {
             throw new Error('Unexpected network end');
           });
           c.network.addInitial({
             from: {
-              data: 'world'
+              data: 'world',
             },
             to: {
               node: 'Pc',
-              port: 'in'
-            }
-          }
-           , function(err) {
+              port: 'in',
+            },
+          },
+          (err) => {
             if (err) {
               done(err);
-              return;
             }
           });
-          setTimeout(function() {
+          setTimeout(() => {
             chai.expect(received).to.eql(expected);
             done();
-          }
-          , 1000);
+          },
+          1000);
         });
       };
       c.network.once('start', checkStart);
       c.network.once('end', checkEnd);
-      c.start(function(err) {
+      c.start((err) => {
         if (err) {
           done(err);
-          return;
         }
       });
     });
   });
-  describe('with synchronous Process API', function() {
+  describe('with synchronous Process API', () => {
     let c = null;
     let g = null;
     let out = null;
-    beforeEach(function(done) {
-      const fbpData = `\
+    beforeEach((done) => {
+      const fbpData = '\
 OUTPORT=Sync.OUT:OUT \
-'foo' -> IN2 NonSending(process/NonSending) \
-'hello' -> IN Bracketize(process/Bracketize) \
+\'foo\' -> IN2 NonSending(process/NonSending) \
+\'hello\' -> IN Bracketize(process/Bracketize) \
 Bracketize OUT -> IN NonSending(process/NonSending) \
 NonSending OUT -> IN Sync(process/Sync) \
 Sync OUT -> IN2 NonSending\
-`;
-      noflo.graph.loadFBP(fbpData, function(err, graph) {
+';
+      noflo.graph.loadFBP(fbpData, (err, graph) => {
         if (err) {
           done(err);
           return;
         }
         g = graph;
         loader.registerComponent('scope', 'Connected', graph);
-        loader.load('scope/Connected', function(err, instance) {
+        loader.load('scope/Connected', (err, instance) => {
           if (err) {
             done(err);
             return;
@@ -471,17 +476,17 @@ Sync OUT -> IN2 NonSending\
         });
       });
     });
-    afterEach(function(done) {
+    afterEach((done) => {
       c.outPorts.out.detach(out);
       out = null;
       c.shutdown(done);
     });
-    it('should execute and finish', function(done) {
+    it('should execute and finish', (done) => {
       const expected = [
-        'DATA helloNonSendingSync'
+        'DATA helloNonSendingSync',
       ];
       const received = [];
-      out.on('ip', function(ip) {
+      out.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`< ${ip.data}`);
@@ -495,48 +500,47 @@ Sync OUT -> IN2 NonSending\
         }
       });
       let wasStarted = false;
-      const checkStart = function() {
+      const checkStart = function () {
         chai.expect(wasStarted).to.equal(false);
         wasStarted = true;
       };
-      const checkEnd = function() {
-        setTimeout(function() {
+      const checkEnd = function () {
+        setTimeout(() => {
           chai.expect(received).to.eql(expected);
           chai.expect(wasStarted).to.equal(true);
           done();
-        }
-        , 100);
+        },
+        100);
       };
       c.network.once('start', checkStart);
       c.network.once('end', checkEnd);
-      c.start(function(err) {
+      c.start((err) => {
         if (err) {
           done(err);
-          return;
         }
       });
     });
   });
-  describe('pure Process API merging two inputs', function() {
+  describe('pure Process API merging two inputs', () => {
     let c = null;
     let in1 = null;
     let in2 = null;
     let out = null;
-    before(function(done) {
-      const fbpData = `\
+    before((done) => {
+      const fbpData = '\
 INPORT=Pc1.IN:IN1 \
 INPORT=Pc2.IN:IN2 \
 OUTPORT=PcMerge.OUT:OUT \
 Pc1(process/Async) OUT -> IN1 PcMerge(process/Merge) \
 Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
-`;
-      noflo.graph.loadFBP(fbpData, function(err, g) {
+';
+      noflo.graph.loadFBP(fbpData, (err, g) => {
         if (err) {
           done(err);
           return;
         }
         loader.registerComponent('scope', 'Merge', g);
-        loader.load('scope/Merge', function(err, instance) {
+        loader.load('scope/Merge', (err, instance) => {
           if (err) {
             done(err);
             return;
@@ -550,17 +554,16 @@ Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
         });
       });
     });
-    beforeEach(function() {
+    beforeEach(() => {
       out = noflo.internalSocket.createSocket();
       c.outPorts.out.attach(out);
     });
-    afterEach(function(done) {
+    afterEach((done) => {
       c.outPorts.out.detach(out);
       out = null;
       c.shutdown(done);
-
     });
-    it('should forward new-style brackets as expected', function(done) {
+    it('should forward new-style brackets as expected', (done) => {
       const expected = [
         'CONN',
         '< 1',
@@ -568,32 +571,32 @@ Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
         'DATA 1bazPc1:2fooPc2:PcMerge',
         '>',
         '>',
-        'DISC'
+        'DISC',
       ];
       const received = [];
 
-      out.on('connect', function() {
+      out.on('connect', () => {
         received.push('CONN');
       });
-      out.on('begingroup', function(group) {
+      out.on('begingroup', (group) => {
         received.push(`< ${group}`);
       });
-      out.on('data', function(data) {
+      out.on('data', (data) => {
         received.push(`DATA ${data}`);
       });
-      out.on('endgroup', function() {
+      out.on('endgroup', () => {
         received.push('>');
       });
-      out.on('disconnect', function() {
+      out.on('disconnect', () => {
         received.push('DISC');
       });
 
       let wasStarted = false;
-      const checkStart = function() {
+      const checkStart = function () {
         chai.expect(wasStarted).to.equal(false);
         wasStarted = true;
       };
-      const checkEnd = function() {
+      const checkEnd = function () {
         chai.expect(received).to.eql(expected);
         chai.expect(wasStarted).to.equal(true);
         done();
@@ -601,7 +604,7 @@ Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
       c.network.once('start', checkStart);
       c.network.once('end', checkEnd);
 
-      c.start(function(err) {
+      c.start((err) => {
         if (err) {
           done(err);
           return;
@@ -618,7 +621,7 @@ Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
         in1.disconnect();
       });
     });
-    it('should forward new-style brackets as expected regardless of sending order', function(done) {
+    it('should forward new-style brackets as expected regardless of sending order', (done) => {
       const expected = [
         'CONN',
         '< 1',
@@ -626,32 +629,32 @@ Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
         'DATA 1bazPc1:2fooPc2:PcMerge',
         '>',
         '>',
-        'DISC'
+        'DISC',
       ];
       const received = [];
 
-      out.on('connect', function() {
+      out.on('connect', () => {
         received.push('CONN');
       });
-      out.on('begingroup', function(group) {
+      out.on('begingroup', (group) => {
         received.push(`< ${group}`);
       });
-      out.on('data', function(data) {
+      out.on('data', (data) => {
         received.push(`DATA ${data}`);
       });
-      out.on('endgroup', function() {
+      out.on('endgroup', () => {
         received.push('>');
       });
-      out.on('disconnect', function() {
+      out.on('disconnect', () => {
         received.push('DISC');
       });
 
       let wasStarted = false;
-      const checkStart = function() {
+      const checkStart = function () {
         chai.expect(wasStarted).to.equal(false);
         wasStarted = true;
       };
-      const checkEnd = function() {
+      const checkEnd = function () {
         chai.expect(received).to.eql(expected);
         chai.expect(wasStarted).to.equal(true);
         done();
@@ -659,7 +662,7 @@ Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
       c.network.once('start', checkStart);
       c.network.once('end', checkEnd);
 
-      c.start(function(err) {
+      c.start((err) => {
         if (err) {
           done(err);
           return;
@@ -676,16 +679,16 @@ Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
         in2.disconnect();
       });
     });
-    it('should forward scopes as expected', function(done) {
+    it('should forward scopes as expected', (done) => {
       const expected = [
         'x < 1',
         'x DATA 1onePc1:2twoPc2:PcMerge',
-        'x >'
+        'x >',
       ];
       const received = [];
       const brackets = [];
 
-      out.on('ip', function(ip) {
+      out.on('ip', (ip) => {
         switch (ip.type) {
           case 'openBracket':
             received.push(`${ip.scope} < ${ip.data}`);
@@ -701,11 +704,11 @@ Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
         }
       });
       let wasStarted = false;
-      const checkStart = function() {
+      const checkStart = function () {
         chai.expect(wasStarted).to.equal(false);
         wasStarted = true;
       };
-      const checkEnd = function() {
+      const checkEnd = function () {
         chai.expect(received).to.eql(expected);
         chai.expect(wasStarted).to.equal(true);
         done();
@@ -713,47 +716,43 @@ Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
       c.network.once('start', checkStart);
       c.network.once('end', checkEnd);
 
-      c.start(function(err) {
+      c.start((err) => {
         if (err) {
           done(err);
           return;
         }
         in2.post(new noflo.IP('data', 'two',
-          {scope: 'x'})
-        );
+          { scope: 'x' }));
         in1.post(new noflo.IP('openBracket', 1,
-          {scope: 'x'})
-        );
+          { scope: 'x' }));
         in1.post(new noflo.IP('data', 'one',
-          {scope: 'x'})
-        );
+          { scope: 'x' }));
         in1.post(new noflo.IP('closeBracket', 1,
-          {scope: 'x'})
-        );
+          { scope: 'x' }));
       });
     });
   });
-  describe('Process API mixed with legacy merging two inputs', function() {
+  describe('Process API mixed with legacy merging two inputs', () => {
     let c = null;
     let in1 = null;
     let in2 = null;
     let out = null;
-    before(function(done) {
-      const fbpData = `\
+    before((done) => {
+      const fbpData = '\
 INPORT=Leg1.IN:IN1 \
 INPORT=Leg2.IN:IN2 \
 OUTPORT=Leg3.OUT:OUT \
 Leg1(legacy/Sync) OUT -> IN1 PcMerge(process/Merge) \
 Leg2(legacy/Sync) OUT -> IN2 PcMerge(process/Merge) \
 PcMerge OUT -> IN Leg3(legacy/Sync)\
-`;
-      noflo.graph.loadFBP(fbpData, function(err, g) {
+';
+      noflo.graph.loadFBP(fbpData, (err, g) => {
         if (err) {
           done(err);
           return;
         }
         loader.registerComponent('scope', 'Merge', g);
-        loader.load('scope/Merge', function(err, instance) {
+        loader.load('scope/Merge', (err, instance) => {
           if (err) {
             done(err);
             return;
@@ -767,17 +766,16 @@ PcMerge OUT -> IN Leg3(legacy/Sync)\
         });
       });
     });
-    beforeEach(function() {
+    beforeEach(() => {
       out = noflo.internalSocket.createSocket();
       c.outPorts.out.attach(out);
     });
-    afterEach(function(done) {
+    afterEach((done) => {
       c.outPorts.out.detach(out);
       out = null;
       c.shutdown(done);
-
     });
-    it('should forward new-style brackets as expected', function(done) {
+    it('should forward new-style brackets as expected', (done) => {
       const expected = [
         'CONN',
         '< 1',
@@ -785,32 +783,32 @@ PcMerge OUT -> IN Leg3(legacy/Sync)\
         'DATA 1bazLeg1:2fooLeg2:PcMergeLeg3',
         '>',
         '>',
-        'DISC'
+        'DISC',
       ];
       const received = [];
 
-      out.on('connect', function() {
+      out.on('connect', () => {
         received.push('CONN');
       });
-      out.on('begingroup', function(group) {
+      out.on('begingroup', (group) => {
         received.push(`< ${group}`);
       });
-      out.on('data', function(data) {
+      out.on('data', (data) => {
         received.push(`DATA ${data}`);
       });
-      out.on('endgroup', function() {
+      out.on('endgroup', () => {
         received.push('>');
       });
-      out.on('disconnect', function() {
+      out.on('disconnect', () => {
         received.push('DISC');
       });
 
       let wasStarted = false;
-      const checkStart = function() {
+      const checkStart = function () {
         chai.expect(wasStarted).to.equal(false);
         wasStarted = true;
       };
-      const checkEnd = function() {
+      const checkEnd = function () {
         chai.expect(received).to.eql(expected);
         chai.expect(wasStarted).to.equal(true);
         done();
@@ -818,7 +816,7 @@ PcMerge OUT -> IN Leg3(legacy/Sync)\
       c.network.once('start', checkStart);
       c.network.once('end', checkEnd);
 
-      c.start(function(err) {
+      c.start((err) => {
         if (err) {
           done(err);
           return;
@@ -835,7 +833,7 @@ PcMerge OUT -> IN Leg3(legacy/Sync)\
         in1.disconnect();
       });
     });
-    it('should forward new-style brackets as expected regardless of sending order', function(done) {
+    it('should forward new-style brackets as expected regardless of sending order', (done) => {
       const expected = [
         'CONN',
         '< 1',
@@ -843,32 +841,32 @@ PcMerge OUT -> IN Leg3(legacy/Sync)\
         'DATA 1bazLeg1:2fooLeg2:PcMergeLeg3',
         '>',
         '>',
-        'DISC'
+        'DISC',
       ];
       const received = [];
 
-      out.on('connect', function() {
+      out.on('connect', () => {
         received.push('CONN');
       });
-      out.on('begingroup', function(group) {
+      out.on('begingroup', (group) => {
         received.push(`< ${group}`);
       });
-      out.on('data', function(data) {
+      out.on('data', (data) => {
         received.push(`DATA ${data}`);
       });
-      out.on('endgroup', function() {
+      out.on('endgroup', () => {
         received.push('>');
       });
-      out.on('disconnect', function() {
+      out.on('disconnect', () => {
         received.push('DISC');
       });
 
       let wasStarted = false;
-      const checkStart = function() {
+      const checkStart = function () {
         chai.expect(wasStarted).to.equal(false);
         wasStarted = true;
       };
-      const checkEnd = function() {
+      const checkEnd = function () {
         chai.expect(received).to.eql(expected);
         chai.expect(wasStarted).to.equal(true);
         done();
@@ -876,7 +874,7 @@ PcMerge OUT -> IN Leg3(legacy/Sync)\
       c.network.once('start', checkStart);
       c.network.once('end', checkEnd);
 
-      c.start(function(err) {
+      c.start((err) => {
         if (err) {
           done(err);
           return;
@@ -894,30 +892,30 @@ PcMerge OUT -> IN Leg3(legacy/Sync)\
       });
     });
   });
-  describe('with a Process API Generator component', function() {
+  describe('with a Process API Generator component', () => {
     let c = null;
     let start = null;
     let stop = null;
     let out = null;
-    before(function(done) {
-      const fbpData = `\
+    before((done) => {
+      const fbpData = '\
 INPORT=PcGen.START:START \
 INPORT=PcGen.STOP:STOP \
 OUTPORT=Pc.OUT:OUT \
 PcGen(process/Generator) OUT -> IN Pc(process/Async)\
-`;
-      noflo.graph.loadFBP(fbpData, function(err, g) {
+';
+      noflo.graph.loadFBP(fbpData, (err, g) => {
         if (err) {
           done(err);
           return;
         }
         loader.registerComponent('scope', 'Connected', g);
-        loader.load('scope/Connected', function(err, instance) {
+        loader.load('scope/Connected', (err, instance) => {
           if (err) {
             done(err);
             return;
           }
-          instance.once('ready', function() {
+          instance.once('ready', () => {
             c = instance;
             start = noflo.internalSocket.createSocket();
             c.inPorts.start.attach(start);
@@ -928,20 +926,20 @@ PcGen(process/Generator) OUT -> IN Pc(process/Async)\
         });
       });
     });
-    beforeEach(function() {
+    beforeEach(() => {
       out = noflo.internalSocket.createSocket();
       c.outPorts.out.attach(out);
     });
-    afterEach(function(done) {
+    afterEach((done) => {
       c.outPorts.out.detach(out);
       out = null;
       c.shutdown(done);
     });
-    it('should not be running initially', function() {
+    it('should not be running initially', () => {
       chai.expect(c.network.isRunning()).to.equal(false);
     });
-    it('should not be running even when network starts', function(done) {
-      c.start(function(err) {
+    it('should not be running even when network starts', (done) => {
+      c.start((err) => {
         if (err) {
           done(err);
           return;
@@ -950,33 +948,33 @@ PcGen(process/Generator) OUT -> IN Pc(process/Async)\
         done();
       });
     });
-    it('should start generating when receiving a start packet', function(done) {
-      c.start(function(err) {
+    it('should start generating when receiving a start packet', (done) => {
+      c.start((err) => {
         if (err) {
           done(err);
           return;
         }
-        out.once('data', function() {
+        out.once('data', () => {
           chai.expect(c.network.isRunning()).to.equal(true);
           done();
         });
         start.send(true);
       });
     });
-    it('should stop generating when receiving a stop packet', function(done) {
-      c.start(function(err) {
+    it('should stop generating when receiving a stop packet', (done) => {
+      c.start((err) => {
         if (err) {
           done(err);
           return;
         }
-        out.once('data', function() {
+        out.once('data', () => {
           chai.expect(c.network.isRunning()).to.equal(true);
           stop.send(true);
-          setTimeout(function() {
+          setTimeout(() => {
             chai.expect(c.network.isRunning()).to.equal(false);
             done();
-          }
-          , 10);
+          },
+          10);
         });
         start.send(true);
       });
