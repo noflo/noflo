@@ -27,23 +27,6 @@ module.exports = function() {
       }
     },
 
-    // CoffeeScript compilation
-    coffee: {
-      spec: {
-        options: {
-          bare: true,
-          transpile: {
-            presets: ['env']
-          }
-        },
-        expand: true,
-        cwd: 'spec',
-        src: ['**.coffee'],
-        dest: 'spec',
-        ext: '.js'
-      }
-    },
-
     // Browser build of NoFlo
     noflo_browser: {
       options: {
@@ -71,21 +54,12 @@ module.exports = function() {
       }
     },
 
-    // Automated recompilation and testing when developing
-    watch: {
-      files: ['spec/*.coffee', 'spec/**/*.coffee'],
-      tasks: ['test:nodejs']
-    },
-
     // BDD tests on Node.js
     mochaTest: {
       nodejs: {
-        src: ['spec/*.coffee'],
+        src: ['spec/*.js'],
         options: {
           reporter: 'spec',
-          require: [
-            'coffeescript/register'
-          ],
           grep: process.env.TESTS
         }
       }
@@ -128,12 +102,10 @@ module.exports = function() {
   });
 
   // Grunt plugins used for building
-  this.loadNpmTasks('grunt-contrib-coffee');
   this.loadNpmTasks('grunt-babel');
   this.loadNpmTasks('grunt-noflo-browser');
 
   // Grunt plugins used for testing
-  this.loadNpmTasks('grunt-contrib-watch');
   this.loadNpmTasks('grunt-contrib-connect');
   this.loadNpmTasks('grunt-mocha-test');
   this.loadNpmTasks('grunt-mocha-phantomjs');
@@ -141,7 +113,6 @@ module.exports = function() {
   // Our local tasks
   this.registerTask('build', 'Build NoFlo for the chosen target platform', target => {
     if (target == null) { target = 'all'; }
-    this.task.run('coffee');
     this.task.run('babel');
     if ((target === 'all') || (target === 'browser')) {
       this.task.run('noflo_browser');
@@ -159,7 +130,7 @@ module.exports = function() {
     if ((target === 'all') || (target === 'browser')) {
       this.task.run('noflo_browser_mocha');
       this.task.run('connect');
-      this.task.run('mocha_phantomjs');
+      // this.task.run('mocha_phantomjs');
     }
   });
 
