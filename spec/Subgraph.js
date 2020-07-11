@@ -1,10 +1,25 @@
+/* eslint-disable
+    func-names,
+    global-require,
+    import/no-extraneous-dependencies,
+    import/no-unresolved,
+    no-param-reassign,
+    no-restricted-syntax,
+    no-shadow,
+    no-undef,
+    no-unused-expressions,
+    no-unused-vars,
+*/
+// TODO: This file was created by bulk-decaffeinate.
+// Fix any style issues and re-enable lint.
 /*
  * decaffeinate suggestions:
  * DS101: Remove unnecessary use of Array.from
  * DS102: Remove unnecessary code created because of implicit returns
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
-let chai, noflo, root, urlPrefix;
+let chai; let noflo; let root; let
+  urlPrefix;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   if (!chai) { chai = require('chai'); }
   noflo = require('../src/lib/NoFlo');
@@ -17,16 +32,16 @@ if ((typeof process !== 'undefined') && process.execPath && process.execPath.mat
   urlPrefix = '/';
 }
 
-describe('NoFlo Graph component', function() {
+describe('NoFlo Graph component', () => {
   let c = null;
   let g = null;
   let loader = null;
-  before(function(done) {
+  before((done) => {
     loader = new noflo.ComponentLoader(root);
     loader.listComponents(done);
   });
-  beforeEach(function(done) {
-    loader.load('Graph', function(err, instance) {
+  beforeEach((done) => {
+    loader.load('Graph', (err, instance) => {
       if (err) {
         done(err);
         return;
@@ -38,166 +53,165 @@ describe('NoFlo Graph component', function() {
     });
   });
 
-  const Split = function() {
-    const inst = new noflo.Component;
+  const Split = function () {
+    const inst = new noflo.Component();
     inst.inPorts.add('in',
-      {datatype: 'all'});
+      { datatype: 'all' });
     inst.outPorts.add('out',
-      {datatype: 'all'});
-    inst.process(function(input, output) {
+      { datatype: 'all' });
+    inst.process((input, output) => {
       const data = input.getData('in');
-      output.sendDone({
-        out: data});
+      output.sendDone({ out: data });
     });
     return inst;
   };
 
-  const SubgraphMerge = function() {
-    const inst = new noflo.Component;
+  const SubgraphMerge = function () {
+    const inst = new noflo.Component();
     inst.inPorts.add('in',
-      {datatype: 'all'});
+      { datatype: 'all' });
     inst.outPorts.add('out',
-      {datatype: 'all'});
+      { datatype: 'all' });
     inst.forwardBrackets = {};
-    inst.process(function(input, output) {
+    inst.process((input, output) => {
       const packet = input.get('in');
       if (packet.type !== 'data') {
         output.done();
         return;
       }
-      output.sendDone({
-        out: packet.data});
+      output.sendDone({ out: packet.data });
     });
     return inst;
   };
 
-  describe('initially', function() {
-    it('should be ready', function() {
+  describe('initially', () => {
+    it('should be ready', () => {
       chai.expect(c.ready).to.be.true;
     });
-    it('should not contain a network', function() {
+    it('should not contain a network', () => {
       chai.expect(c.network).to.be.null;
     });
-    it('should have a baseDir', function() {
+    it('should have a baseDir', () => {
       chai.expect(c.baseDir).to.equal(root);
     });
-    it('should only have the graph inport', function() {
+    it('should only have the graph inport', () => {
       chai.expect(c.inPorts.ports).to.have.keys(['graph']);
       chai.expect(c.outPorts.ports).to.be.empty;
     });
   });
-  describe('with JSON graph definition', function() {
-    it('should emit a ready event after network has been loaded', function(done) {
+  describe('with JSON graph definition', () => {
+    it('should emit a ready event after network has been loaded', (done) => {
       c.baseDir = root;
-      c.once('ready', function() {
+      c.once('ready', () => {
         chai.expect(c.network).not.to.be.null;
         chai.expect(c.ready).to.be.true;
         done();
       });
-      c.once('network', function(network) {
+      c.once('network', (network) => {
         network.loader.components.Split = Split;
         network.loader.registerComponent('', 'Merge', SubgraphMerge);
         chai.expect(c.ready).to.be.false;
         chai.expect(c.network).not.to.be.null;
-        c.start(function(err) {
+        c.start((err) => {
           if (err) { done(err); }
         });
       });
       g.send({
         processes: {
           Split: {
-            component: 'Split'
+            component: 'Split',
           },
           Merge: {
-            component: 'Merge'
-          }
-        }
+            component: 'Merge',
+          },
+        },
       });
     });
-    it('should expose available ports', function(done) {
+    it('should expose available ports', (done) => {
       c.baseDir = root;
-      c.once('ready', function() {
+      c.once('ready', () => {
         chai.expect(c.inPorts.ports).to.have.keys([
-          'graph'
+          'graph',
         ]);
         chai.expect(c.outPorts.ports).to.be.empty;
         done();
       });
-      c.once('network', function() {
+      c.once('network', () => {
         chai.expect(c.ready).to.be.false;
         chai.expect(c.network).not.to.be.null;
         c.network.loader.components.Split = Split;
         c.network.loader.components.Merge = SubgraphMerge;
-        c.start(function(err) {
+        c.start((err) => {
           if (err) { done(err); }
         });
       });
       g.send({
         processes: {
           Split: {
-            component: 'Split'
+            component: 'Split',
           },
           Merge: {
-            component: 'Merge'
-          }
+            component: 'Merge',
+          },
         },
         connections: [{
           src: {
             process: 'Merge',
-            port: 'out'
+            port: 'out',
           },
           tgt: {
             process: 'Split',
-            port: 'in'
-          }
-        }
-        ]});
+            port: 'in',
+          },
+        },
+        ],
+      });
     });
-    it('should update description from the graph', function(done) {
+    it('should update description from the graph', (done) => {
       c.baseDir = root;
-      c.once('ready', function() {
+      c.once('ready', () => {
         chai.expect(c.network).not.to.be.null;
         chai.expect(c.ready).to.be.true;
         chai.expect(c.description).to.equal('Hello, World!');
         done();
       });
-      c.once('network', function(network) {
+      c.once('network', (network) => {
         network.loader.components.Split = Split;
         chai.expect(c.ready).to.be.false;
         chai.expect(c.network).not.to.be.null;
         chai.expect(c.description).to.equal('Hello, World!');
-        c.start(function(err) {
+        c.start((err) => {
           if (err) { done(err); }
         });
       });
       g.send({
         properties: {
-          description: 'Hello, World!'
+          description: 'Hello, World!',
         },
         processes: {
           Split: {
-            component: 'Split'
-          }
-        }
+            component: 'Split',
+          },
+        },
       });
     });
-    it('should expose only exported ports when they exist', function(done) {
+    it('should expose only exported ports when they exist', (done) => {
       c.baseDir = root;
-      c.once('ready', function() {
+      c.once('ready', () => {
         chai.expect(c.inPorts.ports).to.have.keys([
-          'graph'
+          'graph',
         ]);
         chai.expect(c.outPorts.ports).to.have.keys([
-          'out'
+          'out',
         ]);
         done();
       });
-      c.once('network', function() {
+      c.once('network', () => {
         chai.expect(c.ready).to.be.false;
         chai.expect(c.network).not.to.be.null;
         c.network.loader.components.Split = Split;
         c.network.loader.components.Merge = SubgraphMerge;
-        c.start(function(err) {
+        c.start((err) => {
           if (err) { done(err); }
         });
       });
@@ -205,48 +219,49 @@ describe('NoFlo Graph component', function() {
         outports: {
           out: {
             process: 'Split',
-            port: 'out'
-          }
+            port: 'out',
+          },
         },
         processes: {
           Split: {
-            component: 'Split'
+            component: 'Split',
           },
           Merge: {
-            component: 'Merge'
-          }
+            component: 'Merge',
+          },
         },
         connections: [{
           src: {
             process: 'Merge',
-            port: 'out'
+            port: 'out',
           },
           tgt: {
             process: 'Split',
-            port: 'in'
-          }
-        }
-        ]});
+            port: 'in',
+          },
+        },
+        ],
+      });
     });
-    it('should be able to run the graph', function(done) {
+    it('should be able to run the graph', (done) => {
       c.baseDir = root;
-      c.once('ready', function() {
+      c.once('ready', () => {
         const ins = noflo.internalSocket.createSocket();
         const out = noflo.internalSocket.createSocket();
-        c.inPorts['in'].attach(ins);
-        c.outPorts['out'].attach(out);
-        out.on('data', function(data) {
+        c.inPorts.in.attach(ins);
+        c.outPorts.out.attach(out);
+        out.on('data', (data) => {
           chai.expect(data).to.equal('Foo');
           done();
         });
         ins.send('Foo');
       });
-      c.once('network', function() {
+      c.once('network', () => {
         chai.expect(c.ready).to.be.false;
         chai.expect(c.network).not.to.be.null;
         c.network.loader.components.Split = Split;
         c.network.loader.components.Merge = SubgraphMerge;
-        c.start(function(err) {
+        c.start((err) => {
           if (err) { done(err); }
         });
       });
@@ -254,39 +269,40 @@ describe('NoFlo Graph component', function() {
         inports: {
           in: {
             process: 'Merge',
-            port: 'in'
-          }
+            port: 'in',
+          },
         },
         outports: {
           out: {
             process: 'Split',
-            port: 'out'
-          }
+            port: 'out',
+          },
         },
         processes: {
           Split: {
-            component: 'Split'
+            component: 'Split',
           },
           Merge: {
-            component: 'Merge'
-          }
+            component: 'Merge',
+          },
         },
         connections: [{
           src: {
             process: 'Merge',
-            port: 'out'
+            port: 'out',
           },
           tgt: {
             process: 'Split',
-            port: 'in'
-          }
-        }
-        ]});
+            port: 'in',
+          },
+        },
+        ],
+      });
     });
   });
-  describe('with a Graph instance', function() {
+  describe('with a Graph instance', () => {
     let gr = null;
-    before(function() {
+    before(() => {
       gr = new noflo.Graph('Hello, world');
       gr.baseDir = root;
       gr.addNode('Split', 'Split');
@@ -295,57 +311,57 @@ describe('NoFlo Graph component', function() {
       gr.addInport('in', 'Merge', 'in');
       gr.addOutport('out', 'Split', 'out');
     });
-    it('should emit a ready event after network has been loaded', function(done) {
+    it('should emit a ready event after network has been loaded', (done) => {
       c.baseDir = root;
-      c.once('ready', function() {
+      c.once('ready', () => {
         chai.expect(c.network).not.to.be.null;
         chai.expect(c.ready).to.be.true;
         done();
       });
-      c.once('network', function() {
+      c.once('network', () => {
         chai.expect(c.ready).to.be.false;
         chai.expect(c.network).not.to.be.null;
         c.network.loader.components.Split = Split;
         c.network.loader.components.Merge = SubgraphMerge;
-        c.start(function(err) {
+        c.start((err) => {
           if (err) { done(err); }
         });
       });
       g.send(gr);
       chai.expect(c.ready).to.be.false;
     });
-    it('should expose available ports', function(done) {
+    it('should expose available ports', (done) => {
       c.baseDir = root;
-      c.once('ready', function() {
+      c.once('ready', () => {
         chai.expect(c.inPorts.ports).to.have.keys([
           'graph',
-          'in'
+          'in',
         ]);
         chai.expect(c.outPorts.ports).to.have.keys([
-          'out'
+          'out',
         ]);
         done();
       });
-      c.once('network', function() {
+      c.once('network', () => {
         chai.expect(c.ready).to.be.false;
         chai.expect(c.network).not.to.be.null;
         c.network.loader.components.Split = Split;
         c.network.loader.components.Merge = SubgraphMerge;
-        c.start(function(err) {
+        c.start((err) => {
           if (err) { done(err); }
         });
       });
       g.send(gr);
     });
-    it('should be able to run the graph', function(done) {
+    it('should be able to run the graph', (done) => {
       c.baseDir = root;
       let doned = false;
-      c.once('ready', function() {
+      c.once('ready', () => {
         const ins = noflo.internalSocket.createSocket();
         const out = noflo.internalSocket.createSocket();
-        c.inPorts['in'].attach(ins);
-        c.outPorts['out'].attach(out);
-        out.on('data', function(data) {
+        c.inPorts.in.attach(ins);
+        c.outPorts.out.attach(out);
+        out.on('data', (data) => {
           chai.expect(data).to.equal('Baz');
           if (doned) {
             process.exit(1);
@@ -355,78 +371,78 @@ describe('NoFlo Graph component', function() {
         });
         ins.send('Baz');
       });
-      c.once('network', function() {
+      c.once('network', () => {
         chai.expect(c.ready).to.be.false;
         chai.expect(c.network).not.to.be.null;
         c.network.loader.components.Split = Split;
         c.network.loader.components.Merge = SubgraphMerge;
-        c.start(function(err) {
+        c.start((err) => {
           if (err) { done(err); }
         });
       });
       g.send(gr);
     });
   });
-  describe('with a FBP file with INPORTs and OUTPORTs', function() {
+  describe('with a FBP file with INPORTs and OUTPORTs', () => {
     const file = `${urlPrefix}spec/fixtures/subgraph.fbp`;
-    it('should emit a ready event after network has been loaded', function(done) {
+    it('should emit a ready event after network has been loaded', function (done) {
       this.timeout(6000);
       c.baseDir = root;
-      c.once('ready', function() {
+      c.once('ready', () => {
         chai.expect(c.network).not.to.be.null;
         chai.expect(c.ready).to.be.true;
         done();
       });
-      c.once('network', function() {
+      c.once('network', () => {
         chai.expect(c.ready).to.be.false;
         chai.expect(c.network).not.to.be.null;
         c.network.loader.components.Split = Split;
         c.network.loader.components.Merge = SubgraphMerge;
-        c.start(function(err) {
+        c.start((err) => {
           if (err) { done(err); }
         });
       });
       g.send(file);
       chai.expect(c.ready).to.be.false;
     });
-    it('should expose available ports', function(done) {
+    it('should expose available ports', function (done) {
       this.timeout(6000);
       c.baseDir = root;
-      c.once('ready', function() {
+      c.once('ready', () => {
         chai.expect(c.inPorts.ports).to.have.keys([
           'graph',
-          'in'
+          'in',
         ]);
         chai.expect(c.outPorts.ports).to.have.keys([
-          'out'
+          'out',
         ]);
         done();
       });
-      c.once('network', function() {
+      c.once('network', () => {
         chai.expect(c.ready).to.be.false;
         chai.expect(c.network).not.to.be.null;
         c.network.loader.components.Split = Split;
         c.network.loader.components.Merge = SubgraphMerge;
-        c.start(function(err) {
+        c.start((err) => {
           if (err) { done(err); }
         });
       });
       g.send(file);
     });
-    it('should be able to run the graph', function(done) {
+    it('should be able to run the graph', function (done) {
       c.baseDir = root;
       this.timeout(6000);
-      c.once('ready', function() {
+      c.once('ready', () => {
         const ins = noflo.internalSocket.createSocket();
         const out = noflo.internalSocket.createSocket();
-        c.inPorts['in'].attach(ins);
-        c.outPorts['out'].attach(out);
+        c.inPorts.in.attach(ins);
+        c.outPorts.out.attach(out);
         let received = false;
-        out.on('data', function(data) {
+        out.on('data', (data) => {
           chai.expect(data).to.equal('Foo');
           received = true;
         });
-        out.on('disconnect', function() {
+        out.on('disconnect', () => {
           chai.expect(received, 'should have transmitted data').to.equal(true);
           done();
         });
@@ -434,34 +450,31 @@ describe('NoFlo Graph component', function() {
         ins.send('Foo');
         ins.disconnect();
       });
-      c.once('network', function() {
+      c.once('network', () => {
         chai.expect(c.ready).to.be.false;
         chai.expect(c.network).not.to.be.null;
         c.network.loader.components.Split = Split;
         c.network.loader.components.Merge = SubgraphMerge;
-        c.start(function(err) {
+        c.start((err) => {
           if (err) { done(err); }
         });
       });
       g.send(file);
     });
   });
-  describe('when a subgraph is used as a component', function() {
-
-    const createSplit = function() {
-      c = new noflo.Component;
+  describe('when a subgraph is used as a component', () => {
+    const createSplit = function () {
+      c = new noflo.Component();
       c.inPorts.add('in', {
         required: true,
         datatype: 'string',
-        default: 'default-value'
-      }
-      );
+        default: 'default-value',
+      });
       c.outPorts.add('out',
-        {datatype: 'string'});
-      c.process(function(input, output) {
+        { datatype: 'string' });
+      c.process((input, output) => {
         const data = input.getData('in');
-        output.sendDone({
-          out: data});
+        output.sendDone({ out: data });
       });
       return c;
     };
@@ -482,10 +495,10 @@ describe('NoFlo Graph component', function() {
     grInitials.addEdge('SplitIn', 'out', 'SplitOut', 'in');
 
     let cl = null;
-    before(function(done) {
+    before(function (done) {
       this.timeout(6000);
       cl = new noflo.ComponentLoader(root);
-      cl.listComponents(function(err, components) {
+      cl.listComponents((err, components) => {
         if (err) {
           done(err);
           return;
@@ -497,62 +510,59 @@ describe('NoFlo Graph component', function() {
       });
     });
 
-    it('should send defaults', function(done) {
-      cl.load('Defaults', function(err, inst) {
+    it('should send defaults', (done) => {
+      cl.load('Defaults', (err, inst) => {
         const o = noflo.internalSocket.createSocket();
         inst.outPorts.out.attach(o);
-        o.once('data', function(data) {
+        o.once('data', (data) => {
           chai.expect(data).to.equal('default-value');
           done();
         });
-        inst.start(function(err) {
+        inst.start((err) => {
           if (err) {
             done(err);
-            return;
           }
         });
       });
     });
 
-    it('should send initials', function(done) {
-      cl.load('Initials', function(err, inst) {
+    it('should send initials', (done) => {
+      cl.load('Initials', (err, inst) => {
         const o = noflo.internalSocket.createSocket();
         inst.outPorts.out.attach(o);
-        o.once('data', function(data) {
+        o.once('data', (data) => {
           chai.expect(data).to.equal('initial-value');
           done();
         });
-        inst.start(function(err) {
+        inst.start((err) => {
           if (err) {
             done(err);
-            return;
           }
         });
       });
     });
 
-    it('should not send defaults when an inport is attached externally', function(done) {
-      cl.load('Defaults', function(err, inst) {
+    it('should not send defaults when an inport is attached externally', (done) => {
+      cl.load('Defaults', (err, inst) => {
         const i = noflo.internalSocket.createSocket();
         const o = noflo.internalSocket.createSocket();
         inst.inPorts.in.attach(i);
         inst.outPorts.out.attach(o);
-        o.once('data', function(data) {
+        o.once('data', (data) => {
           chai.expect(data).to.equal('Foo');
           done();
         });
-        inst.start(function(err) {
+        inst.start((err) => {
           if (err) {
             done(err);
-            return;
           }
         });
         i.send('Foo');
       });
     });
 
-    it('should deactivate after processing is complete', function(done) {
-      cl.load('Defaults', function(err, inst) {
+    it('should deactivate after processing is complete', (done) => {
+      cl.load('Defaults', (err, inst) => {
         const i = noflo.internalSocket.createSocket();
         const o = noflo.internalSocket.createSocket();
         inst.inPorts.in.attach(i);
@@ -560,22 +570,22 @@ describe('NoFlo Graph component', function() {
         const expected = [
           'ACTIVATE 1',
           'data Foo',
-          'DEACTIVATE 0'
+          'DEACTIVATE 0',
         ];
         const received = [];
-        o.on('ip', function(ip) {
+        o.on('ip', (ip) => {
           received.push(`${ip.type} ${ip.data}`);
         });
-        inst.on('activate', function(load) {
+        inst.on('activate', (load) => {
           received.push(`ACTIVATE ${load}`);
         });
-        inst.on('deactivate', function(load) {
+        inst.on('deactivate', (load) => {
           received.push(`DEACTIVATE ${load}`);
           if (received.length !== expected.length) { return; }
           chai.expect(received).to.eql(expected);
           done();
         });
-        inst.start(function(err) {
+        inst.start((err) => {
           if (err) {
             done(err);
             return;
@@ -585,8 +595,8 @@ describe('NoFlo Graph component', function() {
       });
     });
 
-    it.skip('should activate automatically when receiving data', function(done) {
-      cl.load('Defaults', function(err, inst) {
+    it.skip('should activate automatically when receiving data', (done) => {
+      cl.load('Defaults', (err, inst) => {
         const i = noflo.internalSocket.createSocket();
         const o = noflo.internalSocket.createSocket();
         inst.inPorts.in.attach(i);
@@ -594,12 +604,12 @@ describe('NoFlo Graph component', function() {
         const expected = [
           'ACTIVATE 1',
           'data Foo',
-          'DEACTIVATE 0'
+          'DEACTIVATE 0',
         ];
         const received = [];
-        o.on('ip', ip => received.push(`${ip.type} ${ip.data}`));
-        inst.on('activate', load => received.push(`ACTIVATE ${load}`));
-        inst.on('deactivate', function(load) {
+        o.on('ip', (ip) => received.push(`${ip.type} ${ip.data}`));
+        inst.on('activate', (load) => received.push(`ACTIVATE ${load}`));
+        inst.on('deactivate', (load) => {
           received.push(`DEACTIVATE ${load}`);
           if (received.length !== expected.length) { return; }
           chai.expect(received).to.eql(expected);
@@ -609,8 +619,8 @@ describe('NoFlo Graph component', function() {
       });
     });
 
-    it('should reactivate when receiving new data packets', function(done) {
-      cl.load('Defaults', function(err, inst) {
+    it('should reactivate when receiving new data packets', (done) => {
+      cl.load('Defaults', (err, inst) => {
         const i = noflo.internalSocket.createSocket();
         const o = noflo.internalSocket.createSocket();
         inst.inPorts.in.attach(i);
@@ -625,33 +635,33 @@ describe('NoFlo Graph component', function() {
           'DEACTIVATE 0',
           'ACTIVATE 1',
           'data Foobar',
-          'DEACTIVATE 0'
+          'DEACTIVATE 0',
         ];
         const received = [];
         const send = [
           ['Foo'],
           ['Bar', 'Baz'],
-          ['Foobar']
+          ['Foobar'],
         ];
-        const sendNext = function() {
+        const sendNext = function () {
           if (!send.length) { return; }
           const sends = send.shift();
-          for (let d of Array.from(sends)) { i.post(new noflo.IP('data', d)); }
+          for (const d of Array.from(sends)) { i.post(new noflo.IP('data', d)); }
         };
-        o.on('ip', function(ip) {
+        o.on('ip', (ip) => {
           received.push(`${ip.type} ${ip.data}`);
         });
-        inst.on('activate', function(load) {
+        inst.on('activate', (load) => {
           received.push(`ACTIVATE ${load}`);
         });
-        inst.on('deactivate', function(load) {
+        inst.on('deactivate', (load) => {
           received.push(`DEACTIVATE ${load}`);
           sendNext();
           if (received.length !== expected.length) { return; }
           chai.expect(received).to.eql(expected);
           done();
         });
-        inst.start(function(err) {
+        inst.start((err) => {
           if (err) {
             done(err);
             return;
@@ -661,18 +671,18 @@ describe('NoFlo Graph component', function() {
       });
     });
   });
-  describe('event forwarding on parent network', function() {
-    describe('with a single level subgraph', function() {
+  describe('event forwarding on parent network', () => {
+    describe('with a single level subgraph', () => {
       let graph = null;
       let network = null;
-      before(function(done) {
+      before((done) => {
         graph = new noflo.Graph('main');
         graph.baseDir = root;
         noflo.createNetwork(graph, {
           delay: true,
-          subscribeGraph: false
-        }
-        , function(err, nw) {
+          subscribeGraph: false,
+        },
+        (err, nw) => {
           if (err) {
             done(err);
             return;
@@ -686,7 +696,7 @@ describe('NoFlo Graph component', function() {
           sg.addEdge('A', 'out', 'B', 'in');
           sg.addInport('in', 'A', 'in');
           sg.addOutport('out', 'B', 'out');
-          network.loader.registerGraph('foo', 'AB', sg, function(err) {
+          network.loader.registerGraph('foo', 'AB', sg, (err) => {
             if (err) {
               done(err);
               return;
@@ -695,21 +705,21 @@ describe('NoFlo Graph component', function() {
           });
         });
       });
-      it('should instantiate the subgraph when node is added', function(done) {
+      it('should instantiate the subgraph when node is added', (done) => {
         network.addNode({
           id: 'Sub',
-          component: 'foo/AB'
-        }
-        , function(err) {
+          component: 'foo/AB',
+        },
+        (err) => {
           if (err) {
             done(err);
             return;
           }
           network.addNode({
             id: 'Split',
-            component: 'Split'
-          }
-          , function(err) {
+            component: 'Split',
+          },
+          (err) => {
             if (err) {
               done(err);
               return;
@@ -717,14 +727,14 @@ describe('NoFlo Graph component', function() {
             network.addEdge({
               from: {
                 node: 'Sub',
-                port: 'out'
+                port: 'out',
               },
               to: {
                 node: 'Split',
-                port: 'in'
-              }
-            }
-            , function(err) {
+                port: 'in',
+              },
+            },
+            (err) => {
               if (err) {
                 done(err);
                 return;
@@ -736,23 +746,23 @@ describe('NoFlo Graph component', function() {
           });
         });
       });
-      it('should be possible to start the graph', function(done) {
+      it('should be possible to start the graph', (done) => {
         network.start(done);
       });
-      it('should forward IP events', function(done) {
-        network.once('ip', function(ip) {
+      it('should forward IP events', (done) => {
+        network.once('ip', (ip) => {
           chai.expect(ip.id).to.equal('DATA -> IN Sub()');
           chai.expect(ip.type).to.equal('data');
           chai.expect(ip.data).to.equal('foo');
           chai.expect(ip.subgraph).to.be.undefined;
-          network.once('ip', function(ip) {
+          network.once('ip', (ip) => {
             chai.expect(ip.id).to.equal('A() OUT -> IN B()');
             chai.expect(ip.type).to.equal('data');
             chai.expect(ip.data).to.equal('foo');
             chai.expect(ip.subgraph).to.eql([
-              'Sub'
+              'Sub',
             ]);
-            network.once('ip', function(ip) {
+            network.once('ip', (ip) => {
               chai.expect(ip.id).to.equal('Sub() OUT -> IN Split()');
               chai.expect(ip.type).to.equal('data');
               chai.expect(ip.data).to.equal('foo');
@@ -763,32 +773,31 @@ describe('NoFlo Graph component', function() {
         });
         network.addInitial({
           from: {
-            data: 'foo'
+            data: 'foo',
           },
           to: {
             node: 'Sub',
-            port: 'in'
-          }
-        }
-        , function(err) {
+            port: 'in',
+          },
+        },
+        (err) => {
           if (err) {
             done(err);
-            return;
           }
         });
       });
     });
-    describe('with two levels of subgraphs', function() {
+    describe('with two levels of subgraphs', () => {
       let graph = null;
       let network = null;
-      before(function(done) {
+      before((done) => {
         graph = new noflo.Graph('main');
         graph.baseDir = root;
         noflo.createNetwork(graph, {
           delay: true,
-          subscribeGraph: false
-        }
-        , function(err, net) {
+          subscribeGraph: false,
+        },
+        (err, net) => {
           if (err) {
             done(err);
             return;
@@ -808,12 +817,12 @@ describe('NoFlo Graph component', function() {
           sg2.addEdge('A', 'out', 'B', 'in');
           sg2.addInport('in', 'A', 'in');
           sg2.addOutport('out', 'B', 'out');
-          network.loader.registerGraph('foo', 'AB', sg, function(err) {
+          network.loader.registerGraph('foo', 'AB', sg, (err) => {
             if (err) {
               done(err);
               return;
             }
-            network.loader.registerGraph('foo', 'AB2', sg2, function(err) {
+            network.loader.registerGraph('foo', 'AB2', sg2, (err) => {
               if (err) {
                 done(err);
                 return;
@@ -823,21 +832,21 @@ describe('NoFlo Graph component', function() {
           });
         });
       });
-      it('should instantiate the subgraphs when node is added', function(done) {
+      it('should instantiate the subgraphs when node is added', (done) => {
         network.addNode({
           id: 'Sub',
-          component: 'foo/AB2'
-        }
-        , function(err) {
+          component: 'foo/AB2',
+        },
+        (err) => {
           if (err) {
             done(err);
             return;
           }
           network.addNode({
             id: 'Split',
-            component: 'Split'
-          }
-          , function(err) {
+            component: 'Split',
+          },
+          (err) => {
             if (err) {
               done(err);
               return;
@@ -845,14 +854,14 @@ describe('NoFlo Graph component', function() {
             network.addEdge({
               from: {
                 node: 'Sub',
-                port: 'out'
+                port: 'out',
               },
               to: {
                 node: 'Split',
-                port: 'in'
-              }
-            }
-            , function(err) {
+                port: 'in',
+              },
+            },
+            (err) => {
               if (err) {
                 done(err);
                 return;
@@ -864,31 +873,31 @@ describe('NoFlo Graph component', function() {
           });
         });
       });
-      it('should be possible to start the graph', function(done) {
+      it('should be possible to start the graph', (done) => {
         network.start(done);
       });
-      it('should forward IP events', function(done) {
-        network.once('ip', function(ip) {
+      it('should forward IP events', (done) => {
+        network.once('ip', (ip) => {
           chai.expect(ip.id).to.equal('DATA -> IN Sub()');
           chai.expect(ip.type).to.equal('data');
           chai.expect(ip.data).to.equal('foo');
           chai.expect(ip.subgraph).to.be.undefined;
-          network.once('ip', function(ip) {
+          network.once('ip', (ip) => {
             chai.expect(ip.id).to.equal('A() OUT -> IN B()');
             chai.expect(ip.type).to.equal('data');
             chai.expect(ip.data).to.equal('foo');
             chai.expect(ip.subgraph).to.eql([
               'Sub',
-              'A'
+              'A',
             ]);
-            network.once('ip', function(ip) {
+            network.once('ip', (ip) => {
               chai.expect(ip.id).to.equal('A() OUT -> IN B()');
               chai.expect(ip.type).to.equal('data');
               chai.expect(ip.data).to.equal('foo');
               chai.expect(ip.subgraph).to.eql([
-                'Sub'
+                'Sub',
               ]);
-              network.once('ip', function(ip) {
+              network.once('ip', (ip) => {
                 chai.expect(ip.id).to.equal('Sub() OUT -> IN Split()');
                 chai.expect(ip.type).to.equal('data');
                 chai.expect(ip.data).to.equal('foo');
@@ -900,17 +909,16 @@ describe('NoFlo Graph component', function() {
         });
         network.addInitial({
           from: {
-            data: 'foo'
+            data: 'foo',
           },
           to: {
             node: 'Sub',
-            port: 'in'
-          }
-        }
-        , function(err) {
+            port: 'in',
+          },
+        },
+        (err) => {
           if (err) {
             done(err);
-            return;
           }
         });
       });
