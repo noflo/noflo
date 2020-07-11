@@ -12,6 +12,7 @@ describe 'Outport Port', ->
       s2 = new noflo.internalSocket.InternalSocket
       s3 = new noflo.internalSocket.InternalSocket
 
+      return
     it 'should be able to send to a specific port', ->
       p = new noflo.OutPort
         addressable: true
@@ -21,12 +22,16 @@ describe 'Outport Port', ->
       chai.expect(p.listAttached()).to.eql [0, 1, 2]
       s1.on 'data', ->
         chai.expect(true).to.equal false
+        return
       s2.on 'data', (data) ->
         chai.expect(data).to.equal 'some-data'
+        return
       s3.on 'data', ->
         chai.expect(true).to.equal false
+        return
       p.send 'some-data', 1
 
+      return
     it 'should be able to send to index 0', (done) ->
       p = new noflo.OutPort
         addressable: true
@@ -34,11 +39,14 @@ describe 'Outport Port', ->
       s1.on 'data', (data) ->
         chai.expect(data).to.equal 'my-data'
         done()
+        return
       p.send 'my-data', 0
 
+      return
     it 'should throw an error when sent data without address', ->
       chai.expect(-> p.send('some-data')).to.throw
 
+      return
     it 'should throw an error when a specific port is requested with non-addressable port', ->
       p = new noflo.OutPort
       p.attach s1
@@ -46,6 +54,7 @@ describe 'Outport Port', ->
       p.attach s3
       chai.expect(-> p.send('some-data', 1)).to.throw
 
+      return
     it 'should give correct port index when detaching a connection', (done) ->
       p = new noflo.OutPort
         addressable: true
@@ -67,9 +76,11 @@ describe 'Outport Port', ->
         for att in atts
           chai.expect(p.isAttached(att)).to.equal true
         done() unless expected.length
+        return
       p.detach s2
       p.detach s3
-
+      return
+    return
   describe 'with caching ports', ->
     s1 = s2 = s3 = null
     beforeEach ->
@@ -77,20 +88,22 @@ describe 'Outport Port', ->
       s2 = new noflo.internalSocket.InternalSocket
       s3 = new noflo.internalSocket.InternalSocket
 
+      return
     it 'should repeat the previously sent value on attach event', (done) ->
       p = new noflo.OutPort
         caching: true
 
       s1.once 'data', (data) ->
         chai.expect(data).to.equal 'foo'
-
+        return
       s2.once 'data', (data) ->
         chai.expect(data).to.equal 'foo'
         # Next value should be different
         s2.once 'data', (data) ->
           chai.expect(data).to.equal 'bar'
           done()
-
+          return
+        return
       p.attach s1
       p.send 'foo'
       p.disconnect()
@@ -101,6 +114,7 @@ describe 'Outport Port', ->
       p.disconnect()
 
 
+      return
     it 'should support addressable ports', (done) ->
       p = new noflo.OutPort
         addressable: true
@@ -111,17 +125,21 @@ describe 'Outport Port', ->
 
       s1.on 'data', ->
         chai.expect(true).to.equal false
+        return
       s2.on 'data', (data) ->
         chai.expect(data).to.equal 'some-data'
+        return
       s3.on 'data', (data) ->
         chai.expect(data).to.equal 'some-data'
         done()
+        return
 
       p.send 'some-data', 1
       p.disconnect 1
       p.detach s2
       p.attach s3, 1
-
+      return
+    return
   describe 'with IP objects', ->
     s1 = s2 = s3 = null
     beforeEach ->
@@ -129,6 +147,7 @@ describe 'Outport Port', ->
       s2 = new noflo.internalSocket.InternalSocket
       s3 = new noflo.internalSocket.InternalSocket
 
+      return
     it 'should send data IPs and substreams', (done) ->
       p = new noflo.OutPort
       p.attach s1
@@ -145,11 +164,13 @@ describe 'Outport Port', ->
         chai.expect(data.type).to.equal expectedEvents.shift()
         chai.expect(data.data).to.equal 'my-data' if data.type is 'data'
         done() if count is 4
+        return
       p.data 'my-data'
       p.openBracket()
       .data 'my-data'
       .closeBracket()
 
+      return
     it 'should send non-clonable objects by reference', (done) ->
       p = new noflo.OutPort
       p.attach s1
@@ -175,10 +196,14 @@ describe 'Outport Port', ->
             chai.expect(data.data).to.equal obj
             chai.expect(data.data.func).to.be.a 'function'
             done()
+            return
+          return
+        return
 
       p.data obj,
         clonable: false # default
 
+      return
     it 'should clone clonable objects on fan-out', (done) ->
       p = new noflo.OutPort
       p.attach s1
@@ -189,7 +214,9 @@ describe 'Outport Port', ->
         foo: 123
         bar:
           boo: 'baz'
-        func: -> this.foo = 456
+        func: ->
+          this.foo = 456
+          return
 
       s1.on 'ip', (data) ->
         chai.expect(data).to.be.an 'object'
@@ -209,10 +236,14 @@ describe 'Outport Port', ->
             chai.expect(data.data.bar).to.eql obj.bar
             chai.expect(data.data.func).to.be.undefined
             done()
+            return
+          return
+        return
 
       p.data obj,
         clonable: true
 
+      return
     it 'should stamp an IP object with the port\'s datatype', (done) ->
       p = new noflo.OutPort
         datatype: 'string'
@@ -223,7 +254,9 @@ describe 'Outport Port', ->
         chai.expect(data.data).to.equal 'Hello'
         chai.expect(data.datatype).to.equal 'string'
         done()
+        return
       p.data 'Hello'
+      return
     it 'should keep an IP object\'s datatype as-is if already set', (done) ->
       p = new noflo.OutPort
         datatype: 'string'
@@ -234,9 +267,11 @@ describe 'Outport Port', ->
         chai.expect(data.data).to.equal 123
         chai.expect(data.datatype).to.equal 'integer'
         done()
+        return
       p.sendIP new noflo.IP 'data', 123,
         datatype: 'integer'
 
+      return
     it 'should stamp an IP object with the port\'s schema', (done) ->
       p = new noflo.OutPort
         datatype: 'string'
@@ -249,7 +284,9 @@ describe 'Outport Port', ->
         chai.expect(data.datatype).to.equal 'string'
         chai.expect(data.schema).to.equal 'text/markdown'
         done()
+        return
       p.data 'Hello'
+      return
     it 'should keep an IP object\'s schema as-is if already set', (done) ->
       p = new noflo.OutPort
         datatype: 'string'
@@ -262,6 +299,10 @@ describe 'Outport Port', ->
         chai.expect(data.datatype).to.equal 'string'
         chai.expect(data.schema).to.equal 'text/plain'
         done()
+        return
       p.sendIP new noflo.IP 'data', 'Hello',
         datatype: 'string'
         schema: 'text/plain'
+      return
+    return
+  return
