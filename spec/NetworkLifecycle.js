@@ -1,37 +1,12 @@
-/* eslint-disable
-    default-case,
-    func-names,
-    global-require,
-    import/no-extraneous-dependencies,
-    import/no-unresolved,
-    no-multi-str,
-    no-plusplus,
-    no-shadow,
-    no-undef,
-    no-unreachable,
-    no-unused-vars,
-    no-var,
-    vars-on-top,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-let chai; let noflo; let root; let
-  urlPrefix;
+let chai; let noflo; let root;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   if (!chai) { chai = require('chai'); }
   noflo = require('../src/lib/NoFlo');
   const path = require('path');
   root = path.resolve(__dirname, '../');
-  urlPrefix = './';
 } else {
   noflo = require('noflo');
   root = 'noflo';
-  urlPrefix = '/';
 }
 
 const legacyBasic = function () {
@@ -49,7 +24,7 @@ const legacyBasic = function () {
   c.inPorts.in.on('data', (data) => {
     c.outPorts.out.data(data + c.nodeId);
   });
-  c.inPorts.in.on('endgroup', (group) => {
+  c.inPorts.in.on('endgroup', () => {
     c.outPorts.out.endGroup();
   });
   c.inPorts.in.on('disconnect', () => {
@@ -252,19 +227,15 @@ describe('Network Lifecycle', () => {
   });
   describe('with single Process API component receiving IIP', () => {
     let c = null;
-    let g = null;
     let out = null;
     beforeEach((done) => {
-      const fbpData = '\
-OUTPORT=Pc.OUT:OUT \
-\'hello\' -> IN Pc(process/Async)\
-';
+      const fbpData = 'OUTPORT=Pc.OUT:OUT\n'
+                    + '\'hello\' -> IN Pc(process/Async)\n';
       noflo.graph.loadFBP(fbpData, (err, graph) => {
         if (err) {
           done(err);
           return;
         }
-        g = graph;
         loader.registerComponent('scope', 'Connected', graph);
         loader.load('scope/Connected', (err, instance) => {
           if (err) {
@@ -343,7 +314,7 @@ OUTPORT=Pc.OUT:OUT \
         chai.expect(wasStarted).to.equal(false);
         wasStarted = true;
       };
-      var checkEnd = function () {
+      const checkEnd = function () {
         chai.expect(wasStarted).to.equal(true);
         if (received.length < expected.length) {
           wasStarted = false;
@@ -363,7 +334,6 @@ OUTPORT=Pc.OUT:OUT \
               done(err);
             }
           });
-          return;
           return;
         }
         chai.expect(received).to.eql(expected);
@@ -446,23 +416,19 @@ OUTPORT=Pc.OUT:OUT \
   });
   describe('with synchronous Process API', () => {
     let c = null;
-    let g = null;
     let out = null;
     beforeEach((done) => {
-      const fbpData = '\
-OUTPORT=Sync.OUT:OUT \
-\'foo\' -> IN2 NonSending(process/NonSending) \
-\'hello\' -> IN Bracketize(process/Bracketize) \
-Bracketize OUT -> IN NonSending(process/NonSending) \
-NonSending OUT -> IN Sync(process/Sync) \
-Sync OUT -> IN2 NonSending\
-';
+      const fbpData = 'OUTPORT=Sync.OUT:OUT\n'
+                    + '\'foo\' -> IN2 NonSending(process/NonSending)\n'
+                    + '\'hello\' -> IN Bracketize(process/Bracketize)\n'
+                    + 'Bracketize OUT -> IN NonSending(process/NonSending)\n'
+                    + 'NonSending OUT -> IN Sync(process/Sync)\n'
+                    + 'Sync OUT -> IN2 NonSending\n';
       noflo.graph.loadFBP(fbpData, (err, graph) => {
         if (err) {
           done(err);
           return;
         }
-        g = graph;
         loader.registerComponent('scope', 'Connected', graph);
         loader.load('scope/Connected', (err, instance) => {
           if (err) {
@@ -527,13 +493,11 @@ Sync OUT -> IN2 NonSending\
     let in2 = null;
     let out = null;
     before((done) => {
-      const fbpData = '\
-INPORT=Pc1.IN:IN1 \
-INPORT=Pc2.IN:IN2 \
-OUTPORT=PcMerge.OUT:OUT \
-Pc1(process/Async) OUT -> IN1 PcMerge(process/Merge) \
-Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
-';
+      const fbpData = 'INPORT=Pc1.IN:IN1\n'
+                    + 'INPORT=Pc2.IN:IN2\n'
+                    + 'OUTPORT=PcMerge.OUT:OUT\n'
+                    + 'Pc1(process/Async) OUT -> IN1 PcMerge(process/Merge)\n'
+                    + 'Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\n';
       noflo.graph.loadFBP(fbpData, (err, g) => {
         if (err) {
           done(err);
@@ -738,14 +702,12 @@ Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
     let in2 = null;
     let out = null;
     before((done) => {
-      const fbpData = '\
-INPORT=Leg1.IN:IN1 \
-INPORT=Leg2.IN:IN2 \
-OUTPORT=Leg3.OUT:OUT \
-Leg1(legacy/Sync) OUT -> IN1 PcMerge(process/Merge) \
-Leg2(legacy/Sync) OUT -> IN2 PcMerge(process/Merge) \
-PcMerge OUT -> IN Leg3(legacy/Sync)\
-';
+      const fbpData = 'INPORT=Leg1.IN:IN1\n'
+                    + 'INPORT=Leg2.IN:IN2\n'
+                    + 'OUTPORT=Leg3.OUT:OUT\n'
+                    + 'Leg1(legacy/Sync) OUT -> IN1 PcMerge(process/Merge)\n'
+                    + 'Leg2(legacy/Sync) OUT -> IN2 PcMerge(process/Merge)\n'
+                    + 'PcMerge OUT -> IN Leg3(legacy/Sync)\n';
       noflo.graph.loadFBP(fbpData, (err, g) => {
         if (err) {
           done(err);
@@ -898,12 +860,10 @@ PcMerge OUT -> IN Leg3(legacy/Sync)\
     let stop = null;
     let out = null;
     before((done) => {
-      const fbpData = '\
-INPORT=PcGen.START:START \
-INPORT=PcGen.STOP:STOP \
-OUTPORT=Pc.OUT:OUT \
-PcGen(process/Generator) OUT -> IN Pc(process/Async)\
-';
+      const fbpData = 'INPORT=PcGen.START:START\n'
+                    + 'INPORT=PcGen.STOP:STOP\n'
+                    + 'OUTPORT=Pc.OUT:OUT\n'
+                    + 'PcGen(process/Generator) OUT -> IN Pc(process/Async)\n';
       noflo.graph.loadFBP(fbpData, (err, g) => {
         if (err) {
           done(err);

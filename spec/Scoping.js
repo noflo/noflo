@@ -1,33 +1,12 @@
-/* eslint-disable
-    default-case,
-    func-names,
-    global-require,
-    import/no-extraneous-dependencies,
-    import/no-unresolved,
-    no-multi-str,
-    no-shadow,
-    no-undef,
-    no-unused-vars,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-let chai; let noflo; let root; let
-  urlPrefix;
+let chai; let noflo; let root;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   if (!chai) { chai = require('chai'); }
   noflo = require('../src/lib/NoFlo');
   const path = require('path');
   root = path.resolve(__dirname, '../');
-  urlPrefix = './';
 } else {
   noflo = require('noflo');
   root = 'noflo';
-  urlPrefix = '/';
 }
 
 const processAsync = function () {
@@ -156,13 +135,11 @@ describe('Scope isolation', () => {
     let in2 = null;
     let out = null;
     before((done) => {
-      const fbpData = '\
-INPORT=Pc1.IN:IN1 \
-INPORT=Pc2.IN:IN2 \
-OUTPORT=PcMerge.OUT:OUT \
-Pc1(process/Async) OUT -> IN1 PcMerge(process/Merge) \
-Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
-';
+      const fbpData = 'INPORT=Pc1.IN:IN1\n'
+            + 'INPORT=Pc2.IN:IN2\n'
+            + 'OUTPORT=PcMerge.OUT:OUT\n'
+            + 'Pc1(process/Async) OUT -> IN1 PcMerge(process/Merge)\n'
+            + 'Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)';
       noflo.graph.loadFBP(fbpData, (err, g) => {
         if (err) {
           done(err);
@@ -326,15 +303,12 @@ Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\
   describe('Process API with IIPs and scopes', () => {
     let c = null;
     let in1 = null;
-    const in2 = null;
     let out = null;
     before((done) => {
-      const fbpData = '\
-INPORT=Pc1.IN:IN1 \
-OUTPORT=PcMerge.OUT:OUT \
-Pc1(process/Async) -> IN1 PcMerge(process/Merge) \
-\'twoIIP\' -> IN2 PcMerge(process/Merge)\
-';
+      const fbpData = 'INPORT=Pc1.IN:IN1\n'
+                    + 'OUTPORT=PcMerge.OUT:OUT\n'
+                    + 'Pc1(process/Async) -> IN1 PcMerge(process/Merge)\n'
+                    + '\'twoIIP\' -> IN2 PcMerge(process/Merge)';
       noflo.graph.loadFBP(fbpData, (err, g) => {
         if (err) {
           done(err);
@@ -400,13 +374,11 @@ Pc1(process/Async) -> IN1 PcMerge(process/Merge) \
     let in2 = null;
     let out = null;
     before((done) => {
-      const fbpData = '\
-INPORT=Pc1.IN:IN1 \
-INPORT=Pc2.IN:IN2 \
-OUTPORT=PcMerge.OUT:OUT \
-Pc1(process/Async) -> IN1 PcMerge(process/MergeUnscoped) \
-Pc2(process/Async) -> IN2 PcMerge(process/MergeUnscoped)\
-';
+      const fbpData = 'INPORT=Pc1.IN:IN1\n'
+                    + 'INPORT=Pc2.IN:IN2\n'
+                    + 'OUTPORT=PcMerge.OUT:OUT\n'
+                    + 'Pc1(process/Async) -> IN1 PcMerge(process/MergeUnscoped)\n'
+                    + 'Pc2(process/Async) -> IN2 PcMerge(process/MergeUnscoped)';
       noflo.graph.loadFBP(fbpData, (err, g) => {
         if (err) {
           done(err);
@@ -545,13 +517,11 @@ Pc2(process/Async) -> IN2 PcMerge(process/MergeUnscoped)\
     let in2 = null;
     let out = null;
     before((done) => {
-      const fbpData = '\
-INPORT=Pc1.IN:IN1 \
-INPORT=Pc2.IN:IN2 \
-OUTPORT=PcMerge.OUT:OUT \
-Pc1(process/Unscope) -> IN1 PcMerge(process/Merge) \
-Pc2(process/Unscope) -> IN2 PcMerge\
-';
+      const fbpData = 'INPORT=Pc1.IN:IN1\n'
+                    + 'INPORT=Pc2.IN:IN2\n'
+                    + 'OUTPORT=PcMerge.OUT:OUT\n'
+                    + 'Pc1(process/Unscope) -> IN1 PcMerge(process/Merge)\n'
+                    + 'Pc2(process/Unscope) -> IN2 PcMerge';
       noflo.graph.loadFBP(fbpData, (err, g) => {
         if (err) {
           done(err);
@@ -687,16 +657,13 @@ Pc2(process/Unscope) -> IN2 PcMerge\
   describe('Process API with IIPs to addressable ports and scopes', () => {
     let c = null;
     let in1 = null;
-    const in2 = null;
     let out = null;
     before((done) => {
-      const fbpData = '\
-INPORT=Pc1.IN:IN1 \
-OUTPORT=PcMergeA.OUT:OUT \
-Pc1(process/Async) -> IN1 PcMergeA(process/MergeA) \
-\'twoIIP0\' -> IN2[0] PcMergeA \
-\'twoIIP1\' -> IN2[1] PcMergeA\
-';
+      const fbpData = 'INPORT=Pc1.IN:IN1\n'
+                    + 'OUTPORT=PcMergeA.OUT:OUT\n'
+                    + 'Pc1(process/Async) -> IN1 PcMergeA(process/MergeA)\n'
+                    + '\'twoIIP0\' -> IN2[0] PcMergeA\n'
+                    + '\'twoIIP1\' -> IN2[1] PcMergeA';
       noflo.graph.loadFBP(fbpData, (err, g) => {
         if (err) {
           done(err);

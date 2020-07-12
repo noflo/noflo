@@ -1,24 +1,4 @@
-/* eslint-disable
-    global-require,
-    import/no-extraneous-dependencies,
-    import/no-unresolved,
-    no-multi-assign,
-    no-plusplus,
-    no-restricted-syntax,
-    no-return-assign,
-    no-shadow,
-    no-undef,
-    no-unused-expressions,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-let chai; let
-  noflo;
+let chai; let noflo;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   if (!chai) { chai = require('chai'); }
   noflo = require('../src/lib/NoFlo');
@@ -28,9 +8,7 @@ if ((typeof process !== 'undefined') && process.execPath && process.execPath.mat
 
 describe('Outport Port', () => {
   describe('with addressable ports', () => {
-    let s2; let
-      s3;
-    let s1 = (s2 = (s3 = null));
+    let s1 = null; let s2 = null; let s3 = null;
     beforeEach(() => {
       s1 = new noflo.internalSocket.InternalSocket();
       s2 = new noflo.internalSocket.InternalSocket();
@@ -89,7 +67,7 @@ describe('Outport Port', () => {
         chai.expect(p.isAttached(index)).to.equal(false);
         const atts = expectedAttached.shift();
         chai.expect(p.listAttached()).to.eql(atts);
-        for (const att of Array.from(atts)) {
+        for (const att of atts) {
           chai.expect(p.isAttached(att)).to.equal(true);
         }
         if (!expected.length) { done(); }
@@ -99,9 +77,7 @@ describe('Outport Port', () => {
     });
   });
   describe('with caching ports', () => {
-    let s2; let
-      s3;
-    let s1 = (s2 = (s3 = null));
+    let s1 = null; let s2 = null; let s3 = null;
     beforeEach(() => {
       s1 = new noflo.internalSocket.InternalSocket();
       s2 = new noflo.internalSocket.InternalSocket();
@@ -157,9 +133,7 @@ describe('Outport Port', () => {
     });
   });
   describe('with IP objects', () => {
-    let s2; let
-      s3;
-    let s1 = (s2 = (s3 = null));
+    let s1 = null; let s2 = null; let s3 = null;
     beforeEach(() => {
       s1 = new noflo.internalSocket.InternalSocket();
       s2 = new noflo.internalSocket.InternalSocket();

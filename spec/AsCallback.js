@@ -1,37 +1,12 @@
-/* eslint-disable
-    func-names,
-    global-require,
-    import/no-extraneous-dependencies,
-    import/no-unresolved,
-    no-nested-ternary,
-    no-plusplus,
-    no-restricted-syntax,
-    no-return-assign,
-    no-undef,
-    no-underscore-dangle,
-    no-unused-vars,
-    no-use-before-define,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-let chai; let noflo; let root; let
-  urlPrefix;
+let chai; let noflo; let root;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   if (!chai) { chai = require('chai'); }
   noflo = require('../src/lib/NoFlo');
   const path = require('path');
   root = path.resolve(__dirname, '../');
-  urlPrefix = './';
 } else {
   noflo = require('noflo');
   root = 'noflo';
-  urlPrefix = '/';
 }
 
 describe('asCallback interface', () => {
@@ -81,8 +56,8 @@ describe('asCallback interface', () => {
       { datatype: 'string' });
     c.outPorts.add('out',
       { datatype: 'string' });
-    return c.process((input, output) => {
-      const data = input.getData('in');
+    return c.process((input) => {
+      input.getData('in');
     });
   };
   const streamify = function () {
@@ -98,7 +73,7 @@ describe('asCallback interface', () => {
         const word = words[idx];
         output.send(new noflo.IP('openBracket', idx));
         const chars = word.split('');
-        for (const char of Array.from(chars)) { output.send(new noflo.IP('data', char)); }
+        for (const char of chars) { output.send(new noflo.IP('data', char)); }
         output.send(new noflo.IP('closeBracket', idx));
       }
       output.done();
@@ -179,7 +154,8 @@ describe('asCallback interface', () => {
     });
     it('should not mix up simultaneous runs', (done) => {
       let received = 0;
-      __range__(0, 100, true).forEach((idx) => {
+      for (let idx = 0; idx <= 100; idx += 1) {
+        /* eslint-disable no-loop-func */
         wrapped(idx, (err, out) => {
           if (err) {
             done(err);
@@ -190,7 +166,7 @@ describe('asCallback interface', () => {
           if (received !== 101) { return; }
           done();
         });
-      });
+      }
     });
     it('should execute a network with a sequence and provide output sequence', (done) => {
       const sent = [
@@ -199,10 +175,7 @@ describe('asCallback interface', () => {
         { in: 'foo' },
         { in: 'bar' },
       ];
-      const expected = sent.map((portmap) => {
-        let res;
-        return res = { out: portmap.in };
-      });
+      const expected = sent.map((portmap) => ({ out: portmap.in }));
       wrapped(sent, (err, out) => {
         if (err) {
           done(err);
@@ -307,7 +280,6 @@ describe('asCallback interface', () => {
       });
     });
     it('should execute network with wrong map and provide error', (done) => {
-      const expected = 'red';
       wrapped(
         { in: 'red' },
         (err) => {
@@ -478,7 +450,6 @@ Async(process/Async) OUT -> IN Values(process/Values)\
       });
     });
     it('should execute network with wrong map and provide error', (done) => {
-      const expected = 'red';
       wrapped(
         { in: 'red' },
         (err) => {
@@ -497,12 +468,3 @@ Async(process/Async) OUT -> IN Values(process/Values)\
     });
   });
 });
-function __range__(left, right, inclusive) {
-  const range = [];
-  const ascending = left < right;
-  const end = !inclusive ? right : ascending ? right + 1 : right - 1;
-  for (let i = left; ascending ? i < end : i > end; ascending ? i++ : i--) {
-    range.push(i);
-  }
-  return range;
-}

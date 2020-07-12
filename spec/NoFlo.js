@@ -1,14 +1,4 @@
-/* eslint-disable
-    func-names,
-    global-require,
-    import/no-extraneous-dependencies,
-    import/no-unresolved,
-    no-undef,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-let browser; let chai; let noflo; let
-  path;
+let browser; let chai; let noflo; let path;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   if (!chai) { chai = require('chai'); }
   noflo = require('../src/lib/NoFlo');

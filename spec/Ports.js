@@ -1,15 +1,4 @@
-/* eslint-disable
-    global-require,
-    import/no-extraneous-dependencies,
-    import/no-unresolved,
-    no-plusplus,
-    no-undef,
-    no-unused-vars,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-let chai; let
-  noflo;
+let chai; let noflo;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   if (!chai) { chai = require('chai'); }
   noflo = require('../src/lib/NoFlo');
@@ -53,11 +42,11 @@ describe('Ports collection', () => {
     });
     it('should allow subscribing to an existing port', (done) => {
       let received = 0;
-      p.once('foo', 'ip', (packet) => {
+      p.once('foo', 'ip', () => {
         received++;
         if (received === 2) { done(); }
       });
-      p.on('foo', 'ip', (packet) => {
+      p.on('foo', 'ip', () => {
         received++;
         if (received === 2) { done(); }
       });

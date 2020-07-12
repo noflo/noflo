@@ -1,21 +1,4 @@
-/* eslint-disable
-    func-names,
-    global-require,
-    guard-for-in,
-    import/no-extraneous-dependencies,
-    import/no-unresolved,
-    no-param-reassign,
-    no-plusplus,
-    no-restricted-syntax,
-    no-shadow,
-    no-undef,
-    no-unused-expressions,
-    no-unused-vars,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-let chai; let noflo; let
-  root;
+let chai; let noflo; let root;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   if (!chai) { chai = require('chai'); }
   noflo = require('../src/lib/NoFlo');
@@ -331,20 +314,18 @@ describe('NoFlo Network', () => {
       chai.expect(n.processes.Callback).to.be.an('Object');
     });
     it('the ports of the processes should know the node names', () => {
-      let name; let
-        port;
-      for (name in n.processes.Callback.component.inPorts.ports) {
-        port = n.processes.Callback.component.inPorts.ports[name];
+      Object.keys(n.processes.Callback.component.inPorts.ports).forEach((name) => {
+        const port = n.processes.Callback.component.inPorts.ports[name];
         chai.expect(port.name).to.equal(name);
         chai.expect(port.node).to.equal('Callback');
         chai.expect(port.getId()).to.equal(`Callback ${name.toUpperCase()}`);
-      }
-      for (name in n.processes.Callback.component.outPorts.ports) {
-        port = n.processes.Callback.component.outPorts.ports[name];
+      });
+      Object.keys(n.processes.Callback.component.outPorts.ports).forEach((name) => {
+        const port = n.processes.Callback.component.outPorts.ports[name];
         chai.expect(port.name).to.equal(name);
         chai.expect(port.node).to.equal('Callback');
         chai.expect(port.getId()).to.equal(`Callback ${name.toUpperCase()}`);
-      }
+      });
     });
     it('should contain 1 connection between processes and 2 for IIPs', () => {
       chai.expect(n.connections).to.not.be.empty;
@@ -379,7 +360,7 @@ describe('NoFlo Network', () => {
           }
           n.addInitial({
             from: {
-              data(data) { throw new Error('got Foo'); },
+              data() { throw new Error('got Foo'); },
             },
             to: {
               node: 'Callback',
@@ -449,20 +430,18 @@ describe('NoFlo Network', () => {
         });
       });
       it('should have informed the ports of their new node name', () => {
-        let name; let
-          port;
-        for (name in n.processes.Func.component.inPorts.ports) {
-          port = n.processes.Func.component.inPorts.ports[name];
+        Object.keys(n.processes.Func.component.inPorts.ports).forEach((name) => {
+          const port = n.processes.Func.component.inPorts.ports[name];
           chai.expect(port.name).to.equal(name);
           chai.expect(port.node).to.equal('Func');
           chai.expect(port.getId()).to.equal(`Func ${name.toUpperCase()}`);
-        }
-        for (name in n.processes.Func.component.outPorts.ports) {
-          port = n.processes.Func.component.outPorts.ports[name];
+        });
+        Object.keys(n.processes.Func.component.outPorts.ports).forEach((name) => {
+          const port = n.processes.Func.component.outPorts.ports[name];
           chai.expect(port.name).to.equal(name);
           chai.expect(port.node).to.equal('Func');
           chai.expect(port.getId()).to.equal(`Func ${name.toUpperCase()}`);
-        }
+        });
       });
     });
     describe('with process icon change', () => {
@@ -487,7 +466,7 @@ describe('NoFlo Network', () => {
     describe('without the delay option', () => {
       it('should auto-start', (done) => {
         g.removeInitial('Func', 'callback');
-        const newGraph = noflo.graph.loadJSON(g.toJSON(), (err, graph) => {
+        noflo.graph.loadJSON(g.toJSON(), (err, graph) => {
           if (err) {
             done(err);
             return;
@@ -503,7 +482,7 @@ describe('NoFlo Network', () => {
             subscribeGraph: false,
             delay: false,
           },
-          (err, nw) => {
+          (err) => {
             if (err) {
               done(err);
             }
@@ -538,7 +517,7 @@ describe('NoFlo Network', () => {
         required: true,
         datatype: 'all',
       });
-      cb.process((input, output) => {
+      cb.process((input) => {
         if (!input.hasData('in')) { return; }
         testCallback(input.getData('in'));
       });

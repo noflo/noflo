@@ -1,34 +1,13 @@
-/* eslint-disable
-    consistent-return,
-    func-names,
-    global-require,
-    import/no-extraneous-dependencies,
-    import/no-unresolved,
-    no-param-reassign,
-    no-undef,
-    no-unused-vars,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-let chai; let isBrowser; let noflo; let root; let
-  urlPrefix;
+let chai; let isBrowser; let noflo; let root;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   if (!chai) { chai = require('chai'); }
   noflo = require('../src/lib/NoFlo');
   const path = require('path');
   root = path.resolve(__dirname, '../');
-  urlPrefix = './';
   isBrowser = false;
 } else {
   noflo = require('noflo');
   root = 'noflo';
-  urlPrefix = '/';
   isBrowser = true;
 }
 
@@ -107,7 +86,7 @@ describe('asComponent interface', () => {
       });
     });
     describe('with returned NULL', () => {
-      const func = (hello) => null;
+      const func = () => null;
       it('should be possible to componentize', (done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'sync-null', component, done);
@@ -230,7 +209,7 @@ describe('asComponent interface', () => {
       before(function () {
         if (isBrowser && (typeof window.Promise === 'undefined')) { return this.skip(); }
       });
-      const func = (hello) => new Promise((resolve, reject) => setTimeout(() => resolve(`Hello ${hello}`),
+      const func = (hello) => new Promise((resolve) => setTimeout(() => resolve(`Hello ${hello}`),
         5));
       it('should be possible to componentize', (done) => {
         const component = () => noflo.asComponent(func);

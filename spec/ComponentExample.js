@@ -1,15 +1,4 @@
-/* eslint-disable
-    func-names,
-    global-require,
-    import/no-extraneous-dependencies,
-    import/no-unresolved,
-    no-undef,
-    no-unused-vars,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-let chai; let
-  noflo;
+let chai; let noflo;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   if (!chai) { chai = require('chai'); }
   noflo = require('../src/lib/NoFlo');
@@ -58,10 +47,10 @@ describe('MergeObjects component', () => {
   });
 
   it('should not trigger if input is not complete', (done) => {
-    sout1.once('ip', (ip) => {
+    sout1.once('ip', () => {
       done(new Error('Premature result'));
     });
-    sout2.once('ip', (ip) => {
+    sout2.once('ip', () => {
       done(new Error('Premature error'));
     });
 

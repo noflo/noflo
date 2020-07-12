@@ -1,23 +1,12 @@
 /* eslint-disable
-    func-names,
-    global-require,
-    import/no-extraneous-dependencies,
-    import/no-unresolved,
-    max-classes-per-file,
-    no-shadow,
-    no-undef,
-    no-unused-expressions,
-    no-unused-vars,
+  max-classes-per-file
 */
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-let chai; let noflo; let path; let root; let shippingLanguage; let
-  urlPrefix;
+let chai;
+let noflo;
+let path;
+let root;
+let shippingLanguage;
+let urlPrefix;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   if (!chai) { chai = require('chai'); }
   noflo = require('../src/lib/NoFlo');
@@ -200,7 +189,7 @@ describe('ComponentLoader with no external packages installed', () => {
     l = new noflo.ComponentLoader(root);
     const file = `${urlPrefix}spec/fixtures/subgraph.fbp`;
     it('should remove `graph` and `start` ports', (done) => {
-      l.listComponents((err, components) => {
+      l.listComponents((err) => {
         if (err) {
           done(err);
           return;
@@ -224,7 +213,7 @@ describe('ComponentLoader with no external packages installed', () => {
       });
     });
     it('should not automatically start the subgraph if there is no `start` port', (done) => {
-      l.listComponents((err, components) => {
+      l.listComponents((err) => {
         if (err) {
           done(err);
           return;
@@ -251,7 +240,7 @@ describe('ComponentLoader with no external packages installed', () => {
           done(err);
           return;
         }
-        l.listComponents((err, components) => {
+        l.listComponents((err) => {
           if (err) {
             done(err);
             return;
@@ -301,7 +290,7 @@ describe('ComponentLoader with no external packages installed', () => {
     });
     it('should return an error on an invalid component type', (done) => {
       loader.components.InvalidComponent = true;
-      loader.load('InvalidComponent', (err, c) => {
+      loader.load('InvalidComponent', (err) => {
         chai.expect(err).to.be.an('error');
         chai.expect(err.message).to.equal('Invalid type boolean for component InvalidComponent.');
         done();
@@ -315,7 +304,7 @@ describe('ComponentLoader with no external packages installed', () => {
       } else {
         str = 'Cannot find module';
       }
-      loader.load('InvalidComponent', (err, c) => {
+      loader.load('InvalidComponent', (err) => {
         chai.expect(err).to.be.an('error');
         chai.expect(err.message).to.contain(str);
         done();
@@ -420,13 +409,13 @@ describe('ComponentLoader with no external packages installed', () => {
       });
     });
     it('should return an error for missing components', (done) => {
-      l.getSource('foo/BarBaz', (err, src) => {
+      l.getSource('foo/BarBaz', (err) => {
         chai.expect(err).to.be.an('error');
         done();
       });
     });
     it('should return an error for non-file components', (done) => {
-      l.getSource('foo/Split', (err, src) => {
+      l.getSource('foo/Split', (err) => {
         chai.expect(err).to.be.an('error');
         done();
       });
@@ -831,7 +820,7 @@ describe('ComponentLoader with a fixture project', () => {
     });
   });
   it('should fail loading a missing component', (done) => {
-    l.load('componentloader/Missing', (err, instance) => {
+    l.load('componentloader/Missing', (err) => {
       chai.expect(err).to.be.an('error');
       done();
     });
@@ -939,7 +928,7 @@ describe('ComponentLoader with a fixture project and caching', () => {
     });
   });
   it('should fail loading a missing component', (done) => {
-    l.load('componentloader/Missing', (err, instance) => {
+    l.load('componentloader/Missing', (err) => {
       chai.expect(err).to.be.an('error');
       done();
     });
@@ -957,13 +946,12 @@ describe('ComponentLoader with a fixture project and caching', () => {
   });
   it('should be able to use a custom manifest file', function (done) {
     this.timeout(8000);
-    const manifestPath = path.resolve(fixtureRoot, 'fbp2.json');
     l = new noflo.ComponentLoader(fixtureRoot, {
       cache: true,
       discover: true,
       manifest: 'fbp2.json',
     });
-    l.listComponents((err, components) => {
+    l.listComponents((err) => {
       if (err) {
         done(err);
         return;

@@ -1,35 +1,4 @@
-/* eslint-disable
-    consistent-return,
-    default-case,
-    func-names,
-    global-require,
-    import/no-extraneous-dependencies,
-    import/no-unresolved,
-    no-console,
-    no-plusplus,
-    no-restricted-syntax,
-    no-return-assign,
-    no-shadow,
-    no-undef,
-    no-unreachable,
-    no-unused-expressions,
-    no-unused-vars,
-    no-var,
-    prefer-destructuring,
-    radix,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-let chai; let
-  noflo;
+let chai; let noflo;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   if (!chai) { chai = require('chai'); }
   noflo = require('../src/lib/NoFlo');
@@ -157,7 +126,7 @@ describe('Component', () => {
       s1.send('some-data');
     });
     it('should not throw errors if there is a non-required error port', (done) => {
-      var c = new noflo.Component({
+      const c = new noflo.Component({
         inPorts: {
           in: {
             datatype: 'string',
@@ -169,7 +138,7 @@ describe('Component', () => {
             required: false,
           },
         },
-        process(input, output) {
+        process(input) {
           const packet = input.getData('in');
           chai.expect(packet).to.equal('some-data');
           c.error(new Error());
@@ -183,7 +152,6 @@ describe('Component', () => {
       s1.send('some-data');
     });
     it('should send errors if there is a connected error port', (done) => {
-      const grps = [];
       const c = new noflo.Component({
         inPorts: {
           in: {
@@ -255,8 +223,7 @@ describe('Component', () => {
   });
   describe('with non-existing ports', () => {
     const getComponent = function () {
-      let c;
-      return c = new noflo.Component({
+      return new noflo.Component({
         inPorts: {
           in: {},
         },
@@ -265,30 +232,15 @@ describe('Component', () => {
         },
       });
     };
-    const getAddressableComponent = function () {
-      const c = new noflo.Component({
-        inPorts: {
-          in: {
-            addressable: true,
-          },
-        },
-        outPorts: {
-          out: {
-            addressable: true,
-          },
-        },
-      });
-    };
     it('should throw an error when checking attached for non-existing port', (done) => {
       const c = getComponent();
-      c.process((input, output) => {
+      c.process((input) => {
         try {
           input.attached('foo');
         } catch (e) {
           chai.expect(e).to.be.an('Error');
           chai.expect(e.message).to.contain('foo');
           done();
-          return;
           return;
         }
         done(new Error('Expected a throw'));
@@ -299,14 +251,13 @@ describe('Component', () => {
     });
     it('should throw an error when checking IP for non-existing port', (done) => {
       const c = getComponent();
-      c.process((input, output) => {
+      c.process((input) => {
         try {
           input.has('foo');
         } catch (e) {
           chai.expect(e).to.be.an('Error');
           chai.expect(e.message).to.contain('foo');
           done();
-          return;
           return;
         }
         done(new Error('Expected a throw'));
@@ -317,14 +268,13 @@ describe('Component', () => {
     });
     it('should throw an error when checking IP for non-existing addressable port', (done) => {
       const c = getComponent();
-      c.process((input, output) => {
+      c.process((input) => {
         try {
           input.has(['foo', 0]);
         } catch (e) {
           chai.expect(e).to.be.an('Error');
           chai.expect(e.message).to.contain('foo');
           done();
-          return;
           return;
         }
         done(new Error('Expected a throw'));
@@ -335,14 +285,13 @@ describe('Component', () => {
     });
     it('should throw an error when checking data for non-existing port', (done) => {
       const c = getComponent();
-      c.process((input, output) => {
+      c.process((input) => {
         try {
           input.hasData('foo');
         } catch (e) {
           chai.expect(e).to.be.an('Error');
           chai.expect(e.message).to.contain('foo');
           done();
-          return;
           return;
         }
         done(new Error('Expected a throw'));
@@ -353,14 +302,13 @@ describe('Component', () => {
     });
     it('should throw an error when checking stream for non-existing port', (done) => {
       const c = getComponent();
-      c.process((input, output) => {
+      c.process((input) => {
         try {
           input.hasStream('foo');
         } catch (e) {
           chai.expect(e).to.be.an('Error');
           chai.expect(e.message).to.contain('foo');
           done();
-          return;
           return;
         }
         done(new Error('Expected a throw'));
@@ -461,7 +409,7 @@ describe('Component', () => {
         { groups: ['foo'] }));
     });
     it('should support substreams', (done) => {
-      var c = new noflo.Component({
+      const c = new noflo.Component({
         forwardBrackets: {},
         inPorts: {
           tags: {
@@ -583,7 +531,7 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       let count = 0;
-      sout1.on('ip', (ip) => {
+      sout1.on('ip', () => {
         count++;
         if (count === 1) {
           chai.expect(hadIPs).to.eql(['foo']);
@@ -631,7 +579,7 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       let count = 0;
-      sout1.on('ip', (ip) => {
+      sout1.on('ip', () => {
         count++;
         if (count === 1) {
           chai.expect(receivedIndexes).to.eql([{
@@ -737,8 +685,8 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1, 1);
       c.outPorts.baz.attach(sout2, 0);
 
-      sout1.on('ip', (ip) => {});
-      sout2.on('ip', (ip) => {});
+      sout1.on('ip', () => {});
+      sout2.on('ip', () => {});
 
       sin1.post(new noflo.IP('data', 'first'));
     });
@@ -768,7 +716,7 @@ describe('Component', () => {
         },
         process(input, output) {
           if (!input.has('foo')) { return; }
-          const packet = input.get('foo');
+          input.get('foo');
           output.sendDone({
             out1: 1,
             out2: 0,
@@ -824,7 +772,7 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       let count = 0;
-      sout1.on('ip', (ip) => {
+      sout1.on('ip', () => {
         count++;
         if (count === 1) {
           chai.expect(triggered).to.eql(['bar']);
@@ -857,9 +805,9 @@ describe('Component', () => {
             control: true,
           },
         },
-        process(input, output) {
+        process(input) {
           if (!input.has('foo')) { return; }
-          const [foo, bar, baz] = Array.from(input.getData('foo', 'bar', 'baz'));
+          const [foo, bar, baz] = input.getData('foo', 'bar', 'baz');
           chai.expect(foo).to.be.a('string');
           chai.expect(bar).to.be.undefined;
           chai.expect(baz).to.be.undefined;
@@ -886,7 +834,7 @@ describe('Component', () => {
         },
         process(input, output) {
           if (!input.has('foo', 'bar')) { return; }
-          const [foo, bar] = Array.from(input.get('foo', 'bar'));
+          const [foo, bar] = input.get('foo', 'bar');
           const baz = {
             foo: foo.data,
             bar: bar.data,
@@ -1051,7 +999,7 @@ describe('Component', () => {
         },
         process(input, output) {
           if (!input.has('foo', 'bar')) { return; }
-          const [foo, bar] = Array.from(input.getData('foo', 'bar'));
+          const [foo, bar] = input.getData('foo', 'bar');
           const baz = {
             foo,
             bar,
@@ -1139,7 +1087,7 @@ describe('Component', () => {
         },
         process(input, output) {
           if (!input.has('foo', 'bar')) { return; }
-          const [foo, bar] = Array.from(input.getData('foo', 'bar'));
+          const [foo, bar] = input.getData('foo', 'bar');
           const baz = {
             foo,
             bar,
@@ -1184,7 +1132,7 @@ describe('Component', () => {
         },
         process(input, output) {
           if (!input.has('foo', 'bar')) { return; }
-          const [foo, bar] = Array.from(input.getData('foo', 'bar'));
+          const [foo, bar] = input.getData('foo', 'bar');
           const baz = {
             foo,
             bar,
@@ -1228,7 +1176,7 @@ describe('Component', () => {
         },
         process(input, output) {
           if (!input.has('foo', 'bar')) { return; }
-          const [foo, bar] = Array.from(input.getData('foo', 'bar'));
+          const [foo, bar] = input.getData('foo', 'bar');
           output.sendDone({ baz: `${foo} and ${bar}` });
         },
       });
@@ -1294,7 +1242,7 @@ describe('Component', () => {
         },
         process(input, output) {
           if (!input.has('foo', 'bar')) { return; }
-          const [foo, bar] = Array.from(input.getData('foo', 'bar'));
+          const [foo, bar] = input.getData('foo', 'bar');
           output.sendDone({ baz: `${foo} and ${bar}` });
         },
       });
@@ -1342,7 +1290,7 @@ describe('Component', () => {
         ordered: true,
         process(input, output) {
           if (!input.has('msg', 'delay')) { return; }
-          const [msg, delay] = Array.from(input.getData('msg', 'delay'));
+          const [msg, delay] = input.getData('msg', 'delay');
           setTimeout(() => output.sendDone({ out: { msg, delay } }),
             delay);
         },
@@ -1364,7 +1312,7 @@ describe('Component', () => {
         if (sample.length === 0) { done(); }
       });
 
-      for (const ip of Array.from(sample)) {
+      for (const ip of sample) {
         sin1.post(new noflo.IP('data', ip.msg));
         sin2.post(new noflo.IP('data', ip.delay));
       }
@@ -1381,7 +1329,7 @@ describe('Component', () => {
         ordered: false,
         process(input, output) {
           if (!input.has('msg', 'delay')) { return; }
-          const [msg, delay] = Array.from(input.getData('msg', 'delay'));
+          const [msg, delay] = input.getData('msg', 'delay');
           setTimeout(() => output.sendDone({ out: { msg, delay } }),
             delay);
         },
@@ -1412,7 +1360,7 @@ describe('Component', () => {
         if (count === 4) { done(); }
       });
 
-      for (const ip of Array.from(sample)) {
+      for (const ip of sample) {
         sin1.post(new noflo.IP('data', ip.msg));
         sin2.post(new noflo.IP('data', ip.delay));
       }
@@ -1502,7 +1450,7 @@ describe('Component', () => {
           },
         },
         process(input, output) {
-          const packet = input.get('in');
+          input.get('in');
           output.sendDone('some data');
         },
       });
@@ -1535,7 +1483,7 @@ describe('Component', () => {
           },
         },
         process(input, output) {
-          const packet = input.get('in');
+          input.get('in');
           output.sendDone({ some: 'data' });
         },
       });
@@ -1701,7 +1649,6 @@ describe('Component', () => {
         'bar',
         '>',
       ];
-      const actual = [];
       let count = 0;
 
       sout1.on('ip', (ip) => {
@@ -1723,7 +1670,7 @@ describe('Component', () => {
         done(ip.data);
       });
 
-      for (const data of Array.from(source)) {
+      for (const data of source) {
         switch (data) {
           case '<': sin1.post(new noflo.IP('openBracket')); break;
           case '>': sin1.post(new noflo.IP('closeBracket')); break;
@@ -1914,7 +1861,7 @@ describe('Component', () => {
         },
         process(input, output) {
           const indexesWithData = [];
-          for (const idx of Array.from(input.attached())) {
+          for (const idx of input.attached()) {
             if (input.hasData(['in', idx])) { indexesWithData.push(idx); }
           }
           if (!indexesWithData.length) { return; }
@@ -2001,7 +1948,7 @@ describe('Component', () => {
         },
         process(input, output) {
           const indexesWithData = [];
-          for (const idx of Array.from(input.attached())) {
+          for (const idx of input.attached()) {
             if (input.hasData(['in', idx])) { indexesWithData.push(idx); }
           }
           if (!indexesWithData.length) { return; }
@@ -2105,7 +2052,7 @@ describe('Component', () => {
       c.outPorts.out.attach(sout1);
       c.outPorts.error.attach(sout2);
 
-      sout1.on('ip', (ip) => {});
+      sout1.on('ip', () => {});
       // done new Error "Unexpected IP: #{ip.type} #{ip.data}"
 
       let count = 0;
@@ -2202,7 +2149,7 @@ describe('Component', () => {
         },
         process(input, output) {
           if (!input.hasData('msg', 'delay')) { return; }
-          const [msg, delay] = Array.from(input.getData('msg', 'delay'));
+          const [msg, delay] = input.getData('msg', 'delay');
           if (delay < 0) {
             output.sendDone(new Error('Delay is negative'));
             return;
@@ -2277,7 +2224,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('openBracket', 'msg'));
       sin2.post(new noflo.IP('openBracket', 'delay'));
 
-      for (const ip of Array.from(sample)) {
+      for (const ip of sample) {
         sin1.post(new noflo.IP('data', ip.msg));
         sin2.post(new noflo.IP('data', ip.delay));
       }
@@ -2309,7 +2256,7 @@ describe('Component', () => {
         },
         process(input, output) {
           if (!input.hasData('in1', 'in2')) { return; }
-          const [one, two] = Array.from(input.getData('in1', 'in2'));
+          const [one, two] = input.getData('in1', 'in2');
           setTimeout(() => output.sendDone({ out: `${one}:${two}` }),
             1);
         },
@@ -2398,7 +2345,7 @@ describe('Component', () => {
         },
         process(input, output) {
           if (!input.hasData('in1', 'in2')) { return; }
-          const [one, two] = Array.from(input.getData('in1', 'in2'));
+          const [one, two] = input.getData('in1', 'in2');
           output.sendDone({ out: `${one}:${two}` });
         },
       });
@@ -2477,7 +2424,7 @@ describe('Component', () => {
           // Skip brackets
           if (input.ip.type !== 'data') { return input.get(input.port.name); }
           if (!input.has('msg', 'delay')) { return; }
-          const [msg, delay] = Array.from(input.getData('msg', 'delay'));
+          const [msg, delay] = input.getData('msg', 'delay');
           setTimeout(() => output.sendDone({ out: { msg, delay } }),
             delay);
         },
@@ -2511,7 +2458,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('openBracket', 'msg'));
       sin2.post(new noflo.IP('openBracket', 'delay'));
 
-      for (const ip of Array.from(sample)) {
+      for (const ip of sample) {
         sin1.post(new noflo.IP('data', ip.msg));
         sin2.post(new noflo.IP('data', ip.delay));
       }
@@ -2570,7 +2517,7 @@ describe('Component', () => {
       });
 
       let n = 0;
-      for (const str of Array.from(source)) {
+      for (const str of source) {
         sin1.post(new noflo.IP('data', str, {
           count: n++,
           length: source.length,
@@ -2629,7 +2576,7 @@ describe('Component', () => {
           activateOnInput: false,
           process(input, output) {
             if (!input.has('foo', 'bar')) { return; }
-            const [foo, bar] = Array.from(input.getData('foo', 'bar'));
+            const [foo, bar] = input.getData('foo', 'bar');
             if ((bar < 0) || (bar > 1000)) {
               output.sendDone({ err: new Error(`Bar is not correct: ${bar}`) });
               return;
@@ -2656,7 +2603,7 @@ describe('Component', () => {
         done();
       });
       it('should fail on wrong input', (done) => {
-        sout1.once('ip', (ip) => {
+        sout1.once('ip', () => {
           done(new Error('Unexpected baz'));
         });
         sout2.once('ip', (ip) => {
@@ -2705,7 +2652,7 @@ describe('Component', () => {
           done(ip.data);
         });
 
-        for (const item of Array.from(sample)) {
+        for (const item of sample) {
           sin2.post(new noflo.IP('data', item.bar));
           sin1.post(new noflo.IP('data', item.foo));
         }
@@ -2724,7 +2671,7 @@ describe('Component', () => {
               datatype: 'string',
             },
           },
-          process(input, output) {
+          process(input) {
             if (input.hasStream('in')) {
               done(new Error('should never trigger this'));
             }
@@ -2756,7 +2703,7 @@ describe('Component', () => {
               datatype: 'string',
             },
           },
-          process(input, output) {
+          process(input) {
             if (!input.hasStream('in')) { return; }
             done();
           },
@@ -2778,7 +2725,7 @@ describe('Component', () => {
               datatype: 'string',
             },
           },
-          process(input, output) {
+          process(input) {
             if (!input.hasStream('eh')) { return; }
             const stream = input.getStream('eh');
             const packetTypes = stream.map((ip) => [ip.type, ip.data]);
@@ -2805,7 +2752,7 @@ describe('Component', () => {
               datatype: 'string',
             },
           },
-          process(input, output) {
+          process(input) {
             if (!input.hasStream('eh')) { return; }
             const stream = input.getStream('eh');
             const packetTypes = stream.map((ip) => [ip.type, ip.data]);
@@ -3019,8 +2966,8 @@ describe('Component', () => {
         process(input, output, context) {
           if (!input.has('interval')) { return; }
           if (input.has('start')) {
-            const start = input.get('start');
-            const interval = parseInt(input.getData('interval'));
+            input.get('start');
+            const interval = parseInt(input.getData('interval'), 10);
             if (this.timer) { clearInterval(this.timer); }
             this.timer = setInterval(() => {
               context.activate();
@@ -3033,7 +2980,7 @@ describe('Component', () => {
             interval);
           }
           if (input.has('stop')) {
-            const stop = input.get('stop');
+            input.get('stop');
             if (this.timer) { clearInterval(this.timer); }
           }
           output.done();
@@ -3068,10 +3015,10 @@ describe('Component', () => {
       this.timeout(100);
       let count = 0;
       let dcount = 0;
-      c.on('activate', (load) => {
+      c.on('activate', () => {
         count++;
       });
-      c.on('deactivate', (load) => {
+      c.on('deactivate', () => {
         dcount++;
         // Stop when the stack of processes grows
         if ((count === 3) && (dcount === 3)) {
@@ -3087,7 +3034,7 @@ describe('Component', () => {
         chai.expect(c.started).to.be.false;
         done();
       });
-      c.on('activate', (load) => {
+      c.on('activate', () => {
         if (!c.started) {
           done(new Error('Unexpected activate after end'));
         }

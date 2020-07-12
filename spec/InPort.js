@@ -1,24 +1,4 @@
-/* eslint-disable
-    func-names,
-    global-require,
-    guard-for-in,
-    import/no-extraneous-dependencies,
-    import/no-unresolved,
-    no-multi-assign,
-    no-restricted-syntax,
-    no-undef,
-    no-unused-expressions,
-    no-unused-vars,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-let chai; let
-  noflo;
+let chai; let noflo;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   if (!chai) { chai = require('chai'); }
   noflo = require('../src/lib/NoFlo');
@@ -70,7 +50,7 @@ describe('Inport Port', () => {
     it('should set context to port itself', (done) => {
       const s = new noflo.internalSocket.InternalSocket();
       const p = new noflo.InPort();
-      p.on('data', function (packet, component) {
+      p.on('data', function (packet) {
         chai.expect(this).to.equal(p);
         chai.expect(packet).to.equal('some-data');
         done();
@@ -80,8 +60,8 @@ describe('Inport Port', () => {
     });
   });
   describe('with default value', () => {
-    let s;
-    let p = (s = null);
+    let p = null;
+    let s = null;
     beforeEach(() => {
       p = new noflo.InPort({ default: 'default-value' });
       s = new noflo.internalSocket.InternalSocket();
@@ -118,8 +98,10 @@ describe('Inport Port', () => {
       };
       const p = new noflo.InPort(options);
       for (const name in options) {
-        const option = options[name];
-        chai.expect(p.options[name]).to.equal(option);
+        if (Object.prototype.hasOwnProperty.call(options, name)) {
+          const option = options[name];
+          chai.expect(p.options[name]).to.equal(option);
+        }
       }
     });
   });
@@ -171,11 +153,6 @@ describe('Inport Port', () => {
   describe('with processing shorthand', () => {
     it('should also accept metadata (i.e. options) when provided', (done) => {
       const s = new noflo.internalSocket.InternalSocket();
-      const expectedEvents = [
-        'connect',
-        'data',
-        'disconnect',
-      ];
       const ps = {
         outPorts: new noflo.OutPorts({ out: new noflo.OutPort() }),
         inPorts: new noflo.InPorts(),

@@ -1,25 +1,4 @@
-/* eslint-disable
-    func-names,
-    global-require,
-    import/no-extraneous-dependencies,
-    import/no-unresolved,
-    no-param-reassign,
-    no-restricted-syntax,
-    no-shadow,
-    no-undef,
-    no-unused-expressions,
-    no-unused-vars,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-let chai; let noflo; let root; let
-  urlPrefix;
+let chai; let noflo; let root; let urlPrefix;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   if (!chai) { chai = require('chai'); }
   noflo = require('../src/lib/NoFlo');
@@ -498,7 +477,7 @@ describe('NoFlo Graph component', () => {
     before(function (done) {
       this.timeout(6000);
       cl = new noflo.ComponentLoader(root);
-      cl.listComponents((err, components) => {
+      cl.listComponents((err) => {
         if (err) {
           done(err);
           return;
@@ -646,7 +625,7 @@ describe('NoFlo Graph component', () => {
         const sendNext = function () {
           if (!send.length) { return; }
           const sends = send.shift();
-          for (const d of Array.from(sends)) { i.post(new noflo.IP('data', d)); }
+          for (const d of sends) { i.post(new noflo.IP('data', d)); }
         };
         o.on('ip', (ip) => {
           received.push(`${ip.type} ${ip.data}`);
