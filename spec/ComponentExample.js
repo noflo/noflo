@@ -26,7 +26,7 @@ describe('MergeObjects component', () => {
       this.skip();
       return;
     }
-    const MergeObjects = require('./components/MergeObjects.coffee');
+    const MergeObjects = require('./components/MergeObjects');
     c = MergeObjects.getComponent();
     sin1 = new noflo.internalSocket.InternalSocket();
     sin2 = new noflo.internalSocket.InternalSocket();
