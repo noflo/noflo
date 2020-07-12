@@ -12,4 +12,5 @@ exports.getComponent = ->
     console.log data
     output.sendDone
       out: data
-  c
+    return
+  return c
