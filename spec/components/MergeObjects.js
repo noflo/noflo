@@ -1,30 +1,9 @@
-/* eslint-disable
-    block-scoped-var,
-    guard-for-in,
-    no-unused-vars,
-    no-use-before-define,
-    no-var,
-    vars-on-top,
-*/
-// TODO: This file was created by bulk-decaffeinate.
-// Fix any style issues and re-enable lint.
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-let component; let IP; let
-  socket;
+let component; let chai;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
-  if (!chai) { var chai = require('chai'); }
+  if (!chai) { chai = require('chai'); }
   component = require('../../src/lib/Component.js');
-  socket = require('../../src/lib/InternalSocket.js');
-  IP = require('../../src/lib/IP.js');
 } else {
   component = require('noflo/src/lib/Component.js');
-  socket = require('noflo/src/lib/InternalSocket.js');
-  IP = require('noflo/src/lib/IP.js');
 }
 
 exports.getComponent = function () {
@@ -56,10 +35,9 @@ exports.getComponent = function () {
   });
 
   return c.process((input, output) => {
-    let dst; let
-      src;
+    let dst; let src;
     if (!input.has('obj1', 'obj2', 'overwrite')) { return; }
-    const [obj1, obj2, overwrite] = Array.from(input.getData('obj1', 'obj2', 'overwrite'));
+    const [obj1, obj2, overwrite] = input.getData('obj1', 'obj2', 'overwrite');
     try {
       src = JSON.parse(JSON.stringify(overwrite ? obj1 : obj2));
       dst = JSON.parse(JSON.stringify(overwrite ? obj2 : obj1));
@@ -67,10 +45,10 @@ exports.getComponent = function () {
       output.done(e);
       return;
     }
-    for (const key in dst) {
+    Object.keys(dst).forEach((key) => {
       const val = dst[key];
       src[key] = val;
-    }
+    });
     output.sendDone({ result: src });
   });
 };
