@@ -1,3 +1,5 @@
+// TODO: This file was created by bulk-decaffeinate.
+// Sanity-check the conversion and remove this comment.
 // Flow-based example of counting lines of a file, roughly equivalent to
 // "wc -l <filename>"
 
