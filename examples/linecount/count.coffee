@@ -27,3 +27,4 @@ noflo.createNetwork graph, (err) ->
   if err
     console.error err
     process.exit 1
+  return

@@ -17,3 +17,5 @@ exports.getComponent = ->
       data:
         locals:
           string: "Hello, #{request.req.remoteUser}"
+    return
+  return c
