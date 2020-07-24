@@ -64,7 +64,7 @@
   },
   "nyc": {
     "include": [
-      "src/**/*.coffee"
+      "src/**/*.js"
     ]
   }
 }
