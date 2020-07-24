@@ -1,6 +1,6 @@
 const noflo = require("noflo");
 
-exports.getComponent = function() {
+exports.getComponent = () => {
   const c = new noflo.Component;
   c.description = "Simple controller that says hello, user";
   c.inPorts.add('in',
@@ -9,7 +9,7 @@ exports.getComponent = function() {
     {datatype: 'object'});
   c.outPorts.add('data',
     {datatype: 'object'});
-  c.process(function(input, output) {
+  c.process((input, output) => {
     if (!input.hasData('in')) { return; }
     const request = input.getData('in');
     output.sendDone({
