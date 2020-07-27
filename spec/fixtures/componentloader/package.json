@@ -3,7 +3,7 @@
   "noflo": {
     "icon": "cloud",
     "components": {
-      "Output": "components/Output.coffee"
+      "Output": "components/Output.js"
     }
   },
   "dependencies": {

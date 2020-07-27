@@ -1,0 +1,20 @@
+{
+    "extends": "airbnb-base",
+    "rules": {
+        "consistent-return": 0,
+        "default-case": 0,
+        "func-names": 0,
+        "global-require": 0,
+        "import/no-extraneous-dependencies": 0,
+        "import/no-unresolved": 0,
+        "no-console": 0,
+        "no-param-reassign": 0,
+        "no-plusplus": 0,
+        "no-restricted-syntax": 0,
+        "no-return-assign": 0,
+        "no-shadow": 0,
+        "no-undef": 0,
+        "no-unused-expressions": 0,
+        "prefer-destructuring": 0
+    }
+}

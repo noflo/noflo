@@ -7,8 +7,6 @@
 bin/*.js
 /lib/
 /_site/
-spec/*.js
-spec/browser/*.js
 spec/result.xml
 spec/runner.html
 server/static/js/*.js
