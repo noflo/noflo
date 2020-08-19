@@ -22,24 +22,24 @@
     "get-function-params": "^2.0.6"
   },
   "devDependencies": {
-    "babel-core": "^6.26.0",
-    "babel-loader": "^7.1.2",
-    "babel-polyfill": "^6.26.0",
-    "babel-preset-env": "^1.7.0",
+    "@babel/cli": "^7.10.5",
+    "@babel/core": "^7.11.1",
+    "@babel/preset-env": "^7.11.0",
     "chai": "^4.0.0",
     "coveralls": "^3.0.0",
-    "eslint": "^7.2.0",
+    "eslint": "^7.7.0",
     "eslint-config-airbnb-base": "^14.2.0",
-    "eslint-plugin-import": "^2.21.2",
-    "grunt": "^1.0.1",
-    "grunt-babel": "^7.0.0",
-    "grunt-cli": "~1.2.0",
-    "grunt-contrib-connect": "^2.0.0",
-    "grunt-mocha-phantomjs": "^4.0.0",
-    "grunt-mocha-test": "^0.13.2",
-    "grunt-noflo-browser": "~1.6.0",
+    "eslint-plugin-import": "^2.22.0",
+    "karma": "^5.1.1",
+    "karma-chai": "^0.1.0",
+    "karma-chrome-launcher": "^3.1.0",
+    "karma-mocha": "^2.0.1",
+    "karma-mocha-reporter": "^2.2.5",
     "mocha": "^5.0.0",
-    "nyc": "^14.1.1"
+    "noflo-component-loader": "^0.3.2",
+    "nyc": "^14.1.1",
+    "webpack": "^4.44.1",
+    "webpack-cli": "^3.3.12"
   },
   "main": "./lib/NoFlo",
   "bin": {
@@ -52,8 +52,13 @@
     "url": "git://github.com/noflo/noflo.git"
   },
   "scripts": {
-    "test": "nyc grunt test",
-    "build": "grunt build"
+    "pretest": "eslint src",
+    "test:node": "nyc mocha --require spec/utils/inject.js spec",
+    "test:browser": "karma start karma.config.js",
+    "test": "npm run test:node && npm run test:browser",
+    "build:node": "babel src --out-dir .",
+    "build:browser": "webpack",
+    "build": "npm run build:node && npm run build:browser"
   },
   "docco_husky": {
     "output_dir": "docs",

@@ -1,13 +1,5 @@
-let component; let chai;
-if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
-  if (!chai) { chai = require('chai'); }
-  component = require('../../src/lib/Component.js');
-} else {
-  component = require('noflo/src/lib/Component.js');
-}
-
 exports.getComponent = function () {
-  const c = new component.Component({
+  const c = new noflo.Component({
     desciption: 'Merges two objects into one (cloning)',
     inPorts: {
       obj1: {

@@ -1,11 +1,7 @@
-let browser; let chai; let noflo; let path;
+let browser;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
-  if (!chai) { chai = require('chai'); }
-  noflo = require('../src/lib/NoFlo');
-  path = require('path');
   browser = false;
 } else {
-  noflo = require('noflo');
   browser = true;
 }
 

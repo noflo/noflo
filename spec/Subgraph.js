@@ -1,22 +1,15 @@
-let chai; let noflo; let root; let urlPrefix;
+let loadingPrefix;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
-  if (!chai) { chai = require('chai'); }
-  noflo = require('../src/lib/NoFlo');
-  const path = require('path');
-  root = path.resolve(__dirname, '../');
-  urlPrefix = './';
+  loadingPrefix = './';
 } else {
-  noflo = require('noflo');
-  root = 'noflo';
-  urlPrefix = '/';
+  loadingPrefix = '/base/';
 }
-
 describe('NoFlo Graph component', () => {
   let c = null;
   let g = null;
   let loader = null;
   before((done) => {
-    loader = new noflo.ComponentLoader(root);
+    loader = new noflo.ComponentLoader(baseDir);
     loader.listComponents(done);
   });
   beforeEach((done) => {
@@ -71,7 +64,7 @@ describe('NoFlo Graph component', () => {
       chai.expect(c.network).to.be.null;
     });
     it('should have a baseDir', () => {
-      chai.expect(c.baseDir).to.equal(root);
+      chai.expect(c.baseDir).to.equal(baseDir);
     });
     it('should only have the graph inport', () => {
       chai.expect(c.inPorts.ports).to.have.keys(['graph']);
@@ -80,7 +73,7 @@ describe('NoFlo Graph component', () => {
   });
   describe('with JSON graph definition', () => {
     it('should emit a ready event after network has been loaded', (done) => {
-      c.baseDir = root;
+      c.baseDir = baseDir;
       c.once('ready', () => {
         chai.expect(c.network).not.to.be.null;
         chai.expect(c.ready).to.be.true;
@@ -107,7 +100,7 @@ describe('NoFlo Graph component', () => {
       });
     });
     it('should expose available ports', (done) => {
-      c.baseDir = root;
+      c.baseDir = baseDir;
       c.once('ready', () => {
         chai.expect(c.inPorts.ports).to.have.keys([
           'graph',
@@ -147,7 +140,7 @@ describe('NoFlo Graph component', () => {
       });
     });
     it('should update description from the graph', (done) => {
-      c.baseDir = root;
+      c.baseDir = baseDir;
       c.once('ready', () => {
         chai.expect(c.network).not.to.be.null;
         chai.expect(c.ready).to.be.true;
@@ -175,7 +168,7 @@ describe('NoFlo Graph component', () => {
       });
     });
     it('should expose only exported ports when they exist', (done) => {
-      c.baseDir = root;
+      c.baseDir = baseDir;
       c.once('ready', () => {
         chai.expect(c.inPorts.ports).to.have.keys([
           'graph',
@@ -223,7 +216,7 @@ describe('NoFlo Graph component', () => {
       });
     });
     it('should be able to run the graph', (done) => {
-      c.baseDir = root;
+      c.baseDir = baseDir;
       c.once('ready', () => {
         const ins = noflo.internalSocket.createSocket();
         const out = noflo.internalSocket.createSocket();
@@ -283,7 +276,7 @@ describe('NoFlo Graph component', () => {
     let gr = null;
     before(() => {
       gr = new noflo.Graph('Hello, world');
-      gr.baseDir = root;
+      gr.baseDir = baseDir;
       gr.addNode('Split', 'Split');
       gr.addNode('Merge', 'Merge');
       gr.addEdge('Merge', 'out', 'Split', 'in');
@@ -291,7 +284,7 @@ describe('NoFlo Graph component', () => {
       gr.addOutport('out', 'Split', 'out');
     });
     it('should emit a ready event after network has been loaded', (done) => {
-      c.baseDir = root;
+      c.baseDir = baseDir;
       c.once('ready', () => {
         chai.expect(c.network).not.to.be.null;
         chai.expect(c.ready).to.be.true;
@@ -310,7 +303,7 @@ describe('NoFlo Graph component', () => {
       chai.expect(c.ready).to.be.false;
     });
     it('should expose available ports', (done) => {
-      c.baseDir = root;
+      c.baseDir = baseDir;
       c.once('ready', () => {
         chai.expect(c.inPorts.ports).to.have.keys([
           'graph',
@@ -333,7 +326,7 @@ describe('NoFlo Graph component', () => {
       g.send(gr);
     });
     it('should be able to run the graph', (done) => {
-      c.baseDir = root;
+      c.baseDir = baseDir;
       let doned = false;
       c.once('ready', () => {
         const ins = noflo.internalSocket.createSocket();
@@ -363,10 +356,10 @@ describe('NoFlo Graph component', () => {
     });
   });
   describe('with a FBP file with INPORTs and OUTPORTs', () => {
-    const file = `${urlPrefix}spec/fixtures/subgraph.fbp`;
+    const file = `${loadingPrefix}spec/fixtures/subgraph.fbp`;
     it('should emit a ready event after network has been loaded', function (done) {
       this.timeout(6000);
-      c.baseDir = root;
+      c.baseDir = baseDir;
       c.once('ready', () => {
         chai.expect(c.network).not.to.be.null;
         chai.expect(c.ready).to.be.true;
@@ -386,7 +379,7 @@ describe('NoFlo Graph component', () => {
     });
     it('should expose available ports', function (done) {
       this.timeout(6000);
-      c.baseDir = root;
+      c.baseDir = baseDir;
       c.once('ready', () => {
         chai.expect(c.inPorts.ports).to.have.keys([
           'graph',
@@ -409,7 +402,7 @@ describe('NoFlo Graph component', () => {
       g.send(file);
     });
     it('should be able to run the graph', function (done) {
-      c.baseDir = root;
+      c.baseDir = baseDir;
       this.timeout(6000);
       c.once('ready', () => {
         const ins = noflo.internalSocket.createSocket();
@@ -476,7 +469,7 @@ describe('NoFlo Graph component', () => {
     let cl = null;
     before(function (done) {
       this.timeout(6000);
-      cl = new noflo.ComponentLoader(root);
+      cl = new noflo.ComponentLoader(baseDir);
       cl.listComponents((err) => {
         if (err) {
           done(err);
@@ -656,7 +649,7 @@ describe('NoFlo Graph component', () => {
       let network = null;
       before((done) => {
         graph = new noflo.Graph('main');
-        graph.baseDir = root;
+        graph.baseDir = baseDir;
         noflo.createNetwork(graph, {
           delay: true,
           subscribeGraph: false,
@@ -771,7 +764,7 @@ describe('NoFlo Graph component', () => {
       let network = null;
       before((done) => {
         graph = new noflo.Graph('main');
-        graph.baseDir = root;
+        graph.baseDir = baseDir;
         noflo.createNetwork(graph, {
           delay: true,
           subscribeGraph: false,

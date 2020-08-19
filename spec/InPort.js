@@ -1,11 +1,3 @@
-let chai; let noflo;
-if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
-  if (!chai) { chai = require('chai'); }
-  noflo = require('../src/lib/NoFlo');
-} else {
-  noflo = require('noflo');
-}
-
 describe('Inport Port', () => {
   describe('with default options', () => {
     const p = new noflo.InPort();

@@ -82,6 +82,7 @@ NoFlo development happens on GitHub. Just fork the [main repository](https://git
 We have an extensive suite of tests available for NoFlo. Run them with:
 
 ```bash
+$ npm run build
 $ npm test
 ```
 
@@ -90,31 +91,15 @@ $ npm test
 By default, the tests are run for both Node.js and the browser. You can also run only the tests for a particular target platform:
 
 ```bash
-$ grunt test:nodejs
+$ npm run test:node
 ```
 
 or:
 
 ```bash
-$ grunt test:browser
+$ npm run test:browser
 ```
-
-### Running tests automatically
-
-The build system used for NoFlo is also able to watch for changes in the filesystem and run the tests automatically when something changes. To start the watcher, run:
-
-```bash
-$ grunt watch
-```
-
-If you want to only run a particular part of the test suite, you can filter them using the `TESTS` environment variable:
-
-```bash
-$ TESTS="Network Lifecycle" grunt watch
-```
-
-To quit the watcher, just end the process with Ctrl-C.
 
 ## Discussion
 
-There is an IRC channel `#fbp` on FreeNode, and questions can be posted with the [`noflo` tag on Stack Overflow](http://stackoverflow.com/questions/tagged/noflo). See <http://noflojs.org/support/> for other ways to get in touch.
+There is a `#noflo` channel on the [Flow-Based Programming Slack](https://join.slack.com/t/fbphq/shared_invite/enQtOTM4ODkzMTYyODE3LTJiMmNlZjhiMWY1MDY1ODA4Y2YzNDBlNDZlMTBkMDNlMjcwNzg2MGZhZjA2NjJjYTliYTM0OTIyYmM0Yzk0MDQ), and questions can be posted with the [`noflo` tag on Stack Overflow](http://stackoverflow.com/questions/tagged/noflo). See <http://noflojs.org/support/> for other ways to get in touch.

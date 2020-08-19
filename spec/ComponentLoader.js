@@ -1,28 +1,18 @@
 /* eslint-disable
   max-classes-per-file
 */
-let chai;
-let noflo;
-let path;
-let root;
 let shippingLanguage;
 let urlPrefix;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
-  if (!chai) { chai = require('chai'); }
-  noflo = require('../src/lib/NoFlo');
   shippingLanguage = 'javascript';
-  path = require('path');
-  root = path.resolve(__dirname, '../');
   urlPrefix = './';
 } else {
-  noflo = require('noflo');
   shippingLanguage = 'javascript';
-  root = 'noflo';
-  urlPrefix = '/';
+  urlPrefix = '/base/';
 }
 
 describe('ComponentLoader with no external packages installed', () => {
-  let l = new noflo.ComponentLoader(root);
+  let l = new noflo.ComponentLoader(baseDir);
   class Split extends noflo.Component {
     constructor() {
       const options = {
@@ -110,7 +100,7 @@ describe('ComponentLoader with no external packages installed', () => {
   });
   describe('calling listComponents twice simultaneously', () => {
     it('should return the same results', (done) => {
-      const loader = new noflo.ComponentLoader(root);
+      const loader = new noflo.ComponentLoader(baseDir);
       const received = [];
       loader.listComponents((err, components) => {
         if (err) {
@@ -171,7 +161,7 @@ describe('ComponentLoader with no external packages installed', () => {
       chai.expect(instance.getIcon()).to.equal('sitemap');
     });
     it('should be able to load the component with non-ready ComponentLoader', (done) => {
-      const loader = new noflo.ComponentLoader(root);
+      const loader = new noflo.ComponentLoader(baseDir);
       loader.load('Graph', (err, inst) => {
         if (err) {
           done(err);
@@ -186,7 +176,7 @@ describe('ComponentLoader with no external packages installed', () => {
   });
 
   describe('loading a subgraph', () => {
-    l = new noflo.ComponentLoader(root);
+    l = new noflo.ComponentLoader(baseDir);
     const file = `${urlPrefix}spec/fixtures/subgraph.fbp`;
     it('should remove `graph` and `start` ports', (done) => {
       l.listComponents((err) => {
@@ -285,7 +275,7 @@ describe('ComponentLoader with no external packages installed', () => {
   describe('loading a component', () => {
     let loader = null;
     before((done) => {
-      loader = new noflo.ComponentLoader(root);
+      loader = new noflo.ComponentLoader(baseDir);
       loader.listComponents(done);
     });
     it('should return an error on an invalid component type', (done) => {
@@ -453,7 +443,7 @@ describe('ComponentLoader with no external packages installed', () => {
       });
     });
     it('should be able to get the source for non-ready ComponentLoader', (done) => {
-      const loader = new noflo.ComponentLoader(root);
+      const loader = new noflo.ComponentLoader(baseDir);
       loader.getSource('Graph', (err, component) => {
         if (err) {
           done(err);
@@ -471,6 +461,10 @@ describe('ComponentLoader with no external packages installed', () => {
     });
   });
   describe('writing sources', () => {
+    let localNofloPath;
+    if (!noflo.isBrowser()) {
+      localNofloPath = JSON.stringify(path.resolve(__dirname, '../src/lib/NoFlo'));
+    }
     describe('with working code', () => {
       describe('with ES5', () => {
         let workingSource = `\
@@ -489,7 +483,7 @@ exports.getComponent = function() {
         it('should be able to set the source', function (done) {
           this.timeout(10000);
           if (!noflo.isBrowser()) {
-            workingSource = workingSource.replace("'noflo'", "'../src/lib/NoFlo'");
+            workingSource = workingSource.replace("'noflo'", localNofloPath);
           }
           l.setSource('foo', 'RepeatData', workingSource, 'javascript', (err) => {
             if (err) {
@@ -522,7 +516,7 @@ exports.getComponent = function() {
         });
         it('should be able to set the source for non-ready ComponentLoader', function (done) {
           this.timeout(10000);
-          const loader = new noflo.ComponentLoader(root);
+          const loader = new noflo.ComponentLoader(baseDir);
           loader.setSource('foo', 'RepeatData', workingSource, 'javascript', done);
         });
       });
@@ -549,7 +543,7 @@ exports.getComponent = () => {
         it('should be able to set the source', function (done) {
           this.timeout(10000);
           if (!noflo.isBrowser()) {
-            workingSource = workingSource.replace("'noflo'", "'../src/lib/NoFlo'");
+            workingSource = workingSource.replace("'noflo'", localNofloPath);
           }
           l.setSource('foo', 'RepeatDataES6', workingSource, 'es6', (err) => {
             if (err) {
@@ -602,7 +596,7 @@ exports.getComponent = ->
         it('should be able to set the source', function (done) {
           this.timeout(10000);
           if (!noflo.isBrowser()) {
-            workingSource = workingSource.replace("'noflo'", "'../src/lib/NoFlo'");
+            workingSource = workingSource.replace("'noflo'", localNofloPath);
           }
           l.setSource('foo', 'RepeatDataCoffee', workingSource, 'coffeescript', (err) => {
             if (err) {
@@ -657,7 +651,7 @@ var getComponent = function() {
 
         it('should not be able to set the source', (done) => {
           if (!noflo.isBrowser()) {
-            nonWorkingSource = nonWorkingSource.replace("'noflo'", "'../src/lib/NoFlo'");
+            nonWorkingSource = nonWorkingSource.replace("'noflo'", localNofloPath);
           }
           l.setSource('foo', 'NotWorking', nonWorkingSource, 'js', (err) => {
             chai.expect(err).to.be.an('error');
@@ -696,7 +690,7 @@ exports.getComponent = function() {
 
         it('should not be able to set the source', (done) => {
           if (!noflo.isBrowser()) {
-            nonWorkingSource = nonWorkingSource.replace("'noflo'", "'../src/lib/NoFlo'");
+            nonWorkingSource = nonWorkingSource.replace("'noflo'", localNofloPath);
           }
           l.setSource('foo', 'NotWorking', nonWorkingSource, 'js', (err) => {
             chai.expect(err).to.be.an('error');
@@ -734,7 +728,7 @@ exports.getComponent = function() {
 
         it('should be able to set the source', (done) => {
           if (!noflo.isBrowser()) {
-            nonWorkingSource = nonWorkingSource.replace("'noflo'", "'../src/lib/NoFlo'");
+            nonWorkingSource = nonWorkingSource.replace("'noflo'", localNofloPath);
           }
           l.setSource('foo', 'NotWorkingProcess', nonWorkingSource, 'js', done);
         });
