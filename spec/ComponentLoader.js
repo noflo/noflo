@@ -461,6 +461,7 @@ describe('ComponentLoader with no external packages installed', () => {
     });
   });
   describe('writing sources', () => {
+    const localNofloPath = "'" + path.resolve(__dirname, '../src/lib/NoFlo') + "'";
     describe('with working code', () => {
       describe('with ES5', () => {
         let workingSource = `\
@@ -479,7 +480,7 @@ exports.getComponent = function() {
         it('should be able to set the source', function (done) {
           this.timeout(10000);
           if (!noflo.isBrowser()) {
-            workingSource = workingSource.replace("'noflo'", "'../src/lib/NoFlo'");
+            workingSource = workingSource.replace("'noflo'", localNofloPath);
           }
           l.setSource('foo', 'RepeatData', workingSource, 'javascript', (err) => {
             if (err) {
@@ -539,7 +540,7 @@ exports.getComponent = () => {
         it('should be able to set the source', function (done) {
           this.timeout(10000);
           if (!noflo.isBrowser()) {
-            workingSource = workingSource.replace("'noflo'", "'../src/lib/NoFlo'");
+            workingSource = workingSource.replace("'noflo'", localNofloPath);
           }
           l.setSource('foo', 'RepeatDataES6', workingSource, 'es6', (err) => {
             if (err) {
@@ -592,7 +593,7 @@ exports.getComponent = ->
         it('should be able to set the source', function (done) {
           this.timeout(10000);
           if (!noflo.isBrowser()) {
-            workingSource = workingSource.replace("'noflo'", "'../src/lib/NoFlo'");
+            workingSource = workingSource.replace("'noflo'", localNofloPath);
           }
           l.setSource('foo', 'RepeatDataCoffee', workingSource, 'coffeescript', (err) => {
             if (err) {
@@ -647,7 +648,7 @@ var getComponent = function() {
 
         it('should not be able to set the source', (done) => {
           if (!noflo.isBrowser()) {
-            nonWorkingSource = nonWorkingSource.replace("'noflo'", "'../src/lib/NoFlo'");
+            nonWorkingSource = nonWorkingSource.replace("'noflo'", localNofloPath);
           }
           l.setSource('foo', 'NotWorking', nonWorkingSource, 'js', (err) => {
             chai.expect(err).to.be.an('error');
@@ -686,7 +687,7 @@ exports.getComponent = function() {
 
         it('should not be able to set the source', (done) => {
           if (!noflo.isBrowser()) {
-            nonWorkingSource = nonWorkingSource.replace("'noflo'", "'../src/lib/NoFlo'");
+            nonWorkingSource = nonWorkingSource.replace("'noflo'", localNofloPath);
           }
           l.setSource('foo', 'NotWorking', nonWorkingSource, 'js', (err) => {
             chai.expect(err).to.be.an('error');
@@ -724,7 +725,7 @@ exports.getComponent = function() {
 
         it('should be able to set the source', (done) => {
           if (!noflo.isBrowser()) {
-            nonWorkingSource = nonWorkingSource.replace("'noflo'", "'../src/lib/NoFlo'");
+            nonWorkingSource = nonWorkingSource.replace("'noflo'", localNofloPath);
           }
           l.setSource('foo', 'NotWorkingProcess', nonWorkingSource, 'js', done);
         });
