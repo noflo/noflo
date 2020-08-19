@@ -8,7 +8,7 @@ if ((typeof process !== 'undefined') && process.execPath && process.execPath.mat
   urlPrefix = './';
 } else {
   shippingLanguage = 'javascript';
-  urlPrefix = '/';
+  urlPrefix = '/base/';
 }
 
 describe('ComponentLoader with no external packages installed', () => {
