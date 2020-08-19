@@ -1,14 +1,3 @@
-let chai; let noflo; let root;
-if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
-  if (!chai) { chai = require('chai'); }
-  noflo = require('../src/lib/NoFlo');
-  const path = require('path');
-  root = path.resolve(__dirname, '../');
-} else {
-  noflo = require('noflo');
-  root = 'noflo';
-}
-
 const processAsync = function () {
   const c = new noflo.Component();
   c.inPorts.add('in',
@@ -115,7 +104,7 @@ const processMergeA = function () {
 describe('Scope isolation', () => {
   let loader = null;
   before((done) => {
-    loader = new noflo.ComponentLoader(root);
+    loader = new noflo.ComponentLoader(baseDir);
     loader.listComponents((err) => {
       if (err) {
         done(err);

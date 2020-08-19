@@ -1,20 +1,13 @@
-let chai; let isBrowser; let noflo; let root;
+let isBrowser;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
-  if (!chai) { chai = require('chai'); }
-  noflo = require('../src/lib/NoFlo');
-  const path = require('path');
-  root = path.resolve(__dirname, '../');
   isBrowser = false;
 } else {
-  noflo = require('noflo');
-  root = 'noflo';
   isBrowser = true;
 }
-
 describe('asComponent interface', () => {
   let loader = null;
   before((done) => {
-    loader = new noflo.ComponentLoader(root);
+    loader = new noflo.ComponentLoader(baseDir);
     loader.listComponents(done);
   });
   describe('with a synchronous function taking a single parameter', () => {

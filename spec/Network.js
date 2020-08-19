@@ -1,14 +1,3 @@
-let chai; let noflo; let root;
-if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
-  if (!chai) { chai = require('chai'); }
-  noflo = require('../src/lib/NoFlo');
-  const path = require('path');
-  root = path.resolve(__dirname, '../');
-} else {
-  noflo = require('noflo');
-  root = 'noflo';
-}
-
 describe('NoFlo Network', () => {
   const Split = () => new noflo.Component({
     inPorts: {
@@ -54,7 +43,7 @@ describe('NoFlo Network', () => {
     let n = null;
     before((done) => {
       g = new noflo.Graph();
-      g.baseDir = root;
+      g.baseDir = baseDir;
       noflo.createNetwork(g, {
         subscribeGraph: false,
         delay: true,
@@ -271,7 +260,7 @@ describe('NoFlo Network', () => {
     before(function (done) {
       this.timeout(60 * 1000);
       g = new noflo.Graph();
-      g.baseDir = root;
+      g.baseDir = baseDir;
       g.addNode('Merge', 'Merge');
       g.addNode('Callback', 'Callback');
       g.addEdge('Merge', 'out', 'Callback', 'in');
@@ -522,7 +511,7 @@ describe('NoFlo Network', () => {
         testCallback(input.getData('in'));
       });
       g = new noflo.Graph();
-      g.baseDir = root;
+      g.baseDir = baseDir;
       g.addNode('Def', 'Def');
       g.addNode('Cb', 'Cb');
       g.addEdge('Def', 'out', 'Cb', 'in');
@@ -629,7 +618,7 @@ describe('NoFlo Network', () => {
     let n = null;
     before(() => {
       g = new noflo.Graph();
-      g.baseDir = root;
+      g.baseDir = baseDir;
       g.addNode('Callback', 'Callback');
       g.addNode('Repeat', 'Split');
       g.addEdge('Repeat', 'out', 'Callback', 'in');
@@ -769,7 +758,7 @@ describe('NoFlo Network', () => {
       let n;
       this.timeout(100000);
       const g = new noflo.Graph();
-      g.baseDir = root;
+      g.baseDir = baseDir;
       let called = 0;
       for (n = 0; n <= 10000; n++) {
         g.addNode(`Repeat${n}`, 'Split');
@@ -818,7 +807,7 @@ describe('NoFlo Network', () => {
   describe('with a faulty graph', () => {
     let loader = null;
     before((done) => {
-      loader = new noflo.ComponentLoader(root);
+      loader = new noflo.ComponentLoader(baseDir);
       loader.listComponents((err) => {
         if (err) {
           done(err);
@@ -1014,7 +1003,7 @@ describe('NoFlo Network', () => {
   describe('baseDir setting', () => {
     it('should set baseDir based on given graph', (done) => {
       const g = new noflo.Graph();
-      g.baseDir = root;
+      g.baseDir = baseDir;
       noflo.createNetwork(g, {
         delay: true,
         subscribeGraph: false,
@@ -1024,7 +1013,7 @@ describe('NoFlo Network', () => {
           done(err);
           return;
         }
-        chai.expect(nw.baseDir).to.equal(root);
+        chai.expect(nw.baseDir).to.equal(baseDir);
         done();
       });
     });
@@ -1049,7 +1038,7 @@ describe('NoFlo Network', () => {
     });
     it('should set the baseDir for the component loader', (done) => {
       const g = new noflo.Graph();
-      g.baseDir = root;
+      g.baseDir = baseDir;
       noflo.createNetwork(g, {
         delay: true,
         subscribeGraph: false,
@@ -1059,8 +1048,8 @@ describe('NoFlo Network', () => {
           done(err);
           return;
         }
-        chai.expect(nw.baseDir).to.equal(root);
-        chai.expect(nw.loader.baseDir).to.equal(root);
+        chai.expect(nw.baseDir).to.equal(baseDir);
+        chai.expect(nw.loader.baseDir).to.equal(baseDir);
         done();
       });
     });
@@ -1070,7 +1059,7 @@ describe('NoFlo Network', () => {
     let g = null;
     before((done) => {
       g = new noflo.Graph();
-      g.baseDir = root;
+      g.baseDir = baseDir;
       noflo.createNetwork(g, {
         subscribeGraph: false,
         default: true,

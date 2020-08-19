@@ -1,14 +1,3 @@
-let chai; let noflo; let root;
-if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
-  if (!chai) { chai = require('chai'); }
-  noflo = require('../src/lib/NoFlo');
-  const path = require('path');
-  root = path.resolve(__dirname, '../');
-} else {
-  noflo = require('noflo');
-  root = 'noflo';
-}
-
 describe('asCallback interface', () => {
   let loader = null;
 
@@ -82,7 +71,7 @@ describe('asCallback interface', () => {
   };
 
   before((done) => {
-    loader = new noflo.ComponentLoader(root);
+    loader = new noflo.ComponentLoader(baseDir);
     loader.listComponents((err) => {
       if (err) {
         done(err);

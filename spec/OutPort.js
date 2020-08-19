@@ -1,11 +1,3 @@
-let chai; let noflo;
-if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
-  if (!chai) { chai = require('chai'); }
-  noflo = require('../src/lib/NoFlo');
-} else {
-  noflo = require('noflo');
-}
-
 describe('Outport Port', () => {
   describe('with addressable ports', () => {
     let s1 = null; let s2 = null; let s3 = null;

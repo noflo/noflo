@@ -1,6 +1,5 @@
-let component; let chai;
+let component;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
-  if (!chai) { chai = require('chai'); }
   component = require('../../src/lib/Component.js');
 } else {
   component = require('noflo/src/lib/Component.js');

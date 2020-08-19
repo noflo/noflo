@@ -1,11 +1,3 @@
-let chai; let noflo;
-if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
-  if (!chai) { chai = require('chai'); }
-  noflo = require('../src/lib/NoFlo');
-} else {
-  noflo = require('noflo');
-}
-
 describe('IP object', () => {
   it('should create IPs of different types', () => {
     const open = new noflo.IP('openBracket');

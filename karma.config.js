@@ -12,6 +12,7 @@ module.exports = (config) => {
     ],
     files: [
       'browser/*.js',
+      'spec/utils/inject.js',
       'spec/*.js',
       'spec/**/*.js',
     ],

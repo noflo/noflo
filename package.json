@@ -53,7 +53,7 @@
   },
   "scripts": {
     "pretest": "eslint src",
-    "test:node": "nyc mocha spec",
+    "test:node": "nyc mocha --require spec/utils/inject.js spec",
     "test:browser": "karma start karma.config.js",
     "test": "npm run test:node && npm run test:browser",
     "build:node": "babel src --out-dir .",
