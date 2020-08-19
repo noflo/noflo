@@ -31,6 +31,7 @@
     "eslint-config-airbnb-base": "^14.2.0",
     "eslint-plugin-import": "^2.21.2",
     "mocha": "^5.0.0",
+    "noflo-component-loader": "^0.3.2",
     "nyc": "^14.1.1",
     "webpack": "^4.44.1",
     "webpack-cli": "^3.3.12"
@@ -47,7 +48,9 @@
   },
   "scripts": {
     "test": "nyc grunt test",
-    "build": "babel src --out-dir ."
+    "build:node": "babel src --out-dir .",
+    "build:browser": "webpack",
+    "build": "npm run build:node && npm run build:browser"
   },
   "docco_husky": {
     "output_dir": "docs",

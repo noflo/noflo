@@ -3,33 +3,6 @@ module.exports = function() {
   this.initConfig({
     pkg: this.file.readJSON('package.json'),
 
-    // Browser build of NoFlo
-    noflo_browser: {
-      options: {
-        baseDir: './',
-        webpack: {
-          module: {
-            rules: [{
-              test: /\.js$/,
-              use: [{
-                loader: 'babel-loader',
-                options: {
-                  presets: ['env']
-                }
-              }
-              ]
-            }
-            ]
-          }
-        }
-      },
-      build: {
-        files: {
-          'browser/noflo.js': ['spec/fixtures/entry.js']
-        }
-      }
-    },
-
     // BDD tests on Node.js
     mochaTest: {
       nodejs: {
@@ -89,7 +62,6 @@ module.exports = function() {
   this.registerTask('build', 'Build NoFlo for the chosen target platform', target => {
     if (target == null) { target = 'all'; }
     if ((target === 'all') || (target === 'browser')) {
-      this.task.run('noflo_browser');
     }
   });
 
