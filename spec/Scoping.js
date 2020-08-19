@@ -1,108 +1,108 @@
-const processAsync = function () {
-  const c = new noflo.Component();
-  c.inPorts.add('in',
-    { datatype: 'string' });
-  c.outPorts.add('out',
-    { datatype: 'string' });
-
-  c.process((input, output) => {
-    const data = input.getData('in');
-    setTimeout(() => output.sendDone(data + c.nodeId),
-      1);
-  });
-  return c;
-};
-
-const processMerge = function () {
-  const c = new noflo.Component();
-  c.inPorts.add('in1',
-    { datatype: 'string' });
-  c.inPorts.add('in2',
-    { datatype: 'string' });
-  c.outPorts.add('out',
-    { datatype: 'string' });
-
-  c.forwardBrackets = { in1: ['out'] };
-
-  c.process((input, output) => {
-    if (!input.has('in1', 'in2', (ip) => ip.type === 'data')) { return; }
-    const first = input.getData('in1');
-    const second = input.getData('in2');
-
-    output.sendDone({ out: `1${first}:2${second}:${c.nodeId}` });
-  });
-  return c;
-};
-
-const processMergeUnscoped = function () {
-  const c = new noflo.Component();
-  c.inPorts.add('in1',
-    { datatype: 'string' });
-  c.inPorts.add('in2', {
-    datatype: 'string',
-    scoped: false,
-  });
-  c.outPorts.add('out',
-    { datatype: 'string' });
-
-  c.forwardBrackets = { in1: ['out'] };
-
-  c.process((input, output) => {
-    if (!input.has('in1', 'in2', (ip) => ip.type === 'data')) { return; }
-    const first = input.getData('in1');
-    const second = input.getData('in2');
-
-    output.sendDone({ out: `1${first}:2${second}:${c.nodeId}` });
-  });
-  return c;
-};
-
-const processUnscope = function () {
-  const c = new noflo.Component();
-  c.inPorts.add('in',
-    { datatype: 'string' });
-  c.outPorts.add('out', {
-    datatype: 'string',
-    scoped: false,
-  });
-
-  c.process((input, output) => {
-    const data = input.getData('in');
-    setTimeout(() => {
-      output.sendDone(data + c.nodeId);
-    },
-    1);
-  });
-  return c;
-};
-
-// Merge with an addressable port
-const processMergeA = function () {
-  const c = new noflo.Component();
-  c.inPorts.add('in1',
-    { datatype: 'string' });
-  c.inPorts.add('in2', {
-    datatype: 'string',
-    addressable: true,
-  });
-  c.outPorts.add('out',
-    { datatype: 'string' });
-
-  c.forwardBrackets = { in1: ['out'] };
-
-  c.process((input, output) => {
-    if (!input.hasData('in1', ['in2', 0], ['in2', 1])) { return; }
-    const first = input.getData('in1');
-    const second0 = input.getData(['in2', 0]);
-    const second1 = input.getData(['in2', 1]);
-
-    output.sendDone({ out: `1${first}:2${second0}:2${second1}:${c.nodeId}` });
-  });
-  return c;
-};
-
 describe('Scope isolation', () => {
   let loader = null;
+  const processAsync = function () {
+    const c = new noflo.Component();
+    c.inPorts.add('in',
+      { datatype: 'string' });
+    c.outPorts.add('out',
+      { datatype: 'string' });
+
+    c.process((input, output) => {
+      const data = input.getData('in');
+      setTimeout(() => output.sendDone(data + c.nodeId),
+        1);
+    });
+    return c;
+  };
+
+  const processMerge = function () {
+    const c = new noflo.Component();
+    c.inPorts.add('in1',
+      { datatype: 'string' });
+    c.inPorts.add('in2',
+      { datatype: 'string' });
+    c.outPorts.add('out',
+      { datatype: 'string' });
+
+    c.forwardBrackets = { in1: ['out'] };
+
+    c.process((input, output) => {
+      if (!input.has('in1', 'in2', (ip) => ip.type === 'data')) { return; }
+      const first = input.getData('in1');
+      const second = input.getData('in2');
+
+      output.sendDone({ out: `1${first}:2${second}:${c.nodeId}` });
+    });
+    return c;
+  };
+
+  const processMergeUnscoped = function () {
+    const c = new noflo.Component();
+    c.inPorts.add('in1',
+      { datatype: 'string' });
+    c.inPorts.add('in2', {
+      datatype: 'string',
+      scoped: false,
+    });
+    c.outPorts.add('out',
+      { datatype: 'string' });
+
+    c.forwardBrackets = { in1: ['out'] };
+
+    c.process((input, output) => {
+      if (!input.has('in1', 'in2', (ip) => ip.type === 'data')) { return; }
+      const first = input.getData('in1');
+      const second = input.getData('in2');
+
+      output.sendDone({ out: `1${first}:2${second}:${c.nodeId}` });
+    });
+    return c;
+  };
+
+  const processUnscope = function () {
+    const c = new noflo.Component();
+    c.inPorts.add('in',
+      { datatype: 'string' });
+    c.outPorts.add('out', {
+      datatype: 'string',
+      scoped: false,
+    });
+
+    c.process((input, output) => {
+      const data = input.getData('in');
+      setTimeout(() => {
+        output.sendDone(data + c.nodeId);
+      },
+      1);
+    });
+    return c;
+  };
+
+  // Merge with an addressable port
+  const processMergeA = function () {
+    const c = new noflo.Component();
+    c.inPorts.add('in1',
+      { datatype: 'string' });
+    c.inPorts.add('in2', {
+      datatype: 'string',
+      addressable: true,
+    });
+    c.outPorts.add('out',
+      { datatype: 'string' });
+
+    c.forwardBrackets = { in1: ['out'] };
+
+    c.process((input, output) => {
+      if (!input.hasData('in1', ['in2', 0], ['in2', 1])) { return; }
+      const first = input.getData('in1');
+      const second0 = input.getData(['in2', 0]);
+      const second1 = input.getData(['in2', 1]);
+
+      output.sendDone({ out: `1${first}:2${second0}:2${second1}:${c.nodeId}` });
+    });
+    return c;
+  };
+
   before((done) => {
     loader = new noflo.ComponentLoader(baseDir);
     loader.listComponents((err) => {
