@@ -1,8 +1,8 @@
-let urlPrefix;
+let loadingPrefix;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
-  urlPrefix = './';
+  loadingPrefix = './';
 } else {
-  urlPrefix = '/';
+  loadingPrefix = '/';
 }
 describe('NoFlo Graph component', () => {
   let c = null;
@@ -356,7 +356,7 @@ describe('NoFlo Graph component', () => {
     });
   });
   describe('with a FBP file with INPORTs and OUTPORTs', () => {
-    const file = `${urlPrefix}spec/fixtures/subgraph.fbp`;
+    const file = `${loadingPrefix}spec/fixtures/subgraph.fbp`;
     it('should emit a ready event after network has been loaded', function (done) {
       this.timeout(6000);
       c.baseDir = baseDir;
