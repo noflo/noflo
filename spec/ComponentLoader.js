@@ -463,7 +463,7 @@ describe('ComponentLoader with no external packages installed', () => {
   describe('writing sources', () => {
     let localNofloPath;
     if (!noflo.isBrowser()) {
-      localNofloPath = "'" + path.resolve(__dirname, '../src/lib/NoFlo') + "'";
+      localNofloPath = JSON.stringify(path.resolve(__dirname, '../src/lib/NoFlo'));
     }
     describe('with working code', () => {
       describe('with ES5', () => {
