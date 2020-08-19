@@ -14,6 +14,12 @@ module.exports = (config) => {
       'browser/*.js',
       'spec/utils/inject.js',
       'spec/*.js',
+      {
+        pattern: 'spec/fixtures/*',
+        included: false,
+        served: true,
+        watched: true,
+      },
     ],
     browsers: ['ChromeHeadless'],
     customLaunchers: {
