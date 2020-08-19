@@ -3,30 +3,6 @@ module.exports = function() {
   this.initConfig({
     pkg: this.file.readJSON('package.json'),
 
-    // Copy plain JS files
-    babel: {
-      options: {
-        presets: ['env']
-      },
-      dist: {
-        files: [{
-            cwd: 'src/lib/',
-            src: ['**/*.js'],
-            dest: 'lib/',
-            expand: true,
-            ext: '.js'
-          }
-          , {
-            cwd: 'src/components/',
-            src: ['**/*.js'],
-            dest: 'components/',
-            expand: true,
-            ext: '.js'
-          }
-        ]
-      }
-    },
-
     // Browser build of NoFlo
     noflo_browser: {
       options: {
@@ -102,7 +78,6 @@ module.exports = function() {
   });
 
   // Grunt plugins used for building
-  this.loadNpmTasks('grunt-babel');
   this.loadNpmTasks('grunt-noflo-browser');
 
   // Grunt plugins used for testing
@@ -113,7 +88,6 @@ module.exports = function() {
   // Our local tasks
   this.registerTask('build', 'Build NoFlo for the chosen target platform', target => {
     if (target == null) { target = 'all'; }
-    this.task.run('babel');
     if ((target === 'all') || (target === 'browser')) {
       this.task.run('noflo_browser');
     }
