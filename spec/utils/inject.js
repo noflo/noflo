@@ -2,6 +2,7 @@
 if (typeof global !== 'undefined') {
   // Node.js injections for Mocha tests
   global.chai = require('chai');
+  global.path = require('path');
   global.noflo = require('../../src/lib/NoFlo');
   global.baseDir = process.cwd();
 } else {

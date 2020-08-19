@@ -1,6 +1,5 @@
-let path; let browser;
+let browser;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
-  path = require('path');
   browser = false;
 } else {
   browser = true;

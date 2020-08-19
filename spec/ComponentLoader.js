@@ -1,12 +1,10 @@
 /* eslint-disable
   max-classes-per-file
 */
-let path;
 let shippingLanguage;
 let urlPrefix;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   shippingLanguage = 'javascript';
-  path = require('path');
   urlPrefix = './';
 } else {
   shippingLanguage = 'javascript';
