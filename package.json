@@ -30,6 +30,11 @@
     "eslint": "^7.7.0",
     "eslint-config-airbnb-base": "^14.2.0",
     "eslint-plugin-import": "^2.22.0",
+    "karma": "^5.1.1",
+    "karma-chai": "^0.1.0",
+    "karma-chrome-launcher": "^3.1.0",
+    "karma-mocha": "^2.0.1",
+    "karma-mocha-reporter": "^2.2.5",
     "mocha": "^5.0.0",
     "noflo-component-loader": "^0.3.2",
     "nyc": "^14.1.1",
@@ -49,7 +54,8 @@
   "scripts": {
     "pretest": "eslint lib",
     "test:node": "nyc mocha spec",
-    "test": "npm run test:node",
+    "test:browser": "karma start karma.config.js",
+    "test": "npm run test:node && npm run test:browser",
     "build:node": "babel src --out-dir .",
     "build:browser": "webpack",
     "build": "npm run build:node && npm run build:browser"

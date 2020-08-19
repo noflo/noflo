@@ -15,3 +15,5 @@ deploy:
   on:
     tags: true
     repo: noflo/noflo
+addons:
+  chrome: stable
