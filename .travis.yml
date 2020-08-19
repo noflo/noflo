@@ -5,7 +5,7 @@ node_js:
 before_script:
 - npm run build
 after_success:
-- npx nyc report --reporter=text-lcov | ./node_modules/.bin/coveralls
+- npx nyc report --reporter=text-lcov | npx coveralls
 deploy:
   provider: npm
   email: henri.bergius@iki.fi
