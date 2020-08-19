@@ -52,7 +52,7 @@
     "url": "git://github.com/noflo/noflo.git"
   },
   "scripts": {
-    "pretest": "eslint lib",
+    "pretest": "eslint src",
     "test:node": "nyc mocha spec",
     "test:browser": "karma start karma.config.js",
     "test": "npm run test:node && npm run test:browser",
