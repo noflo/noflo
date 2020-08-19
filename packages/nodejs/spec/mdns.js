@@ -1,6 +1,6 @@
 const path = require('path');
 const mdns = require('mdns-js');
-const uuid = require('uuid/v4');
+const { v4: uuid } = require('uuid');
 const fbpHealthCheck = require('fbp-protocol-healthcheck');
 const { expect } = require('chai');
 const library = require('../src/library');

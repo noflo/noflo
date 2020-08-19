@@ -1,5 +1,5 @@
 const commander = require('commander');
-const uuid = require('uuid/v4');
+const { v4: uuid } = require('uuid');
 const generatePassword = require('password-generator');
 const os = require('os');
 const fs = require('fs');
