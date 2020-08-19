@@ -14,7 +14,6 @@ module.exports = (config) => {
       'browser/*.js',
       'spec/utils/inject.js',
       'spec/*.js',
-      'spec/**/*.js',
     ],
     browsers: ['ChromeHeadless'],
     customLaunchers: {
