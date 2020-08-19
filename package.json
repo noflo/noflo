@@ -37,7 +37,7 @@
     "karma-mocha-reporter": "^2.2.5",
     "mocha": "^7.2.0",
     "noflo-component-loader": "^0.3.2",
-    "nyc": "^15.1.0"
+    "nyc": "^15.1.0",
     "webpack": "^4.44.1",
     "webpack-cli": "^3.3.12"
   },
