@@ -27,9 +27,9 @@
     "@babel/preset-env": "^7.11.0",
     "chai": "^4.0.0",
     "coveralls": "^3.0.0",
-    "eslint": "^7.2.0",
+    "eslint": "^7.7.0",
     "eslint-config-airbnb-base": "^14.2.0",
-    "eslint-plugin-import": "^2.21.2",
+    "eslint-plugin-import": "^2.22.0",
     "mocha": "^5.0.0",
     "noflo-component-loader": "^0.3.2",
     "nyc": "^14.1.1",
@@ -47,6 +47,7 @@
     "url": "git://github.com/noflo/noflo.git"
   },
   "scripts": {
+    "pretest": "eslint lib",
     "test:node": "nyc mocha spec",
     "test": "npm run test:node",
     "build:node": "babel src --out-dir .",
