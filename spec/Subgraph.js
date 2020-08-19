@@ -2,7 +2,7 @@ let loadingPrefix;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   loadingPrefix = './';
 } else {
-  loadingPrefix = '/';
+  loadingPrefix = '/base/';
 }
 describe('NoFlo Graph component', () => {
   let c = null;
