@@ -47,7 +47,8 @@
     "url": "git://github.com/noflo/noflo.git"
   },
   "scripts": {
-    "test": "nyc grunt test",
+    "test:node": "nyc mocha spec",
+    "test": "npm run test:node",
     "build:node": "babel src --out-dir .",
     "build:browser": "webpack",
     "build": "npm run build:node && npm run build:browser"
