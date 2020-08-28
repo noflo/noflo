@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 1.2.0 (git master)
+## 1.2.0 (August 28th 2020)
 
 * Ported NoFlo from CoffeeScript to ES6
 * Deprecated constructing networks with `new noflo.Network`. Use `noflo.createNetwork` instead, with the following options available:
