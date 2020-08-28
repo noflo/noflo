@@ -11,6 +11,7 @@ NoFlo ChangeLog
 * Added support for a more standard `noflo.createNetwork(graph, options, callback)` signature, with backwards compatibility for the legacy `noflo.createNetwork(graph, callback, options)` signature
 * Removed support for `noflo.WirePattern`. WirePattern has been deprecated since 1.0, and all code using it should be migrated to the latest Process API
 * Removed support for changing component icon and description statically (on class level) at run-time (i.e. `ComponentName::icon = 'new-icon'`). Component icon and description should be set in class constructor or in `getComponent` instead. Changing icon and description for a specific instance (process) is not affected and is fully supported
+* Added optional `networkCallback` option for `noflo.asCallback` to provide access to the network instance for debugging purposes
 
 ## 1.1.3 (April 12th 2018)
 
