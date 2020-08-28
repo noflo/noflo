@@ -323,6 +323,9 @@ exports.asCallback = function asCallback(component, options) {
         callback(err);
         return;
       }
+      if (options.networkCallback) {
+        options.networkCallback(network);
+      }
       const resultType = getType(inputs, network);
       const inputMap = prepareInputMap(inputs, resultType, network);
       runNetwork(network, inputMap, options, (err2, outputMap) => {

@@ -456,4 +456,58 @@ Async(process/Async) OUT -> IN Values(process/Values)\
       });
     });
   });
+  describe('with networkCallback option', () => {
+    let wrapped = null;
+    let called = 0;
+    let started = 0;
+    afterEach(() => {
+      called = 0;
+      started = 0;
+    });
+    it('should not provide network at callbackization time', (done) => {
+      chai.expect(called).to.equal(0);
+      wrapped = noflo.asCallback('process/Async', {
+        loader,
+        networkCallback: (network) => {
+          network.on('start', () => {
+            started++;
+          });
+          called++;
+        },
+      });
+      chai.expect(wrapped).to.be.a('function');
+      chai.expect(called).to.equal(0);
+      done();
+    });
+    it('should provide the network to the callback when executed', (done) => {
+      const expected = { hello: 'world' };
+      chai.expect(called).to.equal(0);
+
+      wrapped(expected, (err, out) => {
+        if (err) {
+          done(err);
+          return;
+        }
+        chai.expect(out).to.eql(expected);
+        chai.expect(called).to.equal(1);
+        done();
+      });
+    });
+    it('should provide the network before actual execution so that we catch the start event', (done) => {
+      const expected = { hello: 'world' };
+      chai.expect(called).to.equal(0);
+      chai.expect(started).to.equal(0);
+
+      wrapped(expected, (err, out) => {
+        if (err) {
+          done(err);
+          return;
+        }
+        chai.expect(out).to.eql(expected);
+        chai.expect(called).to.equal(1);
+        chai.expect(started).to.equal(1);
+        done();
+      });
+    });
+  });
 });
