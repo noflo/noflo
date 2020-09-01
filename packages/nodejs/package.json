@@ -39,6 +39,7 @@
     "fbp-client": "^0.4.0",
     "fbp-protocol": "^0.9.1",
     "fbp-protocol-healthcheck": "^1.1.0",
+    "fbp-spec": "^0.6.6",
     "mocha": "^7.0.1",
     "noflo-core": ">= 0.6.0"
   },
