@@ -6,7 +6,7 @@
   "scripts": {
     "pretest": "eslint src/*.js spec/*.js",
     "test:mocha": "mocha --exit spec/*.js",
-    "test:fbp": "fbp-spec --secret test --address ws://localhost:3333 --command './bin/noflo-nodejs --port 3333 --secret test' spec/*.yaml",
+    "test:fbp": "fbp-spec --secret test --address ws://localhost:3333 --command './bin/noflo-nodejs --host localhost --port 3333 --secret test --open false' spec/*.yaml",
     "test": "npm run test:mocha && npm run test:fbp"
   },
   "bin": {
