@@ -17,6 +17,7 @@ describe('FBP Spec Compatibility', () => {
       '--host=localhost',
       '--port=8081',
       '--open=false',
+      '--trace=false',
       `--secret=${runtimeSecret}`,
     ]);
     healthCheck(done);
