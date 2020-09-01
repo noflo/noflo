@@ -5,9 +5,9 @@
   "main": "src/library.js",
   "scripts": {
     "pretest": "eslint src/*.js spec/*.js",
-    "test:fbp": "fbp-spec --secret test --address ws://localhost:3333 --command './bin/noflo-nodejs --port 3333 --secret test' spec/*.yaml",
     "test:mocha": "mocha --exit spec/*.js",
-    "test": "npm run test:fbp && npm run test:mocha"
+    "test:fbp": "fbp-spec --secret test --address ws://localhost:3333 --command './bin/noflo-nodejs --port 3333 --secret test' spec/*.yaml",
+    "test": "npm run test:mocha && npm run test:fbp"
   },
   "bin": {
     "noflo-nodejs": "./bin/noflo-nodejs"
