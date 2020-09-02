@@ -25,8 +25,8 @@ exports.liveUrl = (options, silent = false) => {
   liveUrl.pathname = '/';
   if ((!options.tlsKey || !options.tlsCert) && liveUrl.protocol === 'https:') {
     if (!silent) {
-      console.warn('Browsers will reject connections from HTTPS pages to unsecured WebSockets');
-      console.warn('You can use insecure version of the IDE, or enable secure WebSockets with --tls-key and --tls-cert options');
+      console.log('Browsers will reject connections from HTTPS pages to unsecured WebSockets');
+      console.log('You can use insecure version of the IDE, or enable secure WebSockets with --tls-key and --tls-cert options');
     }
     liveUrl.protocol = 'http:';
   }
