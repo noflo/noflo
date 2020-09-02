@@ -1,5 +1,6 @@
-## noflo-nodejs 0.12.0 (git master)
+## noflo-nodejs 0.12.0 (02-09-2020)
 
+* Switched to the NoFlo 1.2 "network drives graph" mode for more accurate error handling
 * Added support for discovering the noflo-nodejs runtime via mDNS
 
 ## noflo-nodejs 0.11.1 (26-02-2019)
