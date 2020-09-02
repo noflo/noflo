@@ -1,3 +1,7 @@
+## noflo-nodejs 0.12.1 (02-09-2020)
+
+* Modified SSL warnings to be written to STDOUT instead of STDERR to improve operation with fbp-spec
+
 ## noflo-nodejs 0.12.0 (02-09-2020)
 
 * Switched to the NoFlo 1.2 "network drives graph" mode for more accurate error handling
