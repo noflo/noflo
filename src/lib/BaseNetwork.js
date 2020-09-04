@@ -600,7 +600,7 @@ class BaseNetwork extends EventEmitter {
     if (!to.component.isReady() && !to.component.inPorts[initializer.to.port]) {
       to.component.setMaxListeners(0);
       to.component.once('ready', () => {
-        this.addInitial(initializer, callback);
+        this.addInitial(initializer, options, callback);
       });
       return;
     }
@@ -622,12 +622,15 @@ class BaseNetwork extends EventEmitter {
 
       if (this.isRunning()) {
         // Network is running now, send initials immediately
-        (this.sendInitials)();
-      } else if (!this.isStopped()) {
+        this.sendInitials(callback);
+        return;
+      }
+      if (!this.isStopped()) {
         // Network has finished but hasn't been stopped, set
         // started and set
         this.setStarted(true);
-        (this.sendInitials)();
+        this.sendInitials(callback);
+        return;
       }
 
       callback();
