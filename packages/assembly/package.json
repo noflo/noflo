@@ -19,7 +19,7 @@
   "bugs": {
     "url": "https://github.com/noflo/noflo-assembly/issues"
   },
-  "homepage": "https://github.com/noflo/noflo-assembly",
+  "homepage": "https://github.com/noflo/noflo-assembly/wiki",
   "dependencies": {
     "noflo": "^1.0.0"
   },
