@@ -7,6 +7,7 @@ class MountPanels extends Component {
       validates: ['body.id'],
     });
   }
+
   relay(msg, output) {
     msg.body.panels = 'Steel Panels';
     output.sendDone(msg);

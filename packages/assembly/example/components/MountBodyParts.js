@@ -21,6 +21,7 @@ class MountBodyParts extends Component {
       },
     });
   }
+
   handle(input, output) {
     if (!input.hasData('in', 'partname')) { return null; }
 

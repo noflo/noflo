@@ -8,6 +8,7 @@ class Order extends Component {
     });
     this.counter = 0;
   }
+
   handle(input, output) {
     this.counter += 1;
     // Create a new assembly message

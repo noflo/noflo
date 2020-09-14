@@ -18,6 +18,7 @@ class MountEngine extends Component {
       validates: { chassis: 'obj' },
     });
   }
+
   handle(input, output) {
     if (!input.hasData('in', 'engine')) { return null; }
 

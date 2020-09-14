@@ -1,20 +1,20 @@
 const NoFloComponent = require('noflo').Component;
 
 const validators = {
-  def: val => val !== undefined,
-  set: val => (val !== undefined) && (val !== null),
-  ok: val => !!val,
-  num: val => typeof val === 'number',
-  str: val => typeof val === 'string',
-  obj: val => (typeof val === 'object') && (val !== null),
-  func: val => typeof val === 'function',
-  '>0': val => val > 0,
+  def: (val) => val !== undefined,
+  set: (val) => (val !== undefined) && (val !== null),
+  ok: (val) => !!val,
+  num: (val) => typeof val === 'number',
+  str: (val) => typeof val === 'string',
+  obj: (val) => (typeof val === 'object') && (val !== null),
+  func: (val) => typeof val === 'function',
+  '>0': (val) => val > 0,
 };
 
 const errorMessages = {
-  def: key => `${key} is undefined`,
-  set: key => `${key} is not set`,
-  ok: key => `${key} is false or empty`,
+  def: (key) => `${key} is undefined`,
+  set: (key) => `${key} is not set`,
+  ok: (key) => `${key} is false or empty`,
   num: (key, val) => `${key} is not a number: ${val}`,
   str: (key, val) => `${key} is not a string: ${val}`,
   obj: (key, val) => `${key} is not an object: ${val}`,
@@ -27,7 +27,7 @@ function fail(msg, err) {
     throw new Error('Message.errors is not an array');
   }
   const errs = Array.isArray(err) ? err : [err];
-  errs.forEach(e => msg.errors.push(e));
+  errs.forEach((e) => msg.errors.push(e));
   return msg;
 }
 

@@ -10,6 +10,7 @@ class SplitAssemblies extends Component {
       validates: { id: 'num' },
     });
   }
+
   handle(input, output) {
     if (!input.hasData('in')) { return null; }
     const msg = input.getData('in');

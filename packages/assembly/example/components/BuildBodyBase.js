@@ -7,6 +7,7 @@ class BuildBodyBase extends Component {
       validates: { id: 'num' },
     });
   }
+
   relay(msg, output) {
     msg.body = {
       id: msg.id,

@@ -9,6 +9,7 @@ class CombineAssemblies extends Component {
       inPorts: ['b', 'c'],
     });
   }
+
   handle(input, output) {
     if (!input.hasData('b', 'c')) { return null; }
 

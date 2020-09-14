@@ -18,6 +18,7 @@ class MountWheels extends Component {
       validates: { chassis: 'obj' },
     });
   }
+
   handle(input, output) {
     if (!input.hasData('in', 'count')) { return null; }
 
