@@ -1,6 +1,4 @@
-# NoFlo Assembly Line
-
-[![Greenkeeper badge](https://badges.greenkeeper.io/noflo/noflo-assembly.svg)](https://greenkeeper.io/) [![Build Status](https://travis-ci.org/noflo/noflo-assembly.svg?branch=master)](https://travis-ci.org/noflo/noflo-assembly)
+# NoFlo Assembly Line [![Build Status](https://travis-ci.org/noflo/noflo-assembly.svg?branch=master)](https://travis-ci.org/noflo/noflo-assembly)
 
 Industrial approach to writing NoFlo applications
 
