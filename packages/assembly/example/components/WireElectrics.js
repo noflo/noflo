@@ -8,6 +8,7 @@ class WireElectrics extends Component {
       validates: ['body.id'],
     });
   }
+
   handle(input, output) {
     if (!input.hasData('main', 'aux')) { return null; }
 

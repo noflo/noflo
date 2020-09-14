@@ -8,6 +8,7 @@ class BuildFrame extends Component {
       // Port definition is not necessary
     });
   }
+
   relay(msg, output) {
     msg.chassis = {
       id: msg.id,

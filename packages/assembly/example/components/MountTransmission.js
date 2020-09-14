@@ -6,6 +6,7 @@ class MountTransmission extends Component {
       description: 'Mounts transmission and drive shaft',
     });
   }
+
   relay(msg, output) {
     msg.chassis.transmission = 'ZF Automatic 6-speed';
     msg.chassis.driveShaft = '-----';
