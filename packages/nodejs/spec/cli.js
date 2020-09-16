@@ -57,6 +57,67 @@ describe('noflo-nodejs CLI', () => {
       });
     }).timeout(10 * 1000);
   });
+  describe('--graph=helloin.fbp', () => {
+    const baseDir = path.resolve(__dirname, './fixtures/graph-as-component');
+    const graph = path.resolve(baseDir, './graphs/helloin.fbp');
+    let runtimeProcess;
+    let runtimeClient;
+    before('start runtime', (done) => {
+      runtimeProcess = spawn(prog, [
+        '--host=localhost',
+        '--port=3470',
+        '--open=false',
+        `--secret=${runtimeSecret}`,
+        `--base-dir=${baseDir}`,
+        `--graph=${graph}`,
+      ]);
+      runtimeProcess.stdout.pipe(process.stdout);
+      runtimeProcess.stderr.pipe(process.stderr);
+      healthCheck('ws://localhost:3470', done);
+    });
+    after('stop runtime', (done) => {
+      if (!runtimeProcess) {
+        done();
+        return;
+      }
+      process.kill(runtimeProcess.pid);
+      done();
+    });
+    it('should be possible to connect', () => fbpClient({
+      address: 'ws://localhost:3470',
+      protocol: 'websocket',
+      secret: runtimeSecret,
+    })
+      .then((c) => {
+        runtimeClient = c;
+        return c.connect();
+      }));
+    it('should have marked the graph as the main', () => {
+      expect(runtimeClient.definition.graph).to.equal('graph-as-component/HelloIn');
+    });
+    it('should be possible to get graph sources', () => runtimeClient
+      .protocol.component.getsource({
+        name: 'graph-as-component/HelloIn',
+      }));
+    it('should be possible to get the component list', () => runtimeClient
+      .protocol.component.list()
+      .then((components) => {
+        const expectedNames = [
+          'graph-as-component/Repeat',
+          'graph-as-component/Output',
+          'Graph',
+          'graph-as-component/HelloIn',
+        ];
+        const names = components.map((c) => c.name);
+        names.sort();
+        expectedNames.sort();
+        expect(names).to.eql(expectedNames);
+      }));
+    it('should be possible to get status of the running network', () => runtimeClient
+      .protocol.network.getstatus({
+        graph: 'graph-as-component/HelloIn',
+      }));
+  });
   describe('--auto-save', () => {
     const baseDir = path.resolve(__dirname, './fixtures/auto-save');
     const readFile = promisify(fs.readFile);
