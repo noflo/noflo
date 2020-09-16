@@ -1,6 +1,11 @@
 NoFlo ChangeLog
 ===============
 
+## 1.2.1 (September 16th 2020)
+
+* Added better error messages when trying to write to a non-existing outport in a component
+* Added support for loading subgraph components even if they come from a different version of fbp-graph
+
 ## 1.2.0 (August 28th 2020)
 
 * Ported NoFlo from CoffeeScript to ES6
