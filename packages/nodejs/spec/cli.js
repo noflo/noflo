@@ -166,7 +166,13 @@ exports.getComponent = () => {
   return c;
 };`;
       const componentPath = path.resolve(__dirname, './fixtures/auto-save/components/Plusser.js');
-      after('clean up file', () => unlink(componentPath));
+      let plusserFound = false;
+      after('clean up file', () => {
+        if (!plusserFound) {
+          return Promise.resolve();
+        }
+        return unlink(componentPath);
+      });
       it('should be possible to send the source code to the runtime', () => runtimeClient
         .protocol.component.source({
           name: 'Plusser',
@@ -179,6 +185,7 @@ exports.getComponent = () => {
         'utf-8',
       )
         .then((contents) => {
+          plusserFound = true;
           expect(contents).to.eql(source);
         }));
     });
