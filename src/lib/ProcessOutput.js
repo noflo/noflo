@@ -48,8 +48,12 @@ module.exports = class ProcessOutput {
     }
     if ((this.scope !== null) && (ip.scope === null)) { ip.scope = this.scope; }
 
+    if (!this.nodeInstance.outPorts[port]) {
+      throw new Error(`Node ${this.nodeInstance.nodeId} does not have outport ${port}`);
+    }
+
     if (this.nodeInstance.outPorts[port].isAddressable() && (ip.index === null)) {
-      throw new Error('Sending packets to addressable ports requires specifying index');
+      throw new Error(`Sending packets to addressable port ${this.nodeInstance.nodeId} ${port} requires specifying index`);
     }
 
     if (this.nodeInstance.isOrdered()) {
