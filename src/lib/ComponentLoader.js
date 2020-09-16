@@ -194,7 +194,13 @@ class ComponentLoader extends EventEmitter {
   // Check if a given filesystem path is actually a graph
   isGraph(cPath) {
     // Live graph instance
-    if ((typeof cPath === 'object') && cPath instanceof fbpGraph.Graph) { return true; }
+    if ((typeof cPath === 'object')
+      && (cPath instanceof fbpGraph.Graph
+        || (Array.isArray(cPath.nodes)
+          && Array.isArray(cPath.edges)
+          && Array.isArray(cPath.initializers)))) {
+      return true;
+    }
     // Graph JSON definition
     if ((typeof cPath === 'object') && cPath.processes && cPath.connections) { return true; }
     if (typeof cPath !== 'string') { return false; }
