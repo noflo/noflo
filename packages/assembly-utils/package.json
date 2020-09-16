@@ -1,0 +1,34 @@
+{
+  "name": "noflo-assembly-utils",
+  "version": "0.1.0",
+  "description": "Utility components for NoFlo Assembly programs",
+  "scripts": {
+    "pretest": "eslint components/*.js",
+    "test": "fbp-spec --secret test --address ws://localhost:3333 --command 'noflo-nodejs --port 3333 --secret test --open false --capture-output' spec/*.yaml"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/noflo/noflo-assembly-utils.git"
+  },
+  "keywords": [
+    "noflo",
+    "ecosystem:noflo"
+  ],
+  "author": "Henri Bergius <henri.bergius@iki.fi>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/noflo/noflo-assembly-utils/issues"
+  },
+  "homepage": "https://github.com/noflo/noflo-assembly-utils#readme",
+  "dependencies": {
+    "jsonpath": "^1.0.2",
+    "noflo-assembly": "^0.2.0"
+  },
+  "devDependencies": {
+    "eslint": "^7.9.0",
+    "eslint-config-airbnb-base": "^14.2.0",
+    "eslint-plugin-import": "^2.22.0",
+    "fbp-spec": "^0.6.8",
+    "noflo-nodejs": "^0.12.1"
+  }
+}
