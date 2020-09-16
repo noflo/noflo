@@ -5,6 +5,6 @@ This module provides a set of utility components for [NoFlo Assembly Line](https
 
 ## Changes
 
-* 0.1.0 (git master)
+* 0.1.0 (2020-09-16)
   - Initial release
   - Added ComparePath based on `objects/ComparePath`
