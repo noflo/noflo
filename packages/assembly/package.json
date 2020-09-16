@@ -12,7 +12,9 @@
     "test": "mocha -R spec spec/*.js"
   },
   "keywords": [
-    "noflo"
+    "noflo",
+    "ecosystem:noflo",
+    "ecosystem:noflo-assembly"
   ],
   "author": "Vladimir Sibirov",
   "license": "MIT",
