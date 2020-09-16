@@ -179,7 +179,12 @@ exports.getComponent = () => {
           library: 'auto-save',
           language: 'javascript',
           code: source,
-        }));
+        })
+        .then(() => new Promise((resolve) => {
+          setTimeout(() => {
+            resolve();
+          }, 200);
+        })));
       it('should have saved the source code to the fixture folder', () => readFile(
         componentPath,
         'utf-8',
