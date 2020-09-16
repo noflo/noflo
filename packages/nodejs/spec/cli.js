@@ -127,7 +127,7 @@ describe('noflo-nodejs CLI', () => {
     before('start runtime', (done) => {
       runtimeProcess = spawn(prog, [
         '--host=localhost',
-        '--port=3470',
+        '--port=3471',
         '--open=false',
         `--base-dir=${baseDir}`,
         `--secret=${runtimeSecret}`,
@@ -135,7 +135,7 @@ describe('noflo-nodejs CLI', () => {
       ]);
       runtimeProcess.stdout.pipe(process.stdout);
       runtimeProcess.stderr.pipe(process.stderr);
-      healthCheck('ws://localhost:3470', done);
+      healthCheck('ws://localhost:3471', done);
     });
     after('stop runtime', (done) => {
       if (!runtimeProcess) {
@@ -146,7 +146,7 @@ describe('noflo-nodejs CLI', () => {
       done();
     });
     it('should be possible to connect', () => fbpClient({
-      address: 'ws://localhost:3470',
+      address: 'ws://localhost:3471',
       protocol: 'websocket',
       secret: runtimeSecret,
     })
