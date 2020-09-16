@@ -57,10 +57,9 @@ describe('noflo-nodejs CLI', () => {
       });
     }).timeout(10 * 1000);
   });
-  describe('--auto-save', () => {
-    const baseDir = path.resolve(__dirname, './fixtures/auto-save');
-    const readFile = promisify(fs.readFile);
-    const unlink = promisify(fs.unlink);
+  describe('--graph=helloin.fbp', () => {
+    const baseDir = path.resolve(__dirname, './fixtures/graph-as-component');
+    const graph = path.resolve(baseDir, './graphs/helloin.fbp');
     let runtimeProcess;
     let runtimeClient;
     before('start runtime', (done) => {
@@ -68,9 +67,9 @@ describe('noflo-nodejs CLI', () => {
         '--host=localhost',
         '--port=3470',
         '--open=false',
-        `--base-dir=${baseDir}`,
         `--secret=${runtimeSecret}`,
-        '--auto-save=true',
+        `--base-dir=${baseDir}`,
+        `--graph=${graph}`,
       ]);
       runtimeProcess.stdout.pipe(process.stdout);
       runtimeProcess.stderr.pipe(process.stderr);
@@ -93,6 +92,68 @@ describe('noflo-nodejs CLI', () => {
         runtimeClient = c;
         return c.connect();
       }));
+    it('should have marked the graph as the main', () => {
+      expect(runtimeClient.definition.graph).to.equal('graph-as-component/HelloIn');
+    });
+    it('should be possible to get graph sources', () => runtimeClient
+      .protocol.component.getsource({
+        name: 'graph-as-component/HelloIn',
+      }));
+    it('should be possible to get the component list', () => runtimeClient
+      .protocol.component.list()
+      .then((components) => {
+        const expectedNames = [
+          'graph-as-component/Repeat',
+          'graph-as-component/Output',
+          'Graph',
+          'graph-as-component/HelloIn',
+        ];
+        const names = components.map((c) => c.name);
+        names.sort();
+        expectedNames.sort();
+        expect(names).to.eql(expectedNames);
+      }));
+    it('should be possible to get status of the running network', () => runtimeClient
+      .protocol.network.getstatus({
+        graph: 'graph-as-component/HelloIn',
+      }));
+  });
+  describe('--auto-save', () => {
+    const baseDir = path.resolve(__dirname, './fixtures/auto-save');
+    const readFile = promisify(fs.readFile);
+    const unlink = promisify(fs.unlink);
+    let runtimeProcess;
+    let runtimeClient;
+    before('start runtime', (done) => {
+      runtimeProcess = spawn(prog, [
+        '--host=localhost',
+        '--port=3471',
+        '--open=false',
+        `--base-dir=${baseDir}`,
+        `--secret=${runtimeSecret}`,
+        '--auto-save=true',
+      ]);
+      runtimeProcess.stdout.pipe(process.stdout);
+      runtimeProcess.stderr.pipe(process.stderr);
+      healthCheck('ws://localhost:3471', done);
+    });
+    after('stop runtime', (done) => {
+      if (!runtimeProcess) {
+        done();
+        return;
+      }
+      process.kill(runtimeProcess.pid);
+      done();
+    });
+    it('should be possible to connect', () => fbpClient({
+      address: 'ws://localhost:3471',
+      protocol: 'websocket',
+      secret: runtimeSecret,
+    })
+      .then((c) => {
+        runtimeClient = c;
+        return c.connect();
+      }));
     describe('setting component sources', () => {
       const source = `const noflo = require('noflo');
 exports.getComponent = () => {
@@ -105,19 +166,31 @@ exports.getComponent = () => {
   return c;
 };`;
       const componentPath = path.resolve(__dirname, './fixtures/auto-save/components/Plusser.js');
-      after('clean up file', () => unlink(componentPath));
+      let plusserFound = false;
+      after('clean up file', () => {
+        if (!plusserFound) {
+          return Promise.resolve();
+        }
+        return unlink(componentPath);
+      });
       it('should be possible to send the source code to the runtime', () => runtimeClient
         .protocol.component.source({
           name: 'Plusser',
           library: 'auto-save',
           language: 'javascript',
           code: source,
-        }));
+        })
+        .then(() => new Promise((resolve) => {
+          setTimeout(() => {
+            resolve();
+          }, 200);
+        })));
       it('should have saved the source code to the fixture folder', () => readFile(
         componentPath,
         'utf-8',
       )
         .then((contents) => {
+          plusserFound = true;
           expect(contents).to.eql(source);
         }));
     });
