@@ -12,7 +12,8 @@
   },
   "keywords": [
     "noflo",
-    "ecosystem:noflo"
+    "ecosystem:noflo",
+    "ecosystem:noflo-assembly"
   ],
   "author": "Henri Bergius <henri.bergius@iki.fi>",
   "license": "MIT",
