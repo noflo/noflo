@@ -26,7 +26,7 @@
     "noflo": "^1.2.0",
     "noflo-runtime-base": "^0.11.0",
     "noflo-runtime-websocket": "^0.11.0",
-    "opn": "^6.0.0",
+    "open": "^7.2.1",
     "password-generator": "^2.2.0",
     "uuid": "^8.1.0"
   },
