@@ -1,4 +1,4 @@
-const opn = require('opn');
+const open = require('open');
 const settings = require('./settings');
 const server = require('./server');
 const runtime = require('./runtime');
@@ -24,7 +24,7 @@ exports.main = () => {
           if (!options.open) {
             return;
           }
-          opn(server.liveUrl(options, true))
+          open(server.liveUrl(options, true))
             .catch(() => {});
         }, 10);
       }))
