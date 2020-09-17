@@ -922,13 +922,35 @@ describe('ComponentLoader with a fixture project', () => {
       done();
     });
   });
-  it('should be able to load a component from a dependency', (done) => {
+  it('should be able to load a JavaScript component from a dependency', (done) => {
     l.load('example/Forward', (err, instance) => {
       if (err) {
         done(err);
         return;
       }
       chai.expect(instance.description).to.equal('Forward stuff');
+      chai.expect(instance.icon).to.equal('car');
+      done();
+    });
+  });
+  it('should be able to load a CoffeeScript component from a dependency', (done) => {
+    l.load('example/RepeatAsync', (err, instance) => {
+      if (err) {
+        done(err);
+        return;
+      }
+      chai.expect(instance.description).to.equal('Repeat stuff async');
+      chai.expect(instance.icon).to.equal('forward');
+      done();
+    });
+  });
+  it('should be able to load a TypeScript component from a dependency', (done) => {
+    l.load('example/Repeat', (err, instance) => {
+      if (err) {
+        done(err);
+        return;
+      }
+      chai.expect(instance.description).to.equal('Repeat stuff');
       chai.expect(instance.icon).to.equal('car');
       done();
     });
@@ -1033,7 +1055,10 @@ describe('ComponentLoader with a fixture project and caching', () => {
   });
   it('should be able to load a local component', (done) => {
     l.load('componentloader/Output', (err, instance) => {
-      chai.expect(err).to.be.a('null');
+      if (err) {
+        done(err);
+        return;
+      }
       chai.expect(instance.description).to.equal('Output stuff');
       chai.expect(instance.icon).to.equal('cloud');
       done();
@@ -1041,7 +1066,10 @@ describe('ComponentLoader with a fixture project and caching', () => {
   });
   it('should be able to load a component from a dependency', (done) => {
     l.load('example/Forward', (err, instance) => {
-      chai.expect(err).to.be.a('null');
+      if (err) {
+        done(err);
+        return;
+      }
       chai.expect(instance.description).to.equal('Forward stuff');
       chai.expect(instance.icon).to.equal('car');
       done();
@@ -1049,7 +1077,10 @@ describe('ComponentLoader with a fixture project and caching', () => {
   });
   it('should be able to load a dynamically registered component from a dependency', (done) => {
     l.load('example/Hello', (err, instance) => {
-      chai.expect(err).to.be.a('null');
+      if (err) {
+        done(err);
+        return;
+      }
       chai.expect(instance.description).to.equal('Hello stuff');
       chai.expect(instance.icon).to.equal('bicycle');
       done();
@@ -1057,7 +1088,10 @@ describe('ComponentLoader with a fixture project and caching', () => {
   });
   it('should be able to load core Graph component', (done) => {
     l.load('Graph', (err, instance) => {
-      chai.expect(err).to.be.a('null');
+      if (err) {
+        done(err);
+        return;
+      }
       chai.expect(instance.icon).to.equal('sitemap');
       done();
     });
