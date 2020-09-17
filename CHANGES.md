@@ -5,6 +5,7 @@ NoFlo ChangeLog
 
 * Added initial support for TypeScript components. Requires the `typescript` module to be installed
 * NoFlo ComponentLoader can now tell the supported programming languages with the `getLanguages` method
+* Components written with `setSource` now return the original untranspiled source code with `getSource` also on Node.js
 
 ## 1.2.1 (September 16th 2020)
 
