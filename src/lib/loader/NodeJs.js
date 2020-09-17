@@ -210,8 +210,7 @@ exports.dynamicLoad = function dynamicLoad(name, cPath, metadata, callback) {
   callback(null, instance);
 };
 
-exports.setSource = function setSource(loader, packageId, name, source, language, callback) {
-  const Module = require('module');
+function transpileSource(packageId, name, source, language, callback) {
   let src;
   switch (language) {
     case 'coffeescript': {
@@ -256,24 +255,31 @@ exports.setSource = function setSource(loader, packageId, name, source, language
       return;
     }
   }
+  callback(null, src);
+}
+
+function evaluateModule(baseDir, packageId, name, source, callback) {
+  const Module = require('module');
   let implementation;
   try {
     // Use the Node.js module API to evaluate in the correct directory context
-    const modulePath = path.resolve(loader.baseDir, `./components/${name}.js`);
+    const modulePath = path.resolve(baseDir, `./components/${name}.js`);
     const moduleImpl = new Module(modulePath, module);
     moduleImpl.paths = Module._nodeModulePaths(path.dirname(modulePath));
     moduleImpl.filename = modulePath;
-    moduleImpl._compile(src, modulePath);
+    moduleImpl._compile(source, modulePath);
     implementation = moduleImpl.exports;
-  } catch (err) {
-    callback(err);
-    return;
+  } catch (e) {
+    callback(e);
   }
   if ((typeof implementation !== 'function') && (typeof implementation.getComponent !== 'function')) {
     callback(new Error(`Provided source for ${packageId}/${name} failed to create a runnable component`));
     return;
   }
+  callback(null, implementation);
+}
 
+function registerSources(loader, packageId, name, source, language) {
   if (!loader.sourcesForComponents) {
     // eslint-disable-next-line no-param-reassign
     loader.sourcesForComponents = {};
@@ -284,8 +290,23 @@ exports.setSource = function setSource(loader, packageId, name, source, language
     language,
     source,
   };
+}
 
-  loader.registerComponent(packageId, name, implementation, callback);
+exports.setSource = function setSource(loader, packageId, name, source, language, callback) {
+  transpileSource(packageId, name, source, language, (transpileError, src) => {
+    if (transpileError) {
+      callback(transpileError);
+      return;
+    }
+    evaluateModule(loader.baseDir, packageId, name, src, (evalError, implementation) => {
+      if (evalError) {
+        callback(evalError);
+        return;
+      }
+      registerSources(loader, packageId, name, source, language);
+      loader.registerComponent(packageId, name, implementation, callback);
+    });
+  });
 };
 
 exports.getSource = function getSource(loader, name, callback) {
