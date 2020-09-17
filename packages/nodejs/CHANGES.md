@@ -1,3 +1,7 @@
+## noflo-nodejs 0.12.2 (17-09-2020)
+
+* Added auto-saving support for components written in TypeScript
+
 ## noflo-nodejs 0.12.1 (02-09-2020)
 
 * Modified SSL warnings to be written to STDOUT instead of STDERR to improve operation with fbp-spec
