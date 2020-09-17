@@ -29,6 +29,9 @@ function getComponentPath(component, directoryPath) {
       case 'coffeescript':
         suffix = 'coffee';
         break;
+      case 'typescript':
+        suffix = 'ts';
+        break;
       case 'javascript':
       case 'es2015':
         suffix = 'js';
