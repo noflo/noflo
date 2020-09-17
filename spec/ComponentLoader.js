@@ -889,17 +889,45 @@ describe('ComponentLoader with a fixture project', () => {
     });
     chai.expect(l.processing).to.equal(true);
   });
-  it('should be able to load a local component', (done) => {
+  it('should be able to load a local JavaScript component', (done) => {
     l.load('componentloader/Output', (err, instance) => {
-      chai.expect(err).to.be.a('null');
+      if (err) {
+        done(err);
+        return;
+      }
       chai.expect(instance.description).to.equal('Output stuff');
+      chai.expect(instance.icon).to.equal('cloud');
+      done();
+    });
+  });
+  it('should be able to load a local CoffeeScript component', (done) => {
+    l.load('componentloader/RepeatAsync', (err, instance) => {
+      if (err) {
+        done(err);
+        return;
+      }
+      chai.expect(instance.description).to.equal('Repeat stuff async');
+      chai.expect(instance.icon).to.equal('forward');
+      done();
+    });
+  });
+  it('should be able to load a local TypeScript component', (done) => {
+    l.load('componentloader/Repeat', (err, instance) => {
+      if (err) {
+        done(err);
+        return;
+      }
+      chai.expect(instance.description).to.equal('Repeat stuff');
       chai.expect(instance.icon).to.equal('cloud');
       done();
     });
   });
   it('should be able to load a component from a dependency', (done) => {
     l.load('example/Forward', (err, instance) => {
-      chai.expect(err).to.be.a('null');
+      if (err) {
+        done(err);
+        return;
+      }
       chai.expect(instance.description).to.equal('Forward stuff');
       chai.expect(instance.icon).to.equal('car');
       done();
@@ -907,7 +935,10 @@ describe('ComponentLoader with a fixture project', () => {
   });
   it('should be able to load a dynamically registered component from a dependency', (done) => {
     l.load('example/Hello', (err, instance) => {
-      chai.expect(err).to.be.a('null');
+      if (err) {
+        done(err);
+        return;
+      }
       chai.expect(instance.description).to.equal('Hello stuff');
       chai.expect(instance.icon).to.equal('bicycle');
       done();
@@ -915,7 +946,10 @@ describe('ComponentLoader with a fixture project', () => {
   });
   it('should be able to load core Graph component', (done) => {
     l.load('Graph', (err, instance) => {
-      chai.expect(err).to.be.a('null');
+      if (err) {
+        done(err);
+        return;
+      }
       chai.expect(instance.icon).to.equal('sitemap');
       done();
     });
