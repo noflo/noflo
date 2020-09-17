@@ -376,12 +376,6 @@ describe('ComponentLoader with no external packages installed', () => {
     });
   });
   describe('reading sources', () => {
-    before(function () {
-      // getSource not implemented in webpack loader yet
-      if (noflo.isBrowser()) {
-        this.skip();
-      }
-    });
     it('should be able to provide source code for a component', (done) => {
       l.getSource('Graph', (err, component) => {
         if (err) {
@@ -527,6 +521,17 @@ exports.getComponent = function() {
             ins.send('ES5');
           });
         });
+        it('should return sources in the same format', (done) => {
+          l.getSource('foo/RepeatData', (err, source) => {
+            if (err) {
+              done(err);
+              return;
+            }
+            chai.expect(source.language).to.equal('javascript');
+            chai.expect(source.code).to.equal(workingSource);
+            done();
+          });
+        });
         it('should be able to set the source for non-ready ComponentLoader', function (done) {
           this.timeout(10000);
           const loader = new noflo.ComponentLoader(baseDir);
@@ -586,6 +591,17 @@ exports.getComponent = () => {
             ins.send('ES6');
           });
         });
+        it('should return sources in the same format', (done) => {
+          l.getSource('foo/RepeatDataES6', (err, source) => {
+            if (err) {
+              done(err);
+              return;
+            }
+            chai.expect(source.language).to.equal('es2015');
+            chai.expect(source.code).to.equal(workingSource);
+            done();
+          });
+        });
       });
       describe('with CoffeeScript', () => {
         before(function () {
@@ -635,6 +651,17 @@ exports.getComponent = ->
               done();
             });
             ins.send('CoffeeScript');
+          });
+        });
+        it('should return sources in the same format', (done) => {
+          l.getSource('foo/RepeatDataCoffee', (err, source) => {
+            if (err) {
+              done(err);
+              return;
+            }
+            chai.expect(source.language).to.equal('coffeescript');
+            chai.expect(source.code).to.equal(workingSource);
+            done();
           });
         });
       });
@@ -689,6 +716,17 @@ exports.getComponent = (): Component => {
               done();
             });
             ins.send('TypeScript');
+          });
+        });
+        it('should return sources in the same format', (done) => {
+          l.getSource('foo/RepeatDataTypeScript', (err, source) => {
+            if (err) {
+              done(err);
+              return;
+            }
+            chai.expect(source.language).to.equal('typescript');
+            chai.expect(source.code).to.equal(workingSource);
+            done();
           });
         });
       });
