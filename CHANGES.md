@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 1.2.3 (September 17th 2020)
+
+* TypeScript components loaded on Node.js now target modern ES6
+
 ## 1.2.2 (September 17th 2020)
 
 * Added initial support for components written in TypeScript. Requires the `typescript` module to be installed

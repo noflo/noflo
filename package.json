@@ -8,7 +8,7 @@
     "noflo"
   ],
   "author": "Henri Bergius <henri.bergius@iki.fi>",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "license": "MIT",
   "engines": {
     "node": ">= 6"
@@ -18,7 +18,7 @@
     "debug": "^4.0.1",
     "fbp": "^1.5.0",
     "fbp-graph": "^0.4.0",
-    "fbp-manifest": "^0.2.3",
+    "fbp-manifest": "^0.2.4",
     "get-function-params": "^2.0.6"
   },
   "devDependencies": {
