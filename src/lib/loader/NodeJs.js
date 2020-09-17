@@ -61,6 +61,24 @@ function registerModules(loader, modules, callback) {
     }
 
     return Promise.all(m.components.map((c) => new Promise((resolve, reject) => {
+      const language = utils.guessLanguageFromFilename(c.path);
+      if (language === 'typescript') {
+        // We can't require a TypeScript module, go the setSource route
+        fs.readFile(path.resolve(loader.baseDir, c.path), 'utf-8', (fsErr, source) => {
+          if (fsErr) {
+            reject(fsErr);
+            return;
+          }
+          exports.setSource(loader, m.name, c.name, source, language, (err) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve();
+          });
+        });
+        return;
+      }
       loader.registerComponent(m.name, c.name, path.resolve(loader.baseDir, c.path), (err) => {
         if (err) {
           reject(err);
@@ -283,6 +301,7 @@ function evaluateModule(baseDir, packageId, name, source, callback) {
     implementation = moduleImpl.exports;
   } catch (e) {
     callback(e);
+    return;
   }
   if ((typeof implementation !== 'function') && (typeof implementation.getComponent !== 'function')) {
     callback(new Error(`Provided source for ${packageId}/${name} failed to create a runnable component`));
