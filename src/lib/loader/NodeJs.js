@@ -55,9 +55,8 @@ function transpileSource(packageId, name, source, language, callback) {
       }
       try {
         src = typescript.transpile(source, {
-          compilerOptions: {
-            module: typescript.ModuleKind.CommonJS,
-          },
+          module: typescript.ModuleKind.CommonJS,
+          target: typescript.ScriptTarget.ES2015,
         });
       } catch (err) {
         callback(err);
