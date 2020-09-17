@@ -376,12 +376,6 @@ describe('ComponentLoader with no external packages installed', () => {
     });
   });
   describe('reading sources', () => {
-    before(function () {
-      // getSource not implemented in webpack loader yet
-      if (noflo.isBrowser()) {
-        this.skip();
-      }
-    });
     it('should be able to provide source code for a component', (done) => {
       l.getSource('Graph', (err, component) => {
         if (err) {
@@ -405,6 +399,11 @@ describe('ComponentLoader with no external packages installed', () => {
       });
     });
     it('should return an error for non-file components', (done) => {
+      if (noflo.isBrowser()) {
+        // Browser runtime actually supports this via toString()
+        done();
+        return;
+      }
       l.getSource('foo/Split', (err) => {
         chai.expect(err).to.be.an('error');
         done();
@@ -458,6 +457,19 @@ describe('ComponentLoader with no external packages installed', () => {
         chai.expect(component.language).to.equal(shippingLanguage);
         done();
       });
+    });
+  });
+  describe('getting supported languages', () => {
+    it('should include the expected ones', () => {
+      const expectedLanguages = ['es2015', 'javascript'];
+      if (!noflo.isBrowser()) {
+        expectedLanguages.push('coffeescript');
+        expectedLanguages.push('typescript');
+      }
+      expectedLanguages.sort();
+      const supportedLanguages = l.getLanguages();
+      supportedLanguages.sort();
+      chai.expect(supportedLanguages).to.eql(expectedLanguages);
     });
   });
   describe('writing sources', () => {
@@ -514,6 +526,17 @@ exports.getComponent = function() {
             ins.send('ES5');
           });
         });
+        it('should return sources in the same format', (done) => {
+          l.getSource('foo/RepeatData', (err, source) => {
+            if (err) {
+              done(err);
+              return;
+            }
+            chai.expect(source.language).to.equal('javascript');
+            chai.expect(source.code).to.equal(workingSource);
+            done();
+          });
+        });
         it('should be able to set the source for non-ready ComponentLoader', function (done) {
           this.timeout(10000);
           const loader = new noflo.ComponentLoader(baseDir);
@@ -522,8 +545,7 @@ exports.getComponent = function() {
       });
       describe('with ES6', () => {
         before(function () {
-          // PhantomJS doesn't work with ES6
-          if (noflo.isBrowser()) {
+          if (l.getLanguages().indexOf('es2015') === -1) {
             this.skip();
           }
         });
@@ -545,7 +567,7 @@ exports.getComponent = () => {
           if (!noflo.isBrowser()) {
             workingSource = workingSource.replace("'noflo'", localNofloPath);
           }
-          l.setSource('foo', 'RepeatDataES6', workingSource, 'es6', (err) => {
+          l.setSource('foo', 'RepeatDataES6', workingSource, 'es2015', (err) => {
             if (err) {
               done(err);
               return;
@@ -574,12 +596,21 @@ exports.getComponent = () => {
             ins.send('ES6');
           });
         });
+        it('should return sources in the same format', (done) => {
+          l.getSource('foo/RepeatDataES6', (err, source) => {
+            if (err) {
+              done(err);
+              return;
+            }
+            chai.expect(source.language).to.equal('es2015');
+            chai.expect(source.code).to.equal(workingSource);
+            done();
+          });
+        });
       });
       describe('with CoffeeScript', () => {
         before(function () {
-          // CoffeeScript tests work in browser only if we have CoffeeScript
-          // compiler loaded
-          if (noflo.isBrowser() && !window.CoffeeScript) {
+          if (l.getLanguages().indexOf('coffeescript') === -1) {
             this.skip();
           }
         });
@@ -625,6 +656,82 @@ exports.getComponent = ->
               done();
             });
             ins.send('CoffeeScript');
+          });
+        });
+        it('should return sources in the same format', (done) => {
+          l.getSource('foo/RepeatDataCoffee', (err, source) => {
+            if (err) {
+              done(err);
+              return;
+            }
+            chai.expect(source.language).to.equal('coffeescript');
+            chai.expect(source.code).to.equal(workingSource);
+            done();
+          });
+        });
+      });
+      describe('with TypeScript', () => {
+        before(function () {
+          if (l.getLanguages().indexOf('typescript') === -1) {
+            this.skip();
+          }
+        });
+        let workingSource = `\
+import { Component } from 'noflo';
+exports.getComponent = (): Component => {
+  const c = new noflo.Component();
+  c.inPorts.add('in');
+  c.outPorts.add('out');
+  c.process((input, output): void => {
+    output.sendDone(input.get('in'));
+  });
+  return c;
+};
+`;
+
+        it('should be able to set the source', function (done) {
+          this.timeout(10000);
+          if (!noflo.isBrowser()) {
+            workingSource = workingSource.replace("'noflo'", localNofloPath);
+          }
+          l.setSource('foo', 'RepeatDataTypeScript', workingSource, 'typescript', (err) => {
+            if (err) {
+              done(err);
+              return;
+            }
+            done();
+          });
+        });
+        it('should be a loadable component', (done) => {
+          l.load('foo/RepeatDataTypeScript', (err, inst) => {
+            if (err) {
+              done(err);
+              return;
+            }
+            chai.expect(inst).to.be.an('object');
+            chai.expect(inst.inPorts).to.contain.keys(['in']);
+            chai.expect(inst.outPorts).to.contain.keys(['out']);
+            const ins = new noflo.internalSocket.InternalSocket();
+            const out = new noflo.internalSocket.InternalSocket();
+            inst.inPorts.in.attach(ins);
+            inst.outPorts.out.attach(out);
+            out.on('ip', (ip) => {
+              chai.expect(ip.type).to.equal('data');
+              chai.expect(ip.data).to.equal('TypeScript');
+              done();
+            });
+            ins.send('TypeScript');
+          });
+        });
+        it('should return sources in the same format', (done) => {
+          l.getSource('foo/RepeatDataTypeScript', (err, source) => {
+            if (err) {
+              done(err);
+              return;
+            }
+            chai.expect(source.language).to.equal('typescript');
+            chai.expect(source.code).to.equal(workingSource);
+            done();
           });
         });
       });
@@ -782,25 +889,78 @@ describe('ComponentLoader with a fixture project', () => {
     });
     chai.expect(l.processing).to.equal(true);
   });
-  it('should be able to load a local component', (done) => {
+  it('should be able to load a local JavaScript component', (done) => {
     l.load('componentloader/Output', (err, instance) => {
-      chai.expect(err).to.be.a('null');
+      if (err) {
+        done(err);
+        return;
+      }
       chai.expect(instance.description).to.equal('Output stuff');
       chai.expect(instance.icon).to.equal('cloud');
       done();
     });
   });
-  it('should be able to load a component from a dependency', (done) => {
+  it('should be able to load a local CoffeeScript component', (done) => {
+    l.load('componentloader/RepeatAsync', (err, instance) => {
+      if (err) {
+        done(err);
+        return;
+      }
+      chai.expect(instance.description).to.equal('Repeat stuff async');
+      chai.expect(instance.icon).to.equal('forward');
+      done();
+    });
+  });
+  it('should be able to load a local TypeScript component', (done) => {
+    l.load('componentloader/Repeat', (err, instance) => {
+      if (err) {
+        done(err);
+        return;
+      }
+      chai.expect(instance.description).to.equal('Repeat stuff');
+      chai.expect(instance.icon).to.equal('cloud');
+      done();
+    });
+  });
+  it('should be able to load a JavaScript component from a dependency', (done) => {
     l.load('example/Forward', (err, instance) => {
-      chai.expect(err).to.be.a('null');
+      if (err) {
+        done(err);
+        return;
+      }
       chai.expect(instance.description).to.equal('Forward stuff');
+      chai.expect(instance.icon).to.equal('car');
+      done();
+    });
+  });
+  it('should be able to load a CoffeeScript component from a dependency', (done) => {
+    l.load('example/RepeatAsync', (err, instance) => {
+      if (err) {
+        done(err);
+        return;
+      }
+      chai.expect(instance.description).to.equal('Repeat stuff async');
+      chai.expect(instance.icon).to.equal('forward');
+      done();
+    });
+  });
+  it('should be able to load a TypeScript component from a dependency', (done) => {
+    l.load('example/Repeat', (err, instance) => {
+      if (err) {
+        done(err);
+        return;
+      }
+      chai.expect(instance.description).to.equal('Repeat stuff');
       chai.expect(instance.icon).to.equal('car');
       done();
     });
   });
   it('should be able to load a dynamically registered component from a dependency', (done) => {
     l.load('example/Hello', (err, instance) => {
-      chai.expect(err).to.be.a('null');
+      if (err) {
+        done(err);
+        return;
+      }
       chai.expect(instance.description).to.equal('Hello stuff');
       chai.expect(instance.icon).to.equal('bicycle');
       done();
@@ -808,7 +968,10 @@ describe('ComponentLoader with a fixture project', () => {
   });
   it('should be able to load core Graph component', (done) => {
     l.load('Graph', (err, instance) => {
-      chai.expect(err).to.be.a('null');
+      if (err) {
+        done(err);
+        return;
+      }
       chai.expect(instance.icon).to.equal('sitemap');
       done();
     });
@@ -892,7 +1055,10 @@ describe('ComponentLoader with a fixture project and caching', () => {
   });
   it('should be able to load a local component', (done) => {
     l.load('componentloader/Output', (err, instance) => {
-      chai.expect(err).to.be.a('null');
+      if (err) {
+        done(err);
+        return;
+      }
       chai.expect(instance.description).to.equal('Output stuff');
       chai.expect(instance.icon).to.equal('cloud');
       done();
@@ -900,7 +1066,10 @@ describe('ComponentLoader with a fixture project and caching', () => {
   });
   it('should be able to load a component from a dependency', (done) => {
     l.load('example/Forward', (err, instance) => {
-      chai.expect(err).to.be.a('null');
+      if (err) {
+        done(err);
+        return;
+      }
       chai.expect(instance.description).to.equal('Forward stuff');
       chai.expect(instance.icon).to.equal('car');
       done();
@@ -908,7 +1077,10 @@ describe('ComponentLoader with a fixture project and caching', () => {
   });
   it('should be able to load a dynamically registered component from a dependency', (done) => {
     l.load('example/Hello', (err, instance) => {
-      chai.expect(err).to.be.a('null');
+      if (err) {
+        done(err);
+        return;
+      }
       chai.expect(instance.description).to.equal('Hello stuff');
       chai.expect(instance.icon).to.equal('bicycle');
       done();
@@ -916,7 +1088,10 @@ describe('ComponentLoader with a fixture project and caching', () => {
   });
   it('should be able to load core Graph component', (done) => {
     l.load('Graph', (err, instance) => {
-      chai.expect(err).to.be.a('null');
+      if (err) {
+        done(err);
+        return;
+      }
       chai.expect(instance.icon).to.equal('sitemap');
       done();
     });

@@ -18,7 +18,7 @@
     "debug": "^4.0.1",
     "fbp": "^1.5.0",
     "fbp-graph": "^0.4.0",
-    "fbp-manifest": "^0.2.0",
+    "fbp-manifest": "^0.2.2",
     "get-function-params": "^2.0.6"
   },
   "devDependencies": {
@@ -36,8 +36,9 @@
     "karma-mocha": "^2.0.1",
     "karma-mocha-reporter": "^2.2.5",
     "mocha": "^7.2.0",
-    "noflo-component-loader": "^0.3.2",
+    "noflo-component-loader": "^0.3.3",
     "nyc": "^15.1.0",
+    "typescript": "^4.0.2",
     "webpack": "^4.44.1",
     "webpack-cli": "^3.3.12"
   },

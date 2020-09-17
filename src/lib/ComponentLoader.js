@@ -72,13 +72,13 @@ class ComponentLoader extends EventEmitter {
 
     this.components = {};
     registerLoader.register(this, (err) => {
+      this.processing = false;
+      this.ready = true;
+      this.emit('ready', true);
       if (err) {
         callback(err);
         return;
       }
-      this.processing = false;
-      this.ready = true;
-      this.emit('ready', true);
       callback(null, this.components);
     });
   }
@@ -344,6 +344,16 @@ class ComponentLoader extends EventEmitter {
     }
 
     registerLoader.getSource(this, name, callback);
+  }
+
+  // `getLanguages` gets a list of component programming languages supported by the `setSource`
+  // method on this runtime instance.
+  getLanguages() {
+    if (!registerLoader.getLanguages) {
+      // This component loader doesn't support the method, default to normal JS
+      return ['javascript', 'es2015'];
+    }
+    return registerLoader.getLanguages();
   }
 
   clear() {

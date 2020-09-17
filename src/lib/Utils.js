@@ -10,6 +10,7 @@
 // Guess language from filename
 function guessLanguageFromFilename(filename) {
   if (/.*\.coffee$/.test(filename)) { return 'coffeescript'; }
+  if (/.*\.ts$/.test(filename)) { return 'typescript'; }
   return 'javascript';
 }
 

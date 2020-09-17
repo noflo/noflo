@@ -9,13 +9,237 @@ const fs = require('fs');
 const manifest = require('fbp-manifest');
 const fbpGraph = require('fbp-graph');
 
-// We allow components to be un-compiled CoffeeScript
-const CoffeeScript = require('coffeescript');
 const utils = require('../Utils');
 
-if (typeof CoffeeScript.register !== 'undefined') {
-  CoffeeScript.register();
+// Type loading CoffeeScript compiler
+let CoffeeScript;
+try {
+  // eslint-disable-next-line import/no-unresolved
+  CoffeeScript = require('coffeescript');
+  if (typeof CoffeeScript.register !== 'undefined') {
+    CoffeeScript.register();
+  }
+} catch (e) {
+  // If there is no CoffeeScript compiler installed, we simply don't support compiling
 }
+
+// Try loading TypeScript compiler
+let typescript;
+try {
+  // eslint-disable-next-line import/no-unresolved,import/no-extraneous-dependencies
+  typescript = require('typescript');
+} catch (e) {
+  // If there is no TypeScript compiler installed, we simply don't support compiling
+}
+
+function transpileSource(packageId, name, source, language, callback) {
+  let src;
+  switch (language) {
+    case 'coffeescript': {
+      if (!CoffeeScript) {
+        callback(new Error(`Unsupported component source language ${language} for ${packageId}/${name}: no CoffeeScript compiler installed`));
+      }
+      try {
+        src = CoffeeScript.compile(source, {
+          bare: true,
+        });
+      } catch (err) {
+        callback(err);
+        return;
+      }
+      break;
+    }
+    case 'typescript': {
+      if (!typescript) {
+        callback(new Error(`Unsupported component source language ${language} for ${packageId}/${name}: no TypeScript compiler installed`));
+      }
+      try {
+        src = typescript.transpile(source, {
+          compilerOptions: {
+            module: typescript.ModuleKind.CommonJS,
+          },
+        });
+      } catch (err) {
+        callback(err);
+        return;
+      }
+      break;
+    }
+    case 'es6':
+    case 'es2015':
+    case 'js':
+    case 'javascript': {
+      src = source;
+      break;
+    }
+    default: {
+      callback(new Error(`Unsupported component source language ${language} for ${packageId}/${name}`));
+      return;
+    }
+  }
+  callback(null, src);
+}
+
+function evaluateModule(baseDir, packageId, name, source, callback) {
+  const Module = require('module');
+  let implementation;
+  try {
+    // Use the Node.js module API to evaluate in the correct directory context
+    const modulePath = path.resolve(baseDir, `./components/${name}.js`);
+    const moduleImpl = new Module(modulePath, module);
+    moduleImpl.paths = Module._nodeModulePaths(path.dirname(modulePath));
+    moduleImpl.filename = modulePath;
+    moduleImpl._compile(source, modulePath);
+    implementation = moduleImpl.exports;
+  } catch (e) {
+    callback(e);
+    return;
+  }
+  if ((typeof implementation !== 'function') && (typeof implementation.getComponent !== 'function')) {
+    callback(new Error(`Provided source for ${packageId}/${name} failed to create a runnable component`));
+    return;
+  }
+  callback(null, implementation);
+}
+
+function registerSources(loader, packageId, name, source, language) {
+  if (!loader.sourcesForComponents) {
+    // eslint-disable-next-line no-param-reassign
+    loader.sourcesForComponents = {};
+  }
+  const componentName = `${packageId}/${name}`;
+  // eslint-disable-next-line no-param-reassign
+  loader.sourcesForComponents[componentName] = {
+    language,
+    source,
+  };
+}
+
+function transpileAndRegisterForModule(loader, module, component, source, language, callback) {
+  transpileSource(module.name, component.name, source, language, (transpileError, src) => {
+    if (transpileError) {
+      callback(transpileError);
+      return;
+    }
+    const moduleBase = path.resolve(loader.baseDir, module.base);
+    evaluateModule(moduleBase, module.name, component.name, src, (evalError, implementation) => {
+      if (evalError) {
+        callback(evalError);
+        return;
+      }
+      registerSources(loader, module.name, component.name, source, language);
+      loader.registerComponent(module.name, component.name, implementation, callback);
+    });
+  });
+}
+
+exports.setSource = function setSource(loader, packageId, name, source, language, callback) {
+  transpileAndRegisterForModule(loader, {
+    name: packageId,
+    base: '',
+  }, {
+    name,
+  }, source, language, callback);
+};
+
+exports.getSource = function getSource(loader, name, callback) {
+  let componentName = name;
+  let component = loader.components[name];
+  if (!component) {
+    // Try an alias
+    const keys = Object.keys(loader.components);
+    for (let i = 0; i < keys.length; i += 1) {
+      const key = keys[i];
+      if (key.split('/')[1] === name) {
+        component = loader.components[key];
+        componentName = key;
+        break;
+      }
+    }
+    if (!component) {
+      callback(new Error(`Component ${componentName} not installed`));
+      return;
+    }
+  }
+
+  const nameParts = componentName.split('/');
+  if (nameParts.length === 1) {
+    nameParts[1] = nameParts[0];
+    nameParts[0] = '';
+  }
+
+  if (loader.isGraph(component)) {
+    if (typeof component === 'object') {
+      if (typeof component.toJSON === 'function') {
+        callback(null, {
+          name: nameParts[1],
+          library: nameParts[0],
+          code: JSON.stringify(component.toJSON()),
+          language: 'json',
+        });
+        return;
+      }
+      callback(new Error(`Can't provide source for ${componentName}. Not a file`));
+      return;
+    }
+    fbpGraph.graph.loadFile(component, (err, graph) => {
+      if (err) {
+        callback(err);
+        return;
+      }
+      if (!graph) {
+        callback(new Error('Unable to load graph'));
+        return;
+      }
+      callback(null, {
+        name: nameParts[1],
+        library: nameParts[0],
+        code: JSON.stringify(graph.toJSON()),
+        language: 'json',
+      });
+    });
+    return;
+  }
+
+  if (loader.sourcesForComponents && loader.sourcesForComponents[componentName]) {
+    callback(null, {
+      name: nameParts[1],
+      library: nameParts[0],
+      code: loader.sourcesForComponents[componentName].source,
+      language: loader.sourcesForComponents[componentName].language,
+    });
+    return;
+  }
+
+  if (typeof component !== 'string') {
+    callback(new Error(`Can't provide source for ${componentName}. Not a file`));
+    return;
+  }
+
+  fs.readFile(component, 'utf-8', (err, code) => {
+    if (err) {
+      callback(err);
+      return;
+    }
+    callback(null, {
+      name: nameParts[1],
+      library: nameParts[0],
+      language: utils.guessLanguageFromFilename(component),
+      code,
+    });
+  });
+};
+
+exports.getLanguages = function getLanguages() {
+  const languages = ['javascript', 'es2015'];
+  if (CoffeeScript) {
+    languages.push('coffeescript');
+  }
+  if (typescript) {
+    languages.push('typescript');
+  }
+  return languages;
+};
 
 function registerCustomLoaders(loader, componentLoaders, callback) {
   if (!componentLoaders.length) {
@@ -35,20 +259,50 @@ function registerCustomLoaders(loader, componentLoaders, callback) {
 function registerModules(loader, modules, callback) {
   const compatible = modules.filter((m) => ['noflo', 'noflo-nodejs'].includes(m.runtime));
   const componentLoaders = [];
-  compatible.forEach((m) => {
-    if (m.icon) { loader.setLibraryIcon(m.name, m.icon); }
+  Promise.all(compatible.map((m) => {
+    if (m.icon) {
+      loader.setLibraryIcon(m.name, m.icon);
+    }
 
     if (m.noflo != null ? m.noflo.loader : undefined) {
       const loaderPath = path.resolve(loader.baseDir, m.base, m.noflo.loader);
       componentLoaders.push(loaderPath);
     }
 
-    m.components.forEach((c) => {
-      loader.registerComponent(m.name, c.name, path.resolve(loader.baseDir, c.path));
-    });
-  });
-
-  registerCustomLoaders(loader, componentLoaders, callback);
+    return Promise.all(m.components.map((c) => new Promise((resolve, reject) => {
+      const language = utils.guessLanguageFromFilename(c.path);
+      if (language === 'typescript') {
+        // We can't require a TypeScript module, go the setSource route
+        fs.readFile(path.resolve(loader.baseDir, c.path), 'utf-8', (fsErr, source) => {
+          if (fsErr) {
+            reject(fsErr);
+            return;
+          }
+          transpileAndRegisterForModule(loader, m, c, source, language, (err) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve();
+          });
+        });
+        return;
+      }
+      loader.registerComponent(m.name, c.name, path.resolve(loader.baseDir, c.path), (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve();
+      });
+    })));
+  }))
+    .then(
+      () => {
+        registerCustomLoaders(loader, componentLoaders, callback);
+      },
+      callback,
+    );
 }
 
 const dynamicLoader = {
@@ -193,115 +447,4 @@ exports.dynamicLoad = function dynamicLoad(name, cPath, metadata, callback) {
   }
   if (typeof name === 'string') { instance.componentName = name; }
   callback(null, instance);
-};
-
-exports.setSource = function setSource(loader, packageId, name, source, language, callback) {
-  const Module = require('module');
-  let src = source;
-  if (language === 'coffeescript') {
-    try {
-      src = CoffeeScript.compile(src,
-        { bare: true });
-    } catch (err) {
-      callback(err);
-      return;
-    }
-  }
-  let implementation;
-  try {
-    // Use the Node.js module API to evaluate in the correct directory context
-    const modulePath = path.resolve(loader.baseDir, `./components/${name}.js`);
-    const moduleImpl = new Module(modulePath, module);
-    moduleImpl.paths = Module._nodeModulePaths(path.dirname(modulePath));
-    moduleImpl.filename = modulePath;
-    moduleImpl._compile(src, modulePath);
-    implementation = moduleImpl.exports;
-  } catch (err) {
-    callback(err);
-    return;
-  }
-  if ((typeof implementation !== 'function') && (typeof implementation.getComponent !== 'function')) {
-    callback(new Error('Provided source failed to create a runnable component'));
-    return;
-  }
-
-  loader.registerComponent(packageId, name, implementation, callback);
-};
-
-exports.getSource = function getSource(loader, name, callback) {
-  let componentName = name;
-  let component = loader.components[name];
-  if (!component) {
-    // Try an alias
-    const keys = Object.keys(loader.components);
-    for (let i = 0; i < keys.length; i += 1) {
-      const key = keys[i];
-      if (key.split('/')[1] === name) {
-        component = loader.components[key];
-        componentName = key;
-        break;
-      }
-    }
-    if (!component) {
-      callback(new Error(`Component ${componentName} not installed`));
-      return;
-    }
-  }
-
-  const nameParts = componentName.split('/');
-  if (nameParts.length === 1) {
-    nameParts[1] = nameParts[0];
-    nameParts[0] = '';
-  }
-
-  if (loader.isGraph(component)) {
-    if (typeof component === 'object') {
-      if (typeof component.toJSON === 'function') {
-        callback(null, {
-          name: nameParts[1],
-          library: nameParts[0],
-          code: JSON.stringify(component.toJSON()),
-          language: 'json',
-        });
-        return;
-      }
-      callback(new Error(`Can't provide source for ${componentName}. Not a file`));
-      return;
-    }
-    fbpGraph.graph.loadFile(component, (err, graph) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      if (!graph) {
-        callback(new Error('Unable to load graph'));
-        return;
-      }
-      callback(null, {
-        name: nameParts[1],
-        library: nameParts[0],
-        code: JSON.stringify(graph.toJSON()),
-        language: 'json',
-      });
-    });
-    return;
-  }
-
-  if (typeof component !== 'string') {
-    callback(new Error(`Can't provide source for ${componentName}. Not a file`));
-    return;
-  }
-
-  fs.readFile(component, 'utf-8', (err, code) => {
-    if (err) {
-      callback(err);
-      return;
-    }
-    callback(null, {
-      name: nameParts[1],
-      library: nameParts[0],
-      language: utils.guessLanguageFromFilename(component),
-      code,
-    });
-  });
 };
