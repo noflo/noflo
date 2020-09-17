@@ -50,20 +50,32 @@ function registerCustomLoaders(loader, componentLoaders, callback) {
 function registerModules(loader, modules, callback) {
   const compatible = modules.filter((m) => ['noflo', 'noflo-nodejs'].includes(m.runtime));
   const componentLoaders = [];
-  compatible.forEach((m) => {
-    if (m.icon) { loader.setLibraryIcon(m.name, m.icon); }
+  Promise.all(compatible.map((m) => {
+    if (m.icon) {
+      loader.setLibraryIcon(m.name, m.icon);
+    }
 
     if (m.noflo != null ? m.noflo.loader : undefined) {
       const loaderPath = path.resolve(loader.baseDir, m.base, m.noflo.loader);
       componentLoaders.push(loaderPath);
     }
 
-    m.components.forEach((c) => {
-      loader.registerComponent(m.name, c.name, path.resolve(loader.baseDir, c.path));
-    });
-  });
-
-  registerCustomLoaders(loader, componentLoaders, callback);
+    return Promise.all(m.components.map((c) => new Promise((resolve, reject) => {
+      loader.registerComponent(m.name, c.name, path.resolve(loader.baseDir, c.path), (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve();
+      });
+    })));
+  }))
+    .then(
+      () => {
+        registerCustomLoaders(loader, componentLoaders, callback);
+      },
+      callback,
+    );
 }
 
 const dynamicLoader = {
