@@ -350,8 +350,8 @@ class ComponentLoader extends EventEmitter {
   // method on this runtime instance.
   getLanguages() {
     if (!registerLoader.getLanguages) {
-      // This component loader doesn't support the method, default to empty list
-      return [];
+      // This component loader doesn't support the method, default to normal JS
+      return ['javascript', 'es2015'];
     }
     return registerLoader.getLanguages();
   }
