@@ -9,12 +9,27 @@ const fs = require('fs');
 const manifest = require('fbp-manifest');
 const fbpGraph = require('fbp-graph');
 
-// We allow components to be un-compiled CoffeeScript
-const CoffeeScript = require('coffeescript');
 const utils = require('../Utils');
 
-if (typeof CoffeeScript.register !== 'undefined') {
-  CoffeeScript.register();
+// Type loading CoffeeScript compiler
+let CoffeeScript;
+try {
+  // eslint-disable-next-line import/no-unresolved
+  CoffeeScript = require('coffeescript');
+  if (typeof CoffeeScript.register !== 'undefined') {
+    CoffeeScript.register();
+  }
+} catch (e) {
+  // If there is no CoffeeScript compiler installed, we simply don't support compiling
+}
+
+// Try loading TypeScript compiler
+let typescript;
+try {
+  // eslint-disable-next-line import/no-unresolved
+  typescript = require('typescript');
+} catch (e) {
+  // If there is no TypeScript compiler installed, we simply don't support compiling
 }
 
 function registerCustomLoaders(loader, componentLoaders, callback) {
@@ -197,13 +212,47 @@ exports.dynamicLoad = function dynamicLoad(name, cPath, metadata, callback) {
 
 exports.setSource = function setSource(loader, packageId, name, source, language, callback) {
   const Module = require('module');
-  let src = source;
-  if (language === 'coffeescript') {
-    try {
-      src = CoffeeScript.compile(src,
-        { bare: true });
-    } catch (err) {
-      callback(err);
+  let src;
+  switch (language) {
+    case 'coffeescript': {
+      if (!CoffeeScript) {
+        callback(new Error(`Unsupported component source language ${language} for ${packageId}/${name}: no CoffeeScript compiler installed`));
+      }
+      try {
+        src = CoffeeScript.compile(source, {
+          bare: true,
+        });
+      } catch (err) {
+        callback(err);
+        return;
+      }
+      break;
+    }
+    case 'typescript': {
+      if (!typescript) {
+        callback(new Error(`Unsupported component source language ${language} for ${packageId}/${name}: no TypeScript compiler installed`));
+      }
+      try {
+        src = typescript.transpileModule(source, {
+          compilerOptions: {
+            module: typescript.ModuleKind.CommonJS,
+          },
+        });
+      } catch (err) {
+        callback(err);
+        return;
+      }
+      break;
+    }
+    case 'es6':
+    case 'es2015':
+    case 'js':
+    case 'javascript': {
+      src = source;
+      break;
+    }
+    default: {
+      callback(new Error(`Unsupported component source language ${language} for ${packageId}/${name}`));
       return;
     }
   }
@@ -221,7 +270,7 @@ exports.setSource = function setSource(loader, packageId, name, source, language
     return;
   }
   if ((typeof implementation !== 'function') && (typeof implementation.getComponent !== 'function')) {
-    callback(new Error('Provided source failed to create a runnable component'));
+    callback(new Error(`Provided source for ${packageId}/${name} failed to create a runnable component`));
     return;
   }
 
