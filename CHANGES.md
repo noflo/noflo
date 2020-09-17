@@ -1,6 +1,11 @@
 NoFlo ChangeLog
 ===============
 
+## 1.2.2 (git master)
+
+* Added initial support for TypeScript components. Requires the `typescript` module to be installed
+* NoFlo ComponentLoader can now tell the supported programming languages with the `getLanguages` method
+
 ## 1.2.1 (September 16th 2020)
 
 * Added better error messages when trying to write to a non-existing outport in a component

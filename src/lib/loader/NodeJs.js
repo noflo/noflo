@@ -354,3 +354,14 @@ exports.getSource = function getSource(loader, name, callback) {
     });
   });
 };
+
+exports.getLanguages = function getLanguages() {
+  const languages = ['javascript', 'es2015'];
+  if (CoffeeScript) {
+    languages.push('coffeescript');
+  }
+  if (typescript) {
+    languages.push('typescript');
+  }
+  return languages;
+};

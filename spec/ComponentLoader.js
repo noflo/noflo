@@ -460,6 +460,18 @@ describe('ComponentLoader with no external packages installed', () => {
       });
     });
   });
+  describe('getting supported languages', () => {
+    it('should include the expected ones', () => {
+      const expectedLanguages = ['es2015', 'javascript'];
+      if (!noflo.isBrowser()) {
+        expectedLanguages.push('coffeescript');
+      }
+      expectedLanguages.sort();
+      const supportedLanguages = l.getLanguages();
+      supportedLanguages.sort();
+      chai.expect(supportedLanguages).to.eql(expectedLanguages);
+    });
+  });
   describe('writing sources', () => {
     let localNofloPath;
     if (!noflo.isBrowser()) {
@@ -522,8 +534,7 @@ exports.getComponent = function() {
       });
       describe('with ES6', () => {
         before(function () {
-          // PhantomJS doesn't work with ES6
-          if (noflo.isBrowser()) {
+          if (l.getLanguages().indexOf('es2015') === -1) {
             this.skip();
           }
         });
@@ -545,7 +556,7 @@ exports.getComponent = () => {
           if (!noflo.isBrowser()) {
             workingSource = workingSource.replace("'noflo'", localNofloPath);
           }
-          l.setSource('foo', 'RepeatDataES6', workingSource, 'es6', (err) => {
+          l.setSource('foo', 'RepeatDataES6', workingSource, 'es2015', (err) => {
             if (err) {
               done(err);
               return;
@@ -577,9 +588,7 @@ exports.getComponent = () => {
       });
       describe('with CoffeeScript', () => {
         before(function () {
-          // CoffeeScript tests work in browser only if we have CoffeeScript
-          // compiler loaded
-          if (noflo.isBrowser() && !window.CoffeeScript) {
+          if (l.getLanguages().indexOf('coffeescript') === -1) {
             this.skip();
           }
         });

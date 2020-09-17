@@ -346,6 +346,16 @@ class ComponentLoader extends EventEmitter {
     registerLoader.getSource(this, name, callback);
   }
 
+  // `getLanguages` gets a list of component programming languages supported by the `setSource`
+  // method on this runtime instance.
+  getLanguages() {
+    if (!registerLoader.getLanguages) {
+      // This component loader doesn't support the method, default to empty list
+      return [];
+    }
+    return registerLoader.getLanguages();
+  }
+
   clear() {
     this.components = null;
     this.ready = false;
