@@ -465,6 +465,7 @@ describe('ComponentLoader with no external packages installed', () => {
       const expectedLanguages = ['es2015', 'javascript'];
       if (!noflo.isBrowser()) {
         expectedLanguages.push('coffeescript');
+        expectedLanguages.push('typescript');
       }
       expectedLanguages.sort();
       const supportedLanguages = l.getLanguages();
@@ -634,6 +635,60 @@ exports.getComponent = ->
               done();
             });
             ins.send('CoffeeScript');
+          });
+        });
+      });
+      describe('with TypeScript', () => {
+        before(function () {
+          if (l.getLanguages().indexOf('typescript') === -1) {
+            this.skip();
+          }
+        });
+        let workingSource = `\
+import { Component } from 'noflo';
+exports.getComponent = (): Component => {
+  const c = new noflo.Component();
+  c.inPorts.add('in');
+  c.outPorts.add('out');
+  c.process((input, output): void => {
+    output.sendDone(input.get('in'));
+  });
+  return c;
+};
+`;
+
+        it('should be able to set the source', function (done) {
+          this.timeout(10000);
+          if (!noflo.isBrowser()) {
+            workingSource = workingSource.replace("'noflo'", localNofloPath);
+          }
+          l.setSource('foo', 'RepeatDataTypeScript', workingSource, 'typescript', (err) => {
+            if (err) {
+              done(err);
+              return;
+            }
+            done();
+          });
+        });
+        it('should be a loadable component', (done) => {
+          l.load('foo/RepeatDataTypeScript', (err, inst) => {
+            if (err) {
+              done(err);
+              return;
+            }
+            chai.expect(inst).to.be.an('object');
+            chai.expect(inst.inPorts).to.contain.keys(['in']);
+            chai.expect(inst.outPorts).to.contain.keys(['out']);
+            const ins = new noflo.internalSocket.InternalSocket();
+            const out = new noflo.internalSocket.InternalSocket();
+            inst.inPorts.in.attach(ins);
+            inst.outPorts.out.attach(out);
+            out.on('ip', (ip) => {
+              chai.expect(ip.type).to.equal('data');
+              chai.expect(ip.data).to.equal('TypeScript');
+              done();
+            });
+            ins.send('TypeScript');
           });
         });
       });

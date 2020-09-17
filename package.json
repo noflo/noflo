@@ -38,6 +38,7 @@
     "mocha": "^7.2.0",
     "noflo-component-loader": "^0.3.3",
     "nyc": "^15.1.0",
+    "typescript": "^4.0.2",
     "webpack": "^4.44.1",
     "webpack-cli": "^3.3.12"
   },

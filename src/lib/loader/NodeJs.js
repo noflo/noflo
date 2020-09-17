@@ -26,7 +26,7 @@ try {
 // Try loading TypeScript compiler
 let typescript;
 try {
-  // eslint-disable-next-line import/no-unresolved
+  // eslint-disable-next-line import/no-unresolved,import/no-extraneous-dependencies
   typescript = require('typescript');
 } catch (e) {
   // If there is no TypeScript compiler installed, we simply don't support compiling
@@ -233,7 +233,7 @@ exports.setSource = function setSource(loader, packageId, name, source, language
         callback(new Error(`Unsupported component source language ${language} for ${packageId}/${name}: no TypeScript compiler installed`));
       }
       try {
-        src = typescript.transpileModule(source, {
+        src = typescript.transpile(source, {
           compilerOptions: {
             module: typescript.ModuleKind.CommonJS,
           },
