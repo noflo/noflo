@@ -399,6 +399,11 @@ describe('ComponentLoader with no external packages installed', () => {
       });
     });
     it('should return an error for non-file components', (done) => {
+      if (noflo.isBrowser()) {
+        // Browser runtime actually supports this via toString()
+        done();
+        return;
+      }
       l.getSource('foo/Split', (err) => {
         chai.expect(err).to.be.an('error');
         done();
