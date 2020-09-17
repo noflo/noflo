@@ -274,6 +274,17 @@ exports.setSource = function setSource(loader, packageId, name, source, language
     return;
   }
 
+  if (!loader.sourcesForComponents) {
+    // eslint-disable-next-line no-param-reassign
+    loader.sourcesForComponents = {};
+  }
+  const componentName = `${packageId}/${name}`;
+  // eslint-disable-next-line no-param-reassign
+  loader.sourcesForComponents[componentName] = {
+    language,
+    source,
+  };
+
   loader.registerComponent(packageId, name, implementation, callback);
 };
 
@@ -332,6 +343,16 @@ exports.getSource = function getSource(loader, name, callback) {
         code: JSON.stringify(graph.toJSON()),
         language: 'json',
       });
+    });
+    return;
+  }
+
+  if (loader.sourcesForComponents && loader.sourcesForComponents[componentName]) {
+    callback(null, {
+      name: nameParts[1],
+      library: nameParts[0],
+      code: loader.sourcesForComponents[componentName].source,
+      language: loader.sourcesForComponents[componentName].language,
     });
     return;
   }
