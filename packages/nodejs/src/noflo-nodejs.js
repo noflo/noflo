@@ -6,9 +6,9 @@ const debug = require('./debug');
 
 exports.main = () => {
   settings.load()
-    .then((options) => runtime.loadGraph(options)
-      .then((graph) => server.create(graph, options))
+    .then((options) => server.create(options)
       .then((rt) => runtime.subscribe(rt, options))
+      .then((rt) => runtime.startGraph(options.graph, rt, options))
       .then((rt) => server.start(rt, options))
       .then((rt) => runtime.advertiseMdns(rt, options))
       .then((rt) => runtime.ping(rt, options))

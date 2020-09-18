@@ -4,7 +4,7 @@ const settings = require('./settings');
 
 module.exports = (mainGraph, options = {}, preStart = () => Promise.resolve()) => settings
   .loadForLibrary(options)
-  .then((config) => server.create(null, config)
+  .then((config) => server.create(config)
     // Subscribe runtime to signals
     .then((rt) => runtime.subscribe(rt, config))
     // Execute pre-start hook, like for example custom component loader

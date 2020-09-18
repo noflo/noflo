@@ -40,7 +40,7 @@ exports.liveUrl = (options, silent = false) => {
   return url.format(liveUrl);
 };
 
-exports.create = (graph, options) => new Promise((resolve, reject) => {
+exports.create = (options) => new Promise((resolve, reject) => {
   const handleRequest = (req, res) => {
     res.writeHead(302, {
       Location: exports.liveUrl(options),
@@ -58,7 +58,6 @@ exports.create = (graph, options) => new Promise((resolve, reject) => {
     server = http.createServer(handleRequest);
   }
   const rt = runtime(server, {
-    defaultGraph: graph,
     baseDir: options.baseDir,
     captureOutput: options.captureOutput,
     catchExceptions: options.catchExceptions,
