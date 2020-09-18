@@ -44,6 +44,10 @@ describe('noflo-nodejs mDNS discovery', () => {
         return;
       }
       expect(data.txt).to.include('type=noflo-nodejs');
+      if (data.txt.indexOf(`id=${rt.options.id}`) === -1) {
+        // Different runtime instance
+        return;
+      }
       expect(data.txt).to.include(`id=${rt.options.id}`);
       done();
     });
