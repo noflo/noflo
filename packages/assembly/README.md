@@ -1,4 +1,4 @@
-# NoFlo Assembly Line [![Build Status](https://travis-ci.org/noflo/noflo-assembly.svg?branch=master)](https://travis-ci.org/noflo/noflo-assembly)
+# NoFlo Assembly Line
 
 Industrial approach to writing NoFlo applications
 
