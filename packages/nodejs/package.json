@@ -35,7 +35,7 @@
     "eslint": "^7.9.0",
     "eslint-config-airbnb-base": "^14.0.0",
     "eslint-plugin-import": "^2.9.0",
-    "eslint-plugin-mocha": "^7.0.0",
+    "eslint-plugin-mocha": "^8.0.0",
     "fbp-client": "^0.4.1",
     "fbp-protocol": "^0.9.8",
     "fbp-protocol-healthcheck": "^1.1.0",
