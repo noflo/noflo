@@ -1,4 +1,4 @@
-Command-line tool for running NoFlo programs on Node.js [![Build Status](https://travis-ci.org/noflo/noflo-nodejs.svg?branch=master)](https://travis-ci.org/noflo/noflo-nodejs)
+Command-line tool for running NoFlo programs on Node.js
 =================================
 
 This tool is designed to be used together with the [Flowhub](http://flowhub.io/) development environment
