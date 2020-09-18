@@ -40,7 +40,7 @@ exports.liveUrl = (options, silent = false) => {
   return url.format(liveUrl);
 };
 
-exports.create = (graph, options) => new Promise((resolve) => {
+exports.create = (options) => new Promise((resolve, reject) => {
   const handleRequest = (req, res) => {
     res.writeHead(302, {
       Location: exports.liveUrl(options),
@@ -58,7 +58,6 @@ exports.create = (graph, options) => new Promise((resolve) => {
     server = http.createServer(handleRequest);
   }
   const rt = runtime(server, {
-    defaultGraph: graph,
     baseDir: options.baseDir,
     captureOutput: options.captureOutput,
     catchExceptions: options.catchExceptions,
@@ -71,7 +70,12 @@ exports.create = (graph, options) => new Promise((resolve) => {
     repository: options.repository,
   });
   rt.webServer = server;
-  resolve(rt);
+  rt.once('ready', () => {
+    resolve(rt);
+  });
+  rt.once('error', (err) => {
+    reject(err);
+  });
 });
 
 exports.start = (rt, options) => new Promise((resolve, reject) => {
