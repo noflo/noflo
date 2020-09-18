@@ -229,6 +229,7 @@ exports.getComponent = () => {
           ...graphInstance.properties,
           library: 'auto-save',
           id: graphName,
+          main: false,
         });
         graphInstance.addNode('one', 'auto-save/Plusser');
         graphInstance.addNode('two', 'core/Output');
@@ -257,6 +258,7 @@ exports.getComponent = () => {
           ...graphInstance.properties,
           library: 'auto-save',
           id: graphName,
+          main: true,
         });
         graphInstance.addNode('one', 'auto-save/Plusser');
         graphInstance.addNode('two', 'core/Output');
