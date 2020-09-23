@@ -72,10 +72,16 @@ function saveGraph(name, graph, rt) {
   }
   return ensureDir('graphs', rt)
     .then((directoryPath) => getGraphPath(name, graph, directoryPath))
-    .then((filePath) => writeFile(filePath, JSON.stringify(graph.toJSON(), null, 4))
-      .then(() => {
-        console.log(`Saved ${fileDisplayPath(filePath, rt)}`);
-      }));
+    .then((filePath) => {
+      const graphJSON = graph.toJSON();
+      if (name && graphJSON.properties) {
+        graphJSON.properties.name = path.basename(name);
+      }
+      return writeFile(filePath, JSON.stringify(graphJSON, null, 4))
+        .then(() => {
+          console.log(`Saved ${fileDisplayPath(filePath, rt)}`);
+        });
+    });
 }
 
 exports.subscribe = (rt) => {
