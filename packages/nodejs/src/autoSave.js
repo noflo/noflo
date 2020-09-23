@@ -74,7 +74,9 @@ function saveGraph(name, graph, rt) {
     .then((directoryPath) => getGraphPath(name, graph, directoryPath))
     .then((filePath) => {
       const graphJSON = graph.toJSON();
-      graphJSON.name = path.basename(graphJSON.name);
+      if (name && graphJSON.properties) {
+        graphJSON.properties.name = path.basename(name);
+      }
       return writeFile(filePath, JSON.stringify(graphJSON, null, 4))
         .then(() => {
           console.log(`Saved ${fileDisplayPath(filePath, rt)}`);
