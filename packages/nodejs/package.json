@@ -24,7 +24,7 @@
     "flowhub-registry": "^0.1.3",
     "mdns-js": "^1.0.3",
     "noflo": "^1.2.0",
-    "noflo-runtime-base": "^0.11.3",
+    "noflo-runtime-base": "^0.11.4",
     "noflo-runtime-websocket": "^0.11.0",
     "open": "^7.2.1",
     "password-generator": "^2.2.0",
