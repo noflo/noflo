@@ -250,14 +250,14 @@ exports.getComponent = () => {
         }));
     });
     describe('editing a graph with namespaced name', () => {
-      const graphName = 'default/main';
+      const graphName = 'main';
       const graphPath = path.resolve(__dirname, './fixtures/auto-save/graphs/main.json');
       const graphInstance = new fbpGraph.Graph(graphName);
       before('set up graph', () => {
         graphInstance.setProperties({
           ...graphInstance.properties,
           library: 'auto-save',
-          id: graphName,
+          id: `default/${graphName}`,
           main: true,
         });
         graphInstance.addNode('one', 'auto-save/Plusser');
@@ -267,7 +267,10 @@ exports.getComponent = () => {
       });
       after('clean up file', () => unlink(graphPath));
       it('should be possible to send a graph to the runtime', () => runtimeClient
-        .protocol.graph.send(graphInstance, true));
+        .protocol.graph.send({
+          ...graphInstance,
+          name: 'default/main',
+        }, true));
       it('should have saved the graph JSON to the fixture folder', () => waitFor(100)
         .then(() => readFile(
           graphPath,
