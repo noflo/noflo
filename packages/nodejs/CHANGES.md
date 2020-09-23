@@ -1,3 +1,7 @@
+## noflo-nodejs 0.12.4 (23-09-2020)
+
+* Specs sent by IDE via `setSource` are no also auto-saved
+
 ## noflo-nodejs 0.12.3 (23-09-2020)
 
 * Graph names are used without namespace when auto-saving
