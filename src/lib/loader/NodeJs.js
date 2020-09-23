@@ -115,6 +115,10 @@ function registerSources(loader, packageId, name, source, language) {
 }
 
 function registerSpecs(loader, packageId, name, specs) {
+  if (!specs || specs.indexOf('.yaml') === -1) {
+    // We support only fbp-spec specs
+    return;
+  }
   if (!loader.specsForComponents) {
     // eslint-disable-next-line no-param-reassign
     loader.specsForComponents = {};
