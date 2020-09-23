@@ -922,6 +922,16 @@ describe('ComponentLoader with a fixture project', () => {
       done();
     });
   });
+  it('should be able to find specs for a local TypeScript component', (done) => {
+    l.getSource('componentloader/Repeat', (err, source) => {
+      if (err) {
+        done(err);
+        return;
+      }
+      chai.expect(source.tests).to.include('componentloader/Repeat')
+      done();
+    });
+  });
   it('should be able to load a JavaScript component from a dependency', (done) => {
     l.load('example/Forward', (err, instance) => {
       if (err) {
@@ -941,6 +951,16 @@ describe('ComponentLoader with a fixture project', () => {
       }
       chai.expect(instance.description).to.equal('Repeat stuff async');
       chai.expect(instance.icon).to.equal('forward');
+      done();
+    });
+  });
+  it('should be able to find specs for a CoffeeScript component from a dependency', (done) => {
+    l.getSource('example/RepeatAsync', (err, source) => {
+      if (err) {
+        done(err);
+        return;
+      }
+      chai.expect(source.tests).to.include('example/RepeatAsync')
       done();
     });
   });

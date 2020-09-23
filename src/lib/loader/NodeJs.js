@@ -114,6 +114,16 @@ function registerSources(loader, packageId, name, source, language) {
   };
 }
 
+function registerSpecs(loader, packageId, name, specs) {
+  if (!loader.specsForComponents) {
+    // eslint-disable-next-line no-param-reassign
+    loader.specsForComponents = {};
+  }
+  const componentName = `${packageId}/${name}`;
+  // eslint-disable-next-line no-param-reassign
+  loader.specsForComponents[componentName] = specs;
+}
+
 function transpileAndRegisterForModule(loader, module, component, source, language, callback) {
   transpileSource(module.name, component.name, source, language, (transpileError, src) => {
     if (transpileError) {
@@ -127,6 +137,7 @@ function transpileAndRegisterForModule(loader, module, component, source, langua
         return;
       }
       registerSources(loader, module.name, component.name, source, language);
+      registerSpecs(loader, module.name, component.name, component.tests);
       loader.registerComponent(module.name, component.name, implementation, callback);
     });
   });
@@ -167,33 +178,61 @@ exports.getSource = function getSource(loader, name, callback) {
     nameParts[0] = '';
   }
 
+  const finalize = (err, src) => {
+    if (err) {
+      callback(err);
+      return;
+    }
+    if (!loader.specsForComponents) {
+      callback(err, src);
+      return;
+    }
+    if (!loader.specsForComponents[componentName]) {
+      callback(err, src);
+    }
+    const specPath = loader.specsForComponents[componentName];
+    fs.readFile(path.resolve(loader.baseDir, specPath), 'utf-8', (fsErr, specs) => {
+      if (fsErr) {
+        // Ignore spec reading errors
+        callback(err, src);
+        return;
+      }
+      callback(err, {
+        ...src,
+        tests: specs,
+      });
+    });
+  };
+
   if (loader.isGraph(component)) {
     if (typeof component === 'object') {
       if (typeof component.toJSON === 'function') {
-        callback(null, {
+        finalize(null, {
           name: nameParts[1],
           library: nameParts[0],
           code: JSON.stringify(component.toJSON()),
+          tests: loader.specsForComponents ? loader.specsForComponents[componentName] : '',
           language: 'json',
         });
         return;
       }
-      callback(new Error(`Can't provide source for ${componentName}. Not a file`));
+      finalize(new Error(`Can't provide source for ${componentName}. Not a file`));
       return;
     }
     fbpGraph.graph.loadFile(component, (err, graph) => {
       if (err) {
-        callback(err);
+        finalize(err);
         return;
       }
       if (!graph) {
-        callback(new Error('Unable to load graph'));
+        finalize(new Error('Unable to load graph'));
         return;
       }
-      callback(null, {
+      finalize(null, {
         name: nameParts[1],
         library: nameParts[0],
         code: JSON.stringify(graph.toJSON()),
+        tests: loader.specsForComponents ? loader.specsForComponents[componentName] : '',
         language: 'json',
       });
     });
@@ -201,26 +240,27 @@ exports.getSource = function getSource(loader, name, callback) {
   }
 
   if (loader.sourcesForComponents && loader.sourcesForComponents[componentName]) {
-    callback(null, {
+    finalize(null, {
       name: nameParts[1],
       library: nameParts[0],
       code: loader.sourcesForComponents[componentName].source,
+      tests: loader.specsForComponents ? loader.specsForComponents[componentName] : '',
       language: loader.sourcesForComponents[componentName].language,
     });
     return;
   }
 
   if (typeof component !== 'string') {
-    callback(new Error(`Can't provide source for ${componentName}. Not a file`));
+    finalize(new Error(`Can't provide source for ${componentName}. Not a file`));
     return;
   }
 
   fs.readFile(component, 'utf-8', (err, code) => {
     if (err) {
-      callback(err);
+      finalize(err);
       return;
     }
-    callback(null, {
+    finalize(null, {
       name: nameParts[1],
       library: nameParts[0],
       language: utils.guessLanguageFromFilename(component),
@@ -287,6 +327,7 @@ function registerModules(loader, modules, callback) {
         });
         return;
       }
+      registerSpecs(loader, m.name, c.name, c.tests);
       loader.registerComponent(m.name, c.name, path.resolve(loader.baseDir, c.path), (err) => {
         if (err) {
           reject(err);

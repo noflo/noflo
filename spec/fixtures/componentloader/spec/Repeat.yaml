@@ -1,4 +1,4 @@
-topic: "componentLoader/Repeat"
+topic: "componentloader/Repeat"
 cases:
 -
   name: 'sending a boolean'
