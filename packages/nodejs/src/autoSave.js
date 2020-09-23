@@ -61,7 +61,7 @@ function saveSpec(component, rt) {
   }
   // Default assumption is that specs are in the same language as the source
   let { language } = component;
-  if (component.indexOf('topic: ') !== -1 && component.indexOf('cases:') !== -1) {
+  if (component.tests.indexOf('topic: ') !== -1 && component.tests.indexOf('cases:') !== -1) {
     // Reasonable guess is that this is an fbp-spec file.
     // Should probably try parsing YAML to be sure.
     language = 'yaml';

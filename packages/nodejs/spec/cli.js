@@ -165,19 +165,32 @@ exports.getComponent = () => {
   });
   return c;
 };`;
+      const spec = `topic: auto-save/Plusser
+cases:
+-
+  name: 'sending a boolean'
+  assertion: 'should repeat the same'
+  inputs:
+    in: true
+  expect:
+    out:
+     equals: true`;
       const componentPath = path.resolve(__dirname, './fixtures/auto-save/components/Plusser.js');
+      const specPath = path.resolve(__dirname, './fixtures/auto-save/spec/Plusser.yaml');
       let plusserFound = false;
       after('clean up file', () => {
         if (!plusserFound) {
           return Promise.resolve();
         }
-        return unlink(componentPath);
+        return unlink(componentPath)
+          .then(() => unlink(specPath));
       });
       it('should be possible to send the source code to the runtime', () => runtimeClient
         .protocol.component.source({
           name: 'Plusser',
           library: 'auto-save',
           language: 'javascript',
+          tests: spec,
           code: source,
         })
         .then(() => new Promise((resolve) => {
@@ -192,6 +205,13 @@ exports.getComponent = () => {
         .then((contents) => {
           plusserFound = true;
           expect(contents).to.eql(source);
+        }));
+      it('should have saved the fbp-spec file to the fixture folder', () => readFile(
+        specPath,
+        'utf-8',
+      )
+        .then((contents) => {
+          expect(contents).to.eql(spec);
         }));
     });
     describe('setting component sources outside of project', () => {
