@@ -26,6 +26,9 @@ function getComponentPath(component, directoryPath) {
   return new Promise((resolve, reject) => {
     let suffix;
     switch (component.language) {
+      case 'yaml':
+        suffix = 'yaml';
+        break;
       case 'coffeescript':
         suffix = 'coffee';
         break;
@@ -52,6 +55,28 @@ function fileDisplayPath(filePath, rt) {
   return path.relative(rt.options.baseDir, filePath);
 }
 
+function saveSpec(component, rt) {
+  if (!component.tests) {
+    return Promise.resolve();
+  }
+  // Default assumption is that specs are in the same language as the source
+  let { language } = component;
+  if (component.tests.indexOf('topic: ') !== -1 && component.tests.indexOf('cases:') !== -1) {
+    // Reasonable guess is that this is an fbp-spec file.
+    // Should probably try parsing YAML to be sure.
+    language = 'yaml';
+  }
+  return ensureDir('spec', rt)
+    .then((directoryPath) => getComponentPath({
+      ...component,
+      language,
+    }, directoryPath))
+    .then((filePath) => writeFile(filePath, component.tests)
+      .then(() => {
+        console.log(`Saved ${fileDisplayPath(filePath, rt)}`);
+      }));
+}
+
 function saveComponent(component, rt) {
   if (component.library !== rt.options.namespace) {
     // Skip saving components outside of project namespace
@@ -62,6 +87,7 @@ function saveComponent(component, rt) {
     .then((filePath) => writeFile(filePath, component.code)
       .then(() => {
         console.log(`Saved ${fileDisplayPath(filePath, rt)}`);
+        return saveSpec(component, rt);
       }));
 }
 
