@@ -1,3 +1,7 @@
+## noflo-nodejs 0.12.3 (23-09-2020)
+
+* Graph names are used without namespace when auto-saving
+
 ## noflo-nodejs 0.12.2 (17-09-2020)
 
 * Added auto-saving support for components written in TypeScript
