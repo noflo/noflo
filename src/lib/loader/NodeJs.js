@@ -215,7 +215,6 @@ exports.getSource = function getSource(loader, name, callback) {
           name: nameParts[1],
           library: nameParts[0],
           code: JSON.stringify(component.toJSON()),
-          tests: loader.specsForComponents ? loader.specsForComponents[componentName] : '',
           language: 'json',
         });
         return;
@@ -236,7 +235,6 @@ exports.getSource = function getSource(loader, name, callback) {
         name: nameParts[1],
         library: nameParts[0],
         code: JSON.stringify(graph.toJSON()),
-        tests: loader.specsForComponents ? loader.specsForComponents[componentName] : '',
         language: 'json',
       });
     });
@@ -248,7 +246,6 @@ exports.getSource = function getSource(loader, name, callback) {
       name: nameParts[1],
       library: nameParts[0],
       code: loader.sourcesForComponents[componentName].source,
-      tests: loader.specsForComponents ? loader.specsForComponents[componentName] : '',
       language: loader.sourcesForComponents[componentName].language,
     });
     return;
