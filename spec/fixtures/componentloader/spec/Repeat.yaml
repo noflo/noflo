@@ -1,0 +1,10 @@
+topic: "componentLoader/Repeat"
+cases:
+-
+  name: 'sending a boolean'
+  assertion: 'should repeat the same'
+  inputs:
+    in: true
+  expect:
+    out:
+     equals: true
