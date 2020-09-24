@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 1.2.4 (September 24th 2020)
+
+* ComponentLoader `getSource` now returns also component specs when available
+
 ## 1.2.3 (September 17th 2020)
 
 * TypeScript components loaded on Node.js now target modern ES6
