@@ -92,6 +92,10 @@ function saveComponent(component, rt) {
 }
 
 function saveGraph(name, graph, rt) {
+  if (graph.properties.id && graph.properties.id.indexOf('fixture.') === 0) {
+    // fbp-spec graph, should not be saved
+    return Promise.resolve();
+  }
   if (graph.properties.library && graph.properties.library !== rt.options.namespace) {
     // Skip saving graphs outside of project namespace
     return Promise.resolve();
