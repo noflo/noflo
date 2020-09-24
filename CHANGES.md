@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 1.2.6 (September 24th 2020)
+
+* Fixed an issue with `getSource` on Node.js
+
 ## 1.2.5 (September 24th 2020)
 
 * Fixed an issue with deployment automation
