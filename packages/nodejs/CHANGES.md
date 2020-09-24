@@ -1,3 +1,7 @@
+## noflo-nodejs 0.12.5 (24-09-2020)
+
+* Graphs created by fbp-spec for test execution purposes no longer get auto-saved
+
 ## noflo-nodejs 0.12.4 (23-09-2020)
 
 * Specs sent by IDE via `setSource` are no also auto-saved
