@@ -193,6 +193,7 @@ exports.getSource = function getSource(loader, name, callback) {
     }
     if (!loader.specsForComponents[componentName]) {
       callback(err, src);
+      return;
     }
     const specPath = loader.specsForComponents[componentName];
     fs.readFile(path.resolve(loader.baseDir, specPath), 'utf-8', (fsErr, specs) => {
