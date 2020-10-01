@@ -313,23 +313,29 @@ cases:
       runtimeProcess = spawn(prog, [
         '--open=false',
         `--id=${runtimeId}`,
+        '--protocol=webrtc',
         `--secret=${runtimeSecret}`,
         `--base-dir=${baseDir}`,
         `--graph=${graph}`,
       ]);
       runtimeProcess.stdout.pipe(process.stdout);
       runtimeProcess.stderr.pipe(process.stderr);
-      healthCheck(`webrtc://#${runtimeId}`, done);
+      done();
     });
-    it('should be possible to connect', () => fbpClient({
-      address: runtimeId,
-      protocol: 'websocket',
-      secret: runtimeSecret,
-    })
-      .then((c) => {
-        runtimeClient = c;
-        return c.connect();
-      }));
+    it('should be possible to connect', function () {
+      this.timeout(6000);
+      return fbpClient({
+        address: runtimeId,
+        protocol: 'webrtc',
+        secret: runtimeSecret,
+      }, {
+        connectionTimeout: 5000,
+      })
+        .then((c) => {
+          runtimeClient = c;
+          return c.connect();
+        });
+    });
     it('should have marked the graph as the main', () => {
       expect(runtimeClient.definition.graph).to.equal('graph-as-component/HelloIn');
     });
