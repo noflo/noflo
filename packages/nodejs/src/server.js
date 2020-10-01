@@ -8,7 +8,9 @@ const WebRTCRuntime = require('noflo-runtime-webrtc');
 
 exports.getUrl = (options) => {
   if (options.protocol === 'webrtc') {
-    return `wss://api.flowhub.io/#${options.id}`;
+    const signalUrl = url.parse(options.signaller);
+    signalUrl.hash = options.id;
+    return url.format(signalUrl);
   }
   let protocol = 'ws:';
   if (options.tlsKey && options.tlsCert) {
