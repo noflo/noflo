@@ -10,6 +10,10 @@ const nofloNodejs = require('../package.json');
 const permissions = require('./permissions');
 
 const config = {
+  protocol: {
+    description: 'Which protocol to use: "webrtc" or "websocket"',
+    default: 'websocket',
+  },
   id: {
     description: 'Unique identifier (UUID) for the runtime',
     env: 'NOFLO_RUNTIME_ID',

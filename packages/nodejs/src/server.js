@@ -3,7 +3,8 @@ const https = require('https');
 const url = require('url');
 const fs = require('fs');
 const querystring = require('querystring');
-const runtime = require('noflo-runtime-websocket');
+const websocket = require('noflo-runtime-websocket');
+const webrtc = require('noflo-runtime-webrtc');
 
 exports.getUrl = (options) => {
   let protocol = 'ws:';
@@ -40,6 +41,20 @@ exports.liveUrl = (options, silent = false) => {
   return url.format(liveUrl);
 };
 
+function createRuntime(options, server, runtimeOptions) {
+  switch (options.protocol) {
+    case 'webrtc': {
+      return webrtc(server, runtimeOptions);
+    }
+    case 'websocket': {
+      return websocket(server, runtimeOptions);
+    }
+    default: {
+      throw new Error(`Unknown protocol ${options.protocol}. Use "websocket" or "webrtc"`);
+    }
+  }
+}
+
 exports.create = (options) => new Promise((resolve, reject) => {
   const handleRequest = (req, res) => {
     res.writeHead(302, {
@@ -57,7 +72,7 @@ exports.create = (options) => new Promise((resolve, reject) => {
   } else {
     server = http.createServer(handleRequest);
   }
-  const rt = runtime(server, {
+  const rt = createRuntime(options, server, {
     baseDir: options.baseDir,
     captureOutput: options.captureOutput,
     catchExceptions: options.catchExceptions,
