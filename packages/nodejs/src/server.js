@@ -28,8 +28,9 @@ exports.getUrl = (options) => {
 
 exports.liveUrl = (options, silent = false) => {
   const liveUrl = url.parse(options.ide);
-  liveUrl.pathname = '/';
-  if (options.protocol === 'websocket' && (!options.tlsKey || !options.tlsCert) && liveUrl.protocol === 'https:') {
+  const rtUrl = url.parse(exports.getUrl(options));
+  liveUrl.pathname = liveUrl.pathname || '/';
+  if (rtUrl.protocol === 'ws:' && liveUrl.protocol === 'https:') {
     if (!silent) {
       console.log('Browsers will reject connections from HTTPS pages to unsecured WebSockets');
       console.log('You can use insecure version of the IDE, or enable secure WebSockets with --tls-key and --tls-cert options');
@@ -38,7 +39,7 @@ exports.liveUrl = (options, silent = false) => {
   }
   const query = [
     `protocol=${options.protocol}`,
-    `address=${exports.getUrl(options)}`,
+    `address=${url.format(rtUrl)}`,
     `id=${options.id}`,
     `secret=${options.secret}`,
   ].join('&');
