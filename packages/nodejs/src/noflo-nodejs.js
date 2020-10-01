@@ -17,7 +17,11 @@ exports.main = () => {
           return;
         }
         setTimeout(() => {
-          console.log(`NoFlo runtime is now listening at ${server.getUrl(options)}`);
+          if (options.protocol === 'webrtc') {
+            console.log(`NoFlo runtime is now listening at WebRTC channel #${options.id}`);
+          } else {
+            console.log(`NoFlo runtime is now listening at ${server.getUrl(options)}`);
+          }
           if (options.secret) {
             console.log(`Live IDE URL: ${server.liveUrl(options)}`);
           }

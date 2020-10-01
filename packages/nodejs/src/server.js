@@ -4,9 +4,12 @@ const url = require('url');
 const fs = require('fs');
 const querystring = require('querystring');
 const websocket = require('noflo-runtime-websocket');
-const webrtc = require('noflo-runtime-webrtc');
+const WebRTCRuntime = require('noflo-runtime-webrtc');
 
 exports.getUrl = (options) => {
+  if (options.protocol === 'webrtc') {
+    return `wss://api.flowhub.io/#${options.id}`;
+  }
   let protocol = 'ws:';
   if (options.tlsKey && options.tlsCert) {
     protocol = 'wss:';
@@ -32,7 +35,7 @@ exports.liveUrl = (options, silent = false) => {
     liveUrl.protocol = 'http:';
   }
   const query = [
-    'protocol=websocket',
+    `protocol=${options.protocol}`,
     `address=${exports.getUrl(options)}`,
     `id=${options.id}`,
     `secret=${options.secret}`,
@@ -44,7 +47,7 @@ exports.liveUrl = (options, silent = false) => {
 function createRuntime(options, server, runtimeOptions) {
   switch (options.protocol) {
     case 'webrtc': {
-      return webrtc(server, runtimeOptions);
+      return new WebRTCRuntime(exports.getUrl(options), runtimeOptions);
     }
     case 'websocket': {
       return websocket(server, runtimeOptions);
