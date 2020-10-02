@@ -1,6 +1,7 @@
 const { exec, spawn } = require('child_process');
 const { expect } = require('chai');
 const { promisify } = require('util');
+const { v4: uuid } = require('uuid');
 const path = require('path');
 const fs = require('fs');
 const fbpHealthCheck = require('fbp-protocol-healthcheck');
@@ -300,6 +301,55 @@ cases:
           const graphJson = JSON.parse(contents);
           expect(graphJson).to.eql(JSON.parse(JSON.stringify(graphInstance.toJSON())));
         }));
+    });
+  });
+  describe('--protocol=webrtc', () => {
+    const baseDir = path.resolve(__dirname, './fixtures/graph-as-component');
+    const graph = path.resolve(baseDir, './graphs/helloin.fbp');
+    let runtimeProcess;
+    let runtimeClient;
+    const runtimeId = uuid();
+    before('start runtime', (done) => {
+      runtimeProcess = spawn(prog, [
+        '--open=false',
+        `--id=${runtimeId}`,
+        '--protocol=webrtc',
+        `--secret=${runtimeSecret}`,
+        `--base-dir=${baseDir}`,
+        `--graph=${graph}`,
+      ]);
+      runtimeProcess.stdout.pipe(process.stdout);
+      runtimeProcess.stderr.pipe(process.stderr);
+      done();
+    });
+    it('should be possible to connect', function () {
+      this.timeout(6000);
+      return fbpClient({
+        address: runtimeId,
+        protocol: 'webrtc',
+        secret: runtimeSecret,
+      }, {
+        connectionTimeout: 5000,
+      })
+        .then((c) => {
+          runtimeClient = c;
+          return c.connect();
+        });
+    });
+    it('should have marked the graph as the main', () => {
+      expect(runtimeClient.definition.graph).to.equal('graph-as-component/HelloIn');
+    });
+    it('should be possible to get graph sources', () => runtimeClient
+      .protocol.component.getsource({
+        name: 'graph-as-component/HelloIn',
+      }));
+    after('stop runtime', (done) => {
+      if (!runtimeProcess) {
+        done();
+        return;
+      }
+      process.kill(runtimeProcess.pid);
+      done();
     });
   });
 });

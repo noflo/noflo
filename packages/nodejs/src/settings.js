@@ -10,6 +10,10 @@ const nofloNodejs = require('../package.json');
 const permissions = require('./permissions');
 
 const config = {
+  protocol: {
+    description: 'Which protocol to use: "webrtc" or "websocket"',
+    default: 'websocket',
+  },
   id: {
     description: 'Unique identifier (UUID) for the runtime',
     env: 'NOFLO_RUNTIME_ID',
@@ -90,10 +94,6 @@ const config = {
     boolean: true,
     description: 'Record flowtrace from graph execution',
   },
-  ide: {
-    description: 'URL for the FBP protocol client',
-    default: 'https://app.flowhub.io',
-  },
   open: {
     boolean: true,
     description: 'Open the runtime in IDE in user\'s default browser',
@@ -105,19 +105,23 @@ const config = {
     description: 'Advertise runtime via mDNS',
     default: true,
   },
-  registryPing: {
-    cli: 'registry-ping',
-    description: 'How often to ping the runtime registry',
-    convert: (val) => parseInt(val, 10),
-    default: 10 * 60 * 1000,
+  ide: {
+    description: 'URL for the FBP protocol client',
+    default: 'https://app.flowhub.io',
+  },
+  signaller: {
+    description: 'URL for the WebRTC signalling server',
+    default: 'wss://api.flowhub.io',
   },
   registry: {
     description: 'URL for the runtime registry',
     default: 'https://api.flowhub.io',
   },
-  register: {
-    boolean: true,
-    description: 'Deprecated: Register runtime to runtime registry',
+  registryPing: {
+    cli: 'registry-ping',
+    description: 'How often to ping the runtime registry',
+    convert: (val) => parseInt(val, 10),
+    default: 10 * 60 * 1000,
   },
   autoSave: {
     cli: 'auto-save',

@@ -3,9 +3,15 @@ const https = require('https');
 const url = require('url');
 const fs = require('fs');
 const querystring = require('querystring');
-const runtime = require('noflo-runtime-websocket');
+const websocket = require('noflo-runtime-websocket');
+const WebRTCRuntime = require('noflo-runtime-webrtc');
 
 exports.getUrl = (options) => {
+  if (options.protocol === 'webrtc') {
+    const signalUrl = url.parse(options.signaller);
+    signalUrl.hash = options.id;
+    return url.format(signalUrl);
+  }
   let protocol = 'ws:';
   if (options.tlsKey && options.tlsCert) {
     protocol = 'wss:';
@@ -22,8 +28,9 @@ exports.getUrl = (options) => {
 
 exports.liveUrl = (options, silent = false) => {
   const liveUrl = url.parse(options.ide);
-  liveUrl.pathname = '/';
-  if ((!options.tlsKey || !options.tlsCert) && liveUrl.protocol === 'https:') {
+  const rtUrl = url.parse(exports.getUrl(options));
+  liveUrl.pathname = liveUrl.pathname || '/';
+  if (rtUrl.protocol === 'ws:' && liveUrl.protocol === 'https:') {
     if (!silent) {
       console.log('Browsers will reject connections from HTTPS pages to unsecured WebSockets');
       console.log('You can use insecure version of the IDE, or enable secure WebSockets with --tls-key and --tls-cert options');
@@ -31,14 +38,28 @@ exports.liveUrl = (options, silent = false) => {
     liveUrl.protocol = 'http:';
   }
   const query = [
-    'protocol=websocket',
-    `address=${exports.getUrl(options)}`,
+    `protocol=${options.protocol}`,
+    `address=${url.format(rtUrl)}`,
     `id=${options.id}`,
     `secret=${options.secret}`,
   ].join('&');
   liveUrl.hash = `#runtime/endpoint?${querystring.escape(query)}`;
   return url.format(liveUrl);
 };
+
+function createRuntime(options, server, runtimeOptions) {
+  switch (options.protocol) {
+    case 'webrtc': {
+      return new WebRTCRuntime(exports.getUrl(options), runtimeOptions);
+    }
+    case 'websocket': {
+      return websocket(server, runtimeOptions);
+    }
+    default: {
+      throw new Error(`Unknown protocol ${options.protocol}. Use "websocket" or "webrtc"`);
+    }
+  }
+}
 
 exports.create = (options) => new Promise((resolve, reject) => {
   const handleRequest = (req, res) => {
@@ -57,7 +78,7 @@ exports.create = (options) => new Promise((resolve, reject) => {
   } else {
     server = http.createServer(handleRequest);
   }
-  const rt = runtime(server, {
+  const rt = createRuntime(options, server, {
     baseDir: options.baseDir,
     captureOutput: options.captureOutput,
     catchExceptions: options.catchExceptions,
