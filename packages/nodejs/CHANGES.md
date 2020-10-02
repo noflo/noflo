@@ -1,3 +1,7 @@
+## noflo-nodejs 0.13.0 (02-10-2020)
+
+* Added support for WebRTC protocol as an alternative to WebSockets
+
 ## noflo-nodejs 0.12.5 (24-09-2020)
 
 * Graphs created by fbp-spec for test execution purposes no longer get auto-saved
