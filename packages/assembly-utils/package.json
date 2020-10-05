@@ -30,6 +30,6 @@
     "eslint-config-airbnb-base": "^14.2.0",
     "eslint-plugin-import": "^2.22.0",
     "fbp-spec": "^0.6.8",
-    "noflo-nodejs": "^0.12.1"
+    "noflo-nodejs": "^0.13.0"
   }
 }
