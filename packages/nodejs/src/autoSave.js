@@ -1,6 +1,7 @@
 const { promisify } = require('util');
 const path = require('path');
 const fs = require('fs');
+const debounce = require('debounce-promise');
 
 const stat = promisify(fs.stat);
 const mkdir = promisify(fs.mkdir);
@@ -114,6 +115,9 @@ function saveGraph(name, graph, rt) {
     });
 }
 
+const saveComponentDebounced = debounce(saveComponent, 100);
+const saveGraphDebounced = debounce(saveGraph, 100);
+
 exports.subscribe = (rt) => {
   if (typeof rt.component.on !== 'function' || typeof rt.graph.on !== 'function') {
     console.log('Skipping auto-save due to noflo-runtime-base being too old');
@@ -121,14 +125,14 @@ exports.subscribe = (rt) => {
   }
 
   rt.component.on('updated', (component) => {
-    saveComponent(component, rt)
+    saveComponentDebounced(component, rt)
       .catch((e) => {
         console.error(e);
         process.exit(1);
       });
   });
   rt.graph.on('updated', ({ name, graph }) => {
-    saveGraph(name, graph, rt)
+    saveGraphDebounced(name, graph, rt)
       .catch((e) => {
         console.error(e);
         process.exit(1);
