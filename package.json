@@ -40,7 +40,7 @@
     "nyc": "^15.1.0",
     "typescript": "^4.0.2",
     "webpack": "^4.44.1",
-    "webpack-cli": "^3.3.12"
+    "webpack-cli": "^4.0.0"
   },
   "main": "./lib/NoFlo",
   "bin": {
