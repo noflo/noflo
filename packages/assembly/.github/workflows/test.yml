@@ -26,7 +26,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-    - uses: ridedott/merge-me-action@v1.7.5
+    - uses: ridedott/merge-me-action@v1.7.8
       with:
         GITHUB_LOGIN: 'dependabot[bot]'
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
