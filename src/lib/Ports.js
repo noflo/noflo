@@ -66,12 +66,12 @@ exports.InPorts = class InPorts extends Ports {
 
   on(name, event, callback) {
     if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
-    this.ports[name].on(event, callback);
+    return this.ports[name].on(event, callback);
   }
 
   once(name, event, callback) {
     if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
-    this.ports[name].once(event, callback);
+    return this.ports[name].once(event, callback);
   }
 };
 

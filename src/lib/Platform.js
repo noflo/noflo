@@ -21,7 +21,6 @@ exports.isBrowser = function isBrowser() {
 // env var.
 exports.deprecated = function deprecated(message) {
   if (exports.isBrowser()) {
-    if (window.NOFLO_FATAL_DEPRECATED) { throw new Error(message); }
     console.warn(message);
     return;
   }

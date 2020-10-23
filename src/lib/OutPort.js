@@ -8,10 +8,26 @@ const IP = require('./IP');
 //
 // Outport Port (outport) implementation for NoFlo components.
 // These ports are the way a component sends Information Packets.
+/**
+ * @typedef {Object} OutportOptions - Options for configuring outports
+ * @property {string} [description='']
+ * @property {string} [datatype='all']
+ * @property {string} [schema=null]
+ * @property {boolean} [required=false]
+ * @property {boolean} [caching=false]
+ * @property {boolean} [scoped=true]
+ */
+
 module.exports = class OutPort extends BasePort {
+  /**
+   * @param {OutportOptions} options - Options for the outport
+   */
   constructor(options = {}) {
     const opts = options;
     if (opts.scoped == null) { opts.scoped = true; }
+    if (typeof opts.caching !== 'boolean') {
+      opts.caching = false;
+    }
     super(opts);
     this.cache = {};
   }
@@ -140,7 +156,9 @@ module.exports = class OutPort extends BasePort {
   }
 
   isCaching() {
-    if (this.options.caching) { return true; }
+    if (this.options.caching) {
+      return true;
+    }
     return false;
   }
 };

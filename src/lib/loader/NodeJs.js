@@ -86,8 +86,10 @@ function evaluateModule(baseDir, packageId, name, source, callback) {
     // Use the Node.js module API to evaluate in the correct directory context
     const modulePath = path.resolve(baseDir, `./components/${name}.js`);
     const moduleImpl = new Module(modulePath, module);
+    // @ts-ignore
     moduleImpl.paths = Module._nodeModulePaths(path.dirname(modulePath));
     moduleImpl.filename = modulePath;
+    // @ts-ignore
     moduleImpl._compile(source, modulePath);
     implementation = moduleImpl.exports;
   } catch (e) {

@@ -121,8 +121,10 @@ class BaseNetwork extends EventEmitter {
   // The uptime of the network is the current time minus the start-up
   // time, in seconds.
   uptime() {
-    if (!this.startupDate) { return 0; }
-    return new Date() - this.startupDate;
+    if (!this.startupDate) {
+      return 0;
+    }
+    return Date.now() - this.startupDate.getTime();
   }
 
   getActiveProcesses() {
@@ -309,7 +311,8 @@ class BaseNetwork extends EventEmitter {
     return this.processes[id];
   }
 
-  connect(done = () => {}) {
+  // eslint-disable-next-line no-unused-vars
+  connect(done = (err) => {}) {
     // Wrap the future which will be called when done in a function and return
     // it
     let callStack = 0;
@@ -688,7 +691,8 @@ class BaseNetwork extends EventEmitter {
     return this.getActiveProcesses().length > 0;
   }
 
-  startComponents(callback = () => {}) {
+  // eslint-disable-next-line no-unused-vars
+  startComponents(callback = (err) => {}) {
     // Emit start event when all processes are started
     let count = 0;
     const length = this.processes ? Object.keys(this.processes).length : 0;
@@ -857,7 +861,9 @@ class BaseNetwork extends EventEmitter {
     }
 
     // Starting the execution
-    if (!this.startupDate) { this.startupDate = new Date(); }
+    if (!this.startupDate) {
+      this.startupDate = new Date();
+    }
     this.started = true;
     this.stopped = false;
     this.bufferedEmit('start',

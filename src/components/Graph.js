@@ -33,7 +33,7 @@ class Graph extends noflo.Component {
     });
     this.outPorts = new noflo.OutPorts();
 
-    this.inPorts.graph.on('ip', (packet) => {
+    this.inPorts.ports.graph.on('ip', (packet) => {
       if (packet.type !== 'data') { return; }
       this.setGraph(packet.data, (err) => {
         // TODO: Port this part to Process API and use output.error method instead
@@ -123,14 +123,14 @@ class Graph extends noflo.Component {
     });
   }
 
-  subscribeNetwork() {
+  subscribeNetwork(network) {
     const contexts = [];
-    this.network.on('start', () => {
+    network.on('start', () => {
       const ctx = {};
       contexts.push(ctx);
-      return this.activate(ctx);
+      this.activate(ctx);
     });
-    return this.network.on('end', () => {
+    network.on('end', () => {
       const ctx = contexts.pop();
       if (!ctx) { return; }
       this.deactivate(ctx);

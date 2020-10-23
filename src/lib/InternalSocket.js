@@ -85,6 +85,8 @@ class InternalSocket extends EventEmitter {
     this.dataDelegate = null;
     this.debug = false;
     this.emitEvent = this.regularEmitEvent;
+    this.from = null;
+    this.to = null;
   }
 
   // ## Socket connections
@@ -290,4 +292,4 @@ class InternalSocket extends EventEmitter {
 
 exports.InternalSocket = InternalSocket;
 
-exports.createSocket = () => new InternalSocket();
+exports.createSocket = (metadata = {}) => new InternalSocket(metadata);
