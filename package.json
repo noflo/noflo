@@ -25,6 +25,7 @@
     "@babel/cli": "^7.10.5",
     "@babel/core": "^7.11.1",
     "@babel/preset-env": "^7.11.0",
+    "@types/node": "^14.14.2",
     "chai": "^4.0.0",
     "coveralls": "^3.0.0",
     "eslint": "^7.7.0",
@@ -57,7 +58,9 @@
     "url": "git://github.com/noflo/noflo.git"
   },
   "scripts": {
-    "pretest": "eslint src",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "pretest": "npm run lint && npm run typecheck",
     "test:node": "nyc mocha --require spec/utils/inject.js spec",
     "test:browser": "karma start karma.config.js",
     "test": "npm run test:node && npm run test:browser",
