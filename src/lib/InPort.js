@@ -24,6 +24,8 @@ module.exports = class InPort extends BasePort {
 
     super(opts);
 
+    this.nodeInstance = null;
+
     this.prepareBuffer();
   }
 

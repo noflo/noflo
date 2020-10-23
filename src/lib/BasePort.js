@@ -24,7 +24,22 @@ const validTypes = [
   'stream',
 ];
 
-function handleOptions(options = {}) {
+/**
+ * @typedef {Object} BaseOptions - Options for configuring all types of ports
+ * @property {string} [description='']
+ * @property {string} [datatype='all']
+ * @property {string} [schema=null]
+ * @property {string} [type=null]
+ * @property {boolean} [required=false]
+ * @property {boolean} [scoped=true]
+ */
+
+/**
+ * @template {BaseOptions} BaseportOptions
+ * @param {BaseportOptions} options
+ * @return {BaseportOptions}
+ */
+function handleOptions(options) {
   // We default to the `all` type if no explicit datatype
   // was provided
   let datatype = options.datatype || 'all';
@@ -46,11 +61,19 @@ function handleOptions(options = {}) {
     throw new Error(`Invalid port schema '${schema}' specified. Should be URL or MIME type`);
   }
 
+  // Scoping
+  const scoped = (typeof options.scoped === 'boolean') ? options.scoped : true;
+
+  // Description
+  const description = options.description || '';
+
   /* eslint-disable prefer-object-spread */
   return Object.assign({}, options, {
+    description,
     datatype,
     required,
     schema,
+    scoped,
   });
 }
 
@@ -95,8 +118,8 @@ module.exports = class BasePort extends EventEmitter {
     this.emit('attach', socket);
   }
 
-  /* eslint-disable class-methods-use-this */
-  attachSocket() { }
+  // eslint-disable-next-line class-methods-use-this,no-unused-vars
+  attachSocket(socket, index = null) { }
 
   detach(socket) {
     const index = this.sockets.indexOf(socket);

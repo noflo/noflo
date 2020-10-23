@@ -27,7 +27,8 @@ class LegacyNetwork extends BaseNetwork {
     super(graph, options);
   }
 
-  connect(done = () => {}) {
+  // eslint-disable-next-line no-unused-vars
+  connect(done = (err) => {}) {
     super.connect((err) => {
       if (err) {
         done(err);

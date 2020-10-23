@@ -92,7 +92,7 @@ function debounce(func, wait, immediate) {
   let result;
 
   function later() {
-    const last = Date.now - timestamp;
+    const last = Date.now() - timestamp;
     if ((last < wait) && (last >= 0)) {
       timeout = setTimeout(later, wait - last);
     } else {
@@ -110,7 +110,7 @@ function debounce(func, wait, immediate) {
   return function after() {
     context = this;
     args = arguments;
-    timestamp = Date.now;
+    timestamp = Date.now();
     const callNow = immediate && !timeout;
     if (!timeout) {
       timeout = setTimeout(later, wait);

@@ -48,8 +48,8 @@ class Component extends EventEmitter {
     }
 
     // Set the default component icon and description
-    this.icon = opts.icon ? opts.icon : this.constructor.icon;
-    this.description = opts.description ? opts.description : this.constructor.description;
+    this.icon = opts.icon ? opts.icon : '';
+    this.description = opts.description ? opts.description : '';
 
     // Initially the component is not started
     this.started = false;
@@ -75,10 +75,10 @@ class Component extends EventEmitter {
 
     // Bracket forwarding rules. By default we forward
     // brackets from `in` port to `out` and `error` ports.
-    this.forwardBrackets = { in: ['out', 'error'] };
-    if ('forwardBrackets' in opts) {
-      this.forwardBrackets = opts.forwardBrackets;
+    if (!opts.forwardBrackets) {
+      opts.forwardBrackets = { in: ['out', 'error'] };
     }
+    this.forwardBrackets = opts.forwardBrackets;
 
     // The component's process function can either be
     // passed in opts, or given imperatively after
@@ -86,6 +86,10 @@ class Component extends EventEmitter {
     if (typeof opts.process === 'function') {
       this.process(opts.process);
     }
+
+    // Placeholder for the ID of the current node, populated
+    // by NoFlo network
+    this.nodeId = null;
   }
 
   getDescription() { return this.description; }
