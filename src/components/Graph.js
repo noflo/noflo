@@ -60,7 +60,7 @@ class Graph extends noflo.Component {
           callback(err);
           return;
         }
-        inst.baseDir = this.baseDir;
+        inst.properties.baseDir = this.baseDir;
         this.createNetwork(inst, callback);
       });
       return;
@@ -78,7 +78,7 @@ class Graph extends noflo.Component {
         callback(err);
         return;
       }
-      inst.baseDir = this.baseDir;
+      inst.properties.baseDir = this.baseDir;
       this.createNetwork(inst, callback);
     });
   }

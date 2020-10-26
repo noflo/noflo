@@ -99,7 +99,7 @@ function prepareNetwork(component, options, callback) {
       graph.addOutport(port, nodeName, port);
     });
     // Prepare network
-    graph.componentLoader = options.loader;
+    graph.properties.componentLoader = options.loader;
     network = new Network(graph, options);
     // Wire the network up and start execution
     network.connect((err2) => {
