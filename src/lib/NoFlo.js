@@ -217,7 +217,9 @@ exports.loadFile = function loadFile(file, options, callback) {
       callback(err);
       return;
     }
-    if (options.baseDir) { net.baseDir = options.baseDir; }
+    if (options.baseDir) {
+      net.properties.baseDir = options.baseDir;
+    }
     exports.createNetwork(net, options, callback);
   });
 };

@@ -17,7 +17,7 @@
     "coffeescript": "^2.2.1",
     "debug": "^4.0.1",
     "fbp": "^1.5.0",
-    "fbp-graph": "^0.4.0",
+    "fbp-graph": "^0.6.1",
     "fbp-manifest": "^0.2.5",
     "get-function-params": "^2.0.6"
   },

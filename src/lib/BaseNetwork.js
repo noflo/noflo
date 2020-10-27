@@ -98,11 +98,11 @@ class BaseNetwork extends EventEmitter {
     // On Node.js we default the baseDir for component loading to
     // the current working directory
     if (!platform.isBrowser()) {
-      this.baseDir = graph.baseDir || process.cwd();
+      this.baseDir = graph.properties.baseDir || process.cwd();
     // On browser we default the baseDir to the Component loading
     // root
     } else {
-      this.baseDir = graph.baseDir || '/';
+      this.baseDir = graph.properties.baseDir || '/';
     }
 
     // As most NoFlo networks are long-running processes, the
@@ -111,8 +111,8 @@ class BaseNetwork extends EventEmitter {
     this.startupDate = null;
 
     // Initialize a Component Loader for the network
-    if (graph.componentLoader) {
-      this.loader = graph.componentLoader;
+    if (graph.properties.componentLoader) {
+      this.loader = graph.properties.componentLoader;
     } else {
       this.loader = new componentLoader.ComponentLoader(this.baseDir, this.options);
     }
