@@ -43,7 +43,7 @@ describe('NoFlo Legacy Network', () => {
     let n = null;
     before((done) => {
       g = new noflo.Graph();
-      g.baseDir = baseDir;
+      g.properties.baseDir = baseDir;
       n = new noflo.Network(g);
       n.connect(done);
     });
@@ -66,13 +66,13 @@ describe('NoFlo Legacy Network', () => {
       chai.expect(n.graph).to.equal(g);
     });
     it('should know its baseDir', () => {
-      chai.expect(n.baseDir).to.equal(g.baseDir);
+      chai.expect(n.baseDir).to.equal(g.properties.baseDir);
     });
     it('should have a ComponentLoader', () => {
       chai.expect(n.loader).to.be.an('object');
     });
     it('should have transmitted the baseDir to the Component Loader', () => {
-      chai.expect(n.loader.baseDir).to.equal(g.baseDir);
+      chai.expect(n.loader.baseDir).to.equal(g.properties.baseDir);
     });
     it('should be able to list components', function (done) {
       this.timeout(60 * 1000);
@@ -188,7 +188,7 @@ describe('NoFlo Legacy Network', () => {
     before(function (done) {
       this.timeout(60 * 1000);
       g = new noflo.Graph();
-      g.baseDir = baseDir;
+      g.properties.baseDir = baseDir;
       g.addNode('Merge', 'Merge');
       g.addNode('Callback', 'Callback');
       g.addEdge('Merge', 'out', 'Callback', 'in');
@@ -381,7 +381,7 @@ describe('NoFlo Legacy Network', () => {
         testCallback(input.getData('in'));
       });
       g = new noflo.Graph();
-      g.baseDir = baseDir;
+      g.properties.baseDir = baseDir;
       g.addNode('Def', 'Def');
       g.addNode('Cb', 'Cb');
       g.addEdge('Def', 'out', 'Cb', 'in');
@@ -479,7 +479,7 @@ describe('NoFlo Legacy Network', () => {
     let n = null;
     before(() => {
       g = new noflo.Graph();
-      g.baseDir = baseDir;
+      g.properties.baseDir = baseDir;
       g.addNode('Callback', 'Callback');
       g.addNode('Repeat', 'Split');
       g.addEdge('Repeat', 'out', 'Callback', 'in');
@@ -574,7 +574,7 @@ describe('NoFlo Legacy Network', () => {
       let n;
       this.timeout(100000);
       const g = new noflo.Graph();
-      g.baseDir = baseDir;
+      g.properties.baseDir = baseDir;
       let called = 0;
       for (n = 0; n <= 10000; n++) {
         g.addNode(`Repeat${n}`, 'Split');
@@ -755,7 +755,7 @@ describe('NoFlo Legacy Network', () => {
   describe('baseDir setting', () => {
     it('should set baseDir based on given graph', () => {
       const g = new noflo.Graph();
-      g.baseDir = baseDir;
+      g.properties.baseDir = baseDir;
       const n = new noflo.Network(g);
       chai.expect(n.baseDir).to.equal(baseDir);
     });
@@ -770,7 +770,7 @@ describe('NoFlo Legacy Network', () => {
     });
     it('should set the baseDir for the component loader', () => {
       const g = new noflo.Graph();
-      g.baseDir = baseDir;
+      g.properties.baseDir = baseDir;
       const n = new noflo.Network(g);
       chai.expect(n.baseDir).to.equal(baseDir);
       chai.expect(n.loader.baseDir).to.equal(baseDir);
@@ -781,7 +781,7 @@ describe('NoFlo Legacy Network', () => {
     let g = null;
     before((done) => {
       g = new noflo.Graph();
-      g.baseDir = baseDir;
+      g.properties.baseDir = baseDir;
       n = new noflo.Network(g);
       n.loader.listComponents((err) => {
         if (err) {
