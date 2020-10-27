@@ -335,7 +335,7 @@ describe('NoFlo Legacy Network', () => {
           }
           cb = done;
           // Pass the already-initialized component loader
-          graph.componentLoader = n.loader;
+          graph.properties.componentLoader = n.loader;
           graph.addInitial((data) => {
             chai.expect(data).to.equal('Foo');
             cb();

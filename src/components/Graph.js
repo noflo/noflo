@@ -89,7 +89,7 @@ class Graph extends noflo.Component {
 
     const graphObj = graph;
     if (!graphObj.name) { graphObj.name = this.nodeId; }
-    graphObj.componentLoader = this.loader;
+    graphObj.properties.componentLoader = this.loader;
 
     noflo.createNetwork(graphObj, {
       delay: true,

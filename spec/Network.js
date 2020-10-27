@@ -461,7 +461,7 @@ describe('NoFlo Network', () => {
             return;
           }
           // Pass the already-initialized component loader
-          graph.componentLoader = n.loader;
+          graph.properties.componentLoader = n.loader;
           graph.addInitial((data) => {
             chai.expect(data).to.equal('Foo');
             done();
