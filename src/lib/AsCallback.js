@@ -181,6 +181,10 @@ function runNetwork(network, inputs, options, callback) {
         const value = inputMap[port];
         if (!inSockets[port]) {
           const portDef = network.graph.inports[port];
+          if (!portDef) {
+            callback(new Error(`Port ${port} not available in the graph`));
+            return;
+          }
           const process = network.getNode(portDef.process);
           inSockets[port] = internalSocket.createSocket();
           process.component.inPorts[portDef.port].attach(inSockets[port]);
@@ -204,7 +208,7 @@ function runNetwork(network, inputs, options, callback) {
 
 function getType(inputs, network) {
   // Scalar values are always simple inputs
-  if (typeof inputs !== 'object') { return 'simple'; }
+  if (typeof inputs !== 'object' || !inputs) { return 'simple'; }
 
   if (Array.isArray(inputs)) {
     const maps = inputs.filter((entry) => getType(entry, network) === 'map');
@@ -229,6 +233,8 @@ function prepareInputMap(inputs, inputType, network) {
   if (inputType === 'sequence') { return inputs; }
   // We can turn a map to a sequence by wrapping it in an array
   if (inputType === 'map') { return [inputs]; }
+  // Falsy inputs need to be an empty object
+  if (inputType === 'simple' && !inputs) { return {}; }
   // Simple inputs need to be converted to a sequence
   let inPort = Object.keys(network.graph.inports)[0];
   // If we have a port named "IN", send to that
