@@ -25,21 +25,14 @@ NoFlo is not a web framework or a UI toolkit. It is a way to coordinate and reor
 
 NoFlo itself is just a library for implementing flow-based programs in JavaScript. There is an ecosystem of tools around NoFlo and the [fbp protocol](https://flowbased.github.io/fbp-protocol/) that make it more powerful. Here are some of them:
 
-* [Flowhub](https://flowhub.io) -- browser-based visual programming **IDE** for NoFlo and other flow-based systems
+* [Flowhub](https://app.flowhub.io) -- browser-based visual programming **IDE** for NoFlo and other flow-based systems
 * [noflo-nodejs](https://github.com/noflo/noflo-nodejs) -- command-line interface for running NoFlo programs on **Node.js**
-* [MsgFlo](https://msgflo.org) -- for running NoFlo and other FBP runtimes as a **distributed system**
+* [noflo-browser-app](https://github.com/noflo/noflo-browser-app) -- template for building NoFlo programs for **the web**
+* [noflo-assembly](https://github.com/noflo/noflo-assembly) -- **industrial approach** for designing NoFlo programs
 * [fbp-spec](https://github.com/flowbased/fbp-spec) -- **data-driven tests** for NoFlo and other FBP environments
 * [flowtrace](https://github.com/flowbased/flowtrace) -- tool for **retroactive debugging** of NoFlo programs. Supports visual replay with Flowhub
 
 See also the [list of reusable NoFlo modules on NPM](https://www.npmjs.com/browse/keyword/noflo).
-
-## Support
-[![Flowhub logo](https://flowhub.io/assets/banner-github.png)](https://flowhub.io)
-
-NoFlo is a part of [Flowhub](https://flowhub.io), a platform for building robust [IoT systems](https://flowhub.io/iot) and web services.<br>
-We offer an [Integrated Development Environment](https://app.flowhub.io) and [consulting services](https://flowhub.io/consulting).
-
-By [subscribing to Flowhub](https://plans.flowhub.io) you directly support NoFlo development, and help us all get to the future of programming faster.
 
 ## Requirements and installing
 
