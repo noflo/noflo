@@ -233,10 +233,11 @@ function prepareInputMap(inputs, inputType, network) {
   if (inputType === 'sequence') { return inputs; }
   // We can turn a map to a sequence by wrapping it in an array
   if (inputType === 'map') { return [inputs]; }
-  // Falsy inputs need to be an empty object
-  if (inputType === 'simple' && !inputs) { return {}; }
   // Simple inputs need to be converted to a sequence
   let inPort = Object.keys(network.graph.inports)[0];
+  if (!inPort) {
+    return {};
+  }
   // If we have a port named "IN", send to that
   if (network.graph.inports.in) { inPort = 'in'; }
   const map = {};
