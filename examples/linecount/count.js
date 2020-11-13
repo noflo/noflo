@@ -1,7 +1,7 @@
 // Flow-based example of counting lines of a file, roughly equivalent to
 // "wc -l <filename>"
 
-const noflo = require("noflo");
+const noflo = require("../../lib/NoFlo");
 
 if (!process.argv[2]) {
   console.error("You must provide a filename");
@@ -11,20 +11,24 @@ if (!process.argv[2]) {
 const fileName = process.argv[2];
 
 const graph = noflo.graph.createGraph("linecount");
-graph.addNode("Read File", "ReadFile");
-graph.addNode("Split by Lines", "SplitStr");
-graph.addNode("Count Lines", "Counter");
-graph.addNode("Display", "Output");
+graph.addNode("Read File", "filesystem/ReadFile");
+graph.addNode("Split by Lines", "strings/SplitStr");
+graph.addNode("Count Lines", "packets/Counter");
+graph.addNode("Display", "core/Output");
 
 graph.addEdge("Read File", "out", "Split by Lines", "in");
 //graph.addEdge "Read File", "error", "Display", "in"
 graph.addEdge("Split by Lines", "out", "Count Lines", "in");
 graph.addEdge("Count Lines", "count", "Display", "in");
+// Specify encoding
+graph.addInitial("utf-8", "Read File", "encoding");
 
 // Kick the process off by sending filename to fileReader
 graph.addInitial(fileName, "Read File", "in");
 
-noflo.createNetwork(graph, (err) => {
+noflo.createNetwork(graph, {
+  subscribeGraph: false,
+}, (err) => {
   if (err) {
     console.error(err);
     process.exit(1);

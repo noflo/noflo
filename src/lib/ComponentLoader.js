@@ -88,6 +88,10 @@ class ComponentLoader extends EventEmitter {
   // be loaded as an instance of the NoFlo subgraph
   // component.
   load(name, callback, metadata) {
+    if (!name) {
+      callback(new Error('No component name provided'));
+      return;
+    }
     if (!this.ready) {
       this.listComponents((err) => {
         if (err) {
