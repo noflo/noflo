@@ -1,6 +1,11 @@
 NoFlo ChangeLog
 ===============
 
+## 1.2.7 (November 13th 2020)
+
+* Added safeties against trying to load a falsy graph in `asCallback`
+* Added safeties against trying to load unnamed components
+
 ## 1.2.6 (September 24th 2020)
 
 * Fixed an issue with `getSource` on Node.js
