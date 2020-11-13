@@ -1,11 +1,12 @@
 # Read a file
-'package.json' -> IN Read(ReadFile)
+'utf-8' -> ENCODING Read(filesystem/ReadFile)
+'package.json' -> IN Read()
 # Split the file contents by newlines
-Read() OUT -> IN Split(SplitStr)
+Read() OUT -> IN Split(strings/SplitStr)
 # Count the packets
-Split() OUT -> IN Count(Counter)
+Split() OUT -> IN Count(packets/Counter)
 # Send the total count to display
-Count() COUNT -> IN Display(Output)
+Count() COUNT -> IN Display(core/Output)
 
 # Display also file read errors
 Read() ERROR -> IN Display()

@@ -1,92 +1,76 @@
 {
-    "properties": {
-        "name": "Count lines in a file"
+  "inports": {},
+  "outports": {},
+  "groups": [],
+  "processes": {
+    "Read": {
+      "component": "filesystem/ReadFile"
     },
-    "processes": {
-        "ReadFile": {
-            "component": "ReadFile",
-            "metadata": {
-                "display": {
-                    "x": 91,
-                    "y": 154
-                }
-            }
-        },
-        "SplitbyLines": {
-            "component": "SplitStr",
-            "metadata": {
-                "display": {
-                    "x": 209,
-                    "y": 414
-                }
-            }
-        },
-        "CountLines": {
-            "component": "Counter",
-            "metadata": {
-                "display": {
-                    "x": 206,
-                    "y": 750
-                }
-            }
-        },
-        "Display": {
-            "component": "Output",
-            "metadata": {
-                "display": {
-                    "x": 71,
-                    "y": 1003
-                }
-            }
-        }
+    "Split": {
+      "component": "strings/SplitStr"
     },
-    "connections": [
-        {
-            "src": {
-                "process": "ReadFile",
-                "port": "out"
-            },
-            "tgt": {
-                "process": "SplitbyLines",
-                "port": "in"
-            }
-        },
-        {
-            "src": {
-                "process": "ReadFile",
-                "port": "error"
-            },
-            "tgt": {
-                "process": "Display",
-                "port": "in"
-            }
-        },
-        {
-            "src": {
-                "process": "SplitbyLines",
-                "port": "out"
-            },
-            "tgt": {
-                "process": "CountLines",
-                "port": "in"
-            }
-        },
-        {
-            "src": {
-                "process": "CountLines",
-                "port": "count"
-            },
-            "tgt": {
-                "process": "Display",
-                "port": "in"
-            }
-        },
-        {
-            "data": "package.json",
-            "tgt": {
-                "process": "ReadFile",
-                "port": "in"
-            }
-        }
-    ]
+    "Count": {
+      "component": "packets/Counter"
+    },
+    "Display": {
+      "component": "core/Output"
+    }
+  },
+  "connections": [
+    {
+      "data": "utf-8",
+      "tgt": {
+        "process": "Read",
+        "port": "encoding"
+      }
+    },
+    {
+      "data": "package.json",
+      "tgt": {
+        "process": "Read",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "Read",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "Split",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "Split",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "Count",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "Count",
+        "port": "count"
+      },
+      "tgt": {
+        "process": "Display",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "Read",
+        "port": "error"
+      },
+      "tgt": {
+        "process": "Display",
+        "port": "in"
+      }
+    }
+  ],
+  "caseSensitive": false
 }
