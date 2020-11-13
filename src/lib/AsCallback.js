@@ -323,6 +323,9 @@ function sendOutputMap(outputs, resultType, options, callback) {
 }
 
 exports.asCallback = function asCallback(component, options) {
+  if (!component) {
+    throw new Error('No component or graph provided');
+  }
   options = normalizeOptions(options, component);
   return (inputs, callback) => {
     prepareNetwork(component, options, (err, network) => {
