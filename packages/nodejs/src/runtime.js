@@ -43,7 +43,7 @@ exports.startGraph = (graphPath, runtime, settings) => exports.loadGraph({
 }).then((graphInstance) => new Promise((resolve, reject) => {
   const graph = graphInstance;
   graph.name = graph.name || path.basename(graphPath, path.extname(graphPath));
-  graph.baseDir = settings.baseDir;
+  graph.properties.baseDir = settings.baseDir;
   const graphName = `${settings.namespace}/${graph.name}`;
   runtime.graph.registerGraph(graphName, graph);
   runtime.network._startNetwork(graph, graphName, 'none', (err) => { // eslint-disable-line
