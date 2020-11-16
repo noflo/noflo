@@ -1,3 +1,7 @@
+## noflo-nodejs 0.13.1 (16-11-2020)
+
+* Compatibility with the TypeScript version of fbp-graph
+
 ## noflo-nodejs 0.13.0 (02-10-2020)
 
 * Added support for WebRTC protocol as an alternative to WebSockets
