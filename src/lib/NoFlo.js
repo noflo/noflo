@@ -28,16 +28,6 @@ exports.Graph = fbpGraph.Graph;
 exports.journal = fbpGraph.journal;
 exports.Journal = fbpGraph.Journal;
 
-// ## Network interface
-//
-// [Network](../Network/) is used for running NoFlo graphs. The direct Network inteface is only
-// provided for backwards compatibility purposes. Use `createNetwork` instead.
-const {
-  Network,
-} = require('./Network');
-exports.Network = require('./LegacyNetwork').Network;
-const { deprecated } = require('./Platform');
-
 // ### Platform detection
 //
 // NoFlo works on both Node.js and the browser. Because some dependencies are different,
@@ -83,23 +73,25 @@ exports.IP = require('./IP');
 // This function handles instantiation of NoFlo networks from a Graph object. It creates
 // the network, and then starts execution by sending the Initial Information Packets.
 //
-//     noflo.createNetwork(someGraph, function (err, network) {
+//     noflo.createNetwork(someGraph, {}, function (err, network) {
 //       console.log('Network is now running!');
 //     });
 //
 // It is also possible to instantiate a Network but delay its execution by giving the
-// third `delay` parameter. In this case you will have to handle connecting the graph and
+// third `delay` option. In this case you will have to handle connecting the graph and
 // sending of IIPs manually.
 //
-//     noflo.createNetwork(someGraph, function (err, network) {
+//     noflo.createNetwork(someGraph, {
+//       delay: true,
+//     }, function (err, network) {
 //       if (err) {
 //         throw err;
 //       }
 //       network.connect(function (err) {
 //         network.start();
 //         console.log('Network is now running!');
-//       })
-//     }, true);
+//       });
+//     });
 //
 // ### Network options
 //
@@ -107,7 +99,7 @@ exports.IP = require('./IP');
 //
 // * `delay`: (default: FALSE) Whether the network should be started later. Defaults to
 //   immediate execution
-// * `subscribeGraph`: (default: TRUE) Whether the network should monitor the underlying
+// * `subscribeGraph`: (default: FALSE) Whether the network should monitor the underlying
 //   graph for changes
 //
 // Options can be passed as a second argument before the callback:
@@ -116,21 +108,16 @@ exports.IP = require('./IP');
 //
 // The options object can also be used for setting ComponentLoader options in this
 // network.
+const { Network } = require('./Network');
+const { Network: LegacyNetwork } = require('./LegacyNetwork');
+const { deprecated } = require('./Platform');
+
 exports.createNetwork = function createNetwork(graph, options, callback) {
-  if (typeof options === 'function') {
-    const opts = callback;
-    callback = options;
-    options = opts;
-  }
-  if (typeof options === 'boolean') {
-    options = { delay: options };
-  }
   if (typeof options !== 'object') {
     options = {};
   }
   if (typeof options.subscribeGraph === 'undefined') {
-    // Default to legacy network for backwards compatibility.
-    options.subscribeGraph = true;
+    options.subscribeGraph = false;
   }
   if (typeof callback !== 'function') {
     deprecated('Calling noflo.createNetwork without a callback is deprecated');
@@ -141,7 +128,7 @@ exports.createNetwork = function createNetwork(graph, options, callback) {
 
   // Choose legacy or modern network based on whether graph
   // subscription is needed
-  const NetworkType = options.subscribeGraph ? exports.Network : Network;
+  const NetworkType = options.subscribeGraph ? LegacyNetwork : Network;
   const network = new NetworkType(graph, options);
 
   const networkReady = (net) => { // Send IIPs
@@ -190,37 +177,29 @@ exports.createNetwork = function createNetwork(graph, options, callback) {
 // It is also possible to start a NoFlo network by giving it a path to a `.json` or `.fbp` network
 // definition file.
 //
-//     noflo.loadFile('somefile.json', function (err, network) {
+//     noflo.loadFile('somefile.json', {}, function (err, network) {
 //       if (err) {
 //         throw err;
 //       }
 //       console.log('Network is now running!');
 //     })
 exports.loadFile = function loadFile(file, options, callback) {
-  if (!callback) {
-    callback = options;
-    options = null;
+  if (typeof callback !== 'function') {
+    deprecated('Calling noflo.loadFile without a callback is deprecated');
+    callback = (err) => {
+      if (err) { throw err; }
+    };
   }
 
-  if (callback && (typeof options !== 'object')) {
-    options = { baseDir: options };
-  }
-  if (typeof options !== 'object') {
-    options = {};
-  }
-  if (!options.subscribeGraph) {
-    options.subscribeGraph = false;
-  }
-
-  exports.graph.loadFile(file, (err, net) => {
+  exports.graph.loadFile(file, (err, graph) => {
     if (err) {
       callback(err);
       return;
     }
     if (options.baseDir) {
-      net.properties.baseDir = options.baseDir;
+      graph.properties.baseDir = options.baseDir;
     }
-    exports.createNetwork(net, options, callback);
+    exports.createNetwork(graph, options, callback);
   });
 };
 

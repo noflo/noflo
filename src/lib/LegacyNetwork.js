@@ -23,7 +23,7 @@ class LegacyNetwork extends BaseNetwork {
   // accordingly, including removing connections, adding new nodes,
   // and sending new IIPs.
   constructor(graph, options = {}) {
-    deprecated('noflo.Network construction is deprecated, use noflo.createNetwork');
+    deprecated('subscribeGraph: true is deprecated. Live-edit network graphs via the network methods instead');
     super(graph, options);
   }
 
