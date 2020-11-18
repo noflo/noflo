@@ -44,8 +44,18 @@ describe('NoFlo Legacy Network', () => {
     before((done) => {
       g = new noflo.Graph();
       g.properties.baseDir = baseDir;
-      n = new noflo.Network(g);
-      n.connect(done);
+      noflo.createNetwork(g, {
+        subscribeGraph: true,
+        delay: true,
+      },
+      (err, network) => {
+        if (err) {
+          done(err);
+          return;
+        }
+        n = network;
+        n.connect(done);
+      });
     });
     it('should initially be marked as stopped', () => {
       chai.expect(n.isStarted()).to.equal(false);
@@ -603,8 +613,11 @@ describe('NoFlo Legacy Network', () => {
         g.addInitial(n, `Repeat${n}`, 'in');
       }
 
-      const nw = new noflo.Network(g);
-      nw.loader.listComponents((err) => {
+      noflo.createNetwork(g, {
+        delay: true,
+        subscribeGraph: true,
+      },
+      (err, nw) => {
         if (err) {
           done(err);
           return;
@@ -648,12 +661,21 @@ describe('NoFlo Legacy Network', () => {
       g.addNode('Repeat1', 'Baz');
       g.addNode('Repeat2', 'Split');
       g.addEdge('Repeat1', 'out', 'Repeat2', 'in');
-      const nw = new noflo.Network(g);
-      nw.loader = loader;
-      nw.connect((err) => {
-        chai.expect(err).to.be.an('error');
-        chai.expect(err.message).to.contain('not available');
-        done();
+      noflo.createNetwork(g, {
+        delay: true,
+        subscribeGraph: true,
+      },
+      (err, nw) => {
+        if (err) {
+          done(err);
+          return;
+        }
+        nw.loader = loader;
+        nw.connect((err) => {
+          chai.expect(err).to.be.an('error');
+          chai.expect(err.message).to.contain('not available');
+          done();
+        });
       });
     });
     it('should fail on connect with missing target port', (done) => {
@@ -661,12 +683,21 @@ describe('NoFlo Legacy Network', () => {
       g.addNode('Repeat1', 'Split');
       g.addNode('Repeat2', 'Split');
       g.addEdge('Repeat1', 'out', 'Repeat2', 'foo');
-      const nw = new noflo.Network(g);
-      nw.loader = loader;
-      nw.connect((err) => {
-        chai.expect(err).to.be.an('error');
-        chai.expect(err.message).to.contain('No inport');
-        done();
+      noflo.createNetwork(g, {
+        delay: true,
+        subscribeGraph: true,
+      },
+      (err, nw) => {
+        if (err) {
+          done(err);
+          return;
+        }
+        nw.loader = loader;
+        nw.connect((err) => {
+          chai.expect(err).to.be.an('error');
+          chai.expect(err.message).to.contain('No inport');
+          done();
+        });
       });
     });
     it('should fail on connect with missing source port', (done) => {
@@ -674,13 +705,21 @@ describe('NoFlo Legacy Network', () => {
       g.addNode('Repeat1', 'Split');
       g.addNode('Repeat2', 'Split');
       g.addEdge('Repeat1', 'foo', 'Repeat2', 'in');
-      let nw = new noflo.Network(g);
-      nw = new noflo.Network(g);
-      nw.loader = loader;
-      nw.connect((err) => {
-        chai.expect(err).to.be.an('error');
-        chai.expect(err.message).to.contain('No outport');
-        done();
+      noflo.createNetwork(g, {
+        delay: true,
+        subscribeGraph: true,
+      },
+      (err, nw) => {
+        if (err) {
+          done(err);
+          return;
+        }
+        nw.loader = loader;
+        nw.connect((err) => {
+          chai.expect(err).to.be.an('error');
+          chai.expect(err.message).to.contain('No outport');
+          done();
+        });
       });
     });
     it('should fail on connect with missing IIP target port', (done) => {
@@ -689,12 +728,21 @@ describe('NoFlo Legacy Network', () => {
       g.addNode('Repeat2', 'Split');
       g.addEdge('Repeat1', 'out', 'Repeat2', 'in');
       g.addInitial('hello', 'Repeat1', 'baz');
-      const nw = new noflo.Network(g);
-      nw.loader = loader;
-      nw.connect((err) => {
-        chai.expect(err).to.be.an('error');
-        chai.expect(err.message).to.contain('No inport');
-        done();
+      noflo.createNetwork(g, {
+        delay: true,
+        subscribeGraph: true,
+      },
+      (err, nw) => {
+        if (err) {
+          done(err);
+          return;
+        }
+        nw.loader = loader;
+        nw.connect((err) => {
+          chai.expect(err).to.be.an('error');
+          chai.expect(err.message).to.contain('No inport');
+          done();
+        });
       });
     });
     it('should fail on connect with node without component', (done) => {
@@ -703,89 +751,146 @@ describe('NoFlo Legacy Network', () => {
       g.addNode('Repeat2');
       g.addEdge('Repeat1', 'out', 'Repeat2', 'in');
       g.addInitial('hello', 'Repeat1', 'in');
-      const nw = new noflo.Network(g);
-      nw.loader = loader;
-      nw.connect((err) => {
-        chai.expect(err).to.be.an('error');
-        chai.expect(err.message).to.contain('No component defined');
-        done();
+      noflo.createNetwork(g, {
+        delay: true,
+        subscribeGraph: true,
+      },
+      (err, nw) => {
+        if (err) {
+          done(err);
+          return;
+        }
+        nw.loader = loader;
+        nw.connect((err) => {
+          chai.expect(err).to.be.an('error');
+          chai.expect(err.message).to.contain('No component defined');
+          done();
+        });
       });
     });
     it('should fail to add an edge to a missing outbound node', (done) => {
       const g = new noflo.Graph();
       g.addNode('Repeat1', 'Split');
-      const nw = new noflo.Network(g);
-      nw.loader = loader;
-      nw.connect((err) => {
+      noflo.createNetwork(g, {
+        delay: true,
+        subscribeGraph: true,
+      },
+      (err, nw) => {
         if (err) {
           done(err);
           return;
         }
-        nw.addEdge({
-          from: {
-            node: 'Repeat2',
-            port: 'out',
-          },
-          to: {
-            node: 'Repeat1',
-            port: 'in',
-          },
-        }, (err) => {
-          chai.expect(err).to.be.an('error');
-          chai.expect(err.message).to.contain('No process defined for outbound node');
-          done();
+        nw.loader = loader;
+        nw.connect((err) => {
+          if (err) {
+            done(err);
+            return;
+          }
+          nw.addEdge({
+            from: {
+              node: 'Repeat2',
+              port: 'out',
+            },
+            to: {
+              node: 'Repeat1',
+              port: 'in',
+            },
+          }, (err) => {
+            chai.expect(err).to.be.an('error');
+            chai.expect(err.message).to.contain('No process defined for outbound node');
+            done();
+          });
         });
       });
     });
     it('should fail to add an edge to a missing inbound node', (done) => {
       const g = new noflo.Graph();
       g.addNode('Repeat1', 'Split');
-      const nw = new noflo.Network(g);
-      nw.loader = loader;
-      nw.connect((err) => {
+      noflo.createNetwork(g, {
+        delay: true,
+        subscribeGraph: true,
+      },
+      (err, nw) => {
         if (err) {
           done(err);
           return;
         }
-        nw.addEdge({
-          from: {
-            node: 'Repeat1',
-            port: 'out',
-          },
-          to: {
-            node: 'Repeat2',
-            port: 'in',
-          },
-        }, (err) => {
-          chai.expect(err).to.be.an('error');
-          chai.expect(err.message).to.contain('No process defined for inbound node');
-          done();
+        nw.loader = loader;
+        nw.connect((err) => {
+          if (err) {
+            done(err);
+            return;
+          }
+          nw.addEdge({
+            from: {
+              node: 'Repeat1',
+              port: 'out',
+            },
+            to: {
+              node: 'Repeat2',
+              port: 'in',
+            },
+          }, (err) => {
+            chai.expect(err).to.be.an('error');
+            chai.expect(err.message).to.contain('No process defined for inbound node');
+            done();
+          });
         });
       });
     });
   });
   describe('baseDir setting', () => {
-    it('should set baseDir based on given graph', () => {
+    it('should set baseDir based on given graph', (done) => {
       const g = new noflo.Graph();
       g.properties.baseDir = baseDir;
-      const n = new noflo.Network(g);
-      chai.expect(n.baseDir).to.equal(baseDir);
+      noflo.createNetwork(g, {
+        delay: true,
+        subscribeGraph: true,
+      },
+      (err, nw) => {
+        if (err) {
+          done(err);
+          return;
+        }
+        chai.expect(nw.baseDir).to.equal(baseDir);
+        done();
+      });
     });
-    it('should fall back to CWD if graph has no baseDir', function () {
+    it('should fall back to CWD if graph has no baseDir', function (done) {
       if (noflo.isBrowser()) {
         this.skip();
         return;
       }
       const g = new noflo.Graph();
-      const n = new noflo.Network(g);
-      chai.expect(n.baseDir).to.equal(process.cwd());
+      noflo.createNetwork(g, {
+        delay: true,
+        subscribeGraph: true,
+      },
+      (err, nw) => {
+        if (err) {
+          done(err);
+          return;
+        }
+        chai.expect(nw.baseDir).to.equal(process.cwd());
+        done();
+      });
     });
-    it('should set the baseDir for the component loader', () => {
+    it('should set the baseDir for the component loader', (done) => {
       const g = new noflo.Graph();
       g.properties.baseDir = baseDir;
-      const n = new noflo.Network(g);
-      chai.expect(n.baseDir).to.equal(baseDir);
-      chai.expect(n.loader.baseDir).to.equal(baseDir);
+      noflo.createNetwork(g, {
+        delay: true,
+        subscribeGraph: true,
+      },
+      (err, nw) => {
+        if (err) {
+          done(err);
+          return;
+        }
+        chai.expect(nw.baseDir).to.equal(baseDir);
+        chai.expect(nw.loader.baseDir).to.equal(baseDir);
+        done();
+      });
     });
   });
   describe('debug setting', () => {
@@ -794,12 +899,16 @@ describe('NoFlo Legacy Network', () => {
     before((done) => {
       g = new noflo.Graph();
       g.properties.baseDir = baseDir;
-      n = new noflo.Network(g);
-      n.loader.listComponents((err) => {
+      noflo.createNetwork(g, {
+        subscribeGraph: true,
+        delay: true,
+      },
+      (err, network) => {
         if (err) {
           done(err);
           return;
         }
+        n = network;
         n.loader.components.Split = Split;
         g.addNode('A', 'Split');
         g.addNode('B', 'Split');

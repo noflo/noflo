@@ -28,20 +28,6 @@ exports.Graph = fbpGraph.Graph;
 exports.journal = fbpGraph.journal;
 exports.Journal = fbpGraph.Journal;
 
-// ## Network interface
-//
-// [Network](../Network/) is used for running NoFlo graphs. The direct Network inteface is only
-// provided for backwards compatibility purposes. Use `createNetwork` instead.
-const {
-  Network,
-} = require('./Network');
-const {
-  Network: LegacyNetwork,
-} = require('./LegacyNetwork');
-const { deprecated } = require('./Platform');
-
-exports.Network = LegacyNetwork;
-
 // ### Platform detection
 //
 // NoFlo works on both Node.js and the browser. Because some dependencies are different,
@@ -122,6 +108,10 @@ exports.IP = require('./IP');
 //
 // The options object can also be used for setting ComponentLoader options in this
 // network.
+const { Network } = require('./Network');
+const { Network: LegacyNetwork } = require('./LegacyNetwork');
+const { deprecated } = require('./Platform');
+
 exports.createNetwork = function createNetwork(graph, options, callback) {
   if (typeof options !== 'object') {
     options = {};

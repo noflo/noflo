@@ -1062,7 +1062,7 @@ describe('NoFlo Network', () => {
       g.properties.baseDir = baseDir;
       noflo.createNetwork(g, {
         subscribeGraph: false,
-        default: true,
+        delay: true,
       },
       (err, network) => {
         if (err) {
