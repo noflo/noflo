@@ -35,8 +35,12 @@ exports.Journal = fbpGraph.Journal;
 const {
   Network,
 } = require('./Network');
-exports.Network = require('./LegacyNetwork').Network;
+const {
+  Network: LegacyNetwork,
+} = require('./LegacyNetwork');
 const { deprecated } = require('./Platform');
+
+exports.Network = LegacyNetwork;
 
 // ### Platform detection
 //
@@ -107,7 +111,7 @@ exports.IP = require('./IP');
 //
 // * `delay`: (default: FALSE) Whether the network should be started later. Defaults to
 //   immediate execution
-// * `subscribeGraph`: (default: TRUE) Whether the network should monitor the underlying
+// * `subscribeGraph`: (default: false) Whether the network should monitor the underlying
 //   graph for changes
 //
 // Options can be passed as a second argument before the callback:
@@ -129,8 +133,7 @@ exports.createNetwork = function createNetwork(graph, options, callback) {
     options = {};
   }
   if (typeof options.subscribeGraph === 'undefined') {
-    // Default to legacy network for backwards compatibility.
-    options.subscribeGraph = true;
+    options.subscribeGraph = false;
   }
   if (typeof callback !== 'function') {
     deprecated('Calling noflo.createNetwork without a callback is deprecated');
@@ -141,7 +144,7 @@ exports.createNetwork = function createNetwork(graph, options, callback) {
 
   // Choose legacy or modern network based on whether graph
   // subscription is needed
-  const NetworkType = options.subscribeGraph ? exports.Network : Network;
+  const NetworkType = options.subscribeGraph ? LegacyNetwork : Network;
   const network = new NetworkType(graph, options);
 
   const networkReady = (net) => { // Send IIPs

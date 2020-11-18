@@ -198,7 +198,10 @@ describe('NoFlo Legacy Network', () => {
       },
       'Callback', 'callback');
       g.addInitial('Foo', 'Merge', 'in');
-      noflo.createNetwork(g, (err, nw) => {
+      noflo.createNetwork(g, {
+        delay: true,
+        subscribeGraph: true,
+      }, (err, nw) => {
         if (err) {
           done(err);
           return;
@@ -214,8 +217,7 @@ describe('NoFlo Legacy Network', () => {
           }
           done();
         });
-      },
-      true);
+      });
     });
     it('should send some initials when started', (done) => {
       chai.expect(n.initials).not.to.be.empty;
@@ -341,7 +343,9 @@ describe('NoFlo Legacy Network', () => {
             cb();
           },
           'Func', 'callback');
-          noflo.createNetwork(graph, (err) => {
+          noflo.createNetwork(graph, {
+            subscribeGraph: true,
+          }, (err) => {
             if (err) {
               done(err);
             }
@@ -392,7 +396,10 @@ describe('NoFlo Legacy Network', () => {
         chai.expect(data).to.equal('default-value');
         done();
       };
-      noflo.createNetwork(g, (err, nw) => {
+      noflo.createNetwork(g, {
+        delay: true,
+        subscribeGraph: true,
+      }, (err, nw) => {
         if (err) {
           done(err);
           return;
@@ -410,8 +417,7 @@ describe('NoFlo Legacy Network', () => {
             }
           });
         });
-      },
-      true);
+      });
     });
     it('should not send default values to nodes with an edge', function (done) {
       this.timeout(60 * 1000);
@@ -422,7 +428,10 @@ describe('NoFlo Legacy Network', () => {
       g.addNode('Merge', 'Merge');
       g.addEdge('Merge', 'out', 'Def', 'in');
       g.addInitial('from-edge', 'Merge', 'in');
-      noflo.createNetwork(g, (err, nw) => {
+      noflo.createNetwork(g, {
+        delay: true,
+        subscribeGraph: true,
+      }, (err, nw) => {
         if (err) {
           done(err);
           return;
@@ -441,8 +450,7 @@ describe('NoFlo Legacy Network', () => {
             }
           });
         });
-      },
-      true);
+      });
     });
     it('should not send default values to nodes with IIP', function (done) {
       this.timeout(60 * 1000);
@@ -493,7 +501,10 @@ describe('NoFlo Legacy Network', () => {
       g.addInitial(cb, 'Callback', 'callback');
       g.addInitial('Foo', 'Repeat', 'in');
       setTimeout(() => {
-        noflo.createNetwork(g, (err, nw) => {
+        noflo.createNetwork(g, {
+          delay: true,
+          subscribeGraph: true,
+        }, (err, nw) => {
           if (err) {
             done(err);
             return;
@@ -513,8 +524,7 @@ describe('NoFlo Legacy Network', () => {
               }
             });
           });
-        },
-        true);
+        });
       },
       10);
     });
