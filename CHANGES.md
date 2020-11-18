@@ -3,6 +3,7 @@ NoFlo ChangeLog
 
 ## 1.3.0 (git master)
 
+* NoFlo `createNetwork` now defaults to the non-legacy "network drives graph" mode
 * CoffeeScript is no longer bundled with NoFlo. Install the CoffeeScript compiler in your project if you need to be able to load CoffeeScript components
 
 ## 1.2.7 (November 13th 2020)
