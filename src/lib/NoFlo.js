@@ -177,37 +177,29 @@ exports.createNetwork = function createNetwork(graph, options, callback) {
 // It is also possible to start a NoFlo network by giving it a path to a `.json` or `.fbp` network
 // definition file.
 //
-//     noflo.loadFile('somefile.json', function (err, network) {
+//     noflo.loadFile('somefile.json', {}, function (err, network) {
 //       if (err) {
 //         throw err;
 //       }
 //       console.log('Network is now running!');
 //     })
 exports.loadFile = function loadFile(file, options, callback) {
-  if (!callback) {
-    callback = options;
-    options = null;
+  if (typeof callback !== 'function') {
+    deprecated('Calling noflo.loadFile without a callback is deprecated');
+    callback = (err) => {
+      if (err) { throw err; }
+    };
   }
 
-  if (callback && (typeof options !== 'object')) {
-    options = { baseDir: options };
-  }
-  if (typeof options !== 'object') {
-    options = {};
-  }
-  if (!options.subscribeGraph) {
-    options.subscribeGraph = false;
-  }
-
-  exports.graph.loadFile(file, (err, net) => {
+  exports.graph.loadFile(file, (err, graph) => {
     if (err) {
       callback(err);
       return;
     }
     if (options.baseDir) {
-      net.properties.baseDir = options.baseDir;
+      graph.properties.baseDir = options.baseDir;
     }
-    exports.createNetwork(net, options, callback);
+    exports.createNetwork(graph, options, callback);
   });
 };
 
