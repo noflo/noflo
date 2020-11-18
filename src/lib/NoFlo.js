@@ -87,23 +87,25 @@ exports.IP = require('./IP');
 // This function handles instantiation of NoFlo networks from a Graph object. It creates
 // the network, and then starts execution by sending the Initial Information Packets.
 //
-//     noflo.createNetwork(someGraph, function (err, network) {
+//     noflo.createNetwork(someGraph, {}, function (err, network) {
 //       console.log('Network is now running!');
 //     });
 //
 // It is also possible to instantiate a Network but delay its execution by giving the
-// third `delay` parameter. In this case you will have to handle connecting the graph and
+// third `delay` option. In this case you will have to handle connecting the graph and
 // sending of IIPs manually.
 //
-//     noflo.createNetwork(someGraph, function (err, network) {
+//     noflo.createNetwork(someGraph, {
+//       delay: true,
+//     }, function (err, network) {
 //       if (err) {
 //         throw err;
 //       }
 //       network.connect(function (err) {
 //         network.start();
 //         console.log('Network is now running!');
-//       })
-//     }, true);
+//       });
+//     });
 //
 // ### Network options
 //
@@ -111,7 +113,7 @@ exports.IP = require('./IP');
 //
 // * `delay`: (default: FALSE) Whether the network should be started later. Defaults to
 //   immediate execution
-// * `subscribeGraph`: (default: false) Whether the network should monitor the underlying
+// * `subscribeGraph`: (default: FALSE) Whether the network should monitor the underlying
 //   graph for changes
 //
 // Options can be passed as a second argument before the callback:
@@ -121,14 +123,6 @@ exports.IP = require('./IP');
 // The options object can also be used for setting ComponentLoader options in this
 // network.
 exports.createNetwork = function createNetwork(graph, options, callback) {
-  if (typeof options === 'function') {
-    const opts = callback;
-    callback = options;
-    options = opts;
-  }
-  if (typeof options === 'boolean') {
-    options = { delay: options };
-  }
   if (typeof options !== 'object') {
     options = {};
   }

@@ -459,7 +459,10 @@ describe('NoFlo Legacy Network', () => {
         done();
       };
       g.addInitial('from-IIP', 'Def', 'in');
-      noflo.createNetwork(g, (err, nw) => {
+      noflo.createNetwork(g, {
+        delay: true,
+        subscribeGraph: true,
+      }, (err, nw) => {
         if (err) {
           done(err);
           return;
@@ -478,8 +481,7 @@ describe('NoFlo Legacy Network', () => {
             }
           });
         });
-      },
-      true);
+      });
     });
   });
   describe('with an existing IIP', () => {
