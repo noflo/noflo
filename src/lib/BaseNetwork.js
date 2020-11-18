@@ -9,6 +9,7 @@
 */
 
 const { EventEmitter } = require('events');
+const { Flowtrace } = require('flowtrace');
 const internalSocket = require('./InternalSocket');
 const platform = require('./Platform');
 const componentLoader = require('./ComponentLoader');
@@ -90,6 +91,8 @@ class BaseNetwork extends EventEmitter {
     this.defaults = [];
     // The Graph this network is instantiated with
     this.graph = graph;
+    // Flowtrace for this network, when available
+    this.trace = null;
     this.started = false;
     this.stopped = true;
     this.debug = true;
@@ -369,7 +372,13 @@ class BaseNetwork extends EventEmitter {
       return;
     }
 
-    if (!node.component.network) { return; }
+    if (!node.component.network) {
+      return;
+    }
+
+    if (this.trace) {
+      this.trace.addGraph(node.componentName, node.component.network.graph, false);
+    }
 
     node.component.network.setDebug(this.debug);
 
@@ -387,7 +396,7 @@ class BaseNetwork extends EventEmitter {
       } else {
         data.subgraph = [node.id];
       }
-      return this.bufferedEmit(type, data);
+      this.bufferedEmit(type, data);
     };
 
     node.component.network.on('ip', (data) => {
@@ -900,6 +909,21 @@ class BaseNetwork extends EventEmitter {
       const instance = process.component;
       if (instance.isSubgraph()) { instance.network.setDebug(active); }
     });
+  }
+
+  setFlowtrace(enabled) {
+    if (enabled) {
+      if (this.trace) {
+        // We already have a tracer
+        return;
+      }
+      this.trace = new Flowtrace({
+        type: 'noflo',
+      });
+      this.trace.addGraph(this.graph.name, this.graph, true);
+      return;
+    }
+    this.trace = null;
   }
 }
 
