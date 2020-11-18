@@ -91,8 +91,8 @@ class BaseNetwork extends EventEmitter {
     this.defaults = [];
     // The Graph this network is instantiated with
     this.graph = graph;
-    // Flowtrace for this network, when available
-    this.trace = null;
+    // Enable Flowtrace for this network, when available
+    this.setTrace(options.flowtrace || false);
     this.started = false;
     this.stopped = true;
     this.debug = true;
@@ -377,6 +377,7 @@ class BaseNetwork extends EventEmitter {
     }
 
     if (this.trace) {
+      // FIXME: This doesn't handle registration for sub-subgraphs
       this.trace.addGraph(node.componentName, node.component.network.graph, false);
     }
 
