@@ -14,11 +14,8 @@ const utils = require('../Utils');
 // Type loading CoffeeScript compiler
 let CoffeeScript;
 try {
-  // eslint-disable-next-line import/no-unresolved
+  // eslint-disable-next-line import/no-unresolved,import/no-extraneous-dependencies
   CoffeeScript = require('coffeescript');
-  if (typeof CoffeeScript.register !== 'undefined') {
-    CoffeeScript.register();
-  }
 } catch (e) {
   // If there is no CoffeeScript compiler installed, we simply don't support compiling
 }
@@ -314,8 +311,8 @@ function registerModules(loader, modules, callback) {
 
     return Promise.all(m.components.map((c) => new Promise((resolve, reject) => {
       const language = utils.guessLanguageFromFilename(c.path);
-      if (language === 'typescript') {
-        // We can't require a TypeScript module, go the setSource route
+      if (language === 'typescript' || language === 'coffeescript') {
+        // We can't require a module that requires transpilation, go the setSource route
         fs.readFile(path.resolve(loader.baseDir, c.path), 'utf-8', (fsErr, source) => {
           if (fsErr) {
             reject(fsErr);
