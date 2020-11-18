@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 1.3.0 (git master)
+
+* CoffeeScript is no longer bundled with NoFlo. Install the CoffeeScript compiler in your project if you need to be able to load CoffeeScript components
+
 ## 1.2.7 (November 13th 2020)
 
 * Added safeties against trying to load a falsy graph in `asCallback`

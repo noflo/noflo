@@ -14,7 +14,6 @@
     "node": ">= 6"
   },
   "dependencies": {
-    "coffeescript": "^2.2.1",
     "debug": "^4.0.1",
     "fbp": "^1.5.0",
     "fbp-graph": "^0.6.1",
@@ -27,6 +26,7 @@
     "@babel/preset-env": "^7.11.0",
     "@types/node": "^14.14.2",
     "chai": "^4.0.0",
+    "coffeescript": "^2.2.1",
     "coveralls": "^3.0.0",
     "eslint": "^7.7.0",
     "eslint-config-airbnb-base": "^14.2.0",
