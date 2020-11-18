@@ -922,6 +922,14 @@ class BaseNetwork extends EventEmitter {
         type: 'noflo',
       });
       this.trace.addGraph(this.graph.name, this.graph, true);
+      Object.keys(this.processes).forEach((nodeId) => {
+        // Register existing subgraphs
+        const node = this.processes[nodeId];
+        if (!node.component.isSubgraph() || !node.component.network) {
+          return;
+        }
+        this.trace.addGraph(node.componentName, node.component.network.graph, false);
+      });
       return;
     }
     this.trace = null;
