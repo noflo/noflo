@@ -3,6 +3,19 @@ NoFlo ChangeLog
 
 ## 1.3.0 (git master)
 
+* NoFlo `createNetwork` and `asCallback` now accept a `flowtrace` option to pass a [Flowtrace instance](https://github.com/flowbased/flowtrace) for retroactive debugging. Example:
+
+```javascript
+const { Flowtrace } = require('flowtrace');
+const tracer = new Flowtrace();
+noflo.createNetwork(myGraph, {
+  flowtrace: tracer,
+}, (err, network) => {
+  // ...
+  console.log(tracer.toJSON());
+});
+```
+
 * NoFlo `createNetwork` now defaults to the non-legacy "network drives graph" mode
 * NoFlo `createNetwork` now only supports the `graph, options, callback` signature, no options given in some other order
 * `noflo.Network` interface has been removed. Use `createNetwork` to instantiate networks

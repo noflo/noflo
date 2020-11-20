@@ -99,6 +99,8 @@ exports.IP = require('./IP');
 //
 // * `delay`: (default: FALSE) Whether the network should be started later. Defaults to
 //   immediate execution
+// * `flowtrace`: (default: NULL) Flowtrace instance to create a retroactive debugging
+//   trace of the network run.
 // * `subscribeGraph`: (default: FALSE) Whether the network should monitor the underlying
 //   graph for changes
 //
