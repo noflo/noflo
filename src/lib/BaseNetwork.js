@@ -913,6 +913,7 @@ class BaseNetwork extends EventEmitter {
   setFlowtrace(flowtrace, name = null, main = true) {
     if (!flowtrace) {
       this.flowtrace = null;
+      return;
     }
     if (this.flowtrace) {
       // We already have a tracer
