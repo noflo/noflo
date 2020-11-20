@@ -118,6 +118,7 @@ class BaseNetwork extends EventEmitter {
     }
 
     // Enable Flowtrace for this network, when available
+    this.flowtraceName = null;
     this.setFlowtrace(options.flowtrace || false, null);
   }
 
@@ -147,7 +148,62 @@ class BaseNetwork extends EventEmitter {
     return active;
   }
 
+  traceEvent(event, payload) {
+    if (!this.flowtrace) {
+      return;
+    }
+    switch (event) {
+      case 'ip': {
+        let type = 'data';
+        if (payload.type === 'openBracket') {
+          type = 'begingroup';
+        } else if (payload.type === 'closeBracket') {
+          type = 'endgroup';
+        }
+        const src = payload.socket.from ? {
+          node: payload.socket.from.process.id,
+          port: payload.socket.from.port,
+        } : null;
+        const tgt = payload.socket.to ? {
+          node: payload.socket.to.process.id,
+          port: payload.socket.to.port,
+        } : null;
+        this.flowtrace.addNetworkPacket(
+          `network:${type}`,
+          src,
+          tgt,
+          this.flowtraceName,
+          {
+            subgraph: payload.subgraph,
+            group: payload.group,
+            datatype: payload.datatype,
+            schema: payload.schema,
+            data: payload.data,
+          },
+        );
+        break;
+      }
+      case 'start': {
+        this.flowtrace.addNetworkStarted(this.flowtraceName);
+        break;
+      }
+      case 'end': {
+        this.flowtrace.addNetworkStopped(this.flowtraceName);
+        break;
+      }
+      case 'error': {
+        this.flowtrace.addNetworkError(this.flowtraceName, payload);
+        break;
+      }
+      default: {
+        // No default handler
+      }
+    }
+  }
+
   bufferedEmit(event, payload) {
+    // Add the event to Flowtrace immediately
+    this.traceEvent(event, payload);
     // Errors get emitted immediately, like does network end
     if (['icon', 'error', 'process-error', 'end'].includes(event)) {
       this.emit(event, payload);
@@ -912,6 +968,7 @@ class BaseNetwork extends EventEmitter {
 
   setFlowtrace(flowtrace, name = null, main = true) {
     if (!flowtrace) {
+      this.flowtraceName = null;
       this.flowtrace = null;
       return;
     }
@@ -920,7 +977,8 @@ class BaseNetwork extends EventEmitter {
       return;
     }
     this.flowtrace = flowtrace;
-    this.flowtrace.addGraph(name || this.graph.name, this.graph, main);
+    this.flowtraceName = name || this.graph.name;
+    this.flowtrace.addGraph(this.flowtraceName, this.graph, main);
     Object.keys(this.processes).forEach((nodeId) => {
       // Register existing subgraphs
       const node = this.processes[nodeId];

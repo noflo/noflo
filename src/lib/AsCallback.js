@@ -134,6 +134,7 @@ function runNetwork(network, inputs, options, callback) {
     const portDef = network.graph.outports[outport];
     const process = network.getNode(portDef.process);
     outSockets[outport] = internalSocket.createSocket();
+    network.subscribeSocket(outSockets[outport]);
     process.component.outPorts[portDef.port].attach(outSockets[outport]);
     outSockets[outport].from = {
       process,
@@ -187,6 +188,11 @@ function runNetwork(network, inputs, options, callback) {
           }
           const process = network.getNode(portDef.process);
           inSockets[port] = internalSocket.createSocket();
+          network.subscribeSocket(inSockets[port]);
+          inSockets[port].to = {
+            process,
+            port,
+          };
           process.component.inPorts[portDef.port].attach(inSockets[port]);
         }
         try {
