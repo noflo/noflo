@@ -18,7 +18,6 @@
     "fbp": "^1.5.0",
     "fbp-graph": "^0.6.1",
     "fbp-manifest": "^0.2.5",
-    "flowtrace": "^0.1.2",
     "get-function-params": "^2.0.6"
   },
   "devDependencies": {
@@ -33,6 +32,7 @@
     "eslint-config-airbnb-base": "^14.2.0",
     "eslint-plugin-import": "^2.22.0",
     "events": "^3.2.0",
+    "flowtrace": "^0.1.2",
     "karma": "^5.1.1",
     "karma-chai": "^0.1.0",
     "karma-chrome-launcher": "^3.1.0",

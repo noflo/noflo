@@ -9,7 +9,6 @@
 */
 
 const { EventEmitter } = require('events');
-const { Flowtrace } = require('flowtrace');
 const internalSocket = require('./InternalSocket');
 const platform = require('./Platform');
 const componentLoader = require('./ComponentLoader');
@@ -91,8 +90,6 @@ class BaseNetwork extends EventEmitter {
     this.defaults = [];
     // The Graph this network is instantiated with
     this.graph = graph;
-    // Enable Flowtrace for this network, when available
-    this.setTrace(options.flowtrace || false);
     this.started = false;
     this.stopped = true;
     this.debug = true;
@@ -119,6 +116,9 @@ class BaseNetwork extends EventEmitter {
     } else {
       this.loader = new componentLoader.ComponentLoader(this.baseDir, this.options);
     }
+
+    // Enable Flowtrace for this network, when available
+    this.setFlowtrace(options.flowtrace || false, null);
   }
 
   // The uptime of the network is the current time minus the start-up
@@ -376,12 +376,10 @@ class BaseNetwork extends EventEmitter {
       return;
     }
 
-    if (this.trace) {
-      // FIXME: This doesn't handle registration for sub-subgraphs
-      this.trace.addGraph(node.componentName, node.component.network.graph, false);
-    }
-
     node.component.network.setDebug(this.debug);
+    if (this.flowtrace) {
+      node.component.network.setFlowtrace(this.flowtrace, node.componentName, false);
+    }
 
     const emitSub = (type, data) => {
       if ((type === 'process-error') && (this.listeners('process-error').length === 0)) {
@@ -912,27 +910,24 @@ class BaseNetwork extends EventEmitter {
     });
   }
 
-  setFlowtrace(enabled) {
-    if (enabled) {
-      if (this.trace) {
-        // We already have a tracer
-        return;
-      }
-      this.trace = new Flowtrace({
-        type: 'noflo',
-      });
-      this.trace.addGraph(this.graph.name, this.graph, true);
-      Object.keys(this.processes).forEach((nodeId) => {
-        // Register existing subgraphs
-        const node = this.processes[nodeId];
-        if (!node.component.isSubgraph() || !node.component.network) {
-          return;
-        }
-        this.trace.addGraph(node.componentName, node.component.network.graph, false);
-      });
+  setFlowtrace(flowtrace, name = null, main = true) {
+    if (!flowtrace) {
+      this.flowtrace = null;
+    }
+    if (this.flowtrace) {
+      // We already have a tracer
       return;
     }
-    this.trace = null;
+    this.flowtrace = flowtrace;
+    this.flowtrace.addGraph(name || this.graph.name, this.graph, main);
+    Object.keys(this.processes).forEach((nodeId) => {
+      // Register existing subgraphs
+      const node = this.processes[nodeId];
+      if (!node.component.isSubgraph() || !node.component.network) {
+        return;
+      }
+      node.component.network.setFlowtrace(this.flowtrace, node.componentName, false);
+    });
   }
 }
 
