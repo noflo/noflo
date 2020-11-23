@@ -1,7 +1,7 @@
 NoFlo ChangeLog
 ===============
 
-## 1.3.0 (git master)
+## 1.3.0 (November 23rd 2020)
 
 * NoFlo `createNetwork` and `asCallback` now accept a `flowtrace` option to pass a [Flowtrace instance](https://github.com/flowbased/flowtrace) for retroactive debugging. Example:
 
