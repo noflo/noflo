@@ -1061,10 +1061,10 @@ describe('NoFlo Network', () => {
     let g = null;
     before((done) => {
       g = new noflo.Graph();
-      g.properties.baseDir = baseDir;
       noflo.createNetwork(g, {
         subscribeGraph: false,
         delay: true,
+        baseDir,
       },
       (err, network) => {
         if (err) {
