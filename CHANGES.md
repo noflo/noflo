@@ -16,6 +16,7 @@ noflo.createNetwork(myGraph, {
 });
 ```
 
+* NoFlo `createNetwork` now accepts `componentLoader` and `baseDir` via options. Passing them via Graph properties is deprecated
 * NoFlo `createNetwork` now defaults to the non-legacy "network drives graph" mode
 * NoFlo `createNetwork` now only supports the `graph, options, callback` signature, no options given in some other order
 * `noflo.Network` interface has been removed. Use `createNetwork` to instantiate networks

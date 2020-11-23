@@ -66,9 +66,10 @@ function prepareNetwork(component, options, callback) {
   let network;
   if (typeof component === 'object') {
     // This is a graph object
-    component.properties.componentLoader = options.loader;
-
-    network = new Network(component, options);
+    network = new Network(component, {
+      ...options,
+      componentLoader: options.loader,
+    });
     // Wire the network up
     network.connect((err) => {
       if (err) {
@@ -100,8 +101,10 @@ function prepareNetwork(component, options, callback) {
       graph.addOutport(port, nodeName, port);
     });
     // Prepare network
-    graph.properties.componentLoader = options.loader;
-    network = new Network(graph, options);
+    network = new Network(graph, {
+      ...options,
+      componentLoader: options.loader,
+    });
     // Wire the network up and start execution
     network.connect((err2) => {
       if (err2) {

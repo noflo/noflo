@@ -60,7 +60,6 @@ class Graph extends noflo.Component {
           callback(err);
           return;
         }
-        inst.properties.baseDir = this.baseDir;
         this.createNetwork(inst, callback);
       });
       return;
@@ -78,7 +77,6 @@ class Graph extends noflo.Component {
         callback(err);
         return;
       }
-      inst.properties.baseDir = this.baseDir;
       this.createNetwork(inst, callback);
     });
   }
@@ -89,11 +87,12 @@ class Graph extends noflo.Component {
 
     const graphObj = graph;
     if (!graphObj.name) { graphObj.name = this.nodeId; }
-    graphObj.properties.componentLoader = this.loader;
 
     noflo.createNetwork(graphObj, {
       delay: true,
       subscribeGraph: false,
+      componentLoader: this.loader,
+      baseDir: this.baseDir,
     },
     (err, network) => {
       this.network = network;

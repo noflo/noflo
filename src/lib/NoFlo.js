@@ -97,6 +97,9 @@ exports.IP = require('./IP');
 //
 // It is possible to pass some options to control the behavior of network creation:
 //
+// * `baseDir`: (default: cwd) Project base directory used for component loading
+// * `componentLoader`: (default: NULL) NoFlo ComponentLoader instance to use for the
+//   network. New one will be instantiated for the baseDir if this is not given.
 // * `delay`: (default: FALSE) Whether the network should be started later. Defaults to
 //   immediate execution
 // * `flowtrace`: (default: NULL) Flowtrace instance to create a retroactive debugging

@@ -14,6 +14,7 @@ const platform = require('./Platform');
 const componentLoader = require('./ComponentLoader');
 const utils = require('./Utils');
 const IP = require('./IP');
+const { deprecated } = require('./Platform');
 
 function connectPort(socket, process, port, index, inbound, callback) {
   if (inbound) {
@@ -97,12 +98,15 @@ class BaseNetwork extends EventEmitter {
 
     // On Node.js we default the baseDir for component loading to
     // the current working directory
+    if (graph.properties.baseDir && !options.baseDir) {
+      deprecated('Passing baseDir via Graph properties is deprecated, pass via Network options instead');
+    }
     if (!platform.isBrowser()) {
-      this.baseDir = graph.properties.baseDir || process.cwd();
+      this.baseDir = options.baseDir || graph.properties.baseDir || process.cwd();
     // On browser we default the baseDir to the Component loading
     // root
     } else {
-      this.baseDir = graph.properties.baseDir || '/';
+      this.baseDir = options.baseDir || graph.properties.baseDir || '/';
     }
 
     // As most NoFlo networks are long-running processes, the
@@ -111,7 +115,10 @@ class BaseNetwork extends EventEmitter {
     this.startupDate = null;
 
     // Initialize a Component Loader for the network
-    if (graph.properties.componentLoader) {
+    if (options.componentLoader) {
+      this.loader = options.componentLoader;
+    } else if (graph.properties.componentLoader) {
+      deprecated('Passing componentLoader via Graph properties is deprecated, pass via Network options instead');
       this.loader = graph.properties.componentLoader;
     } else {
       this.loader = new componentLoader.ComponentLoader(this.baseDir, this.options);
