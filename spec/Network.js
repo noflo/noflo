@@ -461,7 +461,6 @@ describe('NoFlo Network', () => {
             return;
           }
           // Pass the already-initialized component loader
-          graph.properties.componentLoader = n.loader;
           graph.addInitial((data) => {
             chai.expect(data).to.equal('Foo');
             done();
@@ -470,6 +469,7 @@ describe('NoFlo Network', () => {
           noflo.createNetwork(graph, {
             subscribeGraph: false,
             delay: false,
+            componentLoader: n.loader,
           },
           (err) => {
             if (err) {
