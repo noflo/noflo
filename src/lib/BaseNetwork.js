@@ -152,6 +152,10 @@ class BaseNetwork extends EventEmitter {
     if (!this.flowtrace) {
       return;
     }
+    if (this.flowtraceName && this.flowtraceName !== this.flowtrace.mainGraph) {
+      // Let main graph log all events from subgraphs
+      return;
+    }
     switch (event) {
       case 'ip': {
         let type = 'data';
