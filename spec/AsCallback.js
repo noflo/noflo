@@ -510,4 +510,45 @@ Async(process/Async) OUT -> IN Values(process/Values)\
       });
     });
   });
+  describe('with flowtrace option', () => {
+    it('should store a trace for a simple component execution', (done) => {
+      const trace = new flowtrace.Flowtrace();
+      const wrapped = noflo.asCallback('process/Async', {
+        loader,
+        flowtrace: trace,
+      });
+      wrapped('hello', (err, out) => {
+        chai.expect(err).to.be.a('null');
+        chai.expect(out).to.equal('hello');
+        const collectedTrace = trace.toJSON();
+        chai.expect(collectedTrace.header.metadata).to.include.keys(['start', 'end']);
+        chai.expect(collectedTrace.header.graphs['process/Async']).to.be.an('object');
+        chai.expect(collectedTrace.header.main).to.equal('process/Async');
+        const eventTypes = collectedTrace.events.map((e) => `${e.protocol}:${e.command}`);
+        chai.expect(eventTypes).to.eql([
+          'network:started',
+          'network:data',
+          'network:data',
+          'network:stopped',
+        ]);
+        chai.expect(JSON.parse(JSON.stringify(collectedTrace.events[1].payload))).to.eql({
+          data: 'hello',
+          src: null,
+          tgt: {
+            node: 'process/Async',
+            port: 'in',
+          },
+        });
+        chai.expect(JSON.parse(JSON.stringify(collectedTrace.events[2].payload))).to.eql({
+          data: 'hello',
+          src: {
+            node: 'process/Async',
+            port: 'out',
+          },
+          tgt: null,
+        });
+        done();
+      });
+    });
+  });
 });

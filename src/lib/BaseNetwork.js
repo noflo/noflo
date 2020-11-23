@@ -116,6 +116,10 @@ class BaseNetwork extends EventEmitter {
     } else {
       this.loader = new componentLoader.ComponentLoader(this.baseDir, this.options);
     }
+
+    // Enable Flowtrace for this network, when available
+    this.flowtraceName = null;
+    this.setFlowtrace(options.flowtrace || false, null);
   }
 
   // The uptime of the network is the current time minus the start-up
@@ -144,7 +148,66 @@ class BaseNetwork extends EventEmitter {
     return active;
   }
 
+  traceEvent(event, payload) {
+    if (!this.flowtrace) {
+      return;
+    }
+    if (this.flowtraceName && this.flowtraceName !== this.flowtrace.mainGraph) {
+      // Let main graph log all events from subgraphs
+      return;
+    }
+    switch (event) {
+      case 'ip': {
+        let type = 'data';
+        if (payload.type === 'openBracket') {
+          type = 'begingroup';
+        } else if (payload.type === 'closeBracket') {
+          type = 'endgroup';
+        }
+        const src = payload.socket.from ? {
+          node: payload.socket.from.process.id,
+          port: payload.socket.from.port,
+        } : null;
+        const tgt = payload.socket.to ? {
+          node: payload.socket.to.process.id,
+          port: payload.socket.to.port,
+        } : null;
+        this.flowtrace.addNetworkPacket(
+          `network:${type}`,
+          src,
+          tgt,
+          this.flowtraceName,
+          {
+            subgraph: payload.subgraph,
+            group: payload.group,
+            datatype: payload.datatype,
+            schema: payload.schema,
+            data: payload.data,
+          },
+        );
+        break;
+      }
+      case 'start': {
+        this.flowtrace.addNetworkStarted(this.flowtraceName);
+        break;
+      }
+      case 'end': {
+        this.flowtrace.addNetworkStopped(this.flowtraceName);
+        break;
+      }
+      case 'error': {
+        this.flowtrace.addNetworkError(this.flowtraceName, payload);
+        break;
+      }
+      default: {
+        // No default handler
+      }
+    }
+  }
+
   bufferedEmit(event, payload) {
+    // Add the event to Flowtrace immediately
+    this.traceEvent(event, payload);
     // Errors get emitted immediately, like does network end
     if (['icon', 'error', 'process-error', 'end'].includes(event)) {
       this.emit(event, payload);
@@ -369,9 +432,14 @@ class BaseNetwork extends EventEmitter {
       return;
     }
 
-    if (!node.component.network) { return; }
+    if (!node.component.network) {
+      return;
+    }
 
     node.component.network.setDebug(this.debug);
+    if (this.flowtrace) {
+      node.component.network.setFlowtrace(this.flowtrace, node.componentName, false);
+    }
 
     const emitSub = (type, data) => {
       if ((type === 'process-error') && (this.listeners('process-error').length === 0)) {
@@ -387,7 +455,7 @@ class BaseNetwork extends EventEmitter {
       } else {
         data.subgraph = [node.id];
       }
-      return this.bufferedEmit(type, data);
+      this.bufferedEmit(type, data);
     };
 
     node.component.network.on('ip', (data) => {
@@ -899,6 +967,29 @@ class BaseNetwork extends EventEmitter {
       const process = this.processes[processId];
       const instance = process.component;
       if (instance.isSubgraph()) { instance.network.setDebug(active); }
+    });
+  }
+
+  setFlowtrace(flowtrace, name = null, main = true) {
+    if (!flowtrace) {
+      this.flowtraceName = null;
+      this.flowtrace = null;
+      return;
+    }
+    if (this.flowtrace) {
+      // We already have a tracer
+      return;
+    }
+    this.flowtrace = flowtrace;
+    this.flowtraceName = name || this.graph.name;
+    this.flowtrace.addGraph(this.flowtraceName, this.graph, main);
+    Object.keys(this.processes).forEach((nodeId) => {
+      // Register existing subgraphs
+      const node = this.processes[nodeId];
+      if (!node.component.isSubgraph() || !node.component.network) {
+        return;
+      }
+      node.component.network.setFlowtrace(this.flowtrace, node.componentName, false);
     });
   }
 }

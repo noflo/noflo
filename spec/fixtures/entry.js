@@ -1,5 +1,6 @@
-var exported = {
-  noflo: require('../../lib/NoFlo')
+const exported = {
+  noflo: require('../../lib/NoFlo'),
+  flowtrace: require('flowtrace'),
 };
 
 if (window) {
@@ -7,7 +8,6 @@ if (window) {
     if (exported[moduleName]) {
       return exported[moduleName];
     }
-    throw new Error('Module ' + moduleName + ' not available');
+    throw new Error(`Module '${moduleName}' not available`);
   };
 }
-

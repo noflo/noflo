@@ -762,12 +762,14 @@ describe('NoFlo Graph component', () => {
     describe('with two levels of subgraphs', () => {
       let graph = null;
       let network = null;
+      const trace = new flowtrace.Flowtrace();
       before((done) => {
         graph = new noflo.Graph('main');
         graph.baseDir = baseDir;
         noflo.createNetwork(graph, {
           delay: true,
           subscribeGraph: false,
+          flowtrace: trace,
         },
         (err, net) => {
           if (err) {
@@ -893,6 +895,40 @@ describe('NoFlo Graph component', () => {
             done(err);
           }
         });
+      });
+      it('should finish', (done) => {
+        network.once('end', () => {
+          done();
+        });
+      });
+      it('should produce a Flowtrace with both graphs included', () => {
+        const collectedTrace = trace.toJSON();
+        chai.expect(Object.keys(collectedTrace.header.graphs), 'should have exported all graphs').to.eql([
+          'main',
+          'foo/AB2',
+          'foo/AB',
+        ]);
+        const eventTypes = collectedTrace.events.map((e) => `${e.protocol}:${e.command}`);
+        chai.expect(eventTypes).to.eql([
+          'network:started',
+          'network:data',
+          'network:data',
+          'network:data',
+          'network:data',
+          'network:stopped',
+        ]);
+        const subgraphs = collectedTrace.events.map((e) => {
+          const s = e.payload.subgraph ? e.payload.subgraph.join(':') : '';
+          return s;
+        });
+        chai.expect(subgraphs).to.eql([
+          '',
+          '',
+          'Sub:A',
+          'Sub',
+          '',
+          '',
+        ]);
       });
     });
   });
