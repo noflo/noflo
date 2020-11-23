@@ -73,12 +73,12 @@ class ComponentLoader extends EventEmitter {
     this.components = {};
     registerLoader.register(this, (err) => {
       this.processing = false;
-      this.ready = true;
-      this.emit('ready', true);
       if (err) {
         callback(err);
         return;
       }
+      this.ready = true;
+      this.emit('ready', true);
       callback(null, this.components);
     });
   }
