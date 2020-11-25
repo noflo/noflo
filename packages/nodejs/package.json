@@ -24,12 +24,13 @@
     "fbp-graph": "^0.6.2",
     "flowhub-registry": "^0.2.0",
     "mdns-js": "^1.0.3",
-    "noflo": "^1.2.7",
-    "noflo-runtime-base": "^0.11.8",
-    "noflo-runtime-webrtc": "^0.11.1",
-    "noflo-runtime-websocket": "^0.11.0",
+    "noflo": "^1.3.0",
+    "noflo-runtime-base": "^0.12.0",
+    "noflo-runtime-webrtc": "^0.12.0",
+    "noflo-runtime-websocket": "^0.12.0",
     "open": "^7.2.1",
     "password-generator": "^2.2.0",
+    "slug": "^4.0.2",
     "uuid": "^8.1.0"
   },
   "devDependencies": {

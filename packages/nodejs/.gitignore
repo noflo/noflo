@@ -4,3 +4,4 @@ package-lock.json
 /*.pem
 /*.key
 /*.cert
+.flowtrace

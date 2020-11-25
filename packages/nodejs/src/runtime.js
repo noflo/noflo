@@ -1,27 +1,12 @@
 const path = require('path');
 const fbpGraph = require('fbp-graph');
-const { trace } = require('noflo-runtime-base');
 const { Runtime: FlowhubRuntime } = require('flowhub-registry');
 const os = require('os');
 const mdns = require('mdns-js');
 const debug = require('./debug');
 const server = require('./server');
 const autoSave = require('./autoSave');
-
-exports.writeTrace = (options, tracer) => new Promise((resolve, reject) => {
-  if (!options.trace) {
-    resolve(null);
-    return;
-  }
-  tracer.dumpFile(null, (err, filename) => {
-    if (err) {
-      reject(err);
-      return;
-    }
-    console.log(`Wrote flowtrace to: ${filename}`);
-    resolve(null);
-  });
-});
+const { writeTrace } = require('./trace');
 
 exports.loadGraph = (options) => new Promise((resolve, reject) => {
   if (typeof options.graph === 'object') {
@@ -43,7 +28,6 @@ exports.startGraph = (graphPath, runtime, settings) => exports.loadGraph({
 }).then((graphInstance) => new Promise((resolve, reject) => {
   const graph = graphInstance;
   graph.name = graph.name || path.basename(graphPath, path.extname(graphPath));
-  graph.properties.baseDir = settings.baseDir;
   const graphName = `${settings.namespace}/${graph.name}`;
   runtime.graph.registerGraph(graphName, graph);
   runtime.network._startNetwork(graph, graphName, 'none', (err) => { // eslint-disable-line
@@ -69,7 +53,7 @@ function stopNetwork(network) {
 }
 
 function stopRuntime(rt, options, tracer) {
-  exports.writeTrace(options, tracer)
+  writeTrace(options, tracer)
     .then(() => server.stop(rt))
     .then(() => {
       process.exit(0);
@@ -81,11 +65,11 @@ function stopRuntime(rt, options, tracer) {
 }
 
 exports.subscribe = (rt, options) => new Promise((resolve) => {
-  const tracer = new trace.Tracer();
   const networks = [];
+  const tracers = [];
 
   process.on('SIGUSR2', () => {
-    exports.writeTrace(options, tracer)
+    Promise.all(tracers.map((tracer) => writeTrace(options, tracer)))
       .catch((err) => {
         console.error(err);
       });
@@ -93,7 +77,7 @@ exports.subscribe = (rt, options) => new Promise((resolve) => {
 
   process.on('SIGTERM', () => {
     Promise.all(networks.map(stopNetwork))
-      .then(() => exports.writeTrace(options, tracer))
+      .then(() => Promise.all(tracers.map((tracer) => writeTrace(options, tracer))))
       .then(() => process.exit(0))
       .catch((err) => {
         debug.showError(err);
@@ -104,7 +88,7 @@ exports.subscribe = (rt, options) => new Promise((resolve) => {
   if (!options.catchExceptions) {
     process.on('uncaughtException', (err) => {
       debug.showError(err);
-      exports.writeTrace(options, tracer)
+      Promise.all(tracers.map((tracer) => writeTrace(options, tracer)))
         .then(() => {
           process.exit(1);
         }, (e) => {
@@ -114,9 +98,10 @@ exports.subscribe = (rt, options) => new Promise((resolve) => {
     });
   }
 
-  rt.network.on('addnetwork', (network) => {
+  rt.network.on('addnetwork', (network, graphName) => {
+    let tracer;
     if (options.trace) {
-      tracer.attach(network);
+      tracer = rt.trace.startTrace(graphName, network);
     }
     if (options.debug) {
       debug.add(network, options);
@@ -126,15 +111,12 @@ exports.subscribe = (rt, options) => new Promise((resolve) => {
     }
     networks.push(network);
   });
-  rt.network.on('removenetwork', (network) => {
+  rt.network.on('removenetwork', (network, graphName) => {
     if (networks.indexOf(network) === -1) {
       return;
     }
-    if (options.trace) {
-      exports.writeTrace(options, tracer)
-        .then(() => {
-          tracer.detach(network);
-        });
+    if (options.trace && rt.trace.traces[graphName]) {
+      writeTrace(options, rt.trace.traces[graphName]);
     }
     networks.splice(networks.indexOf(network), 1);
   });
