@@ -121,14 +121,14 @@ Otherwise you can send the `SIGUSR2` to trigger dumping the file to disk.
 
 ```shell
 $ kill -SIGUSR2 $PID_OF_PROCESS
-... Wrote flowtrace to: /tmp/1151020-12063-ami5vq.json
+... Wrote flowtrace to: .flowtrace/1151020-12063-ami5vq.json
 ```
 
 You can now use various flowtrace tools to introspect the data.
 For instance, you can get a human readable log using `flowtrace-show`
 
 ```shell
-$ flowtrace-show /tmp/1151020-12063-ami5vq.json
+$ npx flowtrace-show .flowtrace/1151020-12063-ami5vq.json
 
 -> IN repeat CONN
 -> IN repeat DATA hello world
