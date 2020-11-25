@@ -245,6 +245,7 @@ cases:
       const graphName = 'Test';
       const graphPath = path.resolve(__dirname, `./fixtures/auto-save/graphs/${graphName}.json`);
       const graphInstance = new fbpGraph.Graph(graphName);
+      let graphFound = false;
       before('set up graph', () => {
         graphInstance.setProperties({
           ...graphInstance.properties,
@@ -257,15 +258,21 @@ cases:
         graphInstance.addEdge('one', 'out', 'two', 'in');
         graphInstance.addInitial(1, 'one', 'in');
       });
-      after('clean up file', () => unlink(graphPath));
+      after('clean up file', () => {
+        if (!graphFound) {
+          return Promise.resolve();
+        }
+        return unlink(graphPath);
+      });
       it('should be possible to send a graph to the runtime', () => runtimeClient
         .protocol.graph.send(graphInstance, false));
-      it('should have saved the graph JSON to the fixture folder', () => waitFor(100)
+      it('should have saved the graph JSON to the fixture folder', () => waitFor(200)
         .then(() => readFile(
           graphPath,
           'utf-8',
         ))
         .then((contents) => {
+          graphFound = true;
           const graphJson = JSON.parse(contents);
           expect(graphJson).to.eql(JSON.parse(JSON.stringify(graphInstance.toJSON())));
         }));
@@ -274,6 +281,7 @@ cases:
       const graphName = 'main';
       const graphPath = path.resolve(__dirname, './fixtures/auto-save/graphs/main.json');
       const graphInstance = new fbpGraph.Graph(graphName);
+      let graphFound = false;
       before('set up graph', () => {
         graphInstance.setProperties({
           ...graphInstance.properties,
@@ -286,7 +294,12 @@ cases:
         graphInstance.addEdge('one', 'out', 'two', 'in');
         graphInstance.addInitial(1, 'one', 'in');
       });
-      after('clean up file', () => unlink(graphPath));
+      after('clean up file', () => {
+        if (!graphFound) {
+          return Promise.resolve();
+        }
+        return unlink(graphPath);
+      });
       it('should be possible to send a graph to the runtime', () => runtimeClient
         .protocol.graph.send({
           ...graphInstance,
@@ -298,6 +311,7 @@ cases:
           'utf-8',
         ))
         .then((contents) => {
+          graphFound = true;
           const graphJson = JSON.parse(contents);
           expect(graphJson).to.eql(JSON.parse(JSON.stringify(graphInstance.toJSON())));
         }));
