@@ -1,3 +1,7 @@
+## noflo-nodejs 0.14.0 (25-11-2020)
+
+* Updated to the new built-in Flowtrace functionality in NoFlo 1.3.0
+
 ## noflo-nodejs 0.13.1 (16-11-2020)
 
 * Compatibility with the TypeScript version of fbp-graph
