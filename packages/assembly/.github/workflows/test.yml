@@ -19,6 +19,11 @@ jobs:
     - run: npm test
       env:
         CI: true
+    - name: Upload Flowtraces
+      uses: actions/upload-artifact@v2
+      with:
+        name: flowtrace
+        path: example/.flowtrace
   merge-me:
     name: Auto-merge dependency updates
     needs: test
