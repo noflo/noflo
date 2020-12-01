@@ -57,11 +57,10 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
     "build:node": "tsc",
     "build:browser": "webpack",
     "build": "npm run build:node && npm run build:browser",
-    "pretest": "npm run lint && npm run typecheck && npm run build",
+    "pretest": "npm run lint && npm run build",
     "test:node": "nyc mocha --require spec/utils/inject.js spec",
     "test:browser": "karma start karma.config.js",
     "test": "npm run test:node && npm run test:browser"
