@@ -1,49 +1,49 @@
 #!/usr/bin/env node
 // vim: set filetype=javascript:
-var noflo = require('../lib/NoFlo');
-var path = require('path');
-var fs = require('fs');
+const path = require('path');
+const fs = require('fs');
+const noflo = require('../lib/NoFlo');
 
 // Base setup
-var baseDir = process.cwd();
-var cacheFile = path.resolve(baseDir, 'fbp.json');
+const baseDir = process.cwd();
+const cacheFile = path.resolve(baseDir, 'fbp.json');
 
-var preheat = function (callback) {
-  console.log("Pre-heating NoFlo cache with manifest for " + baseDir);
-  var loader = new noflo.ComponentLoader(baseDir, {
+function preheat(callback) {
+  console.log(`Pre-heating NoFlo cache with manifest for ${baseDir}`);
+  const loader = new noflo.ComponentLoader(baseDir, {
     cache: true,
-    discover: true
+    discover: true,
   });
   console.time('NPM traversal for NoFlo components');
-  loader.listComponents(function (err, components) {
+  loader.listComponents((err, components) => {
     console.timeEnd('NPM traversal for NoFlo components');
     callback(err, components);
   });
-};
+}
 
-var reportAndVerify = function (err, components) {
+function reportAndVerify(err, components) {
   if (err) {
     console.log(err);
     process.exit(1);
   }
-  console.log("Found " + (Object.keys(components).length) + " components.");
-  fs.stat(cacheFile, function (err, stats) {
-    if (err) {
-      console.log(err.message);
+  console.log(`Found ${Object.keys(components).length} components.`);
+  fs.stat(cacheFile, (statErr) => {
+    if (statErr) {
+      console.log(statErr.message);
       process.exit(1);
     }
     return process.exit(0);
   });
-};
+}
 
-fs.stat(cacheFile, function (err, stats) {
+fs.stat(cacheFile, (err) => {
   if (err) {
-    return preheat(reportAndVerify);
+    preheat(reportAndVerify);
   }
-  console.log('Old cache file ' + cacheFile + ' found, clearing');
-  fs.unlink(cacheFile, function (err) {
-    if (err) {
-      console.log(err);
+  console.log(`Old cache file ${cacheFile} found, clearing`);
+  fs.unlink(cacheFile, (unlinkErr) => {
+    if (unlinkErr) {
+      console.log(unlinkErr);
       process.exit(1);
     }
     preheat(reportAndVerify);

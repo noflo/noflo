@@ -928,7 +928,7 @@ describe('ComponentLoader with a fixture project', () => {
         done(err);
         return;
       }
-      chai.expect(source.tests).to.include('componentloader/Repeat')
+      chai.expect(source.tests).to.include('componentloader/Repeat');
       done();
     });
   });
@@ -960,7 +960,7 @@ describe('ComponentLoader with a fixture project', () => {
         done(err);
         return;
       }
-      chai.expect(source.tests).to.include('example/RepeatAsync')
+      chai.expect(source.tests).to.include('example/RepeatAsync');
       done();
     });
   });

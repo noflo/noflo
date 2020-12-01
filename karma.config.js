@@ -1,5 +1,3 @@
-const path = require('path');
-
 module.exports = (config) => {
   const configuration = {
     basePath: process.cwd(),
