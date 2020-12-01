@@ -327,6 +327,34 @@ function sendOutputMap(outputs, resultType, options, callback) {
   callback(null, result);
 }
 
+/**
+ * @callback ResultCallback
+ * @param {Error | null} err
+ * @param {any} [output]
+ */
+
+/**
+ * @callback NetworkAsCallback
+ * @param {any} input
+ * @param {ResultCallback} callback
+ */
+
+/**
+ * @callback NetworkCallback
+ * @param {Network} network
+ */
+
+/**
+ * @param {Graph | string} component - Graph or component to load
+ * @param {Object} options
+ * @param {string} [options.name] - Name for the wrapped network
+ * @param {ComponentLoader} [options.loader] - Component loader instance to use, if any
+ * @param {string} [options.baseDir] - Project base directory for component loading
+ * @param {Object} [options.flowtrace] - Flowtrace instance to use for tracing this network run
+ * @param {NetworkCallback} [options.networkCallback] - Access to Network instance
+ * @param {boolean} [options.raw] - Whether the callback should operate on raw noflo.IP objects
+ * @returns {NetworkAsCallback}
+ */
 export function asCallback(component, options) {
   if (!component) {
     throw new Error('No component or graph provided');
