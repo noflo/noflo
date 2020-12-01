@@ -4,7 +4,7 @@
 /* eslint-disable
     import/prefer-default-export,
 */
-import getParams from 'get-function-params';
+import * as getParams from 'get-function-params';
 import { Component } from './Component';
 
 // ## asComponent generator API
