@@ -6,9 +6,10 @@
 /* eslint-disable
     class-methods-use-this,
     import/no-unresolved,
+    import/prefer-default-export,
 */
 
-const noflo = require('../lib/NoFlo');
+import * as noflo from '../lib/NoFlo';
 
 // The Graph component is used to wrap NoFlo Networks into components inside
 // another network.
@@ -264,4 +265,6 @@ class Graph extends noflo.Component {
   }
 }
 
-exports.getComponent = (metadata) => new Graph(metadata);
+export function getComponent(metadata) {
+  return new Graph(metadata);
+}

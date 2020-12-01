@@ -1,4 +1,4 @@
-import { Component } from '../../../../src/lib/NoFlo';
+import { Component } from '../../../../lib/NoFlo';
 
 exports.getComponent = (): Component => {
   const c = new Component();

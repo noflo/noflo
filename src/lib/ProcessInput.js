@@ -3,9 +3,11 @@
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
 /* eslint-disable no-underscore-dangle */
-const debug = require('debug')('noflo:component');
+import debug from 'debug';
 
-module.exports = class ProcessInput {
+const debugComponent = debug('noflo:component');
+
+export default class ProcessInput {
   constructor(ports, context) {
     this.ports = ports;
     this.context = context;
@@ -26,9 +28,9 @@ module.exports = class ProcessInput {
     }
     this.nodeInstance.activate(this.context);
     if (this.port.isAddressable()) {
-      debug(`${this.nodeInstance.nodeId} packet on '${this.port.name}[${this.ip.index}]' caused activation ${this.nodeInstance.load}: ${this.ip.type}`);
+      debugComponent(`${this.nodeInstance.nodeId} packet on '${this.port.name}[${this.ip.index}]' caused activation ${this.nodeInstance.load}: ${this.ip.type}`);
     } else {
-      debug(`${this.nodeInstance.nodeId} packet on '${this.port.name}' caused activation ${this.nodeInstance.load}: ${this.ip.type}`);
+      debugComponent(`${this.nodeInstance.nodeId} packet on '${this.port.name}' caused activation ${this.nodeInstance.load}: ${this.ip.type}`);
     }
   }
 
@@ -300,4 +302,4 @@ module.exports = class ProcessInput {
     if (args.length === 1) { return datas.pop(); }
     return datas;
   }
-};
+}

@@ -6,23 +6,47 @@
 /* eslint-disable
     class-methods-use-this,
     no-underscore-dangle,
+    import/prefer-default-export,
 */
-const { EventEmitter } = require('events');
-const debug = require('debug')('noflo:component');
-const debugBrackets = require('debug')('noflo:component:brackets');
-const debugSend = require('debug')('noflo:component:send');
+import { EventEmitter } from 'events';
+import debug from 'debug';
+import { InPorts, OutPorts, normalizePortName } from './Ports';
+import ProcessContext from './ProcessContext';
+import ProcessInput from './ProcessInput';
+import ProcessOutput from './ProcessOutput';
 
-const ports = require('./Ports');
-const ProcessContext = require('./ProcessContext');
-const ProcessInput = require('./ProcessInput');
-const ProcessOutput = require('./ProcessOutput');
+const debugComponent = debug('noflo:component');
+const debugBrackets = debug('noflo:component:brackets');
+const debugSend = debug('noflo:component:send');
+
+/**
+ * @callback ProcessingFunction
+ * @param {ProcessInput} input
+ * @param {ProcessOutput} output
+ * @param {ProcessContext} context
+ * @returns {void}
+ */
 
 // ## NoFlo Component Base class
 //
 // The `noflo.Component` interface provides a way to instantiate
 // and extend NoFlo components.
-class Component extends EventEmitter {
-  constructor(options = {}) {
+export class Component extends EventEmitter {
+  /**
+   * @param {Object} options
+   * @param {Object | InPorts} [options.inPorts] - Inports for the component
+   * @param {Object | OutPorts} [options.outPorts] - Outports for the component
+   * @param {string} [options.icon]
+   * @param {string} [options.description]
+   * @param {ProcessingFunction} [options.process] - Component processsing function
+   * @param {boolean} [options.ordered] - Whether component should send
+   * packets in same order it received them
+   * @param {boolean} [options.autoOrdering]
+   * @param {boolean} [options.activateOnInput] - Whether component should
+   * activate when it receives packets
+   * @param {Object} [options.forwardBrackets] - Mappings of ports to forward brackets to
+   */
+  constructor(options = { }) {
     super();
     const opts = options;
     // Prepare inports, if any were given in options.
@@ -30,10 +54,10 @@ class Component extends EventEmitter {
     // instantiation by using the `component.inPorts.add`
     // method.
     if (!opts.inPorts) { opts.inPorts = {}; }
-    if (opts.inPorts instanceof ports.InPorts) {
+    if (opts.inPorts instanceof InPorts) {
       this.inPorts = opts.inPorts;
     } else {
-      this.inPorts = new ports.InPorts(opts.inPorts);
+      this.inPorts = new InPorts(opts.inPorts);
     }
 
     // Prepare outports, if any were given in opts.
@@ -41,10 +65,10 @@ class Component extends EventEmitter {
     // instantiation by using the `component.outPorts.add`
     // method.
     if (!opts.outPorts) { opts.outPorts = {}; }
-    if (opts.outPorts instanceof ports.OutPorts) {
+    if (opts.outPorts instanceof OutPorts) {
       this.outPorts = opts.outPorts;
     } else {
-      this.outPorts = new ports.OutPorts(opts.outPorts);
+      this.outPorts = new OutPorts(opts.outPorts);
     }
 
     // Set the default component icon and description
@@ -89,6 +113,8 @@ class Component extends EventEmitter {
 
     // Placeholder for the ID of the current node, populated
     // by NoFlo network
+    //
+    /** @type string | null */
     this.nodeId = null;
   }
 
@@ -98,6 +124,9 @@ class Component extends EventEmitter {
 
   isSubgraph() { return false; }
 
+  /**
+   * @param {string} icon - Updated icon for the component
+   */
   setIcon(icon) {
     this.icon = icon;
     this.emit('icon', this.icon);
@@ -110,6 +139,12 @@ class Component extends EventEmitter {
   // If component has an `error` outport that is connected, errors
   // are sent as IP objects there. If the port is not connected,
   // errors are thrown.
+  /**
+   * @param {Error} e
+   * @param {Array} [groups]
+   * @param {string} [errorPort]
+   * @param {string | null} [scope]
+   */
   error(e, groups = [], errorPort = 'error', scope = null) {
     if (this.outPorts[errorPort]
       && (this.outPorts[errorPort].isAttached() || !this.outPorts[errorPort].isRequired())) {
@@ -121,6 +156,11 @@ class Component extends EventEmitter {
     throw e;
   }
 
+  /**
+   * @callback ErrorableCallback
+   * @param {Error | null} error
+   */
+
   // ### Setup
   //
   // The setUp method is for component-specific initialization.
@@ -128,28 +168,37 @@ class Component extends EventEmitter {
   //
   // Override in component implementation to do component-specific
   // setup work.
+  /**
+   * @param {ErrorableCallback} callback - Callback for when setup is ready
+   */
   setUp(callback) {
-    callback();
+    callback(null);
   }
 
-  // ### Setup
+  // ### Teardown
   //
   // The tearDown method is for component-specific cleanup. Called
   // at network shutdown
   //
   // Override in component implementation to do component-specific
   // cleanup work, like clearing any accumulated state.
+  /**
+   * @param {ErrorableCallback} callback - Callback for when teardown is ready
+   */
   tearDown(callback) {
-    callback();
+    callback(null);
   }
 
   // ### Start
   //
   // Called when network starts. This sets calls the setUp
   // method and sets the component to a started state.
+  /**
+   * @param {ErrorableCallback} callback - Callback for when startup is ready
+   */
   start(callback) {
     if (this.isStarted()) {
-      callback();
+      callback(null);
       return;
     }
     this.setUp((err) => {
@@ -171,6 +220,9 @@ class Component extends EventEmitter {
   //
   // The callback is called when tearDown finishes and
   // all active processing contexts have ended.
+  /**
+   * @param {ErrorableCallback} callback - Callback for when shutdown is ready
+   */
   shutdown(callback) {
     const finalize = () => {
       // Clear contents of inport buffers
@@ -186,12 +238,12 @@ class Component extends EventEmitter {
         out: {},
       };
       if (!this.isStarted()) {
-        callback();
+        callback(null);
         return;
       }
       this.started = false;
       this.emit('end');
-      callback();
+      callback(null);
     };
 
     // Tell the component that it is time to shut down
@@ -246,6 +298,10 @@ class Component extends EventEmitter {
   }
 
   // Sets process handler function
+  /**
+   * @param {ProcessingFunction} handle - Processing function
+   * @returns {Component}
+   */
   process(handle) {
     if (typeof handle !== 'function') {
       throw new Error('Process handler must be a function');
@@ -321,7 +377,7 @@ class Component extends EventEmitter {
     if ((ip.type === 'openBracket') && (this.autoOrdering === null) && !this.ordered) {
       // Switch component to ordered mode when receiving a stream unless
       // auto-ordering is disabled
-      debug(`${this.nodeId} port '${port.name}' entered auto-ordering mode`);
+      debugComponent(`${this.nodeId} port '${port.name}' entered auto-ordering mode`);
       this.autoOrdering = true;
     }
 
@@ -382,15 +438,15 @@ class Component extends EventEmitter {
     // If receiving an IP object didn't cause the component to
     // activate, log that input conditions were not met
     if (port.isAddressable()) {
-      debug(`${this.nodeId} packet on '${port.name}[${ip.index}]' didn't match preconditions: ${ip.type}`);
+      debugComponent(`${this.nodeId} packet on '${port.name}[${ip.index}]' didn't match preconditions: ${ip.type}`);
       return;
     }
-    debug(`${this.nodeId} packet on '${port.name}' didn't match preconditions: ${ip.type}`);
+    debugComponent(`${this.nodeId} packet on '${port.name}' didn't match preconditions: ${ip.type}`);
   }
 
   // Get the current bracket forwarding context for an IP object
   getBracketContext(type, port, scope, idx) {
-    let { name, index } = ports.normalizePortName(port);
+    let { name, index } = normalizePortName(port);
     if (idx != null) { index = idx; }
     const portsList = type === 'in' ? this.inPorts : this.outPorts;
     if (portsList[name].isAddressable()) {
@@ -413,7 +469,7 @@ class Component extends EventEmitter {
   addToResult(result, port, packet, before = false) {
     const res = result;
     const ip = packet;
-    const { name, index } = ports.normalizePortName(port);
+    const { name, index } = normalizePortName(port);
     const method = before ? 'unshift' : 'push';
     if (this.outPorts[name].isAddressable()) {
       const idx = index ? parseInt(index, 10) : ip.index;
@@ -430,7 +486,7 @@ class Component extends EventEmitter {
   // Get contexts that can be forwarded with this in/outport
   // pair.
   getForwardableContexts(inport, outport, contexts) {
-    const { name, index } = ports.normalizePortName(outport);
+    const { name, index } = normalizePortName(outport);
     const forwardable = [];
     contexts.forEach((ctx, idx) => {
       // No forwarding to this outport
@@ -615,5 +671,3 @@ class Component extends EventEmitter {
 }
 Component.description = '';
 Component.icon = null;
-
-exports.Component = Component;

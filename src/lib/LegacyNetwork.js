@@ -2,8 +2,12 @@
 //     (c) 2013-2018 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
-const BaseNetwork = require('./BaseNetwork');
-const { deprecated } = require('./Platform');
+import { BaseNetwork } from './BaseNetwork';
+import { deprecated } from './Platform';
+
+/* eslint-disable
+    import/prefer-default-export,
+*/
 
 // ## The NoFlo network coordinator
 //
@@ -14,7 +18,7 @@ const { deprecated } = require('./Platform');
 // instantiate all the necessary processes from the designated
 // components, attach sockets between them, and handle the sending
 // of Initial Information Packets.
-class LegacyNetwork extends BaseNetwork {
+export class LegacyNetwork extends BaseNetwork {
   // All NoFlo networks are instantiated with a graph. Upon instantiation
   // they will load all the needed components, instantiate them, and
   // set up the defined connections and IIPs.
@@ -109,5 +113,3 @@ class LegacyNetwork extends BaseNetwork {
     });
   }
 }
-
-exports.Network = LegacyNetwork;

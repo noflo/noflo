@@ -4,18 +4,13 @@
 
 /* eslint-disable
     no-param-reassign,
+    import/prefer-default-export,
 */
-const {
-  Graph,
-} = require('fbp-graph');
-const {
-  ComponentLoader,
-} = require('./ComponentLoader');
-const {
-  Network,
-} = require('./Network');
-const IP = require('./IP');
-const internalSocket = require('./InternalSocket');
+import { Graph } from 'fbp-graph';
+import { ComponentLoader } from './ComponentLoader';
+import { Network } from './Network';
+import IP from './IP';
+import * as internalSocket from './InternalSocket';
 
 // ## asCallback embedding API
 //
@@ -332,7 +327,38 @@ function sendOutputMap(outputs, resultType, options, callback) {
   callback(null, result);
 }
 
-exports.asCallback = function asCallback(component, options) {
+/**
+ * @callback ResultCallback
+ * @param {Error | null} err
+ * @param {any} [output]
+ * @returns {void}
+ */
+
+/**
+ * @callback NetworkAsCallback
+ * @param {any} input
+ * @param {ResultCallback} callback
+ * @returns void
+ */
+
+/**
+ * @callback NetworkCallback
+ * @param {Network} network
+ * @returns void
+ */
+
+/**
+ * @param {Graph | string} component - Graph or component to load
+ * @param {Object} options
+ * @param {string} [options.name] - Name for the wrapped network
+ * @param {ComponentLoader} [options.loader] - Component loader instance to use, if any
+ * @param {string} [options.baseDir] - Project base directory for component loading
+ * @param {Object} [options.flowtrace] - Flowtrace instance to use for tracing this network run
+ * @param {NetworkCallback} [options.networkCallback] - Access to Network instance
+ * @param {boolean} [options.raw] - Whether the callback should operate on raw noflo.IP objects
+ * @returns {NetworkAsCallback}
+ */
+export function asCallback(component, options) {
   if (!component) {
     throw new Error('No component or graph provided');
   }
@@ -357,4 +383,4 @@ exports.asCallback = function asCallback(component, options) {
       });
     });
   };
-};
+}

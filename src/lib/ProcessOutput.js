@@ -4,9 +4,10 @@
 //     NoFlo may be freely distributed under the MIT license
 
 /* eslint-disable no-underscore-dangle */
-const debug = require('debug')('noflo:component');
+import debug from 'debug';
+import IP from './IP';
 
-const IP = require('./IP');
+const debugComponent = debug('noflo:component');
 
 // Checks if a value is an Error
 function isError(err) {
@@ -14,7 +15,7 @@ function isError(err) {
     || (Array.isArray(err) && (err.length > 0) && err[0] instanceof Error);
 }
 
-module.exports = class ProcessOutput {
+export default class ProcessOutput {
   constructor(ports, context) {
     this.ports = ports;
     this.context = context;
@@ -168,8 +169,8 @@ module.exports = class ProcessOutput {
       });
     }
 
-    debug(`${this.nodeInstance.nodeId} finished processing ${this.nodeInstance.load}`);
+    debugComponent(`${this.nodeInstance.nodeId} finished processing ${this.nodeInstance.load}`);
 
     this.nodeInstance.deactivate(this.context);
   }
-};
+}

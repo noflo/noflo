@@ -1,8 +1,11 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2018 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
-const getParams = require('get-function-params');
-const { Component } = require('./Component');
+/* eslint-disable
+    import/prefer-default-export,
+*/
+import * as getParams from 'get-function-params';
+import { Component } from './Component';
 
 // ## asComponent generator API
 //
@@ -56,7 +59,12 @@ const { Component } = require('./Component');
 // However, ES5 transpilation doesn't work with default values.
 // In these cases the port with a default won't be visible. It is
 // recommended to use default values only with components that don't need to run in legacy browsers.
-exports.asComponent = function asComponent(func, options) {
+/**
+ * @param {Function} func
+ * @param {Object} options
+ * @returns {Component}
+ */
+export function asComponent(func, options) {
   let hasCallback = false;
   const params = getParams(func).filter((p) => {
     if (p.param !== 'callback') { return true; }
@@ -118,4 +126,4 @@ exports.asComponent = function asComponent(func, options) {
     output.sendDone(res);
   });
   return c;
-};
+}

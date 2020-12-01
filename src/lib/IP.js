@@ -27,7 +27,7 @@
 //   - 'openBracket'
 //   - 'closeBracket'
 
-module.exports = class IP {
+export default class IP {
   // Detects if an arbitrary value is an IP
   static isIP(obj) {
     return obj && (typeof obj === 'object') && (obj.isIP === true);
@@ -78,4 +78,4 @@ module.exports = class IP {
   drop() {
     Object.keys(this).forEach((key) => { delete this[key]; });
   }
-};
+}

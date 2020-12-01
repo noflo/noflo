@@ -4,15 +4,18 @@
     "module": "commonjs",
     "allowJs": true,
     "checkJs": true,
-    "declaration": true,
-    "outDir": "./lib",
+    "outDir": ".",
     "declaration": true,
     "strict": false,
-    "rootDir": "."
+    "rootDir": "src"
   },
   "include": [
     "src/*.ts",
     "src/**/*.js",
     "src/lib/**/*.js"
+  ],
+  "exclude": [
+    "lib/*.js",
+    "components/*.js"
   ]
 }

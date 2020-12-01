@@ -17,13 +17,10 @@
     "debug": "^4.0.1",
     "fbp": "^1.5.0",
     "fbp-graph": "^0.6.2",
-    "fbp-manifest": "^0.2.5",
+    "fbp-manifest": "^0.2.7",
     "get-function-params": "^2.0.6"
   },
   "devDependencies": {
-    "@babel/cli": "^7.10.5",
-    "@babel/core": "^7.11.1",
-    "@babel/preset-env": "^7.11.0",
     "@types/node": "^14.14.2",
     "chai": "^4.0.0",
     "coffeescript": "^2.2.1",
@@ -49,6 +46,7 @@
     "webpack-cli": "^4.0.0"
   },
   "main": "./lib/NoFlo",
+  "types": "./lib/NoFlo.d.ts",
   "bin": {
     "noflo": "./bin/noflo",
     "noflo-cache-preheat": "./bin/noflo-cache-preheat"
@@ -59,15 +57,14 @@
     "url": "git://github.com/noflo/noflo.git"
   },
   "scripts": {
-    "lint": "eslint src",
-    "typecheck": "tsc --noEmit",
-    "pretest": "npm run lint && npm run typecheck",
+    "lint": "eslint .",
+    "build:node": "tsc",
+    "build:browser": "webpack",
+    "build": "npm run build:node && npm run build:browser",
+    "pretest": "npm run lint && npm run build",
     "test:node": "nyc mocha --require spec/utils/inject.js spec",
     "test:browser": "karma start karma.config.js",
-    "test": "npm run test:node && npm run test:browser",
-    "build:node": "babel src --out-dir .",
-    "build:browser": "webpack",
-    "build": "npm run build:node && npm run build:browser"
+    "test": "npm run test:node && npm run test:browser"
   },
   "docco_husky": {
     "output_dir": "docs",
@@ -75,7 +72,9 @@
   },
   "nyc": {
     "include": [
-      "src/**/*.js"
+      "components/*.js",
+      "lib/*.js",
+      "lib/**/*.js"
     ]
   }
 }

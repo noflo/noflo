@@ -2,9 +2,9 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
-const { EventEmitter } = require('events');
-const InPort = require('./InPort');
-const OutPort = require('./OutPort');
+import { EventEmitter } from 'events';
+import InPort from './InPort';
+import OutPort from './OutPort';
 
 // NoFlo ports collections
 //
@@ -59,7 +59,7 @@ class Ports extends EventEmitter {
   }
 }
 
-exports.InPorts = class InPorts extends Ports {
+export class InPorts extends Ports {
   constructor(ports) {
     super(ports, InPort);
   }
@@ -73,9 +73,9 @@ exports.InPorts = class InPorts extends Ports {
     if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
     return this.ports[name].once(event, callback);
   }
-};
+}
 
-exports.OutPorts = class OutPorts extends Ports {
+export class OutPorts extends Ports {
   constructor(ports) {
     super(ports, OutPort);
   }
@@ -104,12 +104,12 @@ exports.OutPorts = class OutPorts extends Ports {
     if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
     this.ports[name].disconnect(socketId);
   }
-};
+}
 
 // Port name normalization:
 // returns object containing keys name and index for ports names in
 // format `portname` or `portname[index]`.
-exports.normalizePortName = function normalizePortName(name) {
+export function normalizePortName(name) {
   const port = { name };
   // Regular port
   if (name.indexOf('[') === -1) { return port; }
@@ -120,4 +120,4 @@ exports.normalizePortName = function normalizePortName(name) {
     name: matched[1],
     index: matched[2],
   };
-};
+}

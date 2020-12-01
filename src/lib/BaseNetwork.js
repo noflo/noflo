@@ -6,15 +6,15 @@
 /* eslint-disable
     no-param-reassign,
     no-underscore-dangle,
+    import/prefer-default-export,
 */
 
-const { EventEmitter } = require('events');
-const internalSocket = require('./InternalSocket');
-const platform = require('./Platform');
-const componentLoader = require('./ComponentLoader');
-const utils = require('./Utils');
-const IP = require('./IP');
-const { deprecated } = require('./Platform');
+import { EventEmitter } from 'events';
+import * as internalSocket from './InternalSocket';
+import { ComponentLoader } from './ComponentLoader';
+import * as utils from './Utils';
+import IP from './IP';
+import { deprecated, isBrowser } from './Platform';
 
 function connectPort(socket, process, port, index, inbound, callback) {
   if (inbound) {
@@ -72,12 +72,19 @@ function sendInitial(initial) {
 // instantiate all the necessary processes from the designated
 // components, attach sockets between them, and handle the sending
 // of Initial Information Packets.
-class BaseNetwork extends EventEmitter {
-  // All NoFlo networks are instantiated with a graph. Upon instantiation
-  // they will load all the needed components, instantiate them, and
-  // set up the defined connections and IIPs.
-  constructor(graph, options) {
-    if (options == null) { options = {}; }
+export class BaseNetwork extends EventEmitter {
+  /**
+   * All NoFlo networks are instantiated with a graph. Upon instantiation
+   * they will load all the needed components, instantiate them, and
+   * set up the defined connections and IIPs.
+   *
+   * @param {import("fbp-graph").Graph} graph - Graph definition to build a Network for
+   * @param {Object} options - Network options
+   * @param {string} [options.baseDir] - Project base directory for component loading
+   * @param {ComponentLoader} [options.componentLoader] - Component loader instance to use, if any
+   * @param {Object} [options.flowtrace] - Flowtrace instance to use for tracing this network run
+   */
+  constructor(graph, options = {}) {
     super();
     this.options = options;
     // Processes contains all the instantiated components for this network
@@ -101,7 +108,8 @@ class BaseNetwork extends EventEmitter {
     if (graph.properties.baseDir && !options.baseDir) {
       deprecated('Passing baseDir via Graph properties is deprecated, pass via Network options instead');
     }
-    if (!platform.isBrowser()) {
+    this.baseDir = null;
+    if (!isBrowser()) {
       this.baseDir = options.baseDir || graph.properties.baseDir || process.cwd();
     // On browser we default the baseDir to the Component loading
     // root
@@ -115,13 +123,14 @@ class BaseNetwork extends EventEmitter {
     this.startupDate = null;
 
     // Initialize a Component Loader for the network
+    this.loader = null;
     if (options.componentLoader) {
       this.loader = options.componentLoader;
     } else if (graph.properties.componentLoader) {
       deprecated('Passing componentLoader via Graph properties is deprecated, pass via Network options instead');
       this.loader = graph.properties.componentLoader;
     } else {
-      this.loader = new componentLoader.ComponentLoader(this.baseDir, this.options);
+      this.loader = new ComponentLoader(this.baseDir, this.options);
     }
 
     // Enable Flowtrace for this network, when available
@@ -792,7 +801,7 @@ class BaseNetwork extends EventEmitter {
         return;
       }
       if (process.component.start.length === 0) {
-        platform.deprecated('component.start method without callback is deprecated');
+        deprecated('component.start method without callback is deprecated');
         process.component.start();
         onProcessStart();
         return;
@@ -823,7 +832,7 @@ class BaseNetwork extends EventEmitter {
 
   start(callback) {
     if (!callback) {
-      platform.deprecated('Calling network.start() without callback is deprecated');
+      deprecated('Calling network.start() without callback is deprecated');
       callback = () => {};
     }
 
@@ -866,7 +875,7 @@ class BaseNetwork extends EventEmitter {
 
   stop(callback) {
     if (!callback) {
-      platform.deprecated('Calling network.stop() without callback is deprecated');
+      deprecated('Calling network.stop() without callback is deprecated');
       callback = () => {};
     }
 
@@ -913,7 +922,7 @@ class BaseNetwork extends EventEmitter {
         return;
       }
       if (process.component.shutdown.length === 0) {
-        platform.deprecated('component.shutdown method without callback is deprecated');
+        deprecated('component.shutdown method without callback is deprecated');
         process.component.shutdown();
         onProcessEnd();
         return;
@@ -1000,5 +1009,3 @@ class BaseNetwork extends EventEmitter {
     });
   }
 }
-
-module.exports = BaseNetwork;

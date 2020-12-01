@@ -6,12 +6,13 @@
 /* eslint-disable
     class-methods-use-this,
     import/no-unresolved,
+    import/prefer-default-export,
 */
 
-const fbpGraph = require('fbp-graph');
-const { EventEmitter } = require('events');
-const registerLoader = require('./loader/register');
-const platform = require('./Platform');
+import { Graph } from 'fbp-graph';
+import { EventEmitter } from 'events';
+import * as registerLoader from './loader/register';
+import { deprecated } from './Platform';
 
 // ## The NoFlo Component Loader
 //
@@ -26,7 +27,7 @@ const platform = require('./Platform');
 // NPM dependencies. For browsers and embedded devices it is
 // possible to generate a statically configured component
 // loader using the [noflo-component-loader](https://github.com/noflo/noflo-component-loader) webpack plugin.
-class ComponentLoader extends EventEmitter {
+export class ComponentLoader extends EventEmitter {
   constructor(baseDir, options = {}) {
     super();
     this.baseDir = baseDir;
@@ -141,7 +142,7 @@ class ComponentLoader extends EventEmitter {
       if (typeof name === 'string') { inst.componentName = name; }
 
       if (inst.isLegacy()) {
-        platform.deprecated(`Component ${name} uses legacy NoFlo APIs. Please port to Process API`);
+        deprecated(`Component ${name} uses legacy NoFlo APIs. Please port to Process API`);
       }
 
       this.setIcon(name, inst);
@@ -199,7 +200,7 @@ class ComponentLoader extends EventEmitter {
   isGraph(cPath) {
     // Live graph instance
     if ((typeof cPath === 'object')
-      && (cPath instanceof fbpGraph.Graph
+      && (cPath instanceof Graph
         || (Array.isArray(cPath.nodes)
           && Array.isArray(cPath.edges)
           && Array.isArray(cPath.initializers)))) {
@@ -366,5 +367,3 @@ class ComponentLoader extends EventEmitter {
     this.processing = false;
   }
 }
-
-exports.ComponentLoader = ComponentLoader;

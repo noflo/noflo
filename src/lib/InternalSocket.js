@@ -2,8 +2,8 @@
 //     (c) 2013-2017 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
-const { EventEmitter } = require('events');
-const IP = require('./IP');
+import { EventEmitter } from 'events';
+import IP from './IP';
 
 function legacyToIp(event, payload) {
   // No need to wrap modern IP Objects
@@ -51,7 +51,7 @@ function ipToLegacy(ip) {
 // packets sent from processes' outports, and emitting corresponding
 // events so that the packets can be caught to the inport of the
 // connected process.
-class InternalSocket extends EventEmitter {
+export class InternalSocket extends EventEmitter {
   regularEmitEvent(event, data) {
     this.emit(event, data);
   }
@@ -290,6 +290,6 @@ class InternalSocket extends EventEmitter {
   }
 }
 
-exports.InternalSocket = InternalSocket;
-
-exports.createSocket = (metadata = {}) => new InternalSocket(metadata);
+export function createSocket(metadata = {}) {
+  return new InternalSocket(metadata);
+}

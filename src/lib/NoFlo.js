@@ -10,6 +10,7 @@
 
 /* eslint-disable
     no-param-reassign,
+    import/first
 */
 
 // ## Main APIs
@@ -17,56 +18,7 @@
 // ### Graph interface
 //
 // [fbp-graph](https://github.com/flowbased/fbp-graph) is used for instantiating FBP graph definitions.
-const fbpGraph = require('fbp-graph');
-
-exports.graph = fbpGraph.graph;
-exports.Graph = fbpGraph.Graph;
-
-// ### Graph journal
-//
-// Journal is used for keeping track of graph changes
-exports.journal = fbpGraph.journal;
-exports.Journal = fbpGraph.Journal;
-
-// ### Platform detection
-//
-// NoFlo works on both Node.js and the browser. Because some dependencies are different,
-// we need a way to detect which we're on.
-exports.isBrowser = require('./Platform').isBrowser;
-
-// ### Component Loader
-//
-// The [ComponentLoader](../ComponentLoader/) is responsible for finding and loading
-// NoFlo components. Component Loader uses [fbp-manifest](https://github.com/flowbased/fbp-manifest)
-// to find components and graphs by traversing the NPM dependency tree from a given root
-// directory on the file system.
-exports.ComponentLoader = require('./ComponentLoader').ComponentLoader;
-
-// ### Component baseclasses
-//
-// These baseclasses can be used for defining NoFlo components.
-exports.Component = require('./Component').Component;
-
-// ### NoFlo ports
-//
-// These classes are used for instantiating ports on NoFlo components.
-const ports = require('./Ports');
-
-exports.InPorts = ports.InPorts;
-exports.OutPorts = ports.OutPorts;
-exports.InPort = require('./InPort');
-exports.OutPort = require('./OutPort');
-
-// ### NoFlo sockets
-//
-// The NoFlo [internalSocket](InternalSocket.html) is used for connecting ports of
-// different components together in a network.
-exports.internalSocket = require('./InternalSocket');
-
-// ### Information Packets
-//
-// NoFlo Information Packets are defined as "IP" objects.
-exports.IP = require('./IP');
+import { graph } from 'fbp-graph';
 
 // ## Network instantiation
 //
@@ -113,11 +65,74 @@ exports.IP = require('./IP');
 //
 // The options object can also be used for setting ComponentLoader options in this
 // network.
-const { Network } = require('./Network');
-const { Network: LegacyNetwork } = require('./LegacyNetwork');
-const { deprecated } = require('./Platform');
+import { Network } from './Network';
+import { LegacyNetwork } from './LegacyNetwork';
+import { deprecated } from './Platform';
 
-exports.createNetwork = function createNetwork(graph, options, callback) {
+export {
+  graph,
+  Graph,
+  journal,
+  Journal,
+} from 'fbp-graph';
+
+// ### Platform detection
+//
+// NoFlo works on both Node.js and the browser. Because some dependencies are different,
+// we need a way to detect which we're on.
+export { isBrowser } from './Platform';
+
+// ### Component Loader
+//
+// The [ComponentLoader](../ComponentLoader/) is responsible for finding and loading
+// NoFlo components. Component Loader uses [fbp-manifest](https://github.com/flowbased/fbp-manifest)
+// to find components and graphs by traversing the NPM dependency tree from a given root
+// directory on the file system.
+export { ComponentLoader } from './ComponentLoader';
+
+// ### Component baseclasses
+//
+// These baseclasses can be used for defining NoFlo components.
+export { Component } from './Component';
+
+// ### NoFlo ports
+//
+// These classes are used for instantiating ports on NoFlo components.
+export { InPorts, OutPorts } from './Ports';
+
+export { default as InPort } from './InPort';
+export { default as OutPort } from './OutPort';
+
+// ### NoFlo sockets
+//
+// The NoFlo [internalSocket](InternalSocket.html) is used for connecting ports of
+// different components together in a network.
+import * as internalSocket from './InternalSocket';
+
+export { internalSocket };
+
+// ### Information Packets
+//
+// NoFlo Information Packets are defined as "IP" objects.
+export { default as IP } from './IP';
+
+/**
+ * @callback NetworkCallback
+ * @param {Error | null} err
+ * @param {Network} [network]
+ */
+
+/**
+ * @param {import("fbp-graph").Graph} graphInstance - Graph definition to build a Network for
+ * @param {Object} options - Network options
+ * @param {string} [options.baseDir] - Project base directory for component loading
+ * @param {import("./ComponentLoader").ComponentLoader} [options.componentLoader]
+ * @param {Object} [options.flowtrace] - Flowtrace instance to use for tracing this network run
+ * @param {boolean} [options.subscribeGraph] - Whether the Network should monitor the graph
+ * @param {boolean} [options.delay] - Whether the Network should be started later
+ * @param {NetworkCallback} callback - Callback for the created Network
+ */
+export function createNetwork(graphInstance, options, callback) {
   if (typeof options !== 'object') {
     options = {};
   }
@@ -134,7 +149,7 @@ exports.createNetwork = function createNetwork(graph, options, callback) {
   // Choose legacy or modern network based on whether graph
   // subscription is needed
   const NetworkType = options.subscribeGraph ? LegacyNetwork : Network;
-  const network = new NetworkType(graph, options);
+  const network = new NetworkType(graphInstance, options);
 
   const networkReady = (net) => { // Send IIPs
     net.start((err) => {
@@ -160,7 +175,7 @@ exports.createNetwork = function createNetwork(graph, options, callback) {
     }
 
     // Empty network, no need to connect it up
-    if (graph.nodes.length === 0) {
+    if (graphInstance.nodes.length === 0) {
       networkReady(network);
       return;
     }
@@ -175,7 +190,7 @@ exports.createNetwork = function createNetwork(graph, options, callback) {
     });
   });
   return network;
-};
+}
 
 // ### Starting a network from a file
 //
@@ -188,7 +203,7 @@ exports.createNetwork = function createNetwork(graph, options, callback) {
 //       }
 //       console.log('Network is now running!');
 //     })
-exports.loadFile = function loadFile(file, options, callback) {
+export function loadFile(file, options, callback) {
   if (typeof callback !== 'function') {
     deprecated('Calling noflo.loadFile without a callback is deprecated');
     callback = (err) => {
@@ -196,24 +211,21 @@ exports.loadFile = function loadFile(file, options, callback) {
     };
   }
 
-  exports.graph.loadFile(file, (err, graph) => {
+  graph.loadFile(file, (err, graphInstance) => {
     if (err) {
       callback(err);
       return;
     }
-    if (options.baseDir) {
-      graph.properties.baseDir = options.baseDir;
-    }
-    exports.createNetwork(graph, options, callback);
+    createNetwork(graphInstance, options, callback);
   });
-};
+}
 
 // ### Saving a network definition
 //
 // NoFlo graph files can be saved back into the filesystem with this method.
-exports.saveFile = function saveFile(graph, file, callback) {
-  graph.save(file, callback);
-};
+export function saveFile(graphInstance, file, callback) {
+  graphInstance.save(file, callback);
+}
 
 // ## Embedding NoFlo in existing JavaScript code
 //
@@ -230,7 +242,7 @@ exports.saveFile = function saveFile(graph, file, callback) {
 //       // Do something with results
 //     });
 //
-exports.asCallback = require('./AsCallback').asCallback;
+export { asCallback } from './AsCallback';
 
 // ## Generating components from JavaScript functions
 //
@@ -244,4 +256,4 @@ exports.asCallback = require('./AsCallback').asCallback;
 //       });
 //     };
 //
-exports.asComponent = require('./AsComponent').asComponent;
+export { asComponent } from './AsComponent';

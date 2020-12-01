@@ -475,7 +475,7 @@ describe('ComponentLoader with no external packages installed', () => {
   describe('writing sources', () => {
     let localNofloPath;
     if (!noflo.isBrowser()) {
-      localNofloPath = JSON.stringify(path.resolve(__dirname, '../src/lib/NoFlo'));
+      localNofloPath = JSON.stringify(path.resolve(__dirname, '../lib/NoFlo'));
     }
     describe('with working code', () => {
       describe('with ES5', () => {
@@ -928,7 +928,7 @@ describe('ComponentLoader with a fixture project', () => {
         done(err);
         return;
       }
-      chai.expect(source.tests).to.include('componentloader/Repeat')
+      chai.expect(source.tests).to.include('componentloader/Repeat');
       done();
     });
   });
@@ -960,7 +960,7 @@ describe('ComponentLoader with a fixture project', () => {
         done(err);
         return;
       }
-      chai.expect(source.tests).to.include('example/RepeatAsync')
+      chai.expect(source.tests).to.include('example/RepeatAsync');
       done();
     });
   });

@@ -1,10 +1,10 @@
 /* eslint-disable
     global-require,
 */
-const { isBrowser } = require('../Platform');
+import { isBrowser } from '../Platform';
 
 if (isBrowser()) {
   throw new Error('Generate NoFlo component loader for browsers with noflo-component-loader');
-} else {
-  module.exports = require('./NodeJs');
 }
+
+export * from './NodeJs';
