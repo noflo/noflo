@@ -1,7 +1,8 @@
 // Flow-based example of counting lines of a file, roughly equivalent to
 // "wc -l <filename>"
 
-const noflo = require('../../lib/NoFlo');
+// eslint-disable-next-line import/no-unresolved
+const noflo = require('noflo');
 
 if (!process.argv[2]) {
   // eslint-disable-next-line no-console
