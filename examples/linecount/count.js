@@ -4,6 +4,7 @@
 const noflo = require('../../lib/NoFlo');
 
 if (!process.argv[2]) {
+  // eslint-disable-next-line no-console
   console.error('You must provide a filename');
   process.exit(1);
 }
@@ -30,6 +31,7 @@ noflo.createNetwork(graph, {
   subscribeGraph: false,
 }, (err) => {
   if (err) {
+    // eslint-disable-next-line no-console
     console.error(err);
     process.exit(1);
   }

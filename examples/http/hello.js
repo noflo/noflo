@@ -31,6 +31,7 @@ graph.addEdge('Render', 'out', 'Write Response', 'string');
 
 noflo.createNetwork(graph, (err) => {
   if (err) {
+    // eslint-disable-next-line no-console
     console.error(err);
     process.exit(1);
   }
