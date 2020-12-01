@@ -39,6 +39,7 @@ function reportAndVerify(err, components) {
 fs.stat(cacheFile, (err) => {
   if (err) {
     preheat(reportAndVerify);
+    return;
   }
   console.log(`Old cache file ${cacheFile} found, clearing`);
   fs.unlink(cacheFile, (unlinkErr) => {
