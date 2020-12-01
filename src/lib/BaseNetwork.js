@@ -73,9 +73,17 @@ function sendInitial(initial) {
 // components, attach sockets between them, and handle the sending
 // of Initial Information Packets.
 export class BaseNetwork extends EventEmitter {
-  // All NoFlo networks are instantiated with a graph. Upon instantiation
-  // they will load all the needed components, instantiate them, and
-  // set up the defined connections and IIPs.
+  /**
+   * All NoFlo networks are instantiated with a graph. Upon instantiation
+   * they will load all the needed components, instantiate them, and
+   * set up the defined connections and IIPs.
+   *
+   * @param {import("fbp-graph").Graph} graph - Graph definition to build a Network for
+   * @param {Object} options - Network options
+   * @param {string} [options.baseDir] - Project base directory for component loading
+   * @param {ComponentLoader} [options.componentLoader] - Component loader instance to use, if any
+   * @param {Object} [options.flowtrace] - Flowtrace instance to use for tracing this network run
+   */
   constructor(graph, options = {}) {
     super();
     this.options = options;

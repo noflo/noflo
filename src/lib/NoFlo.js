@@ -116,6 +116,22 @@ export { internalSocket };
 // NoFlo Information Packets are defined as "IP" objects.
 export { default as IP } from './IP';
 
+/**
+ * @callback NetworkCallback
+ * @param {Error | null} err
+ * @param {Network} [network]
+ */
+
+/**
+ * @param {import("fbp-graph").Graph} graphInstance - Graph definition to build a Network for
+ * @param {Object} options - Network options
+ * @param {string} [options.baseDir] - Project base directory for component loading
+ * @param {import("./ComponentLoader").ComponentLoader} [options.componentLoader]
+ * @param {Object} [options.flowtrace] - Flowtrace instance to use for tracing this network run
+ * @param {boolean} [options.subscribeGraph] - Whether the Network should monitor the graph
+ * @param {boolean} [options.delay] - Whether the Network should be started later
+ * @param {NetworkCallback} callback - Callback for the created Network
+ */
 export function createNetwork(graphInstance, options, callback) {
   if (typeof options !== 'object') {
     options = {};
