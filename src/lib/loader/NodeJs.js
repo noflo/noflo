@@ -4,12 +4,11 @@
     no-underscore-dangle,
     prefer-destructuring,
 */
-const path = require('path');
-const fs = require('fs');
-const manifest = require('fbp-manifest');
-const fbpGraph = require('fbp-graph');
-
-const utils = require('../Utils');
+import * as path from 'path';
+import * as fs from 'fs';
+import * as manifest from 'fbp-manifest';
+import * as fbpGraph from 'fbp-graph';
+import * as utils from '../Utils';
 
 // Type loading CoffeeScript compiler
 let CoffeeScript;
@@ -146,16 +145,16 @@ function transpileAndRegisterForModule(loader, module, component, source, langua
   });
 }
 
-exports.setSource = function setSource(loader, packageId, name, source, language, callback) {
+export function setSource(loader, packageId, name, source, language, callback) {
   transpileAndRegisterForModule(loader, {
     name: packageId,
     base: '',
   }, {
     name,
   }, source, language, callback);
-};
+}
 
-exports.getSource = function getSource(loader, name, callback) {
+export function getSource(loader, name, callback) {
   let componentName = name;
   let component = loader.components[name];
   if (!component) {
@@ -268,9 +267,9 @@ exports.getSource = function getSource(loader, name, callback) {
       code,
     });
   });
-};
+}
 
-exports.getLanguages = function getLanguages() {
+export function getLanguages() {
   const languages = ['javascript', 'es2015'];
   if (CoffeeScript) {
     languages.push('coffeescript');
@@ -279,7 +278,7 @@ exports.getLanguages = function getLanguages() {
     languages.push('typescript');
   }
   return languages;
-};
+}
 
 function registerCustomLoaders(loader, componentLoaders, callback) {
   if (!componentLoaders.length) {
@@ -434,7 +433,7 @@ function registerSubgraph(loader) {
   loader.registerComponent(null, 'Graph', graphPath);
 }
 
-exports.register = function register(loader, callback) {
+export function register(loader, callback) {
   const manifestOptions = manifestLoader.prepareManifestOptions(loader);
 
   if (loader.options != null ? loader.options.cache : undefined) {
@@ -457,9 +456,9 @@ exports.register = function register(loader, callback) {
     registerSubgraph(loader);
     callback(null, modules);
   });
-};
+}
 
-exports.dynamicLoad = function dynamicLoad(name, cPath, metadata, callback) {
+export function dynamicLoad(name, cPath, metadata, callback) {
   let implementation; let instance;
   try {
     implementation = require(cPath);
@@ -488,4 +487,4 @@ exports.dynamicLoad = function dynamicLoad(name, cPath, metadata, callback) {
   }
   if (typeof name === 'string') { instance.componentName = name; }
   callback(null, instance);
-};
+}

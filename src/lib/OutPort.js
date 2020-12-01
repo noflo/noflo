@@ -1,8 +1,8 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
-const BasePort = require('./BasePort');
-const IP = require('./IP');
+import BasePort from './BasePort';
+import IP from './IP';
 
 // ## NoFlo outport
 //
@@ -18,7 +18,7 @@ const IP = require('./IP');
  * @property {boolean} [scoped=true]
  */
 
-module.exports = class OutPort extends BasePort {
+export default class OutPort extends BasePort {
   /**
    * @param {OutportOptions} options - Options for the outport
    */
@@ -161,4 +161,4 @@ module.exports = class OutPort extends BasePort {
     }
     return false;
   }
-};
+}

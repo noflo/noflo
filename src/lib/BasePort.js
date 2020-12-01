@@ -1,7 +1,7 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
-const { EventEmitter } = require('events');
+import { EventEmitter } from 'events';
 
 // ## NoFlo Port Base class
 //
@@ -77,7 +77,7 @@ function handleOptions(options) {
   });
 }
 
-module.exports = class BasePort extends EventEmitter {
+export default class BasePort extends EventEmitter {
   constructor(options) {
     super();
     // Options holds all options of the current port
@@ -186,4 +186,4 @@ module.exports = class BasePort extends EventEmitter {
 
   /* eslint-disable class-methods-use-this */
   canAttach() { return true; }
-};
+}

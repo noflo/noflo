@@ -2,10 +2,11 @@
 //     (c) 2013-2018 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
-const BaseNetwork = require('./BaseNetwork');
+import { BaseNetwork } from './BaseNetwork';
 
 /* eslint-disable
     no-param-reassign,
+    import/prefer-default-export,
 */
 
 // ## The NoFlo network coordinator
@@ -17,7 +18,7 @@ const BaseNetwork = require('./BaseNetwork');
 // instantiate all the necessary processes from the designated
 // components, attach sockets between them, and handle the sending
 // of Initial Information Packets.
-class Network extends BaseNetwork {
+export class Network extends BaseNetwork {
   // All NoFlo networks are instantiated with a graph. Upon instantiation
   // they will load all the needed components, instantiate them, and
   // set up the defined connections and IIPs.
@@ -148,5 +149,3 @@ class Network extends BaseNetwork {
     });
   }
 }
-
-exports.Network = Network;

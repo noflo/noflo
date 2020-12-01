@@ -6,22 +6,24 @@
 /* eslint-disable
     class-methods-use-this,
     no-underscore-dangle,
+    import/prefer-default-export,
 */
-const { EventEmitter } = require('events');
-const debug = require('debug')('noflo:component');
-const debugBrackets = require('debug')('noflo:component:brackets');
-const debugSend = require('debug')('noflo:component:send');
+import { EventEmitter } from 'events';
+import debug from 'debug';
+import * as ports from './Ports';
+import ProcessContext from './ProcessContext';
+import ProcessInput from './ProcessInput';
+import ProcessOutput from './ProcessOutput';
 
-const ports = require('./Ports');
-const ProcessContext = require('./ProcessContext');
-const ProcessInput = require('./ProcessInput');
-const ProcessOutput = require('./ProcessOutput');
+const debugComponent = debug('noflo:component');
+const debugBrackets = debug('noflo:component:brackets');
+const debugSend = debug('noflo:component:send');
 
 // ## NoFlo Component Base class
 //
 // The `noflo.Component` interface provides a way to instantiate
 // and extend NoFlo components.
-class Component extends EventEmitter {
+export class Component extends EventEmitter {
   constructor(options = {}) {
     super();
     const opts = options;
@@ -321,7 +323,7 @@ class Component extends EventEmitter {
     if ((ip.type === 'openBracket') && (this.autoOrdering === null) && !this.ordered) {
       // Switch component to ordered mode when receiving a stream unless
       // auto-ordering is disabled
-      debug(`${this.nodeId} port '${port.name}' entered auto-ordering mode`);
+      debugComponent(`${this.nodeId} port '${port.name}' entered auto-ordering mode`);
       this.autoOrdering = true;
     }
 
@@ -382,10 +384,10 @@ class Component extends EventEmitter {
     // If receiving an IP object didn't cause the component to
     // activate, log that input conditions were not met
     if (port.isAddressable()) {
-      debug(`${this.nodeId} packet on '${port.name}[${ip.index}]' didn't match preconditions: ${ip.type}`);
+      debugComponent(`${this.nodeId} packet on '${port.name}[${ip.index}]' didn't match preconditions: ${ip.type}`);
       return;
     }
-    debug(`${this.nodeId} packet on '${port.name}' didn't match preconditions: ${ip.type}`);
+    debugComponent(`${this.nodeId} packet on '${port.name}' didn't match preconditions: ${ip.type}`);
   }
 
   // Get the current bracket forwarding context for an IP object
@@ -615,5 +617,3 @@ class Component extends EventEmitter {
 }
 Component.description = '';
 Component.icon = null;
-
-exports.Component = Component;

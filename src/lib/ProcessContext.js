@@ -3,7 +3,7 @@
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
 
-module.exports = class ProcessContext {
+export default class ProcessContext {
   constructor(ip, nodeInstance, port, result) {
     this.ip = ip;
     this.nodeInstance = nodeInstance;
@@ -27,4 +27,4 @@ module.exports = class ProcessContext {
     if (!this.result.__resolved) { this.result.__resolved = true; }
     this.nodeInstance.deactivate(this);
   }
-};
+}

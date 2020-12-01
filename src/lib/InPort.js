@@ -1,13 +1,13 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
-const BasePort = require('./BasePort');
+import BasePort from './BasePort';
 
 // ## NoFlo inport
 //
 // Input Port (inport) implementation for NoFlo components. These
 // ports are the way a component receives Information Packets.
-module.exports = class InPort extends BasePort {
+export default class InPort extends BasePort {
   constructor(options = {}) {
     const opts = options;
     if (opts.control == null) { opts.control = false; }
@@ -205,4 +205,4 @@ module.exports = class InPort extends BasePort {
   clear() {
     return this.prepareBuffer();
   }
-};
+}
