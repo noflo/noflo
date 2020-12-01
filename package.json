@@ -17,7 +17,7 @@
     "debug": "^4.0.1",
     "fbp": "^1.5.0",
     "fbp-graph": "^0.6.2",
-    "fbp-manifest": "^0.2.5",
+    "fbp-manifest": "^0.2.7",
     "get-function-params": "^2.0.6"
   },
   "devDependencies": {
