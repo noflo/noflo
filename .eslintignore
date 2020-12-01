@@ -1,4 +1,4 @@
-node_modules/
-lib/
-components/
-browser/
+/node_modules/
+/lib/
+/components/
+/browser/
