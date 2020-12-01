@@ -19,13 +19,6 @@ import { BaseNetwork } from './BaseNetwork';
 // components, attach sockets between them, and handle the sending
 // of Initial Information Packets.
 export class Network extends BaseNetwork {
-  // All NoFlo networks are instantiated with a graph. Upon instantiation
-  // they will load all the needed components, instantiate them, and
-  // set up the defined connections and IIPs.
-  constructor(graph, options = {}) {
-    super(graph, options);
-  }
-
   // Add a process to the network. The node will also be registered
   // with the current graph.
   addNode(node, options, callback) {

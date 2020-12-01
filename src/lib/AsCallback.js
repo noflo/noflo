@@ -331,17 +331,20 @@ function sendOutputMap(outputs, resultType, options, callback) {
  * @callback ResultCallback
  * @param {Error | null} err
  * @param {any} [output]
+ * @returns {void}
  */
 
 /**
  * @callback NetworkAsCallback
  * @param {any} input
  * @param {ResultCallback} callback
+ * @returns void
  */
 
 /**
  * @callback NetworkCallback
  * @param {Network} network
+ * @returns void
  */
 
 /**
