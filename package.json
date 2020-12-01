@@ -46,6 +46,7 @@
     "webpack-cli": "^4.0.0"
   },
   "main": "./lib/NoFlo",
+  "types": "./lib/NoFlo.d.ts",
   "bin": {
     "noflo": "./bin/noflo",
     "noflo-cache-preheat": "./bin/noflo-cache-preheat"
