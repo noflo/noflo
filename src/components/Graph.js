@@ -126,7 +126,11 @@ class Graph extends noflo.Component {
   subscribeNetwork(network) {
     const contexts = [];
     network.on('start', () => {
-      const ctx = {};
+      const ctx = {
+        activated: false,
+        deactivated: false,
+        result: {},
+      };
       contexts.push(ctx);
       this.activate(ctx);
     });

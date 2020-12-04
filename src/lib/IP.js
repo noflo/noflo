@@ -36,12 +36,15 @@ export default class IP {
   // Creates as new IP object
   // Valid types: 'data', 'openBracket', 'closeBracket'
   constructor(type, data = null, options = {}) {
+    /** @type {string} */
     this.type = type || 'data';
     this.data = data;
     this.isIP = true;
+    /** @type {string|null} */
     this.scope = null; // sync scope id
     this.owner = null; // packet owner process
     this.clonable = false; // cloning safety flag
+    /** @type {number|null} */
     this.index = null; // addressable port index
     this.schema = null;
     this.datatype = 'all';
