@@ -38,7 +38,8 @@ export class ComponentLoader extends EventEmitter {
     this.options = options;
     this.components = null;
     this.libraryIcons = {};
-    this.processing = false;
+    /** @type {Promise | null}; */
+    this.processing = null;
     this.ready = false;
     this.setMaxListeners(0);
   }
@@ -67,37 +68,38 @@ export class ComponentLoader extends EventEmitter {
 
   // Get the list of all available components
   /**
-   * @callback ListComponentsCallback
-   * @param {Error|null} err
-   * @param {Object} [components]
-   */
-  /**
-   * @param {ListComponentsCallback} callback
+   * @returning {Promise} Promise resolving to list of loaded components
    */
   listComponents(callback) {
+    let promise;
     if (this.processing) {
-      this.once('ready', () => callback(null, this.components));
-      return;
+      promise = this.processing;
+    } else if (this.ready && this.components) {
+      promise = Promise.resolve(this.components);
+    } else {
+      this.components = {};
+      this.ready = false;
+      this.processing = new Promise((resolve, reject) => {
+        registerLoader.register(this, (err) => {
+          if (err) {
+            // We keep the failed promise here in this.processing
+            reject(err);
+            return;
+          }
+          this.ready = true;
+          this.processing = null;
+          this.emit('ready', true);
+          resolve(this.components);
+        });
+      });
     }
-    if (this.components) {
-      callback(null, this.components);
-      return;
+    if (callback) {
+      deprecated('Providing a callback to listComponents is deprecated, use Promises');
+      promise.then((components) => {
+        callback(null, components);
+      }, callback);
     }
-
-    this.ready = false;
-    this.processing = true;
-
-    this.components = {};
-    registerLoader.register(this, (err) => {
-      this.processing = false;
-      this.ready = true;
-      this.emit('ready', true);
-      if (err) {
-        callback(err);
-        return;
-      }
-      callback(null, this.components);
-    });
+    return promise;
   }
 
   // Load an instance of a specific component. If the
@@ -394,6 +396,6 @@ export class ComponentLoader extends EventEmitter {
   clear() {
     this.components = null;
     this.ready = false;
-    this.processing = false;
+    this.processing = null;
   }
 }
