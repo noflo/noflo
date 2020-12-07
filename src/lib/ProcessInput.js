@@ -69,11 +69,11 @@ export default class ProcessInput {
   // Passing a validation callback as a last argument allows more selective
   // checking of packets.
   /**
-   * @type {((...params: Array<string | Function>) => boolean) | ((...params: string[]) => boolean)}
+   * @type {((...params: Array<string | Array | Function>) => boolean)}
    */
   has(...params) {
     let validate;
-    let args = params.filter((p) => typeof p === 'string');
+    let args = params.filter((p) => typeof p !== 'function');
     if (!args.length) {
       args = ['in'];
     }
