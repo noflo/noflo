@@ -120,9 +120,11 @@ export class BaseNetwork extends EventEmitter {
     // As most NoFlo networks are long-running processes, the
     // network coordinator marks down the start-up time. This
     // way we can calculate the uptime of the network.
+    /** @type {Date | null} */
     this.startupDate = null;
 
     // Initialize a Component Loader for the network
+    /** @type {ComponentLoader | null} */
     this.loader = null;
     if (options.componentLoader) {
       this.loader = options.componentLoader;
@@ -299,7 +301,10 @@ export class BaseNetwork extends EventEmitter {
    * @returns {void}
    */
   load(component, metadata, callback) {
-    this.loader.load(component, callback, metadata);
+    this.loader.load(component, metadata)
+      .then((instance) => {
+        callback(null, instance);
+      }, callback);
   }
 
   // ## Add a process to the network

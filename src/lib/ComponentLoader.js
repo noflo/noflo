@@ -65,6 +65,7 @@ export class ComponentLoader {
 
   // Get the list of all available components
   /**
+   * @param {any} [callback] - Legacy callback
    * @returning {Promise} Promise resolving to list of loaded components
    */
   listComponents(callback) {
@@ -106,6 +107,7 @@ export class ComponentLoader {
   /**
    * @param {string} name - Component name
    * @param {Object} meta - Node metadata
+   * @param {any} [cb] - Legacy callback
    * @returns {Promise}
    */
   load(name, meta, cb) {
