@@ -384,7 +384,6 @@ export class Component extends EventEmitter {
    * @returns {void}
    */
   handleIP(ip, port) {
-    let context;
     if (!port.options.triggering) {
       // If port is non-triggering, we can skip the process function call
       return;
@@ -422,12 +421,12 @@ export class Component extends EventEmitter {
           if (buf[0] !== ip) { return; }
           // Remove from buffer
           port.get(ip.scope, ip.index);
-          context = this.getBracketContext('in', port.name, ip.scope, ip.index).pop();
-          context.closeIp = ip;
-          debugBrackets(`${this.nodeId} closeBracket-C from '${context.source}' to ${context.ports}: '${ip.data}'`);
+          const bracketCtx = this.getBracketContext('in', port.name, ip.scope, ip.index).pop();
+          bracketCtx.closeIp = ip;
+          debugBrackets(`${this.nodeId} closeBracket-C from '${bracketCtx.source}' to ${bracketCtx.ports}: '${ip.data}'`);
           result = {
             __resolved: true,
-            __bracketClosingAfter: [context],
+            __bracketClosingAfter: [bracketCtx],
           };
           this.outputQ.push(result);
           this.processOutputQueue();
@@ -439,7 +438,7 @@ export class Component extends EventEmitter {
     }
 
     // Prepare the input/output pair
-    context = new ProcessContext(ip, this, port, result);
+    const context = new ProcessContext(ip, this, port, result);
     const input = new ProcessInput(this.inPorts, context);
     const output = new ProcessOutput(this.outPorts, context);
     try {
