@@ -46,7 +46,7 @@ describe('ComponentLoader with no external packages installed', () => {
     chai.expect(l.ready).to.be.false;
   });
   it('should not initially be processing', () => {
-    chai.expect(l.processing).to.be.false;
+    chai.expect(l.processing).to.be.a('null');
   });
   it('should not have any packages in the checked list', () => {
     chai.expect(l.checked).to.not.exist;
@@ -75,27 +75,21 @@ describe('ComponentLoader with no external packages installed', () => {
   });
   it('should be able to read a list of components', function (done) {
     this.timeout(60 * 1000);
-    let ready = false;
-    l.once('ready', () => {
-      ready = true;
-      chai.expect(l.ready, 'should have the ready bit').to.equal(true);
-    });
     l.listComponents((err, components) => {
       if (err) {
         done(err);
         return;
       }
-      chai.expect(l.processing, 'should have stopped processing').to.equal(false);
+      chai.expect(l.processing, 'should have stopped processing').to.equal(null);
       chai.expect(l.components, 'should contain components').not.to.be.empty;
       chai.expect(components, 'should have returned the full list').to.equal(l.components);
       chai.expect(l.ready, 'should have been set ready').to.equal(true);
-      chai.expect(ready, 'should have emitted ready').to.equal(true);
       done();
     });
 
     if (!noflo.isBrowser()) {
       // Browser component registry can be synchronous
-      chai.expect(l.processing, 'should have started processing').to.equal(true);
+      chai.expect(l.processing, 'should have started processing').to.be.a('promise');
     }
   });
   describe('calling listComponents twice simultaneously', () => {
@@ -868,26 +862,18 @@ describe('ComponentLoader with a fixture project', () => {
     chai.expect(l.ready).to.be.false;
   });
   it('should be able to read a list of components', (done) => {
-    let ready = false;
-    l.once('ready', () => {
-      chai.expect(l.ready).to.equal(true);
-      ({
-        ready,
-      } = l);
-    });
     l.listComponents((err, components) => {
       if (err) {
         done(err);
         return;
       }
-      chai.expect(l.processing).to.equal(false);
+      chai.expect(l.processing).to.equal(null);
       chai.expect(l.components).not.to.be.empty;
       chai.expect(components).to.equal(l.components);
       chai.expect(l.ready).to.equal(true);
-      chai.expect(ready).to.equal(true);
       done();
     });
-    chai.expect(l.processing).to.equal(true);
+    chai.expect(l.processing).to.be.a('promise');
   });
   it('should be able to load a local JavaScript component', (done) => {
     l.load('componentloader/Output', (err, instance) => {
@@ -1052,26 +1038,18 @@ describe('ComponentLoader with a fixture project and caching', () => {
     chai.expect(l.ready).to.be.false;
   });
   it('should be able to read a list of components', (done) => {
-    let ready = false;
-    l.once('ready', () => {
-      chai.expect(l.ready).to.equal(true);
-      ({
-        ready,
-      } = l);
-    });
     l.listComponents((err, components) => {
       if (err) {
         done(err);
         return;
       }
-      chai.expect(l.processing).to.equal(false);
+      chai.expect(l.processing).to.equal(null);
       chai.expect(l.components).not.to.be.empty;
       chai.expect(components).to.equal(l.components);
       chai.expect(l.ready).to.equal(true);
-      chai.expect(ready).to.equal(true);
       done();
     });
-    chai.expect(l.processing).to.equal(true);
+    chai.expect(l.processing).to.be.a('promise');
   });
   it('should be able to load a local component', (done) => {
     l.load('componentloader/Output', (err, instance) => {
@@ -1145,7 +1123,7 @@ describe('ComponentLoader with a fixture project and caching', () => {
         done(err);
         return;
       }
-      chai.expect(l.processing).to.equal(false);
+      chai.expect(l.processing).to.equal(null);
       chai.expect(l.components).not.to.be.empty;
       done();
     });
