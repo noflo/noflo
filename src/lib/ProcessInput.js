@@ -4,10 +4,15 @@
 //     NoFlo may be freely distributed under the MIT license
 /* eslint-disable no-underscore-dangle */
 import debug from 'debug';
+import IP from './IP'; // eslint-disable-line no-unused-vars
 
 const debugComponent = debug('noflo:component');
 
 export default class ProcessInput {
+  /**
+   * @param {import("./Ports").InPorts} ports - Component inports
+   * @param {import("./ProcessContext").default} context - Processing context
+   */
   constructor(ports, context) {
     this.ports = ports;
     this.context = context;
@@ -37,6 +42,10 @@ export default class ProcessInput {
   // ## Connection listing
   // This allows components to check which input ports are attached. This is
   // useful mainly for addressable ports
+  /**
+   * @param {...string} params - Port names to check for attachment
+   * @returns {Array}
+   */
   attached(...params) {
     let args = params;
     if (!args.length) { args = ['in']; }
@@ -59,12 +68,17 @@ export default class ProcessInput {
   // Returns true if a port (or ports joined by logical AND) has a new IP
   // Passing a validation callback as a last argument allows more selective
   // checking of packets.
+  /**
+   * @type {((...params: Array<string | Array | Function>) => boolean)}
+   */
   has(...params) {
-    let args = params;
     let validate;
-    if (!args.length) { args = ['in']; }
-    if (typeof args[args.length - 1] === 'function') {
-      validate = args.pop();
+    let args = params.filter((p) => typeof p !== 'function');
+    if (!args.length) {
+      args = ['in'];
+    }
+    if (typeof params[params.length - 1] === 'function') {
+      validate = params[params.length - 1];
     } else {
       validate = () => true;
     }
@@ -92,14 +106,25 @@ export default class ProcessInput {
   }
 
   // Returns true if the ports contain data packets
+  /**
+   * @param {...string} params - Port names to check for data packets
+   * @returns {boolean}
+   */
   hasData(...params) {
     let args = params;
     if (!args.length) { args = ['in']; }
-    args.push((ip) => ip.type === 'data');
-    return this.has(...args);
+    const hasArgs = [
+      ...args,
+      (ip) => ip.type === 'data',
+    ];
+    return this.has(...hasArgs);
   }
 
   // Returns true if a port has a complete stream in its input buffer.
+  /**
+   * @param {...string} params - Port names to check for streams
+   * @returns {boolean}
+   */
   hasStream(...params) {
     let args = params;
     let validateStream;
@@ -147,6 +172,9 @@ export default class ProcessInput {
   // the input buffers. Reading packets sets the component as "activated".
   //
   // Fetches IP object(s) for port(s)
+  /**
+   * @type {((params: string) => IP) | ((...params: string[]) => IP[])}
+   */
   get(...params) {
     this.activate();
     let args = params;
@@ -180,6 +208,9 @@ export default class ProcessInput {
     if (args.length === 1) { return res[0]; } return res;
   }
 
+  /**
+   * @private
+   */
   __getForForwarding(port, idx) {
     const prefix = [];
     let dataIp = null;
@@ -231,6 +262,9 @@ export default class ProcessInput {
   }
 
   // Fetches `data` property of IP object(s) for given port(s)
+  /**
+   * @type {((params: string) => any) | ((...params: string[]) => any[])}
+   */
   getData(...params) {
     let args = params;
     if (!args.length) { args = ['in']; }
@@ -259,6 +293,9 @@ export default class ProcessInput {
   }
 
   // Fetches a complete data stream from the buffer.
+  /**
+   * @type {((params: string) => IP[]) | ((...params: string[]) => IP[][])}
+   */
   getStream(...params) {
     let args = params;
     if (!args.length) { args = ['in']; }

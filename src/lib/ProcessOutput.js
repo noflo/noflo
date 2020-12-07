@@ -16,6 +16,10 @@ function isError(err) {
 }
 
 export default class ProcessOutput {
+  /**
+   * @param {import("./Ports").OutPorts} ports - Component outports
+   * @param {import("./ProcessContext").default} context - Processing context
+   */
   constructor(ports, context) {
     this.ports = ports;
     this.context = context;
@@ -26,27 +30,30 @@ export default class ProcessOutput {
   }
 
   // Sends an error object
+  /**
+   * @param {Error|Error[]} err
+   * @returns {void}
+   */
   error(err) {
-    let errs = err;
-    const multiple = Array.isArray(err);
-    if (!multiple) { errs = [err]; }
-    if ('error' in this.ports && (this.ports.error.isAttached() || !this.ports.error.isRequired())) {
-      if (multiple) { this.sendIP('error', new IP('openBracket')); }
+    const errs = Array.isArray(err) ? err : [err];
+    if (this.ports.ports.error
+      && (this.ports.ports.error.isAttached() || !this.ports.ports.error.isRequired())) {
+      if (errs.length > 1) { this.sendIP('error', new IP('openBracket')); }
       errs.forEach((e) => { this.sendIP('error', e); });
-      if (multiple) { this.sendIP('error', new IP('closeBracket')); }
+      if (errs.length > 1) { this.sendIP('error', new IP('closeBracket')); }
     } else {
       errs.forEach((e) => { throw e; });
     }
   }
 
   // Sends a single IP object to a port
+  /**
+   * @param {string} port - Port to send to
+   * @param {IP|any} packet - IP or data to send
+   * @returns {void}
+   */
   sendIP(port, packet) {
-    let ip;
-    if (!IP.isIP(packet)) {
-      ip = new IP('data', packet);
-    } else {
-      ip = packet;
-    }
+    const ip = IP.isIP(packet) ? packet : new IP('data', packet);
     if ((this.scope !== null) && (ip.scope === null)) { ip.scope = this.scope; }
 
     if (!this.nodeInstance.outPorts[port]) {
@@ -123,6 +130,9 @@ export default class ProcessOutput {
   }
 
   // Finishes process activation gracefully
+  /**
+   * @param {Error|Error[]} [error]
+   */
   done(error) {
     this.result.__resolved = true;
     this.nodeInstance.activate(this.context);

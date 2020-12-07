@@ -11,6 +11,8 @@
 import { EventEmitter } from 'events';
 import debug from 'debug';
 import { InPorts, OutPorts, normalizePortName } from './Ports';
+import InPort from './InPort'; // eslint-disable-line no-unused-vars
+import OutPort from './OutPort'; // eslint-disable-line no-unused-vars
 import ProcessContext from './ProcessContext';
 import ProcessInput from './ProcessInput';
 import ProcessOutput from './ProcessOutput';
@@ -268,7 +270,7 @@ export class Component extends EventEmitter {
 
   isStarted() { return this.started; }
 
-  // Ensures braket forwarding map is correct for the existing ports
+  // Ensures bracket forwarding map is correct for the existing ports
   prepareForwarding() {
     Object.keys(this.forwardBrackets).forEach((inPort) => {
       const outPorts = this.forwardBrackets[inPort];
@@ -321,6 +323,10 @@ export class Component extends EventEmitter {
 
   // Method for checking if a given inport is set up for
   // automatic bracket forwarding
+  /**
+   * @param {InPort|string} port
+   * @returns {boolean}
+   */
   isForwardingInport(port) {
     let portName;
     if (typeof port === 'string') {
@@ -336,6 +342,11 @@ export class Component extends EventEmitter {
 
   // Method for checking if a given outport is set up for
   // automatic bracket forwarding
+  /**
+   * @param {InPort|string} inport
+   * @param {OutPort|string} outport
+   * @returns {boolean}
+   */
   isForwardingOutport(inport, outport) {
     let inportName; let
       outportName;
@@ -367,6 +378,11 @@ export class Component extends EventEmitter {
   // The component has received an Information Packet. Call the
   // processing function so that firing pattern preconditions can
   // be checked and component can do processing as needed.
+  /**
+   * @param {import("./IP").default} ip
+   * @param {InPort} port
+   * @returns {void}
+   */
   handleIP(ip, port) {
     let context;
     if (!port.options.triggering) {
@@ -445,7 +461,13 @@ export class Component extends EventEmitter {
   }
 
   // Get the current bracket forwarding context for an IP object
-  getBracketContext(type, port, scope, idx) {
+  /**
+   * @param {string} type
+   * @param {Object} port
+   * @param {string|null} scope
+   * @param {number|null} [idx]
+   */
+  getBracketContext(type, port, scope, idx = null) {
     let { name, index } = normalizePortName(port);
     if (idx != null) { index = idx; }
     const portsList = type === 'in' ? this.inPorts : this.outPorts;
@@ -466,6 +488,12 @@ export class Component extends EventEmitter {
 
   // Add an IP object to the list of results to be sent in
   // order
+  /**
+   * @param {Object} result
+   * @param {Object} port
+   * @param {import("./IP").default} packet
+   * @param {boolean} [before]
+   */
   addToResult(result, port, packet, before = false) {
     const res = result;
     const ip = packet;
@@ -485,6 +513,7 @@ export class Component extends EventEmitter {
 
   // Get contexts that can be forwarded with this in/outport
   // pair.
+  /** @private */
   getForwardableContexts(inport, outport, contexts) {
     const { name, index } = normalizePortName(outport);
     const forwardable = [];
@@ -507,6 +536,7 @@ export class Component extends EventEmitter {
   }
 
   // Add any bracket forwards needed to the result queue
+  /** @private */
   addBracketForwards(result) {
     const res = result;
     if (res.__bracketClosingBefore != null ? res.__bracketClosingBefore.length : undefined) {
@@ -547,7 +577,7 @@ export class Component extends EventEmitter {
                 ipClone.index = parseInt(idx, 10);
                 forwardedOpens.push(ipClone);
                 ctx.ports.push(portIdentifier);
-                this.getBracketContext('out', outport, ctx.ip.scope, idx).push(ctx);
+                this.getBracketContext('out', outport, ctx.ip.scope, ipClone.index).push(ctx);
               });
               forwardedOpens.reverse();
               forwardedOpens.forEach((ip) => { this.addToResult(res, outport, ip, true); });
@@ -591,6 +621,7 @@ export class Component extends EventEmitter {
 
   // Whenever an execution context finishes, send all resolved
   // output from the queue in the order it is in.
+  /** @private */
   processOutputQueue() {
     while (this.outputQ.length > 0) {
       if (!this.outputQ[0].__resolved) { break; }
@@ -645,6 +676,12 @@ export class Component extends EventEmitter {
 
   // Signal that component has activated. There may be multiple
   // activated contexts at the same time
+  /**
+   * @param {Object} context
+   * @param {boolean} context.activated
+   * @param {boolean} context.deactivated
+   * @param {Object} context.result
+   */
   activate(context) {
     if (context.activated) { return; } // prevent double activation
     context.activated = true;
@@ -658,6 +695,11 @@ export class Component extends EventEmitter {
 
   // Signal that component has deactivated. There may be multiple
   // activated contexts at the same time
+  /**
+   * @param {Object} context
+   * @param {boolean} context.activated
+   * @param {boolean} context.deactivated
+   */
   deactivate(context) {
     if (context.deactivated) { return; } // prevent double deactivation
     context.deactivated = true;

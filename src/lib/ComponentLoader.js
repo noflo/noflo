@@ -28,6 +28,10 @@ import { deprecated } from './Platform';
 // possible to generate a statically configured component
 // loader using the [noflo-component-loader](https://github.com/noflo/noflo-component-loader) webpack plugin.
 export class ComponentLoader extends EventEmitter {
+  /**
+   * @param {string} baseDir
+   * @param {Object} [options]
+   */
   constructor(baseDir, options = {}) {
     super();
     this.baseDir = baseDir;
@@ -49,6 +53,10 @@ export class ComponentLoader extends EventEmitter {
   // * `my-project` becomes `my-project`
   // * `@foo/my-project` becomes `my-project`
   // * `noflo-core` becomes `core`
+  /**
+   * @param {string} name
+   * @returns {string}
+   */
   getModulePrefix(name) {
     if (!name) { return ''; }
     let res = name;
@@ -58,6 +66,14 @@ export class ComponentLoader extends EventEmitter {
   }
 
   // Get the list of all available components
+  /**
+   * @callback ListComponentsCallback
+   * @param {Error|null} err
+   * @param {Object} [components]
+   */
+  /**
+   * @param {ListComponentsCallback} callback
+   */
   listComponents(callback) {
     if (this.processing) {
       this.once('ready', () => callback(null, this.components));
@@ -88,6 +104,16 @@ export class ComponentLoader extends EventEmitter {
   // registered component is a JSON or FBP graph, it will
   // be loaded as an instance of the NoFlo subgraph
   // component.
+  /**
+   * @callback LoadComponentCallback
+   * @param {Error|null} err
+   * @param {import("./Component").Component} [component]
+   */
+  /**
+   * @param {string} name
+   * @param {LoadComponentCallback} callback
+   * @param {Object} metadata
+   */
   load(name, callback, metadata) {
     if (!name) {
       callback(new Error('No component name provided'));
@@ -197,6 +223,10 @@ export class ComponentLoader extends EventEmitter {
   }
 
   // Check if a given filesystem path is actually a graph
+  /**
+   * @param {object|string} cPath
+   * @returns {boolean}
+   */
   isGraph(cPath) {
     // Live graph instance
     if ((typeof cPath === 'object')

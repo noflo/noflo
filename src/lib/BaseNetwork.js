@@ -140,6 +140,9 @@ export class BaseNetwork extends EventEmitter {
 
   // The uptime of the network is the current time minus the start-up
   // time, in seconds.
+  /**
+   * @returns {number}
+   */
   uptime() {
     if (!this.startupDate) {
       return 0;
@@ -147,6 +150,9 @@ export class BaseNetwork extends EventEmitter {
     return Date.now() - this.startupDate.getTime();
   }
 
+  /**
+   * @returns {string[]}
+   */
   getActiveProcesses() {
     const active = [];
     if (!this.started) { return active; }
@@ -164,6 +170,11 @@ export class BaseNetwork extends EventEmitter {
     return active;
   }
 
+  /**
+   * @param {string} event
+   * @param {any} payload
+   * @private
+   */
   traceEvent(event, payload) {
     if (!this.flowtrace) {
       return;
@@ -221,6 +232,11 @@ export class BaseNetwork extends EventEmitter {
     }
   }
 
+  /**
+   * @param {string} event
+   * @param {any} payload
+   * @protected
+   */
   bufferedEmit(event, payload) {
     // Add the event to Flowtrace immediately
     this.traceEvent(event, payload);
@@ -270,6 +286,18 @@ export class BaseNetwork extends EventEmitter {
   //
   // * As direct, instantiated JavaScript objects
   // * As filenames
+  /**
+   * @callback ComponentLoadCallback
+   * @param {Error|null} err
+   * @param {import("./Component").Component} [component]
+   * @returns {void}
+   */
+  /**
+   * @param {string} component
+   * @param {Object} metadata
+   * @param {ComponentLoadCallback} callback
+   * @returns {void}
+   */
   load(component, metadata, callback) {
     this.loader.load(component, callback, metadata);
   }
@@ -390,8 +418,15 @@ export class BaseNetwork extends EventEmitter {
     return this.processes[id];
   }
 
-  // eslint-disable-next-line no-unused-vars
-  connect(done = (err) => {}) {
+  /**
+   * @callback ErrorableCallback
+   * @param {Error|null} [err]
+   * @returns {void}
+   */
+  /**
+   * @param {ErrorableCallback} done
+   */
+  connect(done = (err) => {}) { // eslint-disable-line no-unused-vars
     // Wrap the future which will be called when done in a function and return
     // it
     let callStack = 0;
@@ -440,6 +475,9 @@ export class BaseNetwork extends EventEmitter {
     nodes('Node');
   }
 
+  /**
+   * @private
+   */
   subscribeSubgraph(node) {
     if (!node.component.isReady()) {
       node.component.once('ready', () => {
@@ -748,6 +786,9 @@ export class BaseNetwork extends EventEmitter {
     callback();
   }
 
+  /**
+   * @param {ErrorableCallback} callback
+   */
   sendInitials(callback = () => {}) {
     const send = () => {
       this.initials.forEach((initial) => { sendInitial(initial); });
@@ -775,8 +816,10 @@ export class BaseNetwork extends EventEmitter {
     return this.getActiveProcesses().length > 0;
   }
 
-  // eslint-disable-next-line no-unused-vars
-  startComponents(callback = (err) => {}) {
+  /**
+   * @param {ErrorableCallback} callback
+   */
+  startComponents(callback = (err) => {}) { // eslint-disable-line no-unused-vars
     // Emit start event when all processes are started
     let count = 0;
     const length = this.processes ? Object.keys(this.processes).length : 0;
@@ -810,6 +853,9 @@ export class BaseNetwork extends EventEmitter {
     });
   }
 
+  /**
+   * @param {ErrorableCallback} callback
+   */
   sendDefaults(callback = () => {}) {
     if (!this.defaults.length) {
       callback();
@@ -830,6 +876,9 @@ export class BaseNetwork extends EventEmitter {
     callback();
   }
 
+  /**
+   * @param {ErrorableCallback} callback
+   */
   start(callback) {
     if (!callback) {
       deprecated('Calling network.start() without callback is deprecated');
@@ -873,6 +922,9 @@ export class BaseNetwork extends EventEmitter {
     });
   }
 
+  /**
+   * @param {ErrorableCallback} callback
+   */
   stop(callback) {
     if (!callback) {
       deprecated('Calling network.stop() without callback is deprecated');
@@ -931,6 +983,9 @@ export class BaseNetwork extends EventEmitter {
     });
   }
 
+  /**
+   * @param {boolean} started
+   */
   setStarted(started) {
     if (this.started === started) { return; }
     if (!started) {
@@ -972,6 +1027,9 @@ export class BaseNetwork extends EventEmitter {
     return this.debug;
   }
 
+  /**
+   * @param {boolean} active
+   */
   setDebug(active) {
     if (active === this.debug) { return; }
     this.debug = active;
@@ -986,6 +1044,11 @@ export class BaseNetwork extends EventEmitter {
     });
   }
 
+  /**
+   * @param {Object|null} flowtrace
+   * @param {string|null} [name]
+   * @param {boolean} [main]
+   */
   setFlowtrace(flowtrace, name = null, main = true) {
     if (!flowtrace) {
       this.flowtraceName = null;
