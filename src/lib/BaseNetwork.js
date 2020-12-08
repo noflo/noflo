@@ -14,7 +14,7 @@ import * as internalSocket from './InternalSocket';
 import { ComponentLoader } from './ComponentLoader';
 import * as utils from './Utils';
 import IP from './IP';
-import { deprecated, isBrowser } from './Platform';
+import { deprecated, isBrowser, makeAsync } from './Platform';
 
 function connectPort(socket, process, port, index, inbound, callback) {
   if (inbound) {
@@ -447,10 +447,9 @@ export class BaseNetwork extends EventEmitter {
           }
           callStack += 1;
           if ((callStack % 100) === 0) {
-            setTimeout(() => {
+            makeAsync(() => {
               next(type);
-            },
-            0);
+            });
             return;
           }
           next(type);
@@ -805,7 +804,7 @@ export class BaseNetwork extends EventEmitter {
       // nextTick is faster on Node.js
       process.nextTick(send);
     } else {
-      setTimeout(send, 0);
+      makeAsync(send);
     }
   }
 
