@@ -58,11 +58,6 @@ function connectPort(socket, process, port, index, inbound, callback) {
   callback();
 }
 
-function sendInitial(initial) {
-  initial.socket.post(new IP('data', initial.data,
-    { initial: true }));
-}
-
 // ## The NoFlo network coordinator
 //
 // NoFlo networks consist of processes connected to each other
@@ -791,21 +786,19 @@ export class BaseNetwork extends EventEmitter {
   }
 
   /**
-   * @param {ErrorableCallback} callback
+   * @returns Promise<void>
    */
-  sendInitials(callback = () => {}) {
-    const send = () => {
-      this.initials.forEach((initial) => { sendInitial(initial); });
-      this.initials = [];
-      callback();
-    };
-
-    if ((typeof process !== 'undefined') && process.execPath && (process.execPath.indexOf('node') !== -1)) {
-      // nextTick is faster on Node.js
-      process.nextTick(send);
-    } else {
-      makeAsync(send);
-    }
+  sendInitials() {
+    return new Promise((resolve) => {
+      makeAsync(resolve);
+    })
+      .then(() => Promise.all(this.initials.map((initial) => new Promise((resolve) => {
+        initial.socket.post(new IP('data', initial.data, {
+          initial: true,
+        }));
+        resolve();
+      }))))
+      .then(() => {});
   }
 
   isStarted() {
@@ -821,170 +814,119 @@ export class BaseNetwork extends EventEmitter {
   }
 
   /**
-   * @param {ErrorableCallback} callback
+   * @protected
+   * @returns {Promise<void>}
    */
-  startComponents(callback = (err) => {}) { // eslint-disable-line no-unused-vars
-    // Emit start event when all processes are started
-    let count = 0;
-    const length = this.processes ? Object.keys(this.processes).length : 0;
-    const onProcessStart = (err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      count += 1;
-      if (count === length) { callback(); }
-    };
-
-    // Perform any startup routines necessary for every component.
+  startComponents() {
     if (!this.processes || !Object.keys(this.processes).length) {
-      callback();
-      return;
+      return Promise.resolve();
     }
-    Object.keys(this.processes).forEach((id) => {
+    // Perform any startup routines necessary for every component.
+    return Promise.all(Object.keys(this.processes).map((id) => {
       const process = this.processes[id];
-      if (process.component.isStarted()) {
-        onProcessStart();
-        return;
-      }
-      if (process.component.start.length === 0) {
-        deprecated('component.start method without callback is deprecated');
-        process.component.start();
-        onProcessStart();
-        return;
-      }
-      process.component.start(onProcessStart);
-    });
+      return process.component.start();
+    }))
+      .then(() => {});
   }
 
   /**
-   * @param {ErrorableCallback} callback
+   * @returns Promise<void>
    */
-  sendDefaults(callback = () => {}) {
-    if (!this.defaults.length) {
-      callback();
-      return;
-    }
-
-    this.defaults.forEach((socket) => {
+  sendDefaults() {
+    return Promise.all(this.defaults.map((socket) => {
       // Don't send defaults if more than one socket is present on the port.
       // This case should only happen when a subgraph is created as a component
       // as its network is instantiated and its inputs are serialized before
       // a socket is attached from the "parent" graph.
-      if (socket.to.process.component.inPorts[socket.to.port].sockets.length !== 1) { return; }
+      if (socket.to.process.component.inPorts[socket.to.port].sockets.length !== 1) {
+        return Promise.resolve();
+      }
       socket.connect();
       socket.send();
       socket.disconnect();
-    });
-
-    callback();
+      return Promise.resolve();
+    }))
+      .then(() => {});
   }
 
   /**
-   * @param {ErrorableCallback} callback
+   * @param {ErrorableCallback} [callback]
+   * @returns {Promise<BaseNetwork>}
    */
   start(callback) {
-    if (!callback) {
-      deprecated('Calling network.start() without callback is deprecated');
-      callback = () => {};
+    if (this.debouncedEnd) {
+      this.abortDebounce = true;
     }
 
-    if (this.debouncedEnd) { this.abortDebounce = true; }
-
+    let promise;
     if (this.started) {
-      this.stop((err) => {
-        if (err) {
-          callback(err);
-          return;
-        }
-        this.start(callback);
-      });
-      return;
-    }
-
-    this.initials = this.nextInitials.slice(0);
-    this.eventBuffer = [];
-    this.startComponents((err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      this.sendInitials((err2) => {
-        if (err2) {
-          callback(err2);
-          return;
-        }
-        this.sendDefaults((err3) => {
-          if (err3) {
-            callback(err3);
-            return;
-          }
+      promise = this.stop()
+        .then(() => this.start());
+    } else {
+      this.initials = this.nextInitials.slice(0);
+      this.eventBuffer = [];
+      promise = this.startComponents()
+        .then(() => this.sendInitials())
+        .then(() => this.sendDefaults())
+        .then(() => {
           this.setStarted(true);
-          callback(null);
+          return Promise.resolve(this);
         });
-      });
-    });
+    }
+    if (callback) {
+      deprecated('Providing a callback to Network.start is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
   /**
-   * @param {ErrorableCallback} callback
+   * @param {ErrorableCallback} [callback]
+   * @returns {Promise<BaseNetwork>}
    */
   stop(callback) {
-    if (!callback) {
-      deprecated('Calling network.stop() without callback is deprecated');
-      callback = () => {};
+    if (this.debouncedEnd) {
+      this.abortDebounce = true;
     }
 
-    if (this.debouncedEnd) { this.abortDebounce = true; }
-
+    let promise;
     if (!this.started) {
       this.stopped = true;
-      callback(null);
-      return;
-    }
+      promise = Promise.resolve(this);
+    } else {
+      // Disconnect all connections
+      this.connections.forEach((connection) => {
+        if (!connection.isConnected()) {
+          return;
+        }
+        connection.disconnect();
+      });
 
-    // Disconnect all connections
-    this.connections.forEach((connection) => {
-      if (!connection.isConnected()) { return; }
-      connection.disconnect();
-    });
-
-    // Emit stop event when all processes are stopped
-    let count = 0;
-    const length = this.processes ? Object.keys(this.processes).length : 0;
-    const onProcessEnd = (err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      count += 1;
-      if (count === length) {
+      if (!this.processes || !Object.keys(this.processes).length) {
+        // No processes to stop
         this.setStarted(false);
         this.stopped = true;
-        callback();
+        promise = Promise.resolve(this);
+      } else {
+        // Emit stop event when all processes are stopped
+        promise = Promise.all(Object.keys(this.processes)
+          .map((id) => this.processes[id].component.shutdown()))
+          .then(() => {
+            this.setStarted(false);
+            this.stopped = true;
+            return Promise.resolve(this);
+          });
       }
-    };
-    if (!this.processes || !Object.keys(this.processes).length) {
-      this.setStarted(false);
-      this.stopped = true;
-      callback();
-      return;
     }
-    // Tell processes to shut down
-    Object.keys(this.processes).forEach((id) => {
-      const process = this.processes[id];
-      if (!process.component.isStarted()) {
-        onProcessEnd();
-        return;
-      }
-      if (process.component.shutdown.length === 0) {
-        deprecated('component.shutdown method without callback is deprecated');
-        process.component.shutdown();
-        onProcessEnd();
-        return;
-      }
-      process.component.shutdown(onProcessEnd);
-    });
+    if (callback) {
+      deprecated('Providing a callback to Network.stop is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
   /**

@@ -158,13 +158,7 @@ export function createNetwork(graphInstance, options, callback) {
             reject(connectErr);
             return;
           }
-          network.start((startErr) => {
-            if (startErr) {
-              reject(startErr);
-              return;
-            }
-            resolve(network);
-          });
+          network.start().then(resolve, reject);
         });
       });
     });

@@ -172,7 +172,8 @@ export class Component extends EventEmitter {
   // Override in component implementation to do component-specific
   // setup work.
   /**
-   * @param {ErrorableCallback} callback - Callback for when setup is ready
+   * @param {ErrorableCallback} callback - Callback for when teardown is ready
+   * @returns {Promise | void}
    */
   setUp(callback) {
     callback(null);
@@ -198,22 +199,40 @@ export class Component extends EventEmitter {
   // Called when network starts. This sets calls the setUp
   // method and sets the component to a started state.
   /**
-   * @param {ErrorableCallback} callback - Callback for when startup is ready
+   * @param {ErrorableCallback} [callback] - Callback for when shutdown is ready
+   * @returns {Promise<void>}
    */
   start(callback) {
+    let promise;
     if (this.isStarted()) {
-      callback(null);
-      return;
+      promise = Promise.resolve();
+    } else {
+      promise = new Promise((resolve, reject) => {
+        const res = this.setUp((err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve();
+        });
+        if (res && res.then) {
+          // setUp returned a Promise
+          res.then(resolve, reject);
+        }
+      })
+        .then(() => {
+          this.started = true;
+          this.emit('start');
+          return Promise.resolve();
+        });
     }
-    this.setUp((err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      this.started = true;
-      this.emit('start');
-      callback(null);
-    });
+    if (callback) {
+      deprecated('Providing a callback to Component.start is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
   // ### Shutdown

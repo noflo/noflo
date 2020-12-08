@@ -237,14 +237,11 @@ class Graph extends noflo.Component {
       callback(null);
       return;
     }
-    this.network.start((err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      this.starting = false;
-      callback();
-    });
+    this.network.start()
+      .then(() => {
+        this.starting = false;
+        callback(null);
+      }, callback);
   }
 
   tearDown(callback) {
@@ -253,13 +250,8 @@ class Graph extends noflo.Component {
       callback(null);
       return;
     }
-    this.network.stop((err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      callback();
-    });
+    this.network.stop()
+      .then(() => callback(), callback);
   }
 }
 
