@@ -56,59 +56,58 @@ function normalizeOptions(options, component) {
 // Each invocation of the asCallback-wrapped NoFlo graph
 // creates a new network. This way we can isolate multiple
 // executions of the function in their own contexts.
-function prepareNetwork(component, options, callback) {
+function prepareNetwork(component, options) {
   // If we were given a graph instance, then just create a network
-  let network;
   if (typeof component === 'object') {
-    // This is a graph object
-    network = new Network(component, {
-      ...options,
-      componentLoader: options.loader,
+    return new Promise((resolve, reject) => {
+      // This is a graph object
+      const network = new Network(component, {
+        ...options,
+        componentLoader: options.loader,
+      });
+      // Wire the network up
+      network.connect((err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(network);
+      });
     });
-    // Wire the network up
-    network.connect((err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      callback(null, network);
-    });
-    return;
   }
 
   // Start by loading the component
-  options.loader.load(component, (err, instance) => {
-    if (err) {
-      callback(err);
-      return;
-    }
-    // Prepare a graph wrapping the component
-    const graph = new Graph(options.name);
-    const nodeName = options.name;
-    graph.addNode(nodeName, component);
-    // Expose ports
-    const inPorts = instance.inPorts.ports;
-    const outPorts = instance.outPorts.ports;
-    Object.keys(inPorts).forEach((port) => {
-      graph.addInport(port, nodeName, port);
+  return options.loader.load(component)
+    .then((instance) => {
+      // Prepare a graph wrapping the component
+      const graph = new Graph(options.name);
+      const nodeName = options.name;
+      graph.addNode(nodeName, component);
+      // Expose ports
+      const inPorts = instance.inPorts.ports;
+      const outPorts = instance.outPorts.ports;
+      Object.keys(inPorts).forEach((port) => {
+        graph.addInport(port, nodeName, port);
+      });
+      Object.keys(outPorts).forEach((port) => {
+        graph.addOutport(port, nodeName, port);
+      });
+      // Prepare network
+      const network = new Network(graph, {
+        ...options,
+        componentLoader: options.loader,
+      });
+      return new Promise((resolve, reject) => {
+        // Wire the network up and start execution
+        network.connect((err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve(network);
+        });
+      });
     });
-    Object.keys(outPorts).forEach((port) => {
-      graph.addOutport(port, nodeName, port);
-    });
-    // Prepare network
-    network = new Network(graph, {
-      ...options,
-      componentLoader: options.loader,
-    });
-    // Wire the network up and start execution
-    network.connect((err2) => {
-      if (err2) {
-        callback(err2);
-        return;
-      }
-      callback(null, network);
-    });
-  });
 }
 
 // ### Network execution
@@ -364,23 +363,20 @@ export function asCallback(component, options) {
   }
   options = normalizeOptions(options, component);
   return (inputs, callback) => {
-    prepareNetwork(component, options, (err, network) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      if (options.networkCallback) {
-        options.networkCallback(network);
-      }
-      const resultType = getType(inputs, network);
-      const inputMap = prepareInputMap(inputs, resultType, network);
-      runNetwork(network, inputMap, options, (err2, outputMap) => {
-        if (err2) {
-          callback(err2);
-          return;
+    prepareNetwork(component, options)
+      .then((network) => {
+        if (options.networkCallback) {
+          options.networkCallback(network);
         }
-        sendOutputMap(outputMap, resultType, options, callback);
-      });
-    });
+        const resultType = getType(inputs, network);
+        const inputMap = prepareInputMap(inputs, resultType, network);
+        runNetwork(network, inputMap, options, (err, outputMap) => {
+          if (err) {
+            callback(err);
+            return;
+          }
+          sendOutputMap(outputMap, resultType, options, callback);
+        });
+      }, callback);
   };
 }
