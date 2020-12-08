@@ -8,13 +8,13 @@
 */
 
 // Guess language from filename
-function guessLanguageFromFilename(filename) {
+export function guessLanguageFromFilename(filename) {
   if (/.*\.coffee$/.test(filename)) { return 'coffeescript'; }
   if (/.*\.ts$/.test(filename)) { return 'typescript'; }
   return 'javascript';
 }
 
-function isArray(obj) {
+export function isArray(obj) {
   if (Array.isArray) { return Array.isArray(obj); }
   return Object.prototype.toString.call(obj) === '[object Array]';
 }
@@ -77,14 +77,14 @@ function createReduce(dir) {
   };
 }
 
-const reduceRight = createReduce(-1);
+export const reduceRight = createReduce(-1);
 
 // Returns a function, that, as long as it continues to be invoked,
 // will not be triggered.
 // The function will be called after it stops being called for N milliseconds.
 // If immediate is passed, trigger the function on the leading edge,
 // instead of the trailing.
-function debounce(func, wait, immediate) {
+export function debounce(func, wait, immediate) {
   let timeout;
   let args;
   let context;
@@ -123,8 +123,3 @@ function debounce(func, wait, immediate) {
     return result;
   };
 }
-
-exports.guessLanguageFromFilename = guessLanguageFromFilename;
-exports.reduceRight = reduceRight;
-exports.debounce = debounce;
-exports.isArray = isArray;
