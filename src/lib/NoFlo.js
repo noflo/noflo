@@ -130,7 +130,7 @@ export { default as IP } from './IP';
  * @param {Object} [options.flowtrace] - Flowtrace instance to use for tracing this network run
  * @param {boolean} [options.subscribeGraph] - Whether the Network should monitor the graph
  * @param {boolean} [options.delay] - Whether the Network should be started later
- * @param {NetworkCallback} callback - Callback for the created Network
+ * @param {NetworkCallback} [callback] - Legacy callback for the created Network
  */
 export function createNetwork(graphInstance, options, callback) {
   if (typeof options !== 'object') {
@@ -139,57 +139,42 @@ export function createNetwork(graphInstance, options, callback) {
   if (typeof options.subscribeGraph === 'undefined') {
     options.subscribeGraph = false;
   }
-  if (typeof callback !== 'function') {
-    deprecated('Calling noflo.createNetwork without a callback is deprecated');
-    callback = (err) => {
-      if (err) { throw err; }
-    };
-  }
 
   // Choose legacy or modern network based on whether graph
   // subscription is needed
   const NetworkType = options.subscribeGraph ? LegacyNetwork : Network;
   const network = new NetworkType(graphInstance, options);
 
-  const networkReady = (net) => { // Send IIPs
-    net.start((err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      callback(null, net);
-    });
-  };
-
   // Ensure components are loaded before continuing
-  network.loader.listComponents((err) => {
-    if (err) {
-      callback(err);
-      return;
-    }
-
-    // In case of delayed execution we don't wire it up
-    if (options.delay) {
-      callback(null, network);
-      return;
-    }
-
-    // Empty network, no need to connect it up
-    if (graphInstance.nodes.length === 0) {
-      networkReady(network);
-      return;
-    }
-
-    // Wire the network up and start execution
-    network.connect((err2) => {
-      if (err2) {
-        callback(err2);
-        return;
+  const promise = network.loader.listComponents()
+    .then(() => {
+      if (options.delay) {
+        // In case of delayed execution we don't wire it up
+        return Promise.resolve(network);
       }
-      networkReady(network);
+      return new Promise((resolve, reject) => {
+        network.connect((connectErr) => {
+          if (connectErr) {
+            reject(connectErr);
+            return;
+          }
+          network.start((startErr) => {
+            if (startErr) {
+              reject(startErr);
+              return;
+            }
+            resolve(network);
+          });
+        });
+      });
     });
-  });
-  return network;
+  if (callback) {
+    deprecated('Providing a callback to NoFlo.createNetwork is deprecated, use Promises');
+    promise.then((nw) => {
+      callback(null, nw);
+    }, callback);
+  }
+  return promise;
 }
 
 // ### Starting a network from a file
@@ -197,34 +182,39 @@ export function createNetwork(graphInstance, options, callback) {
 // It is also possible to start a NoFlo network by giving it a path to a `.json` or `.fbp` network
 // definition file.
 //
-//     noflo.loadFile('somefile.json', {}, function (err, network) {
-//       if (err) {
-//         throw err;
-//       }
-//       console.log('Network is now running!');
-//     })
+//     noflo.loadFile('somefile.json', {})
+//       .then((network) => {
+//         console.log('Network is now running!');
+//       });
+/**
+ * @param {string} file
+ * @param {Object} options
+ * @param {any} [callback] - Legacy callback
+ * @returning {Promise<Network>}
+ */
 export function loadFile(file, options, callback) {
-  if (typeof callback !== 'function') {
-    deprecated('Calling noflo.loadFile without a callback is deprecated');
-    callback = (err) => {
-      if (err) { throw err; }
-    };
+  const promise = graph.loadFile(file)
+    .then((graphInstance) => createNetwork(graphInstance, options));
+  if (callback) {
+    deprecated('Providing a callback to NoFlo.loadFile is deprecated, use Promises');
+    promise.then((network) => {
+      callback(null, network);
+    }, callback);
   }
-
-  graph.loadFile(file, (err, graphInstance) => {
-    if (err) {
-      callback(err);
-      return;
-    }
-    createNetwork(graphInstance, options, callback);
-  });
+  return promise;
 }
 
 // ### Saving a network definition
 //
 // NoFlo graph files can be saved back into the filesystem with this method.
+/**
+ * @param {graph.Graph} graphInstance
+ * @param {string} file
+ * @param {any} [callback] - Legacy callback
+ * @returning {Promise<string>}
+ */
 export function saveFile(graphInstance, file, callback) {
-  graphInstance.save(file, callback);
+  return graphInstance.save(file, callback);
 }
 
 // ## Embedding NoFlo in existing JavaScript code
