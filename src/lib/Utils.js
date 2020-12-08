@@ -24,31 +24,6 @@ export function isArray(obj) {
 // (c) 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 // Underscore may be freely distributed under the MIT license.
 
-// Internal function that returns an efficient (for current engines)
-// version of the passed-in callback,
-// to be repeatedly applied in other Underscore functions.
-function optimizeCb(func, context, argCount) {
-  if (context === undefined) {
-    return func;
-  }
-  switch (argCount === null ? 3 : argCount) {
-    case 1:
-      return (value) => func.call(context, value);
-    case 2:
-      return (value, other) => func.call(context, value, other);
-    case 3:
-      return (value, index, collection) => func.call(context, value, index, collection);
-    case 4:
-      return (accumulator, value, index, collection) => {
-        func.call(context, accumulator, value, index, collection);
-      };
-    default: // No-op
-  }
-  return function call() {
-    return func.apply(context, arguments);
-  };
-}
-
 // Returns a function, that, as long as it continues to be invoked,
 // will not be triggered.
 // The function will be called after it stops being called for N milliseconds.
