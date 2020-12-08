@@ -260,16 +260,9 @@ export class ComponentLoader {
         g.loader = this;
         g.baseDir = this.baseDir;
         g.inPorts.remove('graph');
-        return new Promise((resolve, reject) => {
-          g.setGraph(component, (err) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-            this.setIcon(name, g);
-            resolve(g);
-          });
-        });
+        this.setIcon(name, g);
+        return g.setGraph(component)
+          .then(() => g);
       });
   }
 

@@ -10,6 +10,7 @@
 */
 
 import * as noflo from '../lib/NoFlo';
+import { deprecated } from '../lib/Platform';
 
 // The Graph component is used to wrap NoFlo Networks into components inside
 // another network.
@@ -36,50 +37,38 @@ class Graph extends noflo.Component {
 
     this.inPorts.ports.graph.on('ip', (packet) => {
       if (packet.type !== 'data') { return; }
-      this.setGraph(packet.data, (err) => {
-        // TODO: Port this part to Process API and use output.error method instead
-        if (err) {
-          this.error(err);
-        }
-      });
+      // TODO: Port this part to Process API and use output.error method instead
+      this.setGraph(packet.data).catch(this.error);
     });
   }
 
   setGraph(graph, callback) {
     this.ready = false;
+    let promise;
     if (typeof graph === 'object') {
       if (typeof graph.addNode === 'function') {
         // Existing Graph object
-        this.createNetwork(graph, callback);
-        return;
+        promise = this.createNetwork(graph);
+      } else {
+        // JSON definition of a graph
+        promise = noflo.graph.loadJSON(graph)
+          .then((instance) => this.createNetwork(instance));
       }
-
-      // JSON definition of a graph
-      noflo.graph.loadJSON(graph, (err, instance) => {
-        const inst = instance;
-        if (err) {
-          callback(err);
-          return;
-        }
-        this.createNetwork(inst, callback);
-      });
-      return;
-    }
-
-    let graphName = graph;
-
-    if ((graphName.substr(0, 1) !== '/') && (graphName.substr(1, 1) !== ':') && process && process.cwd) {
-      graphName = `${process.cwd()}/${graphName}`;
-    }
-
-    noflo.graph.loadFile(graphName, (err, instance) => {
-      const inst = instance;
-      if (err) {
-        callback(err);
-        return;
+    } else {
+      let graphName = graph;
+      if ((graphName.substr(0, 1) !== '/') && (graphName.substr(1, 1) !== ':') && process && process.cwd) {
+        graphName = `${process.cwd()}/${graphName}`;
       }
-      this.createNetwork(inst, callback);
-    });
+      promise = noflo.graph.loadFile(graphName)
+        .then((instance) => this.createNetwork(instance));
+    }
+    if (callback) {
+      deprecated('Providing a callback to Graph.setGraph is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
   createNetwork(graph, callback) {
@@ -89,38 +78,43 @@ class Graph extends noflo.Component {
     const graphObj = graph;
     if (!graphObj.name) { graphObj.name = this.nodeId; }
 
-    noflo.createNetwork(graphObj, {
+    const promise = noflo.createNetwork(graphObj, {
       delay: true,
       subscribeGraph: false,
       componentLoader: this.loader,
       baseDir: this.baseDir,
-    },
-    (err, network) => {
-      this.network = network;
-      if (err) {
-        callback(err);
-        return;
-      }
-      this.emit('network', this.network);
-      // Subscribe to network lifecycle
-      this.subscribeNetwork(this.network);
+    })
+      .then((network) => {
+        this.network = network;
+        this.emit('network', this.network);
+        // Subscribe to network lifecycle
+        this.subscribeNetwork(this.network);
 
-      // Wire the network up
-      this.network.connect((err2) => {
-        if (err2) {
-          callback(err2);
-          return;
-        }
-        Object.keys(this.network.processes).forEach((name) => {
-          // Map exported ports to local component
-          const node = this.network.processes[name];
-          this.findEdgePorts(name, node);
+        return new Promise((resolve, reject) => {
+          // Wire the network up
+          this.network.connect((err) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            Object.keys(this.network.processes).forEach((name) => {
+              // Map exported ports to local component
+              const node = this.network.processes[name];
+              this.findEdgePorts(name, node);
+            });
+            // Finally set ourselves as "ready"
+            this.setToReady();
+            resolve();
+          });
         });
-        // Finally set ourselves as "ready"
-        this.setToReady();
-        callback();
       });
-    });
+    if (callback) {
+      deprecated('Providing a callback to Graph.createNetwork is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
   subscribeNetwork(network) {
