@@ -164,14 +164,9 @@ const processGenerator = function () {
 };
 
 describe('Network Lifecycle', () => {
-  let loader = null;
-  before((done) => {
-    loader = new noflo.ComponentLoader(baseDir);
-    loader.listComponents((err) => {
-      if (err) {
-        done(err);
-        return;
-      }
+  const loader = new noflo.ComponentLoader(baseDir);
+  before(() => loader.listComponents()
+    .then(() => {
       loader.registerComponent('process', 'Async', processAsync);
       loader.registerComponent('process', 'Sync', processSync);
       loader.registerComponent('process', 'Merge', processMerge);
@@ -179,69 +174,45 @@ describe('Network Lifecycle', () => {
       loader.registerComponent('process', 'NonSending', processNonSending);
       loader.registerComponent('process', 'Generator', processGenerator);
       loader.registerComponent('legacy', 'Sync', legacyBasic);
-      done();
-    });
-  });
+    }));
   describe('recognizing API level', () => {
-    it('should recognize legacy component as such', (done) => {
-      loader.load('legacy/Sync', (err, inst) => {
-        if (err) {
-          done(err);
-          return;
-        }
+    it('should recognize legacy component as such', () => loader
+      .load('legacy/Sync')
+      .then((inst) => {
         chai.expect(inst.isLegacy()).to.equal(true);
-        done();
-      });
-    });
-    it('should recognize Process API component as non-legacy', (done) => {
-      loader.load('process/Async', (err, inst) => {
-        if (err) {
-          done(err);
-          return;
-        }
+      }));
+    it('should recognize Process API component as non-legacy', () => loader
+      .load('process/Async')
+      .then((inst) => {
         chai.expect(inst.isLegacy()).to.equal(false);
-        done();
-      });
-    });
-    it('should recognize Graph component as non-legacy', (done) => {
-      loader.load('Graph', (err, inst) => {
-        if (err) {
-          done(err);
-          return;
-        }
+      }));
+    it('should recognize Graph component as non-legacy', () => loader
+      .load('Graph')
+      .then((inst) => {
         chai.expect(inst.isLegacy()).to.equal(false);
-        done();
-      });
-    });
+      }));
   });
   describe('with single Process API component receiving IIP', () => {
     let c = null;
     let out = null;
-    beforeEach((done) => {
+    beforeEach(() => {
       const fbpData = 'OUTPORT=Pc.OUT:OUT\n'
                     + '\'hello\' -> IN Pc(process/Async)\n';
-      noflo.graph.loadFBP(fbpData, (err, graph) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        loader.registerComponent('scope', 'Connected', graph);
-        loader.load('scope/Connected', (err, instance) => {
-          if (err) {
-            done(err);
-            return;
-          }
+      return noflo.graph.loadFBP(fbpData)
+        .then((graph) => {
+          loader.registerComponent('scope', 'Connected', graph);
+          return loader.load('scope/Connected');
+        })
+        .then((instance) => {
           c = instance;
           out = noflo.internalSocket.createSocket();
           c.outPorts.out.attach(out);
-          done();
         });
-      });
     });
-    afterEach((done) => {
+    afterEach(() => {
       c.outPorts.out.detach(out);
       out = null;
-      c.shutdown(done);
+      return c.shutdown();
     });
     it('should execute and finish', (done) => {
       const expected = [
@@ -273,11 +244,7 @@ describe('Network Lifecycle', () => {
       };
       c.network.once('start', checkStart);
       c.network.once('end', checkEnd);
-      c.start((err) => {
-        if (err) {
-          done(err);
-        }
-      });
+      c.start().catch(done);
     });
     it('should execute twice if IIP changes', (done) => {
       const expected = [
@@ -330,11 +297,7 @@ describe('Network Lifecycle', () => {
       };
       c.network.once('start', checkStart);
       c.network.once('end', checkEnd);
-      c.start((err) => {
-        if (err) {
-          done(err);
-        }
-      });
+      c.start().catch(done);
     });
     it('should not send new IIP if network was stopped', (done) => {
       const expected = [
@@ -361,80 +324,64 @@ describe('Network Lifecycle', () => {
       };
       const checkEnd = function () {
         chai.expect(wasStarted).to.equal(true);
-        return c.network.stop((err) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          chai.expect(c.network.isStopped()).to.equal(true);
-          c.network.once('start', () => {
-            throw new Error('Unexpected network start');
-          });
-          c.network.once('end', () => {
-            throw new Error('Unexpected network end');
-          });
-          c.network.addInitial({
-            from: {
-              data: 'world',
-            },
-            to: {
-              node: 'Pc',
-              port: 'in',
-            },
-          },
-          (err) => {
-            if (err) {
-              done(err);
-            }
-          });
-          setTimeout(() => {
-            chai.expect(received).to.eql(expected);
-            done();
-          },
-          1000);
-        });
+        c.network.stop()
+          .then(() => {
+            chai.expect(c.network.isStopped()).to.equal(true);
+            c.network.once('start', () => {
+              throw new Error('Unexpected network start');
+            });
+            c.network.once('end', () => {
+              throw new Error('Unexpected network end');
+            });
+            c.network.addInitial({
+              from: {
+                data: 'world',
+              },
+              to: {
+                node: 'Pc',
+                port: 'in',
+              },
+            }, (err) => {
+              if (err) {
+                done(err);
+              }
+            });
+            setTimeout(() => {
+              chai.expect(received).to.eql(expected);
+              done();
+            }, 1000);
+          }, done);
       };
       c.network.once('start', checkStart);
       c.network.once('end', checkEnd);
-      c.start((err) => {
-        if (err) {
-          done(err);
-        }
-      });
+      c.start().catch(done);
     });
   });
   describe('with synchronous Process API', () => {
     let c = null;
     let out = null;
-    beforeEach((done) => {
+    beforeEach(() => {
       const fbpData = 'OUTPORT=Sync.OUT:OUT\n'
                     + '\'foo\' -> IN2 NonSending(process/NonSending)\n'
                     + '\'hello\' -> IN Bracketize(process/Bracketize)\n'
                     + 'Bracketize OUT -> IN NonSending(process/NonSending)\n'
                     + 'NonSending OUT -> IN Sync(process/Sync)\n'
                     + 'Sync OUT -> IN2 NonSending\n';
-      noflo.graph.loadFBP(fbpData, (err, graph) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        loader.registerComponent('scope', 'Connected', graph);
-        loader.load('scope/Connected', (err, instance) => {
-          if (err) {
-            done(err);
-            return;
-          }
+      return noflo.graph.loadFBP(fbpData)
+        .then((graph) => {
+          loader.registerComponent('scope', 'Connected', graph);
+          return loader.load('scope/Connected');
+        })
+        .then((instance) => {
           c = instance;
           out = noflo.internalSocket.createSocket();
           c.outPorts.out.attach(out);
-          done();
         });
-      });
     });
-    afterEach((done) => {
+    afterEach(() => {
       c.outPorts.out.detach(out);
       out = null;
-      c.shutdown(done);
+      return c.shutdown();
     });
     it('should execute and finish', (done) => {
       const expected = [
@@ -469,11 +416,7 @@ describe('Network Lifecycle', () => {
       };
       c.network.once('start', checkStart);
       c.network.once('end', checkEnd);
-      c.start((err) => {
-        if (err) {
-          done(err);
-        }
-      });
+      c.start().catch(done);
     });
   });
   describe('pure Process API merging two inputs', () => {
@@ -481,40 +424,33 @@ describe('Network Lifecycle', () => {
     let in1 = null;
     let in2 = null;
     let out = null;
-    before((done) => {
+    before(() => {
       const fbpData = 'INPORT=Pc1.IN:IN1\n'
                     + 'INPORT=Pc2.IN:IN2\n'
                     + 'OUTPORT=PcMerge.OUT:OUT\n'
                     + 'Pc1(process/Async) OUT -> IN1 PcMerge(process/Merge)\n'
                     + 'Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\n';
-      noflo.graph.loadFBP(fbpData, (err, g) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        loader.registerComponent('scope', 'Merge', g);
-        loader.load('scope/Merge', (err, instance) => {
-          if (err) {
-            done(err);
-            return;
-          }
+      return noflo.graph.loadFBP(fbpData)
+        .then((g) => {
+          loader.registerComponent('scope', 'Merge', g);
+          return loader.load('scope/Merge');
+        })
+        .then((instance) => {
           c = instance;
           in1 = noflo.internalSocket.createSocket();
           c.inPorts.in1.attach(in1);
           in2 = noflo.internalSocket.createSocket();
           c.inPorts.in2.attach(in2);
-          done();
         });
-      });
     });
     beforeEach(() => {
       out = noflo.internalSocket.createSocket();
       c.outPorts.out.attach(out);
     });
-    afterEach((done) => {
+    afterEach(() => {
       c.outPorts.out.detach(out);
       out = null;
-      c.shutdown(done);
+      return c.shutdown();
     });
     it('should forward new-style brackets as expected', (done) => {
       const expected = [
@@ -557,22 +493,19 @@ describe('Network Lifecycle', () => {
       c.network.once('start', checkStart);
       c.network.once('end', checkEnd);
 
-      c.start((err) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        in2.connect();
-        in2.send('foo');
-        in2.disconnect();
-        in1.connect();
-        in1.beginGroup(1);
-        in1.beginGroup('a');
-        in1.send('baz');
-        in1.endGroup();
-        in1.endGroup();
-        in1.disconnect();
-      });
+      c.start()
+        .then(() => {
+          in2.connect();
+          in2.send('foo');
+          in2.disconnect();
+          in1.connect();
+          in1.beginGroup(1);
+          in1.beginGroup('a');
+          in1.send('baz');
+          in1.endGroup();
+          in1.endGroup();
+          in1.disconnect();
+        }, done);
     });
     it('should forward new-style brackets as expected regardless of sending order', (done) => {
       const expected = [
@@ -615,22 +548,19 @@ describe('Network Lifecycle', () => {
       c.network.once('start', checkStart);
       c.network.once('end', checkEnd);
 
-      c.start((err) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        in1.connect();
-        in1.beginGroup(1);
-        in1.beginGroup('a');
-        in1.send('baz');
-        in1.endGroup();
-        in1.endGroup();
-        in1.disconnect();
-        in2.connect();
-        in2.send('foo');
-        in2.disconnect();
-      });
+      c.start()
+        .then(() => {
+          in1.connect();
+          in1.beginGroup(1);
+          in1.beginGroup('a');
+          in1.send('baz');
+          in1.endGroup();
+          in1.endGroup();
+          in1.disconnect();
+          in2.connect();
+          in2.send('foo');
+          in2.disconnect();
+        }, done);
     });
     it('should forward scopes as expected', (done) => {
       const expected = [
@@ -669,20 +599,17 @@ describe('Network Lifecycle', () => {
       c.network.once('start', checkStart);
       c.network.once('end', checkEnd);
 
-      c.start((err) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        in2.post(new noflo.IP('data', 'two',
-          { scope: 'x' }));
-        in1.post(new noflo.IP('openBracket', 1,
-          { scope: 'x' }));
-        in1.post(new noflo.IP('data', 'one',
-          { scope: 'x' }));
-        in1.post(new noflo.IP('closeBracket', 1,
-          { scope: 'x' }));
-      });
+      c.start()
+        .then(() => {
+          in2.post(new noflo.IP('data', 'two',
+            { scope: 'x' }));
+          in1.post(new noflo.IP('openBracket', 1,
+            { scope: 'x' }));
+          in1.post(new noflo.IP('data', 'one',
+            { scope: 'x' }));
+          in1.post(new noflo.IP('closeBracket', 1,
+            { scope: 'x' }));
+        }, done);
     });
   });
   describe('Process API mixed with legacy merging two inputs', () => {
@@ -690,41 +617,34 @@ describe('Network Lifecycle', () => {
     let in1 = null;
     let in2 = null;
     let out = null;
-    before((done) => {
+    before(() => {
       const fbpData = 'INPORT=Leg1.IN:IN1\n'
                     + 'INPORT=Leg2.IN:IN2\n'
                     + 'OUTPORT=Leg3.OUT:OUT\n'
                     + 'Leg1(legacy/Sync) OUT -> IN1 PcMerge(process/Merge)\n'
                     + 'Leg2(legacy/Sync) OUT -> IN2 PcMerge(process/Merge)\n'
                     + 'PcMerge OUT -> IN Leg3(legacy/Sync)\n';
-      noflo.graph.loadFBP(fbpData, (err, g) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        loader.registerComponent('scope', 'Merge', g);
-        loader.load('scope/Merge', (err, instance) => {
-          if (err) {
-            done(err);
-            return;
-          }
+      return noflo.graph.loadFBP(fbpData)
+        .then((g) => {
+          loader.registerComponent('scope', 'Merge', g);
+          return loader.load('scope/Merge');
+        })
+        .then((instance) => {
           c = instance;
           in1 = noflo.internalSocket.createSocket();
           c.inPorts.in1.attach(in1);
           in2 = noflo.internalSocket.createSocket();
           c.inPorts.in2.attach(in2);
-          done();
         });
-      });
     });
     beforeEach(() => {
       out = noflo.internalSocket.createSocket();
       c.outPorts.out.attach(out);
     });
-    afterEach((done) => {
+    afterEach(() => {
       c.outPorts.out.detach(out);
       out = null;
-      c.shutdown(done);
+      return c.shutdown();
     });
     it('should forward new-style brackets as expected', (done) => {
       const expected = [
@@ -767,22 +687,19 @@ describe('Network Lifecycle', () => {
       c.network.once('start', checkStart);
       c.network.once('end', checkEnd);
 
-      c.start((err) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        in2.connect();
-        in2.send('foo');
-        in2.disconnect();
-        in1.connect();
-        in1.beginGroup(1);
-        in1.beginGroup('a');
-        in1.send('baz');
-        in1.endGroup();
-        in1.endGroup();
-        in1.disconnect();
-      });
+      c.start()
+        .then(() => {
+          in2.connect();
+          in2.send('foo');
+          in2.disconnect();
+          in1.connect();
+          in1.beginGroup(1);
+          in1.beginGroup('a');
+          in1.send('baz');
+          in1.endGroup();
+          in1.endGroup();
+          in1.disconnect();
+        }, done);
     });
     it('should forward new-style brackets as expected regardless of sending order', (done) => {
       const expected = [
@@ -825,22 +742,19 @@ describe('Network Lifecycle', () => {
       c.network.once('start', checkStart);
       c.network.once('end', checkEnd);
 
-      c.start((err) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        in1.connect();
-        in1.beginGroup(1);
-        in1.beginGroup('a');
-        in1.send('baz');
-        in1.endGroup();
-        in1.endGroup();
-        in1.disconnect();
-        in2.connect();
-        in2.send('foo');
-        in2.disconnect();
-      });
+      c.start()
+        .then(() => {
+          in1.connect();
+          in1.beginGroup(1);
+          in1.beginGroup('a');
+          in1.send('baz');
+          in1.endGroup();
+          in1.endGroup();
+          in1.disconnect();
+          in2.connect();
+          in2.send('foo');
+          in2.disconnect();
+        }, done);
     });
   });
   describe('with a Process API Generator component', () => {
@@ -853,17 +767,12 @@ describe('Network Lifecycle', () => {
                     + 'INPORT=PcGen.STOP:STOP\n'
                     + 'OUTPORT=Pc.OUT:OUT\n'
                     + 'PcGen(process/Generator) OUT -> IN Pc(process/Async)\n';
-      noflo.graph.loadFBP(fbpData, (err, g) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        loader.registerComponent('scope', 'Connected', g);
-        loader.load('scope/Connected', (err, instance) => {
-          if (err) {
-            done(err);
-            return;
-          }
+      noflo.graph.loadFBP(fbpData)
+        .then((g) => {
+          loader.registerComponent('scope', 'Connected', g);
+          return loader.load('scope/Connected');
+        })
+        .then((instance) => {
           instance.once('ready', () => {
             c = instance;
             start = noflo.internalSocket.createSocket();
@@ -872,61 +781,48 @@ describe('Network Lifecycle', () => {
             c.inPorts.stop.attach(stop);
             done();
           });
-        });
-      });
+        })
+        .catch(done);
     });
     beforeEach(() => {
       out = noflo.internalSocket.createSocket();
       c.outPorts.out.attach(out);
     });
-    afterEach((done) => {
+    afterEach(() => {
       c.outPorts.out.detach(out);
       out = null;
-      c.shutdown(done);
+      return c.shutdown();
     });
     it('should not be running initially', () => {
       chai.expect(c.network.isRunning()).to.equal(false);
     });
-    it('should not be running even when network starts', (done) => {
-      c.start((err) => {
-        if (err) {
-          done(err);
-          return;
-        }
+    it('should not be running even when network starts', () => c.start()
+      .then(() => {
         chai.expect(c.network.isRunning()).to.equal(false);
-        done();
-      });
-    });
+      }));
     it('should start generating when receiving a start packet', (done) => {
-      c.start((err) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        out.once('data', () => {
-          chai.expect(c.network.isRunning()).to.equal(true);
-          done();
-        });
-        start.send(true);
-      });
+      c.start()
+        .then(() => {
+          out.once('data', () => {
+            chai.expect(c.network.isRunning()).to.equal(true);
+            done();
+          });
+          start.send(true);
+        }, done);
     });
     it('should stop generating when receiving a stop packet', (done) => {
-      c.start((err) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        out.once('data', () => {
-          chai.expect(c.network.isRunning()).to.equal(true);
-          stop.send(true);
-          setTimeout(() => {
-            chai.expect(c.network.isRunning()).to.equal(false);
-            done();
-          },
-          10);
-        });
-        start.send(true);
-      });
+      c.start()
+        .then(() => {
+          out.once('data', () => {
+            chai.expect(c.network.isRunning()).to.equal(true);
+            stop.send(true);
+            setTimeout(() => {
+              chai.expect(c.network.isRunning()).to.equal(false);
+              done();
+            }, 10);
+          });
+          start.send(true);
+        }, done);
     });
   });
 });
