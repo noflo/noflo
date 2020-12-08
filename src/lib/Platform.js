@@ -32,4 +32,18 @@ export function deprecated(message) {
     throw new Error(message);
   }
   console.warn(message);
-};
+}
+
+/**
+ * @param {Function} func
+ * @returns {void}
+ */
+export function makeAsync(func) {
+  if (isBrowser()) {
+    setTimeout(func, 0);
+    return;
+  }
+  setImmediate(() => {
+    func();
+  });
+}

@@ -11,7 +11,7 @@
 
 import { Graph } from 'fbp-graph';
 import * as registerLoader from './loader/register';
-import { deprecated } from './Platform';
+import { deprecated, makeAsync } from './Platform';
 
 // ## The NoFlo Component Loader
 //
@@ -78,15 +78,17 @@ export class ComponentLoader {
       this.components = {};
       this.ready = false;
       this.processing = new Promise((resolve, reject) => {
-        registerLoader.register(this, (err) => {
-          if (err) {
-            // We keep the failed promise here in this.processing
-            reject(err);
-            return;
-          }
-          this.ready = true;
-          this.processing = null;
-          resolve(this.components);
+        makeAsync(() => {
+          registerLoader.register(this, (err) => {
+            if (err) {
+              // We keep the failed promise here in this.processing
+              reject(err);
+              return;
+            }
+            this.ready = true;
+            this.processing = null;
+            resolve(this.components);
+          });
         });
       });
       promise = this.processing;
