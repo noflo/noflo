@@ -493,7 +493,7 @@ export class Component extends EventEmitter {
       }
     } catch (e) {
       this.deactivate(context);
-      output.done(e);
+      output.sendDone(e);
     }
 
     if (context.activated) { return; }
