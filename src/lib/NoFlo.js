@@ -242,7 +242,7 @@ export function saveFile(graphInstance, file, callback) {
 //       // Do something with results
 //     });
 //
-export { asCallback } from './AsCallback';
+export { asCallback, asPromise } from './AsCallback';
 
 // ## Generating components from JavaScript functions
 //

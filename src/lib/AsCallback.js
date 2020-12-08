@@ -274,16 +274,15 @@ function normalizeOutput(values, options) {
   return result;
 }
 
-function sendOutputMap(outputs, resultType, options, callback) {
+function sendOutputMap(outputs, resultType, options) {
   // First check if the output sequence contains errors
   const errors = outputs.filter((map) => map.error != null).map((map) => map.error);
   if (errors.length) {
-    callback(normalizeOutput(errors, options));
-    return;
+    return Promise.reject(normalizeOutput(errors, options));
   }
 
   if (resultType === 'sequence') {
-    callback(null, outputs.map((map) => {
+    return Promise.resolve(outputs.map((map) => {
       const res = {};
       Object.keys(map).forEach((key) => {
         const val = map[key];
@@ -295,7 +294,6 @@ function sendOutputMap(outputs, resultType, options, callback) {
       });
       return res;
     }));
-    return;
   }
 
   // Flatten the sequence
@@ -312,20 +310,18 @@ function sendOutputMap(outputs, resultType, options, callback) {
   const withValue = outputKeys.filter((outport) => mappedOutputs[outport].length > 0);
   if (withValue.length === 0) {
     // No output
-    callback(null);
-    return;
+    return Promise.resolve(null);
   }
   if ((withValue.length === 1) && (resultType === 'simple')) {
     // Single outport
-    callback(null, normalizeOutput(mappedOutputs[withValue[0]], options));
-    return;
+    return Promise.resolve(normalizeOutput(mappedOutputs[withValue[0]], options));
   }
   const result = {};
   Object.keys(mappedOutputs).forEach((port) => {
     const packets = mappedOutputs[port];
     result[port] = normalizeOutput(packets, options);
   });
-  callback(null, result);
+  return Promise.resolve(result);
 }
 
 /**
@@ -343,6 +339,12 @@ function sendOutputMap(outputs, resultType, options, callback) {
  */
 
 /**
+ * @callback NetworkAsPromise
+ * @param {any} input
+ * @returns {Promise}
+ */
+
+/**
  * @callback NetworkCallback
  * @param {Network} network
  * @returns void
@@ -357,25 +359,42 @@ function sendOutputMap(outputs, resultType, options, callback) {
  * @param {Object} [options.flowtrace] - Flowtrace instance to use for tracing this network run
  * @param {NetworkCallback} [options.networkCallback] - Access to Network instance
  * @param {boolean} [options.raw] - Whether the callback should operate on raw noflo.IP objects
- * @returns {NetworkAsCallback}
+ * @returns {NetworkAsPromise}
  */
-export function asCallback(component, options) {
+export function asPromise(component, options) {
   if (!component) {
     throw new Error('No component or graph provided');
   }
   options = normalizeOptions(options, component);
+  return (inputs) => prepareNetwork(component, options)
+    .then((network) => {
+      if (options.networkCallback) {
+        options.networkCallback(network);
+      }
+      const resultType = getType(inputs, network);
+      const inputMap = prepareInputMap(inputs, resultType, network);
+      return runNetwork(network, inputMap)
+        .then((outputMap) => sendOutputMap(outputMap, resultType, options));
+    });
+}
+
+/**
+ * @param {Graph | string} component - Graph or component to load
+ * @param {Object} options
+ * @param {string} [options.name] - Name for the wrapped network
+ * @param {ComponentLoader} [options.loader] - Component loader instance to use, if any
+ * @param {string} [options.baseDir] - Project base directory for component loading
+ * @param {Object} [options.flowtrace] - Flowtrace instance to use for tracing this network run
+ * @param {NetworkCallback} [options.networkCallback] - Access to Network instance
+ * @param {boolean} [options.raw] - Whether the callback should operate on raw noflo.IP objects
+ * @returns {NetworkAsCallback}
+ */
+export function asCallback(component, options) {
+  const promised = asPromise(component, options);
   return (inputs, callback) => {
-    prepareNetwork(component, options)
-      .then((network) => {
-        if (options.networkCallback) {
-          options.networkCallback(network);
-        }
-        const resultType = getType(inputs, network);
-        const inputMap = prepareInputMap(inputs, resultType, network);
-        return runNetwork(network, inputMap)
-          .then((outputMap) => {
-            sendOutputMap(outputMap, resultType, options, callback);
-          }, callback);
+    promised(inputs)
+      .then((output) => {
+        callback(null, output);
       }, callback);
   };
 }
