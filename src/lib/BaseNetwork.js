@@ -775,13 +775,18 @@ export class BaseNetwork extends EventEmitter {
     return new Promise((resolve) => {
       makeAsync(resolve);
     })
-      .then(() => Promise.all(this.initials.map((initial) => new Promise((resolve) => {
-        initial.socket.post(new IP('data', initial.data, {
-          initial: true,
-        }));
-        resolve();
-      }))))
-      .then(() => {});
+      .then(() => this.initials.reduce((chain, initial) => chain
+        .then(() => {
+          initial.socket.post(new IP('data', initial.data, {
+            initial: true,
+          }));
+          return Promise.resolve();
+        }), Promise.resolve()))
+      .then(() => {
+        // Clear the list of initials to still be sent
+        this.initials = [];
+        return Promise.resolve();
+      });
   }
 
   isStarted() {
