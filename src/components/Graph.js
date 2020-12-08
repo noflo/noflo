@@ -89,24 +89,17 @@ class Graph extends noflo.Component {
         this.emit('network', this.network);
         // Subscribe to network lifecycle
         this.subscribeNetwork(this.network);
-
-        return new Promise((resolve, reject) => {
-          // Wire the network up
-          this.network.connect((err) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-            Object.keys(this.network.processes).forEach((name) => {
-              // Map exported ports to local component
-              const node = this.network.processes[name];
-              this.findEdgePorts(name, node);
-            });
-            // Finally set ourselves as "ready"
-            this.setToReady();
-            resolve();
-          });
+        // Wire the network up
+        return network.connect();
+      })
+      .then(() => {
+        Object.keys(this.network.processes).forEach((name) => {
+          // Map exported ports to local component
+          const node = this.network.processes[name];
+          this.findEdgePorts(name, node);
         });
+        // Finally set ourselves as "ready"
+        this.setToReady();
       });
     if (callback) {
       deprecated('Providing a callback to Graph.createNetwork is deprecated, use Promises');

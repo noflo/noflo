@@ -49,36 +49,6 @@ function optimizeCb(func, context, argCount) {
   };
 }
 
-// Create a reducing function iterating left or right.
-// Optimized iterator function as using arguments.length in the main function
-// will deoptimize the, see #1991.
-function createReduce(dir) {
-  function iterator(obj, iteratee, memo, keys, index, length) {
-    while ((index >= 0) && (index < length)) {
-      const currentKey = keys ? keys[index] : index;
-      memo = iteratee(memo, obj[currentKey], currentKey, obj);
-      index += dir;
-    }
-    return memo;
-  }
-
-  return function reduce(obj, iteratee, memo, context) {
-    iteratee = optimizeCb(iteratee, context, 4);
-    const keys = Object.keys(obj);
-    const {
-      length,
-    } = keys || obj;
-    let index = dir > 0 ? 0 : length - 1;
-    if (arguments.length < 3) {
-      memo = obj[keys ? keys[index] : index];
-      index += dir;
-    }
-    return iterator(obj, iteratee, memo, keys, index, length);
-  };
-}
-
-export const reduceRight = createReduce(-1);
-
 // Returns a function, that, as long as it continues to be invoked,
 // will not be triggered.
 // The function will be called after it stops being called for N milliseconds.

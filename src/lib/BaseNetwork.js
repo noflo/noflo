@@ -12,7 +12,7 @@
 import { EventEmitter } from 'events';
 import * as internalSocket from './InternalSocket';
 import { ComponentLoader } from './ComponentLoader';
-import * as utils from './Utils';
+import { debounce } from './Utils';
 import IP from './IP';
 import { deprecated, isBrowser, makeAsync } from './Platform';
 
@@ -424,54 +424,37 @@ export class BaseNetwork extends EventEmitter {
    * @returns {void}
    */
   /**
-   * @param {ErrorableCallback} done
+   * @param {ErrorableCallback} [callback]
+   * @returns {Promise<BaseNetwork>}
    */
-  connect(done = (err) => {}) { // eslint-disable-line no-unused-vars
-    // Wrap the future which will be called when done in a function and return
-    // it
-    let callStack = 0;
-    const serialize = (next, add) => (type) => {
-      // Add either a Node, an Initial, or an Edge and move on to the next one
-      // when done
-      this[`add${type}`](add,
-        { initial: true },
-        (err) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          callStack += 1;
-          if ((callStack % 100) === 0) {
-            makeAsync(() => {
-              next(type);
-            });
-            return;
-          }
-          next(type);
-        });
-    };
+  connect(callback) {
+    const handleAll = (key, method) => this.graph[key]
+      .reduce((chain, entity) => chain
+        .then(() => new Promise((resolve, reject) => {
+          this[method](entity, {
+            initial: true,
+          }, (err) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve();
+          });
+        })), Promise.resolve());
 
-    // Serialize default socket creation then call callback when done
-    const setDefaults = utils.reduceRight(this.graph.nodes, serialize, () => {
-      done();
-    });
-
-    // Serialize initializers then call defaults.
-    const initializers = utils.reduceRight(this.graph.initializers, serialize, () => {
-      setDefaults('Defaults');
-    });
-
-    // Serialize edge creators then call the initializers.
-    const edges = utils.reduceRight(this.graph.edges, serialize, () => {
-      initializers('Initial');
-    });
-
-    // Serialize node creators then call the edge creators
-    const nodes = utils.reduceRight(this.graph.nodes, serialize, () => {
-      edges('Edge');
-    });
-    // Start with node creators
-    nodes('Node');
+    const promise = Promise.resolve()
+      .then(() => handleAll('nodes', 'addNode'))
+      .then(() => handleAll('edges', 'addEdge'))
+      .then(() => handleAll('initializers', 'addInitial'))
+      .then(() => handleAll('nodes', 'addDefaults'))
+      .then(() => this);
+    if (callback) {
+      deprecated('Providing a callback to Network.connect is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
   /**
@@ -959,7 +942,7 @@ export class BaseNetwork extends EventEmitter {
     if (this.isRunning()) { return; }
     delete this.abortDebounce;
     if (!this.debouncedEnd) {
-      this.debouncedEnd = utils.debounce(() => {
+      this.debouncedEnd = debounce(() => {
         if (this.abortDebounce) { return; }
         if (this.isRunning()) { return; }
         this.setStarted(false);

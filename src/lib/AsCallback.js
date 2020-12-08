@@ -59,21 +59,13 @@ function normalizeOptions(options, component) {
 function prepareNetwork(component, options) {
   // If we were given a graph instance, then just create a network
   if (typeof component === 'object') {
-    return new Promise((resolve, reject) => {
-      // This is a graph object
-      const network = new Network(component, {
-        ...options,
-        componentLoader: options.loader,
-      });
-      // Wire the network up
-      network.connect((err) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve(network);
-      });
+    // This is a graph object
+    const network = new Network(component, {
+      ...options,
+      componentLoader: options.loader,
     });
+    // Wire the network up
+    return network.connect();
   }
 
   // Start by loading the component
@@ -97,16 +89,8 @@ function prepareNetwork(component, options) {
         ...options,
         componentLoader: options.loader,
       });
-      return new Promise((resolve, reject) => {
-        // Wire the network up and start execution
-        network.connect((err) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve(network);
-        });
-      });
+      // Wire the network up and start execution
+      return network.connect();
     });
 }
 

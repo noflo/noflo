@@ -152,15 +152,8 @@ export function createNetwork(graphInstance, options, callback) {
         // In case of delayed execution we don't wire it up
         return Promise.resolve(network);
       }
-      return new Promise((resolve, reject) => {
-        network.connect((connectErr) => {
-          if (connectErr) {
-            reject(connectErr);
-            return;
-          }
-          network.start().then(resolve, reject);
-        });
-      });
+      return network.connect()
+        .then(() => network.start());
     });
   if (callback) {
     deprecated('Providing a callback to NoFlo.createNetwork is deprecated, use Promises');
