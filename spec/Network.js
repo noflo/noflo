@@ -47,15 +47,11 @@ describe('NoFlo Network', () => {
         subscribeGraph: false,
         delay: true,
         baseDir,
-      },
-      (err, network) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        n = network;
-        n.connect(done);
-      });
+      })
+        .then((network) => {
+          n = network;
+          n.connect(done);
+        }, done);
     });
     it('should initially be marked as stopped', () => {
       chai.expect(n.isStarted()).to.equal(false);
@@ -273,18 +269,14 @@ describe('NoFlo Network', () => {
         subscribeGraph: false,
         delay: true,
         baseDir,
-      },
-      (err, nw) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        nw.loader.components.Split = Split;
-        nw.loader.components.Merge = Merge;
-        nw.loader.components.Callback = Callback;
-        n = nw;
-        nw.connect(done);
-      });
+      })
+        .then((nw) => {
+          nw.loader.components.Split = Split;
+          nw.loader.components.Merge = Merge;
+          nw.loader.components.Callback = Callback;
+          n = nw;
+          nw.connect(done);
+        }, done);
     });
     it('should send some initials when started', (done) => {
       chai.expect(n.initials).not.to.be.empty;
@@ -455,28 +447,24 @@ describe('NoFlo Network', () => {
     describe('without the delay option', () => {
       it('should auto-start', (done) => {
         g.removeInitial('Func', 'callback');
-        noflo.graph.loadJSON(g.toJSON(), (err, graph) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          // Pass the already-initialized component loader
-          graph.addInitial((data) => {
-            chai.expect(data).to.equal('Foo');
-            done();
-          },
-          'Func', 'callback');
-          noflo.createNetwork(graph, {
-            subscribeGraph: false,
-            delay: false,
-            componentLoader: n.loader,
-          },
-          (err) => {
-            if (err) {
-              done(err);
-            }
-          });
-        });
+        noflo.graph.loadJSON(g.toJSON())
+          .then((graph) => {
+            // Pass the already-initialized component loader
+            graph.addInitial(
+              (data) => {
+                chai.expect(data).to.equal('Foo');
+                done();
+              },
+              'Func',
+              'callback',
+            );
+            return noflo.createNetwork(graph, {
+              subscribeGraph: false,
+              delay: false,
+              componentLoader: n.loader,
+            });
+          })
+          .catch(done);
       });
     });
   });
