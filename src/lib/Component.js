@@ -27,7 +27,7 @@ const debugSend = debug('noflo:component:send');
  * @param {ProcessInput} input
  * @param {ProcessOutput} output
  * @param {ProcessContext} context
- * @returns {void}
+ * @returns {Promise | void}
  */
 
 // ## NoFlo Component Base class
@@ -483,10 +483,17 @@ export class Component extends EventEmitter {
     const output = new ProcessOutput(this.outPorts, context);
     try {
       // Call the processing function
-      this.handle(input, output, context);
+      const res = this.handle(input, output, context);
+      if (res && res.then) {
+        // Processing function returned a Promise
+        res.then(
+          (data) => output.sendDone(data),
+          (err) => output.done(err),
+        );
+      }
     } catch (e) {
       this.deactivate(context);
-      output.sendDone(e);
+      output.done(e);
     }
 
     if (context.activated) { return; }

@@ -39,6 +39,22 @@ const processAsync = function () {
   return c;
 };
 
+const processPromise = function () {
+  const c = new noflo.Component();
+  c.inPorts.add('in',
+    { datatype: 'string' });
+  c.outPorts.add('out',
+    { datatype: 'string' });
+
+  c.process((input) => new Promise((resolve) => {
+    const data = input.getData('in');
+    setTimeout(() => {
+      resolve(data + c.nodeId);
+    }, 1);
+  }));
+  return c;
+};
+
 const processMerge = function () {
   const c = new noflo.Component();
   c.inPorts.add('in1',
@@ -168,6 +184,7 @@ describe('Network Lifecycle', () => {
   before(() => loader.listComponents()
     .then(() => {
       loader.registerComponent('process', 'Async', processAsync);
+      loader.registerComponent('process', 'Promise', processPromise);
       loader.registerComponent('process', 'Sync', processSync);
       loader.registerComponent('process', 'Merge', processMerge);
       loader.registerComponent('process', 'Bracketize', processBracketize);
@@ -351,6 +368,61 @@ describe('Network Lifecycle', () => {
               done();
             }, 1000);
           }, done);
+      };
+      c.network.once('start', checkStart);
+      c.network.once('end', checkEnd);
+      c.start().catch(done);
+    });
+  });
+  describe('with promise-based Process API component receiving IIP', () => {
+    let c = null;
+    let out = null;
+    beforeEach(() => {
+      const fbpData = 'OUTPORT=Pc.OUT:OUT\n'
+                    + '\'hello\' -> IN Pc(process/Promise)\n';
+      return noflo.graph.loadFBP(fbpData)
+        .then((graph) => {
+          loader.registerComponent('scope', 'Promise', graph);
+          return loader.load('scope/Promise');
+        })
+        .then((instance) => {
+          c = instance;
+          out = noflo.internalSocket.createSocket();
+          c.outPorts.out.attach(out);
+        });
+    });
+    afterEach(() => {
+      c.outPorts.out.detach(out);
+      out = null;
+      return c.shutdown();
+    });
+    it('should execute and finish', (done) => {
+      const expected = [
+        'DATA helloPc',
+      ];
+      const received = [];
+      out.on('ip', (ip) => {
+        switch (ip.type) {
+          case 'openBracket':
+            received.push(`< ${ip.data}`);
+            break;
+          case 'data':
+            received.push(`DATA ${ip.data}`);
+            break;
+          case 'closeBracket':
+            received.push('>');
+            break;
+        }
+      });
+      let wasStarted = false;
+      const checkStart = function () {
+        chai.expect(wasStarted).to.equal(false);
+        wasStarted = true;
+      };
+      const checkEnd = function () {
+        chai.expect(received).to.eql(expected);
+        chai.expect(wasStarted).to.equal(true);
+        done();
       };
       c.network.once('start', checkStart);
       c.network.once('end', checkEnd);
