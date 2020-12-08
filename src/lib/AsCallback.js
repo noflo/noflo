@@ -150,48 +150,45 @@ function runNetwork(network, inputs) {
     };
     network.once('end', onEnd);
     // Start network
-    network.start((err) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      // Send inputs
-      for (let i = 0; i < inputs.length; i += 1) {
-        const inputMap = inputs[i];
-        const keys = Object.keys(inputMap);
-        for (let j = 0; j < keys.length; j += 1) {
-          const port = keys[j];
-          const value = inputMap[port];
-          if (!inSockets[port]) {
-            const portDef = network.graph.inports[port];
-            if (!portDef) {
-              reject(new Error(`Port ${port} not available in the graph`));
+    network.start()
+      .then(() => {
+        // Send inputs
+        for (let i = 0; i < inputs.length; i += 1) {
+          const inputMap = inputs[i];
+          const keys = Object.keys(inputMap);
+          for (let j = 0; j < keys.length; j += 1) {
+            const port = keys[j];
+            const value = inputMap[port];
+            if (!inSockets[port]) {
+              const portDef = network.graph.inports[port];
+              if (!portDef) {
+                reject(new Error(`Port ${port} not available in the graph`));
+                return;
+              }
+              const process = network.getNode(portDef.process);
+              inSockets[port] = internalSocket.createSocket();
+              network.subscribeSocket(inSockets[port]);
+              inSockets[port].to = {
+                process,
+                port,
+              };
+              process.component.inPorts[portDef.port].attach(inSockets[port]);
+            }
+            try {
+              if (IP.isIP(value)) {
+                inSockets[port].post(value);
+              } else {
+                inSockets[port].post(new IP('data', value));
+              }
+            } catch (e) {
+              reject(e);
+              network.removeListener('process-error', onError);
+              network.removeListener('end', onEnd);
               return;
             }
-            const process = network.getNode(portDef.process);
-            inSockets[port] = internalSocket.createSocket();
-            network.subscribeSocket(inSockets[port]);
-            inSockets[port].to = {
-              process,
-              port,
-            };
-            process.component.inPorts[portDef.port].attach(inSockets[port]);
-          }
-          try {
-            if (IP.isIP(value)) {
-              inSockets[port].post(value);
-            } else {
-              inSockets[port].post(new IP('data', value));
-            }
-          } catch (e) {
-            reject(e);
-            network.removeListener('process-error', onError);
-            network.removeListener('end', onEnd);
-            return;
           }
         }
-      }
-    });
+      }, reject);
   });
 }
 

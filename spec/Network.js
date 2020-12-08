@@ -437,12 +437,10 @@ describe('NoFlo Network', () => {
       });
     });
     describe('once stopped', () => {
-      it('should be marked as stopped', (done) => {
-        n.stop(() => {
+      it('should be marked as stopped', () => n.stop()
+        .then(() => {
           chai.expect(n.isStarted()).to.equal(false);
-          done();
-        });
-      });
+        }));
     });
     describe('without the delay option', () => {
       it('should auto-start', (done) => {
@@ -732,11 +730,7 @@ describe('NoFlo Network', () => {
           chai.expect(endTimes).to.be.an('object');
           done();
         });
-        n.stop((err) => {
-          if (err) {
-            done(err);
-          }
-        });
+        n.stop().catch(done);
       });
       it('should have called the shutdown method of each process', () => {
         chai.expect(n.processes.Repeat.component.started).to.equal(false);
