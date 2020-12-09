@@ -115,7 +115,7 @@ export { default as IP } from './IP';
 /**
  * @callback NetworkCallback
  * @param {Error | null} err
- * @param {Network} [network]
+ * @param {Network|LegacyNetwork} [network]
  */
 
 /**
@@ -127,6 +127,7 @@ export { default as IP } from './IP';
  * @param {boolean} [options.subscribeGraph] - Whether the Network should monitor the graph
  * @param {boolean} [options.delay] - Whether the Network should be started later
  * @param {NetworkCallback} [callback] - Legacy callback for the created Network
+ * @returns {Promise<Network|LegacyNetwork>}
  */
 export function createNetwork(graphInstance, options, callback) {
   if (typeof options !== 'object') {
@@ -148,8 +149,8 @@ export function createNetwork(graphInstance, options, callback) {
         // In case of delayed execution we don't wire it up
         return Promise.resolve(network);
       }
-      return network.connect()
-        .then(() => network.start());
+      const connected = /** @type {Promise<Network|LegacyNetwork>} */ (network.connect());
+      return connected.then(() => network.start());
     });
   if (callback) {
     deprecated('Providing a callback to NoFlo.createNetwork is deprecated, use Promises');

@@ -441,7 +441,7 @@ export class BaseNetwork extends EventEmitter {
    */
   /**
    * @param {ErrorableCallback} [callback]
-   * @returns {Promise<BaseNetwork>}
+   * @returns {Promise<this>}
    */
   connect(callback) {
     const handleAll = (key, method) => this.graph[key]
@@ -813,7 +813,7 @@ export class BaseNetwork extends EventEmitter {
 
   /**
    * @param {ErrorableCallback} [callback]
-   * @returns {Promise<BaseNetwork>}
+   * @returns {Promise<this>}
    */
   start(callback) {
     if (this.debouncedEnd) {
@@ -846,7 +846,7 @@ export class BaseNetwork extends EventEmitter {
 
   /**
    * @param {ErrorableCallback} [callback]
-   * @returns {Promise<BaseNetwork>}
+   * @returns {Promise<this>}
    */
   stop(callback) {
     if (this.debouncedEnd) {

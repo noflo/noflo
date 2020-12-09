@@ -35,19 +35,41 @@ import * as internalSocket from './InternalSocket';
 // function. This allows passing things like a pre-initialized
 // NoFlo ComponentLoader, or giving the component loading
 // baseDir context.
+/**
+ * @typedef {Graph | string} AsCallbackComponent
+ */
+/**
+ * @typedef {Object} AsCallbackOptions
+ * @property {string} [name] - Name for the wrapped network
+ * @property {ComponentLoader} [loader] - Component loader instance to use, if any
+ * @property {string} [baseDir] - Project base directory for component loading
+ * @property {Object} [flowtrace] - Flowtrace instance to use for tracing this network run
+ * @property {NetworkCallback} [networkCallback] - Access to Network instance
+ * @property {boolean} [raw] - Whether the callback should operate on raw noflo.IP objects
+ */
+
+/**
+ * @param {AsCallbackOptions} options
+ * @param {AsCallbackComponent} component
+ * @returns {AsCallbackOptions}
+ */
 function normalizeOptions(options, component) {
   if (!options) { options = {}; }
-  if (!options.name) { options.name = component; }
+  if (!options.name && typeof component === 'string') {
+    options.name = component;
+  }
   if (options.loader) {
     options.baseDir = options.loader.baseDir;
   }
   if (!options.baseDir && process && process.cwd) {
     options.baseDir = process.cwd();
   }
-  if (!options.loader) {
+  if (options.baseDir && !options.loader) {
     options.loader = new ComponentLoader(options.baseDir);
   }
-  if (!options.raw) { options.raw = false; }
+  if (!options.raw) {
+    options.raw = false;
+  }
   return options;
 }
 
@@ -56,6 +78,11 @@ function normalizeOptions(options, component) {
 // Each invocation of the asCallback-wrapped NoFlo graph
 // creates a new network. This way we can isolate multiple
 // executions of the function in their own contexts.
+/**
+ * @param {AsCallbackComponent} component
+ * @param {AsCallbackOptions} options
+ * @returns {Promise<Network>}
+ */
 function prepareNetwork(component, options) {
   // If we were given a graph instance, then just create a network
   if (typeof component === 'object') {
@@ -68,12 +95,16 @@ function prepareNetwork(component, options) {
     return network.connect();
   }
 
+  if (!options.loader) {
+    return Promise.reject(new Error('No component loader provided'));
+  }
+
   // Start by loading the component
-  return options.loader.load(component)
+  return options.loader.load(component, {})
     .then((instance) => {
       // Prepare a graph wrapping the component
       const graph = new Graph(options.name);
-      const nodeName = options.name;
+      const nodeName = options.name || 'AsCallback';
       graph.addNode(nodeName, component);
       // Expose ports
       const inPorts = instance.inPorts.ports;
@@ -104,13 +135,21 @@ function prepareNetwork(component, options) {
 //
 // Once the network finishes, we send the resulting IP
 // objects to the callback.
+/**
+ * @param {Network} network
+ * @param {any} inputs
+ * @returns {Promise<any>}
+ */
 function runNetwork(network, inputs) {
   return new Promise((resolve, reject) => {
     // Prepare inports
+    /** @type {Object<string, import("./InternalSocket").InternalSocket>} */
     let inSockets = {};
     // Subscribe outports
+    /** @type {Array<Object<string, IP>>} */
     const received = [];
     const outPorts = Object.keys(network.graph.outports);
+    /** @type {Object<string, import("./InternalSocket").InternalSocket>} */
     let outSockets = {};
     outPorts.forEach((outport) => {
       const portDef = network.graph.outports[outport];
@@ -123,6 +162,7 @@ function runNetwork(network, inputs) {
         port: portDef.port,
       };
       outSockets[outport].on('ip', (ip) => {
+        /** @type Object<string, IP> */
         const res = {};
         res[outport] = ip;
         received.push(res);
@@ -322,7 +362,7 @@ function sendOutputMap(outputs, resultType, options) {
 /**
  * @callback NetworkAsPromise
  * @param {any} input
- * @returns {Promise}
+ * @returns {Promise<Network>}
  */
 
 /**
@@ -360,14 +400,8 @@ export function asPromise(component, options) {
 }
 
 /**
- * @param {Graph | string} component - Graph or component to load
- * @param {Object} options
- * @param {string} [options.name] - Name for the wrapped network
- * @param {ComponentLoader} [options.loader] - Component loader instance to use, if any
- * @param {string} [options.baseDir] - Project base directory for component loading
- * @param {Object} [options.flowtrace] - Flowtrace instance to use for tracing this network run
- * @param {NetworkCallback} [options.networkCallback] - Access to Network instance
- * @param {boolean} [options.raw] - Whether the callback should operate on raw noflo.IP objects
+ * @param {AsCallbackComponent} component - Graph or component to load
+ * @param {AsCallbackOptions} options
  * @returns {NetworkAsCallback}
  */
 export function asCallback(component, options) {

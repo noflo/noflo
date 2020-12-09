@@ -21,6 +21,7 @@ export class Graph extends noflo.Component {
   constructor(metadata) {
     super();
     this.metadata = metadata;
+    /** @type {import("../lib/Network").Network|null} */
     this.network = null;
     this.ready = true;
     this.started = false;
