@@ -116,7 +116,7 @@ export default class InPort extends BasePort {
         return this.indexedScopedBuffer[ip.scope][ip.index];
       }
       if (ip.initial) {
-        if (!(ip.index in this.iipBuffer)) { this.indexedIipBuffer[ip.index] = []; }
+        if (!(ip.index in this.indexedIipBuffer)) { this.indexedIipBuffer[ip.index] = []; }
         return this.indexedIipBuffer[ip.index];
       }
       if (!(ip.index in this.indexedBuffer)) { this.indexedBuffer[ip.index] = []; }
