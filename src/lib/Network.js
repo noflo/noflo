@@ -27,6 +27,7 @@ export class Network extends BaseNetwork {
       callback = options;
       options = {};
     }
+    options = options || {};
     const promise = super.addNode(node, options)
       .then((process) => {
         if (!options.initial) {
@@ -83,6 +84,7 @@ export class Network extends BaseNetwork {
       callback = options;
       options = {};
     }
+    options = options || {};
     const promise = super.addEdge(edge, options)
       .then((socket) => {
         if (!options.initial) {
@@ -131,6 +133,7 @@ export class Network extends BaseNetwork {
       callback = options;
       options = {};
     }
+    options = options || {};
     const promise = super.addInitial(iip, options)
       .then((socket) => {
         if (!options.initial) {
