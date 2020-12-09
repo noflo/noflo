@@ -8,20 +8,13 @@ const server = require('./server');
 const autoSave = require('./autoSave');
 const { writeTrace } = require('./trace');
 
-exports.loadGraph = (options) => new Promise((resolve, reject) => {
+exports.loadGraph = (options) => {
   if (typeof options.graph === 'object') {
     // Graph instance provided, return as-is
-    resolve(options.graph);
-    return;
+    return Promise.resolve(options.graph);
   }
-  fbpGraph.graph.loadFile(options.graph, (err, graph) => {
-    if (err) {
-      reject(err);
-      return;
-    }
-    resolve(graph);
-  });
-});
+  return fbpGraph.graph.loadFile(options.graph);
+};
 
 exports.startGraph = (graphPath, runtime, settings) => exports.loadGraph({
   graph: graphPath,
