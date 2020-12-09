@@ -14,7 +14,10 @@ import { deprecated } from '../lib/Platform';
 
 // The Graph component is used to wrap NoFlo Networks into components inside
 // another network.
-class Graph extends noflo.Component {
+export class Graph extends noflo.Component {
+  /**
+   * @param {Object} metadata
+   */
   constructor(metadata) {
     super();
     this.metadata = metadata;
@@ -22,7 +25,9 @@ class Graph extends noflo.Component {
     this.ready = true;
     this.started = false;
     this.starting = false;
+    /** @type {string|null} */
     this.baseDir = null;
+    /** @type {noflo.ComponentLoader|null} */
     this.loader = null;
     this.load = 0;
 
@@ -248,6 +253,9 @@ class Graph extends noflo.Component {
   }
 }
 
+/**
+ * @params {Object} metadata
+ */
 export function getComponent(metadata) {
   return new Graph(metadata);
 }

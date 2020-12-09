@@ -13,6 +13,34 @@ import { Graph } from 'fbp-graph';
 import * as registerLoader from './loader/register';
 import { deprecated, makeAsync } from './Platform';
 
+/**
+ * @callback ComponentFactory
+ * @param {Object} [metadata]
+ * @returns {import("./Component").Component}
+ */
+
+/**
+ * @typedef {Object} ModuleComponent
+ * @property {ComponentFactory} getComponent
+ */
+
+// eslint-disable-next-line max-len
+/** @typedef {string | ModuleComponent | ComponentFactory | import("fbp-graph").Graph } ComponentDefinition */
+/** @typedef {string | ModuleComponent | ComponentFactory } ComponentDefinitionWithoutGraph */
+
+/**
+ * @typedef {Object<string, ComponentDefinition>} ComponentList
+ */
+
+/**
+ * @typedef {Object} ComponentSources
+ * @property {string} name
+ * @property {string} library
+ * @property {string} code
+ * @property {string} language
+ * @property {string} [tests]
+ */
+
 // ## The NoFlo Component Loader
 //
 // The Component Loader is responsible for discovering components
@@ -30,13 +58,24 @@ export class ComponentLoader {
   /**
    * @param {string} baseDir
    * @param {Object} [options]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.discover]
+   * @param {boolean} [options.recursive]
+   * @param {string[]} [options.runtimes]
+   * @param {string} [options.manifest]
    */
   constructor(baseDir, options = {}) {
     this.baseDir = baseDir;
     this.options = options;
+    /** @type {ComponentList|null} */
     this.components = null;
+    /** @type {Object<string, string>} */
     this.libraryIcons = {};
-    /** @type {Promise | null}; */
+    /** @type {Object<string, Object>} */
+    this.sourcesForComponents = {};
+    /** @type {Object<string, string>} */
+    this.specsForComponents = {};
+    /** @type {Promise<ComponentList> | null}; */
     this.processing = null;
     this.ready = false;
   }
@@ -66,7 +105,7 @@ export class ComponentLoader {
   // Get the list of all available components
   /**
    * @param {any} [callback] - Legacy callback
-   * @returning {Promise} Promise resolving to list of loaded components
+   * @returning {Promise<ComponentList>} Promise resolving to list of loaded components
    */
   listComponents(callback) {
     let promise;
@@ -110,7 +149,7 @@ export class ComponentLoader {
    * @param {string} name - Component name
    * @param {Object} meta - Node metadata
    * @param {any} [cb] - Legacy callback
-   * @returns {Promise}
+   * @returns {Promise<import("./Component").Component>}
    */
   load(name, meta, cb) {
     let metadata = meta;
@@ -125,6 +164,10 @@ export class ComponentLoader {
     }
 
     const promise = new Promise((resolve, reject) => {
+      if (!this.components) {
+        reject(new Error(`Component ${name} not available with base ${this.baseDir}`));
+        return;
+      }
       let component = this.components[name];
       if (!component) {
         // Try an alias
@@ -182,7 +225,10 @@ export class ComponentLoader {
   // Creates an instance of a component.
   /**
    * @protected
-   * @returns {Promise}
+   * @param {string} name
+   * @param {ComponentDefinitionWithoutGraph} component
+   * @param {Object} metadata
+   * @returns {Promise<import("./Component").Component>}
    */
   createComponent(name, component, metadata) {
     const implementation = component;
@@ -208,9 +254,10 @@ export class ComponentLoader {
 
     // Attempt to create the component instance using the `getComponent` method.
     let instance;
-    if (typeof implementation.getComponent === 'function') {
+    const impl = /** @type ModuleComponent */ (implementation);
+    if (typeof impl.getComponent === 'function') {
       try {
-        instance = implementation.getComponent(metadata);
+        instance = impl.getComponent(metadata);
       } catch (error) {
         return Promise.reject(error);
       }
@@ -229,7 +276,7 @@ export class ComponentLoader {
 
   // Check if a given filesystem path is actually a graph
   /**
-   * @param {object|string} cPath
+   * @param {import("fbp-graph").Graph|object|string} cPath
    * @returns {boolean}
    */
   isGraph(cPath) {
@@ -251,12 +298,16 @@ export class ComponentLoader {
   // Load a graph as a NoFlo subgraph component instance
   /**
    * @protected
-   * @returns {Promise}
+   * @param {string} name
+   * @param {import("fbp-graph").Graph} component
+   * @param {Object} metadata
+   * @returns {Promise<import("../components/Graph").Graph>}
    */
   loadGraph(name, component, metadata) {
-    return this.createComponent(name, this.components.Graph, metadata)
+    const graphComponent = /** @type {ModuleComponent} */ (this.components.Graph);
+    return this.createComponent(name, graphComponent, metadata)
       .then((graph) => {
-        const g = graph;
+        const g = /** @type {import("../components/Graph").Graph} */ (graph);
         g.loader = this;
         g.baseDir = this.baseDir;
         g.inPorts.remove('graph');
@@ -271,6 +322,10 @@ export class ComponentLoader {
   // determine an icon based on the module it is coming
   // from, or use a fallback icon separately for subgraphs
   // and elementary components.
+  /**
+   * @param {string} name - Icon to set
+   * @param {import("./Component").Component} instance
+   */
   setIcon(name, instance) {
     // See if component has an icon
     if (!instance.getIcon || instance.getIcon()) { return; }
@@ -291,6 +346,10 @@ export class ComponentLoader {
     instance.setIcon('gear');
   }
 
+  /**
+   * @param {string} prefix
+   * @returns {string|null}
+   */
   getLibraryIcon(prefix) {
     if (this.libraryIcons[prefix]) {
       return this.libraryIcons[prefix];
@@ -298,16 +357,31 @@ export class ComponentLoader {
     return null;
   }
 
+  /**
+   * @param {string} prefix
+   * @param {string} icon
+   */
   setLibraryIcon(prefix, icon) {
     this.libraryIcons[prefix] = icon;
   }
 
+  /**
+   * @param {string} packageId
+   * @param {string} name
+   * @returns {string}
+   */
   normalizeName(packageId, name) {
     const prefix = this.getModulePrefix(packageId);
     let fullName = `${prefix}/${name}`;
     if (!packageId) { fullName = name; }
     return fullName;
   }
+
+  /**
+   * @callback ErrorableCallback
+   * @param {Error|null} error
+   * @returns {void}
+   */
 
   // ### Registering components at runtime
   //
@@ -317,14 +391,28 @@ export class ComponentLoader {
   // With the `registerComponent` method you can register
   // a NoFlo Component constructor or factory method
   // as a component available for loading.
+  /**
+   * @param {string} packageId
+   * @param {string} name
+   * @param {ComponentDefinition} cPath
+   * @param {ErrorableCallback} [callback]
+   */
   registerComponent(packageId, name, cPath, callback) {
     const fullName = this.normalizeName(packageId, name);
     this.components[fullName] = cPath;
-    if (callback) { callback(); }
+    if (callback) {
+      callback(null);
+    }
   }
 
   // With the `registerGraph` method you can register new
   // graphs as loadable components.
+  /**
+   * @param {string} packageId
+   * @param {string} name
+   * @param {import("fbp-graph").Graph} gPath
+   * @param {ErrorableCallback} [callback]
+   */
   registerGraph(packageId, name, gPath, callback) {
     this.registerComponent(packageId, name, gPath, callback);
   }
@@ -332,6 +420,16 @@ export class ComponentLoader {
   // With `registerLoader` you can register custom component
   // loaders. They will be called immediately and can register
   // any components or graphs they wish.
+  /**
+   * @callback CustomLoader
+   * @param {ComponentLoader} loader
+   * @param {ErrorableCallback} callback
+   * @returns {void}
+   */
+  /**
+   * @param {CustomLoader} loader
+   * @param {ErrorableCallback} callback
+   */
   registerLoader(loader, callback) {
     loader(this, callback);
   }
@@ -346,7 +444,8 @@ export class ComponentLoader {
    * @param {string} name
    * @param {string} source
    * @param {string} language
-   * @returns {Promise}
+   * @param {ErrorableCallback} [callback]
+   * @returns {Promise<void>}
    */
   setSource(packageId, name, source, language, callback) {
     if (!this.ready) {
@@ -379,8 +478,14 @@ export class ComponentLoader {
   // `getSource` allows fetching the source code of a registered
   // component as a string.
   /**
+   * @callback SourceCallback
+   * @param {Error|null} error
+   * @param {ComponentSources} [source]
+   */
+  /**
    * @param {string} name
-   * @returns {Promise}
+   * @param {SourceCallback} [callback]
+   * @returns {Promise<ComponentSources>}
    */
   getSource(name, callback) {
     if (!this.ready) {
@@ -422,6 +527,8 @@ export class ComponentLoader {
 
   clear() {
     this.components = null;
+    this.sourcesForComponents = {};
+    this.specsForComponents = {};
     this.ready = false;
     this.processing = null;
   }

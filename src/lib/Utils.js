@@ -8,12 +8,20 @@
 */
 
 // Guess language from filename
+/**
+ * @param {string} filename
+ * @returns {string}
+ */
 export function guessLanguageFromFilename(filename) {
   if (/.*\.coffee$/.test(filename)) { return 'coffeescript'; }
   if (/.*\.ts$/.test(filename)) { return 'typescript'; }
   return 'javascript';
 }
 
+/**
+ * @param {Object} obj
+ * @returns {boolean}
+ */
 export function isArray(obj) {
   if (Array.isArray) { return Array.isArray(obj); }
   return Object.prototype.toString.call(obj) === '[object Array]';
@@ -29,11 +37,22 @@ export function isArray(obj) {
 // The function will be called after it stops being called for N milliseconds.
 // If immediate is passed, trigger the function on the leading edge,
 // instead of the trailing.
+/**
+ * @param {Function} func
+ * @param {number} wait
+ * @param {boolean} [immediate]
+ * @returns {Function}
+ */
 export function debounce(func, wait, immediate) {
+  /** @type {any} */
   let timeout;
+  /** @type {IArguments|null} */
   let args;
+  /** @type {any} */
   let context;
+  /** @type {number} */
   let timestamp;
+  /** @type {any} */
   let result;
 
   function later() {

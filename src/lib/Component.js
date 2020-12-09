@@ -78,6 +78,11 @@ export class Component extends EventEmitter {
     this.icon = opts.icon ? opts.icon : '';
     this.description = opts.description ? opts.description : '';
 
+    /** @type {string|null} */
+    this.componentName = null;
+    /** @type {string|null} */
+    this.baseDir = null;
+
     // Initially the component is not started
     this.started = false;
     this.load = 0;

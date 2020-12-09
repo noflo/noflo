@@ -73,6 +73,11 @@ export class BaseNetwork extends EventEmitter {
    * @param {string} [options.baseDir] - Project base directory for component loading
    * @param {ComponentLoader} [options.componentLoader] - Component loader instance to use, if any
    * @param {Object} [options.flowtrace] - Flowtrace instance to use for tracing this network run
+   * @param {boolean} [options.cache] - Whether to enable FBP manifest cache on Node.js
+   * @param {boolean} [options.discover] - Whether to enable FBP manifest module discovery
+   * @param {boolean} [options.recursive] - Whether to enable recursive FBM manifest discovery
+   * @param {string[]} [options.runtimes] - Runtimes to enable
+   * @param {string} [options.manifest] - Manifest file to use
    */
   constructor(graph, options = {}) {
     super();
