@@ -29,10 +29,10 @@ function connectPort(socket, process, port, index, inbound) {
     }
     if (process.component.inPorts[port].isAddressable()) {
       process.component.inPorts[port].attach(socket, index);
-      return Promise.resolve();
+      return Promise.resolve(socket);
     }
     process.component.inPorts[port].attach(socket);
-    return Promise.resolve();
+    return Promise.resolve(socket);
   }
 
   socket.from = {
@@ -47,10 +47,10 @@ function connectPort(socket, process, port, index, inbound) {
 
   if (process.component.outPorts[port].isAddressable()) {
     process.component.outPorts[port].attach(socket, index);
-    return Promise.resolve();
+    return Promise.resolve(socket);
   }
   process.component.outPorts[port].attach(socket);
-  return Promise.resolve();
+  return Promise.resolve(socket);
 }
 
 // ## The NoFlo network coordinator
@@ -441,16 +441,8 @@ export class BaseNetwork extends EventEmitter {
   connect(callback) {
     const handleAll = (key, method) => this.graph[key]
       .reduce((chain, entity) => chain
-        .then(() => new Promise((resolve, reject) => {
-          this[method](entity, {
-            initial: true,
-          }, (err) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-            resolve();
-          });
+        .then(() => this[method](entity, {
+          initial: true,
         })), Promise.resolve());
 
     const promise = Promise.resolve()
@@ -648,44 +640,26 @@ export class BaseNetwork extends EventEmitter {
   /**
    * @protected
    */
-  addDefaults(node, options, callback) {
-    const process = this.getNode(node.id);
-    if (!process) {
-      callback(new Error(`Process ${node.id} not defined`));
-      return;
-    }
-    if (!process.component) {
-      callback(new Error(`No component defined for node ${node.id}`));
-      return;
-    }
+  addDefaults(node) {
+    return this.ensureNode(node.id, 'inbound')
+      .then((process) => Promise.all(Object.keys(process.component.inPorts.ports).map((key) => {
+        // Attach a socket to any defaulted inPorts as long as they aren't already attached.
+        const port = process.component.inPorts.ports[key];
+        if (!port.hasDefault() || port.isAttached()) {
+          return Promise.resolve();
+        }
+        const socket = internalSocket.createSocket();
+        socket.setDebug(this.debug);
 
-    if (!process.component.isReady()) {
-      process.component.setMaxListeners(0);
-      process.component.once('ready', () => {
-        this.addDefaults(process, {}, callback);
-      });
-      return;
-    }
+        // Subscribe to events from the socket
+        this.subscribeSocket(socket);
 
-    Promise.all(Object.keys(process.component.inPorts.ports).map((key) => {
-      // Attach a socket to any defaulted inPorts as long as they aren't already attached.
-      const port = process.component.inPorts.ports[key];
-      if (!port.hasDefault() || port.isAttached()) {
-        return Promise.resolve();
-      }
-      const socket = internalSocket.createSocket();
-      socket.setDebug(this.debug);
-
-      // Subscribe to events from the socket
-      this.subscribeSocket(socket);
-
-      return connectPort(socket, process, key, undefined, true)
-        .then(() => {
-          this.connections.push(socket);
-          this.defaults.push(socket);
-        });
-    }))
-      .then(() => callback(), callback);
+        return connectPort(socket, process, key, undefined, true)
+          .then(() => {
+            this.connections.push(socket);
+            this.defaults.push(socket);
+          });
+      })));
   }
 
   addInitial(initializer, options, callback) {
@@ -694,41 +668,24 @@ export class BaseNetwork extends EventEmitter {
       options = {};
     }
 
-    const socket = internalSocket.createSocket(initializer.metadata);
-    socket.setDebug(this.debug);
+    const promise = this.ensureNode(initializer.to.node, 'inbound')
+      .then((to) => {
+        const socket = internalSocket.createSocket(initializer.metadata);
+        socket.setDebug(this.debug);
 
-    // Subscribe to events from the socket
-    this.subscribeSocket(socket);
+        // Subscribe to events from the socket
+        this.subscribeSocket(socket);
 
-    const to = this.getNode(initializer.to.node);
-    if (!to) {
-      callback(new Error(`No process defined for inbound node ${initializer.to.node}`));
-      return;
-    }
-    if (!to.component) {
-      callback(new Error(`No component defined for inbound node ${initializer.to.node}`));
-      return;
-    }
-
-    if (!to.component.isReady() && !to.component.inPorts[initializer.to.port]) {
-      to.component.setMaxListeners(0);
-      to.component.once('ready', () => {
-        this.addInitial(initializer, callback);
-      });
-      return;
-    }
-
-    connectPort(socket, to, initializer.to.port, initializer.to.index, true)
-      .then(() => {
+        return connectPort(socket, to, initializer.to.port, initializer.to.index, true);
+      })
+      .then((socket) => {
         this.connections.push(socket);
-
         const init = {
           socket,
           data: initializer.from.data,
         };
         this.initials.push(init);
         this.nextInitials.push(init);
-
         if (this.isRunning()) {
           // Network is running now, send initials immediately
           (this.sendInitials)();
@@ -738,8 +695,15 @@ export class BaseNetwork extends EventEmitter {
           this.setStarted(true);
           (this.sendInitials)();
         }
-        callback();
+        return socket;
+      });
+    if (callback) {
+      deprecated('Providing a callback to Network.addInitial is deprecated, use Promises');
+      promise.then((socket) => {
+        callback(null, socket);
       }, callback);
+    }
+    return promise;
   }
 
   removeInitial(initializer, callback) {
@@ -766,7 +730,11 @@ export class BaseNetwork extends EventEmitter {
       }
     });
 
-    callback();
+    if (callback) {
+      deprecated('Providing a callback to Network.removeInitial is deprecated, use Promises');
+      callback(null);
+    }
+    return Promise.resolve();
   }
 
   /**

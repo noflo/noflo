@@ -131,34 +131,41 @@ export class Network extends BaseNetwork {
       callback = options;
       options = {};
     }
-    super.addInitial(iip, options, (err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      if (!options.initial) {
-        this.graph.addInitialIndex(
-          iip.from.data,
-          iip.to.node,
-          iip.to.port,
-          iip.to.index,
-          iip.metadata,
-        );
-      }
-      callback();
-    });
+    const promise = super.addInitial(iip, options)
+      .then((socket) => {
+        if (!options.initial) {
+          this.graph.addInitialIndex(
+            iip.from.data,
+            iip.to.node,
+            iip.to.port,
+            iip.to.index,
+            iip.metadata,
+          );
+        }
+        return socket;
+      });
+    if (callback) {
+      deprecated('Providing a callback to Network.addInitial is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
   // Remove an IIP from the network. The IIP will also be removed from the
   // current graph.
   removeInitial(iip, callback) {
-    super.removeInitial(iip, (err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      this.graph.removeInitial(iip.to.node, iip.to.port);
-      callback();
-    });
+    const promise = super.removeInitial(iip)
+      .then(() => {
+        this.graph.removeInitial(iip.to.node, iip.to.port);
+      });
+    if (callback) {
+      deprecated('Providing a callback to Network.removeInitial is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 }
