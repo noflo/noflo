@@ -60,49 +60,50 @@ class Ports extends EventEmitter {
 }
 
 export class InPorts extends Ports {
-  constructor(ports) {
+  /**
+   * @param {Object<string, InPort|PortOptions>} [ports]
+   */
+  constructor(ports = {}) {
     super(ports, InPort);
-  }
-
-  on(name, event, callback) {
-    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
-    return this.ports[name].on(event, callback);
-  }
-
-  once(name, event, callback) {
-    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
-    return this.ports[name].once(event, callback);
   }
 }
 
 export class OutPorts extends Ports {
-  constructor(ports) {
+  /**
+   * @param {Object<string, OutPort|PortOptions>} [ports]
+   */
+  constructor(ports = {}) {
     super(ports, OutPort);
   }
 
   connect(name, socketId) {
-    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
-    this.ports[name].connect(socketId);
+    const port = /** @type {OutPort} */ (this.ports[name]);
+    if (!port) { throw new Error(`Port ${name} not available`); }
+    port.connect(socketId);
   }
 
   beginGroup(name, group, socketId) {
-    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
-    this.ports[name].beginGroup(group, socketId);
+    const port = /** @type {OutPort} */ (this.ports[name]);
+    if (!port) { throw new Error(`Port ${name} not available`); }
+    port.beginGroup(group, socketId);
   }
 
   send(name, data, socketId) {
-    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
-    this.ports[name].send(data, socketId);
+    const port = /** @type {OutPort} */ (this.ports[name]);
+    if (!port) { throw new Error(`Port ${name} not available`); }
+    port.send(data, socketId);
   }
 
   endGroup(name, socketId) {
-    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
-    this.ports[name].endGroup(socketId);
+    const port = /** @type {OutPort} */ (this.ports[name]);
+    if (!port) { throw new Error(`Port ${name} not available`); }
+    port.endGroup(socketId);
   }
 
   disconnect(name, socketId) {
-    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
-    this.ports[name].disconnect(socketId);
+    const port = /** @type {OutPort} */ (this.ports[name]);
+    if (!port) { throw new Error(`Port ${name} not available`); }
+    port.disconnect(socketId);
   }
 }
 
