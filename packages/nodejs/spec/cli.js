@@ -305,7 +305,7 @@ cases:
           ...graphInstance,
           name: 'default/main',
         }, true));
-      it('should have saved the graph JSON to the fixture folder', () => waitFor(100)
+      it('should have saved the graph JSON to the fixture folder', () => waitFor(200)
         .then(() => readFile(
           graphPath,
           'utf-8',
