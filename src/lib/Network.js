@@ -3,6 +3,7 @@
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
 import { BaseNetwork } from './BaseNetwork';
+import { deprecated } from './Platform';
 
 /* eslint-disable
     no-param-reassign,
@@ -26,29 +27,37 @@ export class Network extends BaseNetwork {
       callback = options;
       options = {};
     }
-    super.addNode(node, options, (err, process) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      if (!options.initial) {
-        this.graph.addNode(node.id, node.component, node.metadata);
-      }
-      callback(null, process);
-    });
+    const promise = super.addNode(node, options)
+      .then((process) => {
+        if (!options.initial) {
+          this.graph.addNode(node.id, node.component, node.metadata);
+        }
+        return process;
+      });
+    if (callback) {
+      deprecated('Providing a callback to Network.addNode is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
   // Remove a process from the network. The node will also be removed
   // from the current graph.
   removeNode(node, callback) {
-    super.removeNode(node, (err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      this.graph.removeNode(node.id);
-      callback();
-    });
+    const promise = super.removeNode(node)
+      .then(() => {
+        this.graph.removeNode(node.id);
+        return null;
+      });
+    if (callback) {
+      deprecated('Providing a callback to Network.removeNode is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
   // Rename a process in the network. Renaming a process also modifies

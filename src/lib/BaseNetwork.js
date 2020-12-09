@@ -287,14 +287,18 @@ export class BaseNetwork extends EventEmitter {
   /**
    * @param {string} component
    * @param {Object} metadata
-   * @param {ComponentLoadCallback} callback
-   * @returns {void}
+   * @param {ComponentLoadCallback} [callback]
+   * @returns {Promise<import("./Component").Component>}
    */
   load(component, metadata, callback) {
-    this.loader.load(component, metadata)
-      .then((instance) => {
+    const promise = this.loader.load(component, metadata);
+    if (callback) {
+      deprecated('Providing a callback to Network.load is deprecated, use Promises');
+      promise.then((instance) => {
         callback(null, instance);
       }, callback);
+    }
+    return promise;
   }
 
   // ## Add a process to the network
@@ -310,73 +314,79 @@ export class BaseNetwork extends EventEmitter {
       callback = options;
       options = {};
     }
+    let promise;
     // Processes are treated as singletons by their identifier. If
     // we already have a process with the given ID, return that.
     if (this.processes[node.id]) {
-      callback(null, this.processes[node.id]);
-      return;
-    }
+      promise = Promise.resolve(this.processes[node.id]);
+    } else {
+      const process = { id: node.id };
+      // No component defined, just register the process but don't start.
+      if (!node.component) {
+        this.processes[process.id] = process;
+        promise = Promise.resolve(process);
+      } else {
+        // Load the component for the process.
+        promise = this.load(node.component, node.metadata)
+          .then((instance) => {
+            instance.nodeId = node.id;
+            process.component = instance;
+            process.componentName = node.component;
+            // Inform the ports of the node name
+            const inPorts = process.component.inPorts.ports;
+            const outPorts = process.component.outPorts.ports;
+            Object.keys(inPorts).forEach((name) => {
+              const port = inPorts[name];
+              port.node = node.id;
+              port.nodeInstance = instance;
+              port.name = name;
+            });
+            Object.keys(outPorts).forEach((name) => {
+              const port = outPorts[name];
+              port.node = node.id;
+              port.nodeInstance = instance;
+              port.name = name;
+            });
 
-    const process = { id: node.id };
+            if (instance.isSubgraph()) {
+              this.subscribeSubgraph(process);
+            }
+            this.subscribeNode(process);
 
-    // No component defined, just register the process but don't start.
-    if (!node.component) {
-      this.processes[process.id] = process;
-      callback(null, process);
-      return;
-    }
-
-    // Load the component for the process.
-    this.load(node.component, node.metadata, (err, instance) => {
-      if (err) {
-        callback(err);
-        return;
+            // Store and return the process instance
+            this.processes[process.id] = process;
+            return process;
+          });
       }
-      instance.nodeId = node.id;
-      process.component = instance;
-      process.componentName = node.component;
-
-      // Inform the ports of the node name
-      const inPorts = process.component.inPorts.ports;
-      const outPorts = process.component.outPorts.ports;
-      Object.keys(inPorts).forEach((name) => {
-        const port = inPorts[name];
-        port.node = node.id;
-        port.nodeInstance = instance;
-        port.name = name;
-      });
-
-      Object.keys(outPorts).forEach((name) => {
-        const port = outPorts[name];
-        port.node = node.id;
-        port.nodeInstance = instance;
-        port.name = name;
-      });
-
-      if (instance.isSubgraph()) { this.subscribeSubgraph(process); }
-
-      this.subscribeNode(process);
-
-      // Store and return the process instance
-      this.processes[process.id] = process;
-      callback(null, process);
-    });
+    }
+    if (callback) {
+      deprecated('Providing a callback to Network.addNode is deprecated, use Promises');
+      promise.then((process) => {
+        callback(null, process);
+      }, callback);
+    }
+    return promise;
   }
 
   removeNode(node, callback) {
+    let promise;
     const process = this.getNode(node.id);
     if (!process) {
-      callback(new Error(`Node ${node.id} not found`));
-      return;
+      promise = Promise.reject(new Error(`Node ${node.id} not found`));
+    } else {
+      promise = process.component.shutdown()
+        .then(() => {
+          delete this.processes[node.id];
+          return Promise.resolve(null);
+        });
     }
-    process.component.shutdown((err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      delete this.processes[node.id];
-      callback(null);
-    });
+    if (callback) {
+      deprecated('Providing a callback to Network.removeNode is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
   renameNode(oldId, newId, callback) {
