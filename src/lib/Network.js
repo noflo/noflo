@@ -36,8 +36,8 @@ export class Network extends BaseNetwork {
       });
     if (callback) {
       deprecated('Providing a callback to Network.addNode is deprecated, use Promises');
-      promise.then(() => {
-        callback(null);
+      promise.then((process) => {
+        callback(null, process);
       }, callback);
     }
     return promise;
