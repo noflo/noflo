@@ -63,14 +63,17 @@ export class Network extends BaseNetwork {
   // Rename a process in the network. Renaming a process also modifies
   // the current graph.
   renameNode(oldId, newId, callback) {
-    super.renameNode(oldId, newId, (err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      this.graph.renameNode(oldId, newId);
-      callback();
-    });
+    const promise = super.renameNode(oldId, newId)
+      .then(() => {
+        this.graph.renameNode(oldId, newId);
+      });
+    if (callback) {
+      deprecated('Providing a callback to Network.renameNode is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
   // Add a connection to the network. The edge will also be registered
@@ -80,37 +83,45 @@ export class Network extends BaseNetwork {
       callback = options;
       options = {};
     }
-    super.addEdge(edge, options, (err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      if (!options.initial) {
-        this.graph.addEdgeIndex(
-          edge.from.node,
-          edge.from.port,
-          edge.from.index,
-          edge.to.node,
-          edge.to.port,
-          edge.to.index,
-          edge.metadata,
-        );
-      }
-      callback();
-    });
+    const promise = super.addEdge(edge, options)
+      .then((socket) => {
+        if (!options.initial) {
+          this.graph.addEdgeIndex(
+            edge.from.node,
+            edge.from.port,
+            edge.from.index,
+            edge.to.node,
+            edge.to.port,
+            edge.to.index,
+            edge.metadata,
+          );
+        }
+        return socket;
+      });
+    if (callback) {
+      deprecated('Providing a callback to Network.addEdge is deprecated, use Promises');
+      promise.then((socket) => {
+        callback(null, socket);
+      }, callback);
+    }
+    return promise;
   }
 
   // Remove a connection from the network. The edge will also be removed
   // from the current graph.
   removeEdge(edge, callback) {
-    super.removeEdge(edge, (err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      this.graph.removeEdge(edge.from.node, edge.from.port, edge.to.node, edge.to.port);
-      callback();
-    });
+    const promise = super.removeEdge(edge)
+      .then(() => {
+        this.graph.removeEdge(edge.from.node, edge.from.port, edge.to.node, edge.to.port);
+        return null;
+      });
+    if (callback) {
+      deprecated('Providing a callback to Network.removeEdge is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
   // Add an IIP to the network. The IIP will also be registered with the

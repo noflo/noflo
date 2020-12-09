@@ -391,31 +391,37 @@ export class BaseNetwork extends EventEmitter {
 
   renameNode(oldId, newId, callback) {
     const process = this.getNode(oldId);
+    let promise;
     if (!process) {
-      callback(new Error(`Process ${oldId} not found`));
-      return;
+      promise = Promise.reject(new Error(`Process ${oldId} not found`));
+    } else {
+      // Inform the process of its ID
+      process.id = newId;
+      // Inform the ports of the node name
+      const inPorts = process.component.inPorts.ports;
+      const outPorts = process.component.outPorts.ports;
+      Object.keys(inPorts).forEach((name) => {
+        const port = inPorts[name];
+        if (!port) { return; }
+        port.node = newId;
+      });
+      Object.keys(outPorts).forEach((name) => {
+        const port = outPorts[name];
+        if (!port) { return; }
+        port.node = newId;
+      });
+
+      this.processes[newId] = process;
+      delete this.processes[oldId];
+      promise = Promise.resolve(null);
     }
-
-    // Inform the process of its ID
-    process.id = newId;
-
-    // Inform the ports of the node name
-    const inPorts = process.component.inPorts.ports;
-    const outPorts = process.component.outPorts.ports;
-    Object.keys(inPorts).forEach((name) => {
-      const port = inPorts[name];
-      if (!port) { return; }
-      port.node = newId;
-    });
-    Object.keys(outPorts).forEach((name) => {
-      const port = outPorts[name];
-      if (!port) { return; }
-      port.node = newId;
-    });
-
-    this.processes[newId] = process;
-    delete this.processes[oldId];
-    callback(null);
+    if (callback) {
+      deprecated('Providing a callback to Network.renameNode is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
   // Get process by its ID.
@@ -561,58 +567,59 @@ export class BaseNetwork extends EventEmitter {
     });
   }
 
+  /**
+   * @protected
+   * @param {string} node
+   * @param {string} direction
+   * @returns Promise<Object>
+   */
+  ensureNode(node, direction) {
+    const instance = this.getNode(node);
+    if (!instance) {
+      return Promise.reject(new Error(`No process defined for ${direction} node ${node}`));
+    }
+    if (!instance.component) {
+      return Promise.reject(new Error(`No component defined for ${direction} node ${node}`));
+    }
+    if (!instance.component.isReady()) {
+      return new Promise((resolve) => {
+        instance.component.once('ready', () => {
+          resolve(instance);
+        });
+      });
+    }
+    return Promise.resolve(instance);
+  }
+
   addEdge(edge, options, callback) {
     if (typeof options === 'function') {
       callback = options;
       options = {};
     }
-    const socket = internalSocket.createSocket(edge.metadata);
-    socket.setDebug(this.debug);
+    const promise = this.ensureNode(edge.from.node, 'outbound')
+      .then((from) => {
+        const socket = internalSocket.createSocket(edge.metadata);
+        socket.setDebug(this.debug);
+        return this.ensureNode(edge.to.node, 'inbound')
+          .then((to) => {
+            // Subscribe to events from the socket
+            this.subscribeSocket(socket, from);
 
-    const from = this.getNode(edge.from.node);
-    if (!from) {
-      callback(new Error(`No process defined for outbound node ${edge.from.node}`));
-      return;
-    }
-    if (!from.component) {
-      callback(new Error(`No component defined for outbound node ${edge.from.node}`));
-      return;
-    }
-    if (!from.component.isReady()) {
-      from.component.once('ready', () => {
-        this.addEdge(edge, callback);
+            return connectPort(socket, to, edge.to.port, edge.to.index, true);
+          })
+          .then(() => connectPort(socket, from, edge.from.port, edge.from.index, false))
+          .then(() => {
+            this.connections.push(socket);
+            return socket;
+          });
       });
-
-      return;
+    if (callback) {
+      deprecated('Providing a callback to Network.addEdge is deprecated, use Promises');
+      promise.then((socket) => {
+        callback(null, socket);
+      }, callback);
     }
-
-    const to = this.getNode(edge.to.node);
-    if (!to) {
-      callback(new Error(`No process defined for inbound node ${edge.to.node}`));
-      return;
-    }
-    if (!to.component) {
-      callback(new Error(`No component defined for inbound node ${edge.to.node}`));
-      return;
-    }
-    if (!to.component.isReady()) {
-      to.component.once('ready', () => {
-        this.addEdge(edge, callback);
-      });
-
-      return;
-    }
-
-    // Subscribe to events from the socket
-    this.subscribeSocket(socket, from);
-
-    connectPort(socket, to, edge.to.port, edge.to.index, true)
-      .then(() => connectPort(socket, from, edge.from.port, edge.from.index, false))
-      .then(() => {
-        this.connections.push(socket);
-        callback();
-      })
-      .catch(callback);
+    return promise;
   }
 
   removeEdge(edge, callback) {
@@ -630,8 +637,12 @@ export class BaseNetwork extends EventEmitter {
         }
       }
       this.connections.splice(this.connections.indexOf(connection), 1);
-      callback();
     });
+    if (callback) {
+      deprecated('Providing a callback to Network.removeEdge is deprecated, use Promises');
+      callback(null);
+    }
+    return Promise.resolve();
   }
 
   /**
@@ -941,8 +952,7 @@ export class BaseNetwork extends EventEmitter {
         if (this.abortDebounce) { return; }
         if (this.isRunning()) { return; }
         this.setStarted(false);
-      },
-      50);
+      }, 50);
     }
     (this.debouncedEnd)();
   }
