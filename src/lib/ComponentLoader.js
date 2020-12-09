@@ -10,9 +10,8 @@
 */
 
 import { Graph } from 'fbp-graph';
-import { EventEmitter } from 'events';
 import * as registerLoader from './loader/register';
-import { deprecated } from './Platform';
+import { deprecated, makeAsync } from './Platform';
 
 // ## The NoFlo Component Loader
 //
@@ -27,20 +26,19 @@ import { deprecated } from './Platform';
 // NPM dependencies. For browsers and embedded devices it is
 // possible to generate a statically configured component
 // loader using the [noflo-component-loader](https://github.com/noflo/noflo-component-loader) webpack plugin.
-export class ComponentLoader extends EventEmitter {
+export class ComponentLoader {
   /**
    * @param {string} baseDir
    * @param {Object} [options]
    */
   constructor(baseDir, options = {}) {
-    super();
     this.baseDir = baseDir;
     this.options = options;
     this.components = null;
     this.libraryIcons = {};
-    this.processing = false;
+    /** @type {Promise | null}; */
+    this.processing = null;
     this.ready = false;
-    this.setMaxListeners(0);
   }
 
   // Get the library prefix for a given module name. This
@@ -67,37 +65,41 @@ export class ComponentLoader extends EventEmitter {
 
   // Get the list of all available components
   /**
-   * @callback ListComponentsCallback
-   * @param {Error|null} err
-   * @param {Object} [components]
-   */
-  /**
-   * @param {ListComponentsCallback} callback
+   * @param {any} [callback] - Legacy callback
+   * @returning {Promise} Promise resolving to list of loaded components
    */
   listComponents(callback) {
+    let promise;
     if (this.processing) {
-      this.once('ready', () => callback(null, this.components));
-      return;
+      promise = this.processing;
+    } else if (this.ready && this.components) {
+      promise = Promise.resolve(this.components);
+    } else {
+      this.components = {};
+      this.ready = false;
+      this.processing = new Promise((resolve, reject) => {
+        makeAsync(() => {
+          registerLoader.register(this, (err) => {
+            if (err) {
+              // We keep the failed promise here in this.processing
+              reject(err);
+              return;
+            }
+            this.ready = true;
+            this.processing = null;
+            resolve(this.components);
+          });
+        });
+      });
+      promise = this.processing;
     }
-    if (this.components) {
-      callback(null, this.components);
-      return;
+    if (callback) {
+      deprecated('Providing a callback to ComponentLoader.listComponents is deprecated, use Promises');
+      promise.then((components) => {
+        callback(null, components);
+      }, callback);
     }
-
-    this.ready = false;
-    this.processing = true;
-
-    this.components = {};
-    registerLoader.register(this, (err) => {
-      this.processing = false;
-      this.ready = true;
-      this.emit('ready', true);
-      if (err) {
-        callback(err);
-        return;
-      }
-      callback(null, this.components);
-    });
+    return promise;
   }
 
   // Load an instance of a specific component. If the
@@ -105,121 +107,124 @@ export class ComponentLoader extends EventEmitter {
   // be loaded as an instance of the NoFlo subgraph
   // component.
   /**
-   * @callback LoadComponentCallback
-   * @param {Error|null} err
-   * @param {import("./Component").Component} [component]
+   * @param {string} name - Component name
+   * @param {Object} meta - Node metadata
+   * @param {any} [cb] - Legacy callback
+   * @returns {Promise}
    */
-  /**
-   * @param {string} name
-   * @param {LoadComponentCallback} callback
-   * @param {Object} metadata
-   */
-  load(name, callback, metadata) {
-    if (!name) {
-      callback(new Error('No component name provided'));
-      return;
+  load(name, meta, cb) {
+    let metadata = meta;
+    let callback = cb;
+    if (typeof meta === 'function') {
+      callback = meta;
+      metadata = cb;
     }
     if (!this.ready) {
-      this.listComponents((err) => {
-        if (err) {
-          callback(err);
+      return this.listComponents()
+        .then(() => this.load(name, meta, cb));
+    }
+
+    const promise = new Promise((resolve, reject) => {
+      let component = this.components[name];
+      if (!component) {
+        // Try an alias
+        const keys = Object.keys(this.components);
+        for (let i = 0; i < keys.length; i += 1) {
+          const componentName = keys[i];
+          if (componentName.split('/')[1] === name) {
+            component = this.components[componentName];
+            break;
+          }
+        }
+        if (!component) {
+          // Failure to load
+          reject(new Error(`Component ${name} not available with base ${this.baseDir}`));
           return;
         }
-        this.load(name, callback, metadata);
-      });
-      return;
-    }
-
-    let component = this.components[name];
-    if (!component) {
-      // Try an alias
-      const keys = Object.keys(this.components);
-      for (let i = 0; i < keys.length; i += 1) {
-        const componentName = keys[i];
-        if (componentName.split('/')[1] === name) {
-          component = this.components[componentName];
-          break;
+      }
+      resolve(component);
+    })
+      .then((component) => {
+        if (this.isGraph(component)) {
+          return this.loadGraph(name, component, metadata);
         }
-      }
-      if (!component) {
-        // Failure to load
-        callback(new Error(`Component ${name} not available with base ${this.baseDir}`));
-        return;
-      }
+
+        return this.createComponent(name, component, metadata)
+          .then((instance) => {
+            if (!instance) {
+              return Promise.reject(new Error(`Component ${name} could not be loaded.`));
+            }
+            const inst = instance;
+            if (name === 'Graph') {
+              inst.baseDir = this.baseDir;
+            }
+            if (typeof name === 'string') {
+              inst.componentName = name;
+            }
+
+            if (inst.isLegacy()) {
+              deprecated(`Component ${name} uses legacy NoFlo APIs. Please port to Process API`);
+            }
+
+            this.setIcon(name, inst);
+            return inst;
+          });
+      });
+    if (callback) {
+      deprecated('Providing a callback to ComponentLoader.load is deprecated, use Promises');
+      promise.then((instance) => {
+        callback(null, instance);
+      }, callback);
     }
-
-    if (this.isGraph(component)) {
-      this.loadGraph(name, component, callback, metadata);
-      return;
-    }
-
-    this.createComponent(name, component, metadata, (err, instance) => {
-      const inst = instance;
-      if (err) {
-        callback(err);
-        return;
-      }
-      if (!inst) {
-        callback(new Error(`Component ${name} could not be loaded.`));
-        return;
-      }
-
-      if (name === 'Graph') { inst.baseDir = this.baseDir; }
-      if (typeof name === 'string') { inst.componentName = name; }
-
-      if (inst.isLegacy()) {
-        deprecated(`Component ${name} uses legacy NoFlo APIs. Please port to Process API`);
-      }
-
-      this.setIcon(name, inst);
-      callback(null, inst);
-    });
+    return promise;
   }
 
   // Creates an instance of a component.
-  createComponent(name, component, metadata, callback) {
-    let e; let
-      instance;
+  /**
+   * @protected
+   * @returns {Promise}
+   */
+  createComponent(name, component, metadata) {
     const implementation = component;
     if (!implementation) {
-      callback(new Error(`Component ${name} not available`));
-      return;
+      return Promise.reject(new Error(`Component ${name} not available`));
     }
 
     // If a string was specified, attempt to `require` it.
     if (typeof implementation === 'string') {
       if (typeof registerLoader.dynamicLoad === 'function') {
-        registerLoader.dynamicLoad(name, implementation, metadata, callback);
-        return;
+        return new Promise((resolve, reject) => {
+          registerLoader.dynamicLoad(name, implementation, metadata, (err, instance) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve(instance);
+          });
+        });
       }
-      callback(Error(`Dynamic loading of ${implementation} for component ${name} not available on this platform.`));
-      return;
+      return Promise.reject(Error(`Dynamic loading of ${implementation} for component ${name} not available on this platform.`));
     }
 
     // Attempt to create the component instance using the `getComponent` method.
+    let instance;
     if (typeof implementation.getComponent === 'function') {
       try {
         instance = implementation.getComponent(metadata);
       } catch (error) {
-        e = error;
-        callback(e);
-        return;
+        return Promise.reject(error);
       }
-    // Attempt to create a component using a factory function.
+      // Attempt to create a component using a factory function.
     } else if (typeof implementation === 'function') {
       try {
         instance = implementation(metadata);
-      } catch (error1) {
-        e = error1;
-        callback(e);
-        return;
+      } catch (error) {
+        return Promise.reject(error);
       }
     } else {
-      callback(new Error(`Invalid type ${typeof (implementation)} for component ${name}.`));
-      return;
+      return Promise.reject(new Error(`Invalid type ${typeof (implementation)} for component ${name}.`));
     }
-
-    callback(null, instance);
+    return Promise.resolve(instance);
   }
 
   // Check if a given filesystem path is actually a graph
@@ -244,25 +249,21 @@ export class ComponentLoader extends EventEmitter {
   }
 
   // Load a graph as a NoFlo subgraph component instance
-  loadGraph(name, component, callback, metadata) {
-    this.createComponent(name, this.components.Graph, metadata, (error, graph) => {
-      const g = graph;
-      if (error) {
-        callback(error);
-        return;
-      }
-      g.loader = this;
-      g.baseDir = this.baseDir;
-      g.inPorts.remove('graph');
-      g.setGraph(component, (err) => {
-        if (err) {
-          callback(err);
-          return;
-        }
+  /**
+   * @protected
+   * @returns {Promise}
+   */
+  loadGraph(name, component, metadata) {
+    return this.createComponent(name, this.components.Graph, metadata)
+      .then((graph) => {
+        const g = graph;
+        g.loader = this;
+        g.baseDir = this.baseDir;
+        g.inPorts.remove('graph');
         this.setIcon(name, g);
-        callback(null, g);
+        return g.setGraph(component)
+          .then(() => g);
       });
-    });
   }
 
   // Set icon for the component instance. If the instance
@@ -340,45 +341,73 @@ export class ComponentLoader extends EventEmitter {
   // depend on the runtime environment, for example CoffeeScript
   // components can only be registered via `setSource` if
   // the environment has a CoffeeScript compiler loaded.
+  /**
+   * @param {string} packageId
+   * @param {string} name
+   * @param {string} source
+   * @param {string} language
+   * @returns {Promise}
+   */
   setSource(packageId, name, source, language, callback) {
-    if (!registerLoader.setSource) {
-      callback(new Error('setSource not allowed'));
-      return;
-    }
-
     if (!this.ready) {
-      this.listComponents((err) => {
-        if (err) {
-          callback(err);
-          return;
-        }
-        this.setSource(packageId, name, source, language, callback);
-      });
-      return;
+      return this.listComponents()
+        .then(() => this.setSource(packageId, name, source, language, callback));
     }
-
-    registerLoader.setSource(this, packageId, name, source, language, callback);
+    let promise;
+    if (!registerLoader.setSource) {
+      promise = Promise.reject(new Error('setSource not allowed'));
+    } else {
+      promise = new Promise((resolve, reject) => {
+        registerLoader.setSource(this, packageId, name, source, language, (err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve();
+        });
+      });
+    }
+    if (callback) {
+      deprecated('Providing a callback to ComponentLoader.setSource is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
   // `getSource` allows fetching the source code of a registered
   // component as a string.
+  /**
+   * @param {string} name
+   * @returns {Promise}
+   */
   getSource(name, callback) {
-    if (!registerLoader.getSource) {
-      callback(new Error('getSource not allowed'));
-      return;
-    }
     if (!this.ready) {
-      this.listComponents((err) => {
-        if (err) {
-          callback(err);
-          return;
-        }
-        this.getSource(name, callback);
-      });
-      return;
+      return this.listComponents()
+        .then(() => this.getSource(name, callback));
     }
-
-    registerLoader.getSource(this, name, callback);
+    let promise;
+    if (!registerLoader.getSource) {
+      promise = Promise.reject(new Error('getSource not allowed'));
+    } else {
+      promise = new Promise((resolve, reject) => {
+        registerLoader.getSource(this, name, (err, source) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve(source);
+        });
+      });
+    }
+    if (callback) {
+      deprecated('Providing a callback to ComponentLoader.getSource is deprecated, use Promises');
+      promise.then((source) => {
+        callback(null, source);
+      }, callback);
+    }
+    return promise;
   }
 
   // `getLanguages` gets a list of component programming languages supported by the `setSource`
@@ -394,6 +423,6 @@ export class ComponentLoader extends EventEmitter {
   clear() {
     this.components = null;
     this.ready = false;
-    this.processing = false;
+    this.processing = null;
   }
 }

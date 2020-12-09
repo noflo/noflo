@@ -56,59 +56,42 @@ function normalizeOptions(options, component) {
 // Each invocation of the asCallback-wrapped NoFlo graph
 // creates a new network. This way we can isolate multiple
 // executions of the function in their own contexts.
-function prepareNetwork(component, options, callback) {
+function prepareNetwork(component, options) {
   // If we were given a graph instance, then just create a network
-  let network;
   if (typeof component === 'object') {
     // This is a graph object
-    network = new Network(component, {
+    const network = new Network(component, {
       ...options,
       componentLoader: options.loader,
     });
     // Wire the network up
-    network.connect((err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      callback(null, network);
-    });
-    return;
+    return network.connect();
   }
 
   // Start by loading the component
-  options.loader.load(component, (err, instance) => {
-    if (err) {
-      callback(err);
-      return;
-    }
-    // Prepare a graph wrapping the component
-    const graph = new Graph(options.name);
-    const nodeName = options.name;
-    graph.addNode(nodeName, component);
-    // Expose ports
-    const inPorts = instance.inPorts.ports;
-    const outPorts = instance.outPorts.ports;
-    Object.keys(inPorts).forEach((port) => {
-      graph.addInport(port, nodeName, port);
+  return options.loader.load(component)
+    .then((instance) => {
+      // Prepare a graph wrapping the component
+      const graph = new Graph(options.name);
+      const nodeName = options.name;
+      graph.addNode(nodeName, component);
+      // Expose ports
+      const inPorts = instance.inPorts.ports;
+      const outPorts = instance.outPorts.ports;
+      Object.keys(inPorts).forEach((port) => {
+        graph.addInport(port, nodeName, port);
+      });
+      Object.keys(outPorts).forEach((port) => {
+        graph.addOutport(port, nodeName, port);
+      });
+      // Prepare network
+      const network = new Network(graph, {
+        ...options,
+        componentLoader: options.loader,
+      });
+      // Wire the network up and start execution
+      return network.connect();
     });
-    Object.keys(outPorts).forEach((port) => {
-      graph.addOutport(port, nodeName, port);
-    });
-    // Prepare network
-    network = new Network(graph, {
-      ...options,
-      componentLoader: options.loader,
-    });
-    // Wire the network up and start execution
-    network.connect((err2) => {
-      if (err2) {
-        callback(err2);
-        return;
-      }
-      callback(null, network);
-    });
-  });
 }
 
 // ### Network execution
@@ -121,92 +104,91 @@ function prepareNetwork(component, options, callback) {
 //
 // Once the network finishes, we send the resulting IP
 // objects to the callback.
-function runNetwork(network, inputs, options, callback) {
-  // Prepare inports
-  let inSockets = {};
-  // Subscribe outports
-  const received = [];
-  const outPorts = Object.keys(network.graph.outports);
-  let outSockets = {};
-  outPorts.forEach((outport) => {
-    const portDef = network.graph.outports[outport];
-    const process = network.getNode(portDef.process);
-    outSockets[outport] = internalSocket.createSocket();
-    network.subscribeSocket(outSockets[outport]);
-    process.component.outPorts[portDef.port].attach(outSockets[outport]);
-    outSockets[outport].from = {
-      process,
-      port: portDef.port,
+function runNetwork(network, inputs) {
+  return new Promise((resolve, reject) => {
+    // Prepare inports
+    let inSockets = {};
+    // Subscribe outports
+    const received = [];
+    const outPorts = Object.keys(network.graph.outports);
+    let outSockets = {};
+    outPorts.forEach((outport) => {
+      const portDef = network.graph.outports[outport];
+      const process = network.getNode(portDef.process);
+      outSockets[outport] = internalSocket.createSocket();
+      network.subscribeSocket(outSockets[outport]);
+      process.component.outPorts[portDef.port].attach(outSockets[outport]);
+      outSockets[outport].from = {
+        process,
+        port: portDef.port,
+      };
+      outSockets[outport].on('ip', (ip) => {
+        const res = {};
+        res[outport] = ip;
+        received.push(res);
+      });
+    });
+    // Subscribe to process errors
+    let onEnd = null;
+    let onError = null;
+    onError = (err) => {
+      reject(err.error);
+      network.removeListener('end', onEnd);
     };
-    outSockets[outport].on('ip', (ip) => {
-      const res = {};
-      res[outport] = ip;
-      received.push(res);
-    });
-  });
-  // Subscribe to process errors
-  let onEnd = null;
-  let onError = null;
-  onError = (err) => {
-    callback(err.error);
-    network.removeListener('end', onEnd);
-  };
-  network.once('process-error', onError);
-  // Subscribe network finish
-  onEnd = () => {
-    // Clear listeners
-    Object.keys(outSockets).forEach((port) => {
-      const socket = outSockets[port];
-      socket.from.process.component.outPorts[socket.from.port].detach(socket);
-    });
-    outSockets = {};
-    inSockets = {};
-    callback(null, received);
-    network.removeListener('process-error', onError);
-  };
-  network.once('end', onEnd);
-  // Start network
-  network.start((err) => {
-    if (err) {
-      callback(err);
-      return;
-    }
-    // Send inputs
-    for (let i = 0; i < inputs.length; i += 1) {
-      const inputMap = inputs[i];
-      const keys = Object.keys(inputMap);
-      for (let j = 0; j < keys.length; j += 1) {
-        const port = keys[j];
-        const value = inputMap[port];
-        if (!inSockets[port]) {
-          const portDef = network.graph.inports[port];
-          if (!portDef) {
-            callback(new Error(`Port ${port} not available in the graph`));
-            return;
+    network.once('process-error', onError);
+    // Subscribe network finish
+    onEnd = () => {
+      // Clear listeners
+      Object.keys(outSockets).forEach((port) => {
+        const socket = outSockets[port];
+        socket.from.process.component.outPorts[socket.from.port].detach(socket);
+      });
+      outSockets = {};
+      inSockets = {};
+      resolve(received);
+      network.removeListener('process-error', onError);
+    };
+    network.once('end', onEnd);
+    // Start network
+    network.start()
+      .then(() => {
+        // Send inputs
+        for (let i = 0; i < inputs.length; i += 1) {
+          const inputMap = inputs[i];
+          const keys = Object.keys(inputMap);
+          for (let j = 0; j < keys.length; j += 1) {
+            const port = keys[j];
+            const value = inputMap[port];
+            if (!inSockets[port]) {
+              const portDef = network.graph.inports[port];
+              if (!portDef) {
+                reject(new Error(`Port ${port} not available in the graph`));
+                return;
+              }
+              const process = network.getNode(portDef.process);
+              inSockets[port] = internalSocket.createSocket();
+              network.subscribeSocket(inSockets[port]);
+              inSockets[port].to = {
+                process,
+                port,
+              };
+              process.component.inPorts[portDef.port].attach(inSockets[port]);
+            }
+            try {
+              if (IP.isIP(value)) {
+                inSockets[port].post(value);
+              } else {
+                inSockets[port].post(new IP('data', value));
+              }
+            } catch (e) {
+              reject(e);
+              network.removeListener('process-error', onError);
+              network.removeListener('end', onEnd);
+              return;
+            }
           }
-          const process = network.getNode(portDef.process);
-          inSockets[port] = internalSocket.createSocket();
-          network.subscribeSocket(inSockets[port]);
-          inSockets[port].to = {
-            process,
-            port,
-          };
-          process.component.inPorts[portDef.port].attach(inSockets[port]);
         }
-        try {
-          if (IP.isIP(value)) {
-            inSockets[port].post(value);
-          } else {
-            inSockets[port].post(new IP('data', value));
-          }
-        } catch (e) {
-          callback(e);
-          network.removeListener('process-error', onError);
-          network.removeListener('end', onEnd);
-          return;
-        }
-      }
-    }
+      }, reject);
   });
 }
 
@@ -273,16 +255,15 @@ function normalizeOutput(values, options) {
   return result;
 }
 
-function sendOutputMap(outputs, resultType, options, callback) {
+function sendOutputMap(outputs, resultType, options) {
   // First check if the output sequence contains errors
   const errors = outputs.filter((map) => map.error != null).map((map) => map.error);
   if (errors.length) {
-    callback(normalizeOutput(errors, options));
-    return;
+    return Promise.reject(normalizeOutput(errors, options));
   }
 
   if (resultType === 'sequence') {
-    callback(null, outputs.map((map) => {
+    return Promise.resolve(outputs.map((map) => {
       const res = {};
       Object.keys(map).forEach((key) => {
         const val = map[key];
@@ -294,7 +275,6 @@ function sendOutputMap(outputs, resultType, options, callback) {
       });
       return res;
     }));
-    return;
   }
 
   // Flatten the sequence
@@ -311,20 +291,18 @@ function sendOutputMap(outputs, resultType, options, callback) {
   const withValue = outputKeys.filter((outport) => mappedOutputs[outport].length > 0);
   if (withValue.length === 0) {
     // No output
-    callback(null);
-    return;
+    return Promise.resolve(null);
   }
   if ((withValue.length === 1) && (resultType === 'simple')) {
     // Single outport
-    callback(null, normalizeOutput(mappedOutputs[withValue[0]], options));
-    return;
+    return Promise.resolve(normalizeOutput(mappedOutputs[withValue[0]], options));
   }
   const result = {};
   Object.keys(mappedOutputs).forEach((port) => {
     const packets = mappedOutputs[port];
     result[port] = normalizeOutput(packets, options);
   });
-  callback(null, result);
+  return Promise.resolve(result);
 }
 
 /**
@@ -342,6 +320,12 @@ function sendOutputMap(outputs, resultType, options, callback) {
  */
 
 /**
+ * @callback NetworkAsPromise
+ * @param {any} input
+ * @returns {Promise}
+ */
+
+/**
  * @callback NetworkCallback
  * @param {Network} network
  * @returns void
@@ -356,31 +340,42 @@ function sendOutputMap(outputs, resultType, options, callback) {
  * @param {Object} [options.flowtrace] - Flowtrace instance to use for tracing this network run
  * @param {NetworkCallback} [options.networkCallback] - Access to Network instance
  * @param {boolean} [options.raw] - Whether the callback should operate on raw noflo.IP objects
- * @returns {NetworkAsCallback}
+ * @returns {NetworkAsPromise}
  */
-export function asCallback(component, options) {
+export function asPromise(component, options) {
   if (!component) {
     throw new Error('No component or graph provided');
   }
   options = normalizeOptions(options, component);
-  return (inputs, callback) => {
-    prepareNetwork(component, options, (err, network) => {
-      if (err) {
-        callback(err);
-        return;
-      }
+  return (inputs) => prepareNetwork(component, options)
+    .then((network) => {
       if (options.networkCallback) {
         options.networkCallback(network);
       }
       const resultType = getType(inputs, network);
       const inputMap = prepareInputMap(inputs, resultType, network);
-      runNetwork(network, inputMap, options, (err2, outputMap) => {
-        if (err2) {
-          callback(err2);
-          return;
-        }
-        sendOutputMap(outputMap, resultType, options, callback);
-      });
+      return runNetwork(network, inputMap)
+        .then((outputMap) => sendOutputMap(outputMap, resultType, options));
     });
+}
+
+/**
+ * @param {Graph | string} component - Graph or component to load
+ * @param {Object} options
+ * @param {string} [options.name] - Name for the wrapped network
+ * @param {ComponentLoader} [options.loader] - Component loader instance to use, if any
+ * @param {string} [options.baseDir] - Project base directory for component loading
+ * @param {Object} [options.flowtrace] - Flowtrace instance to use for tracing this network run
+ * @param {NetworkCallback} [options.networkCallback] - Access to Network instance
+ * @param {boolean} [options.raw] - Whether the callback should operate on raw noflo.IP objects
+ * @returns {NetworkAsCallback}
+ */
+export function asCallback(component, options) {
+  const promised = asPromise(component, options);
+  return (inputs, callback) => {
+    promised(inputs)
+      .then((output) => {
+        callback(null, output);
+      }, callback);
   };
 }

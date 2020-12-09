@@ -31,16 +31,28 @@ export class LegacyNetwork extends BaseNetwork {
     super(graph, options);
   }
 
-  // eslint-disable-next-line no-unused-vars
-  connect(done = (err) => {}) {
-    super.connect((err) => {
-      if (err) {
-        done(err);
-        return;
-      }
-      this.subscribeGraph();
-      done();
-    });
+  /**
+   * @callback ErrorableCallback
+   * @param {Error|null} [err]
+   * @returns {void}
+   */
+  /**
+   * @param {ErrorableCallback} [callback]
+   * @returns {Promise<LegacyNetwork>}
+   */
+  connect(callback) {
+    const promise = super.connect()
+      .then(() => {
+        this.subscribeGraph();
+        return this;
+      });
+    if (callback) {
+      deprecated('Providing a callback to Network.connect is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
   // A NoFlo graph may change after network initialization.

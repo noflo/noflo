@@ -11,6 +11,7 @@
 import { EventEmitter } from 'events';
 import debug from 'debug';
 import { InPorts, OutPorts, normalizePortName } from './Ports';
+import { deprecated } from './Platform';
 import InPort from './InPort'; // eslint-disable-line no-unused-vars
 import OutPort from './OutPort'; // eslint-disable-line no-unused-vars
 import ProcessContext from './ProcessContext';
@@ -26,7 +27,7 @@ const debugSend = debug('noflo:component:send');
  * @param {ProcessInput} input
  * @param {ProcessOutput} output
  * @param {ProcessContext} context
- * @returns {void}
+ * @returns {Promise | void}
  */
 
 // ## NoFlo Component Base class
@@ -171,7 +172,8 @@ export class Component extends EventEmitter {
   // Override in component implementation to do component-specific
   // setup work.
   /**
-   * @param {ErrorableCallback} callback - Callback for when setup is ready
+   * @param {ErrorableCallback} callback - Callback for when teardown is ready
+   * @returns {Promise | void}
    */
   setUp(callback) {
     callback(null);
@@ -186,6 +188,7 @@ export class Component extends EventEmitter {
   // cleanup work, like clearing any accumulated state.
   /**
    * @param {ErrorableCallback} callback - Callback for when teardown is ready
+   * @returns {Promise | void}
    */
   tearDown(callback) {
     callback(null);
@@ -196,22 +199,40 @@ export class Component extends EventEmitter {
   // Called when network starts. This sets calls the setUp
   // method and sets the component to a started state.
   /**
-   * @param {ErrorableCallback} callback - Callback for when startup is ready
+   * @param {ErrorableCallback} [callback] - Callback for when shutdown is ready
+   * @returns {Promise<void>}
    */
   start(callback) {
+    let promise;
     if (this.isStarted()) {
-      callback(null);
-      return;
+      promise = Promise.resolve();
+    } else {
+      promise = new Promise((resolve, reject) => {
+        const res = this.setUp((err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve();
+        });
+        if (res && res.then) {
+          // setUp returned a Promise
+          res.then(resolve, reject);
+        }
+      })
+        .then(() => {
+          this.started = true;
+          this.emit('start');
+          return Promise.resolve();
+        });
     }
-    this.setUp((err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      this.started = true;
-      this.emit('start');
-      callback(null);
-    });
+    if (callback) {
+      deprecated('Providing a callback to Component.start is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
   // ### Shutdown
@@ -223,52 +244,71 @@ export class Component extends EventEmitter {
   // The callback is called when tearDown finishes and
   // all active processing contexts have ended.
   /**
-   * @param {ErrorableCallback} callback - Callback for when shutdown is ready
+   * @param {ErrorableCallback} [callback] - Callback for when shutdown is ready
+   * @returns {Promise<void>}
    */
   shutdown(callback) {
-    const finalize = () => {
-      // Clear contents of inport buffers
-      const inPorts = this.inPorts.ports || this.inPorts;
-      Object.keys(inPorts).forEach((portName) => {
-        const inPort = inPorts[portName];
-        if (typeof inPort.clear !== 'function') { return; }
-        inPort.clear();
+    const promise = new Promise((resolve, reject) => {
+      // Tell the component that it is time to shut down
+      const res = this.tearDown((err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve();
       });
-      // Clear bracket context
-      this.bracketContext = {
-        in: {},
-        out: {},
-      };
-      if (!this.isStarted()) {
-        callback(null);
-        return;
+      if (res && res.then) {
+        // Teardown returned a Promise
+        res.then(resolve, reject);
       }
-      this.started = false;
-      this.emit('end');
-      callback(null);
-    };
-
-    // Tell the component that it is time to shut down
-    this.tearDown((err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      if (this.load > 0) {
-        // Some in-flight processes, wait for them to finish
-        const checkLoad = (load) => {
-          if (load > 0) { return; }
-          this.removeListener('deactivate', checkLoad);
-          finalize();
+    })
+      .then(() => new Promise((resolve) => {
+        if (this.load > 0) {
+          // Some in-flight processes, wait for them to finish
+          const checkLoad = (load) => {
+            if (load > 0) {
+              return;
+            }
+            this.removeListener('deactivate', checkLoad);
+            resolve();
+          };
+          this.on('deactivate', checkLoad);
+          return;
+        }
+        resolve();
+      }))
+      .then(() => {
+        // Clear contents of inport buffers
+        const inPorts = this.inPorts.ports || this.inPorts;
+        Object.keys(inPorts).forEach((portName) => {
+          const inPort = inPorts[portName];
+          if (typeof inPort.clear !== 'function') { return; }
+          inPort.clear();
+        });
+        // Clear bracket context
+        this.bracketContext = {
+          in: {},
+          out: {},
         };
-        this.on('deactivate', checkLoad);
-        return;
-      }
-      finalize();
-    });
+        if (!this.isStarted()) {
+          return Promise.resolve();
+        }
+        this.started = false;
+        this.emit('end');
+        return Promise.resolve();
+      });
+    if (callback) {
+      deprecated('Providing a callback to Component.shutdown is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
-  isStarted() { return this.started; }
+  isStarted() {
+    return this.started;
+  }
 
   // Ensures bracket forwarding map is correct for the existing ports
   prepareForwarding() {
@@ -443,7 +483,14 @@ export class Component extends EventEmitter {
     const output = new ProcessOutput(this.outPorts, context);
     try {
       // Call the processing function
-      this.handle(input, output, context);
+      const res = this.handle(input, output, context);
+      if (res && res.then) {
+        // Processing function returned a Promise
+        res.then(
+          (data) => output.sendDone(data),
+          (err) => output.done(err),
+        );
+      }
     } catch (e) {
       this.deactivate(context);
       output.sendDone(e);

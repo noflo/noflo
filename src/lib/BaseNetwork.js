@@ -12,11 +12,11 @@
 import { EventEmitter } from 'events';
 import * as internalSocket from './InternalSocket';
 import { ComponentLoader } from './ComponentLoader';
-import * as utils from './Utils';
+import { debounce } from './Utils';
 import IP from './IP';
-import { deprecated, isBrowser } from './Platform';
+import { deprecated, isBrowser, makeAsync } from './Platform';
 
-function connectPort(socket, process, port, index, inbound, callback) {
+function connectPort(socket, process, port, index, inbound) {
   if (inbound) {
     socket.to = {
       process,
@@ -25,17 +25,14 @@ function connectPort(socket, process, port, index, inbound, callback) {
     };
 
     if (!process.component.inPorts || !process.component.inPorts[port]) {
-      callback(new Error(`No inport '${port}' defined in process ${process.id} (${socket.getId()})`));
-      return;
+      return Promise.reject(new Error(`No inport '${port}' defined in process ${process.id} (${socket.getId()})`));
     }
     if (process.component.inPorts[port].isAddressable()) {
       process.component.inPorts[port].attach(socket, index);
-      callback();
-      return;
+      return Promise.resolve(socket);
     }
     process.component.inPorts[port].attach(socket);
-    callback();
-    return;
+    return Promise.resolve(socket);
   }
 
   socket.from = {
@@ -45,22 +42,15 @@ function connectPort(socket, process, port, index, inbound, callback) {
   };
 
   if (!process.component.outPorts || !process.component.outPorts[port]) {
-    callback(new Error(`No outport '${port}' defined in process ${process.id} (${socket.getId()})`));
-    return;
+    return Promise.reject(new Error(`No outport '${port}' defined in process ${process.id} (${socket.getId()})`));
   }
 
   if (process.component.outPorts[port].isAddressable()) {
     process.component.outPorts[port].attach(socket, index);
-    callback();
-    return;
+    return Promise.resolve(socket);
   }
   process.component.outPorts[port].attach(socket);
-  callback();
-}
-
-function sendInitial(initial) {
-  initial.socket.post(new IP('data', initial.data,
-    { initial: true }));
+  return Promise.resolve(socket);
 }
 
 // ## The NoFlo network coordinator
@@ -120,9 +110,11 @@ export class BaseNetwork extends EventEmitter {
     // As most NoFlo networks are long-running processes, the
     // network coordinator marks down the start-up time. This
     // way we can calculate the uptime of the network.
+    /** @type {Date | null} */
     this.startupDate = null;
 
     // Initialize a Component Loader for the network
+    /** @type {ComponentLoader | null} */
     this.loader = null;
     if (options.componentLoader) {
       this.loader = options.componentLoader;
@@ -295,11 +287,18 @@ export class BaseNetwork extends EventEmitter {
   /**
    * @param {string} component
    * @param {Object} metadata
-   * @param {ComponentLoadCallback} callback
-   * @returns {void}
+   * @param {ComponentLoadCallback} [callback]
+   * @returns {Promise<import("./Component").Component>}
    */
   load(component, metadata, callback) {
-    this.loader.load(component, callback, metadata);
+    const promise = this.loader.load(component, metadata);
+    if (callback) {
+      deprecated('Providing a callback to Network.load is deprecated, use Promises');
+      promise.then((instance) => {
+        callback(null, instance);
+      }, callback);
+    }
+    return promise;
   }
 
   // ## Add a process to the network
@@ -315,102 +314,114 @@ export class BaseNetwork extends EventEmitter {
       callback = options;
       options = {};
     }
+    let promise;
     // Processes are treated as singletons by their identifier. If
     // we already have a process with the given ID, return that.
     if (this.processes[node.id]) {
-      callback(null, this.processes[node.id]);
-      return;
-    }
+      promise = Promise.resolve(this.processes[node.id]);
+    } else {
+      const process = { id: node.id };
+      // No component defined, just register the process but don't start.
+      if (!node.component) {
+        this.processes[process.id] = process;
+        promise = Promise.resolve(process);
+      } else {
+        // Load the component for the process.
+        promise = this.load(node.component, node.metadata)
+          .then((instance) => {
+            instance.nodeId = node.id;
+            process.component = instance;
+            process.componentName = node.component;
+            // Inform the ports of the node name
+            const inPorts = process.component.inPorts.ports;
+            const outPorts = process.component.outPorts.ports;
+            Object.keys(inPorts).forEach((name) => {
+              const port = inPorts[name];
+              port.node = node.id;
+              port.nodeInstance = instance;
+              port.name = name;
+            });
+            Object.keys(outPorts).forEach((name) => {
+              const port = outPorts[name];
+              port.node = node.id;
+              port.nodeInstance = instance;
+              port.name = name;
+            });
 
-    const process = { id: node.id };
+            if (instance.isSubgraph()) {
+              this.subscribeSubgraph(process);
+            }
+            this.subscribeNode(process);
 
-    // No component defined, just register the process but don't start.
-    if (!node.component) {
-      this.processes[process.id] = process;
-      callback(null, process);
-      return;
-    }
-
-    // Load the component for the process.
-    this.load(node.component, node.metadata, (err, instance) => {
-      if (err) {
-        callback(err);
-        return;
+            // Store and return the process instance
+            this.processes[process.id] = process;
+            return process;
+          });
       }
-      instance.nodeId = node.id;
-      process.component = instance;
-      process.componentName = node.component;
+    }
+    if (callback) {
+      deprecated('Providing a callback to Network.addNode is deprecated, use Promises');
+      promise.then((process) => {
+        callback(null, process);
+      }, callback);
+    }
+    return promise;
+  }
 
+  removeNode(node, callback) {
+    let promise;
+    const process = this.getNode(node.id);
+    if (!process) {
+      promise = Promise.reject(new Error(`Node ${node.id} not found`));
+    } else {
+      promise = process.component.shutdown()
+        .then(() => {
+          delete this.processes[node.id];
+          return Promise.resolve(null);
+        });
+    }
+    if (callback) {
+      deprecated('Providing a callback to Network.removeNode is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
+  }
+
+  renameNode(oldId, newId, callback) {
+    const process = this.getNode(oldId);
+    let promise;
+    if (!process) {
+      promise = Promise.reject(new Error(`Process ${oldId} not found`));
+    } else {
+      // Inform the process of its ID
+      process.id = newId;
       // Inform the ports of the node name
       const inPorts = process.component.inPorts.ports;
       const outPorts = process.component.outPorts.ports;
       Object.keys(inPorts).forEach((name) => {
         const port = inPorts[name];
-        port.node = node.id;
-        port.nodeInstance = instance;
-        port.name = name;
+        if (!port) { return; }
+        port.node = newId;
       });
-
       Object.keys(outPorts).forEach((name) => {
         const port = outPorts[name];
-        port.node = node.id;
-        port.nodeInstance = instance;
-        port.name = name;
+        if (!port) { return; }
+        port.node = newId;
       });
 
-      if (instance.isSubgraph()) { this.subscribeSubgraph(process); }
-
-      this.subscribeNode(process);
-
-      // Store and return the process instance
-      this.processes[process.id] = process;
-      callback(null, process);
-    });
-  }
-
-  removeNode(node, callback) {
-    const process = this.getNode(node.id);
-    if (!process) {
-      callback(new Error(`Node ${node.id} not found`));
-      return;
+      this.processes[newId] = process;
+      delete this.processes[oldId];
+      promise = Promise.resolve(null);
     }
-    process.component.shutdown((err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      delete this.processes[node.id];
-      callback(null);
-    });
-  }
-
-  renameNode(oldId, newId, callback) {
-    const process = this.getNode(oldId);
-    if (!process) {
-      callback(new Error(`Process ${oldId} not found`));
-      return;
+    if (callback) {
+      deprecated('Providing a callback to Network.renameNode is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
     }
-
-    // Inform the process of its ID
-    process.id = newId;
-
-    // Inform the ports of the node name
-    const inPorts = process.component.inPorts.ports;
-    const outPorts = process.component.outPorts.ports;
-    Object.keys(inPorts).forEach((name) => {
-      const port = inPorts[name];
-      if (!port) { return; }
-      port.node = newId;
-    });
-    Object.keys(outPorts).forEach((name) => {
-      const port = outPorts[name];
-      if (!port) { return; }
-      port.node = newId;
-    });
-
-    this.processes[newId] = process;
-    delete this.processes[oldId];
-    callback(null);
+    return promise;
   }
 
   // Get process by its ID.
@@ -424,55 +435,29 @@ export class BaseNetwork extends EventEmitter {
    * @returns {void}
    */
   /**
-   * @param {ErrorableCallback} done
+   * @param {ErrorableCallback} [callback]
+   * @returns {Promise<BaseNetwork>}
    */
-  connect(done = (err) => {}) { // eslint-disable-line no-unused-vars
-    // Wrap the future which will be called when done in a function and return
-    // it
-    let callStack = 0;
-    const serialize = (next, add) => (type) => {
-      // Add either a Node, an Initial, or an Edge and move on to the next one
-      // when done
-      this[`add${type}`](add,
-        { initial: true },
-        (err) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          callStack += 1;
-          if ((callStack % 100) === 0) {
-            setTimeout(() => {
-              next(type);
-            },
-            0);
-            return;
-          }
-          next(type);
-        });
-    };
+  connect(callback) {
+    const handleAll = (key, method) => this.graph[key]
+      .reduce((chain, entity) => chain
+        .then(() => this[method](entity, {
+          initial: true,
+        })), Promise.resolve());
 
-    // Serialize default socket creation then call callback when done
-    const setDefaults = utils.reduceRight(this.graph.nodes, serialize, () => {
-      done();
-    });
-
-    // Serialize initializers then call defaults.
-    const initializers = utils.reduceRight(this.graph.initializers, serialize, () => {
-      setDefaults('Defaults');
-    });
-
-    // Serialize edge creators then call the initializers.
-    const edges = utils.reduceRight(this.graph.edges, serialize, () => {
-      initializers('Initial');
-    });
-
-    // Serialize node creators then call the edge creators
-    const nodes = utils.reduceRight(this.graph.nodes, serialize, () => {
-      edges('Edge');
-    });
-    // Start with node creators
-    nodes('Node');
+    const promise = Promise.resolve()
+      .then(() => handleAll('nodes', 'addNode'))
+      .then(() => handleAll('edges', 'addEdge'))
+      .then(() => handleAll('initializers', 'addInitial'))
+      .then(() => handleAll('nodes', 'addDefaults'))
+      .then(() => this);
+    if (callback) {
+      deprecated('Providing a callback to Network.connect is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
   /**
@@ -574,66 +559,59 @@ export class BaseNetwork extends EventEmitter {
     });
   }
 
+  /**
+   * @protected
+   * @param {string} node
+   * @param {string} direction
+   * @returns Promise<Object>
+   */
+  ensureNode(node, direction) {
+    const instance = this.getNode(node);
+    if (!instance) {
+      return Promise.reject(new Error(`No process defined for ${direction} node ${node}`));
+    }
+    if (!instance.component) {
+      return Promise.reject(new Error(`No component defined for ${direction} node ${node}`));
+    }
+    if (!instance.component.isReady()) {
+      return new Promise((resolve) => {
+        instance.component.once('ready', () => {
+          resolve(instance);
+        });
+      });
+    }
+    return Promise.resolve(instance);
+  }
+
   addEdge(edge, options, callback) {
     if (typeof options === 'function') {
       callback = options;
       options = {};
     }
-    const socket = internalSocket.createSocket(edge.metadata);
-    socket.setDebug(this.debug);
+    const promise = this.ensureNode(edge.from.node, 'outbound')
+      .then((from) => {
+        const socket = internalSocket.createSocket(edge.metadata);
+        socket.setDebug(this.debug);
+        return this.ensureNode(edge.to.node, 'inbound')
+          .then((to) => {
+            // Subscribe to events from the socket
+            this.subscribeSocket(socket, from);
 
-    const from = this.getNode(edge.from.node);
-    if (!from) {
-      callback(new Error(`No process defined for outbound node ${edge.from.node}`));
-      return;
-    }
-    if (!from.component) {
-      callback(new Error(`No component defined for outbound node ${edge.from.node}`));
-      return;
-    }
-    if (!from.component.isReady()) {
-      from.component.once('ready', () => {
-        this.addEdge(edge, callback);
+            return connectPort(socket, to, edge.to.port, edge.to.index, true);
+          })
+          .then(() => connectPort(socket, from, edge.from.port, edge.from.index, false))
+          .then(() => {
+            this.connections.push(socket);
+            return socket;
+          });
       });
-
-      return;
+    if (callback) {
+      deprecated('Providing a callback to Network.addEdge is deprecated, use Promises');
+      promise.then((socket) => {
+        callback(null, socket);
+      }, callback);
     }
-
-    const to = this.getNode(edge.to.node);
-    if (!to) {
-      callback(new Error(`No process defined for inbound node ${edge.to.node}`));
-      return;
-    }
-    if (!to.component) {
-      callback(new Error(`No component defined for inbound node ${edge.to.node}`));
-      return;
-    }
-    if (!to.component.isReady()) {
-      to.component.once('ready', () => {
-        this.addEdge(edge, callback);
-      });
-
-      return;
-    }
-
-    // Subscribe to events from the socket
-    this.subscribeSocket(socket, from);
-
-    connectPort(socket, to, edge.to.port, edge.to.index, true, (err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      connectPort(socket, from, edge.from.port, edge.from.index, false, (err2) => {
-        if (err2) {
-          callback(err2);
-          return;
-        }
-
-        this.connections.push(socket);
-        callback();
-      });
-    });
+    return promise;
   }
 
   removeEdge(edge, callback) {
@@ -651,53 +629,37 @@ export class BaseNetwork extends EventEmitter {
         }
       }
       this.connections.splice(this.connections.indexOf(connection), 1);
-      callback();
     });
+    if (callback) {
+      deprecated('Providing a callback to Network.removeEdge is deprecated, use Promises');
+      callback(null);
+    }
+    return Promise.resolve();
   }
 
-  addDefaults(node, options, callback) {
-    if (typeof options === 'function') {
-      callback = options;
-      options = {};
-    }
-
-    const process = this.getNode(node.id);
-    if (!process) {
-      callback(new Error(`Process ${node.id} not defined`));
-      return;
-    }
-    if (!process.component) {
-      callback(new Error(`No component defined for node ${node.id}`));
-      return;
-    }
-
-    if (!process.component.isReady()) {
-      process.component.setMaxListeners(0);
-      process.component.once('ready', () => {
-        this.addDefaults(process, callback);
-      });
-      return;
-    }
-
-    Object.keys(process.component.inPorts.ports).forEach((key) => {
-      // Attach a socket to any defaulted inPorts as long as they aren't already attached.
-      const port = process.component.inPorts.ports[key];
-      if (port.hasDefault() && !port.isAttached()) {
+  /**
+   * @protected
+   */
+  addDefaults(node) {
+    return this.ensureNode(node.id, 'inbound')
+      .then((process) => Promise.all(Object.keys(process.component.inPorts.ports).map((key) => {
+        // Attach a socket to any defaulted inPorts as long as they aren't already attached.
+        const port = process.component.inPorts.ports[key];
+        if (!port.hasDefault() || port.isAttached()) {
+          return Promise.resolve();
+        }
         const socket = internalSocket.createSocket();
         socket.setDebug(this.debug);
 
         // Subscribe to events from the socket
         this.subscribeSocket(socket);
 
-        connectPort(socket, process, key, undefined, true, () => {});
-
-        this.connections.push(socket);
-
-        this.defaults.push(socket);
-      }
-    });
-
-    callback();
+        return connectPort(socket, process, key, undefined, true)
+          .then(() => {
+            this.connections.push(socket);
+            this.defaults.push(socket);
+          });
+      })));
   }
 
   addInitial(initializer, options, callback) {
@@ -706,57 +668,42 @@ export class BaseNetwork extends EventEmitter {
       options = {};
     }
 
-    const socket = internalSocket.createSocket(initializer.metadata);
-    socket.setDebug(this.debug);
+    const promise = this.ensureNode(initializer.to.node, 'inbound')
+      .then((to) => {
+        const socket = internalSocket.createSocket(initializer.metadata);
+        socket.setDebug(this.debug);
 
-    // Subscribe to events from the socket
-    this.subscribeSocket(socket);
+        // Subscribe to events from the socket
+        this.subscribeSocket(socket);
 
-    const to = this.getNode(initializer.to.node);
-    if (!to) {
-      callback(new Error(`No process defined for inbound node ${initializer.to.node}`));
-      return;
-    }
-    if (!to.component) {
-      callback(new Error(`No component defined for inbound node ${initializer.to.node}`));
-      return;
-    }
-
-    if (!to.component.isReady() && !to.component.inPorts[initializer.to.port]) {
-      to.component.setMaxListeners(0);
-      to.component.once('ready', () => {
-        this.addInitial(initializer, callback);
+        return connectPort(socket, to, initializer.to.port, initializer.to.index, true);
+      })
+      .then((socket) => {
+        this.connections.push(socket);
+        const init = {
+          socket,
+          data: initializer.from.data,
+        };
+        this.initials.push(init);
+        this.nextInitials.push(init);
+        if (this.isRunning()) {
+          // Network is running now, send initials immediately
+          (this.sendInitials)();
+        } else if (!this.isStopped()) {
+          // Network has finished but hasn't been stopped, set
+          // started and set
+          this.setStarted(true);
+          (this.sendInitials)();
+        }
+        return socket;
       });
-      return;
+    if (callback) {
+      deprecated('Providing a callback to Network.addInitial is deprecated, use Promises');
+      promise.then((socket) => {
+        callback(null, socket);
+      }, callback);
     }
-
-    connectPort(socket, to, initializer.to.port, initializer.to.index, true, (err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-
-      this.connections.push(socket);
-
-      const init = {
-        socket,
-        data: initializer.from.data,
-      };
-      this.initials.push(init);
-      this.nextInitials.push(init);
-
-      if (this.isRunning()) {
-        // Network is running now, send initials immediately
-        (this.sendInitials)();
-      } else if (!this.isStopped()) {
-        // Network has finished but hasn't been stopped, set
-        // started and set
-        this.setStarted(true);
-        (this.sendInitials)();
-      }
-
-      callback();
-    });
+    return promise;
   }
 
   removeInitial(initializer, callback) {
@@ -783,25 +730,32 @@ export class BaseNetwork extends EventEmitter {
       }
     });
 
-    callback();
+    if (callback) {
+      deprecated('Providing a callback to Network.removeInitial is deprecated, use Promises');
+      callback(null);
+    }
+    return Promise.resolve();
   }
 
   /**
-   * @param {ErrorableCallback} callback
+   * @returns Promise<void>
    */
-  sendInitials(callback = () => {}) {
-    const send = () => {
-      this.initials.forEach((initial) => { sendInitial(initial); });
-      this.initials = [];
-      callback();
-    };
-
-    if ((typeof process !== 'undefined') && process.execPath && (process.execPath.indexOf('node') !== -1)) {
-      // nextTick is faster on Node.js
-      process.nextTick(send);
-    } else {
-      setTimeout(send, 0);
-    }
+  sendInitials() {
+    return new Promise((resolve) => {
+      makeAsync(resolve);
+    })
+      .then(() => this.initials.reduce((chain, initial) => chain
+        .then(() => {
+          initial.socket.post(new IP('data', initial.data, {
+            initial: true,
+          }));
+          return Promise.resolve();
+        }), Promise.resolve()))
+      .then(() => {
+        // Clear the list of initials to still be sent
+        this.initials = [];
+        return Promise.resolve();
+      });
   }
 
   isStarted() {
@@ -817,170 +771,119 @@ export class BaseNetwork extends EventEmitter {
   }
 
   /**
-   * @param {ErrorableCallback} callback
+   * @protected
+   * @returns {Promise<void>}
    */
-  startComponents(callback = (err) => {}) { // eslint-disable-line no-unused-vars
-    // Emit start event when all processes are started
-    let count = 0;
-    const length = this.processes ? Object.keys(this.processes).length : 0;
-    const onProcessStart = (err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      count += 1;
-      if (count === length) { callback(); }
-    };
-
-    // Perform any startup routines necessary for every component.
+  startComponents() {
     if (!this.processes || !Object.keys(this.processes).length) {
-      callback();
-      return;
+      return Promise.resolve();
     }
-    Object.keys(this.processes).forEach((id) => {
+    // Perform any startup routines necessary for every component.
+    return Promise.all(Object.keys(this.processes).map((id) => {
       const process = this.processes[id];
-      if (process.component.isStarted()) {
-        onProcessStart();
-        return;
-      }
-      if (process.component.start.length === 0) {
-        deprecated('component.start method without callback is deprecated');
-        process.component.start();
-        onProcessStart();
-        return;
-      }
-      process.component.start(onProcessStart);
-    });
+      return process.component.start();
+    }))
+      .then(() => {});
   }
 
   /**
-   * @param {ErrorableCallback} callback
+   * @returns Promise<void>
    */
-  sendDefaults(callback = () => {}) {
-    if (!this.defaults.length) {
-      callback();
-      return;
-    }
-
-    this.defaults.forEach((socket) => {
+  sendDefaults() {
+    return Promise.all(this.defaults.map((socket) => {
       // Don't send defaults if more than one socket is present on the port.
       // This case should only happen when a subgraph is created as a component
       // as its network is instantiated and its inputs are serialized before
       // a socket is attached from the "parent" graph.
-      if (socket.to.process.component.inPorts[socket.to.port].sockets.length !== 1) { return; }
+      if (socket.to.process.component.inPorts[socket.to.port].sockets.length !== 1) {
+        return Promise.resolve();
+      }
       socket.connect();
       socket.send();
       socket.disconnect();
-    });
-
-    callback();
+      return Promise.resolve();
+    }))
+      .then(() => {});
   }
 
   /**
-   * @param {ErrorableCallback} callback
+   * @param {ErrorableCallback} [callback]
+   * @returns {Promise<BaseNetwork>}
    */
   start(callback) {
-    if (!callback) {
-      deprecated('Calling network.start() without callback is deprecated');
-      callback = () => {};
+    if (this.debouncedEnd) {
+      this.abortDebounce = true;
     }
 
-    if (this.debouncedEnd) { this.abortDebounce = true; }
-
+    let promise;
     if (this.started) {
-      this.stop((err) => {
-        if (err) {
-          callback(err);
-          return;
-        }
-        this.start(callback);
-      });
-      return;
-    }
-
-    this.initials = this.nextInitials.slice(0);
-    this.eventBuffer = [];
-    this.startComponents((err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      this.sendInitials((err2) => {
-        if (err2) {
-          callback(err2);
-          return;
-        }
-        this.sendDefaults((err3) => {
-          if (err3) {
-            callback(err3);
-            return;
-          }
+      promise = this.stop()
+        .then(() => this.start());
+    } else {
+      this.initials = this.nextInitials.slice(0);
+      this.eventBuffer = [];
+      promise = this.startComponents()
+        .then(() => this.sendInitials())
+        .then(() => this.sendDefaults())
+        .then(() => {
           this.setStarted(true);
-          callback(null);
+          return Promise.resolve(this);
         });
-      });
-    });
+    }
+    if (callback) {
+      deprecated('Providing a callback to Network.start is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
   /**
-   * @param {ErrorableCallback} callback
+   * @param {ErrorableCallback} [callback]
+   * @returns {Promise<BaseNetwork>}
    */
   stop(callback) {
-    if (!callback) {
-      deprecated('Calling network.stop() without callback is deprecated');
-      callback = () => {};
+    if (this.debouncedEnd) {
+      this.abortDebounce = true;
     }
 
-    if (this.debouncedEnd) { this.abortDebounce = true; }
-
+    let promise;
     if (!this.started) {
       this.stopped = true;
-      callback(null);
-      return;
-    }
+      promise = Promise.resolve(this);
+    } else {
+      // Disconnect all connections
+      this.connections.forEach((connection) => {
+        if (!connection.isConnected()) {
+          return;
+        }
+        connection.disconnect();
+      });
 
-    // Disconnect all connections
-    this.connections.forEach((connection) => {
-      if (!connection.isConnected()) { return; }
-      connection.disconnect();
-    });
-
-    // Emit stop event when all processes are stopped
-    let count = 0;
-    const length = this.processes ? Object.keys(this.processes).length : 0;
-    const onProcessEnd = (err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      count += 1;
-      if (count === length) {
+      if (!this.processes || !Object.keys(this.processes).length) {
+        // No processes to stop
         this.setStarted(false);
         this.stopped = true;
-        callback();
+        promise = Promise.resolve(this);
+      } else {
+        // Emit stop event when all processes are stopped
+        promise = Promise.all(Object.keys(this.processes)
+          .map((id) => this.processes[id].component.shutdown()))
+          .then(() => {
+            this.setStarted(false);
+            this.stopped = true;
+            return Promise.resolve(this);
+          });
       }
-    };
-    if (!this.processes || !Object.keys(this.processes).length) {
-      this.setStarted(false);
-      this.stopped = true;
-      callback();
-      return;
     }
-    // Tell processes to shut down
-    Object.keys(this.processes).forEach((id) => {
-      const process = this.processes[id];
-      if (!process.component.isStarted()) {
-        onProcessEnd();
-        return;
-      }
-      if (process.component.shutdown.length === 0) {
-        deprecated('component.shutdown method without callback is deprecated');
-        process.component.shutdown();
-        onProcessEnd();
-        return;
-      }
-      process.component.shutdown(onProcessEnd);
-    });
+    if (callback) {
+      deprecated('Providing a callback to Network.stop is deprecated, use Promises');
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
   /**
@@ -1013,12 +916,11 @@ export class BaseNetwork extends EventEmitter {
     if (this.isRunning()) { return; }
     delete this.abortDebounce;
     if (!this.debouncedEnd) {
-      this.debouncedEnd = utils.debounce(() => {
+      this.debouncedEnd = debounce(() => {
         if (this.abortDebounce) { return; }
         if (this.isRunning()) { return; }
         this.setStarted(false);
-      },
-      50);
+      }, 50);
     }
     (this.debouncedEnd)();
   }
