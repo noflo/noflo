@@ -8,7 +8,7 @@ export default class ProcessContext {
    * @param {import("./IP").default} ip - IP for this processing context
    * @param {import("./Component").Component} nodeInstance - Component being run
    * @param {import("./InPort").default} port - InPort that triggered this context
-   * @param {Object} result
+   * @param {Object<string, any>} result
    */
   constructor(ip, nodeInstance, port, result) {
     this.ip = ip;

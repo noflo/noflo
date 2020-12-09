@@ -82,34 +82,50 @@ export default class InPort extends BasePort {
 
   prepareBuffer() {
     if (this.isAddressable()) {
-      if (this.options.scoped) { this.scopedBuffer = {}; }
+      if (this.options.scoped) {
+        /** @type {Object<string,Object<number,Array<import("./IP").default>>>} */
+        this.indexedScopedBuffer = {};
+      }
+      /** @type {Object<number,Array<import("./IP").default>>} */
+      this.indexedIipBuffer = {};
+      /** @type {Object<number,Array<import("./IP").default>>} */
       this.indexedBuffer = {};
-      this.iipBuffer = {};
       return;
     }
-    if (this.options.scoped) { this.scopedBuffer = {}; }
+    if (this.options.scoped) {
+      /** @type {Object<string,Array<import("./IP").default>>} */
+      this.scopedBuffer = {};
+    }
+    /** @type {Array<import("./IP").default>} */
     this.iipBuffer = [];
+    /** @type {Array<import("./IP").default>} */
     this.buffer = [];
   }
 
+  /**
+   * @param {import("./IP").default} ip
+   * @returns {Array<import("./IP").default>}
+   */
   prepareBufferForIP(ip) {
     if (this.isAddressable()) {
       if ((ip.scope != null) && this.options.scoped) {
-        if (!(ip.scope in this.scopedBuffer)) { this.scopedBuffer[ip.scope] = []; }
-        if (!(ip.index in this.scopedBuffer[ip.scope])) {
-          this.scopedBuffer[ip.scope][ip.index] = [];
+        if (!(ip.scope in this.indexedScopedBuffer)) { this.indexedScopedBuffer[ip.scope] = []; }
+        if (!(ip.index in this.indexedScopedBuffer[ip.scope])) {
+          this.indexedScopedBuffer[ip.scope][ip.index] = [];
         }
-        return this.scopedBuffer[ip.scope][ip.index];
+        return this.indexedScopedBuffer[ip.scope][ip.index];
       }
       if (ip.initial) {
-        if (!(ip.index in this.iipBuffer)) { this.iipBuffer[ip.index] = []; }
-        return this.iipBuffer[ip.index];
+        if (!(ip.index in this.iipBuffer)) { this.indexedIipBuffer[ip.index] = []; }
+        return this.indexedIipBuffer[ip.index];
       }
       if (!(ip.index in this.indexedBuffer)) { this.indexedBuffer[ip.index] = []; }
       return this.indexedBuffer[ip.index];
     }
     if ((ip.scope != null) && this.options.scoped) {
-      if (!(ip.scope in this.scopedBuffer)) { this.scopedBuffer[ip.scope] = []; }
+      if (!(ip.scope in this.scopedBuffer)) {
+        this.scopedBuffer[ip.scope] = [];
+      }
       return this.scopedBuffer[ip.scope];
     }
     if (ip.initial) {
@@ -125,16 +141,22 @@ export default class InPort extends BasePort {
     }
   }
 
+  /**
+   * @param {string|null} scope
+   * @param {number|null} index
+   * @param {boolean} [initial]
+   * @returns {Array<import("./IP").default>}
+   */
   getBuffer(scope, index, initial = false) {
     if (this.isAddressable()) {
       if ((scope != null) && this.options.scoped) {
-        if (!(scope in this.scopedBuffer)) { return undefined; }
-        if (!(index in this.scopedBuffer[scope])) { return undefined; }
-        return this.scopedBuffer[scope][index];
+        if (!(scope in this.indexedScopedBuffer)) { return undefined; }
+        if (!(index in this.indexedScopedBuffer[scope])) { return undefined; }
+        return this.indexedScopedBuffer[scope][index];
       }
       if (initial) {
-        if (!(index in this.iipBuffer)) { return undefined; }
-        return this.iipBuffer[index];
+        if (!(index in this.indexedIipBuffer)) { return undefined; }
+        return this.indexedIipBuffer[index];
       }
       if (!(index in this.indexedBuffer)) { return undefined; }
       return this.indexedBuffer[index];
@@ -149,10 +171,21 @@ export default class InPort extends BasePort {
     return this.buffer;
   }
 
+  /**
+   * @param {string|null} scope
+   * @param {number|null} index
+   * @param {boolean} [initial]
+   * @returns {import("./IP").default|void}
+   */
   getFromBuffer(scope, index, initial = false) {
     const buf = this.getBuffer(scope, index, initial);
-    if (!(buf != null ? buf.length : undefined)) { return undefined; }
-    if (this.options.control) { return buf[buf.length - 1]; } return buf.shift();
+    if (!(buf != null ? buf.length : undefined)) {
+      return undefined;
+    }
+    if (this.options.control) {
+      return buf[buf.length - 1];
+    }
+    return buf.shift();
   }
 
   // Fetches a packet from the port

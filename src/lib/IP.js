@@ -57,6 +57,7 @@ export default class IP {
     this.index = null; // addressable port index
     this.schema = null;
     this.datatype = 'all';
+    this.initial = false;
     if (typeof options === 'object') {
       Object.keys(options).forEach((key) => { this[key] = options[key]; });
     }

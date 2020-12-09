@@ -17,6 +17,7 @@ import OutPort from './OutPort'; // eslint-disable-line no-unused-vars
 import ProcessContext from './ProcessContext';
 import ProcessInput from './ProcessInput';
 import ProcessOutput from './ProcessOutput';
+import IP from './IP'; // eslint-disable-line no-unused-vars
 
 const debugComponent = debug('noflo:component');
 const debugBrackets = debug('noflo:component:brackets');
@@ -27,7 +28,17 @@ const debugSend = debug('noflo:component:send');
  * @param {ProcessInput} input
  * @param {ProcessOutput} output
  * @param {ProcessContext} context
- * @returns {Promise | void}
+ * @returns {Promise<any> | void}
+ */
+
+/**
+ * @typedef BracketContext
+ * @property {Object<string,Object>} in
+ * @property {Object<string,Object>} out
+ */
+
+/**
+ * @typedef {Object<string, any>} ProcessResult
  */
 
 // ## NoFlo Component Base class
@@ -37,8 +48,8 @@ const debugSend = debug('noflo:component:send');
 export class Component extends EventEmitter {
   /**
    * @param {Object} options
-   * @param {Object | InPorts} [options.inPorts] - Inports for the component
-   * @param {Object | OutPorts} [options.outPorts] - Outports for the component
+   * @param {Object<string,Object> | InPorts} [options.inPorts] - Inports for the component
+   * @param {Object<string,Object> | OutPorts} [options.outPorts] - Outports for the component
    * @param {string} [options.icon]
    * @param {string} [options.description]
    * @param {ProcessingFunction} [options.process] - Component processsing function
@@ -47,7 +58,7 @@ export class Component extends EventEmitter {
    * @param {boolean} [options.autoOrdering]
    * @param {boolean} [options.activateOnInput] - Whether component should
    * activate when it receives packets
-   * @param {Object} [options.forwardBrackets] - Mappings of ports to forward brackets to
+   * @param {Object<string, Array<string>>} [options.forwardBrackets] - Mappings of forwarding ports
    */
   constructor(options = { }) {
     super();
@@ -93,9 +104,11 @@ export class Component extends EventEmitter {
     this.autoOrdering = opts.autoOrdering != null ? opts.autoOrdering : null;
 
     // Queue for handling ordered output packets
+    /** @type {ProcessResult[]} */
     this.outputQ = [];
 
     // Context used for bracket forwarding
+    /** @type {BracketContext} */
     this.bracketContext = {
       in: {},
       out: {},
@@ -152,16 +165,21 @@ export class Component extends EventEmitter {
   // errors are thrown.
   /**
    * @param {Error} e
-   * @param {Array} [groups]
+   * @param {Array<string>} [groups]
    * @param {string} [errorPort]
    * @param {string | null} [scope]
    */
   error(e, groups = [], errorPort = 'error', scope = null) {
-    if (this.outPorts[errorPort]
-      && (this.outPorts[errorPort].isAttached() || !this.outPorts[errorPort].isRequired())) {
-      groups.forEach((group) => { this.outPorts[errorPort].openBracket(group, { scope }); });
-      this.outPorts[errorPort].data(e, { scope });
-      groups.forEach((group) => { this.outPorts[errorPort].closeBracket(group, { scope }); });
+    const outPort = /** @type {OutPort} */ (this.outPorts.ports[errorPort]);
+    if (outPort
+      && (outPort.isAttached() || !outPort.isRequired())) {
+      groups.forEach((group) => {
+        outPort.openBracket(group, { scope });
+      });
+      outPort.data(e, { scope });
+      groups.forEach((group) => {
+        outPort.closeBracket(group, { scope });
+      });
       return;
     }
     throw e;
@@ -181,7 +199,7 @@ export class Component extends EventEmitter {
   // setup work.
   /**
    * @param {ErrorableCallback} callback - Callback for when teardown is ready
-   * @returns {Promise | void}
+   * @returns {Promise<void> | void}
    */
   setUp(callback) {
     callback(null);
@@ -196,7 +214,7 @@ export class Component extends EventEmitter {
   // cleanup work, like clearing any accumulated state.
   /**
    * @param {ErrorableCallback} callback - Callback for when teardown is ready
-   * @returns {Promise | void}
+   * @returns {Promise<void> | void}
    */
   tearDown(callback) {
     callback(null);
@@ -273,6 +291,9 @@ export class Component extends EventEmitter {
       .then(() => new Promise((resolve) => {
         if (this.load > 0) {
           // Some in-flight processes, wait for them to finish
+          /**
+           * @param {number} load
+           */
           const checkLoad = (load) => {
             if (load > 0) {
               return;
@@ -289,7 +310,7 @@ export class Component extends EventEmitter {
         // Clear contents of inport buffers
         const inPorts = this.inPorts.ports || this.inPorts;
         Object.keys(inPorts).forEach((portName) => {
-          const inPort = inPorts[portName];
+          const inPort = /** @type {InPort} */ (inPorts[portName]);
           if (typeof inPort.clear !== 'function') { return; }
           inPort.clear();
         });
@@ -326,9 +347,12 @@ export class Component extends EventEmitter {
         delete this.forwardBrackets[inPort];
         return;
       }
+      /** @type {Array<string>} */
       const tmp = [];
       outPorts.forEach((outPort) => {
-        if (outPort in this.outPorts.ports) { tmp.push(outPort); }
+        if (outPort in this.outPorts.ports) {
+          tmp.push(outPort);
+        }
       });
       if (tmp.length === 0) {
         delete this.forwardBrackets[inPort];
@@ -427,7 +451,7 @@ export class Component extends EventEmitter {
   // processing function so that firing pattern preconditions can
   // be checked and component can do processing as needed.
   /**
-   * @param {import("./IP").default} ip
+   * @param {IP} ip
    * @param {InPort} port
    * @returns {void}
    */
@@ -446,6 +470,7 @@ export class Component extends EventEmitter {
 
     // Initialize the result object for situations where output needs
     // to be queued to be kept in order
+    /** @type {ProcessResult} */
     let result = {};
 
     if (this.isForwardingInport(port)) {
@@ -491,6 +516,9 @@ export class Component extends EventEmitter {
     const output = new ProcessOutput(this.outPorts, context);
     try {
       // Call the processing function
+      if (!this.handle) {
+        throw new Error('Processing function not defined');
+      }
       const res = this.handle(input, output, context);
       if (res && res.then) {
         // Processing function returned a Promise
@@ -525,7 +553,7 @@ export class Component extends EventEmitter {
     let { name, index } = normalizePortName(port);
     if (idx != null) { index = idx; }
     const portsList = type === 'in' ? this.inPorts : this.outPorts;
-    if (portsList[name].isAddressable()) {
+    if (portsList.ports[name].isAddressable()) {
       name = `${name}[${index}]`;
     } else {
       name = port;
@@ -543,9 +571,9 @@ export class Component extends EventEmitter {
   // Add an IP object to the list of results to be sent in
   // order
   /**
-   * @param {Object} result
+   * @param {ProcessResult} result
    * @param {Object} port
-   * @param {import("./IP").default} packet
+   * @param {IP} packet
    * @param {boolean} [before]
    */
   addToResult(result, port, packet, before = false) {
@@ -553,15 +581,21 @@ export class Component extends EventEmitter {
     const ip = packet;
     const { name, index } = normalizePortName(port);
     const method = before ? 'unshift' : 'push';
-    if (this.outPorts[name].isAddressable()) {
-      const idx = index ? parseInt(index, 10) : ip.index;
-      if (!res[name]) { res[name] = {}; }
-      if (!res[name][idx]) { res[name][idx] = []; }
+    if (this.outPorts.ports[name].isAddressable()) {
+      const idx = /** @type {number} */ (index ? parseInt(index, 10) : ip.index);
+      if (!res[name]) {
+        res[name] = {};
+      }
+      if (!res[name][idx]) {
+        res[name][idx] = [];
+      }
       ip.index = idx;
       res[name][idx][method](ip);
       return;
     }
-    if (!res[name]) { res[name] = []; }
+    if (!res[name]) {
+      res[name] = [];
+    }
     res[name][method](ip);
   }
 

@@ -44,19 +44,22 @@ export default class ProcessInput {
   // useful mainly for addressable ports
   /**
    * @param {...string} params - Port names to check for attachment
-   * @returns {Array}
+   * @returns {Array<number> | Array<Array<number>>}
    */
   attached(...params) {
     let args = params;
     if (!args.length) { args = ['in']; }
+    /** @type {Array<Array<number>>} */
     const res = [];
     args.forEach((port) => {
-      if (!this.ports[port]) {
+      if (!this.ports.ports[port]) {
         throw new Error(`Node ${this.nodeInstance.nodeId} has no port '${port}'`);
       }
-      res.push(this.ports[port].listAttached());
+      res.push(this.ports.ports[port].listAttached());
     });
-    if (args.length === 1) { return res.pop(); }
+    if (args.length === 1) {
+      return res[0];
+    }
     return res;
   }
 
@@ -69,7 +72,18 @@ export default class ProcessInput {
   // Passing a validation callback as a last argument allows more selective
   // checking of packets.
   /**
-   * @type {((...params: Array<string | Array | Function>) => boolean)}
+   * @callback HasValidationCallback
+   * @param {IP} ip
+   * @returns {boolean}
+   */
+  /**
+   * @typedef {string|Array<string|number>} GetArgument
+   */
+  /**
+   * @typedef {GetArgument|HasValidationCallback} HasArgument
+   */
+  /**
+   * @param {...HasArgument} params
    */
   has(...params) {
     let validate;
@@ -85,21 +99,25 @@ export default class ProcessInput {
     for (let i = 0; i < args.length; i += 1) {
       const port = args[i];
       if (Array.isArray(port)) {
-        if (!this.ports[port[0]]) {
+        const portImpl = /** @type {import("./InPort").default} */ (this.ports.ports[port[0]]);
+        if (!portImpl) {
           throw new Error(`Node ${this.nodeInstance.nodeId} has no port '${port[0]}'`);
         }
-        if (!this.ports[port[0]].isAddressable()) {
+        if (!portImpl.isAddressable()) {
           throw new Error(`Non-addressable ports, access must be with string ${port[0]}`);
         }
-        if (!this.ports[port[0]].has(this.scope, port[1], validate)) { return false; }
-      } else {
-        if (!this.ports[port]) {
+        if (!portImpl.has(this.scope, port[1], validate)) { return false; }
+      } else if (typeof port === 'string') {
+        const portImpl = /** @type {import("./InPort").default} */ (this.ports.ports[port]);
+        if (!portImpl) {
           throw new Error(`Node ${this.nodeInstance.nodeId} has no port '${port}'`);
         }
-        if (this.ports[port].isAddressable()) {
+        if (portImpl.isAddressable()) {
           throw new Error(`For addressable ports, access must be with array [${port}, idx]`);
         }
-        if (!this.ports[port].has(this.scope, validate)) { return false; }
+        if (!portImpl.has(this.scope, validate)) { return false; }
+      } else {
+        throw new Error(`Unknown port type ${typeof port}`);
       }
     }
     return true;
@@ -115,6 +133,9 @@ export default class ProcessInput {
     if (!args.length) { args = ['in']; }
     const hasArgs = [
       ...args,
+      /**
+       * @param {import("./IP").default} ip
+       */
       (ip) => ip.type === 'data',
     ];
     return this.has(...hasArgs);
@@ -122,24 +143,27 @@ export default class ProcessInput {
 
   // Returns true if a port has a complete stream in its input buffer.
   /**
-   * @param {...string} params - Port names to check for streams
+   * @param {...HasArgument} params - Port names to check for streams
    * @returns {boolean}
    */
   hasStream(...params) {
     let args = params;
+    /** @type {Function} */
     let validateStream;
     if (!args.length) { args = ['in']; }
 
     if (typeof args[args.length - 1] === 'function') {
-      validateStream = args.pop();
+      validateStream = /** @type {Function} */ (args.pop());
     } else {
       validateStream = () => true;
     }
 
     for (let i = 0; i < args.length; i += 1) {
       const port = args[i];
+      /** @type Array<string> */
       const portBrackets = [];
       let hasData = false;
+      /** @type {HasValidationCallback} */
       const validate = (ip) => {
         if (ip.type === 'openBracket') {
           portBrackets.push(ip.data);
@@ -173,12 +197,14 @@ export default class ProcessInput {
   //
   // Fetches IP object(s) for port(s)
   /**
-   * @type {((params: string) => IP) | ((...params: string[]) => IP[])}
+   * @param {...GetArgument} params
+   * @returns {void|IP|Array<IP|void>}
    */
   get(...params) {
     this.activate();
     let args = params;
     if (!args.length) { args = ['in']; }
+    /** @type {Array<IP|void>} */
     const res = [];
     for (let i = 0; i < args.length; i += 1) {
       const port = args[i];
@@ -187,38 +213,48 @@ export default class ProcessInput {
       let portname;
       if (Array.isArray(port)) {
         [portname, idx] = Array.from(port);
-        if (!this.ports[portname].isAddressable()) {
+        if (!this.ports.ports[portname].isAddressable()) {
           throw new Error('Non-addressable ports, access must be with string portname');
         }
       } else {
         portname = port;
-        if (this.ports[portname].isAddressable()) {
+        if (this.ports.ports[portname].isAddressable()) {
           throw new Error('For addressable ports, access must be with array [portname, idx]');
         }
       }
-      if (this.nodeInstance.isForwardingInport(portname)) {
-        ip = this.__getForForwarding(portname, idx);
+      const name = /** @type {string} */ (portname);
+      const idxName = /** @type {number} */ (idx);
+      if (this.nodeInstance.isForwardingInport(name)) {
+        ip = this.__getForForwarding(name, idxName);
         res.push(ip);
       } else {
-        ip = this.ports[portname].get(this.scope, idx);
+        const portImpl = /** @type {import("./InPort").default} */ (this.ports.ports[name]);
+        ip = portImpl.get(this.scope, idx);
         res.push(ip);
       }
     }
 
-    if (args.length === 1) { return res[0]; } return res;
+    if (args.length === 1) {
+      return res[0];
+    }
+    return res;
   }
 
   /**
    * @private
+   * @param {string} port
+   * @param {number} [idx]
+   * @returns {IP|void}
    */
   __getForForwarding(port, idx) {
     const prefix = [];
-    let dataIp = null;
+    let dataIp;
     // Read IPs until we hit data
     let ok = true;
     while (ok) {
       // Read next packet
-      const ip = this.ports[port].get(this.scope, idx);
+      const portImpl = /** @type {import("./InPort").default} */ (this.ports.ports[port]);
+      const ip = portImpl.get(this.scope, idx);
       // Stop at the end of the buffer
       if (!ip) { break; }
       if (ip.type === 'data') {
@@ -263,15 +299,17 @@ export default class ProcessInput {
 
   // Fetches `data` property of IP object(s) for given port(s)
   /**
-   * @type {((params: string) => any) | ((...params: string[]) => any[])}
+   * @param {...GetArgument} params
+   * @returns {any|Array<any>}
    */
   getData(...params) {
     let args = params;
     if (!args.length) { args = ['in']; }
 
+    /** @type {Array<any>} */
     const datas = [];
     args.forEach((port) => {
-      let packet = this.get(port);
+      let packet = /** @type {IP} */ (this.get(port));
       if (packet == null) {
         // we add the null packet to the array so when getting
         // multiple ports, if one is null we still return it
@@ -281,7 +319,7 @@ export default class ProcessInput {
       }
 
       while (packet.type !== 'data') {
-        packet = this.get(port);
+        packet = /** @type {IP} */ (this.get(port));
         if (!packet) { break; }
       }
 
@@ -294,19 +332,24 @@ export default class ProcessInput {
 
   // Fetches a complete data stream from the buffer.
   /**
-   * @type {((params: string) => IP[]) | ((...params: string[]) => IP[][])}
+   * @param {...GetArgument} params
+   * @returns {void|Array<IP>|Array<void|Array<IP>>}
    */
   getStream(...params) {
     let args = params;
     if (!args.length) { args = ['in']; }
+    /** @type {Array<Array<IP>|void>} */
     const datas = [];
     for (let i = 0; i < args.length; i += 1) {
       const port = args[i];
       const portBrackets = [];
+      /** @type {Array<IP>} */
       let portPackets = [];
       let hasData = false;
-      let ip = this.get(port);
-      if (!ip) { datas.push(undefined); }
+      let ip = /** @type {IP} */ (this.get(port));
+      if (!ip) {
+        datas.push(undefined);
+      }
       while (ip) {
         if (ip.type === 'openBracket') {
           if (!portBrackets.length) {
@@ -331,12 +374,14 @@ export default class ProcessInput {
             break;
           }
         }
-        ip = this.get(port);
+        ip = /** @type {IP} */ (this.get(port));
       }
       datas.push(portPackets);
     }
 
-    if (args.length === 1) { return datas.pop(); }
+    if (args.length === 1) {
+      return datas[0];
+    }
     return datas;
   }
 }
