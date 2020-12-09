@@ -25,9 +25,8 @@ import { graph } from 'fbp-graph';
 // This function handles instantiation of NoFlo networks from a Graph object. It creates
 // the network, and then starts execution by sending the Initial Information Packets.
 //
-//     noflo.createNetwork(someGraph, {}, function (err, network) {
-//       console.log('Network is now running!');
-//     });
+//     const network = await noflo.createNetwork(someGraph, {});
+//     console.log('Network is now running!');
 //
 // It is also possible to instantiate a Network but delay its execution by giving the
 // third `delay` option. In this case you will have to handle connecting the graph and
@@ -35,15 +34,12 @@ import { graph } from 'fbp-graph';
 //
 //     noflo.createNetwork(someGraph, {
 //       delay: true,
-//     }, function (err, network) {
-//       if (err) {
-//         throw err;
-//       }
-//       network.connect(function (err) {
-//         network.start();
+//     })
+//       .then((network) => network.connect())
+//       .then((network) => network.start())
+//       .then(() => {
 //         console.log('Network is now running!');
 //       });
-//     });
 //
 // ### Network options
 //
