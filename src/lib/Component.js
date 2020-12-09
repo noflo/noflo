@@ -124,6 +124,9 @@ export class Component extends EventEmitter {
     //
     /** @type string | null */
     this.nodeId = null;
+
+    // Deprecated legacy component connection counter
+    this.__openConnections = 0;
   }
 
   getDescription() { return this.description; }
@@ -347,7 +350,7 @@ export class Component extends EventEmitter {
   // Sets process handler function
   /**
    * @param {ProcessingFunction} handle - Processing function
-   * @returns {Component}
+   * @returns {this}
    */
   process(handle) {
     if (typeof handle !== 'function') {
@@ -359,7 +362,7 @@ export class Component extends EventEmitter {
     this.prepareForwarding();
     this.handle = handle;
     Object.keys(this.inPorts.ports).forEach((name) => {
-      const port = this.inPorts.ports[name];
+      const port = /** @type {InPort} */ (this.inPorts.ports[name]);
       if (!port.name) { port.name = name; }
       port.on('ip', (ip) => this.handleIP(ip, port));
     });

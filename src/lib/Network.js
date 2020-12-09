@@ -10,6 +10,13 @@ import { deprecated } from './Platform';
     import/prefer-default-export,
 */
 
+/**
+ * @typedef NetworkProcess
+ * @property {string} id
+ * @property {string} [componentName]
+ * @property {import("./Component").Component} [component]
+ */
+
 // ## The NoFlo network coordinator
 //
 // NoFlo networks consist of processes connected to each other
@@ -22,6 +29,11 @@ import { deprecated } from './Platform';
 export class Network extends BaseNetwork {
   // Add a process to the network. The node will also be registered
   // with the current graph.
+  /**
+   * @param {import("fbp-graph/lib/Types").GraphNode} node
+   * @param {Object} options
+   * @returns {Promise<NetworkProcess>}
+   */
   addNode(node, options, callback) {
     if (typeof options === 'function') {
       callback = options;

@@ -16,6 +16,21 @@ import { debounce } from './Utils';
 import IP from './IP';
 import { deprecated, isBrowser, makeAsync } from './Platform';
 
+/**
+ * @typedef NetworkProcess
+ * @property {string} id
+ * @property {string} [componentName]
+ * @property {import("./Component").Component} [component]
+ */
+
+/**
+ * @param {internalSocket.InternalSocket} socket
+ * @param {NetworkProcess} process
+ * @param {string} port
+ * @param {number|void} index
+ * @param {boolean} inbound
+ * @returns {Promise<internalSocket.InternalSocket>}
+ */
 function connectPort(socket, process, port, index, inbound) {
   if (inbound) {
     socket.to = {
@@ -24,7 +39,9 @@ function connectPort(socket, process, port, index, inbound) {
       index,
     };
 
-    if (!process.component.inPorts || !process.component.inPorts[port]) {
+    if (!process.component
+      || !process.component.inPorts
+      || !process.component.inPorts.ports[port]) {
       return Promise.reject(new Error(`No inport '${port}' defined in process ${process.id} (${socket.getId()})`));
     }
     if (process.component.inPorts[port].isAddressable()) {
@@ -83,19 +100,25 @@ export class BaseNetwork extends EventEmitter {
     super();
     this.options = options;
     // Processes contains all the instantiated components for this network
+    /** @type {Object<string, NetworkProcess>} */
     this.processes = {};
     // Connections contains all the socket connections in the network
+    /** @type {Array<Object>} */
     this.connections = [];
     // Initials contains all Initial Information Packets (IIPs)
+    /** @type {Array<Object>} */
     this.initials = [];
+    /** @type {Array<Object>} */
     this.nextInitials = [];
     // Container to hold sockets that will be sending default data.
+    /** @type {Array<import("./InternalSocket").InternalSocket>} */
     this.defaults = [];
     // The Graph this network is instantiated with
     this.graph = graph;
     this.started = false;
     this.stopped = true;
     this.debug = true;
+    /** @type {Array<Object>} */
     this.eventBuffer = [];
 
     // On Node.js we default the baseDir for component loading to
@@ -151,6 +174,7 @@ export class BaseNetwork extends EventEmitter {
    * @returns {string[]}
    */
   getActiveProcesses() {
+    /** @type {Array<string>} */
     const active = [];
     if (!this.started) { return active; }
     Object.keys(this.processes).forEach((name) => {
@@ -314,6 +338,18 @@ export class BaseNetwork extends EventEmitter {
   //
   // * `id`: Identifier of the process in the network. Typically a string
   // * `component`: Filename or path of a NoFlo component, or a component instance object
+  /**
+   * @callback AddNodeCallback
+   * @param {Error|null} error
+   * @param {NetworkProcess} [process]
+   * @returns {void}
+   */
+  /**
+   * @param {import("fbp-graph/lib/Types").GraphNode} node
+   * @param {Object} options
+   * @param {AddNodeCallback} [callback]
+   * @returns {Promise<NetworkProcess>}
+   */
   addNode(node, options, callback) {
     if (typeof options === 'function') {
       callback = options;
@@ -947,7 +983,10 @@ export class BaseNetwork extends EventEmitter {
     Object.keys(this.processes).forEach((processId) => {
       const process = this.processes[processId];
       const instance = process.component;
-      if (instance.isSubgraph()) { instance.network.setDebug(active); }
+      if (instance.isSubgraph()) {
+        const inst = /** @type {import("../components/Graph").Graph} */ (instance);
+        inst.network.setDebug(active);
+      }
     });
   }
 
@@ -972,10 +1011,11 @@ export class BaseNetwork extends EventEmitter {
     Object.keys(this.processes).forEach((nodeId) => {
       // Register existing subgraphs
       const node = this.processes[nodeId];
-      if (!node.component.isSubgraph() || !node.component.network) {
+      const inst = /** @type {import("../components/Graph").Graph} */ (node.component);
+      if (!inst.isSubgraph() || !inst.network) {
         return;
       }
-      node.component.network.setFlowtrace(this.flowtrace, node.componentName, false);
+      inst.network.setFlowtrace(this.flowtrace, node.componentName, false);
     });
   }
 }
