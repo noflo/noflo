@@ -16,7 +16,7 @@ import { debounce } from './Utils';
 import IP from './IP';
 import { deprecated, isBrowser, makeAsync } from './Platform';
 
-function connectPort(socket, process, port, index, inbound, callback) {
+function connectPort(socket, process, port, index, inbound) {
   if (inbound) {
     socket.to = {
       process,
@@ -25,17 +25,14 @@ function connectPort(socket, process, port, index, inbound, callback) {
     };
 
     if (!process.component.inPorts || !process.component.inPorts[port]) {
-      callback(new Error(`No inport '${port}' defined in process ${process.id} (${socket.getId()})`));
-      return;
+      return Promise.reject(new Error(`No inport '${port}' defined in process ${process.id} (${socket.getId()})`));
     }
     if (process.component.inPorts[port].isAddressable()) {
       process.component.inPorts[port].attach(socket, index);
-      callback();
-      return;
+      return Promise.resolve();
     }
     process.component.inPorts[port].attach(socket);
-    callback();
-    return;
+    return Promise.resolve();
   }
 
   socket.from = {
@@ -45,17 +42,15 @@ function connectPort(socket, process, port, index, inbound, callback) {
   };
 
   if (!process.component.outPorts || !process.component.outPorts[port]) {
-    callback(new Error(`No outport '${port}' defined in process ${process.id} (${socket.getId()})`));
-    return;
+    return Promise.reject(new Error(`No outport '${port}' defined in process ${process.id} (${socket.getId()})`));
   }
 
   if (process.component.outPorts[port].isAddressable()) {
     process.component.outPorts[port].attach(socket, index);
-    callback();
-    return;
+    return Promise.resolve();
   }
   process.component.outPorts[port].attach(socket);
-  callback();
+  return Promise.resolve();
 }
 
 // ## The NoFlo network coordinator
@@ -601,21 +596,13 @@ export class BaseNetwork extends EventEmitter {
     // Subscribe to events from the socket
     this.subscribeSocket(socket, from);
 
-    connectPort(socket, to, edge.to.port, edge.to.index, true, (err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      connectPort(socket, from, edge.from.port, edge.from.index, false, (err2) => {
-        if (err2) {
-          callback(err2);
-          return;
-        }
-
+    connectPort(socket, to, edge.to.port, edge.to.index, true)
+      .then(() => connectPort(socket, from, edge.from.port, edge.from.index, false))
+      .then(() => {
         this.connections.push(socket);
         callback();
-      });
-    });
+      })
+      .catch(callback);
   }
 
   removeEdge(edge, callback) {
@@ -637,12 +624,10 @@ export class BaseNetwork extends EventEmitter {
     });
   }
 
+  /**
+   * @protected
+   */
   addDefaults(node, options, callback) {
-    if (typeof options === 'function') {
-      callback = options;
-      options = {};
-    }
-
     const process = this.getNode(node.id);
     if (!process) {
       callback(new Error(`Process ${node.id} not defined`));
@@ -656,30 +641,30 @@ export class BaseNetwork extends EventEmitter {
     if (!process.component.isReady()) {
       process.component.setMaxListeners(0);
       process.component.once('ready', () => {
-        this.addDefaults(process, callback);
+        this.addDefaults(process, {}, callback);
       });
       return;
     }
 
-    Object.keys(process.component.inPorts.ports).forEach((key) => {
+    Promise.all(Object.keys(process.component.inPorts.ports).map((key) => {
       // Attach a socket to any defaulted inPorts as long as they aren't already attached.
       const port = process.component.inPorts.ports[key];
-      if (port.hasDefault() && !port.isAttached()) {
-        const socket = internalSocket.createSocket();
-        socket.setDebug(this.debug);
-
-        // Subscribe to events from the socket
-        this.subscribeSocket(socket);
-
-        connectPort(socket, process, key, undefined, true, () => {});
-
-        this.connections.push(socket);
-
-        this.defaults.push(socket);
+      if (!port.hasDefault() || port.isAttached()) {
+        return Promise.resolve();
       }
-    });
+      const socket = internalSocket.createSocket();
+      socket.setDebug(this.debug);
 
-    callback();
+      // Subscribe to events from the socket
+      this.subscribeSocket(socket);
+
+      return connectPort(socket, process, key, undefined, true)
+        .then(() => {
+          this.connections.push(socket);
+          this.defaults.push(socket);
+        });
+    }))
+      .then(() => callback(), callback);
   }
 
   addInitial(initializer, options, callback) {
@@ -712,33 +697,28 @@ export class BaseNetwork extends EventEmitter {
       return;
     }
 
-    connectPort(socket, to, initializer.to.port, initializer.to.index, true, (err) => {
-      if (err) {
-        callback(err);
-        return;
-      }
+    connectPort(socket, to, initializer.to.port, initializer.to.index, true)
+      .then(() => {
+        this.connections.push(socket);
 
-      this.connections.push(socket);
+        const init = {
+          socket,
+          data: initializer.from.data,
+        };
+        this.initials.push(init);
+        this.nextInitials.push(init);
 
-      const init = {
-        socket,
-        data: initializer.from.data,
-      };
-      this.initials.push(init);
-      this.nextInitials.push(init);
-
-      if (this.isRunning()) {
-        // Network is running now, send initials immediately
-        (this.sendInitials)();
-      } else if (!this.isStopped()) {
-        // Network has finished but hasn't been stopped, set
-        // started and set
-        this.setStarted(true);
-        (this.sendInitials)();
-      }
-
-      callback();
-    });
+        if (this.isRunning()) {
+          // Network is running now, send initials immediately
+          (this.sendInitials)();
+        } else if (!this.isStopped()) {
+          // Network has finished but hasn't been stopped, set
+          // started and set
+          this.setStarted(true);
+          (this.sendInitials)();
+        }
+        callback();
+      }, callback);
   }
 
   removeInitial(initializer, callback) {
