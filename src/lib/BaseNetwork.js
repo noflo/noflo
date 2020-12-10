@@ -84,6 +84,17 @@ function connectPort(socket, process, port, index, inbound) {
   return Promise.resolve(socket);
 }
 
+/**
+ * @typedef NetworkOwnOptions
+ * @property {string} [baseDir] - Project base directory for component loading
+ * @property {ComponentLoader} [componentLoader] - Component loader instance to use, if any
+ * @property {Object} [flowtrace] - Flowtrace instance to use for tracing this network run
+ */
+
+/**
+ * @typedef { NetworkOwnOptions & import("./ComponentLoader").ComponentLoaderOptions} NetworkOptions
+ */
+
 // ## The NoFlo network coordinator
 //
 // NoFlo networks consist of processes connected to each other
@@ -100,15 +111,7 @@ export class BaseNetwork extends EventEmitter {
    * set up the defined connections and IIPs.
    *
    * @param {import("fbp-graph").Graph} graph - Graph definition to build a Network for
-   * @param {Object} options - Network options
-   * @param {string} [options.baseDir] - Project base directory for component loading
-   * @param {ComponentLoader} [options.componentLoader] - Component loader instance to use, if any
-   * @param {Object} [options.flowtrace] - Flowtrace instance to use for tracing this network run
-   * @param {boolean} [options.cache] - Whether to enable FBP manifest cache on Node.js
-   * @param {boolean} [options.discover] - Whether to enable FBP manifest module discovery
-   * @param {boolean} [options.recursive] - Whether to enable recursive FBM manifest discovery
-   * @param {string[]} [options.runtimes] - Runtimes to enable
-   * @param {string} [options.manifest] - Manifest file to use
+   * @param {NetworkOptions} options - Network options
    */
   constructor(graph, options = {}) {
     super();

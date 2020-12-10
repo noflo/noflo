@@ -119,13 +119,18 @@ export { default as IP } from './IP';
  */
 
 /**
+ * @typedef CreateNetworkOptions
+ * @property {boolean} [subscribeGraph] - Whether the Network should monitor the graph
+ * @property {boolean} [delay] - Whether the Network should be started later
+ */
+
+/**
+ * @typedef { CreateNetworkOptions & import("./BaseNetwork").NetworkOptions} NetworkOptions
+ */
+
+/**
  * @param {import("fbp-graph").Graph} graphInstance - Graph definition to build a Network for
- * @param {Object} options - Network options
- * @param {string} [options.baseDir] - Project base directory for component loading
- * @param {import("./ComponentLoader").ComponentLoader} [options.componentLoader]
- * @param {Object} [options.flowtrace] - Flowtrace instance to use for tracing this network run
- * @param {boolean} [options.subscribeGraph] - Whether the Network should monitor the graph
- * @param {boolean} [options.delay] - Whether the Network should be started later
+ * @param {NetworkOptions} options - Network options
  * @param {NetworkCallback} [callback] - Legacy callback for the created Network
  * @returns {Promise<Network|LegacyNetwork>}
  */
@@ -172,7 +177,7 @@ export function createNetwork(graphInstance, options, callback) {
 //       });
 /**
  * @param {string} file
- * @param {Object} options
+ * @param {NetworkOptions} options - Network options
  * @param {any} [callback] - Legacy callback
  * @returning {Promise<Network>}
  */

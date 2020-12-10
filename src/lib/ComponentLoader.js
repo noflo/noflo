@@ -41,6 +41,15 @@ import { deprecated, makeAsync } from './Platform';
  * @property {string} [tests]
  */
 
+/**
+ * @typedef ComponentLoaderOptions
+ * @property {boolean} [cache]
+ * @property {boolean} [discover]
+ * @property {boolean} [recursive]
+ * @property {string[]} [runtimes]
+ * @property {string} [manifest]
+ */
+
 // ## The NoFlo Component Loader
 //
 // The Component Loader is responsible for discovering components
@@ -57,12 +66,7 @@ import { deprecated, makeAsync } from './Platform';
 export class ComponentLoader {
   /**
    * @param {string} baseDir
-   * @param {Object} [options]
-   * @param {boolean} [options.cache]
-   * @param {boolean} [options.discover]
-   * @param {boolean} [options.recursive]
-   * @param {string[]} [options.runtimes]
-   * @param {string} [options.manifest]
+   * @param {ComponentLoaderOptions} [options]
    */
   constructor(baseDir, options = {}) {
     this.baseDir = baseDir;
