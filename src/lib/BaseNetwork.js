@@ -24,6 +24,12 @@ import { deprecated, isBrowser, makeAsync } from './Platform';
  */
 
 /**
+ * @typedef NetworkEvent
+ * @property {string} type
+ * @property {Object} payload
+ */
+
+/**
  * @param {internalSocket.InternalSocket} socket
  * @param {NetworkProcess} process
  * @param {string} port
@@ -44,11 +50,11 @@ function connectPort(socket, process, port, index, inbound) {
       || !process.component.inPorts.ports[port]) {
       return Promise.reject(new Error(`No inport '${port}' defined in process ${process.id} (${socket.getId()})`));
     }
-    if (process.component.inPorts[port].isAddressable()) {
-      process.component.inPorts[port].attach(socket, index);
+    if (process.component.inPorts.ports[port].isAddressable()) {
+      process.component.inPorts.ports[port].attach(socket, index);
       return Promise.resolve(socket);
     }
-    process.component.inPorts[port].attach(socket);
+    process.component.inPorts.ports[port].attach(socket);
     return Promise.resolve(socket);
   }
 
@@ -58,15 +64,17 @@ function connectPort(socket, process, port, index, inbound) {
     index,
   };
 
-  if (!process.component.outPorts || !process.component.outPorts[port]) {
+  if (!process.component
+    || !process.component.outPorts
+    || !process.component.outPorts.ports[port]) {
     return Promise.reject(new Error(`No outport '${port}' defined in process ${process.id} (${socket.getId()})`));
   }
 
-  if (process.component.outPorts[port].isAddressable()) {
-    process.component.outPorts[port].attach(socket, index);
+  if (process.component.outPorts.ports[port].isAddressable()) {
+    process.component.outPorts.ports[port].attach(socket, index);
     return Promise.resolve(socket);
   }
-  process.component.outPorts[port].attach(socket);
+  process.component.outPorts.ports[port].attach(socket);
   return Promise.resolve(socket);
 }
 
@@ -118,7 +126,7 @@ export class BaseNetwork extends EventEmitter {
     this.started = false;
     this.stopped = true;
     this.debug = true;
-    /** @type {Array<Object>} */
+    /** @type {Array<NetworkEvent>} */
     this.eventBuffer = [];
 
     // On Node.js we default the baseDir for component loading to
@@ -142,14 +150,15 @@ export class BaseNetwork extends EventEmitter {
     this.startupDate = null;
 
     // Initialize a Component Loader for the network
-    /** @type {ComponentLoader | null} */
-    this.loader = null;
     if (options.componentLoader) {
+      /** @type {ComponentLoader} */
       this.loader = options.componentLoader;
     } else if (graph.properties.componentLoader) {
       deprecated('Passing componentLoader via Graph properties is deprecated, pass via Network options instead');
+      /** @type {ComponentLoader} */
       this.loader = graph.properties.componentLoader;
     } else {
+      /** @type {ComponentLoader} */
       this.loader = new ComponentLoader(this.baseDir, this.options);
     }
 
@@ -179,6 +188,9 @@ export class BaseNetwork extends EventEmitter {
     if (!this.started) { return active; }
     Object.keys(this.processes).forEach((name) => {
       const process = this.processes[name];
+      if (!process || !process.component) {
+        return;
+      }
       if (process.component.load > 0) {
         // Modern component with load
         active.push(name);
@@ -361,6 +373,7 @@ export class BaseNetwork extends EventEmitter {
     if (this.processes[node.id]) {
       promise = Promise.resolve(this.processes[node.id]);
     } else {
+      /** @type {NetworkProcess} */
       const process = { id: node.id };
       // No component defined, just register the process but don't start.
       if (!node.component) {
