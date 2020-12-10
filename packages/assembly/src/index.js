@@ -115,10 +115,14 @@ function normalizeValidators(rules) {
   return rules;
 }
 
+/**
+ * @typedef {Object} AssemblyComponentOptions
+ * @property {AssemblyValidators|Array<string>} [validates]
+ */
+
 export class Component extends NoFloComponent {
   /**
-   * @param {Object} [options]
-   * @param {AssemblyValidators|Array<string>} [options.validates]
+   * @param {import("noflo/lib/Component").ComponentOptions & AssemblyComponentOptions} [options]
    */
   constructor(options = {}) {
     let opts = normalizePorts(options, 'in');
