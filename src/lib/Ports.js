@@ -82,18 +82,24 @@ class Ports extends EventEmitter {
   }
 }
 
+/**
+ * @typedef {{ [key: string]: InPort|PortOptions }} InPortsOptions
+ */
 export class InPorts extends Ports {
   /**
-   * @param {Object<string, InPort|PortOptions>} [ports]
+   * @param {InPortsOptions} [ports]
    */
   constructor(ports = {}) {
     super(ports, InPort);
   }
 }
 
+/**
+ * @typedef {{ [key: string]: OutPort|PortOptions }} OutPortsOptions
+ */
 export class OutPorts extends Ports {
   /**
-   * @param {Object<string, OutPort|PortOptions>} [ports]
+   * @param {OutPortsOptions} [ports]
    */
   constructor(ports = {}) {
     super(ports, OutPort);
