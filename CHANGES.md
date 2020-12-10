@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 1.4.1 (December 10th 2020)
+
+* The `asPromise` function (promisified version of `noflo.asCallback`) now ships with the correct type definition
+
 ## 1.4.0 (December 10th 2020)
 
 * Asynchronous NoFlo methods (like `createNetwork` and `network.start`) now return Promises. Callbacks are still supported as a compatibility layer.
