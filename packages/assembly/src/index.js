@@ -1,5 +1,24 @@
-const NoFloComponent = require('noflo').Component;
+import { Component as NoFloComponent } from 'noflo';
 
+/**
+ * @typedef {{ errors: Error[], [key: string]: any }} AssemblyMessage
+ */
+/**
+ * @typedef {{ [key: string]: string}} AssemblyValidators
+ */
+/**
+ * @typedef {{ [key: string]: (val: any) => boolean}} AssemblyValidatorFunctions
+ */
+/**
+ * @typedef {{ [key: string]: (key: string, val?: any) => string}} AssemblyErrorMessages
+ */
+/**
+ * @callback RelayFunction
+ * @param {AssemblyMessage} msg
+ * @param {import("noflo/lib/ProcessOutput").default} output
+ */
+
+/** @type {AssemblyValidatorFunctions} */
 const validators = {
   def: (val) => val !== undefined,
   set: (val) => (val !== undefined) && (val !== null),
@@ -11,6 +30,7 @@ const validators = {
   '>0': (val) => val > 0,
 };
 
+/** @type {AssemblyErrorMessages} */
 const errorMessages = {
   def: (key) => `${key} is undefined`,
   set: (key) => `${key} is not set`,
@@ -22,7 +42,12 @@ const errorMessages = {
   '>0': (key, val) => `${key} is not positive: ${val}`,
 };
 
-function fail(msg, err) {
+/**
+ * @param {AssemblyMessage} msg
+ * @param {Error|Error[]} err
+ * @returns {AssemblyMessage}
+ */
+export function fail(msg, err) {
   if (!Array.isArray(msg.errors)) {
     throw new Error('Message.errors is not an array');
   }
@@ -31,19 +56,30 @@ function fail(msg, err) {
   return msg;
 }
 
-function failed(msg) {
-  return msg.errors && Array.isArray(msg.errors) > 0 && msg.errors.length > 0;
+/**
+ * @param {AssemblyMessage} msg
+ * @returns {boolean}
+ */
+export function failed(msg) {
+  return msg.errors && Array.isArray(msg.errors) && msg.errors.length > 0;
 }
 
-// Converts shortened ports definition to standard NoFlo ports definition
+/**
+ * Converts shortened ports definition to standard NoFlo ports definition
+ * @param {Object<key, any>} options
+ * @param {string} direction
+ * @returns {Object<key, any>}
+ */
 function normalizePorts(options, direction) {
   const key = `${direction}Ports`;
   const result = options;
   if (key in options) {
     if (Array.isArray(options[key])) {
       // Convert array to all-typed ports
+      /** @type {Object<key, any>} */
       const tmp = {};
-      options[key].forEach((name) => {
+      const portsArray = /** @type {Array<string>} */ (options[key]);
+      portsArray.forEach((name) => {
         tmp[name] = { datatype: 'all' };
       });
       result[key] = tmp;
@@ -62,9 +98,14 @@ function normalizePorts(options, direction) {
   return result;
 }
 
+/**
+ * @param {AssemblyValidators|Array<string>} rules
+ * @returns {AssemblyValidators}
+ */
 function normalizeValidators(rules) {
   if (Array.isArray(rules)) {
     // Normalize array to hashmap
+    /** @type {AssemblyValidators} */
     const res = {};
     rules.forEach((f) => {
       res[f] = 'ok';
@@ -74,15 +115,23 @@ function normalizeValidators(rules) {
   return rules;
 }
 
-class Component extends NoFloComponent {
+export class Component extends NoFloComponent {
+  /**
+   * @param {Object} [options]
+   * @param {AssemblyValidators|Array<string>} [options.validates]
+   */
   constructor(options = {}) {
     let opts = normalizePorts(options, 'in');
     opts = normalizePorts(opts, 'out');
     super(opts);
+    /** @type {RelayFunction|null} */
+    this.relay = this.relay || null;
     if (options.validates) {
       this.validates = normalizeValidators(options.validates);
     }
+
     if (typeof this.relay === 'function') {
+      const func = /** @type {RelayFunction} */ (this.relay);
       this.process((input, output) => {
         if (!input.hasData('in')) { return; }
         const msg = input.getData('in');
@@ -90,7 +139,7 @@ class Component extends NoFloComponent {
           output.sendDone(msg);
           return;
         }
-        this.relay(msg, output);
+        func(msg, output);
       });
     }
     if (typeof this.handle === 'function') {
@@ -98,11 +147,23 @@ class Component extends NoFloComponent {
     }
   }
 
+  /**
+   * @param {AssemblyMessage} msg
+   * @param {AssemblyValidators} rules
+   * @returns {Array<Error>}
+   */
   checkFields(msg, rules) {
+    /** @type {Array<Error>} */
     const errors = [];
+    /**
+     * @param {AssemblyMessage|any} obj
+     * @param {string} objPath
+     * @param {string[]} path
+     * @param {string} validator
+     */
     function checkField(obj, objPath, path, validator) {
       if (!obj || (path.length <= 0)) { return; }
-      const key = path.shift();
+      const key = /** @type {string} */ (path.shift());
       const v = path.length === 0 ? validator : 'obj';
       if (!validators[v](obj[key])) {
         errors.push(new Error(errorMessages[v](`${objPath}.${key}`, obj[key])));
@@ -122,6 +183,10 @@ class Component extends NoFloComponent {
     return errors;
   }
 
+  /**
+   * @param {AssemblyMessage} msg
+   * @param {AssemblyValidators|Array<string>} [rules]
+   */
   validate(msg, rules = this.validates) {
     if (failed(msg)) {
       return false;
@@ -138,9 +203,19 @@ class Component extends NoFloComponent {
   }
 }
 
-function fork(msg, excludeKeys = [], cloneKeys = []) {
-  const newMsg = {};
+/**
+ * @param {AssemblyMessage} msg
+ * @param {Array<string>} [excludeKeys]
+ * @param {Array<string>} [cloneKeys]
+ * @returns {AssemblyMessage}
+ */
+export function fork(msg, excludeKeys = [], cloneKeys = []) {
+  /** @type {AssemblyMessage} */
+  const newMsg = {
+    errors: cloneKeys.includes('error') ? msg.errors.slice(0) : msg.errors,
+  };
   Object.keys(msg).forEach((key) => {
+    if (key === 'errors') { return; }
     if (excludeKeys.includes(key)) { return; }
     if (cloneKeys.includes(key)) {
       newMsg[key] = JSON.parse(JSON.stringify(msg[key]));
@@ -151,7 +226,12 @@ function fork(msg, excludeKeys = [], cloneKeys = []) {
   return newMsg;
 }
 
-function merge(base, extra) {
+/**
+ * @param {AssemblyMessage} base
+ * @param {Object<string, any>} extra
+ * @returns {AssemblyMessage}
+ */
+export function merge(base, extra) {
   const combined = base;
   const baseKeys = Object.keys(base);
   Object.keys(extra).forEach((key) => {
@@ -162,9 +242,4 @@ function merge(base, extra) {
   return combined;
 }
 
-module.exports = Component;
-module.exports.default = Component;
-module.exports.fail = fail;
-module.exports.failed = failed;
-module.exports.fork = fork;
-module.exports.merge = merge;
+export default Component;
