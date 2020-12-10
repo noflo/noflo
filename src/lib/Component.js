@@ -558,7 +558,7 @@ export class Component extends EventEmitter {
    */
   getBracketContext(type, port, scope, idx = null) {
     let { name, index } = normalizePortName(port);
-    if (idx != null) { index = idx; }
+    if (idx != null) { index = `${idx}`; }
     const portsList = type === 'in' ? this.inPorts : this.outPorts;
     if (portsList.ports[name].isAddressable()) {
       name = `${name}[${index}]`;
@@ -619,7 +619,7 @@ export class Component extends EventEmitter {
       if (ctx.ports.indexOf(outport) !== -1) { return; }
       // See if we have already forwarded the same bracket from another
       // inport
-      const outContext = this.getBracketContext('out', name, ctx.ip.scope, index)[idx];
+      const outContext = this.getBracketContext('out', name, ctx.ip.scope, parseInt(index, 10))[idx];
       if (outContext) {
         if ((outContext.ip.data === ctx.ip.data) && (outContext.ports.indexOf(outport) !== -1)) {
           return;

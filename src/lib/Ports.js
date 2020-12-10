@@ -135,7 +135,7 @@ export class OutPorts extends Ports {
 // format `portname` or `portname[index]`.
 /**
  * @param {string} name
- * @returns {{ name: string, index?: number }}
+ * @returns {{ name: string, index?: string }}
  */
 export function normalizePortName(name) {
   const port = { name };
@@ -148,6 +148,6 @@ export function normalizePortName(name) {
   }
   return {
     name: matched[1],
-    index: parseInt(matched[2], 10),
+    index: matched[2],
   };
 }
