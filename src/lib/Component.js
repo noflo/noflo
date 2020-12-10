@@ -409,7 +409,7 @@ export class Component extends EventEmitter {
     } else {
       portName = port.name;
     }
-    if (portName in this.forwardBrackets) {
+    if (portName && portName in this.forwardBrackets) {
       return true;
     }
     return false;
@@ -434,6 +434,9 @@ export class Component extends EventEmitter {
       outportName = outport;
     } else {
       outportName = outport.name;
+    }
+    if (!inportName || !outportName) {
+      return false;
     }
     if (!this.forwardBrackets[inportName]) { return false; }
     if (this.forwardBrackets[inportName].indexOf(outportName) !== -1) { return true; }
@@ -495,6 +498,7 @@ export class Component extends EventEmitter {
         const dataPackets = buf.filter((p) => p.type === 'data');
         if ((this.outputQ.length >= this.load) && (dataPackets.length === 0)) {
           if (buf[0] !== ip) { return; }
+          if (!port.name) { return; }
           // Remove from buffer
           port.get(ip.scope, ip.index);
           const bracketCtx = this.getBracketContext('in', port.name, ip.scope, ip.index).pop();
@@ -548,7 +552,7 @@ export class Component extends EventEmitter {
   // Get the current bracket forwarding context for an IP object
   /**
    * @param {string} type
-   * @param {Object} port
+   * @param {string} port
    * @param {string|null} scope
    * @param {number|null} [idx]
    */

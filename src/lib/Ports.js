@@ -133,15 +133,21 @@ export class OutPorts extends Ports {
 // Port name normalization:
 // returns object containing keys name and index for ports names in
 // format `portname` or `portname[index]`.
+/**
+ * @param {string} name
+ * @returns {{ name: string, index?: number }}
+ */
 export function normalizePortName(name) {
   const port = { name };
   // Regular port
   if (name.indexOf('[') === -1) { return port; }
   // Addressable port with index
   const matched = name.match(/(.*)\[([0-9]+)\]/);
-  if (!(matched != null ? matched.length : undefined)) { return name; }
+  if (!matched || matched.length < 3) {
+    return port;
+  }
   return {
     name: matched[1],
-    index: matched[2],
+    index: parseInt(matched[2], 10),
   };
 }
