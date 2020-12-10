@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 1.4.3 (December 10th 2020)
+
+* Improved inport and outport options TypeScript definitions
+
 ## 1.4.2 (December 10th 2020)
 
 * Made Component and Network option TypeScript definitions easier to extend when subclassing
