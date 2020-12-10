@@ -11,7 +11,7 @@
   "scripts": {
     "lint": "eslint src/*.js example/components/*.js spec/*.js",
     "build": "tsc",
-    "pretest": "npm run lint && npm run build",
+    "pretest": "npm run build && npm run lint",
     "test": "mocha -R spec spec/*.js"
   },
   "keywords": [
