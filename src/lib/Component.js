@@ -32,14 +32,28 @@ const debugSend = debug('noflo:component:send');
  */
 
 /**
+ * @typedef ComponentOptions
+ * @property {import("./Ports").InPortsOptions | InPorts} [inPorts] - Inports for the component
+ * @property {import("./Ports").OutPortsOptions | OutPorts} [outPorts] - Outports for the component
+ * @property {string} [icon]
+ * @property {string} [description]
+ * @property {ProcessingFunction} [options.process] - Component processsing function
+ * @property {boolean} [ordered] - Whether component should send
+ * packets in same order it received them
+ * @property {boolean} [autoOrdering]
+ * @property {boolean} [activateOnInput] - Whether component should
+ * activate when it receives packets
+ * @property {Object<string, Array<string>>} [forwardBrackets] - Mappings of forwarding ports
+ */
+
+/**
  * @typedef BracketContext
  * @property {Object<string,Object>} in
  * @property {Object<string,Object>} out
  */
 
-/**
- * @typedef {Object<string, any>} ProcessResult
- */
+// eslint-disable-next-line max-len
+/** @typedef {{ __resolved?: boolean, __bracketClosingAfter?: BracketContext[], [key: string]: any }} ProcessResult */
 
 // ## NoFlo Component Base class
 //
@@ -47,18 +61,7 @@ const debugSend = debug('noflo:component:send');
 // and extend NoFlo components.
 export class Component extends EventEmitter {
   /**
-   * @param {Object} options
-   * @param {Object<string,Object> | InPorts} [options.inPorts] - Inports for the component
-   * @param {Object<string,Object> | OutPorts} [options.outPorts] - Outports for the component
-   * @param {string} [options.icon]
-   * @param {string} [options.description]
-   * @param {ProcessingFunction} [options.process] - Component processsing function
-   * @param {boolean} [options.ordered] - Whether component should send
-   * packets in same order it received them
-   * @param {boolean} [options.autoOrdering]
-   * @param {boolean} [options.activateOnInput] - Whether component should
-   * activate when it receives packets
-   * @param {Object<string, Array<string>>} [options.forwardBrackets] - Mappings of forwarding ports
+   * @param {ComponentOptions} [options]
    */
   constructor(options = { }) {
     super();
@@ -406,7 +409,7 @@ export class Component extends EventEmitter {
     } else {
       portName = port.name;
     }
-    if (portName in this.forwardBrackets) {
+    if (portName && portName in this.forwardBrackets) {
       return true;
     }
     return false;
@@ -431,6 +434,9 @@ export class Component extends EventEmitter {
       outportName = outport;
     } else {
       outportName = outport.name;
+    }
+    if (!inportName || !outportName) {
+      return false;
     }
     if (!this.forwardBrackets[inportName]) { return false; }
     if (this.forwardBrackets[inportName].indexOf(outportName) !== -1) { return true; }
@@ -492,6 +498,7 @@ export class Component extends EventEmitter {
         const dataPackets = buf.filter((p) => p.type === 'data');
         if ((this.outputQ.length >= this.load) && (dataPackets.length === 0)) {
           if (buf[0] !== ip) { return; }
+          if (!port.name) { return; }
           // Remove from buffer
           port.get(ip.scope, ip.index);
           const bracketCtx = this.getBracketContext('in', port.name, ip.scope, ip.index).pop();
@@ -545,13 +552,13 @@ export class Component extends EventEmitter {
   // Get the current bracket forwarding context for an IP object
   /**
    * @param {string} type
-   * @param {Object} port
+   * @param {string} port
    * @param {string|null} scope
    * @param {number|null} [idx]
    */
   getBracketContext(type, port, scope, idx = null) {
     let { name, index } = normalizePortName(port);
-    if (idx != null) { index = idx; }
+    if (idx != null) { index = `${idx}`; }
     const portsList = type === 'in' ? this.inPorts : this.outPorts;
     if (portsList.ports[name].isAddressable()) {
       name = `${name}[${index}]`;
@@ -612,7 +619,7 @@ export class Component extends EventEmitter {
       if (ctx.ports.indexOf(outport) !== -1) { return; }
       // See if we have already forwarded the same bracket from another
       // inport
-      const outContext = this.getBracketContext('out', name, ctx.ip.scope, index)[idx];
+      const outContext = this.getBracketContext('out', name, ctx.ip.scope, parseInt(index, 10))[idx];
       if (outContext) {
         if ((outContext.ip.data === ctx.ip.data) && (outContext.ports.indexOf(outport) !== -1)) {
           return;

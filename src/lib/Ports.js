@@ -82,18 +82,24 @@ class Ports extends EventEmitter {
   }
 }
 
+/**
+ * @typedef {{ [key: string]: InPort|PortOptions }} InPortsOptions
+ */
 export class InPorts extends Ports {
   /**
-   * @param {Object<string, InPort|PortOptions>} [ports]
+   * @param {InPortsOptions} [ports]
    */
   constructor(ports = {}) {
     super(ports, InPort);
   }
 }
 
+/**
+ * @typedef {{ [key: string]: OutPort|PortOptions }} OutPortsOptions
+ */
 export class OutPorts extends Ports {
   /**
-   * @param {Object<string, OutPort|PortOptions>} [ports]
+   * @param {OutPortsOptions} [ports]
    */
   constructor(ports = {}) {
     super(ports, OutPort);
@@ -133,13 +139,19 @@ export class OutPorts extends Ports {
 // Port name normalization:
 // returns object containing keys name and index for ports names in
 // format `portname` or `portname[index]`.
+/**
+ * @param {string} name
+ * @returns {{ name: string, index?: string }}
+ */
 export function normalizePortName(name) {
   const port = { name };
   // Regular port
   if (name.indexOf('[') === -1) { return port; }
   // Addressable port with index
   const matched = name.match(/(.*)\[([0-9]+)\]/);
-  if (!(matched != null ? matched.length : undefined)) { return name; }
+  if (!matched || matched.length < 3) {
+    return port;
+  }
   return {
     name: matched[1],
     index: matched[2],
