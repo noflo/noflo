@@ -15,7 +15,7 @@ import { deprecated, makeAsync } from './Platform';
 
 /**
  * @callback ComponentFactory
- * @param {Object} [metadata]
+ * @param {import("fbp-graph/lib/Types").GraphNodeMetadata} [metadata]
  * @returns {import("./Component").Component}
  */
 
@@ -147,7 +147,7 @@ export class ComponentLoader {
   // component.
   /**
    * @param {string} name - Component name
-   * @param {Object} meta - Node metadata
+   * @param {import("fbp-graph/lib/Types").GraphNodeMetadata} meta - Node metadata
    * @param {any} [cb] - Legacy callback
    * @returns {Promise<import("./Component").Component>}
    */
@@ -227,7 +227,7 @@ export class ComponentLoader {
    * @protected
    * @param {string} name
    * @param {ComponentDefinitionWithoutGraph} component
-   * @param {Object} metadata
+   * @param {import("fbp-graph/lib/Types").GraphNodeMetadata} metadata
    * @returns {Promise<import("./Component").Component>}
    */
   createComponent(name, component, metadata) {
@@ -300,7 +300,7 @@ export class ComponentLoader {
    * @protected
    * @param {string} name
    * @param {import("fbp-graph").Graph} component
-   * @param {Object} metadata
+   * @param {import("fbp-graph/lib/Types").GraphNodeMetadata} metadata
    * @returns {Promise<import("../components/Graph").Graph>}
    */
   loadGraph(name, component, metadata) {

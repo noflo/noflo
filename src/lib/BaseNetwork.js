@@ -315,7 +315,7 @@ export class BaseNetwork extends EventEmitter {
    */
   /**
    * @param {string} component
-   * @param {Object} metadata
+   * @param {import("fbp-graph/lib/Types").GraphNodeMetadata} metadata
    * @param {ComponentLoadCallback} [callback]
    * @returns {Promise<import("./Component").Component>}
    */
