@@ -1,5 +1,5 @@
 const { IP } = require('noflo');
-const Component = require('../../index');
+const { Component } = require('../../index');
 
 class Order extends Component {
   constructor() {

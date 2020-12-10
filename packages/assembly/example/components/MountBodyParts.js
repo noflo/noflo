@@ -1,4 +1,4 @@
-const Component = require('../../index');
+const { Component } = require('../../index');
 
 class MountBodyParts extends Component {
   constructor() {

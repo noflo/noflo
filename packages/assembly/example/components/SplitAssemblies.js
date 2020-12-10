@@ -1,6 +1,4 @@
-const Component = require('../../index');
-
-const { fork } = Component;
+const { Component, fork } = require('../../index');
 
 class SplitAssemblies extends Component {
   constructor() {

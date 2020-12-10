@@ -1,4 +1,4 @@
-const Component = require('../../index');
+const { Component } = require('../../index');
 
 class MountSuspension extends Component {
   // Can skip constructor

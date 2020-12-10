@@ -1,6 +1,4 @@
-const Component = require('../../index');
-
-const { failed } = Component;
+const { Component, failed } = require('../../index');
 
 class Release extends Component {
   constructor() {
