@@ -369,7 +369,7 @@ function sendOutputMap(outputs, resultType, options) {
 /**
  * @callback NetworkAsPromise
  * @param {any} input
- * @returns {Promise<Network>}
+ * @returns {Promise<any>}
  */
 
 /**
