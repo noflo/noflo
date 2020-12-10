@@ -32,6 +32,21 @@ const debugSend = debug('noflo:component:send');
  */
 
 /**
+ * @typedef ComponentOptions
+ * @property {Object<string,Object> | InPorts} [inPorts] - Inports for the component
+ * @property {Object<string,Object> | OutPorts} [outPorts] - Outports for the component
+ * @property {string} [icon]
+ * @property {string} [description]
+ * @property {ProcessingFunction} [options.process] - Component processsing function
+ * @property {boolean} [ordered] - Whether component should send
+ * packets in same order it received them
+ * @property {boolean} [autoOrdering]
+ * @property {boolean} [activateOnInput] - Whether component should
+ * activate when it receives packets
+ * @property {Object<string, Array<string>>} [forwardBrackets] - Mappings of forwarding ports
+ */
+
+/**
  * @typedef BracketContext
  * @property {Object<string,Object>} in
  * @property {Object<string,Object>} out
@@ -47,18 +62,7 @@ const debugSend = debug('noflo:component:send');
 // and extend NoFlo components.
 export class Component extends EventEmitter {
   /**
-   * @param {Object} options
-   * @param {Object<string,Object> | InPorts} [options.inPorts] - Inports for the component
-   * @param {Object<string,Object> | OutPorts} [options.outPorts] - Outports for the component
-   * @param {string} [options.icon]
-   * @param {string} [options.description]
-   * @param {ProcessingFunction} [options.process] - Component processsing function
-   * @param {boolean} [options.ordered] - Whether component should send
-   * packets in same order it received them
-   * @param {boolean} [options.autoOrdering]
-   * @param {boolean} [options.activateOnInput] - Whether component should
-   * activate when it receives packets
-   * @param {Object<string, Array<string>>} [options.forwardBrackets] - Mappings of forwarding ports
+   * @param {ComponentOptions} [options]
    */
   constructor(options = { }) {
     super();
