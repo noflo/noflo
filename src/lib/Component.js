@@ -52,9 +52,8 @@ const debugSend = debug('noflo:component:send');
  * @property {Object<string,Object>} out
  */
 
-/**
- * @typedef {Object<string, any>} ProcessResult
- */
+// eslint-disable-next-line max-len
+/** @typedef {{ __resolved?: boolean, __bracketClosingAfter?: BracketContext[], [key: string]: any }} ProcessResult */
 
 // ## NoFlo Component Base class
 //
