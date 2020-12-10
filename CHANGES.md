@@ -1,6 +1,10 @@
 NoFlo ChangeLog
 ===============
 
+## 1.4.2 (December 10th 2020)
+
+* Made Component and Network option TypeScript definitions easier to extend when subclassing
+
 ## 1.4.1 (December 10th 2020)
 
 * The `asPromise` function (promisified version of `noflo.asCallback`) now ships with the correct type definition
