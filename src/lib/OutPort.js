@@ -9,18 +9,16 @@ import IP from './IP';
 // Outport Port (outport) implementation for NoFlo components.
 // These ports are the way a component sends Information Packets.
 /**
- * @typedef {Object} OutportOptions - Options for configuring outports
- * @property {string} [description='']
- * @property {string} [datatype='all']
- * @property {string} [schema=null]
- * @property {boolean} [required=false]
- * @property {boolean} [caching=false]
- * @property {boolean} [scoped=true]
+ * @typedef OutPortOptions
+ * @property {boolean} [caching]
+ */
+/**
+ * @typedef {import("./BasePort").BaseOptions & OutPortOptions} PortOptions
  */
 
 export default class OutPort extends BasePort {
   /**
-   * @param {OutportOptions} options - Options for the outport
+   * @param {PortOptions} options - Options for the outport
    */
   constructor(options = {}) {
     const opts = options;

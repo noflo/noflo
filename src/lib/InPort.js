@@ -7,20 +7,24 @@ import BasePort from './BasePort';
 //
 // Input Port (inport) implementation for NoFlo components. These
 // ports are the way a component receives Information Packets.
+/**
+ * @typedef InPortOptions
+ * @property {boolean} [control]
+ * @property {boolean} [triggering]
+ */
+/**
+ * @typedef {import("./BasePort").BaseOptions & InPortOptions} PortOptions
+ */
+
 export default class InPort extends BasePort {
+  /**
+   * @param {PortOptions} [options]
+   */
   constructor(options = {}) {
     const opts = options;
     if (opts.control == null) { opts.control = false; }
     if (opts.scoped == null) { opts.scoped = true; }
     if (opts.triggering == null) { opts.triggering = true; }
-
-    if (opts.process) {
-      throw new Error('InPort process callback is deprecated. Please use Process API');
-    }
-
-    if (opts.handle) {
-      throw new Error('InPort handle callback is deprecated. Please use Process API');
-    }
 
     super(opts);
 

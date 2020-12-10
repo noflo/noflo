@@ -7,13 +7,7 @@ import InPort from './InPort';
 import OutPort from './OutPort';
 
 /**
- * @typedef PortOptions
- * @property {string} [description='']
- * @property {string} [datatype='all']
- * @property {string} [schema=null]
- * @property {string} [type=null]
- * @property {boolean} [required=false]
- * @property {boolean} [scoped=true]
+ * @typedef {import("./BasePort").BaseOptions} PortOptions
  */
 
 // NoFlo ports collections
@@ -83,7 +77,7 @@ class Ports extends EventEmitter {
 }
 
 /**
- * @typedef {{ [key: string]: InPort|PortOptions }} InPortsOptions
+ * @typedef {{ [key: string]: InPort|import("./InPort").PortOptions }} InPortsOptions
  */
 export class InPorts extends Ports {
   /**
@@ -95,7 +89,7 @@ export class InPorts extends Ports {
 }
 
 /**
- * @typedef {{ [key: string]: OutPort|PortOptions }} OutPortsOptions
+ * @typedef {{ [key: string]: OutPort|import("./OutPort").PortOptions }} OutPortsOptions
  */
 export class OutPorts extends Ports {
   /**
