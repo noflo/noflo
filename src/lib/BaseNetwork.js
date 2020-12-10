@@ -24,6 +24,12 @@ import { deprecated, isBrowser, makeAsync } from './Platform';
  */
 
 /**
+ * @typedef NetworkIIP
+ * @property {internalSocket.InternalSocket} socket
+ * @property {any} data
+ */
+
+/**
  * @typedef NetworkEvent
  * @property {string} type
  * @property {Object} payload
@@ -111,12 +117,12 @@ export class BaseNetwork extends EventEmitter {
     /** @type {Object<string, NetworkProcess>} */
     this.processes = {};
     // Connections contains all the socket connections in the network
-    /** @type {Array<Object>} */
+    /** @type {Array<internalSocket.InternalSocket>} */
     this.connections = [];
     // Initials contains all Initial Information Packets (IIPs)
-    /** @type {Array<Object>} */
+    /** @type {Array<NetworkIIP>} */
     this.initials = [];
-    /** @type {Array<Object>} */
+    /** @type {Array<NetworkIIP>} */
     this.nextInitials = [];
     // Container to hold sockets that will be sending default data.
     /** @type {Array<import("./InternalSocket").InternalSocket>} */
@@ -364,7 +370,7 @@ export class BaseNetwork extends EventEmitter {
    */
   addNode(node, options, callback) {
     if (typeof options === 'function') {
-      callback = options;
+      callback = /** @type {AddNodeCallback} */ (options);
       options = {};
     }
     let promise;
@@ -422,16 +428,25 @@ export class BaseNetwork extends EventEmitter {
     return promise;
   }
 
+  /**
+   * @param {import("fbp-graph/lib/Types").GraphNode} node
+   * @param {ErrorableCallback} [callback]
+   * @returns {Promise<void>}
+   */
   removeNode(node, callback) {
     let promise;
     const process = this.getNode(node.id);
     if (!process) {
       promise = Promise.reject(new Error(`Node ${node.id} not found`));
     } else {
+      if (!process.component) {
+        delete this.processes[node.id];
+        return Promise.resolve();
+      }
       promise = process.component.shutdown()
         .then(() => {
           delete this.processes[node.id];
-          return Promise.resolve(null);
+          return Promise.resolve();
         });
     }
     if (callback) {
@@ -443,6 +458,12 @@ export class BaseNetwork extends EventEmitter {
     return promise;
   }
 
+  /**
+   * @param {string} oldId
+   * @param {string} newId
+   * @param {ErrorableCallback} [callback]
+   * @returns {Promise<void>}
+   */
   renameNode(oldId, newId, callback) {
     const process = this.getNode(oldId);
     let promise;
@@ -451,23 +472,24 @@ export class BaseNetwork extends EventEmitter {
     } else {
       // Inform the process of its ID
       process.id = newId;
-      // Inform the ports of the node name
-      const inPorts = process.component.inPorts.ports;
-      const outPorts = process.component.outPorts.ports;
-      Object.keys(inPorts).forEach((name) => {
-        const port = inPorts[name];
-        if (!port) { return; }
-        port.node = newId;
-      });
-      Object.keys(outPorts).forEach((name) => {
-        const port = outPorts[name];
-        if (!port) { return; }
-        port.node = newId;
-      });
-
+      if (process.component) {
+        // Inform the ports of the node name
+        const inPorts = process.component.inPorts.ports;
+        const outPorts = process.component.outPorts.ports;
+        Object.keys(inPorts).forEach((name) => {
+          const port = inPorts[name];
+          if (!port) { return; }
+          port.node = newId;
+        });
+        Object.keys(outPorts).forEach((name) => {
+          const port = outPorts[name];
+          if (!port) { return; }
+          port.node = newId;
+        });
+      }
       this.processes[newId] = process;
       delete this.processes[oldId];
-      promise = Promise.resolve(null);
+      promise = Promise.resolve();
     }
     if (callback) {
       deprecated('Providing a callback to Network.renameNode is deprecated, use Promises');
@@ -479,6 +501,10 @@ export class BaseNetwork extends EventEmitter {
   }
 
   // Get process by its ID.
+  /**
+   * @param {string} id compone
+   * @returns {NetworkProcess|void}
+   */
   getNode(id) {
     return this.processes[id];
   }
@@ -493,6 +519,11 @@ export class BaseNetwork extends EventEmitter {
    * @returns {Promise<this>}
    */
   connect(callback) {
+    /**
+     * @param {string} key
+     * @param {string} method
+     * @returns {Promise<any>}
+     */
     const handleAll = (key, method) => this.graph[key]
       .reduce((chain, entity) => chain
         .then(() => this[method](entity, {
@@ -516,8 +547,12 @@ export class BaseNetwork extends EventEmitter {
 
   /**
    * @private
+   * @param {NetworkProcess} node
    */
   subscribeSubgraph(node) {
+    if (!node.component) {
+      return;
+    }
     if (!node.component.isReady()) {
       node.component.once('ready', () => {
         this.subscribeSubgraph(node);
@@ -525,15 +560,20 @@ export class BaseNetwork extends EventEmitter {
       return;
     }
 
-    if (!node.component.network) {
+    const instance = /** @type {import("../components/Graph").Graph} */ (node.component);
+    if (!instance.network) {
       return;
     }
 
-    node.component.network.setDebug(this.debug);
+    instance.network.setDebug(this.debug);
     if (this.flowtrace) {
-      node.component.network.setFlowtrace(this.flowtrace, node.componentName, false);
+      instance.network.setFlowtrace(this.flowtrace, node.componentName, false);
     }
 
+    /**
+     * @param {string} type
+     * @param {any} data
+     */
     const emitSub = (type, data) => {
       if ((type === 'process-error') && (this.listeners('process-error').length === 0)) {
         if (data.id && data.metadata && data.error) { throw data.error; }
@@ -551,15 +591,25 @@ export class BaseNetwork extends EventEmitter {
       this.bufferedEmit(type, data);
     };
 
-    node.component.network.on('ip', (data) => {
+    /**
+     * @type {IP} data
+     */
+    instance.network.on('ip', (data) => {
       emitSub('ip', data);
     });
-    node.component.network.on('process-error', (data) => {
+    /**
+     * @type {Error} data
+     */
+    instance.network.on('process-error', (data) => {
       emitSub('process-error', data);
     });
   }
 
   // Subscribe to events from all connected sockets and re-emit them
+  /**
+   * @param {internalSocket.InternalSocket} socket
+   * @param {NetworkProcess} [source]
+   */
   subscribeSocket(socket, source) {
     socket.on('ip', (ip) => {
       this.bufferedEmit('ip', {
@@ -580,35 +630,45 @@ export class BaseNetwork extends EventEmitter {
     if (!source || !source.component || !source.component.isLegacy()) {
       return;
     }
+    const comp = /** @type {import("./Component").Component} */ (source.component);
     // Handle activation for legacy components via connects/disconnects
     socket.on('connect', () => {
-      if (!source.component.__openConnections) { source.component.__openConnections = 0; }
-      source.component.__openConnections += 1;
+      if (!comp.__openConnections) {
+        comp.__openConnections = 0;
+      }
+      comp.__openConnections += 1;
     });
     socket.on('disconnect', () => {
-      source.component.__openConnections -= 1;
-      if (source.component.__openConnections < 0) {
-        source.component.__openConnections = 0;
+      comp.__openConnections -= 1;
+      if (comp.__openConnections < 0) {
+        comp.__openConnections = 0;
       }
-      if (source.component.__openConnections === 0) {
+      if (comp.__openConnections === 0) {
         this.checkIfFinished();
       }
     });
   }
 
+  /**
+   * @param {NetworkProcess} node
+   */
   subscribeNode(node) {
-    node.component.on('activate', () => {
+    if (!node.component) {
+      return;
+    }
+    const instance = /** @type {import("./Component").Component} */ (node.component);
+    instance.on('activate', () => {
       if (this.debouncedEnd) { this.abortDebounce = true; }
     });
-    node.component.on('deactivate', (load) => {
+    instance.on('deactivate', (load) => {
       if (load > 0) { return; }
       this.checkIfFinished();
     });
-    if (!node.component.getIcon) { return; }
-    node.component.on('icon', () => {
+    if (!instance.getIcon) { return; }
+    instance.on('icon', () => {
       this.bufferedEmit('icon', {
         id: node.id,
-        icon: node.component.getIcon(),
+        icon: instance.getIcon(),
       });
     });
   }
@@ -617,7 +677,7 @@ export class BaseNetwork extends EventEmitter {
    * @protected
    * @param {string} node
    * @param {string} direction
-   * @returns Promise<Object>
+   * @returns Promise<NetworkProcess>
    */
   ensureNode(node, direction) {
     const instance = this.getNode(node);
@@ -627,9 +687,10 @@ export class BaseNetwork extends EventEmitter {
     if (!instance.component) {
       return Promise.reject(new Error(`No component defined for ${direction} node ${node}`));
     }
-    if (!instance.component.isReady()) {
+    const comp = /** @type {import("./Component").Component} */ (instance.component);
+    if (!comp.isReady()) {
       return new Promise((resolve) => {
-        instance.component.once('ready', () => {
+        comp.once('ready', () => {
           resolve(instance);
         });
       });
@@ -637,9 +698,21 @@ export class BaseNetwork extends EventEmitter {
     return Promise.resolve(instance);
   }
 
+  /**
+   * @callback AddEdgeCallback
+   * @param {Error|null} error
+   * @param {internalSocket.InternalSocket} [socket]
+   * @returns {void}
+   */
+  /**
+   * @param {import("fbp-graph/lib/Types").GraphEdge} edge
+   * @param {Object} options
+   * @param {AddEdgeCallback} [callback]
+   * @returns {Promise<internalSocket.InternalSocket>}
+   */
   addEdge(edge, options, callback) {
     if (typeof options === 'function') {
-      callback = options;
+      callback = /** @type {AddEdgeCallback} */ (options);
       options = {};
     }
     const promise = this.ensureNode(edge.from.node, 'outbound')
@@ -668,6 +741,11 @@ export class BaseNetwork extends EventEmitter {
     return promise;
   }
 
+  /**
+   * @param {import("fbp-graph/lib/Types").GraphEdge} edge
+   * @param {ErrorableCallback} [callback]
+   * @returns {Promise<void>}
+   */
   removeEdge(edge, callback) {
     this.connections.forEach((connection) => {
       if (!connection) { return; }
@@ -693,6 +771,8 @@ export class BaseNetwork extends EventEmitter {
 
   /**
    * @protected
+   * @param {import("fbp-graph/lib/Types").GraphNode} node
+   * @returns {Promise<void>}
    */
   addDefaults(node) {
     return this.ensureNode(node.id, 'inbound')
@@ -713,12 +793,19 @@ export class BaseNetwork extends EventEmitter {
             this.connections.push(socket);
             this.defaults.push(socket);
           });
-      })));
+      })))
+      .then(() => {});
   }
 
+  /**
+   * @param {import("fbp-graph/lib/Types").GraphIIP} initializer
+   * @param {Object} options
+   * @param {AddEdgeCallback} [callback]
+   * @returns {Promise<internalSocket.InternalSocket>}
+   */
   addInitial(initializer, options, callback) {
     if (typeof options === 'function') {
-      callback = options;
+      callback = /** @type {AddEdgeCallback} */ (options);
       options = {};
     }
 
@@ -760,6 +847,11 @@ export class BaseNetwork extends EventEmitter {
     return promise;
   }
 
+  /**
+   * @param {import("fbp-graph/lib/Types").GraphIIP} initializer
+   * @param {ErrorableCallback} [callback]
+   * @returns {Promise<void>}
+   */
   removeInitial(initializer, callback) {
     this.connections.forEach((connection) => {
       if (!connection) { return; }
@@ -835,6 +927,9 @@ export class BaseNetwork extends EventEmitter {
     // Perform any startup routines necessary for every component.
     return Promise.all(Object.keys(this.processes).map((id) => {
       const process = this.processes[id];
+      if (!process.component) {
+        return Promise.resolve();
+      }
       return process.component.start();
     }))
       .then(() => {});
@@ -923,7 +1018,14 @@ export class BaseNetwork extends EventEmitter {
       } else {
         // Emit stop event when all processes are stopped
         promise = Promise.all(Object.keys(this.processes)
-          .map((id) => this.processes[id].component.shutdown()))
+          .map((id) => {
+            if (!this.processes[id].component) {
+              return Promise.resolve();
+            }
+            // eslint-disable-next-line max-len
+            const comp = /** @type {import("./Component").Component} */ (this.processes[id].component);
+            return comp.shutdown();
+          }))
           .then(() => {
             this.setStarted(false);
             this.stopped = true;
@@ -995,6 +1097,9 @@ export class BaseNetwork extends EventEmitter {
     });
     Object.keys(this.processes).forEach((processId) => {
       const process = this.processes[processId];
+      if (!process.component) {
+        return;
+      }
       const instance = process.component;
       if (instance.isSubgraph()) {
         const inst = /** @type {import("../components/Graph").Graph} */ (instance);

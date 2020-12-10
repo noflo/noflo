@@ -89,6 +89,8 @@ export default class BasePort extends EventEmitter {
     // Name of the graph node this port is in
     /** @type {string|null} */
     this.node = null;
+    /** @type {import("./Component").Component|null} */
+    this.nodeInstance = null;
     // Name of the port
     /** @type {string|null} */
     this.name = null;
