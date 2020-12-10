@@ -40,7 +40,7 @@ To use features provided by the library, your components should derive from `nof
 Importing the `Component` class in ES6 way:
 
 ```javascript
-import Component from 'noflo-assembly';
+import { Component } from 'noflo-assembly';
 ```
 
 We highly recommend declaring named classes instead of instantiating `Component` directly (like many NoFlo examples do), because it makes correct class names appear in stack traces when an error occurs.

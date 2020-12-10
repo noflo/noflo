@@ -1,6 +1,4 @@
-const Component = require('../../index');
-
-const { merge, fail } = Component;
+const { Component, merge, fail } = require('../../index');
 
 class CombineAssemblies extends Component {
   constructor() {

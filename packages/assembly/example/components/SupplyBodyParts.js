@@ -1,4 +1,4 @@
-const Component = require('../../index');
+const { Component } = require('../../index');
 
 class SupplyBodyParts extends Component {
   constructor() {
