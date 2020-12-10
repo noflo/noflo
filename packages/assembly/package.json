@@ -3,6 +3,7 @@
   "version": "0.2.0",
   "description": "Industrial approach to writing NoFlo applications",
   "main": "index.js",
+  "types": "index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/noflo/noflo-assembly.git"
