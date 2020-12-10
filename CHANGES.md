@@ -1,6 +1,15 @@
 NoFlo ChangeLog
 ===============
 
+## 1.4.0 (December 10th 2020)
+
+* Asynchronous NoFlo methods (like `createNetwork` and `network.start`) now return Promises. Callbacks are still supported as a compatibility layer.
+* Component `setUp` and `tearDown` can now return a Promise instead of calling the supplied callback
+* Component processing function can now return a Promise instead of calling `sendDone` or `done` (if the Promise resolves to a value, it will be sent out)
+* NoFlo now ships with TypeScript type definitions
+* The `src/lib` folder contains NoFlo as JavaScript Modules. `lib` is the CommonJS version
+* The CommonJS version of NoFlo is now shipped as modern ES2020 instead of babelized ES5. Use Babel in your project if you need compatibility with old JS runtimes
+
 ## 1.3.0 (November 23rd 2020)
 
 * NoFlo `createNetwork` and `asCallback` now accept a `flowtrace` option to pass a [Flowtrace instance](https://github.com/flowbased/flowtrace) for retroactive debugging. Example:
