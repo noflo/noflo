@@ -34,11 +34,11 @@ describe('Ports collection', () => {
     });
     it('should allow subscribing to an existing port', (done) => {
       let received = 0;
-      p.once('foo', 'ip', () => {
+      p.ports.foo.once('ip', () => {
         received++;
         if (received === 2) { done(); }
       });
-      p.on('foo', 'ip', () => {
+      p.ports.foo.on('ip', () => {
         received++;
         if (received === 2) { done(); }
       });

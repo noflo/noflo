@@ -84,10 +84,15 @@ export default class BasePort extends EventEmitter {
     this.options = handleOptions(options);
     // Sockets list contains all currently attached
     // connections to the port
+    /** @type {Array<import("./InternalSocket").InternalSocket>} */
     this.sockets = [];
     // Name of the graph node this port is in
+    /** @type {string|null} */
     this.node = null;
+    /** @type {import("./Component").Component|null} */
+    this.nodeInstance = null;
     // Name of the port
+    /** @type {string|null} */
     this.name = null;
   }
 

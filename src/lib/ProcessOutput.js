@@ -10,6 +10,10 @@ import IP from './IP';
 const debugComponent = debug('noflo:component');
 
 // Checks if a value is an Error
+/**
+ * @param {any} err
+ * @returns {boolean}
+ */
 function isError(err) {
   return err instanceof Error
     || (Array.isArray(err) && (err.length > 0) && err[0] instanceof Error);
@@ -56,11 +60,14 @@ export default class ProcessOutput {
     const ip = IP.isIP(packet) ? packet : new IP('data', packet);
     if ((this.scope !== null) && (ip.scope === null)) { ip.scope = this.scope; }
 
-    if (!this.nodeInstance.outPorts[port]) {
+    if (!this.nodeInstance.outPorts.ports[port]) {
       throw new Error(`Node ${this.nodeInstance.nodeId} does not have outport ${port}`);
     }
 
-    if (this.nodeInstance.outPorts[port].isAddressable() && (ip.index === null)) {
+    // eslint-disable-next-line max-len
+    const portImpl = /** @type {import("./OutPort").default} */ (this.nodeInstance.outPorts.ports[port]);
+
+    if (portImpl.isAddressable() && (ip.index === null)) {
       throw new Error(`Sending packets to addressable port ${this.nodeInstance.nodeId} ${port} requires specifying index`);
     }
 
@@ -68,20 +75,25 @@ export default class ProcessOutput {
       this.nodeInstance.addToResult(this.result, port, ip);
       return;
     }
-    if (!this.nodeInstance.outPorts[port].options.scoped) {
+    if (!portImpl.options.scoped) {
       ip.scope = null;
     }
-    this.nodeInstance.outPorts[port].sendIP(ip);
+    portImpl.sendIP(ip);
   }
 
   // Sends packets for each port as a key in the map
   // or sends Error or a list of Errors if passed such
+  /**
+   * @param {Error|Array<Error>|Object<string, any>} outputMap
+   */
   send(outputMap) {
     if (isError(outputMap)) {
-      this.error(outputMap);
+      const errors = /** @type {Error|Array<Error>} */ (outputMap);
+      this.error(errors);
       return;
     }
 
+    /** @type {Array<string>} */
     const componentPorts = [];
     let mapIsInPorts = false;
     Object.keys(this.ports.ports).forEach((port) => {
@@ -107,6 +119,9 @@ export default class ProcessOutput {
   }
 
   // Sends the argument via `send()` and marks activation as `done()`
+  /**
+   * @param {Error|Array<Error>|Object<string, any>} outputMap
+   */
   sendDone(outputMap) {
     this.send(outputMap);
     this.done();
@@ -115,6 +130,10 @@ export default class ProcessOutput {
   // Makes a map-style component pass a result value to `out`
   // keeping all IP metadata received from `in`,
   // or modifying it if `options` is provided
+  /**
+   * @param {any} data
+   * @param {Object<string, any>} [options]
+   */
   pass(data, options = {}) {
     if (!('out' in this.ports)) {
       throw new Error('output.pass() requires port "out" to be present');
@@ -131,7 +150,7 @@ export default class ProcessOutput {
 
   // Finishes process activation gracefully
   /**
-   * @param {Error|Error[]} [error]
+   * @param {Error|Array<Error>} [error]
    */
   done(error) {
     this.result.__resolved = true;
@@ -167,7 +186,8 @@ export default class ProcessOutput {
         const nodeContext = contexts[this.scope];
         if (!nodeContext.length) { return; }
         const context = nodeContext[nodeContext.length - 1];
-        const inPorts = this.nodeInstance.inPorts[context.source];
+        // eslint-disable-next-line max-len
+        const inPorts = /** @type {import("./InPort").default} */ (this.nodeInstance.inPorts.ports[context.source]);
         const buf = inPorts.getBuffer(context.ip.scope, context.ip.index);
         while (buf.length > 0 && buf[0].type === 'closeBracket') {
           const ip = inPorts.get(context.ip.scope, context.ip.index);

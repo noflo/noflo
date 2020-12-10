@@ -38,7 +38,7 @@ export class LegacyNetwork extends BaseNetwork {
    */
   /**
    * @param {ErrorableCallback} [callback]
-   * @returns {Promise<LegacyNetwork>}
+   * @returns {Promise<this>}
    */
   connect(callback) {
     const promise = super.connect()

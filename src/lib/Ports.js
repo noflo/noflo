@@ -6,14 +6,29 @@ import { EventEmitter } from 'events';
 import InPort from './InPort';
 import OutPort from './OutPort';
 
+/**
+ * @typedef PortOptions
+ * @property {string} [description='']
+ * @property {string} [datatype='all']
+ * @property {string} [schema=null]
+ * @property {string} [type=null]
+ * @property {boolean} [required=false]
+ * @property {boolean} [scoped=true]
+ */
+
 // NoFlo ports collections
 //
 // Ports collection classes for NoFlo components. These are
 // used to hold a set of input or output ports of a component.
 class Ports extends EventEmitter {
+  /**
+   * @param {Object<string, import("./BasePort").default|PortOptions>} ports
+   * @param {typeof import("./BasePort").default} model
+   */
   constructor(ports, model) {
     super();
     this.model = model;
+    /** @type {Object<string, import("./BasePort").default>} */
     this.ports = {};
     if (!ports) { return; }
     Object.keys(ports).forEach((name) => {
@@ -22,7 +37,11 @@ class Ports extends EventEmitter {
     });
   }
 
-  add(name, options, process) {
+  /**
+   * @param {string} name
+   * @param {Object|import("./BasePort").default|PortOptions} [options]
+   */
+  add(name, options = {}) {
     if ((name === 'add') || (name === 'remove')) {
       throw new Error('Add and remove are restricted port names');
     }
@@ -35,11 +54,12 @@ class Ports extends EventEmitter {
     // Remove previous implementation
     if (this.ports[name]) { this.remove(name); }
 
-    if ((typeof options === 'object') && options.canAttach) {
-      this.ports[name] = options;
+    const maybePort = /** @type {import("./BasePort").default} */ (options);
+    if ((typeof maybePort === 'object') && maybePort.canAttach) {
+      this.ports[name] = maybePort;
     } else {
       const Model = this.model;
-      this.ports[name] = new Model(options, process);
+      this.ports[name] = new Model(options);
     }
 
     this[name] = this.ports[name];
@@ -49,6 +69,9 @@ class Ports extends EventEmitter {
     return this; // chainable
   }
 
+  /**
+   * @param {string} name
+   */
   remove(name) {
     if (!this.ports[name]) { throw new Error(`Port ${name} not defined`); }
     delete this.ports[name];
@@ -60,49 +83,50 @@ class Ports extends EventEmitter {
 }
 
 export class InPorts extends Ports {
-  constructor(ports) {
+  /**
+   * @param {Object<string, InPort|PortOptions>} [ports]
+   */
+  constructor(ports = {}) {
     super(ports, InPort);
-  }
-
-  on(name, event, callback) {
-    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
-    return this.ports[name].on(event, callback);
-  }
-
-  once(name, event, callback) {
-    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
-    return this.ports[name].once(event, callback);
   }
 }
 
 export class OutPorts extends Ports {
-  constructor(ports) {
+  /**
+   * @param {Object<string, OutPort|PortOptions>} [ports]
+   */
+  constructor(ports = {}) {
     super(ports, OutPort);
   }
 
   connect(name, socketId) {
-    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
-    this.ports[name].connect(socketId);
+    const port = /** @type {OutPort} */ (this.ports[name]);
+    if (!port) { throw new Error(`Port ${name} not available`); }
+    port.connect(socketId);
   }
 
   beginGroup(name, group, socketId) {
-    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
-    this.ports[name].beginGroup(group, socketId);
+    const port = /** @type {OutPort} */ (this.ports[name]);
+    if (!port) { throw new Error(`Port ${name} not available`); }
+    port.beginGroup(group, socketId);
   }
 
   send(name, data, socketId) {
-    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
-    this.ports[name].send(data, socketId);
+    const port = /** @type {OutPort} */ (this.ports[name]);
+    if (!port) { throw new Error(`Port ${name} not available`); }
+    port.send(data, socketId);
   }
 
   endGroup(name, socketId) {
-    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
-    this.ports[name].endGroup(socketId);
+    const port = /** @type {OutPort} */ (this.ports[name]);
+    if (!port) { throw new Error(`Port ${name} not available`); }
+    port.endGroup(socketId);
   }
 
   disconnect(name, socketId) {
-    if (!this.ports[name]) { throw new Error(`Port ${name} not available`); }
-    this.ports[name].disconnect(socketId);
+    const port = /** @type {OutPort} */ (this.ports[name]);
+    if (!port) { throw new Error(`Port ${name} not available`); }
+    port.disconnect(socketId);
   }
 }
 

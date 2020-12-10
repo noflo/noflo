@@ -290,6 +290,10 @@ export class InternalSocket extends EventEmitter {
   }
 }
 
+/**
+ * @param {Object} [metadata]
+ * @returns {InternalSocket}
+ */
 export function createSocket(metadata = {}) {
   return new InternalSocket(metadata);
 }

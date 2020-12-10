@@ -29,25 +29,35 @@
 
 export default class IP {
   // Detects if an arbitrary value is an IP
+  /**
+   * @param {any} obj
+   * @returns {boolean}
+   */
   static isIP(obj) {
     return obj && (typeof obj === 'object') && (obj.isIP === true);
   }
 
   // Creates as new IP object
   // Valid types: 'data', 'openBracket', 'closeBracket'
+  /**
+   * @param {string} type
+   * @param {any} data
+   * @param {Object<string, boolean|string>} [options]
+   */
   constructor(type, data = null, options = {}) {
-    /** @type {string} */
     this.type = type || 'data';
     this.data = data;
     this.isIP = true;
     /** @type {string|null} */
     this.scope = null; // sync scope id
+    /** @type {string|null} */
     this.owner = null; // packet owner process
     this.clonable = false; // cloning safety flag
     /** @type {number|null} */
     this.index = null; // addressable port index
     this.schema = null;
     this.datatype = 'all';
+    this.initial = false;
     if (typeof options === 'object') {
       Object.keys(options).forEach((key) => { this[key] = options[key]; });
     }
@@ -55,6 +65,9 @@ export default class IP {
   }
 
   // Creates a new IP copying its contents by value not reference
+  /**
+   * @returns {IP}
+   */
   clone() {
     const ip = new IP(this.type);
     Object.keys(this).forEach((key) => {
@@ -71,6 +84,9 @@ export default class IP {
   }
 
   // Moves an IP to a different owner
+  /**
+   * @param {string|null} owner
+   */
   move(owner) {
     // no-op
     this.owner = owner;
@@ -79,6 +95,8 @@ export default class IP {
 
   // Frees IP contents
   drop() {
-    Object.keys(this).forEach((key) => { delete this[key]; });
+    Object.keys(this).forEach((key) => {
+      delete this[key];
+    });
   }
 }

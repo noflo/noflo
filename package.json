@@ -21,6 +21,7 @@
     "get-function-params": "^2.0.6"
   },
   "devDependencies": {
+    "@types/debug": "^4.1.5",
     "@types/node": "^14.14.2",
     "chai": "^4.0.0",
     "coffeescript": "^2.2.1",

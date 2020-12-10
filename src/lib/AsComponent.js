@@ -7,6 +7,22 @@
 import * as getParams from 'get-function-params';
 import { Component } from './Component';
 
+/**
+ * @typedef FuncParam
+ * @property {string} param
+ * @property {any} [default]
+ */
+/**
+ * @typedef {Object} PortOptions - Options for configuring all types of ports
+ * @property {string} [description='']
+ * @property {string} [datatype='all']
+ * @property {string} [schema=null]
+ * @property {string} [type=null]
+ * @property {boolean} [required=false]
+ * @property {boolean} [scoped=true]
+ * @property {any} [default]
+ */
+
 // ## asComponent generator API
 //
 // asComponent is a helper for turning JavaScript functions into
@@ -66,6 +82,7 @@ import { Component } from './Component';
  */
 export function asComponent(func, options) {
   let hasCallback = false;
+  /** @type {Array<FuncParam>} */
   const params = getParams(func).filter((p) => {
     if (p.param !== 'callback') { return true; }
     hasCallback = true;
@@ -74,6 +91,7 @@ export function asComponent(func, options) {
 
   const c = new Component(options);
   params.forEach((p) => {
+    /** @type {PortOptions} */
     const portOptions = { required: true };
     if (typeof p.default !== 'undefined') {
       portOptions.default = p.default;
@@ -105,13 +123,18 @@ export function asComponent(func, options) {
 
     if (hasCallback) {
       // Handle Node.js style async functions
-      values.push((err, res) => {
+      /**
+       * @param {Error|null} err
+       * @param {any} [res]
+       */
+      const cb = (err, res) => {
         if (err) {
           output.done(err);
           return;
         }
         output.sendDone(res);
-      });
+      };
+      values.push(cb);
       func(...values);
       return;
     }
@@ -119,8 +142,11 @@ export function asComponent(func, options) {
     const res = func(...values);
     if (res && (typeof res === 'object') && (typeof res.then === 'function')) {
       // Result is a Promise, resolve and handle
-      res.then((val) => output.sendDone(val),
-        (err) => output.done(err));
+      const resPromise = /** @type {Promise<any>} */ (res);
+      resPromise.then(
+        (val) => output.sendDone(val),
+        (err) => output.done(err),
+      );
       return;
     }
     output.sendDone(res);

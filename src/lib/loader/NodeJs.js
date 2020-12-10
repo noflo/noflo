@@ -28,6 +28,24 @@ try {
   // If there is no TypeScript compiler installed, we simply don't support compiling
 }
 
+/**
+ * @callback ErrorableCallback
+ * @param {Error|null} error
+ */
+/**
+ * @callback TranspileCallback
+ * @param {Error|null} error
+ * @param {string} [source]
+ * @returns {void}
+ */
+/**
+ * @param {string} packageId
+ * @param {string} name
+ * @param {string} source
+ * @param {string} language
+ * @param {TranspileCallback} callback
+ * @returns {void}
+ */
 function transpileSource(packageId, name, source, language, callback) {
   let src;
   switch (language) {
@@ -75,6 +93,20 @@ function transpileSource(packageId, name, source, language, callback) {
   callback(null, src);
 }
 
+/**
+ * @callback EvaluationCallback
+ * @param {Error|null} error
+ * @param {Object|Function} [module]
+ * @returns {void}
+ */
+/**
+ * @param {string} baseDir
+ * @param {string} packageId
+ * @param {string} name
+ * @param {string} source
+ * @param {EvaluationCallback} callback
+ * @returns {void}
+ */
 function evaluateModule(baseDir, packageId, name, source, callback) {
   const Module = require('module');
   let implementation;
@@ -99,11 +131,15 @@ function evaluateModule(baseDir, packageId, name, source, callback) {
   callback(null, implementation);
 }
 
+/**
+ * @param {import("../ComponentLoader").ComponentLoader} loader
+ * @param {string} packageId
+ * @param {string} name
+ * @param {string} source
+ * @param {string} language
+ * @returns {void}
+ */
 function registerSources(loader, packageId, name, source, language) {
-  if (!loader.sourcesForComponents) {
-    // eslint-disable-next-line no-param-reassign
-    loader.sourcesForComponents = {};
-  }
   const componentName = `${packageId}/${name}`;
   // eslint-disable-next-line no-param-reassign
   loader.sourcesForComponents[componentName] = {
@@ -112,20 +148,32 @@ function registerSources(loader, packageId, name, source, language) {
   };
 }
 
+/**
+ * @param {import("../ComponentLoader").ComponentLoader} loader
+ * @param {string} packageId
+ * @param {string} name
+ * @param {string} specs
+ * @returns {void}
+ */
 function registerSpecs(loader, packageId, name, specs) {
   if (!specs || specs.indexOf('.yaml') === -1) {
     // We support only fbp-spec specs
     return;
-  }
-  if (!loader.specsForComponents) {
-    // eslint-disable-next-line no-param-reassign
-    loader.specsForComponents = {};
   }
   const componentName = `${packageId}/${name}`;
   // eslint-disable-next-line no-param-reassign
   loader.specsForComponents[componentName] = specs;
 }
 
+/**
+ * @param {import("../ComponentLoader").ComponentLoader} loader
+ * @param {Object} module
+ * @param {Object} component
+ * @param {string} source
+ * @param {string} language
+ * @param {TranspileCallback} callback
+ * @returns {void}
+ */
 function transpileAndRegisterForModule(loader, module, component, source, language, callback) {
   transpileSource(module.name, component.name, source, language, (transpileError, src) => {
     if (transpileError) {
@@ -145,6 +193,15 @@ function transpileAndRegisterForModule(loader, module, component, source, langua
   });
 }
 
+/**
+ * @param {import("../ComponentLoader").ComponentLoader} loader
+ * @param {string} packageId
+ * @param {string} name
+ * @param {string} source
+ * @param {string} language
+ * @param {TranspileCallback} callback
+ * @returns {void}
+ */
 export function setSource(loader, packageId, name, source, language, callback) {
   transpileAndRegisterForModule(loader, {
     name: packageId,
@@ -154,6 +211,23 @@ export function setSource(loader, packageId, name, source, language, callback) {
   }, source, language, callback);
 }
 
+/**
+ * @callback SourceCallback
+ * @param {Error|null} error
+ * @param {Object} [source]
+ * @param {string} [source.name]
+ * @param {string} [source.library]
+ * @param {string} [source.code]
+ * @param {string} [source.language]
+ * @param {string} [source.tests]
+ * @returns {void}
+ */
+/**
+ * @param {import("../ComponentLoader").ComponentLoader} loader
+ * @param {string} name
+ * @param {SourceCallback} callback
+ * @returns {void}
+ */
 export function getSource(loader, name, callback) {
   let componentName = name;
   let component = loader.components[name];
@@ -180,6 +254,10 @@ export function getSource(loader, name, callback) {
     nameParts[0] = '';
   }
 
+  /**
+   * @param {Error|null} err
+   * @param {Object} [src]
+   */
   const finalize = (err, src) => {
     if (err) {
       callback(err);
@@ -209,11 +287,12 @@ export function getSource(loader, name, callback) {
 
   if (loader.isGraph(component)) {
     if (typeof component === 'object') {
-      if (typeof component.toJSON === 'function') {
+      const comp = /** @type import("fbp-graph").Graph */ (component);
+      if (typeof comp.toJSON === 'function') {
         finalize(null, {
           name: nameParts[1],
           library: nameParts[0],
-          code: JSON.stringify(component.toJSON()),
+          code: JSON.stringify(comp.toJSON()),
           language: 'json',
         });
         return;
@@ -221,23 +300,25 @@ export function getSource(loader, name, callback) {
       finalize(new Error(`Can't provide source for ${componentName}. Not a file`));
       return;
     }
-    fbpGraph.graph.loadFile(component, (err, graph) => {
-      if (err) {
-        finalize(err);
-        return;
-      }
-      if (!graph) {
-        finalize(new Error('Unable to load graph'));
-        return;
-      }
-      finalize(null, {
-        name: nameParts[1],
-        library: nameParts[0],
-        code: JSON.stringify(graph.toJSON()),
-        language: 'json',
+    if (typeof component === 'string') {
+      fbpGraph.graph.loadFile(component, (err, graph) => {
+        if (err) {
+          finalize(err);
+          return;
+        }
+        if (!graph) {
+          finalize(new Error('Unable to load graph'));
+          return;
+        }
+        finalize(null, {
+          name: nameParts[1],
+          library: nameParts[0],
+          code: JSON.stringify(graph.toJSON()),
+          language: 'json',
+        });
       });
-    });
-    return;
+      return;
+    }
   }
 
   if (loader.sourcesForComponents && loader.sourcesForComponents[componentName]) {
@@ -250,25 +331,28 @@ export function getSource(loader, name, callback) {
     return;
   }
 
-  if (typeof component !== 'string') {
-    finalize(new Error(`Can't provide source for ${componentName}. Not a file`));
+  if (typeof component === 'string') {
+    const componentFile = component;
+    fs.readFile(componentFile, 'utf-8', (err, code) => {
+      if (err) {
+        finalize(err);
+        return;
+      }
+      finalize(null, {
+        name: nameParts[1],
+        library: nameParts[0],
+        language: utils.guessLanguageFromFilename(componentFile),
+        code,
+      });
+    });
     return;
   }
-
-  fs.readFile(component, 'utf-8', (err, code) => {
-    if (err) {
-      finalize(err);
-      return;
-    }
-    finalize(null, {
-      name: nameParts[1],
-      library: nameParts[0],
-      language: utils.guessLanguageFromFilename(component),
-      code,
-    });
-  });
+  finalize(new Error(`Can't provide source for ${componentName}. Not a file`));
 }
 
+/**
+ * @returns {Array<string>}
+ */
 export function getLanguages() {
   const languages = ['javascript', 'es2015'];
   if (CoffeeScript) {
@@ -280,21 +364,33 @@ export function getLanguages() {
   return languages;
 }
 
+/**
+ * @param {import("../ComponentLoader").ComponentLoader} loader
+ * @param {Array<string>} componentLoaders
+ * @param {ErrorableCallback} callback
+ */
 function registerCustomLoaders(loader, componentLoaders, callback) {
-  if (!componentLoaders.length) {
-    callback(null);
-    return;
-  }
-  const customLoader = require(componentLoaders.shift());
-  loader.registerLoader(customLoader, (err) => {
-    if (err) {
-      callback(err);
-      return;
-    }
-    registerCustomLoaders(loader, componentLoaders, callback);
-  });
+  componentLoaders.reduce((chain, componentLoader) => chain
+    .then(() => new Promise((resolve, reject) => {
+      const customLoader = require(componentLoader);
+      loader.registerLoader(customLoader, (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve();
+      });
+    })), Promise.resolve())
+    .then(() => {
+      callback(null);
+    }, callback);
 }
 
+/**
+ * @param {import("../ComponentLoader").ComponentLoader} loader
+ * @param {Array<Object>} modules
+ * @param {ErrorableCallback} callback
+ */
 function registerModules(loader, modules, callback) {
   const compatible = modules.filter((m) => ['noflo', 'noflo-nodejs'].includes(m.runtime));
   const componentLoaders = [];
@@ -346,6 +442,11 @@ function registerModules(loader, modules, callback) {
 }
 
 const dynamicLoader = {
+  /**
+   * @param {import("../ComponentLoader").ComponentLoader} loader
+   * @param {Object} manifestOptions
+   * @param {Function} callback
+   */
   listComponents(loader, manifestOptions, callback) {
     const opts = manifestOptions;
     opts.discover = true;
@@ -366,6 +467,12 @@ const dynamicLoader = {
 };
 
 const manifestLoader = {
+  /**
+   * @param {import("../ComponentLoader").ComponentLoader} loader
+   * @param {Object} options
+   * @param {Object} manifestContents
+   * @param {ErrorableCallback} callback
+   */
   writeCache(loader, options, manifestContents, callback) {
     const filePath = path.resolve(loader.baseDir, options.manifest);
     fs.writeFile(filePath, JSON.stringify(manifestContents, null, 2),
@@ -373,12 +480,21 @@ const manifestLoader = {
       callback);
   },
 
+  /**
+   * @param {import("../ComponentLoader").ComponentLoader} loader
+   * @param {Object} options
+   * @param {Function} callback
+   */
   readCache(loader, options, callback) {
     const opts = options;
     opts.discover = false;
     manifest.load.load(loader.baseDir, opts, callback);
   },
 
+  /**
+   * @param {import("../ComponentLoader").ComponentLoader} loader
+   * @returns {Object}
+   */
   prepareManifestOptions(loader) {
     const l = loader;
     if (!l.options) { l.options = {}; }
@@ -390,6 +506,11 @@ const manifestLoader = {
     return options;
   },
 
+  /**
+   * @param {import("../ComponentLoader").ComponentLoader} loader
+   * @param {Object} manifestOptions
+   * @param {Function} callback
+   */
   listComponents(loader, manifestOptions, callback) {
     this.readCache(loader, manifestOptions, (err, manifestContents) => {
       if (err) {
@@ -427,12 +548,24 @@ const manifestLoader = {
   },
 };
 
+/**
+ * @param {import("../ComponentLoader").ComponentLoader} loader
+ */
 function registerSubgraph(loader) {
   // Inject subgraph component
   const graphPath = path.resolve(__dirname, '../../components/Graph.js');
   loader.registerComponent(null, 'Graph', graphPath);
 }
 
+/**
+ * @callback RegistrationCallback
+ * @param {Error|null} error
+ * @param {Object<string, string>} [modules]
+ */
+/**
+ * @param {import("../ComponentLoader").ComponentLoader} loader
+ * @param {RegistrationCallback} callback
+ */
 export function register(loader, callback) {
   const manifestOptions = manifestLoader.prepareManifestOptions(loader);
 
@@ -458,6 +591,19 @@ export function register(loader, callback) {
   });
 }
 
+/**
+ * @callback ModuleLoadingCallback
+ * @param {Error|null} error
+ * @param {import("../Component").Component} [instance]
+ * @returns {void}
+ */
+
+/**
+ * @param {string} name
+ * @param {string} cPath
+ * @param {Object} metadata
+ * @param {ModuleLoadingCallback} callback
+ */
 export function dynamicLoad(name, cPath, metadata, callback) {
   let implementation; let instance;
   try {
@@ -485,6 +631,8 @@ export function dynamicLoad(name, cPath, metadata, callback) {
     callback(new Error(`Unable to instantiate ${cPath}`));
     return;
   }
-  if (typeof name === 'string') { instance.componentName = name; }
+  if (typeof name === 'string') {
+    instance.componentName = name;
+  }
   callback(null, instance);
 }
