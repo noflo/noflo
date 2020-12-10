@@ -2,30 +2,32 @@
 // vim: set filetype=javascript:
 const path = require('path');
 const fs = require('fs');
-const noflo = require('../lib/NoFlo');
+const { ComponentLoader } = require('../lib/NoFlo');
 
 // Base setup
 const baseDir = process.cwd();
 const cacheFile = path.resolve(baseDir, 'fbp.json');
 
-function preheat(callback) {
+function preheat() {
   console.log(`Pre-heating NoFlo cache with manifest for ${baseDir}`);
-  const loader = new noflo.ComponentLoader(baseDir, {
+  const loader = new ComponentLoader(baseDir, {
     cache: true,
     discover: true,
   });
   console.time('NPM traversal for NoFlo components');
-  loader.listComponents((err, components) => {
-    console.timeEnd('NPM traversal for NoFlo components');
-    callback(err, components);
-  });
+  return loader.listComponents()
+    .then((components) => {
+      console.timeEnd('NPM traversal for NoFlo components');
+      return components;
+    });
 }
 
-function reportAndVerify(err, components) {
-  if (err) {
-    console.log(err);
-    process.exit(1);
-  }
+function handleError(err) {
+  console.log(err);
+  process.exit(1);
+}
+
+function reportAndVerify(components) {
   console.log(`Found ${Object.keys(components).length} components.`);
   fs.stat(cacheFile, (statErr) => {
     if (statErr) {
@@ -38,7 +40,7 @@ function reportAndVerify(err, components) {
 
 fs.stat(cacheFile, (err) => {
   if (err) {
-    preheat(reportAndVerify);
+    preheat().then(reportAndVerify, handleError);
     return;
   }
   console.log(`Old cache file ${cacheFile} found, clearing`);
@@ -47,6 +49,6 @@ fs.stat(cacheFile, (err) => {
       console.log(unlinkErr);
       process.exit(1);
     }
-    preheat(reportAndVerify);
+    preheat().then(reportAndVerify, handleError);
   });
 });
