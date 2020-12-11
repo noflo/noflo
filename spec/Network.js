@@ -41,9 +41,9 @@ describe('NoFlo Network', () => {
   describe('with an empty graph', () => {
     let g = null;
     let n = null;
-    before((done) => {
+    before(() => {
       g = new noflo.Graph();
-      noflo.createNetwork(g, {
+      return noflo.createNetwork(g, {
         subscribeGraph: false,
         asyncDelivery: true,
         delay: true,
@@ -51,8 +51,8 @@ describe('NoFlo Network', () => {
       })
         .then((network) => {
           n = network;
-          n.connect(done);
-        }, done);
+          return n.connect();
+        });
     });
     it('should initially be marked as stopped', () => {
       chai.expect(n.isStarted()).to.equal(false);
