@@ -1,4 +1,4 @@
-describe('NoFlo Network', () => {
+describe('NoFlo Network (synchronous delivery)', () => {
   const Split = () => new noflo.Component({
     inPorts: {
       in: { datatype: 'all' },
@@ -45,7 +45,7 @@ describe('NoFlo Network', () => {
       g = new noflo.Graph();
       noflo.createNetwork(g, {
         subscribeGraph: false,
-        asyncDelivery: true,
+        asyncDelivery: false,
         delay: true,
         baseDir,
       })
@@ -224,7 +224,7 @@ describe('NoFlo Network', () => {
       g.addInitial('Foo', 'Merge', 'in');
       return noflo.createNetwork(g, {
         subscribeGraph: false,
-        asyncDelivery: true,
+        asyncDelivery: false,
         delay: true,
         baseDir,
       })
@@ -379,7 +379,7 @@ describe('NoFlo Network', () => {
             );
             return noflo.createNetwork(graph, {
               subscribeGraph: false,
-              asyncDelivery: true,
+              asyncDelivery: false,
               delay: false,
               componentLoader: n.loader,
             });
@@ -431,7 +431,7 @@ describe('NoFlo Network', () => {
       };
       noflo.createNetwork(g, {
         subscribeGraph: false,
-        asyncDelivery: true,
+        asyncDelivery: false,
         delay: true,
         baseDir,
       })
@@ -454,7 +454,7 @@ describe('NoFlo Network', () => {
       g.addInitial('from-edge', 'Merge', 'in');
       noflo.createNetwork(g, {
         subscribeGraph: false,
-        asyncDelivery: true,
+        asyncDelivery: false,
         delay: true,
         baseDir,
       })
@@ -476,7 +476,7 @@ describe('NoFlo Network', () => {
       g.addInitial('from-IIP', 'Def', 'in');
       noflo.createNetwork(g, {
         subscribeGraph: false,
-        asyncDelivery: true,
+        asyncDelivery: false,
         delay: true,
         baseDir,
       })
@@ -511,7 +511,7 @@ describe('NoFlo Network', () => {
         noflo.createNetwork(g, {
           delay: true,
           subscribeGraph: false,
-          asyncDelivery: true,
+          asyncDelivery: false,
           baseDir,
         })
           .then((nw) => {
@@ -603,7 +603,8 @@ describe('NoFlo Network', () => {
       }
       g.addInitial(() => {
         called++;
-      }, 'Callback', 'callback');
+      },
+      'Callback', 'callback');
       for (n = 0; n <= 10000; n++) {
         g.addInitial(n, `Repeat${n}`, 'in');
       }
@@ -611,7 +612,7 @@ describe('NoFlo Network', () => {
       noflo.createNetwork(g, {
         delay: true,
         subscribeGraph: false,
-        asyncDelivery: true,
+        asyncDelivery: false,
         baseDir,
       })
         .then((nw) => {
@@ -644,7 +645,7 @@ describe('NoFlo Network', () => {
       return noflo.createNetwork(g, {
         delay: true,
         subscribeGraph: false,
-        asyncDelivery: true,
+        asyncDelivery: false,
         componentLoader: loader,
       })
         .then((nw) => nw.connect()
@@ -664,7 +665,7 @@ describe('NoFlo Network', () => {
       return noflo.createNetwork(g, {
         delay: true,
         subscribeGraph: false,
-        asyncDelivery: true,
+        asyncDelivery: false,
         componentLoader: loader,
       })
         .then((nw) => nw.connect()
@@ -684,7 +685,7 @@ describe('NoFlo Network', () => {
       return noflo.createNetwork(g, {
         delay: true,
         subscribeGraph: false,
-        asyncDelivery: true,
+        asyncDelivery: false,
         componentLoader: loader,
       })
         .then((nw) => nw.connect()
@@ -705,7 +706,7 @@ describe('NoFlo Network', () => {
       return noflo.createNetwork(g, {
         delay: true,
         subscribeGraph: false,
-        asyncDelivery: true,
+        asyncDelivery: false,
         componentLoader: loader,
       })
         .then((nw) => nw.connect()
@@ -726,7 +727,7 @@ describe('NoFlo Network', () => {
       return noflo.createNetwork(g, {
         delay: true,
         subscribeGraph: false,
-        asyncDelivery: true,
+        asyncDelivery: false,
         componentLoader: loader,
       })
         .then((nw) => nw.connect()
@@ -744,7 +745,7 @@ describe('NoFlo Network', () => {
       return noflo.createNetwork(g, {
         delay: true,
         subscribeGraph: false,
-        asyncDelivery: true,
+        asyncDelivery: false,
         componentLoader: loader,
       })
         .then((nw) => nw.connect())
@@ -772,7 +773,7 @@ describe('NoFlo Network', () => {
       return noflo.createNetwork(g, {
         delay: true,
         subscribeGraph: false,
-        asyncDelivery: true,
+        asyncDelivery: false,
         componentLoader: loader,
       })
         .then((nw) => nw.connect())
@@ -802,7 +803,7 @@ describe('NoFlo Network', () => {
       return noflo.createNetwork(g, {
         delay: true,
         subscribeGraph: false,
-        asyncDelivery: true,
+        asyncDelivery: false,
       })
         .then((nw) => {
           chai.expect(nw.baseDir).to.equal(baseDir);
@@ -817,7 +818,7 @@ describe('NoFlo Network', () => {
       return noflo.createNetwork(g, {
         delay: true,
         subscribeGraph: false,
-        asyncDelivery: true,
+        asyncDelivery: false,
       })
         .then((nw) => {
           chai.expect(nw.baseDir).to.equal(process.cwd());
@@ -828,7 +829,7 @@ describe('NoFlo Network', () => {
       return noflo.createNetwork(g, {
         delay: true,
         subscribeGraph: false,
-        asyncDelivery: true,
+        asyncDelivery: false,
         baseDir,
       })
         .then((nw) => {
@@ -844,7 +845,7 @@ describe('NoFlo Network', () => {
       g = new noflo.Graph();
       return noflo.createNetwork(g, {
         subscribeGraph: false,
-        asyncDelivery: true,
+        asyncDelivery: false,
         delay: true,
         baseDir,
       })
