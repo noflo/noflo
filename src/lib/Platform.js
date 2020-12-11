@@ -41,12 +41,17 @@ export function deprecated(message) {
  * @param {Function} func
  * @returns {void}
  */
-export function makeAsync(func) {
+export function makeAsync(func, sameLoop = false) {
   if (isBrowser()) {
+    // FIXME: Browsers don't have setImmediate yet so can't do same loop
     setTimeout(func, 0);
     return;
   }
-  setImmediate(() => {
-    func();
-  });
+  if (sameLoop) {
+    setImmediate(() => {
+      func();
+    });
+    return;
+  }
+  process.nextTick(func);
 }
