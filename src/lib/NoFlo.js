@@ -52,6 +52,8 @@ import { graph } from 'fbp-graph';
 //   immediate execution
 // * `flowtrace`: (default: NULL) Flowtrace instance to create a retroactive debugging
 //   trace of the network run.
+// * `asyncDelivery`: (default: FALSE) Whether Information Packets should be
+//   delivered asynchronously.
 // * `subscribeGraph`: (default: FALSE) Whether the network should monitor the underlying
 //   graph for changes
 //

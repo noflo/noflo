@@ -89,6 +89,7 @@ function connectPort(socket, process, port, index, inbound) {
  * @property {string} [baseDir] - Project base directory for component loading
  * @property {ComponentLoader} [componentLoader] - Component loader instance to use, if any
  * @property {Object} [flowtrace] - Flowtrace instance to use for tracing this network run
+ * @property {boolean} [asyncDelivery] - Make Information Packet delivery asynchronous
  */
 
 /**
@@ -135,6 +136,7 @@ export class BaseNetwork extends EventEmitter {
     this.started = false;
     this.stopped = true;
     this.debug = true;
+    this.asyncDelivery = options.asyncDelivery || false;
     /** @type {Array<NetworkEvent>} */
     this.eventBuffer = [];
 
@@ -722,6 +724,7 @@ export class BaseNetwork extends EventEmitter {
       .then((from) => {
         const socket = internalSocket.createSocket(edge.metadata, {
           debug: this.debug,
+          async: this.asyncDelivery,
         });
         return this.ensureNode(edge.to.node, 'inbound')
           .then((to) => {
@@ -788,6 +791,7 @@ export class BaseNetwork extends EventEmitter {
         }
         const socket = internalSocket.createSocket({}, {
           debug: this.debug,
+          async: this.asyncDelivery,
         });
 
         // Subscribe to events from the socket
@@ -818,6 +822,7 @@ export class BaseNetwork extends EventEmitter {
       .then((to) => {
         const socket = internalSocket.createSocket(initializer.metadata, {
           debug: this.debug,
+          async: this.asyncDelivery,
         });
 
         // Subscribe to events from the socket
