@@ -13,54 +13,13 @@
     import/first
 */
 
-// ## Main APIs
-//
-// ### Graph interface
-//
-// [fbp-graph](https://github.com/flowbased/fbp-graph) is used for instantiating FBP graph definitions.
+/**
+ * ### Graph interface
+ *
+ * [fbp-graph](https://github.com/flowbased/fbp-graph) is used for instantiating FBP graph definitions.
+ */
 import { graph } from 'fbp-graph';
 
-// ## Network instantiation
-//
-// This function handles instantiation of NoFlo networks from a Graph object. It creates
-// the network, and then starts execution by sending the Initial Information Packets.
-//
-//     const network = await noflo.createNetwork(someGraph, {});
-//     console.log('Network is now running!');
-//
-// It is also possible to instantiate a Network but delay its execution by giving the
-// third `delay` option. In this case you will have to handle connecting the graph and
-// sending of IIPs manually.
-//
-//     noflo.createNetwork(someGraph, {
-//       delay: true,
-//     })
-//       .then((network) => network.connect())
-//       .then((network) => network.start())
-//       .then(() => {
-//         console.log('Network is now running!');
-//       });
-//
-// ### Network options
-//
-// It is possible to pass some options to control the behavior of network creation:
-//
-// * `baseDir`: (default: cwd) Project base directory used for component loading
-// * `componentLoader`: (default: NULL) NoFlo ComponentLoader instance to use for the
-//   network. New one will be instantiated for the baseDir if this is not given.
-// * `delay`: (default: FALSE) Whether the network should be started later. Defaults to
-//   immediate execution
-// * `flowtrace`: (default: NULL) Flowtrace instance to create a retroactive debugging
-//   trace of the network run.
-// * `subscribeGraph`: (default: FALSE) Whether the network should monitor the underlying
-//   graph for changes
-//
-// Options can be passed as a second argument before the callback:
-//
-//     noflo.createNetwork(someGraph, options, callback);
-//
-// The options object can also be used for setting ComponentLoader options in this
-// network.
 import { Network } from './Network';
 import { LegacyNetwork } from './LegacyNetwork';
 import { deprecated } from './Platform';
@@ -72,10 +31,11 @@ export {
   Journal,
 } from 'fbp-graph';
 
-// ### Platform detection
-//
-// NoFlo works on both Node.js and the browser. Because some dependencies are different,
-// we need a way to detect which we're on.
+/**
+ * ### Platform detection
+ * NoFlo works on both Node.js and the browser. Because some dependencies
+ * are different,we need a way to detect which we're on.
+ */
 export { isBrowser } from './Platform';
 
 // ### Component Loader
@@ -129,6 +89,31 @@ export { default as IP } from './IP';
  */
 
 /**
+ * ## Network instantiation
+ * This function handles instantiation of NoFlo networks from a Graph
+ * object. It creates the network, and then starts execution by sending
+ * the Initial Information Packets.
+ *
+ * ```javascript
+ * const network = await noflo.createNetwork(someGraph, {});
+ * console.log('Network is now running!');
+ * ```
+ *
+ * It is also possible to instantiate a Network but delay its execution
+ * by giving the `delay` option. In this case you will have to handle
+ * connecting the graph and sending of IIPs manually.
+ *
+ * ```javascript
+ * noflo.createNetwork(someGraph, {
+ *   delay: true,
+ * })
+ *   .then((network) => network.connect())
+ *   .then((network) => network.start())
+ *   .then(() => {
+ *     console.log('Network is now running!');
+ *    });
+ * ```
+ *
  * @param {import("fbp-graph").Graph} graphInstance - Graph definition to build a Network for
  * @param {NetworkOptions} options - Network options
  * @param {NetworkCallback} [callback] - Legacy callback for the created Network
@@ -166,16 +151,19 @@ export function createNetwork(graphInstance, options, callback) {
   return promise;
 }
 
-// ### Starting a network from a file
-//
-// It is also possible to start a NoFlo network by giving it a path to a `.json` or `.fbp` network
-// definition file.
-//
-//     noflo.loadFile('somefile.json', {})
-//       .then((network) => {
-//         console.log('Network is now running!');
-//       });
 /**
+ * ### Starting a network from a file
+ *
+ * It is also possible to start a NoFlo network by giving it a path to
+ * a `.json` or `.fbp` network definition file.
+ *
+ * ```javascript
+ * noflo.loadFile('somefile.json', {})
+ *   .then((network) => {
+ *     console.log('Network is now running!');
+ *   });
+ * ```
+ *
  * @param {string} file
  * @param {NetworkOptions} options - Network options
  * @param {any} [callback] - Legacy callback
@@ -193,10 +181,11 @@ export function loadFile(file, options, callback) {
   return promise;
 }
 
-// ### Saving a network definition
-//
-// NoFlo graph files can be saved back into the filesystem with this method.
 /**
+ * ### Saving a network definition
+ *
+ * NoFlo graph files can be saved back into the filesystem with this method.
+ *
  * @param {graph.Graph} graphInstance
  * @param {string} file
  * @param {any} [callback] - Legacy callback

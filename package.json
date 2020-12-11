@@ -42,6 +42,7 @@
     "path-browserify": "^1.0.1",
     "process": "^0.11.10",
     "replace": "^1.2.0",
+    "typedoc": "^0.19.2",
     "typescript": "^4.0.2",
     "util": "^0.12.3",
     "webpack": "^5.0.0",
@@ -62,16 +63,13 @@
     "lint": "eslint .",
     "build:node": "tsc",
     "build:browser": "webpack",
-    "build": "npm run build:node && npm run build:browser",
+    "build:apidocs": "typedoc --out docs --name NoFlo --theme minimal --excludePrivate --excludeProtected src/lib",
+    "build": "npm run build:node && npm run build:browser && npm run build:apidocs",
     "postbuild": "replace 'node/events' 'events' lib -r",
     "pretest": "npm run lint && npm run build",
     "test:node": "nyc mocha --require spec/utils/inject.js spec",
     "test:browser": "karma start karma.config.js",
     "test": "npm run test:node && npm run test:browser"
-  },
-  "docco_husky": {
-    "output_dir": "docs",
-    "project_name": "NoFlo"
   },
   "nyc": {
     "include": [
