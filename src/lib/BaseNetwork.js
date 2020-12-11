@@ -720,8 +720,9 @@ export class BaseNetwork extends EventEmitter {
     }
     const promise = this.ensureNode(edge.from.node, 'outbound')
       .then((from) => {
-        const socket = internalSocket.createSocket(edge.metadata);
-        socket.setDebug(this.debug);
+        const socket = internalSocket.createSocket(edge.metadata, {
+          debug: this.debug,
+        });
         return this.ensureNode(edge.to.node, 'inbound')
           .then((to) => {
             // Subscribe to events from the socket
@@ -785,8 +786,9 @@ export class BaseNetwork extends EventEmitter {
         if (!port.hasDefault() || port.isAttached()) {
           return Promise.resolve();
         }
-        const socket = internalSocket.createSocket();
-        socket.setDebug(this.debug);
+        const socket = internalSocket.createSocket({}, {
+          debug: this.debug,
+        });
 
         // Subscribe to events from the socket
         this.subscribeSocket(socket);
@@ -814,8 +816,9 @@ export class BaseNetwork extends EventEmitter {
 
     const promise = this.ensureNode(initializer.to.node, 'inbound')
       .then((to) => {
-        const socket = internalSocket.createSocket(initializer.metadata);
-        socket.setDebug(this.debug);
+        const socket = internalSocket.createSocket(initializer.metadata, {
+          debug: this.debug,
+        });
 
         // Subscribe to events from the socket
         this.subscribeSocket(socket);

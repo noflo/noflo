@@ -157,7 +157,9 @@ function runNetwork(network, inputs) {
       if (!process || !process.component) {
         return;
       }
-      outSockets[outport] = internalSocket.createSocket();
+      outSockets[outport] = internalSocket.createSocket({}, {
+        debug: false,
+      });
       network.subscribeSocket(outSockets[outport]);
       process.component.outPorts[portDef.port].attach(outSockets[outport]);
       outSockets[outport].from = {
@@ -213,7 +215,9 @@ function runNetwork(network, inputs) {
                 reject(new Error(`Process ${portDef.process} for port ${port} not available in the graph`));
                 return;
               }
-              inSockets[port] = internalSocket.createSocket();
+              inSockets[port] = internalSocket.createSocket({}, {
+                debug: false,
+              });
               network.subscribeSocket(inSockets[port]);
               inSockets[port].to = {
                 process,
