@@ -135,7 +135,7 @@ export class Component extends NoFloComponent {
     }
 
     if (typeof this.relay === 'function') {
-      const func = /** @type {RelayFunction} */ (this.relay);
+      const func = /** @type {RelayFunction} */ (this.relay.bind(this));
       this.process((input, output) => {
         if (!input.hasData('in')) { return; }
         const msg = input.getData('in');
