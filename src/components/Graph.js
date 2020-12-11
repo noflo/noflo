@@ -26,6 +26,7 @@ export class Graph extends noflo.Component {
     this.ready = true;
     this.started = false;
     this.starting = false;
+    this.asyncDelivery = false;
     /** @type {string|null} */
     this.baseDir = null;
     /** @type {noflo.ComponentLoader|null} */
@@ -89,6 +90,7 @@ export class Graph extends noflo.Component {
       subscribeGraph: false,
       componentLoader: this.loader,
       baseDir: this.baseDir,
+      asyncDelivery: this.asyncDelivery,
     })
       .then((network) => {
         this.network = network;
