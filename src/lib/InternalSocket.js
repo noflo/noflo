@@ -4,6 +4,7 @@
 //     NoFlo may be freely distributed under the MIT license
 import { EventEmitter } from 'events';
 import IP from './IP';
+import { makeAsync } from './Platform';
 
 function legacyToIp(event, payload) {
   // No need to wrap modern IP Objects
@@ -86,6 +87,7 @@ export class InternalSocket extends EventEmitter {
   /**
    * @typedef InternalSocketOptions
    * @property {boolean} [debug] - Whether to catch exceptions caused by IP transmission
+   * @property {boolean} [async] - Whether IP transmission should be asynchronous
    */
 
   /**
@@ -99,13 +101,22 @@ export class InternalSocket extends EventEmitter {
     this.connected = false;
     this.dataDelegate = null;
     this.debug = options.debug || false;
+    this.async = options.async || false;
     this.from = null;
     this.to = null;
   }
 
   emitEvent(event, data) {
     if (this.debug) {
+      if (this.async) {
+        makeAsync(() => this.debugEmitEvent(event, data));
+        return;
+      }
       this.debugEmitEvent(event, data);
+      return;
+    }
+    if (this.async) {
+      makeAsync(() => this.regularEmitEvent(event, data));
       return;
     }
     this.regularEmitEvent(event, data);
