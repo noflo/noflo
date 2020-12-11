@@ -343,10 +343,7 @@ export class BaseNetwork extends EventEmitter {
    * @returns {Promise<import("./Component").Component>}
    */
   load(component, metadata, callback) {
-    const promise = this.loader.load(component, {
-      ...metadata,
-      asyncDelivery: this.asyncDelivery,
-    });
+    const promise = this.loader.load(component, metadata);
     if (callback) {
       deprecated('Providing a callback to Network.load is deprecated, use Promises');
       promise.then((instance) => {

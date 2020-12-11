@@ -314,7 +314,6 @@ export class ComponentLoader {
         const g = /** @type {import("../components/Graph").Graph} */ (graph);
         g.loader = this;
         g.baseDir = this.baseDir;
-        g.asyncDelivery = metadata.asyncDelivery || false;
         g.inPorts.remove('graph');
         this.setIcon(name, g);
         return g.setGraph(component)
