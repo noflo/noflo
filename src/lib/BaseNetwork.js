@@ -900,7 +900,7 @@ export class BaseNetwork extends EventEmitter {
    */
   sendInitials() {
     return new Promise((resolve) => {
-      makeAsync(resolve);
+      makeAsync(resolve, true);
     })
       .then(() => this.initials.reduce((chain, initial) => chain
         .then(() => {
