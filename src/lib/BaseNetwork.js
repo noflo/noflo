@@ -571,6 +571,7 @@ export class BaseNetwork extends EventEmitter {
     }
 
     instance.network.setDebug(this.debug);
+    instance.network.setAsyncDelivery(this.asyncDelivery);
     if (this.flowtrace) {
       instance.network.setFlowtrace(this.flowtrace, node.componentName, false);
     }
@@ -1115,6 +1116,29 @@ export class BaseNetwork extends EventEmitter {
       if (instance.isSubgraph()) {
         const inst = /** @type {import("../components/Graph").Graph} */ (instance);
         inst.network.setDebug(active);
+      }
+    });
+  }
+
+  /**
+   * @param {boolean} active
+   */
+  setAsyncDelivery(active) {
+    if (active === this.asyncDelivery) { return; }
+    this.asyncDelivery = active;
+
+    this.connections.forEach((socket) => {
+      socket.async = this.asyncDelivery;
+    });
+    Object.keys(this.processes).forEach((processId) => {
+      const process = this.processes[processId];
+      if (!process.component) {
+        return;
+      }
+      const instance = process.component;
+      if (instance.isSubgraph()) {
+        const inst = /** @type {import("../components/Graph").Graph} */ (instance);
+        inst.network.setAsyncDelivery(active);
       }
     });
   }
