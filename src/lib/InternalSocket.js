@@ -4,6 +4,7 @@
 //     NoFlo may be freely distributed under the MIT license
 import { EventEmitter } from 'events';
 import IP from './IP';
+import { makeAsync } from './Platform';
 
 function legacyToIp(event, payload) {
   // No need to wrap modern IP Objects
@@ -52,10 +53,16 @@ function ipToLegacy(ip) {
 // events so that the packets can be caught to the inport of the
 // connected process.
 export class InternalSocket extends EventEmitter {
+  /**
+   * @private
+   */
   regularEmitEvent(event, data) {
     this.emit(event, data);
   }
 
+  /**
+   * @private
+   */
   debugEmitEvent(event, data) {
     try {
       this.emit(event, data);
@@ -70,23 +77,49 @@ export class InternalSocket extends EventEmitter {
       if (this.listeners('error').length === 0) { throw error; }
 
       this.emit('error', {
-        id: this.to.process.id,
+        id: this.to ? this.to.process.id : null,
         error,
         metadata: this.metadata,
       });
     }
   }
 
-  constructor(metadata = {}) {
+  /**
+   * @typedef InternalSocketOptions
+   * @property {boolean} [debug] - Whether to catch exceptions caused by IP transmission
+   * @property {boolean} [async] - Whether IP transmission should be asynchronous
+   */
+
+  /**
+   * @param {import("fbp-graph/lib/Types").GraphEdgeMetadata} [metadata]
+   * @param {InternalSocketOptions} [options]
+   */
+  constructor(metadata = {}, options = {}) {
     super();
     this.metadata = metadata;
     this.brackets = [];
     this.connected = false;
     this.dataDelegate = null;
-    this.debug = false;
-    this.emitEvent = this.regularEmitEvent;
+    this.debug = options.debug || false;
+    this.async = options.async || false;
     this.from = null;
     this.to = null;
+  }
+
+  emitEvent(event, data) {
+    if (this.debug) {
+      if (this.async) {
+        makeAsync(() => this.debugEmitEvent(event, data));
+        return;
+      }
+      this.debugEmitEvent(event, data);
+      return;
+    }
+    if (this.async) {
+      makeAsync(() => this.regularEmitEvent(event, data));
+      return;
+    }
+    this.regularEmitEvent(event, data);
   }
 
   // ## Socket connections
@@ -223,7 +256,6 @@ export class InternalSocket extends EventEmitter {
   // notification to the developer.
   setDebug(active) {
     this.debug = active;
-    this.emitEvent = this.debug ? this.debugEmitEvent : this.regularEmitEvent;
   }
 
   // ## Socket identifiers
@@ -291,9 +323,10 @@ export class InternalSocket extends EventEmitter {
 }
 
 /**
- * @param {Object} [metadata]
+ * @param {import("fbp-graph/lib/Types").GraphEdgeMetadata} [metadata]
+ * @param {InternalSocketOptions} [options]
  * @returns {InternalSocket}
  */
-export function createSocket(metadata = {}) {
-  return new InternalSocket(metadata);
+export function createSocket(metadata = {}, options = {}) {
+  return new InternalSocket(metadata, options);
 }

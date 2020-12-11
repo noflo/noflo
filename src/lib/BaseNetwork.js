@@ -89,6 +89,7 @@ function connectPort(socket, process, port, index, inbound) {
  * @property {string} [baseDir] - Project base directory for component loading
  * @property {ComponentLoader} [componentLoader] - Component loader instance to use, if any
  * @property {Object} [flowtrace] - Flowtrace instance to use for tracing this network run
+ * @property {boolean} [asyncDelivery] - Make Information Packet delivery asynchronous
  */
 
 /**
@@ -135,6 +136,7 @@ export class BaseNetwork extends EventEmitter {
     this.started = false;
     this.stopped = true;
     this.debug = true;
+    this.asyncDelivery = options.asyncDelivery || false;
     /** @type {Array<NetworkEvent>} */
     this.eventBuffer = [];
 
@@ -569,6 +571,7 @@ export class BaseNetwork extends EventEmitter {
     }
 
     instance.network.setDebug(this.debug);
+    instance.network.setAsyncDelivery(this.asyncDelivery);
     if (this.flowtrace) {
       instance.network.setFlowtrace(this.flowtrace, node.componentName, false);
     }
@@ -720,8 +723,10 @@ export class BaseNetwork extends EventEmitter {
     }
     const promise = this.ensureNode(edge.from.node, 'outbound')
       .then((from) => {
-        const socket = internalSocket.createSocket(edge.metadata);
-        socket.setDebug(this.debug);
+        const socket = internalSocket.createSocket(edge.metadata, {
+          debug: this.debug,
+          async: this.asyncDelivery,
+        });
         return this.ensureNode(edge.to.node, 'inbound')
           .then((to) => {
             // Subscribe to events from the socket
@@ -785,8 +790,10 @@ export class BaseNetwork extends EventEmitter {
         if (!port.hasDefault() || port.isAttached()) {
           return Promise.resolve();
         }
-        const socket = internalSocket.createSocket();
-        socket.setDebug(this.debug);
+        const socket = internalSocket.createSocket({}, {
+          debug: this.debug,
+          async: this.asyncDelivery,
+        });
 
         // Subscribe to events from the socket
         this.subscribeSocket(socket);
@@ -814,8 +821,10 @@ export class BaseNetwork extends EventEmitter {
 
     const promise = this.ensureNode(initializer.to.node, 'inbound')
       .then((to) => {
-        const socket = internalSocket.createSocket(initializer.metadata);
-        socket.setDebug(this.debug);
+        const socket = internalSocket.createSocket(initializer.metadata, {
+          debug: this.debug,
+          async: this.asyncDelivery,
+        });
 
         // Subscribe to events from the socket
         this.subscribeSocket(socket);
@@ -1107,6 +1116,29 @@ export class BaseNetwork extends EventEmitter {
       if (instance.isSubgraph()) {
         const inst = /** @type {import("../components/Graph").Graph} */ (instance);
         inst.network.setDebug(active);
+      }
+    });
+  }
+
+  /**
+   * @param {boolean} active
+   */
+  setAsyncDelivery(active) {
+    if (active === this.asyncDelivery) { return; }
+    this.asyncDelivery = active;
+
+    this.connections.forEach((socket) => {
+      socket.async = this.asyncDelivery;
+    });
+    Object.keys(this.processes).forEach((processId) => {
+      const process = this.processes[processId];
+      if (!process.component) {
+        return;
+      }
+      const instance = process.component;
+      if (instance.isSubgraph()) {
+        const inst = /** @type {import("../components/Graph").Graph} */ (instance);
+        inst.network.setAsyncDelivery(active);
       }
     });
   }

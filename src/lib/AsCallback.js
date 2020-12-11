@@ -46,6 +46,7 @@ import * as internalSocket from './InternalSocket';
  * @property {Object} [flowtrace] - Flowtrace instance to use for tracing this network run
  * @property {NetworkCallback} [networkCallback] - Access to Network instance
  * @property {boolean} [raw] - Whether the callback should operate on raw noflo.IP objects
+ * @property {boolean} [asyncDelivery] - Make Information Packet delivery asynchronous
  */
 
 /**
@@ -69,6 +70,9 @@ function normalizeOptions(options, component) {
   }
   if (!options.raw) {
     options.raw = false;
+  }
+  if (!options.asyncDelivery) {
+    options.asyncDelivery = false;
   }
   return options;
 }
@@ -157,7 +161,9 @@ function runNetwork(network, inputs) {
       if (!process || !process.component) {
         return;
       }
-      outSockets[outport] = internalSocket.createSocket();
+      outSockets[outport] = internalSocket.createSocket({}, {
+        debug: false,
+      });
       network.subscribeSocket(outSockets[outport]);
       process.component.outPorts[portDef.port].attach(outSockets[outport]);
       outSockets[outport].from = {
@@ -213,7 +219,9 @@ function runNetwork(network, inputs) {
                 reject(new Error(`Process ${portDef.process} for port ${port} not available in the graph`));
                 return;
               }
-              inSockets[port] = internalSocket.createSocket();
+              inSockets[port] = internalSocket.createSocket({}, {
+                debug: false,
+              });
               network.subscribeSocket(inSockets[port]);
               inSockets[port].to = {
                 process,

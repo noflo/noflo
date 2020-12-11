@@ -323,6 +323,44 @@ Async(process/Async) OUT -> IN Stream(process/Streamify)\
           return;
         }
         graph = g;
+        wrapped = noflo.asPromise(graph, {
+          loader,
+          asyncDelivery: true,
+        });
+        done();
+      });
+    });
+    it('should execute network with input map and provide output map with streams as arrays', () => wrapped({
+      in: 'hello world',
+    })
+      .then((out) => {
+        chai.expect(out.out).to.eql([
+          ['h', 'e', 'l', 'l', 'o'],
+          ['w', 'o', 'r', 'l', 'd'],
+        ]);
+      }));
+    it('should execute network with simple input and and provide simple output with streams as arrays', () => wrapped('hello there')
+      .then((out) => {
+        chai.expect(out).to.eql([
+          ['h', 'e', 'l', 'l', 'o'],
+          ['t', 'h', 'e', 'r', 'e'],
+        ]);
+      }));
+  });
+  describe('with a graph instead of component name (synchronous)', () => {
+    let graph = null;
+    let wrapped = null;
+    before((done) => {
+      noflo.graph.loadFBP(`\
+INPORT=Async.IN:IN
+OUTPORT=Stream.OUT:OUT
+Async(process/Async) OUT -> IN Stream(process/Streamify)\
+`, (err, g) => {
+        if (err) {
+          done(err);
+          return;
+        }
+        graph = g;
         wrapped = noflo.asPromise(graph,
           { loader });
         done();
