@@ -92,16 +92,14 @@ describe('NoFlo Network', () => {
       chai.expect(n.uptime()).to.be.at.least(0);
     });
     describe('with new node', () => {
-      it('should contain the node', (done) => {
-        n.addNode({
+      it('should contain the node', () => n
+        .addNode({
           id: 'Graph',
           component: 'Graph',
           metadata: {
             foo: 'Bar',
           },
-        },
-        done);
-      });
+        }));
       it('should have registered the node with the graph', () => {
         const node = g.getNode('Graph');
         chai.expect(node).to.be.an('object');
