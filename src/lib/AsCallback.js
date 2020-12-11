@@ -46,6 +46,7 @@ import * as internalSocket from './InternalSocket';
  * @property {Object} [flowtrace] - Flowtrace instance to use for tracing this network run
  * @property {NetworkCallback} [networkCallback] - Access to Network instance
  * @property {boolean} [raw] - Whether the callback should operate on raw noflo.IP objects
+ * @property {boolean} [asyncDelivery] - Make Information Packet delivery asynchronous
  */
 
 /**
@@ -69,6 +70,9 @@ function normalizeOptions(options, component) {
   }
   if (!options.raw) {
     options.raw = false;
+  }
+  if (!options.asyncDelivery) {
+    options.asyncDelivery = false;
   }
   return options;
 }
