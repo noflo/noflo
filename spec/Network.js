@@ -588,6 +588,11 @@ describe('NoFlo Network', () => {
   });
   describe('with a very large network', () => {
     it('should be able to connect without errors', function (done) {
+      if (noflo.isBrowser()) {
+        // Async mode is too much for Puppeteer here
+        this.skip();
+        return;
+      }
       let n;
       this.timeout(100000);
       const g = new noflo.Graph();
