@@ -1,3 +1,7 @@
+## noflo-nodejs 0.15.0 (14-12-2020)
+
+* Updated to the new Promise-based NoFlo 1.4 APIs
+
 ## noflo-nodejs 0.14.0 (25-11-2020)
 
 * Updated to the new built-in Flowtrace functionality in NoFlo 1.3.0
