@@ -93,10 +93,7 @@ exports.subscribe = (rt, options) => new Promise((resolve) => {
     }
     if (options.batch && options.graph) {
       network.on('end', () => {
-        stopRuntime(rt, options, tracer)
-          .catch((e) => {
-            debug.showError(e);
-          });
+        stopRuntime(rt, options, tracer);
       });
     }
     networks.push(network);
