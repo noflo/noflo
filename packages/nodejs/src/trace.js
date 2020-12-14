@@ -13,8 +13,16 @@ function ensureTracedir(options) {
   }
   const tracePath = resolve(options.baseDir, './.flowtrace');
   return stat(tracePath)
-    .catch(() => mkdir(tracePath))
-    .then(() => tracePath);
+    .catch(() => mkdir(tracePath, {
+      recursive: true,
+    })
+      .then(() => stat(tracePath)))
+    .then((stats) => {
+      if (!stats.isDirectory()) {
+        return Promise.reject(new Error(`${tracePath} is not a directory`));
+      }
+      return Promise.resolve(tracePath);
+    });
 }
 
 function writeTrace(options, tracer) {
