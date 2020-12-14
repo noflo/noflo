@@ -16,33 +16,25 @@ exports.loadGraph = (options) => {
   return fbpGraph.graph.loadFile(options.graph);
 };
 
-exports.startGraph = (graphPath, runtime, settings) => exports.loadGraph({
-  graph: graphPath,
-}).then((graphInstance) => new Promise((resolve, reject) => {
-  const graph = graphInstance;
-  graph.name = graph.name || path.basename(graphPath, path.extname(graphPath));
-  const graphName = `${settings.namespace}/${graph.name}`;
-  runtime.graph.registerGraph(graphName, graph);
-  runtime.network._startNetwork(graph, graphName, 'none', (err) => { // eslint-disable-line
-    if (err) {
-      reject(err);
-      return;
-    }
-    runtime.runtime.setMainGraph(graphName);
-    resolve(runtime);
+exports.startGraph = (graphPath, runtime, settings) => exports
+  .loadGraph({
+    graph: graphPath,
+  })
+  .then((graphInstance) => {
+    const graph = graphInstance;
+    graph.name = graph.name || path.basename(graphPath, path.extname(graphPath));
+    const graphName = `${settings.namespace}/${graph.name}`;
+    return runtime.graph.registerGraph(graphName, graph)
+      .then(() => runtime // eslint-disable-line no-underscore-dangle
+        .network._startNetwork(graph, graphName, 'none'))
+      .then(() => {
+        runtime.runtime.setMainGraph(graphName);
+        return runtime;
+      });
   });
-}));
 
 function stopNetwork(network) {
-  return new Promise((resolve, reject) => {
-    network.stop((err) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(network);
-    });
-  });
+  return network.stop();
 }
 
 function stopRuntime(rt, options, tracer) {
