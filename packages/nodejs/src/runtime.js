@@ -103,7 +103,10 @@ exports.subscribe = (rt, options) => new Promise((resolve) => {
       return;
     }
     if (options.trace && rt.trace.traces[graphName]) {
-      writeTrace(options, rt.trace.traces[graphName]);
+      writeTrace(options, rt.trace.traces[graphName])
+        .catch((e) => {
+          console.error(e);
+        });
     }
     networks.splice(networks.indexOf(network), 1);
   });
