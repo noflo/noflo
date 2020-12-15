@@ -113,8 +113,8 @@ export default class OutPort extends BasePort {
 
   /**
    * @param {string|IP} type
-   * @param {any} data
-   * @param {import("./IP").IPOptions} options
+   * @param {any} [data]
+   * @param {import("./IP").IPOptions} [options]
    * @param {number|null} [index]
    * @param {boolean} [autoConnect]
    */

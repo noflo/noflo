@@ -262,7 +262,7 @@ export default class InPort extends BasePort {
    * Returns true if port contains packet(s) matching the validator
    * @param {string|null} scope
    * @param {number|null|HasValidationCallback} index
-   * @param {HasValidationCallback} validate
+   * @param {HasValidationCallback} [validate]
    */
   has(scope, index, validate) {
     let valid = validate;

@@ -39,7 +39,7 @@ import { deprecated, isBrowser, makeAsync } from './Platform';
  * @param {internalSocket.InternalSocket} socket
  * @param {NetworkProcess} process
  * @param {string} port
- * @param {number|void} index
+ * @param {number|null} index
  * @param {boolean} inbound
  * @returns {Promise<internalSocket.InternalSocket>}
  */

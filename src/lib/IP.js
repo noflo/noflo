@@ -54,7 +54,7 @@ export default class IP {
     this.isIP = true;
     /** @type {string|null} */
     this.scope = null; // sync scope id
-    /** @type {string|null} */
+    /** @type {import("./Component").Component|null} */
     this.owner = null; // packet owner process
     this.clonable = false; // cloning safety flag
     /** @type {number|null} */
@@ -89,7 +89,7 @@ export default class IP {
 
   // Moves an IP to a different owner
   /**
-   * @param {string|null} owner
+   * @param {import("./Component").Component|null} owner
    */
   move(owner) {
     // no-op

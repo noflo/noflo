@@ -82,13 +82,14 @@ export default class ProcessInput {
    * @param {...HasArgument} params
    */
   has(...params) {
+    /** @type {HasValidationCallback} */
     let validate;
     let args = params.filter((p) => typeof p !== 'function');
     if (!args.length) {
       args = ['in'];
     }
     if (typeof params[params.length - 1] === 'function') {
-      validate = params[params.length - 1];
+      validate = /** @type {HasValidationCallback} */ (params[params.length - 1]);
     } else {
       validate = () => true;
     }
@@ -102,7 +103,8 @@ export default class ProcessInput {
         if (!portImpl.isAddressable()) {
           throw new Error(`Non-addressable ports, access must be with string ${port[0]}`);
         }
-        if (!portImpl.has(this.scope, port[1], validate)) { return false; }
+        const portIdx = (typeof port[1] === 'string') ? parseInt(port[1], 10) : port[1];
+        if (!portImpl.has(this.scope, portIdx, validate)) { return false; }
       } else if (typeof port === 'string') {
         const portImpl = /** @type {import("./InPort").default} */ (this.ports.ports[port]);
         if (!portImpl) {
@@ -225,7 +227,7 @@ export default class ProcessInput {
         res.push(ip);
       } else {
         const portImpl = /** @type {import("./InPort").default} */ (this.ports.ports[name]);
-        ip = portImpl.get(this.scope, idx);
+        ip = portImpl.get(this.scope, idxName);
         res.push(ip);
       }
     }
