@@ -267,7 +267,9 @@ export class Graph extends noflo.Component {
       return Promise.resolve();
     }
     return this.network.start()
-      .then(() => {});
+      .then(() => {
+        this.starting = false;
+      });
   }
 
   tearDown() {
