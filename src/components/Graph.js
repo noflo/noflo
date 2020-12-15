@@ -257,8 +257,10 @@ export class Graph extends noflo.Component {
   setUp() {
     this.starting = true;
     if (!this.isReady()) {
-      return new Promise((resolve) => {
-        this.once('ready', resolve);
+      return new Promise((resolve, reject) => {
+        this.once('ready', () => {
+          this.setUp().then(resolve, reject);
+        });
       });
     }
     if (!this.network) {
