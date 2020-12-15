@@ -27,6 +27,8 @@ const validTypes = [
 /**
  * @typedef {Object} BaseOptions - Options for configuring all types of ports
  * @property {string} [description='']
+ * @property {boolean} [addressable=false]
+ * @property {boolean} [buffered=false]
  * @property {string} [datatype='all']
  * @property {string} [schema=null]
  * @property {string} [type=null]
@@ -78,13 +80,16 @@ function handleOptions(options) {
 }
 
 export default class BasePort extends EventEmitter {
+  /**
+   * @param {BaseOptions} options
+   */
   constructor(options) {
     super();
     // Options holds all options of the current port
     this.options = handleOptions(options);
     // Sockets list contains all currently attached
     // connections to the port
-    /** @type {Array<import("./InternalSocket").InternalSocket>} */
+    /** @type {Array<import("./InternalSocket").InternalSocket|void>} */
     this.sockets = [];
     // Name of the graph node this port is in
     /** @type {string|null} */
@@ -109,8 +114,12 @@ export default class BasePort extends EventEmitter {
 
   getDescription() { return this.options.description; }
 
+  /**
+   * @param {import("./InternalSocket").InternalSocket} socket
+   * @param {number|null} [index]
+   */
   attach(socket, index = null) {
-    let idx = index;
+    let idx = /** @type {number} */ (index);
     if (!this.isAddressable() || (index === null)) {
       idx = this.sockets.length;
     }
@@ -123,9 +132,15 @@ export default class BasePort extends EventEmitter {
     this.emit('attach', socket);
   }
 
-  // eslint-disable-next-line class-methods-use-this,no-unused-vars
-  attachSocket(socket, index = null) { }
+  /**
+   * @param {import("./InternalSocket").InternalSocket} socket
+   * @param {number|null} [index]
+   */
+  attachSocket(socket, index = null) { } // eslint-disable-line class-methods-use-this,no-unused-vars,max-len
 
+  /**
+   * @param {import("./InternalSocket").InternalSocket} socket
+   */
   detach(socket) {
     const index = this.sockets.indexOf(socket);
     if (index === -1) {
@@ -154,12 +169,18 @@ export default class BasePort extends EventEmitter {
     return false;
   }
 
+  /**
+   * @param {number|null} socketId
+   * @returns {boolean}
+   */
   isAttached(socketId = null) {
     if (this.isAddressable() && (socketId !== null)) {
       if (this.sockets[socketId]) { return true; }
       return false;
     }
-    if (this.sockets.length) { return true; }
+    if (this.sockets.length) {
+      return true;
+    }
     return false;
   }
 
@@ -172,11 +193,21 @@ export default class BasePort extends EventEmitter {
     return attached;
   }
 
+  /**
+   * @param {number|null} socketId
+   * @returns {boolean}
+   */
   isConnected(socketId = null) {
     if (this.isAddressable()) {
-      if (socketId === null) { throw new Error(`${this.getId()}: Socket ID required`); }
-      if (!this.sockets[socketId]) { throw new Error(`${this.getId()}: Socket ${socketId} not available`); }
-      return this.sockets[socketId].isConnected();
+      if (socketId === null) {
+        throw new Error(`${this.getId()}: Socket ID required`);
+      }
+      if (!this.sockets[socketId]) {
+        throw new Error(`${this.getId()}: Socket ${socketId} not available`);
+      }
+      // eslint-disable-next-line max-len
+      const socket = /** @type {import("./InternalSocket").InternalSocket} */ (this.sockets[socketId]);
+      return socket.isConnected();
     }
 
     let connected = false;
