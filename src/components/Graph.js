@@ -91,6 +91,7 @@ export class Graph extends noflo.Component {
     })
       .then((network) => {
         this.network = /** @type {import("../lib/Network").Network} */ (network);
+        this.emit('network', network);
         // Subscribe to network lifecycle
         this.subscribeNetwork(this.network);
         // Wire the network up
