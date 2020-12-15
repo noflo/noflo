@@ -41,7 +41,7 @@ export default class OutPort extends BasePort {
    */
   attach(socket, index = null) {
     super.attach(socket, index);
-    if (this.isCaching() && (this.cache[`${index}`] !== null)) {
+    if (this.isCaching() && (this.cache[`${index}`] != null)) {
       this.send(this.cache[`${index}`], index);
     }
   }
