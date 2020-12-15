@@ -346,31 +346,26 @@ describe('Scope isolation', () => {
     let in1 = null;
     let in2 = null;
     let out = null;
-    before((done) => {
+    before(() => {
       const fbpData = 'INPORT=Pc1.IN:IN1\n'
                     + 'INPORT=Pc2.IN:IN2\n'
                     + 'OUTPORT=PcMerge.OUT:OUT\n'
                     + 'Pc1(process/Async) -> IN1 PcMerge(process/MergeUnscoped)\n'
                     + 'Pc2(process/Async) -> IN2 PcMerge(process/MergeUnscoped)';
-      noflo.graph.loadFBP(fbpData, (err, g) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        loader.registerComponent('scope', 'MergeUnscoped', g);
-        loader.load('scope/MergeUnscoped', (err, instance) => {
-          if (err) {
-            done(err);
-            return;
-          }
+      return noflo.graph
+        .loadFBP(fbpData)
+        .then((g) => {
+          loader.registerComponent('scope', 'MergeUnscoped', g);
+          return loader.load('scope/MergeUnscoped');
+        })
+        .then((instance) => {
           c = instance;
           in1 = noflo.internalSocket.createSocket();
           c.inPorts.in1.attach(in1);
           in2 = noflo.internalSocket.createSocket();
           c.inPorts.in2.attach(in2);
-          c.setUp(done);
+          return c.setUp();
         });
-      });
     });
     beforeEach(() => {
       out = noflo.internalSocket.createSocket();
@@ -489,31 +484,26 @@ describe('Scope isolation', () => {
     let in1 = null;
     let in2 = null;
     let out = null;
-    before((done) => {
+    before(() => {
       const fbpData = 'INPORT=Pc1.IN:IN1\n'
                     + 'INPORT=Pc2.IN:IN2\n'
                     + 'OUTPORT=PcMerge.OUT:OUT\n'
                     + 'Pc1(process/Unscope) -> IN1 PcMerge(process/Merge)\n'
                     + 'Pc2(process/Unscope) -> IN2 PcMerge';
-      noflo.graph.loadFBP(fbpData, (err, g) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        loader.registerComponent('scope', 'MergeUnscopedOut', g);
-        loader.load('scope/MergeUnscopedOut', (err, instance) => {
-          if (err) {
-            done(err);
-            return;
-          }
+      return noflo.graph
+        .loadFBP(fbpData)
+        .then((g) => {
+          loader.registerComponent('scope', 'MergeUnscopedOut', g);
+          return loader.load('scope/MergeUnscopedOut');
+        })
+        .then((instance) => {
           c = instance;
           in1 = noflo.internalSocket.createSocket();
           c.inPorts.in1.attach(in1);
           in2 = noflo.internalSocket.createSocket();
           c.inPorts.in2.attach(in2);
-          c.setUp(done);
+          return c.setUp();
         });
-      });
     });
     beforeEach(() => {
       out = noflo.internalSocket.createSocket();
@@ -631,29 +621,24 @@ describe('Scope isolation', () => {
     let c = null;
     let in1 = null;
     let out = null;
-    before((done) => {
+    before(() => {
       const fbpData = 'INPORT=Pc1.IN:IN1\n'
                     + 'OUTPORT=PcMergeA.OUT:OUT\n'
                     + 'Pc1(process/Async) -> IN1 PcMergeA(process/MergeA)\n'
                     + '\'twoIIP0\' -> IN2[0] PcMergeA\n'
                     + '\'twoIIP1\' -> IN2[1] PcMergeA';
-      noflo.graph.loadFBP(fbpData, (err, g) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        loader.registerComponent('scope', 'MergeIIPA', g);
-        loader.load('scope/MergeIIPA', (err, instance) => {
-          if (err) {
-            done(err);
-            return;
-          }
+      noflo.graph
+        .loadFBP(fbpData)
+        .then((g) => {
+          loader.registerComponent('scope', 'MergeIIPA', g);
+          return loader.load('scope/MergeIIPA');
+        })
+        .then((instance) => {
           c = instance;
           in1 = noflo.internalSocket.createSocket();
           c.inPorts.in1.attach(in1);
-          c.setUp(done);
+          return c.setUp();
         });
-      });
     });
     beforeEach(() => {
       out = noflo.internalSocket.createSocket();
