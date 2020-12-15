@@ -108,7 +108,10 @@ export default class BasePort extends EventEmitter {
     return `${this.node} ${this.name.toUpperCase()}`;
   }
 
-  getDataType() { return this.options.datatype; }
+  /**
+   * @returns {string}
+   */
+  getDataType() { return this.options.datatype || 'all'; }
 
   getSchema() { return this.options.schema || null; }
 

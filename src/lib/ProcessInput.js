@@ -1,4 +1,9 @@
 //     NoFlo - Flow-Based Programming for JavaScript
+  /**
+   * Fetches a packet from the port
+   * @param {string|null} scope
+   * @param {number|null} [index]
+   */
 //     (c) 2013-2020 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
@@ -72,12 +77,8 @@ export default class ProcessInput {
   // Passing a validation callback as a last argument allows more selective
   // checking of packets.
   /**
-   * @callback HasValidationCallback
-   * @param {IP} ip
-   * @returns {boolean}
-   */
-  /**
    * @typedef {string|Array<string|number>} GetArgument
+   * @typedef {import("./InPort").HasValidationCallback} HasValidationCallback
    */
   /**
    * @typedef {GetArgument|HasValidationCallback} HasArgument

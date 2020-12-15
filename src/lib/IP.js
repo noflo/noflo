@@ -27,6 +27,10 @@
 //   - 'openBracket'
 //   - 'closeBracket'
 
+/**
+ * @typedef {Object<string, boolean|string>} IPOptions
+ */
+
 export default class IP {
   // Detects if an arbitrary value is an IP
   /**
@@ -42,7 +46,7 @@ export default class IP {
   /**
    * @param {string} type
    * @param {any} data
-   * @param {Object<string, boolean|string>} [options]
+   * @param {IPOptions} [options]
    */
   constructor(type, data = null, options = {}) {
     this.type = type || 'data';
