@@ -85,8 +85,8 @@ export class InPorts extends Ports {
    */
   constructor(ports = {}) {
     super(ports, InPort);
-    /** @type {Object<string, InPort>} */
-    this.ports = {};
+    const basePorts = this.ports;
+    this.ports = /** @type {Object<string, InPort>} */ (basePorts);
   }
 }
 
@@ -99,8 +99,8 @@ export class OutPorts extends Ports {
    */
   constructor(ports = {}) {
     super(ports, OutPort);
-    /** @type {Object<string, OutPort>} */
-    this.ports = {};
+    const basePorts = this.ports;
+    this.ports = /** @type {Object<string, OutPort>} */ (basePorts);
   }
 
   connect(name, socketId) {
