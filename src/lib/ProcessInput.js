@@ -1,9 +1,4 @@
 //     NoFlo - Flow-Based Programming for JavaScript
-  /**
-   * Fetches a packet from the port
-   * @param {string|null} scope
-   * @param {number|null} [index]
-   */
 //     (c) 2013-2020 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
