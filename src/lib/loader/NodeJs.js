@@ -8,7 +8,10 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as manifest from 'fbp-manifest';
 import * as fbpGraph from 'fbp-graph';
+import { promisify } from 'util';
 import * as utils from '../Utils';
+
+const writeFile = promisify(fs.writeFile);
 
 // Type loading CoffeeScript compiler
 let CoffeeScript;
@@ -450,57 +453,65 @@ const dynamicLoader = {
   listComponents(loader, manifestOptions, callback) {
     const opts = manifestOptions;
     opts.discover = true;
-    manifest.list.list(loader.baseDir, opts, (err, modules) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      registerModules(loader, modules, (err2) => {
-        if (err2) {
-          callback(err2);
-          return;
-        }
+    manifest.list.list(loader.baseDir, opts)
+      .then((modules) => new Promise((resolve, reject) => {
+        registerModules(loader, modules, (err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve(modules);
+        });
+      }))
+      .then((modules) => {
         callback(null, modules);
+      }, (err) => {
+        callback(err);
       });
-    });
   },
 };
 
 const manifestLoader = {
   /**
    * @param {import("../ComponentLoader").ComponentLoader} loader
-   * @param {Object} options
+   * @param {import("fbp-manifest/src/lib/list").FbpManifestOptions} options
    * @param {Object} manifestContents
-   * @param {ErrorableCallback} callback
+   * @param {Promise<import("fbp-manifest/src/lib/list").FbpManifestDocument>} manifestContents
+   * @returns {Promise<import("fbp-manifest/src/lib/list").FbpManifestDocument>}
    */
-  writeCache(loader, options, manifestContents, callback) {
+  writeCache(loader, options, manifestContents) {
     const filePath = path.resolve(loader.baseDir, options.manifest);
-    fs.writeFile(filePath, JSON.stringify(manifestContents, null, 2),
-      { encoding: 'utf-8' },
-      callback);
+
+    return writeFile(filePath, JSON.stringify(manifestContents, null, 2), {
+      encoding: 'utf-8',
+    })
+      .then(() => manifestContents);
   },
 
   /**
    * @param {import("../ComponentLoader").ComponentLoader} loader
-   * @param {Object} options
-   * @param {Function} callback
+   * @param {import("fbp-manifest/src/lib/list").FbpManifestOptions} options
+   * @returns {Promise<import("fbp-manifest/src/lib/list").FbpManifestDocument>}
    */
-  readCache(loader, options, callback) {
-    const opts = options;
-    opts.discover = false;
-    manifest.load.load(loader.baseDir, opts, callback);
+  readCache(loader, options) {
+    return manifest.load.load(loader.baseDir, {
+      ...options,
+      discover: false,
+    });
   },
 
   /**
    * @param {import("../ComponentLoader").ComponentLoader} loader
-   * @returns {Object}
+   * @returns {import("fbp-manifest/src/lib/list").FbpManifestOptions}
    */
   prepareManifestOptions(loader) {
     const l = loader;
     if (!l.options) { l.options = {}; }
     const options = {};
     options.runtimes = l.options.runtimes || [];
-    if (options.runtimes.indexOf('noflo') === -1) { options.runtimes.push('noflo'); }
+    if (options.runtimes.indexOf('noflo') === -1) {
+      options.runtimes.push('noflo');
+    }
     options.recursive = typeof l.options.recursive === 'undefined' ? true : l.options.recursive;
     options.manifest = l.options.manifest || 'fbp.json';
     return options;
@@ -512,39 +523,42 @@ const manifestLoader = {
    * @param {Function} callback
    */
   listComponents(loader, manifestOptions, callback) {
-    this.readCache(loader, manifestOptions, (err, manifestContents) => {
-      if (err) {
+    this.readCache(loader, manifestOptions)
+      .catch((err) => {
         if (!loader.options.discover) {
-          callback(err);
-          return;
+          return Promise.reject(err);
         }
-        dynamicLoader.listComponents(loader, manifestOptions, (err2, modules) => {
-          if (err2) {
-            callback(err2);
-            return;
-          }
-          this.writeCache(loader, manifestOptions, {
-            version: 1,
-            modules,
-          },
-          (err3) => {
-            if (err3) {
-              callback(err3);
+        return new Promise((resolve, reject) => {
+          dynamicLoader.listComponents(loader, manifestOptions, (err2, modules) => {
+            if (err2) {
+              reject(err2);
               return;
             }
-            callback(null, modules);
+            resolve(modules);
           });
+        })
+          .then((modules) => {
+            const manifestContents = {
+              version: 1,
+              modules,
+            };
+            return this
+              .writeCache(loader, manifestOptions, manifestContents)
+              .then(() => manifestContents);
+          });
+      })
+      .then((manifestContents) => {
+        registerModules(loader, manifestContents.modules, (err) => {
+          if (err) {
+            callback(err);
+            return;
+          }
+          callback(null, manifestContents.modules);
         });
-        return;
-      }
-      registerModules(loader, manifestContents.modules, (err2) => {
-        if (err2) {
-          callback(err2);
-          return;
-        }
-        callback(null, manifestContents.modules);
+      })
+      .catch((err) => {
+        callback(err);
       });
-    });
   },
 };
 
