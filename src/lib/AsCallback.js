@@ -50,6 +50,13 @@ import * as internalSocket from './InternalSocket';
  */
 
 /**
+ * @typedef {Array<Object<string, IP>>} OutputMap
+ */
+/**
+ * @typedef {Object<string, Array<IP|any>>|Array<Object<string, IP|any>>} InputMap
+ */
+
+/**
  * @param {AsCallbackOptions} options
  * @param {AsCallbackComponent} component
  * @returns {AsCallbackOptions}
@@ -142,7 +149,7 @@ function prepareNetwork(component, options) {
 /**
  * @param {Network} network
  * @param {any} inputs
- * @returns {Promise<any>}
+ * @returns {Promise<OutputMap>}
  */
 function runNetwork(network, inputs) {
   return new Promise((resolve, reject) => {
@@ -165,7 +172,7 @@ function runNetwork(network, inputs) {
         debug: false,
       });
       network.subscribeSocket(outSockets[outport]);
-      process.component.outPorts[portDef.port].attach(outSockets[outport]);
+      process.component.outPorts.ports[portDef.port].attach(outSockets[outport]);
       outSockets[outport].from = {
         process,
         port: portDef.port,
@@ -178,9 +185,19 @@ function runNetwork(network, inputs) {
       });
     });
     // Subscribe to process errors
-    let onEnd = null;
-    let onError = null;
-    onError = (err) => {
+    /**
+     * @callback EndListener
+     * @returns {void}
+     */
+    /**
+     * @callback ErrorListener
+     * @param {import("./InternalSocket").SocketError} err
+     * @returns {void}
+     */
+    /** @type {EndListener} */
+    let onEnd;
+    /** @type {ErrorListener} */
+    const onError = (err) => {
       reject(err.error);
       network.removeListener('end', onEnd);
     };
@@ -227,7 +244,7 @@ function runNetwork(network, inputs) {
                 process,
                 port,
               };
-              process.component.inPorts[portDef.port].attach(inSockets[port]);
+              process.component.inPorts.ports[portDef.port].attach(inSockets[port]);
             }
             try {
               if (IP.isIP(value)) {
@@ -247,6 +264,11 @@ function runNetwork(network, inputs) {
   });
 }
 
+/**
+ * @param {any} inputs
+ * @param {Network} network
+ * @returns {string}
+ */
 function getType(inputs, network) {
   // Scalar values are always simple inputs
   if (typeof inputs !== 'object' || !inputs) { return 'simple'; }
@@ -269,6 +291,12 @@ function getType(inputs, network) {
   return 'map';
 }
 
+/**
+ * @param {any} inputs
+ * @param {string} inputType
+ * @param {Network} network
+ * @returns {InputMap}
+ */
 function prepareInputMap(inputs, inputType, network) {
   // Sequence we can use as-is
   if (inputType === 'sequence') { return inputs; }
@@ -280,15 +308,25 @@ function prepareInputMap(inputs, inputType, network) {
     return {};
   }
   // If we have a port named "IN", send to that
-  if (network.graph.inports.in) { inPort = 'in'; }
+  if (network.graph.inports.in) {
+    inPort = 'in';
+  }
+  /** @type {InputMap} */
   const map = {};
   map[inPort] = inputs;
   return [map];
 }
 
+/**
+ * @param {Array<IP>} values
+ * @param {AsCallbackOptions} options
+ * @returns {Array<any>}
+ */
 function normalizeOutput(values, options) {
   if (options.raw) { return values; }
+  /** @type {Array<any>} */
   const result = [];
+  /** @type {Array<any>|null} */
   let previous = null;
   let current = result;
   values.forEach((packet) => {
@@ -301,7 +339,7 @@ function normalizeOutput(values, options) {
       current.push(packet.data);
     }
     if (packet.type === 'closeBracket') {
-      current = previous;
+      current = /** @type {Array<any>} */ (previous);
     }
   });
   if (result.length === 1) {
@@ -309,7 +347,11 @@ function normalizeOutput(values, options) {
   }
   return result;
 }
-
+/**
+ * @param {OutputMap} outputs
+ * @param {string} resultType
+ * @param {AsCallbackOptions} options
+ */
 function sendOutputMap(outputs, resultType, options) {
   // First check if the output sequence contains errors
   const errors = outputs.filter((map) => map.error != null).map((map) => map.error);
@@ -319,6 +361,7 @@ function sendOutputMap(outputs, resultType, options) {
 
   if (resultType === 'sequence') {
     return Promise.resolve(outputs.map((map) => {
+      /** @type {Object<string, any|IP>} */
       const res = {};
       Object.keys(map).forEach((key) => {
         const val = map[key];
@@ -333,11 +376,14 @@ function sendOutputMap(outputs, resultType, options) {
   }
 
   // Flatten the sequence
+  /** @type {Object<string, Array<any|IP>>} */
   const mappedOutputs = {};
   outputs.forEach((map) => {
     Object.keys(map).forEach((key) => {
       const val = map[key];
-      if (!mappedOutputs[key]) { mappedOutputs[key] = []; }
+      if (!mappedOutputs[key]) {
+        mappedOutputs[key] = [];
+      }
       mappedOutputs[key].push(val);
     });
   });
@@ -352,6 +398,7 @@ function sendOutputMap(outputs, resultType, options) {
     // Single outport
     return Promise.resolve(normalizeOutput(mappedOutputs[withValue[0]], options));
   }
+  /** @type {Object<string, any|IP>} */
   const result = {};
   Object.keys(mappedOutputs).forEach((port) => {
     const packets = mappedOutputs[port];

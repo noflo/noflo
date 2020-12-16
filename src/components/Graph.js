@@ -10,13 +10,12 @@
 */
 
 import * as noflo from '../lib/NoFlo';
-import { deprecated } from '../lib/Platform';
 
 // The Graph component is used to wrap NoFlo Networks into components inside
 // another network.
 export class Graph extends noflo.Component {
   /**
-   * @param {Object} metadata
+   * @param {import("fbp-graph/lib/Types").GraphNodeMetadata} [metadata]
    */
   constructor(metadata) {
     super();
@@ -48,75 +47,80 @@ export class Graph extends noflo.Component {
     });
   }
 
-  setGraph(graph, callback) {
+  /**
+   * @param {import("fbp-graph").Graph|string} graph
+   * @returns {Promise<void>}
+   */
+  setGraph(graph) {
     this.ready = false;
-    let promise;
     if (typeof graph === 'object') {
       if (typeof graph.addNode === 'function') {
         // Existing Graph object
-        promise = this.createNetwork(graph);
-      } else {
-        // JSON definition of a graph
-        promise = noflo.graph.loadJSON(graph)
-          .then((instance) => this.createNetwork(instance));
+        return this.createNetwork(graph);
       }
-    } else {
-      let graphName = graph;
-      if ((graphName.substr(0, 1) !== '/') && (graphName.substr(1, 1) !== ':') && process && process.cwd) {
-        graphName = `${process.cwd()}/${graphName}`;
-      }
-      promise = noflo.graph.loadFile(graphName)
+      // JSON definition of a graph
+      return noflo.graph.loadJSON(graph)
         .then((instance) => this.createNetwork(instance));
     }
-    if (callback) {
-      deprecated('Providing a callback to Graph.setGraph is deprecated, use Promises');
-      promise.then(() => {
-        callback(null);
-      }, callback);
+    let graphName = graph;
+    if ((graphName.substr(0, 1) !== '/') && (graphName.substr(1, 1) !== ':') && process && process.cwd) {
+      graphName = `${process.cwd()}/${graphName}`;
     }
-    return promise;
+    return noflo.graph.loadFile(graphName)
+      .then((instance) => this.createNetwork(instance));
   }
 
-  createNetwork(graph, callback) {
+  /**
+   * @param {import("fbp-graph").Graph} graph
+   * @returns {Promise<void>}
+   */
+  createNetwork(graph) {
     this.description = graph.properties.description || '';
     this.icon = graph.properties.icon || this.icon;
 
     const graphObj = graph;
-    if (!graphObj.name) { graphObj.name = this.nodeId; }
+    if (!graphObj.name && this.nodeId) {
+      graphObj.name = this.nodeId;
+    }
 
-    const promise = noflo.createNetwork(graphObj, {
+    return noflo.createNetwork(graphObj, {
       delay: true,
       subscribeGraph: false,
-      componentLoader: this.loader,
-      baseDir: this.baseDir,
+      componentLoader: this.loader || undefined,
+      baseDir: this.baseDir || undefined,
     })
       .then((network) => {
-        this.network = network;
-        this.emit('network', this.network);
+        this.network = /** @type {import("../lib/Network").Network} */ (network);
+        this.emit('network', network);
         // Subscribe to network lifecycle
         this.subscribeNetwork(this.network);
         // Wire the network up
         return network.connect();
       })
-      .then(() => {
-        Object.keys(this.network.processes).forEach((name) => {
+      .then((network) => {
+        Object.keys(network.processes).forEach((name) => {
           // Map exported ports to local component
-          const node = this.network.processes[name];
+          const node = network.processes[name];
           this.findEdgePorts(name, node);
         });
         // Finally set ourselves as "ready"
         this.setToReady();
       });
-    if (callback) {
-      deprecated('Providing a callback to Graph.createNetwork is deprecated, use Promises');
-      promise.then(() => {
-        callback(null);
-      }, callback);
-    }
-    return promise;
   }
 
+  /**
+   * @typedef SubgraphContext
+   * @property {boolean} activated
+   * @property {boolean} deactivated
+   */
+
+  /**
+   * @param {import("../lib/Network").Network} network
+   */
   subscribeNetwork(network) {
+    /**
+     * @type {Array<SubgraphContext>}
+     */
     const contexts = [];
     network.on('start', () => {
       const ctx = {
@@ -134,7 +138,16 @@ export class Graph extends noflo.Component {
     });
   }
 
+  /**
+   * @param {import("../lib/InPort").default} port
+   * @param {string} nodeName
+   * @param {string} portName
+   * @returns {boolean|string}
+   */
   isExportedInport(port, nodeName, portName) {
+    if (!this.network) {
+      return false;
+    }
     // First we check disambiguated exported ports
     const keys = Object.keys(this.network.graph.inports);
     for (let i = 0; i < keys.length; i += 1) {
@@ -149,7 +162,16 @@ export class Graph extends noflo.Component {
     return false;
   }
 
+  /**
+   * @param {import("../lib/OutPort").default} port
+   * @param {string} nodeName
+   * @param {string} portName
+   * @returns {boolean|string}
+   */
   isExportedOutport(port, nodeName, portName) {
+    if (!this.network) {
+      return false;
+    }
     // First we check disambiguated exported ports
     const keys = Object.keys(this.network.graph.outports);
     for (let i = 0; i < keys.length; i += 1) {
@@ -179,18 +201,26 @@ export class Graph extends noflo.Component {
     }
   }
 
+  /**
+   * @param {string} name
+   * @param {import("../lib/BaseNetwork").NetworkProcess} process
+   * @returns {boolean}
+   */
   findEdgePorts(name, process) {
+    if (!process.component) {
+      return false;
+    }
     const inPorts = process.component.inPorts.ports;
     const outPorts = process.component.outPorts.ports;
 
     Object.keys(inPorts).forEach((portName) => {
       const port = inPorts[portName];
       const targetPortName = this.isExportedInport(port, name, portName);
-      if (targetPortName === false) { return; }
+      if (typeof targetPortName !== 'string') { return; }
       this.inPorts.add(targetPortName, port);
-      this.inPorts[targetPortName].on('connect', () => {
+      this.inPorts.ports[targetPortName].on('connect', () => {
         // Start the network implicitly if we're starting to get data
-        if (this.starting) { return; }
+        if (this.starting || !this.network) { return; }
         if (this.network.isStarted()) { return; }
         if (this.network.startupDate) {
           // Network was started, but did finish. Re-start simply
@@ -198,14 +228,14 @@ export class Graph extends noflo.Component {
           return;
         }
         // Network was never started, start properly
-        this.setUp(() => {});
+        this.setUp();
       });
     });
 
     Object.keys(outPorts).forEach((portName) => {
       const port = outPorts[portName];
       const targetPortName = this.isExportedOutport(port, name, portName);
-      if (targetPortName === false) { return; }
+      if (typeof targetPortName !== 'string') { return; }
       this.outPorts.add(targetPortName, port);
     });
 
@@ -224,38 +254,36 @@ export class Graph extends noflo.Component {
     return false;
   }
 
-  setUp(callback) {
+  setUp() {
     this.starting = true;
     if (!this.isReady()) {
-      this.once('ready', () => {
-        this.setUp(callback);
+      return new Promise((resolve, reject) => {
+        this.once('ready', () => {
+          this.setUp().then(resolve, reject);
+        });
       });
-      return;
     }
     if (!this.network) {
-      callback(null);
-      return;
+      return Promise.resolve();
     }
-    this.network.start()
+    return this.network.start()
       .then(() => {
         this.starting = false;
-        callback(null);
-      }, callback);
+      });
   }
 
-  tearDown(callback) {
+  tearDown() {
     this.starting = false;
     if (!this.network) {
-      callback(null);
-      return;
+      return Promise.resolve();
     }
-    this.network.stop()
-      .then(() => callback(), callback);
+    return this.network.stop()
+      .then(() => {});
   }
 }
 
 /**
- * @params {Object} metadata
+ * @param {import("fbp-graph/lib/Types").GraphNodeMetadata} [metadata]
  */
 export function getComponent(metadata) {
   return new Graph(metadata);

@@ -9,8 +9,15 @@ import BasePort from './BasePort';
 // ports are the way a component receives Information Packets.
 /**
  * @typedef InPortOptions
+ * @property {any} [default]
+ * @property {Array<any>} [values]
  * @property {boolean} [control]
  * @property {boolean} [triggering]
+ */
+/**
+ * @callback HasValidationCallback
+ * @param {import("./IP").default} ip
+ * @returns {boolean}
  */
 /**
  * @typedef {import("./BasePort").BaseOptions & InPortOptions} PortOptions
@@ -28,12 +35,21 @@ export default class InPort extends BasePort {
 
     super(opts);
 
+    const baseOptions = this.options;
+    this.options = /** @type {PortOptions} */ (baseOptions);
+
+    /** @type {import("./Component").Component|null} */
     this.nodeInstance = null;
 
     this.prepareBuffer();
   }
 
-  // Assign a delegate for retrieving data should this inPort
+  /**
+   * Assign a delegate for retrieving data should this inPort
+   *
+   * @param {import("./InternalSocket").InternalSocket} socket
+   * @param {number|null} [localId]
+   */
   attachSocket(socket, localId = null) {
     // have a default value.
     if (this.hasDefault()) {
@@ -51,11 +67,17 @@ export default class InPort extends BasePort {
     socket.on('ip', (ip) => this.handleIP(ip, localId));
   }
 
-  handleIP(packet, index) {
+  /**
+   * @param {import("./IP").default} packet
+   * @param {number|null} [index]
+   */
+  handleIP(packet, index = null) {
     if (this.options.control && (packet.type !== 'data')) { return; }
     const ip = packet;
     ip.owner = this.nodeInstance;
-    if (this.isAddressable()) { ip.index = index; }
+    if (this.isAddressable()) {
+      ip.index = index;
+    }
     if (ip.datatype === 'all') {
       // Stamp non-specific IP objects with port datatype
       ip.datatype = this.getDataType();
@@ -72,6 +94,11 @@ export default class InPort extends BasePort {
     this.emit('ip', ip, index);
   }
 
+  /**
+   * @param {string} event
+   * @param {any} payload
+   * @param {number} [id]
+   */
   handleSocketEvent(event, payload, id) {
     // Emit port event
     if (this.isAddressable()) {
@@ -138,6 +165,9 @@ export default class InPort extends BasePort {
     return this.buffer;
   }
 
+  /**
+   * @param {any} data
+   */
   validateData(data) {
     if (!this.options.values) { return; }
     if (this.options.values.indexOf(data) === -1) {
@@ -192,14 +222,25 @@ export default class InPort extends BasePort {
     return buf.shift();
   }
 
-  // Fetches a packet from the port
-  get(scope, index) {
+  /**
+   * Fetches a packet from the port
+   * @param {string|null} scope
+   * @param {number|null} [index]
+   */
+  get(scope, index = null) {
     const res = this.getFromBuffer(scope, index);
     if (res !== undefined) { return res; }
     // Try to find an IIP instead
     return this.getFromBuffer(null, index, true);
   }
 
+  /**
+   * Fetches a packet from the port
+   * @param {string|null} scope
+   * @param {number|null} index
+   * @param {HasValidationCallback} validate
+   * @param {boolean} [initial]
+   */
   hasIPinBuffer(scope, index, validate, initial = false) {
     const buf = this.getBuffer(scope, index, initial);
     if (!(buf != null ? buf.length : undefined)) { return false; }
@@ -209,31 +250,51 @@ export default class InPort extends BasePort {
     return false;
   }
 
+  /**
+   * @param {number|null} index
+   * @param {HasValidationCallback} validate
+   */
   hasIIP(index, validate) {
     return this.hasIPinBuffer(null, index, validate, true);
   }
 
-  // Returns true if port contains packet(s) matching the validator
+  /**
+   * Returns true if port contains packet(s) matching the validator
+   * @param {string|null} scope
+   * @param {number|null|HasValidationCallback} index
+   * @param {HasValidationCallback} [validate]
+   */
   has(scope, index, validate) {
     let valid = validate;
-    let idx = index;
-    if (!this.isAddressable()) {
-      valid = idx;
+    /** @type {number|null} */
+    let idx;
+    if (typeof index === 'function') {
+      valid = /** @type {HasValidationCallback} */ (index);
       idx = null;
+    } else {
+      idx = index;
     }
     if (this.hasIPinBuffer(scope, idx, valid)) { return true; }
     if (this.hasIIP(idx, valid)) { return true; }
     return false;
   }
 
-  // Returns the number of data packets in an inport
-  length(scope, index) {
+  /**
+   * Returns the number of data packets in an inport
+   * @param {string|null} scope
+   * @param {number|null} [index]
+   * @returns {number}
+   */
+  length(scope, index = null) {
     const buf = this.getBuffer(scope, index);
     if (!buf) { return 0; }
     return buf.length;
   }
 
-  // Tells if buffer has packets or not
+  /**
+   * Tells if buffer has packets or not
+   * @param {string|null} scope
+   */
   ready(scope) {
     return this.length(scope) > 0;
   }

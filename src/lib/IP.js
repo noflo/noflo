@@ -27,6 +27,10 @@
 //   - 'openBracket'
 //   - 'closeBracket'
 
+/**
+ * @typedef {Object<string, boolean|string>} IPOptions
+ */
+
 export default class IP {
   // Detects if an arbitrary value is an IP
   /**
@@ -42,7 +46,7 @@ export default class IP {
   /**
    * @param {string} type
    * @param {any} data
-   * @param {Object<string, boolean|string>} [options]
+   * @param {IPOptions} [options]
    */
   constructor(type, data = null, options = {}) {
     this.type = type || 'data';
@@ -50,7 +54,7 @@ export default class IP {
     this.isIP = true;
     /** @type {string|null} */
     this.scope = null; // sync scope id
-    /** @type {string|null} */
+    /** @type {import("./Component").Component|null} */
     this.owner = null; // packet owner process
     this.clonable = false; // cloning safety flag
     /** @type {number|null} */
@@ -85,7 +89,7 @@ export default class IP {
 
   // Moves an IP to a different owner
   /**
-   * @param {string|null} owner
+   * @param {import("./Component").Component|null} owner
    */
   move(owner) {
     // no-op

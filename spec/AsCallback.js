@@ -70,20 +70,16 @@ describe('asCallback interface', () => {
     return c;
   };
 
-  before((done) => {
+  before(() => {
     loader = new noflo.ComponentLoader(baseDir);
-    loader.listComponents((err) => {
-      if (err) {
-        done(err);
-        return;
-      }
-      loader.registerComponent('process', 'Async', processAsync);
-      loader.registerComponent('process', 'Error', processError);
-      loader.registerComponent('process', 'Values', processValues);
-      loader.registerComponent('process', 'NeverSend', neverSend);
-      loader.registerComponent('process', 'Streamify', streamify);
-      done();
-    });
+    return loader.listComponents()
+      .then(() => {
+        loader.registerComponent('process', 'Async', processAsync);
+        loader.registerComponent('process', 'Error', processError);
+        loader.registerComponent('process', 'Values', processValues);
+        loader.registerComponent('process', 'NeverSend', neverSend);
+        loader.registerComponent('process', 'Streamify', streamify);
+      });
   });
   describe('with a non-existing component', () => {
     let wrapped = null;

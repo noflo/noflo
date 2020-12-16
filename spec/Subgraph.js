@@ -8,22 +8,17 @@ describe('NoFlo Graph component', () => {
   let c = null;
   let g = null;
   let loader = null;
-  before((done) => {
+  before(() => {
     loader = new noflo.ComponentLoader(baseDir);
-    loader.listComponents(done);
+    return loader.listComponents();
   });
-  beforeEach((done) => {
-    loader.load('Graph', (err, instance) => {
-      if (err) {
-        done(err);
-        return;
-      }
+  beforeEach(() => loader
+    .load('Graph')
+    .then((instance) => {
       c = instance;
       g = noflo.internalSocket.createSocket();
       c.inPorts.graph.attach(g);
-      done();
-    });
-  });
+    }));
 
   const Split = function () {
     const inst = new noflo.Component();

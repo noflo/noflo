@@ -45,6 +45,13 @@ function ipToLegacy(ip) {
   }
 }
 
+/**
+ * @typedef SocketError
+ * @property {Error} error
+ * @property {string} [id]
+ * @property {import("fbp-graph/lib/Types").GraphNodeMetadata} [metadata]
+ */
+
 // ## Internal Sockets
 //
 // The default communications mechanism between NoFlo processes is
