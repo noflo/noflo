@@ -627,7 +627,7 @@ describe('Scope isolation', () => {
                     + 'Pc1(process/Async) -> IN1 PcMergeA(process/MergeA)\n'
                     + '\'twoIIP0\' -> IN2[0] PcMergeA\n'
                     + '\'twoIIP1\' -> IN2[1] PcMergeA';
-      noflo.graph
+      return noflo.graph
         .loadFBP(fbpData)
         .then((g) => {
           loader.registerComponent('scope', 'MergeIIPA', g);
