@@ -7,4 +7,4 @@ cases:
     in: true
   expect:
     out:
-     equals: true
+      equals: true
