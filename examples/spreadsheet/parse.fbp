@@ -13,7 +13,7 @@
 #
 # In the end the output will be provided through the ENTITIZE.OUT port.
 #
-# This network uses Apache Tika for parsing the spreadsheet into 
+# This network uses Apache Tika for parsing the spreadsheet into
 # XHTML. Ensure that Tika can be found in the location set below:
 'tika-app-0.9.jar' -> TIKA Read(ReadDocument)
 
@@ -21,7 +21,7 @@
 Read() ERROR -> IN Display(Output)
 
 # Parse the file to JSON, get all spreadsheets from it
-Read() OUT -> IN Parse(ParseXml) 
+Read() OUT -> IN Parse(ParseXml)
 
 # We're only interested in DIVs inside the BODY
 'body' -> KEY GetBody(GetObjectKey)
@@ -39,7 +39,7 @@ GetDiv() OUT -> IN GetSheet(GetObjectKey) OUT -> IN GroupByTableId()
 'table' -> KEY GetTable(GetObjectKey)
 'tbody' -> KEY GetTBody(GetObjectKey)
 'tr' -> KEY GetTR(GetObjectKey)
-GroupByTableId() OUT -> IN GetTable() OUT -> IN GetTBody() OUT -> IN GetTR() 
+GroupByTableId() OUT -> IN GetTable() OUT -> IN GetTBody() OUT -> IN GetTR()
 
 # Process each row individually and get the cells
 'td' -> KEY GetTD(GetObjectKey)
