@@ -12,6 +12,7 @@ import { promisify } from 'util';
 import * as utils from '../Utils';
 
 const writeFile = promisify(fs.writeFile);
+const readFile = promisify(fs.readFile);
 
 // Type loading CoffeeScript compiler
 let CoffeeScript;
@@ -46,29 +47,27 @@ try {
  * @param {string} name
  * @param {string} source
  * @param {string} language
- * @param {TranspileCallback} callback
- * @returns {void}
+ * @returns {Promise<string>}
  */
-function transpileSource(packageId, name, source, language, callback) {
+function transpileSource(packageId, name, source, language) {
   let src;
   switch (language) {
     case 'coffeescript': {
       if (!CoffeeScript) {
-        callback(new Error(`Unsupported component source language ${language} for ${packageId}/${name}: no CoffeeScript compiler installed`));
+        return Promise.reject(new Error(`Unsupported component source language ${language} for ${packageId}/${name}: no CoffeeScript compiler installed`));
       }
       try {
         src = CoffeeScript.compile(source, {
           bare: true,
         });
       } catch (err) {
-        callback(err);
-        return;
+        return Promise.reject(err);
       }
       break;
     }
     case 'typescript': {
       if (!typescript) {
-        callback(new Error(`Unsupported component source language ${language} for ${packageId}/${name}: no TypeScript compiler installed`));
+        return Promise.reject(new Error(`Unsupported component source language ${language} for ${packageId}/${name}: no TypeScript compiler installed`));
       }
       try {
         src = typescript.transpile(source, {
@@ -76,8 +75,7 @@ function transpileSource(packageId, name, source, language, callback) {
           target: typescript.ScriptTarget.ES2015,
         });
       } catch (err) {
-        callback(err);
-        return;
+        return Promise.reject(err);
       }
       break;
     }
@@ -89,28 +87,20 @@ function transpileSource(packageId, name, source, language, callback) {
       break;
     }
     default: {
-      callback(new Error(`Unsupported component source language ${language} for ${packageId}/${name}`));
-      return;
+      return Promise.reject(new Error(`Unsupported component source language ${language} for ${packageId}/${name}`));
     }
   }
-  callback(null, src);
+  return Promise.resolve(src);
 }
 
-/**
- * @callback EvaluationCallback
- * @param {Error|null} error
- * @param {Object|Function} [module]
- * @returns {void}
- */
 /**
  * @param {string} baseDir
  * @param {string} packageId
  * @param {string} name
  * @param {string} source
- * @param {EvaluationCallback} callback
- * @returns {void}
+ * @returns {Promise<Object|Function>}
  */
-function evaluateModule(baseDir, packageId, name, source, callback) {
+function evaluateModule(baseDir, packageId, name, source) {
   const Module = require('module');
   let implementation;
   try {
@@ -124,14 +114,12 @@ function evaluateModule(baseDir, packageId, name, source, callback) {
     moduleImpl._compile(source, modulePath);
     implementation = moduleImpl.exports;
   } catch (e) {
-    callback(e);
-    return;
+    return Promise.reject(e);
   }
   if ((typeof implementation !== 'function') && (typeof implementation.getComponent !== 'function')) {
-    callback(new Error(`Provided source for ${packageId}/${name} failed to create a runnable component`));
-    return;
+    return Promise.reject(new Error(`Provided source for ${packageId}/${name} failed to create a runnable component`));
   }
-  callback(null, implementation);
+  return Promise.resolve(implementation);
 }
 
 /**
@@ -170,30 +158,31 @@ function registerSpecs(loader, packageId, name, specs) {
 
 /**
  * @param {import("../ComponentLoader").ComponentLoader} loader
- * @param {Object} module
- * @param {Object} component
+ * @param {import("fbp-manifest/dist/lib/list").FbpManifestModule} module
+ * @param {import("fbp-manifest/dist/lib/list").FbpManifestComponent} component
  * @param {string} source
  * @param {string} language
- * @param {TranspileCallback} callback
- * @returns {void}
+ * @returns {Promise<void>}
  */
-function transpileAndRegisterForModule(loader, module, component, source, language, callback) {
-  transpileSource(module.name, component.name, source, language, (transpileError, src) => {
-    if (transpileError) {
-      callback(transpileError);
-      return;
-    }
-    const moduleBase = path.resolve(loader.baseDir, module.base);
-    evaluateModule(moduleBase, module.name, component.name, src, (evalError, implementation) => {
-      if (evalError) {
-        callback(evalError);
-        return;
-      }
+function transpileAndRegisterForModule(loader, module, component, source, language) {
+  return transpileSource(module.name, component.name, source, language)
+    .then((src) => {
+      const moduleBase = path.resolve(loader.baseDir, module.base);
+      return evaluateModule(moduleBase, module.name, component.name, src);
+    })
+    .then((implementation) => {
       registerSources(loader, module.name, component.name, source, language);
-      registerSpecs(loader, module.name, component.name, component.tests);
-      loader.registerComponent(module.name, component.name, implementation, callback);
+      registerSpecs(loader, module.name, component.name, component.tests || '');
+      return new Promise((resolve, reject) => {
+        loader.registerComponent(module.name, component.name, implementation, (err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve();
+        });
+      });
     });
-  });
 }
 
 /**
@@ -209,9 +198,14 @@ export function setSource(loader, packageId, name, source, language, callback) {
   transpileAndRegisterForModule(loader, {
     name: packageId,
     base: '',
+    components: [],
+    runtime: 'noflo',
   }, {
     name,
-  }, source, language, callback);
+  }, source, language)
+    .then(() => {
+      callback(null);
+    }, callback);
 }
 
 /**
@@ -391,18 +385,19 @@ function registerCustomLoaders(loader, componentLoaders, callback) {
 
 /**
  * @param {import("../ComponentLoader").ComponentLoader} loader
- * @param {Array<Object>} modules
+ * @param {Array<import("fbp-manifest/dist/lib/list").FbpManifestModule>} modules
  * @param {ErrorableCallback} callback
  */
 function registerModules(loader, modules, callback) {
   const compatible = modules.filter((m) => ['noflo', 'noflo-nodejs'].includes(m.runtime));
+  /** @type {string[]} */
   const componentLoaders = [];
   Promise.all(compatible.map((m) => {
     if (m.icon) {
       loader.setLibraryIcon(m.name, m.icon);
     }
 
-    if (m.noflo != null ? m.noflo.loader : undefined) {
+    if (m.noflo && m.noflo.loader) {
       const loaderPath = path.resolve(loader.baseDir, m.base, m.noflo.loader);
       componentLoaders.push(loaderPath);
     }
@@ -411,19 +406,15 @@ function registerModules(loader, modules, callback) {
       const language = utils.guessLanguageFromFilename(c.path);
       if (language === 'typescript' || language === 'coffeescript') {
         // We can't require a module that requires transpilation, go the setSource route
-        fs.readFile(path.resolve(loader.baseDir, c.path), 'utf-8', (fsErr, source) => {
-          if (fsErr) {
-            reject(fsErr);
-            return;
-          }
-          transpileAndRegisterForModule(loader, m, c, source, language, (err) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-            resolve();
-          });
-        });
+        readFile(path.resolve(loader.baseDir, c.path), 'utf-8')
+          .then((source) => transpileAndRegisterForModule(
+            loader,
+            m,
+            c,
+            source,
+            language,
+          ))
+          .then(resolve, reject);
         return;
       }
       registerSpecs(loader, m.name, c.name, c.tests);
@@ -447,7 +438,7 @@ function registerModules(loader, modules, callback) {
 const dynamicLoader = {
   /**
    * @param {import("../ComponentLoader").ComponentLoader} loader
-   * @param {Object} manifestOptions
+   * @param {import("fbp-manifest/dist/lib/list").FbpManifestOptions} manifestOptions
    * @param {Function} callback
    */
   listComponents(loader, manifestOptions, callback) {
@@ -474,13 +465,14 @@ const dynamicLoader = {
 const manifestLoader = {
   /**
    * @param {import("../ComponentLoader").ComponentLoader} loader
-   * @param {import("fbp-manifest/src/lib/list").FbpManifestOptions} options
+   * @param {import("fbp-manifest/dist/lib/list").FbpManifestOptions} options
    * @param {Object} manifestContents
-   * @param {Promise<import("fbp-manifest/src/lib/list").FbpManifestDocument>} manifestContents
-   * @returns {Promise<import("fbp-manifest/src/lib/list").FbpManifestDocument>}
+   * @param {import("fbp-manifest/src/lib/list").FbpManifestDocument} manifestContents
+   * @returns {Promise<import("fbp-manifest/dist/lib/list").FbpManifestDocument>}
    */
   writeCache(loader, options, manifestContents) {
-    const filePath = path.resolve(loader.baseDir, options.manifest);
+    const manifestName = options.manifest || 'fbp.json';
+    const filePath = path.resolve(loader.baseDir, manifestName);
 
     return writeFile(filePath, JSON.stringify(manifestContents, null, 2), {
       encoding: 'utf-8',
@@ -490,8 +482,8 @@ const manifestLoader = {
 
   /**
    * @param {import("../ComponentLoader").ComponentLoader} loader
-   * @param {import("fbp-manifest/src/lib/list").FbpManifestOptions} options
-   * @returns {Promise<import("fbp-manifest/src/lib/list").FbpManifestDocument>}
+   * @param {import("fbp-manifest/dist/lib/list").FbpManifestOptions} options
+   * @returns {Promise<import("fbp-manifest/dist/lib/list").FbpManifestDocument>}
    */
   readCache(loader, options) {
     return manifest.load.load(loader.baseDir, {
@@ -502,7 +494,7 @@ const manifestLoader = {
 
   /**
    * @param {import("../ComponentLoader").ComponentLoader} loader
-   * @returns {import("fbp-manifest/src/lib/list").FbpManifestOptions}
+   * @returns {import("fbp-manifest/dist/lib/list").FbpManifestOptions}
    */
   prepareManifestOptions(loader) {
     const l = loader;
