@@ -23,7 +23,8 @@
   "homepage": "https://github.com/noflo/noflo-assembly-utils#readme",
   "dependencies": {
     "jsonpath": "^1.0.2",
-    "noflo-assembly": "^0.2.0"
+    "noflo-assembly": "^0.2.0",
+    "noflo": "^1.0.0"
   },
   "devDependencies": {
     "eslint": "^7.9.0",

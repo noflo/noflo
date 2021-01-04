@@ -1,0 +1,24 @@
+name: ToAssembly component
+topic: assembly-utils/ToAssembly
+cases:
+  -
+    name: with an input value
+    assertion: should wrap it into an Assembly message
+    inputs:
+      in: 42
+    expect:
+      out:
+        - path: `$.data`
+          equals: 42
+        - path: `$.errors`
+          equals: []
+  -
+    name: with an error
+    assertion: should wrap it into an Assembly message
+    inputs:
+      error:
+        message: 'Foo'
+    expect:
+      out:
+        - path: `$.errors[0].message`
+          equals: 'Foo'
