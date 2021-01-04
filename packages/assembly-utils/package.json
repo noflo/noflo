@@ -4,7 +4,7 @@
   "description": "Utility components for NoFlo Assembly programs",
   "scripts": {
     "pretest": "eslint components/*.js",
-    "test": "fbp-spec --secret test --address ws://localhost:3333 --command 'noflo-nodejs --port 3333 --secret test --open false --capture-output' spec/*.yaml"
+    "test": "fbp-spec --secret test --address ws://localhost:3333 --command 'noflo-nodejs --port 3333 --secret test --open false --capture-output' spec"
   },
   "repository": {
     "type": "git",
@@ -23,7 +23,8 @@
   "homepage": "https://github.com/noflo/noflo-assembly-utils#readme",
   "dependencies": {
     "jsonpath": "^1.0.2",
-    "noflo-assembly": "^0.2.0"
+    "noflo-assembly": "^0.2.0",
+    "noflo": "^1.0.0"
   },
   "devDependencies": {
     "eslint": "^7.9.0",
