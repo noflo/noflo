@@ -4,7 +4,7 @@ exports.getComponent = () => {
   const c = new noflo.Component();
   c.description = 'Convert regular NoFlo data to an assembly message';
   c.inPorts.add('in', {
-    datatype: 'any',
+    datatype: 'all',
   });
   c.inPorts.add('error', {
     datatype: 'object',
