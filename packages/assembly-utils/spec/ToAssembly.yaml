@@ -8,9 +8,9 @@ cases:
       in: 42
     expect:
       out:
-        - path: `$.data`
+        - path: '$.data'
           equals: 42
-        - path: `$.errors`
+        - path: '$.errors'
           equals: []
   -
     name: with an error
@@ -20,5 +20,5 @@ cases:
         message: 'Foo'
     expect:
       out:
-        - path: `$.errors[0].message`
+        - path: '$.errors[0].message'
           equals: 'Foo'
