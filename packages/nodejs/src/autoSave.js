@@ -108,6 +108,14 @@ function saveGraph(name, graph, rt) {
       if (name && graphJSON.properties) {
         graphJSON.properties.name = path.basename(name);
       }
+      if (graphJSON.properties && graphJSON.properties.id) {
+        delete graphJSON.properties.id;
+      }
+      if (graphJSON.properties && !graphJSON.properties.environment) {
+        graphJSON.properties.environment = {
+          type: 'noflo-nodejs',
+        };
+      }
       return writeFile(filePath, JSON.stringify(graphJSON, null, 4))
         .then(() => {
           console.log(`Saved ${fileDisplayPath(filePath, rt)}`);

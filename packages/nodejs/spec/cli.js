@@ -252,6 +252,9 @@ cases:
           library: 'auto-save',
           id: graphName,
           main: false,
+          environment: {
+            type: 'noflo-nodejs',
+          },
         });
         graphInstance.addNode('one', 'auto-save/Plusser');
         graphInstance.addNode('two', 'core/Output');
@@ -273,8 +276,10 @@ cases:
         ))
         .then((contents) => {
           graphFound = true;
+          const originalGraphJson = JSON.parse(JSON.stringify(graphInstance.toJSON()));
+          delete originalGraphJson.properties.id;
           const graphJson = JSON.parse(contents);
-          expect(graphJson).to.eql(JSON.parse(JSON.stringify(graphInstance.toJSON())));
+          expect(graphJson).to.eql(originalGraphJson);
         }));
     });
     describe('editing a graph with namespaced name', () => {
@@ -288,6 +293,9 @@ cases:
           library: 'auto-save',
           id: `default/${graphName}`,
           main: true,
+          environment: {
+            type: 'noflo-nodejs',
+          },
         });
         graphInstance.addNode('one', 'auto-save/Plusser');
         graphInstance.addNode('two', 'core/Output');
@@ -312,8 +320,10 @@ cases:
         ))
         .then((contents) => {
           graphFound = true;
+          const originalGraphJson = JSON.parse(JSON.stringify(graphInstance.toJSON()));
+          delete originalGraphJson.properties.id;
           const graphJson = JSON.parse(contents);
-          expect(graphJson).to.eql(JSON.parse(JSON.stringify(graphInstance.toJSON())));
+          expect(graphJson).to.eql(originalGraphJson);
         }));
     });
   });
