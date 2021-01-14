@@ -1,3 +1,7 @@
+## noflo-nodejs 0.15.1 (14-01-2021)
+
+* Fixed graph properties when auto-saving
+
 ## noflo-nodejs 0.15.0 (14-12-2020)
 
 * Updated to the new Promise-based NoFlo 1.4 APIs
