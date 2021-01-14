@@ -31,7 +31,7 @@
     "eslint-plugin-import": "^2.22.0",
     "events": "^3.2.0",
     "flowtrace": "^0.1.8",
-    "karma": "^5.1.1",
+    "karma": "^6.0.0",
     "karma-chai": "^0.1.0",
     "karma-chrome-launcher": "^3.1.0",
     "karma-mocha": "^2.0.1",
