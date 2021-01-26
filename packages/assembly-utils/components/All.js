@@ -3,7 +3,7 @@ const noflo = require('noflo');
 exports.getComponent = () => {
   const c = new noflo.Component();
   c.description = 'Collect streamed Assemblies from all connected inputs into a single message';
-  c.icon = 'angle-double-right';
+  c.icon = 'fast-forward';
 
   c.inPorts.add('in', {
     datatype: 'object',
