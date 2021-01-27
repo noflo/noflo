@@ -23,11 +23,18 @@ exports.getComponent = () => {
     const messages = indexesWithData.map((idx) => input
       .getData(['in', idx]));
     let message = {};
+    let errors = [];
     messages.forEach((msg) => {
+      if (msg.errors && msg.errors.length) {
+        errors = errors.concat(msg.errors);
+      }
       message = merge(message, msg);
     });
     output.sendDone({
-      out: message,
+      out: {
+        ...message,
+        errors,
+      },
     });
   });
 };
