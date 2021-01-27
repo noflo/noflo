@@ -1,0 +1,32 @@
+name: Fork component
+topic: assembly-utils/Fork
+fixture:
+  type: fbp
+  data: |
+    INPORT=fork.IN:in
+    OUTPORT=one.OUT:one
+    OUTPORT=two.OUT:two
+    fork(assembly-utils/Fork) OUT[0] -> IN one(core/Repeat)
+    fork() OUT[1] -> IN two(core/Repeat)
+cases:
+  - name: with a single packet
+    assertion: it should send to all connected outports
+    inputs:
+      in:
+        data: foo
+        errors: []
+    expect:
+      one:
+        -
+          path: '$.errors'
+          equals: []
+        -
+          path: '$.data'
+          equals: foo
+      two:
+        -
+          path: '$.errors'
+          equals: []
+        -
+          path: '$.data'
+          equals: foo
