@@ -1,6 +1,6 @@
 {
   "name": "noflo-assembly-utils",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Utility components for NoFlo Assembly programs",
   "scripts": {
     "pretest": "eslint components/*.js",
