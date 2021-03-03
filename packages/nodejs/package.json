@@ -28,7 +28,7 @@
     "noflo-runtime-base": "^0.13.1",
     "noflo-runtime-webrtc": "^0.13.0",
     "noflo-runtime-websocket": "^0.13.0",
-    "open": "^7.2.1",
+    "open": "^8.0.1",
     "password-generator": "^2.2.0",
     "slug": "^4.0.2",
     "uuid": "^8.1.0"
