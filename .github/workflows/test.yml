@@ -10,7 +10,7 @@ jobs:
       matrix:
         node-version: [12.x]
     steps:
-    - uses: actions/checkout@v2.3.4
+    - uses: actions/checkout@v3
     - name: Check file formatting against EditorConfig
       uses: editorconfig-checker/action-editorconfig-checker@v1.0.0
     - name: Use Node.js ${{ matrix.node-version }}
