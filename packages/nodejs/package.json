@@ -1,6 +1,6 @@
 {
   "name": "noflo-nodejs",
-  "version": "0.15.1",
+  "version": "0.15.2",
   "description": "Command-line tool for running NoFlo programs on Node.js",
   "main": "src/library.js",
   "scripts": {
