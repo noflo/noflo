@@ -8,7 +8,7 @@ module.exports = (mainGraph, options = {}, preStart = () => Promise.resolve()) =
     // Subscribe runtime to signals
     .then((rt) => runtime.subscribe(rt, config))
     // Execute pre-start hook, like for example custom component loader
-    .then((rt) => preStart(rt).then(() => rt))
+    .then((rt) => preStart(rt, config).then(() => rt))
     // Load and set up a main graph
     .then((rt) => runtime.startGraph(mainGraph, rt, config))
     // Start the WebSocket server
