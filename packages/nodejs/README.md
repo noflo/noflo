@@ -1,7 +1,7 @@
 Command-line tool for running NoFlo programs on Node.js
 =================================
 
-This tool is designed to be used together with the [NoFlo UI](https://noflojs.org/noflo-ui/) development environment
+This tool is designed to be used together with the [NoFlo UI](https://app.noflojs.org/) development environment
 for running [NoFlo](http://noflojs.org/) networks on [Node.js](http://nodejs.org/). This tool runs your
 NoFlo programs, and provides a [FBP Protocol](https://flowbased.github.io/fbp-protocol/) interface over
 either WebSockets or WebRTC to tools like NoFlo UI and fbp-spec.

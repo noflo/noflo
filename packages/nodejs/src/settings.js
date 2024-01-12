@@ -107,7 +107,7 @@ const config = {
   },
   ide: {
     description: 'URL for the FBP protocol client',
-    default: 'https://noflojs.org/noflo-ui/',
+    default: 'https://app.noflojs.org',
   },
   signaller: {
     description: 'URL for the WebRTC signalling server',
