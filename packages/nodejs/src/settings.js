@@ -107,7 +107,7 @@ const config = {
   },
   ide: {
     description: 'URL for the FBP protocol client',
-    default: 'https://app.flowhub.io',
+    default: 'https://noflojs.org/noflo-ui/',
   },
   signaller: {
     description: 'URL for the WebRTC signalling server',

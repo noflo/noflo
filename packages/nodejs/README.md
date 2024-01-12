@@ -1,10 +1,10 @@
 Command-line tool for running NoFlo programs on Node.js
 =================================
 
-This tool is designed to be used together with the [Flowhub](http://flowhub.io/) development environment
+This tool is designed to be used together with the [NoFlo UI](https://noflojs.org/noflo-ui/) development environment
 for running [NoFlo](http://noflojs.org/) networks on [Node.js](http://nodejs.org/). This tool runs your
 NoFlo programs, and provides a [FBP Protocol](https://flowbased.github.io/fbp-protocol/) interface over
-either WebSockets or WebRTC to tools like Flowhub and fbp-spec.
+either WebSockets or WebRTC to tools like NoFlo UI and fbp-spec.
 
 This enables inspection of the state of the running NoFlo program, as well as live editing of the graph
 and components of your project.
@@ -37,9 +37,9 @@ Once you have installed the runtime, it is time to start it:
 $ npx noflo-nodejs
 ```
 
-This will start a WebSocket-based NoFlo Runtime server. When started, it will output an URL with the connection details needed by Flowhub.
+This will start a WebSocket-based NoFlo Runtime server. When started, it will output an URL with the connection details needed by NoFlo UI.
 
-Copy paste this URL into the browser. The Flowhub IDE will open, and automatically connect to your runtime.
+Copy paste this URL into the browser. The NoFlo UI IDE will open, and automatically connect to your runtime.
 To make changes hit 'Edit as Project'. You should be able to see available components and build up your system.
 
 ## Starting an existing graph
@@ -73,7 +73,7 @@ In most Node.js projects there will be three different setups you might want to 
 
 With this setup you get the following:
 
-* By running `npm run dev`, noflo-nodejs will start your projects' main graph and open the Flowhub IDE in your browser. Any changes you make in Flowhub will be persisted on your local hard drive
+* By running `npm run dev`, noflo-nodejs will start your projects' main graph and open the NoFlo UI IDE in your browser. Any changes you make in NoFlo UI will be persisted on your local hard drive
 * By running `npm test`, [fbp-spec](https://github.com/flowbased/fbp-spec) will start a noflo-nodejs instance, connect to it, and run all of your local fbp-spec tests
 * By running `npm start`, noflo-nodejs starts your program, enabling remote debugging via the WebRTC protocol
 
