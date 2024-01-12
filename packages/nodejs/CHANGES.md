@@ -1,3 +1,7 @@
+## noflo-nodejs 0.15.3 (12-01-2024)
+
+* Now using the community version of NoFlo UI by default
+
 ## noflo-nodejs 0.15.2 (29-12-2022)
 
 * Options are now passed to the preStart callback when used as a library
