@@ -226,9 +226,8 @@ export class ComponentLoader {
     return promise;
   }
 
-  // Creates an instance of a component.
   /**
-   * @protected
+   * Creates an instance of a component.
    * @param {string} name
    * @param {ComponentDefinitionWithoutGraph} component
    * @param {import("fbp-graph/lib/Types").GraphNodeMetadata} metadata
