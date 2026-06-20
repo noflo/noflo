@@ -9,11 +9,14 @@
     import/prefer-default-export,
 */
 
-import * as noflo from '../lib/NoFlo';
+import { graph as fbpGraph } from 'fbp-graph';
+import { Component } from '../lib/Component';
+import { InPorts, OutPorts } from '../lib/Ports';
+import { Network } from '../lib/Network';
 
 // The Graph component is used to wrap NoFlo Networks into components inside
 // another network.
-export class Graph extends noflo.Component {
+export class Graph extends Component {
   /**
    * @param {import("fbp-graph/lib/Types").GraphNodeMetadata} [metadata]
    */
@@ -27,18 +30,18 @@ export class Graph extends noflo.Component {
     this.starting = false;
     /** @type {string|null} */
     this.baseDir = null;
-    /** @type {noflo.ComponentLoader|null} */
+    /** @type {import("../lib/ComponentLoader").ComponentLoader|null} */
     this.loader = null;
     this.load = 0;
 
-    this.inPorts = new noflo.InPorts({
+    this.inPorts = new InPorts({
       graph: {
         datatype: 'all',
         description: 'NoFlo graph definition to be used with the subgraph component',
         required: true,
       },
     });
-    this.outPorts = new noflo.OutPorts();
+    this.outPorts = new OutPorts();
 
     this.inPorts.ports.graph.on('ip', (packet) => {
       if (packet.type !== 'data') { return; }
@@ -59,14 +62,14 @@ export class Graph extends noflo.Component {
         return this.createNetwork(graph);
       }
       // JSON definition of a graph
-      return noflo.graph.loadJSON(graph)
+      return fbpGraph.loadJSON(graph)
         .then((instance) => this.createNetwork(instance));
     }
     let graphName = graph;
     if ((graphName.substr(0, 1) !== '/') && (graphName.substr(1, 1) !== ':') && process && process.cwd) {
       graphName = `${process.cwd()}/${graphName}`;
     }
-    return noflo.graph.loadFile(graphName)
+    return fbpGraph.loadFile(graphName)
       .then((instance) => this.createNetwork(instance));
   }
 
@@ -83,21 +86,22 @@ export class Graph extends noflo.Component {
       graphObj.name = this.nodeId;
     }
 
-    return noflo.createNetwork(graphObj, {
-      delay: true,
-      subscribeGraph: false,
+    const network = new Network(graphObj, {
       componentLoader: this.loader || undefined,
       baseDir: this.baseDir || undefined,
-    })
-      .then((network) => {
-        this.network = /** @type {import("../lib/Network").Network} */ (network);
+    });
+
+    return network
+      .loader.listComponents()
+      .then(() => {
+        this.network = network;
         this.emit('network', network);
         // Subscribe to network lifecycle
-        this.subscribeNetwork(this.network);
+        this.subscribeNetwork(network);
         // Wire the network up
         return network.connect();
       })
-      .then((network) => {
+      .then(() => {
         Object.keys(network.processes).forEach((name) => {
           // Map exported ports to local component
           const node = network.processes[name];
