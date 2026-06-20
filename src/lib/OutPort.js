@@ -1,8 +1,8 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
-import BasePort from './BasePort';
-import IP from './IP';
+import BasePort from './BasePort.js';
+import IP from './IP.js';
 
 // ## NoFlo outport
 //

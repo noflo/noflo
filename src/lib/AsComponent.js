@@ -5,7 +5,7 @@
     import/prefer-default-export,
 */
 import * as getParams from 'get-function-params';
-import { Component } from './Component';
+import { Component } from './Component.js';
 
 /**
  * @typedef FuncParam

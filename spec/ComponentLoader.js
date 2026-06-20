@@ -376,7 +376,6 @@ describe('ComponentLoader with no external packages installed', () => {
           done(err);
           return;
         }
-        console.log(component);
         chai.expect(component).to.be.an('object');
         chai.expect(component.code).to.be.a('string');
         chai.expect(component.code.indexOf('Component')).to.not.equal(-1);

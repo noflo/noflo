@@ -10,9 +10,9 @@
 */
 
 import { graph as fbpGraph } from 'fbp-graph';
-import { Component } from '../lib/Component';
-import { InPorts, OutPorts } from '../lib/Ports';
-import { Network } from '../lib/Network';
+import { Component } from '../lib/Component.js';
+import { InPorts, OutPorts } from '../lib/Ports.js';
+import { Network } from '../lib/Network.js';
 
 // The Graph component is used to wrap NoFlo Networks into components inside
 // another network.

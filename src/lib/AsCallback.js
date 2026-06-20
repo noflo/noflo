@@ -7,10 +7,10 @@
     import/prefer-default-export,
 */
 import { Graph } from 'fbp-graph';
-import { ComponentLoader } from './ComponentLoader';
-import { Network } from './Network';
-import IP from './IP';
-import * as internalSocket from './InternalSocket';
+import { ComponentLoader } from './ComponentLoader.js';
+import { Network } from './Network.js';
+import IP from './IP.js';
+import * as internalSocket from './InternalSocket.js';
 
 // ## asCallback embedding API
 //

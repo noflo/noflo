@@ -3,8 +3,8 @@
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
 import { EventEmitter } from 'events';
-import IP from './IP';
-import { makeAsync } from './Platform';
+import IP from './IP.js';
+import { makeAsync } from './Platform.js';
 
 function legacyToIp(event, payload) {
   // No need to wrap modern IP Objects

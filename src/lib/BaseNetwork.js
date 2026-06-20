@@ -10,11 +10,11 @@
 */
 
 import { EventEmitter } from 'events';
-import * as internalSocket from './InternalSocket';
-import { ComponentLoader } from './ComponentLoader';
-import { debounce } from './Utils';
-import IP from './IP';
-import { deprecated, isBrowser, makeAsync } from './Platform';
+import * as internalSocket from './InternalSocket.js';
+import { ComponentLoader } from './ComponentLoader.js';
+import { debounce } from './Utils.js';
+import IP from './IP.js';
+import { deprecated, isBrowser, makeAsync } from './Platform.js';
 
 /**
  * @typedef NetworkProcess

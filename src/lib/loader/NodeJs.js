@@ -9,7 +9,7 @@ import * as fs from 'fs';
 import * as manifest from 'fbp-manifest';
 import * as fbpGraph from 'fbp-graph';
 import { promisify } from 'util';
-import * as utils from '../Utils';
+import * as utils from '../Utils.js';
 
 const writeFile = promisify(fs.writeFile);
 const readFile = promisify(fs.readFile);
@@ -559,7 +559,7 @@ const manifestLoader = {
  */
 function registerSubgraph(loader) {
   // Inject subgraph component
-  const graphPath = path.resolve(__dirname, '../../components/Graph.js');
+  const graphPath = path.resolve(import.meta.dirname, '../../components/Graph.js');
   loader.registerComponent(null, 'Graph', graphPath);
 }
 

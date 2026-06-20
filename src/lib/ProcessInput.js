@@ -4,7 +4,7 @@
 //     NoFlo may be freely distributed under the MIT license
 /* eslint-disable no-underscore-dangle */
 import debug from 'debug';
-import IP from './IP'; // eslint-disable-line no-unused-vars
+import IP from './IP.js'; // eslint-disable-line no-unused-vars
 
 const debugComponent = debug('noflo:component');
 

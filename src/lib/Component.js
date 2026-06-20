@@ -10,14 +10,14 @@
 */
 import { EventEmitter } from 'events';
 import debug from 'debug';
-import { InPorts, OutPorts, normalizePortName } from './Ports';
-import { deprecated } from './Platform';
-import InPort from './InPort'; // eslint-disable-line no-unused-vars
-import OutPort from './OutPort'; // eslint-disable-line no-unused-vars
-import ProcessContext from './ProcessContext';
-import ProcessInput from './ProcessInput';
-import ProcessOutput from './ProcessOutput';
-import IP from './IP'; // eslint-disable-line no-unused-vars
+import { InPorts, OutPorts, normalizePortName } from './Ports.js';
+import { deprecated } from './Platform.js';
+import InPort from './InPort.js'; // eslint-disable-line no-unused-vars
+import OutPort from './OutPort.js'; // eslint-disable-line no-unused-vars
+import ProcessContext from './ProcessContext.js';
+import ProcessInput from './ProcessInput.js';
+import ProcessOutput from './ProcessOutput.js';
+import IP from './IP.js'; // eslint-disable-line no-unused-vars
 
 const debugComponent = debug('noflo:component');
 const debugBrackets = debug('noflo:component:brackets');

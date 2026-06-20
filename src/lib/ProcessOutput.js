@@ -5,7 +5,7 @@
 
 /* eslint-disable no-underscore-dangle */
 import debug from 'debug';
-import IP from './IP';
+import IP from './IP.js';
 
 const debugComponent = debug('noflo:component');
 

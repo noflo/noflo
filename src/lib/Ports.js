@@ -3,8 +3,8 @@
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
 import { EventEmitter } from 'events';
-import InPort from './InPort';
-import OutPort from './OutPort';
+import InPort from './InPort.js';
+import OutPort from './OutPort.js';
 
 /**
  * @typedef {import("./BasePort").BaseOptions} PortOptions

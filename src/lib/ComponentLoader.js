@@ -10,8 +10,8 @@
 */
 
 import { Graph } from 'fbp-graph';
-import * as registerLoader from './loader/register';
-import { deprecated, makeAsync } from './Platform';
+import * as registerLoader from './loader/register.js';
+import { deprecated, makeAsync } from './Platform.js';
 
 /**
  * @callback ComponentFactory
