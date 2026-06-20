@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [12.x]
+        node-version: [24.x]
     steps:
     - uses: actions/checkout@v2.3.4
     - name: Check file formatting against EditorConfig
@@ -21,12 +21,3 @@ jobs:
     - run: npm test
       env:
         CI: true
-  merge-me:
-    name: Auto-merge dependency updates
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-    - uses: ridedott/merge-me-action@v2.2.18
-      with:
-        GITHUB_LOGIN: 'dependabot[bot]'
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
