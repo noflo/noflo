@@ -48,6 +48,7 @@
     "webpack-cli": "^4.0.0"
   },
   "main": "./lib/NoFlo",
+  "module": "./src/lib/NoFlo.js",
   "types": "./lib/NoFlo.d.ts",
   "bin": {
     "noflo": "./bin/noflo",
