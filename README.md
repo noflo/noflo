@@ -62,7 +62,7 @@ NoFlo is available from [GitHub](https://github.com/noflo/noflo) under the MIT l
 
 ## Changes
 
-Please refer to the [Release Notes](https://github.com/noflo/noflo/releases) and the [CHANGES.md document](https://github.com/noflo/noflo/blob/master/CHANGES.md).
+Please refer to the [CHANGELOG.md](CHANGELOG.md)
 
 ## Usage
 
