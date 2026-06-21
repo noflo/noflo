@@ -19,13 +19,13 @@ Read more at <https://noflojs.org/>.
 
 ## Suitability
 
-NoFlo is not a web framework or a UI toolkit. It is a way to coordinate and reorganize data flow in any JavaScript application. As such, it can be used for whatever purpose JavaScript can be used for. We know of NoFlo being used for anything from building [web servers](https://thegrid.io) and build tools, to coordinating events inside [GUI applications](https://flowhub.io), [driving](http://meemoo.org/blog/2015-01-14-turtle-power-to-the-people) [robots](http://bergie.iki.fi/blog/noflo-ardrone/), or building Internet-connected [art installations](http://bergie.iki.fi/blog/ingress-table/).
+NoFlo is not a web framework or a UI toolkit. It is a way to coordinate and reorganize data flow in any JavaScript application. As such, it can be used for whatever purpose JavaScript can be used for. We know of NoFlo being used for anything from building [web servers](https://thegrid.io) and build tools, to coordinating events inside [GUI applications](https://app.noflojs.org), [driving](http://meemoo.org/blog/2015-01-14-turtle-power-to-the-people) [robots](http://bergie.iki.fi/blog/noflo-ardrone/), or building Internet-connected [art installations](http://bergie.iki.fi/blog/ingress-table/).
 
 ## Tools and ecosystem
 
 NoFlo itself is just a library for implementing flow-based programs in JavaScript. There is an ecosystem of tools around NoFlo and the [fbp protocol](https://flowbased.github.io/fbp-protocol/) that make it more powerful. Here are some of them:
 
-* [Flowhub](https://app.flowhub.io) -- browser-based visual programming **IDE** for NoFlo and other flow-based systems
+* [NoFlo Development Environment](https://app.noflojs.org) -- browser-based visual programming **IDE** for NoFlo and other flow-based systems
 * [noflo-nodejs](https://github.com/noflo/noflo-nodejs) -- command-line interface for running NoFlo programs on **Node.js**
 * [noflo-browser-app](https://github.com/noflo/noflo-browser-app) -- template for building NoFlo programs for **the web**
 * [noflo-assembly](https://github.com/noflo/noflo-assembly) -- **industrial approach** for designing NoFlo programs
@@ -66,7 +66,7 @@ Please refer to the [CHANGELOG.md](CHANGELOG.md)
 
 ## Usage
 
-Please refer to <http://noflojs.org/documentation/>. For visual programming with NoFlo, see <https://docs.flowhub.io/>.
+Please refer to <http://noflojs.org/documentation/>.
 
 ## Development
 
