@@ -69,9 +69,10 @@
     "postbuild": "replace 'node/events' 'events' lib -r",
     "pretest": "npm run lint && npm run build",
     "test:esmodules": "node --test spec/*.mjs",
+    "test:commonjs": "node --test spec/*.cjs",
     "test:node": "nyc mocha --require spec/utils/inject.js spec/*.js",
     "test:browser": "karma start karma.config.cjs",
-    "test": "npm run test:esmodules && npm run test:node && npm run test:browser"
+    "test": "npm run test:esmodules && npm run test:commonjs && npm run test:node && npm run test:browser"
   },
   "docco_husky": {
     "output_dir": "docs",
