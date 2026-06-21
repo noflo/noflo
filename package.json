@@ -84,9 +84,9 @@
   },
   "nyc": {
     "include": [
-      "components/*.js",
-      "lib/*.js",
-      "lib/**/*.js"
+      "src/components/*.js",
+      "src/lib/*.js",
+      "src/lib/**/*.js"
     ]
   }
 }
