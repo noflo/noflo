@@ -49,7 +49,6 @@
   },
   "main": "./src/lib/NoFlo",
   "module": "./src/lib/NoFlo.js",
-  "type": "module",
   "exports": {
     "import": "./src/lib/NoFlo.js",
     "require": "./lib/NoFlo.js"
@@ -66,9 +65,9 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "dirname:to": "sed -i -e 's/import\\.meta\\.dirname/__dirname/g' src/lib/loader/NodeJs.js",
-    "build:node": "npm run dirname:to && tsc && npm run dirname:from",
-    "dirname:from": "sed -i -e 's/__dirname/import\\.meta\\.dirname/g' src/lib/loader/NodeJs.js",
+    "prebuild:node": "replace 'import.meta.dirname' '__dirname' src/lib/loader -r",
+    "build:node": "tsc",
+    "postbuild:node": "replace '__dirname' 'import.meta.dirname' src/lib/loader -r",
     "build:browser": "webpack --config webpack.config.cjs",
     "build": "npm run build:node && npm run build:browser",
     "postbuild": "replace 'node/events' 'events' lib -r",
