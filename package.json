@@ -65,9 +65,9 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "prebuild:node": "replace 'import.meta.dirname' '__dirname' src/lib/loader -r",
+    "prebuild:node": "replace 'import.meta.dirname' '__dirname' src/lib/loader/NodeJs.js && replace 'import getParams from' 'import * as getParams from' src/lib/AsComponent.js",
     "build:node": "tsc",
-    "postbuild:node": "replace '__dirname' 'import.meta.dirname' src/lib/loader -r",
+    "postbuild:node": "replace '__dirname' 'import.meta.dirname' src/lib/loader/NodeJs.js && replace 'import \\* as getParams from' 'import getParams from' src/lib/AsComponent.js",
     "build:browser": "webpack --config webpack.config.cjs",
     "build": "npm run build:node && npm run build:browser",
     "postbuild": "replace 'node/events' 'events' lib -r",
