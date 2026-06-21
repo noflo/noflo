@@ -38,17 +38,22 @@
     "karma-mocha-reporter": "^2.2.5",
     "mocha": "^8.1.3",
     "noflo-component-loader": "^0.4.0",
-    "nyc": "^15.1.0",
+    "nyc": "^14.1.1",
     "path-browserify": "^1.0.1",
     "process": "^0.11.10",
-    "replace": "^1.2.0",
+    "replace": "^0.2.2",
     "typescript": "^4.0.2",
     "util": "^0.12.3",
     "webpack": "^5.0.0",
     "webpack-cli": "^4.0.0"
   },
-  "main": "./lib/NoFlo",
+  "main": "./src/lib/NoFlo",
   "module": "./src/lib/NoFlo.js",
+  "type": "module",
+  "exports": {
+    "import": "./src/lib/NoFlo.js",
+    "require": "./lib/NoFlo.js"
+  },
   "types": "./lib/NoFlo.d.ts",
   "bin": {
     "noflo": "./bin/noflo",
