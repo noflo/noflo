@@ -79,6 +79,7 @@ export {
 // NoFlo works on both Node.js and the browser. Because some dependencies are different,
 // we need a way to detect which we're on.
 export { isBrowser } from './Platform.js';
+import { isBrowser } from './Platform.js';
 
 // ### Component Loader
 //
@@ -87,19 +88,24 @@ export { isBrowser } from './Platform.js';
 // to find components and graphs by traversing the NPM dependency tree from a given root
 // directory on the file system.
 export { ComponentLoader } from './ComponentLoader.js';
+import { ComponentLoader } from './ComponentLoader.js';
 
 // ### Component baseclasses
 //
 // These baseclasses can be used for defining NoFlo components.
 export { Component } from './Component.js';
+import { Component } from './Component.js';
 
 // ### NoFlo ports
 //
 // These classes are used for instantiating ports on NoFlo components.
 export { InPorts, OutPorts } from './Ports.js';
+import { InPorts, OutPorts } from './Ports.js';
 
 export { default as InPort } from './InPort.js';
+import { default as InPort } from './InPort.js';
 export { default as OutPort } from './OutPort.js';
+import { default as OutPort } from './OutPort.js';
 
 // ### NoFlo sockets
 //
@@ -113,6 +119,7 @@ export { internalSocket };
 //
 // NoFlo Information Packets are defined as "IP" objects.
 export { default as IP } from './IP.js';
+import { default as IP } from './IP.js';
 
 /**
  * @callback NetworkCallback
@@ -224,6 +231,7 @@ export function saveFile(graphInstance, file, callback) {
 //     });
 //
 export { asCallback, asPromise } from './AsCallback.js';
+import { asCallback, asPromise } from './AsCallback.js';
 
 // ## Generating components from JavaScript functions
 //
@@ -238,3 +246,23 @@ export { asCallback, asPromise } from './AsCallback.js';
 //     };
 //
 export { asComponent } from './AsComponent.js';
+import { asComponent } from './AsComponent.js';
+
+export default {
+  ...graph,
+  isBrowser,
+  ComponentLoader,
+  Component,
+  InPorts,
+  OutPorts,
+  InPort,
+  OutPort,
+  internalSocket,
+  IP,
+  createNetwork,
+  loadFile,
+  saveFile,
+  asCallback,
+  asPromise,
+  asComponent,
+};
