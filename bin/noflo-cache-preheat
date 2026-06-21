@@ -2,7 +2,7 @@
 // vim: set filetype=javascript:
 import path from 'node:path';
 import fs from 'node:fs';
-import * as noflo from '../lib/NoFlo.js';
+import * as noflo from '../src/lib/NoFlo.js';
 
 // Base setup
 const baseDir = process.cwd();
