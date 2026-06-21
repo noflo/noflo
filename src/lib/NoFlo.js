@@ -65,7 +65,7 @@ import { graph } from 'fbp-graph';
 // network.
 import { Network } from './Network.js';
 import { LegacyNetwork } from './LegacyNetwork.js';
-import { deprecated } from './Platform.js';
+import { deprecated, isBrowser } from './Platform.js';
 
 export {
   graph,
@@ -79,7 +79,6 @@ export {
 // NoFlo works on both Node.js and the browser. Because some dependencies are different,
 // we need a way to detect which we're on.
 export { isBrowser } from './Platform.js';
-import { isBrowser } from './Platform.js';
 
 // ### Component Loader
 //
@@ -103,9 +102,10 @@ export { InPorts, OutPorts } from './Ports.js';
 import { InPorts, OutPorts } from './Ports.js';
 
 export { default as InPort } from './InPort.js';
-import { default as InPort } from './InPort.js';
+import InPort from './InPort.js';
+
 export { default as OutPort } from './OutPort.js';
-import { default as OutPort } from './OutPort.js';
+import OutPort from './OutPort.js';
 
 // ### NoFlo sockets
 //
@@ -119,7 +119,7 @@ export { internalSocket };
 //
 // NoFlo Information Packets are defined as "IP" objects.
 export { default as IP } from './IP.js';
-import { default as IP } from './IP.js';
+import IP from './IP.js';
 
 /**
  * @callback NetworkCallback
