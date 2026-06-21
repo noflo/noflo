@@ -16,21 +16,26 @@ const readFile = promisify(fs.readFile);
 
 // Type loading CoffeeScript compiler
 let CoffeeScript;
-try {
-  // eslint-disable-next-line import/no-unresolved,import/no-extraneous-dependencies
-  CoffeeScript = require('coffeescript');
-} catch (e) {
-  // If there is no CoffeeScript compiler installed, we simply don't support compiling
-}
+// eslint-disable-next-line import/no-unresolved,import/no-extraneous-dependencies
+import('coffeescript')
+  .then((compiler) => {
+    CoffeeScript = compiler;
+  })
+  .catch((e) => {
+    // If there is no CoffeeScript compiler installed, we simply don't support compiling
+  });
 
 // Try loading TypeScript compiler
 let typescript;
-try {
-  // eslint-disable-next-line import/no-unresolved,import/no-extraneous-dependencies
-  typescript = require('typescript');
-} catch (e) {
-  // If there is no TypeScript compiler installed, we simply don't support compiling
-}
+// eslint-disable-next-line import/no-unresolved,import/no-extraneous-dependencies
+import('typescript')
+  .then((compiler) => {
+    // @ts-ignore
+    typescript = compiler.default;
+    })
+  .catch((e) => {
+    // If there is no TypeScript compiler installed, we simply don't support compiling
+  });
 
 /**
  * @callback ErrorableCallback
@@ -72,7 +77,7 @@ function transpileSource(packageId, name, source, language) {
       try {
         src = typescript.transpile(source, {
           module: typescript.ModuleKind.CommonJS,
-          target: typescript.ScriptTarget.ES2015,
+          target: typescript.ScriptTarget.ES2020,
         });
       } catch (err) {
         return Promise.reject(err);
@@ -101,25 +106,28 @@ function transpileSource(packageId, name, source, language) {
  * @returns {Promise<Object|Function>}
  */
 function evaluateModule(baseDir, packageId, name, source) {
-  const Module = require('module');
-  let implementation;
-  try {
-    // Use the Node.js module API to evaluate in the correct directory context
-    const modulePath = path.resolve(baseDir, `./components/${name}.js`);
-    const moduleImpl = new Module(modulePath, module);
-    // @ts-ignore
-    moduleImpl.paths = Module._nodeModulePaths(path.dirname(modulePath));
-    moduleImpl.filename = modulePath;
-    // @ts-ignore
-    moduleImpl._compile(source, modulePath);
-    implementation = moduleImpl.exports;
-  } catch (e) {
-    return Promise.reject(e);
-  }
-  if ((typeof implementation !== 'function') && (typeof implementation.getComponent !== 'function')) {
-    return Promise.reject(new Error(`Provided source for ${packageId}/${name} failed to create a runnable component`));
-  }
-  return Promise.resolve(implementation);
+  return import('module')
+    .then(({ Module }) => {
+      let implementation;
+      // Use the Node.js module API to evaluate in the correct directory context
+      let extension = '.js';
+      if (source.indexOf('require(') !== -1) {
+        // CommonJS
+        extension = '.cjs';
+      }
+      const modulePath = path.resolve(baseDir, `./components/${name}${extension}`);
+      const moduleImpl = new Module(modulePath);
+      // @ts-ignore
+      moduleImpl.paths = Module._nodeModulePaths(path.dirname(modulePath));
+      moduleImpl.filename = modulePath;
+      // @ts-ignore
+      moduleImpl._compile(source, modulePath);
+      implementation = moduleImpl.exports;
+      if ((typeof implementation !== 'function') && (typeof implementation.getComponent !== 'function')) {
+        return Promise.reject(new Error(`Provided source for ${packageId}/${name} failed to create a runnable component`));
+      }
+      return Promise.resolve(implementation);
+    });
 }
 
 /**
@@ -368,9 +376,14 @@ export function getLanguages() {
  */
 function registerCustomLoaders(loader, componentLoaders, callback) {
   componentLoaders.reduce((chain, componentLoader) => chain
-    .then(() => new Promise((resolve, reject) => {
-      const customLoader = require(componentLoader);
-      loader.registerLoader(customLoader, (err) => {
+    .then(() => import(componentLoader))
+    .then((customLoader) => new Promise((resolve, reject) => {
+      let loaderFunc = customLoader;
+      if (typeof customLoader === 'object' && customLoader.default) {
+        // CommonJS loader
+        loaderFunc = customLoader.default;
+      }
+      loader.registerLoader(loaderFunc, (err) => {
         if (err) {
           reject(err);
           return;
@@ -611,34 +624,22 @@ export function register(loader, callback) {
  * @param {ModuleLoadingCallback} callback
  */
 export function dynamicLoad(name, cPath, metadata, callback) {
-  let implementation; let instance;
-  try {
-    implementation = require(cPath);
-  } catch (err) {
-    callback(err);
-    return;
-  }
-
-  if (typeof implementation.getComponent === 'function') {
-    try {
-      instance = implementation.getComponent(metadata);
-    } catch (err) {
-      callback(err);
-      return;
-    }
-  } else if (typeof implementation === 'function') {
-    try {
-      instance = implementation(metadata);
-    } catch (err) {
-      callback(err);
-      return;
-    }
-  } else {
-    callback(new Error(`Unable to instantiate ${cPath}`));
-    return;
-  }
-  if (typeof name === 'string') {
-    instance.componentName = name;
-  }
-  callback(null, instance);
+  import(cPath)
+    .then((implementation) => {
+      let instance;
+      if (typeof implementation.getComponent === 'function') {
+        instance = implementation.getComponent(metadata);
+      } else if (typeof implementation === 'function') {
+        instance = implementation(metadata);
+      } else {
+        throw new Error(`Unable to instantiate ${cPath}`);
+      }
+      if (typeof name === 'string') {
+        instance.componentName = name;
+      }
+      callback(null, instance);
+    })
+    .catch((e) => {
+      callback(e)
+    });
 }

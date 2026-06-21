@@ -38,17 +38,21 @@
     "karma-mocha-reporter": "^2.2.5",
     "mocha": "^8.1.3",
     "noflo-component-loader": "^0.4.0",
-    "nyc": "^15.1.0",
+    "nyc": "^14.1.1",
     "path-browserify": "^1.0.1",
     "process": "^0.11.10",
-    "replace": "^1.2.0",
+    "replace": "^0.2.2",
     "typescript": "^4.0.2",
     "util": "^0.12.3",
     "webpack": "^5.0.0",
     "webpack-cli": "^4.0.0"
   },
-  "main": "./lib/NoFlo",
+  "main": "./src/lib/NoFlo",
   "module": "./src/lib/NoFlo.js",
+  "exports": {
+    "import": "./src/lib/NoFlo.js",
+    "require": "./lib/NoFlo.js"
+  },
   "types": "./lib/NoFlo.d.ts",
   "bin": {
     "noflo": "./bin/noflo",
@@ -61,9 +65,9 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "dirname:to": "sed -i -e 's/import\\.meta\\.dirname/__dirname/g' src/lib/loader/NodeJs.js",
-    "build:node": "npm run dirname:to && tsc && npm run dirname:from",
-    "dirname:from": "sed -i -e 's/__dirname/import\\.meta\\.dirname/g' src/lib/loader/NodeJs.js",
+    "prebuild:node": "replace 'import.meta.dirname' '__dirname' src/lib/loader/NodeJs.js && replace 'import getParams from' 'import * as getParams from' src/lib/AsComponent.js",
+    "build:node": "tsc",
+    "postbuild:node": "replace '__dirname' 'import.meta.dirname' src/lib/loader/NodeJs.js && replace 'import \\* as getParams from' 'import getParams from' src/lib/AsComponent.js",
     "build:browser": "webpack --config webpack.config.cjs",
     "build": "npm run build:node && npm run build:browser",
     "postbuild": "replace 'node/events' 'events' lib -r",
@@ -80,9 +84,9 @@
   },
   "nyc": {
     "include": [
-      "components/*.js",
-      "lib/*.js",
-      "lib/**/*.js"
+      "src/components/*.js",
+      "src/lib/*.js",
+      "src/lib/**/*.js"
     ]
   }
 }

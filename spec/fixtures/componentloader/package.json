@@ -1,5 +1,6 @@
 {
   "name": "componentloader",
+  "type": "commonjs",
   "noflo": {
     "icon": "cloud",
     "components": {
