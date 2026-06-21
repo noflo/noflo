@@ -286,7 +286,7 @@ describe('ComponentLoader with no external packages installed', () => {
       if (noflo.isBrowser()) {
         str = 'Dynamic loading of';
       } else {
-        str = 'Cannot find module';
+        str = 'Cannot find package';
       }
       loader.load('InvalidComponent', (err) => {
         chai.expect(err).to.be.an('error');
@@ -379,7 +379,7 @@ describe('ComponentLoader with no external packages installed', () => {
         chai.expect(component).to.be.an('object');
         chai.expect(component.code).to.be.a('string');
         chai.expect(component.code.indexOf('Component')).to.not.equal(-1);
-        chai.expect(component.code.indexOf('exports.getComponent')).to.not.equal(-1);
+        chai.expect(component.code.indexOf('export function getComponent')).to.not.equal(-1);
         chai.expect(component.name).to.equal('Graph');
         chai.expect(component.library).to.equal('');
         chai.expect(component.language).to.equal(shippingLanguage);
@@ -445,7 +445,7 @@ describe('ComponentLoader with no external packages installed', () => {
         chai.expect(component).to.be.an('object');
         chai.expect(component.code).to.be.a('string');
         chai.expect(component.code.indexOf('Component')).to.not.equal(-1);
-        chai.expect(component.code.indexOf('exports.getComponent')).to.not.equal(-1);
+        chai.expect(component.code.indexOf('export function getComponent')).to.not.equal(-1);
         chai.expect(component.name).to.equal('Graph');
         chai.expect(component.library).to.equal('');
         chai.expect(component.language).to.equal(shippingLanguage);
