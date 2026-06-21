@@ -975,9 +975,11 @@ describe('ComponentLoader with a fixture project and caching', () => {
   it('should be possible to pre-heat the cache file', function (done) {
     this.timeout(8000);
     const { exec } = require('child_process');
-    exec(`node ${path.resolve(__dirname, '../bin/noflo-cache-preheat')}`,
+    exec(
+      `node ${path.resolve(__dirname, '../bin/noflo-cache-preheat')}`,
       { cwd: fixtureRoot },
-      done);
+      done,
+    );
   });
   it('should have populated a fbp-manifest file', (done) => {
     const manifestPath = path.resolve(fixtureRoot, 'fbp.json');
