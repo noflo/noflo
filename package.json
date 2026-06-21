@@ -61,14 +61,17 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "build:node": "tsc",
-    "build:browser": "webpack",
+    "dirname:to": "sed -i -e 's/import\\.meta\\.dirname/__dirname/g' src/lib/loader/NodeJs.js",
+    "build:node": "npm run dirname:to && tsc && npm run dirname:from",
+    "dirname:from": "sed -i -e 's/__dirname/import\\.meta\\.dirname/g' src/lib/loader/NodeJs.js",
+    "build:browser": "webpack --config webpack.config.cjs",
     "build": "npm run build:node && npm run build:browser",
     "postbuild": "replace 'node/events' 'events' lib -r",
     "pretest": "npm run lint && npm run build",
-    "test:node": "nyc mocha --require spec/utils/inject.js spec",
-    "test:browser": "karma start karma.config.js",
-    "test": "npm run test:node && npm run test:browser"
+    "test:esmodules": "node --test spec/*.mjs",
+    "test:node": "nyc mocha --require spec/utils/inject.js spec/*.js",
+    "test:browser": "karma start karma.config.cjs",
+    "test": "npm run test:esmodules && npm run test:node && npm run test:browser"
   },
   "docco_husky": {
     "output_dir": "docs",
