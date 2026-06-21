@@ -7,6 +7,8 @@
         "global-require": 0,
         "import/no-extraneous-dependencies": 0,
         "import/no-unresolved": 0,
+        "import/no-relative-packages": 0,
+        "import/prefer-default-export": 1,
         "import/extensions": 0,
         "no-console": 0,
         "no-param-reassign": 0,

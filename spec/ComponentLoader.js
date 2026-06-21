@@ -849,7 +849,18 @@ describe('ComponentLoader with a fixture project', () => {
     });
     chai.expect(l.processing).to.be.a('promise');
   });
-  it('should be able to load a local JavaScript component', (done) => {
+  it('should be able to load a local ES Module component', (done) => {
+    l.load('componentloader/SendString', (err, instance) => {
+      if (err) {
+        done(err);
+        return;
+      }
+      chai.expect(instance.description).to.equal('Send string');
+      chai.expect(instance.icon).to.equal('cloud');
+      done();
+    });
+  });
+  it('should be able to load a local CommonJS component', (done) => {
     l.load('componentloader/Output', (err, instance) => {
       if (err) {
         done(err);
@@ -1027,7 +1038,18 @@ describe('ComponentLoader with a fixture project and caching', () => {
     });
     chai.expect(l.processing).to.be.a('promise');
   });
-  it('should be able to load a local component', (done) => {
+  it('should be able to load a local ES Module component', (done) => {
+    l.load('componentloader/SendString', (err, instance) => {
+      if (err) {
+        done(err);
+        return;
+      }
+      chai.expect(instance.description).to.equal('Send string');
+      chai.expect(instance.icon).to.equal('cloud');
+      done();
+    });
+  });
+  it('should be able to load a local CommonJS component', (done) => {
     l.load('componentloader/Output', (err, instance) => {
       if (err) {
         done(err);

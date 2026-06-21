@@ -624,6 +624,7 @@ export function register(loader, callback) {
  * @param {ModuleLoadingCallback} callback
  */
 export function dynamicLoad(name, cPath, metadata, callback) {
+  // TODO: Cache busting? import(`${cPath}?update=${Date.now()}`)
   import(cPath)
     .then((implementation) => {
       let instance;
@@ -631,6 +632,10 @@ export function dynamicLoad(name, cPath, metadata, callback) {
         instance = implementation.getComponent(metadata);
       } else if (typeof implementation === 'function') {
         instance = implementation(metadata);
+      } else if (implementation.default && typeof implementation.default.getComponent === 'function') {
+        instance = implementation.default.getComponent(metadata);
+      } else if (typeof implementation.default === 'function') {
+        instance = implementation.default(metadata);
       } else {
         throw new Error(`Unable to instantiate ${cPath}`);
       }
