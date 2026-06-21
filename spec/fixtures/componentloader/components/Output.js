@@ -1,4 +1,4 @@
-const noflo = require('../../../../lib/NoFlo');
+const noflo = require('../../../../lib/NoFlo.js');
 
 exports.getComponent = function () {
   const c = new noflo.Component();

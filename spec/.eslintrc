@@ -16,6 +16,8 @@
         "no-shadow": 0,
         "no-undef": 0,
         "no-unused-expressions": 0,
-        "prefer-destructuring": 0
+        "prefer-destructuring": 0,
+        "function-paren-newline": 0,
+        "function-call-argument-newline": 0
     }
 }

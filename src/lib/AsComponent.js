@@ -101,8 +101,9 @@ export function asComponent(func, options) {
     c.forwardBrackets[p.param] = ['out', 'error'];
   });
   if (!params.length) {
-    c.inPorts.add('in',
-      { datatype: 'bang' });
+    c.inPorts.add('in', {
+      datatype: 'bang',
+    });
   }
 
   c.outPorts.add('out');

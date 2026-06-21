@@ -65,7 +65,6 @@ export default class IP {
     if (typeof options === 'object') {
       Object.keys(options).forEach((key) => { this[key] = options[key]; });
     }
-    return this;
   }
 
   // Creates a new IP copying its contents by value not reference

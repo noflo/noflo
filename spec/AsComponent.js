@@ -202,8 +202,11 @@ describe('asComponent interface', () => {
       before(function () {
         if (isBrowser && (typeof window.Promise === 'undefined')) { return this.skip(); }
       });
-      const func = (hello) => new Promise((resolve) => setTimeout(() => resolve(`Hello ${hello}`),
-        5));
+      const func = (hello) => new Promise((resolve) => {
+        setTimeout(() => {
+          resolve(`Hello ${hello}`);
+        }, 5);
+      });
       it('should be possible to componentize', (done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'promise-one', component, done);
@@ -227,8 +230,11 @@ describe('asComponent interface', () => {
           this.skip();
         }
       });
-      const func = (hello) => new Promise((resolve, reject) => setTimeout(() => reject(new Error(`Hello ${hello}`)),
-        5));
+      const func = (hello) => new Promise((resolve, reject) => {
+        setTimeout(() => {
+          reject(new Error(`Hello ${hello}`));
+        }, 5);
+      });
       it('should be possible to componentize', (done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'sync-throw', component, done);

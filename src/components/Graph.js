@@ -197,11 +197,13 @@ export class Graph extends Component {
         return this.emit('ready');
       });
     } else {
-      setTimeout(() => {
-        this.ready = true;
-        return this.emit('ready');
-      },
-      0);
+      setTimeout(
+        () => {
+          this.ready = true;
+          return this.emit('ready');
+        },
+        0,
+      );
     }
   }
 

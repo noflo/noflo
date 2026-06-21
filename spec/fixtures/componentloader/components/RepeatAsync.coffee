@@ -1,4 +1,4 @@
-noflo = require '../../../../lib/NoFlo'
+noflo = require '../../../../lib/NoFlo.js'
 
 exports.getComponent = () ->
   c = new noflo.Component()

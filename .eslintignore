@@ -2,3 +2,5 @@
 /lib/
 /components/
 /browser/
+/src/lib/loader/NodeJs.js
+/src/lib/loader/register.js

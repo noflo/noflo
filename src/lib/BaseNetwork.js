@@ -1076,8 +1076,9 @@ export class BaseNetwork extends EventEmitter {
     }
     this.started = true;
     this.stopped = false;
-    this.bufferedEmit('start',
-      { start: this.startupDate });
+    this.bufferedEmit('start', {
+      start: this.startupDate,
+    });
   }
 
   checkIfFinished() {
