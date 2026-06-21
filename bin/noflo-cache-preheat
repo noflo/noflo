@@ -2,7 +2,7 @@
 // vim: set filetype=javascript:
 import path from 'node:path';
 import fs from 'node:fs';
-import { ComponentLoader } from '../src/lib/NoFlo.js';
+import * as noflo from '../lib/NoFlo.js';
 
 // Base setup
 const baseDir = process.cwd();
@@ -10,7 +10,7 @@ const cacheFile = path.resolve(baseDir, 'fbp.json');
 
 function preheat() {
   console.log(`Pre-heating NoFlo cache with manifest for ${baseDir}`);
-  const loader = new ComponentLoader(baseDir, {
+  const loader = new noflo.ComponentLoader(baseDir, {
     cache: true,
     discover: true,
   });
