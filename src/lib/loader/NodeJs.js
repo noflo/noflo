@@ -116,7 +116,7 @@ function evaluateModule(baseDir, packageId, name, source) {
         extension = '.cjs';
       }
       const modulePath = path.resolve(baseDir, `./components/${name}${extension}`);
-      const moduleImpl = new Module(modulePath, module);
+      const moduleImpl = new Module(modulePath);
       // @ts-ignore
       moduleImpl.paths = Module._nodeModulePaths(path.dirname(modulePath));
       moduleImpl.filename = modulePath;
@@ -378,7 +378,12 @@ function registerCustomLoaders(loader, componentLoaders, callback) {
   componentLoaders.reduce((chain, componentLoader) => chain
     .then(() => import(componentLoader))
     .then((customLoader) => new Promise((resolve, reject) => {
-      loader.registerLoader(customLoader, (err) => {
+      let loaderFunc = customLoader;
+      if (typeof customLoader === 'object' && customLoader.default) {
+        // CommonJS loader
+        loaderFunc = customLoader.default;
+      }
+      loader.registerLoader(loaderFunc, (err) => {
         if (err) {
           reject(err);
           return;
@@ -619,30 +624,22 @@ export function register(loader, callback) {
  * @param {ModuleLoadingCallback} callback
  */
 export function dynamicLoad(name, cPath, metadata, callback) {
-  let implementation; let instance;
   import(cPath)
     .then((implementation) => {
+      let instance;
       if (typeof implementation.getComponent === 'function') {
-        try {
-          instance = implementation.getComponent(metadata);
-        } catch (err) {
-          callback(err);
-          return;
-        }
+        instance = implementation.getComponent(metadata);
       } else if (typeof implementation === 'function') {
-        try {
-          instance = implementation(metadata);
-        } catch (err) {
-          callback(err);
-          return;
-        }
+        instance = implementation(metadata);
       } else {
-        callback(new Error(`Unable to instantiate ${cPath}`));
-        return;
+        throw new Error(`Unable to instantiate ${cPath}`);
       }
       if (typeof name === 'string') {
         instance.componentName = name;
       }
       callback(null, instance);
+    })
+    .catch((e) => {
+      callback(e)
     });
 }
