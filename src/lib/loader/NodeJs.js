@@ -18,7 +18,10 @@ const readFile = promisify(fs.readFile);
 let CoffeeScript;
 try {
   // eslint-disable-next-line import/no-unresolved,import/no-extraneous-dependencies
-  CoffeeScript = require('coffeescript');
+  import('coffeescript')
+    .then((compiler) => {
+      CoffeeScript = compiler;
+    })
 } catch (e) {
   // If there is no CoffeeScript compiler installed, we simply don't support compiling
 }
@@ -27,7 +30,10 @@ try {
 let typescript;
 try {
   // eslint-disable-next-line import/no-unresolved,import/no-extraneous-dependencies
-  typescript = require('typescript');
+  import('typescript')
+    .then((compiler) => {
+      typescript = compiler.default;
+    })
 } catch (e) {
   // If there is no TypeScript compiler installed, we simply don't support compiling
 }
@@ -72,7 +78,7 @@ function transpileSource(packageId, name, source, language) {
       try {
         src = typescript.transpile(source, {
           module: typescript.ModuleKind.CommonJS,
-          target: typescript.ScriptTarget.ES2015,
+          target: typescript.ScriptTarget.ES2020,
         });
       } catch (err) {
         return Promise.reject(err);
