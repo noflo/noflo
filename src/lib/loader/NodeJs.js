@@ -624,8 +624,7 @@ export function register(loader, callback) {
  * @param {ModuleLoadingCallback} callback
  */
 export function dynamicLoad(name, cPath, metadata, callback) {
-  // TODO: Cache busting? import(`${cPath}?update=${Date.now()}`)
-  import(cPath)
+  import(`${cPath}?update=${Date.now()}`)
     .then((implementation) => {
       let instance;
       if (typeof implementation.getComponent === 'function') {
