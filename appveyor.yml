@@ -6,7 +6,7 @@ init:
 
 environment:
   matrix:
-    - nodejs_version: 12
+    - nodejs_version: 24
 
 install:
   - ps: Install-Product node $env:nodejs_version
