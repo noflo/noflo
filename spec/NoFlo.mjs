@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import { describe, it, before, after } from 'node:test';
 import path from 'node:path';
 import * as noflo from '../src/lib/NoFlo.js';
 

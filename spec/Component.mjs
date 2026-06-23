@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import { describe, it, before, beforeEach } from 'node:test';
 import * as noflo from '../src/lib/NoFlo.js';
 
 describe('Component', () => {
@@ -30,7 +30,7 @@ describe('Component', () => {
       });
       c.inPorts.required_port.attach(s1);
       c.inPorts.optional_port.attach(s2);
-      const f = function () {
+      const f = () => {
         s1.send('some-more-data');
         s2.send('some-data');
       };
@@ -38,7 +38,7 @@ describe('Component', () => {
     });
   });
   describe('with component creation shorthand', () => {
-    it('should make component creation easy', (t, done) => {
+    it('should make component creation easy', (_t, done) => {
       const c = new noflo.Component({
         inPorts: {
           in: {
@@ -73,7 +73,7 @@ describe('Component', () => {
       s1.send('some-data');
       s2.send('some-data');
     });
-    it('should throw errors if there is no error port', (t, done) => {
+    it('should throw errors if there is no error port', (_t, done) => {
       const c = new noflo.Component({
         inPorts: {
           in: {
@@ -94,7 +94,7 @@ describe('Component', () => {
       c.inPorts.in.nodeInstance = c;
       s1.send('some-data');
     });
-    it('should throw errors if there is a non-attached error port', (t, done) => {
+    it('should throw errors if there is a non-attached error port', (_t, done) => {
       const c = new noflo.Component({
         inPorts: {
           in: {
@@ -121,7 +121,7 @@ describe('Component', () => {
       c.inPorts.in.nodeInstance = c;
       s1.send('some-data');
     });
-    it('should not throw errors if there is a non-required error port', (t, done) => {
+    it('should not throw errors if there is a non-required error port', (_t, done) => {
       const c = new noflo.Component({
         inPorts: {
           in: {
@@ -147,7 +147,7 @@ describe('Component', () => {
       c.inPorts.in.nodeInstance = c;
       s1.send('some-data');
     });
-    it('should send errors if there is a connected error port', (t, done) => {
+    it('should send errors if there is a connected error port', (_t, done) => {
       const c = new noflo.Component({
         inPorts: {
           in: {
@@ -218,8 +218,7 @@ describe('Component', () => {
     });
   });
   describe('with non-existing ports', () => {
-    const getComponent = function () {
-      return new noflo.Component({
+    const getComponent = () => new noflo.Component({
         inPorts: {
           in: {},
         },
@@ -227,8 +226,7 @@ describe('Component', () => {
           out: {},
         },
       });
-    };
-    it('should throw an error when checking attached for non-existing port', (t, done) => {
+    it('should throw an error when checking attached for non-existing port', (_t, done) => {
       const c = getComponent();
       c.process((input) => {
         try {
@@ -245,7 +243,7 @@ describe('Component', () => {
       c.inPorts.in.attach(sin1);
       sin1.send('hello');
     });
-    it('should throw an error when checking IP for non-existing port', (t, done) => {
+    it('should throw an error when checking IP for non-existing port', (_t, done) => {
       const c = getComponent();
       c.process((input) => {
         try {
@@ -262,7 +260,7 @@ describe('Component', () => {
       c.inPorts.in.attach(sin1);
       sin1.send('hello');
     });
-    it('should throw an error when checking IP for non-existing addressable port', (t, done) => {
+    it('should throw an error when checking IP for non-existing addressable port', (_t, done) => {
       const c = getComponent();
       c.process((input) => {
         try {
@@ -279,7 +277,7 @@ describe('Component', () => {
       c.inPorts.in.attach(sin1);
       sin1.send('hello');
     });
-    it('should throw an error when checking data for non-existing port', (t, done) => {
+    it('should throw an error when checking data for non-existing port', (_t, done) => {
       const c = getComponent();
       c.process((input) => {
         try {
@@ -296,7 +294,7 @@ describe('Component', () => {
       c.inPorts.in.attach(sin1);
       sin1.send('hello');
     });
-    it('should throw an error when checking stream for non-existing port', (t, done) => {
+    it('should throw an error when checking stream for non-existing port', (_t, done) => {
       const c = getComponent();
       c.process((input) => {
         try {
@@ -334,7 +332,7 @@ describe('Component', () => {
     });
   });
   describe('shutting down a component', () => {
-    it('should flag the component as not started', (t, done) => {
+    it('should flag the component as not started', (_t, done) => {
       const c = new noflo.Component({
         inPorts: {
           in: {
@@ -364,7 +362,7 @@ describe('Component', () => {
     });
   });
   describe('with object-based IPs', () => {
-    it('should speak IP objects', (t, done) => {
+    it('should speak IP objects', (_t, done) => {
       const c = new noflo.Component({
         inPorts: {
           in: {
@@ -402,7 +400,7 @@ describe('Component', () => {
         groups: ['foo'],
       }));
     });
-    it('should support substreams', (t, done) => {
+    it('should support substreams', (_t, done) => {
       const c = new noflo.Component({
         forwardBrackets: {},
         inPorts: {
@@ -493,7 +491,7 @@ describe('Component', () => {
     let sout1 = null;
     let sout2 = null;
 
-    beforeEach((t, done) => {
+    beforeEach((_t, done) => {
       sin1 = new noflo.internalSocket.InternalSocket();
       sin2 = new noflo.internalSocket.InternalSocket();
       sin3 = new noflo.internalSocket.InternalSocket();
@@ -502,7 +500,7 @@ describe('Component', () => {
       done();
     });
 
-    it('should trigger on IPs', (t, done) => {
+    it('should trigger on IPs', (_t, done) => {
       let hadIPs = [];
       c = new noflo.Component({
         inPorts: {
@@ -539,7 +537,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('data', 'first'));
       sin2.post(new noflo.IP('data', 'second'));
     });
-    it('should trigger on IPs to addressable ports', (t, done) => {
+    it('should trigger on IPs to addressable ports', (_t, done) => {
       const receivedIndexes = [];
       c = new noflo.Component({
         inPorts: {
@@ -598,7 +596,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('data', 'first'));
       sin2.post(new noflo.IP('data', 'second'));
     });
-    it('should be able to send IPs to addressable connections', (t, done) => {
+    it('should be able to send IPs to addressable connections', (_t, done) => {
       const expected = [{
         data: 'first',
         index: 1,
@@ -653,7 +651,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('data', 'first'));
       sin1.post(new noflo.IP('data', 'second'));
     });
-    it('trying to send to addressable port without providing index should fail', (t, done) => {
+    it('trying to send to addressable port without providing index should fail', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: {
@@ -684,7 +682,7 @@ describe('Component', () => {
 
       sin1.post(new noflo.IP('data', 'first'));
     });
-    it('should be able to send falsy IPs', (t, done) => {
+    it('should be able to send falsy IPs', (_t, done) => {
       const expected = [{
         port: 'out1',
         data: 1,
@@ -742,7 +740,7 @@ describe('Component', () => {
       });
       sin1.post(new noflo.IP('data', 'first'));
     });
-    it('should not be triggered by non-triggering ports', (t, done) => {
+    it('should not be triggered by non-triggering ports', (_t, done) => {
       const triggered = [];
       c = new noflo.Component({
         inPorts: {
@@ -782,7 +780,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('data', 'first'));
       sin2.post(new noflo.IP('data', 'second'));
     });
-    it('should fetch undefined for premature data', (t, done) => {
+    it('should fetch undefined for premature data', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: {
@@ -817,7 +815,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('data', true));
       sin3.post(new noflo.IP('data', 'first'));
     });
-    it('should receive and send complete noflo.IP objects', (t, done) => {
+    it('should receive and send complete noflo.IP objects', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: { datatype: 'string' },
@@ -862,7 +860,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('data', 'bar',
         { groups: ['bar'] }));
     });
-    it('should stamp IP objects with the datatype of the outport when sending', (t, done) => {
+    it('should stamp IP objects with the datatype of the outport when sending', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: { datatype: 'all' },
@@ -890,7 +888,7 @@ describe('Component', () => {
 
       sin1.post(new noflo.IP('data', 'foo'));
     });
-    it('should stamp IP objects with the datatype of the inport when receiving', (t, done) => {
+    it('should stamp IP objects with the datatype of the inport when receiving', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: { datatype: 'string' },
@@ -918,7 +916,7 @@ describe('Component', () => {
 
       sin1.post(new noflo.IP('data', 'foo'));
     });
-    it('should stamp IP objects with the schema of the outport when sending', (t, done) => {
+    it('should stamp IP objects with the schema of the outport when sending', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: { datatype: 'all' },
@@ -950,7 +948,7 @@ describe('Component', () => {
 
       sin1.post(new noflo.IP('data', 'foo'));
     });
-    it('should stamp IP objects with the schema of the inport when receiving', (t, done) => {
+    it('should stamp IP objects with the schema of the inport when receiving', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: {
@@ -982,7 +980,7 @@ describe('Component', () => {
 
       sin1.post(new noflo.IP('data', 'foo'));
     });
-    it('should receive and send just IP data if wanted', (t, done) => {
+    it('should receive and send just IP data if wanted', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: { datatype: 'string' },
@@ -1019,7 +1017,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('data', 'bar',
         { groups: ['bar'] }));
     });
-    it('should receive IPs and be able to selectively find them', (t, done) => {
+    it('should receive IPs and be able to selectively find them', (_t, done) => {
       let called = 0;
       c = new noflo.Component({
         inPorts: {
@@ -1030,7 +1028,7 @@ describe('Component', () => {
           baz: { datatype: 'object' },
         },
         process(input, output) {
-          const validate = function (ip) {
+          const validate = (ip) => {
             called++;
             return (ip.type === 'data') && (ip.data === 'hello');
           };
@@ -1067,7 +1065,7 @@ describe('Component', () => {
       shouldHaveSent = true;
       sin2.post(new noflo.IP('data', 'hello'));
     });
-    it('should keep last value for controls', (t, done) => {
+    it('should keep last value for controls', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: { datatype: 'string' },
@@ -1112,7 +1110,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('data', 'bar'));
       sin1.post(new noflo.IP('data', 'boo'));
     });
-    it('should keep last data-typed IP packet for controls', (t, done) => {
+    it('should keep last data-typed IP packet for controls', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: { datatype: 'string' },
@@ -1159,7 +1157,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('closeBracket'));
       sin1.post(new noflo.IP('data', 'boo'));
     });
-    it('should isolate packets with different scopes', (t, done) => {
+    it('should isolate packets with different scopes', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: { datatype: 'string' },
@@ -1198,7 +1196,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('data', 'Laura', { scope: '1' }));
       sin1.post(new noflo.IP('data', 'Jane', { scope: '2' }));
     });
-    it('should be able to change scope', (t, done) => {
+    it('should be able to change scope', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: { datatype: 'string' },
@@ -1225,7 +1223,7 @@ describe('Component', () => {
 
       sin1.post(new noflo.IP('data', 'foo', { scope: 'foo' }));
     });
-    it('should support integer scopes', (t, done) => {
+    it('should support integer scopes', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: { datatype: 'string' },
@@ -1272,7 +1270,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('data', 'Jane', { scope: 0 }));
       sin2.post(new noflo.IP('data', 'Anna'));
     });
-    it('should preserve order between input and output', (t, done) => {
+    it('should preserve order between input and output', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           msg: { datatype: 'string' },
@@ -1311,7 +1309,7 @@ describe('Component', () => {
         sin2.post(new noflo.IP('data', ip.delay));
       }
     });
-    it('should ignore order between input and output', (t, done) => {
+    it('should ignore order between input and output', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           msg: { datatype: 'string' },
@@ -1359,7 +1357,7 @@ describe('Component', () => {
         sin2.post(new noflo.IP('data', ip.delay));
       }
     });
-    it('should throw errors if there is no error port', (t, done) => {
+    it('should throw errors if there is no error port', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -1378,7 +1376,7 @@ describe('Component', () => {
       c.inPorts.in.attach(sin1);
       sin1.post(new noflo.IP('data', 'some-data'));
     });
-    it('should throw errors if there is a non-attached error port', (t, done) => {
+    it('should throw errors if there is a non-attached error port', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -1403,7 +1401,7 @@ describe('Component', () => {
       c.inPorts.in.attach(sin1);
       sin1.post(new noflo.IP('data', 'some-data'));
     });
-    it('should not throw errors if there is a non-required error port', (t, done) => {
+    it('should not throw errors if there is a non-required error port', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -1427,7 +1425,7 @@ describe('Component', () => {
       c.inPorts.in.attach(sin1);
       sin1.post(new noflo.IP('data', 'some-data'));
     });
-    it('should send out string other port if there is only one port aside from error', (t, done) => {
+    it('should send out string other port if there is only one port aside from error', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -1460,7 +1458,7 @@ describe('Component', () => {
 
       sin1.post(new noflo.IP('data', 'first'));
     });
-    it('should send object out other port if there is only one port aside from error', (t, done) => {
+    it('should send object out other port if there is only one port aside from error', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -1493,8 +1491,8 @@ describe('Component', () => {
 
       sin1.post(new noflo.IP('data', 'first'));
     });
-    it('should throw an error if sending without specifying a port and there are multiple ports', (t, done) => {
-      const f = function () {
+    it('should throw an error if sending without specifying a port and there are multiple ports', (_t, done) => {
+      const f = () => {
         c = new noflo.Component({
           inPorts: {
             in: {
@@ -1510,7 +1508,7 @@ describe('Component', () => {
               required: false,
             },
           },
-          process(input, output) {
+          process(_input, output) {
             output.sendDone('test');
           },
         });
@@ -1521,7 +1519,7 @@ describe('Component', () => {
       assert.throws(f);
       done();
     });
-    it('should send errors if there is a connected error port', (t, done) => {
+    it('should send errors if there is a connected error port', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -1554,7 +1552,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('data', 'some-data',
         { scope: 'some-scope' }));
     });
-    it('should send substreams with multiple errors per activation', (t, done) => {
+    it('should send substreams with multiple errors per activation', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -1608,7 +1606,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('data', 'some-data',
         { scope: 'some-scope' }));
     });
-    it('should forward brackets for map-style components', (t, done) => {
+    it('should forward brackets for map-style components', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -1672,7 +1670,7 @@ describe('Component', () => {
         }
       }
     });
-    it('should forward brackets for map-style components with addressable outport', (t, done) => {
+    it('should forward brackets for map-style components with addressable outport', (_t, done) => {
       let sent = false;
       c = new noflo.Component({
         inPorts: {
@@ -1755,7 +1753,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('closeBracket', 'bar'));
       sin1.post(new noflo.IP('closeBracket', 'a'));
     });
-    it('should forward brackets for async map-style components with addressable outport', (t, done) => {
+    it('should forward brackets for async map-style components with addressable outport', (_t, done) => {
       let sent = false;
       c = new noflo.Component({
         inPorts: {
@@ -1839,7 +1837,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('closeBracket', 'bar'));
       sin1.post(new noflo.IP('closeBracket', 'a'));
     });
-    it('should forward brackets for map-style components with addressable in/outports', (t, done) => {
+    it('should forward brackets for map-style components with addressable in/outports', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -1926,7 +1924,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('closeBracket', 'bar'));
       sin1.post(new noflo.IP('closeBracket', 'a'));
     });
-    it('should forward brackets for async map-style components with addressable in/outports', (t, done) => {
+    it('should forward brackets for async map-style components with addressable in/outports', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -2014,7 +2012,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('closeBracket', 'bar'));
       sin1.post(new noflo.IP('closeBracket', 'a'));
     });
-    it('should forward brackets to error port in async components', (t, done) => {
+    it('should forward brackets to error port in async components', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -2071,7 +2069,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('data', { bar: 'baz' }));
       sin1.post(new noflo.IP('closeBracket', 'foo'));
     });
-    it('should not forward brackets if error port is not connected', (t, done) => {
+    it('should not forward brackets if error port is not connected', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -2119,7 +2117,7 @@ describe('Component', () => {
         sin1.post(new noflo.IP('closeBracket', 'foo'));
       });
     });
-    it('should support custom bracket forwarding mappings with auto-ordering', (t, done) => {
+    it('should support custom bracket forwarding mappings with auto-ordering', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           msg: {
@@ -2226,7 +2224,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('closeBracket', 'delay'));
       sin1.post(new noflo.IP('closeBracket', 'msg'));
     });
-    it('should de-duplicate brackets when asynchronously forwarding from multiple inports', (t, done) => {
+    it('should de-duplicate brackets when asynchronously forwarding from multiple inports', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           in1: {
@@ -2315,7 +2313,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('closeBracket', 'b'));
       sin2.post(new noflo.IP('closeBracket', 'a'));
     });
-    it('should de-duplicate brackets when synchronously forwarding from multiple inports', (t, done) => {
+    it('should de-duplicate brackets when synchronously forwarding from multiple inports', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           in1: {
@@ -2403,7 +2401,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('closeBracket', 'b'));
       sin2.post(new noflo.IP('closeBracket', 'a'));
     });
-    it('should not apply auto-ordering if that option is false', (t, done) => {
+    it('should not apply auto-ordering if that option is false', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           msg: { datatype: 'string' },
@@ -2460,7 +2458,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('closeBracket', 'msg'));
       sin2.post(new noflo.IP('closeBracket', 'delay'));
     });
-    it('should forward noflo.IP metadata for map-style components', (t, done) => {
+    it('should forward noflo.IP metadata for map-style components', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -2518,7 +2516,7 @@ describe('Component', () => {
         }));
       }
     });
-    it('should be safe dropping IPs', (t, done) => {
+    it('should be safe dropping IPs', (_t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -2553,7 +2551,7 @@ describe('Component', () => {
         { meta: 'bar' }));
     });
     describe('with custom callbacks', () => {
-      beforeEach((t, done) => {
+      beforeEach((_t, done) => {
         c = new noflo.Component({
           inPorts: {
             foo: { datatype: 'string' },
@@ -2596,7 +2594,7 @@ describe('Component', () => {
         c.outPorts.err.attach(sout2);
         done();
       });
-      it('should fail on wrong input', (t, done) => {
+      it('should fail on wrong input', (_t, done) => {
         sout1.once('ip', () => {
           done(new Error('Unexpected baz'));
         });
@@ -2610,7 +2608,7 @@ describe('Component', () => {
         sin1.post(new noflo.IP('data', 'fff'));
         sin2.post(new noflo.IP('data', -120));
       });
-      it('should send substreams', (t, done) => {
+      it('should send substreams', (_t, done) => {
         const sample = [
           { bar: 30, foo: 'one' },
           { bar: 0, foo: 'two' },
@@ -2653,7 +2651,7 @@ describe('Component', () => {
       });
     });
     describe('using streams', () => {
-      it('should not trigger without a full stream without getting the whole stream', (t, done) => {
+      it('should not trigger without a full stream without getting the whole stream', (_t, done) => {
         c = new noflo.Component({
           inPorts: {
             in: {
@@ -2685,7 +2683,7 @@ describe('Component', () => {
         sin1.post(new noflo.IP('data', 'eh'));
         sin1.post(new noflo.IP('closeBracket'));
       });
-      it('should trigger when forwardingBrackets because then it is only data with no brackets and is a full stream', (t, done) => {
+      it('should trigger when forwardingBrackets because then it is only data with no brackets and is a full stream', (_t, done) => {
         c = new noflo.Component({
           inPorts: {
             in: {
@@ -2707,7 +2705,7 @@ describe('Component', () => {
         c.inPorts.in.attach(sin1);
         sin1.post(new noflo.IP('data', 'eh'));
       });
-      it('should get full stream when it has a single packet stream and it should clear it', (t, done) => {
+      it('should get full stream when it has a single packet stream and it should clear it', (_t, done) => {
         c = new noflo.Component({
           inPorts: {
             eh: {
@@ -2734,7 +2732,7 @@ describe('Component', () => {
         c.inPorts.eh.attach(sin1);
         sin1.post(new noflo.IP('data', 'moose'));
       });
-      it('should get full stream when it has a full stream, and it should clear it', (t, done) => {
+      it('should get full stream when it has a full stream, and it should clear it', (_t, done) => {
         c = new noflo.Component({
           inPorts: {
             eh: {
@@ -2769,7 +2767,7 @@ describe('Component', () => {
         sin1.post(new noflo.IP('closeBracket', 'foo'));
         sin1.post(new noflo.IP('closeBracket'));
       });
-      it('should get data when it has a full stream', (t, done) => {
+      it('should get data when it has a full stream', (_t, done) => {
         c = new noflo.Component({
           inPorts: {
             eh: {
@@ -2817,7 +2815,7 @@ describe('Component', () => {
       });
     });
     describe('with a simple ordered stream', () => {
-      it('should send packets with brackets in expected order when synchronous', (t, done) => {
+      it('should send packets with brackets in expected order when synchronous', (_t, done) => {
         const received = [];
         c = new noflo.Component({
           inPorts: {
@@ -2873,7 +2871,7 @@ describe('Component', () => {
         sin1.endGroup();
         sin1.disconnect();
       });
-      it('should send packets with brackets in expected order when asynchronous', (t, done) => {
+      it('should send packets with brackets in expected order when asynchronous', (_t, done) => {
         const received = [];
         c = new noflo.Component({
           inPorts: {
@@ -2940,7 +2938,7 @@ describe('Component', () => {
     let sin3 = null;
     let sout1 = null;
     let sout2 = null;
-    before((t, done) => {
+    before((_t, done) => {
       c = new noflo.Component({
         inPorts: {
           interval: {
@@ -2994,7 +2992,7 @@ describe('Component', () => {
       done();
     });
 
-    it('should emit start event when started', (t, done) => {
+    it('should emit start event when started', (_t, done) => {
       c.on('start', () => {
         assert.strictEqual(c.started, true);
         done();
@@ -3005,7 +3003,7 @@ describe('Component', () => {
         }
       });
     });
-    it('should emit activate/deactivate event on every tick', function (t, done) {
+    it('should emit activate/deactivate event on every tick', (_t, done) => {
       let count = 0;
       let dcount = 0;
       c.on('activate', () => {
@@ -3022,7 +3020,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('data', 2));
       sin2.post(new noflo.IP('data', true));
     });
-    it('should emit end event when stopped and no activate after it', (t, done) => {
+    it('should emit end event when stopped and no activate after it', (_t, done) => {
       c.on('end', () => {
         assert.strictEqual(c.started, false);
         done();

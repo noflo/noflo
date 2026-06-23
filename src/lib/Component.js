@@ -8,7 +8,7 @@
     no-underscore-dangle,
     import/prefer-default-export,
 */
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import debug from 'debug';
 import { InPorts, OutPorts, normalizePortName } from './Ports.js';
 import { deprecated } from './Platform.js';
@@ -202,10 +202,13 @@ export class Component extends EventEmitter {
   // setup work.
   /**
    * @param {ErrorableCallback} callback - Callback for when teardown is ready
-   * @returns {Promise<void> | void}
+   * @returns {Promise<void>}
    */
   setUp(callback) {
-    callback(null);
+    if (callback) {
+      callback(null);
+    }
+    return Promise.resolve();
   }
 
   // ### Teardown
@@ -217,10 +220,13 @@ export class Component extends EventEmitter {
   // cleanup work, like clearing any accumulated state.
   /**
    * @param {ErrorableCallback} callback - Callback for when teardown is ready
-   * @returns {Promise<void> | void}
+   * @returns {Promise<void>}
    */
   tearDown(callback) {
-    callback(null);
+    if (callback) {
+      callback(null);
+    }
+    return Promise.resolve();
   }
 
   // ### Start
@@ -244,7 +250,7 @@ export class Component extends EventEmitter {
           }
           resolve();
         });
-        if (res && res.then) {
+        if (res?.then) {
           // setUp returned a Promise
           res.then(resolve, reject);
         }
@@ -286,7 +292,7 @@ export class Component extends EventEmitter {
         }
         resolve();
       });
-      if (res && res.then) {
+      if (res?.then) {
         // Teardown returned a Promise
         res.then(resolve, reject);
       }
@@ -527,6 +533,7 @@ export class Component extends EventEmitter {
         throw new Error('Processing function not defined');
       }
       const res = this.handle(input, output, context);
+      // biome-ignore  lint/complexity/useOptionalChain: We need to support both promisified and classic processing functions
       if (res && res.then) {
         // Processing function returned a Promise
         res.then(

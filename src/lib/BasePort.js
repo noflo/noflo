@@ -1,7 +1,7 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 
 // ## NoFlo Port Base class
 //
@@ -139,7 +139,8 @@ export default class BasePort extends EventEmitter {
    * @param {import("./InternalSocket").InternalSocket} socket
    * @param {number|null} [index]
    */
-  attachSocket(socket, index = null) { } // eslint-disable-line class-methods-use-this,no-unused-vars,max-len
+  // biome-ignore lint/correctness/noUnusedFunctionParameters: Overridden in implementation class
+  attachSocket(socket, index = null) { }
 
   /**
    * @param {import("./InternalSocket").InternalSocket} socket

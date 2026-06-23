@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import { describe, it, before } from 'node:test';
 import * as noflo from '../src/lib/NoFlo.js';
 let isBrowser;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
@@ -16,7 +16,7 @@ describe('asComponent interface', () => {
   describe('with a synchronous function taking a single parameter', () => {
     describe('with returned value', () => {
       const func = (hello) => `Hello ${hello}`;
-      it('should be possible to componentize', (t, done) => {
+      it('should be possible to componentize', (_t, done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'sync-one', component, done);
       });
@@ -30,7 +30,7 @@ describe('asComponent interface', () => {
             assert.deepEqual(Object.keys(instance.outPorts.ports), ['out', 'error']);
           });
       });
-      it('should send to OUT port', (t, done) => {
+      it('should send to OUT port', (_t, done) => {
         const wrapped = noflo.asCallback('ascomponent/sync-one',
           { loader });
         wrapped('World', (err, res) => {
@@ -42,7 +42,7 @@ describe('asComponent interface', () => {
           done();
         });
       });
-      it('should forward brackets to OUT port', (t, done) => {
+      it('should forward brackets to OUT port', (_t, done) => {
         loader.load('ascomponent/sync-one', (err, instance) => {
           if (err) {
             done(err);
@@ -79,11 +79,11 @@ describe('asComponent interface', () => {
     });
     describe('with returned NULL', () => {
       const func = () => null;
-      it('should be possible to componentize', (t, done) => {
+      it('should be possible to componentize', (_t, done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'sync-null', component, done);
       });
-      it('should send to OUT port', (t, done) => {
+      it('should send to OUT port', (_t, done) => {
         const wrapped = noflo.asCallback('ascomponent/sync-null',
           { loader });
         wrapped('World', (err, res) => {
@@ -97,14 +97,14 @@ describe('asComponent interface', () => {
       });
     });
     describe('with a thrown exception', () => {
-      const func = function (hello) {
+      const func = (hello) => {
         throw new Error(`Hello ${hello}`);
       };
-      it('should be possible to componentize', (t, done) => {
+      it('should be possible to componentize', (_t, done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'sync-throw', component, done);
       });
-      it('should send to ERROR port', (t, done) => {
+      it('should send to ERROR port', (_t, done) => {
         const wrapped = noflo.asCallback('ascomponent/sync-throw',
           { loader });
         wrapped('Error', (err) => {
@@ -118,14 +118,14 @@ describe('asComponent interface', () => {
   describe('with a synchronous function taking a multiple parameters', () => {
     describe('with returned value', () => {
       const func = (greeting, name) => `${greeting} ${name}`;
-      it('should be possible to componentize', (t, done) => {
+      it('should be possible to componentize', (_t, done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'sync-two', component, done);
       });
-      it('should be loadable', (t, done) => {
+      it('should be loadable', (_t, done) => {
         loader.load('ascomponent/sync-two', done);
       });
-      it('should contain correct ports', (t, done) => {
+      it('should contain correct ports', (_t, done) => {
         loader.load('ascomponent/sync-two', (err, instance) => {
           if (err) {
             done(err);
@@ -136,7 +136,7 @@ describe('asComponent interface', () => {
           done();
         });
       });
-      it('should send to OUT port', (t, done) => {
+      it('should send to OUT port', (_t, done) => {
         const wrapped = noflo.asCallback('ascomponent/sync-two',
           { loader });
         wrapped({
@@ -157,14 +157,14 @@ describe('asComponent interface', () => {
       before(function () {
         if (isBrowser) { return this.skip(); }
       }); // Browser runs with ES5 which didn't have defaults
-      it('should be possible to componentize', (t, done) => {
+      it('should be possible to componentize', (_t, done) => {
         const component = () => noflo.asComponent((name, greeting = 'Hello') => `${greeting} ${name}`);
         loader.registerComponent('ascomponent', 'sync-default', component, done);
       });
-      it('should be loadable', (t, done) => {
+      it('should be loadable', (_t, done) => {
         loader.load('ascomponent/sync-default', done);
       });
-      it('should contain correct ports', (t, done) => {
+      it('should contain correct ports', (_t, done) => {
         loader.load('ascomponent/sync-default', (err, instance) => {
           if (err) {
             done(err);
@@ -179,7 +179,7 @@ describe('asComponent interface', () => {
           done();
         });
       });
-      it('should send to OUT port', (t, done) => {
+      it('should send to OUT port', (_t, done) => {
         const wrapped = noflo.asCallback('ascomponent/sync-default',
           { loader });
         wrapped(
@@ -206,11 +206,11 @@ describe('asComponent interface', () => {
           resolve(`Hello ${hello}`);
         }, 5);
       });
-      it('should be possible to componentize', (t, done) => {
+      it('should be possible to componentize', (_t, done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'promise-one', component, done);
       });
-      it('should send to OUT port', (t, done) => {
+      it('should send to OUT port', (_t, done) => {
         const wrapped = noflo.asCallback('ascomponent/promise-one',
           { loader });
         wrapped('World', (err, res) => {
@@ -229,16 +229,16 @@ describe('asComponent interface', () => {
           this.skip();
         }
       });
-      const func = (hello) => new Promise((resolve, reject) => {
+      const func = (hello) => new Promise((_resolve, reject) => {
         setTimeout(() => {
           reject(new Error(`Hello ${hello}`));
         }, 5);
       });
-      it('should be possible to componentize', (t, done) => {
+      it('should be possible to componentize', (_t, done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'sync-throw', component, done);
       });
-      it('should send to ERROR port', (t, done) => {
+      it('should send to ERROR port', (_t, done) => {
         const wrapped = noflo.asCallback('ascomponent/sync-throw',
           { loader });
         wrapped('Error', (err) => {
@@ -252,11 +252,11 @@ describe('asComponent interface', () => {
   describe('with a synchronous function taking zero parameters', () => {
     describe('with returned value', () => {
       const func = () => 'Hello there';
-      it('should be possible to componentize', (t, done) => {
+      it('should be possible to componentize', (_t, done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'sync-zero', component, done);
       });
-      it('should contain correct ports', (t, done) => {
+      it('should contain correct ports', (_t, done) => {
         loader.load('ascomponent/sync-zero', (err, instance) => {
           if (err) {
             done(err);
@@ -267,7 +267,7 @@ describe('asComponent interface', () => {
           done();
         });
       });
-      it('should send to OUT port', (t, done) => {
+      it('should send to OUT port', (_t, done) => {
         const wrapped = noflo.asCallback('ascomponent/sync-zero',
           { loader });
         wrapped('bang', (err, res) => {
@@ -281,11 +281,11 @@ describe('asComponent interface', () => {
       });
     });
     describe('with a built-in function', () => {
-      it('should be possible to componentize', (t, done) => {
+      it('should be possible to componentize', (_t, done) => {
         const component = () => noflo.asComponent(Math.random);
         loader.registerComponent('ascomponent', 'sync-zero', component, done);
       });
-      it('should contain correct ports', (t, done) => {
+      it('should contain correct ports', (_t, done) => {
         loader.load('ascomponent/sync-zero', (err, instance) => {
           if (err) {
             done(err);
@@ -296,7 +296,7 @@ describe('asComponent interface', () => {
           done();
         });
       });
-      it('should send to OUT port', (t, done) => {
+      it('should send to OUT port', (_t, done) => {
         const wrapped = noflo.asCallback('ascomponent/sync-zero',
           { loader });
         wrapped('bang', (err, res) => {
@@ -312,18 +312,18 @@ describe('asComponent interface', () => {
   });
   describe('with an asynchronous function taking a single parameter and callback', () => {
     describe('with successful callback', () => {
-      const func = function (hello, callback) {
+      const func = (hello, callback) => {
         setTimeout(() => callback(null, `Hello ${hello}`),
           5);
       };
-      it('should be possible to componentize', (t, done) => {
+      it('should be possible to componentize', (_t, done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'async-one', component, done);
       });
-      it('should be loadable', (t, done) => {
+      it('should be loadable', (_t, done) => {
         loader.load('ascomponent/async-one', done);
       });
-      it('should contain correct ports', (t, done) => {
+      it('should contain correct ports', (_t, done) => {
         loader.load('ascomponent/async-one', (err, instance) => {
           if (err) {
             done(err);
@@ -334,7 +334,7 @@ describe('asComponent interface', () => {
           done();
         });
       });
-      it('should send to OUT port', (t, done) => {
+      it('should send to OUT port', (_t, done) => {
         const wrapped = noflo.asCallback('ascomponent/async-one',
           { loader });
         wrapped('World', (err, res) => {
@@ -348,15 +348,15 @@ describe('asComponent interface', () => {
       });
     });
     describe('with failed callback', () => {
-      const func = function (hello, callback) {
+      const func = (hello, callback) => {
         setTimeout(() => callback(new Error(`Hello ${hello}`)),
           5);
       };
-      it('should be possible to componentize', (t, done) => {
+      it('should be possible to componentize', (_t, done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'async-throw', component, done);
       });
-      it('should send to ERROR port', (t, done) => {
+      it('should send to ERROR port', (_t, done) => {
         const wrapped = noflo.asCallback('ascomponent/async-throw',
           { loader });
         wrapped('Error', (err) => {

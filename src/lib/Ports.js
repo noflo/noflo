@@ -2,7 +2,7 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import InPort from './InPort.js';
 import OutPort from './OutPort.js';
 
@@ -41,7 +41,7 @@ class Ports extends EventEmitter {
     }
 
     /* eslint-disable no-useless-escape */
-    if (!name.match(/^[a-z0-9_\.\/]+$/)) {
+    if (!name.match(/^[a-z0-9_./]+$/)) {
       throw new Error(`Port names can only contain lowercase alphanumeric characters and underscores. '${name}' not allowed`);
     }
 

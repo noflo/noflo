@@ -1,6 +1,6 @@
 const noflo = require('../../../../lib/NoFlo.js');
 
-exports.getComponent = function () {
+exports.getComponent = () => {
   const c = new noflo.Component();
   c.description = 'Output stuff';
   c.inPorts.add('in',

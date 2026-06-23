@@ -9,7 +9,7 @@
     import/prefer-default-export,
 */
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import * as internalSocket from './InternalSocket.js';
 import { ComponentLoader } from './ComponentLoader.js';
 import { debounce } from './Utils.js';
@@ -51,9 +51,7 @@ function connectPort(socket, process, port, index, inbound) {
       index,
     };
 
-    if (!process.component
-      || !process.component.inPorts
-      || !process.component.inPorts.ports[port]) {
+    if (!process.component?.inPorts?.ports[port]) {
       return Promise.reject(new Error(`No inport '${port}' defined in process ${process.id} (${socket.getId()})`));
     }
     if (process.component.inPorts.ports[port].isAddressable()) {
@@ -70,9 +68,7 @@ function connectPort(socket, process, port, index, inbound) {
     index,
   };
 
-  if (!process.component
-    || !process.component.outPorts
-    || !process.component.outPorts.ports[port]) {
+  if (!process.component?.outPorts?.ports[port]) {
     return Promise.reject(new Error(`No outport '${port}' defined in process ${process.id} (${socket.getId()})`));
   }
 
@@ -199,7 +195,7 @@ export class BaseNetwork extends EventEmitter {
     if (!this.started) { return active; }
     Object.keys(this.processes).forEach((name) => {
       const process = this.processes[name];
-      if (!process || !process.component) {
+      if (!process?.component) {
         return;
       }
       if (process.component.load > 0) {
@@ -633,7 +629,7 @@ export class BaseNetwork extends EventEmitter {
       }
       this.bufferedEmit('process-error', event);
     });
-    if (!source || !source.component || !source.component.isLegacy()) {
+    if (!source?.component?.isLegacy()) {
       return;
     }
     const comp = /** @type {import("./Component").Component} */ (source.component);

@@ -4,7 +4,7 @@ const exported = {
 };
 
 if (window) {
-  window.require = function (moduleName) {
+  window.require = (moduleName) => {
     if (exported[moduleName]) {
       return exported[moduleName];
     }

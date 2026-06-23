@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import { describe, it, beforeEach } from 'node:test';
 import * as noflo from '../src/lib/NoFlo.js';
 
 describe('Outport Port', () => {
@@ -27,7 +27,7 @@ describe('Outport Port', () => {
       });
       p.send('some-data', 1);
     });
-    it('should be able to send to index 0', (t, done) => {
+    it('should be able to send to index 0', (_t, done) => {
       const p = new noflo.OutPort({ addressable: true });
       p.attach(s1);
       s1.on('data', (data) => {
@@ -46,7 +46,7 @@ describe('Outport Port', () => {
       p.attach(s3);
       assert.throws(() => p.send('some-data', 1));
     });
-    it('should give correct port index when detaching a connection', (t, done) => {
+    it('should give correct port index when detaching a connection', (_t, done) => {
       const p = new noflo.OutPort({ addressable: true });
       p.attach(s1, 3);
       p.attach(s2, 1);
@@ -79,7 +79,7 @@ describe('Outport Port', () => {
       s2 = new noflo.internalSocket.InternalSocket();
       s3 = new noflo.internalSocket.InternalSocket();
     });
-    it('should repeat the previously sent value on attach event', (t, done) => {
+    it('should repeat the previously sent value on attach event', (_t, done) => {
       const p = new noflo.OutPort({ caching: true });
 
       s1.once('data', (data) => {
@@ -102,7 +102,7 @@ describe('Outport Port', () => {
       p.send('bar');
       p.disconnect();
     });
-    it('should support addressable ports', (t, done) => {
+    it('should support addressable ports', (_t, done) => {
       const p = new noflo.OutPort({
         addressable: true,
         caching: true,
@@ -135,7 +135,7 @@ describe('Outport Port', () => {
       s2 = new noflo.internalSocket.InternalSocket();
       s3 = new noflo.internalSocket.InternalSocket();
     });
-    it('should send data IPs and substreams', (t, done) => {
+    it('should send data IPs and substreams', (_t, done) => {
       const p = new noflo.OutPort();
       p.attach(s1);
       const expectedEvents = [
@@ -157,7 +157,7 @@ describe('Outport Port', () => {
         .data('my-data')
         .closeBracket();
     });
-    it('should send non-clonable objects by reference', (t, done) => {
+    it('should send non-clonable objects by reference', (_t, done) => {
       const p = new noflo.OutPort();
       p.attach(s1);
       p.attach(s2);
@@ -168,7 +168,10 @@ describe('Outport Port', () => {
         bar: {
           boo: 'baz',
         },
-        func() { return this.foo = 456; },
+        func() {
+          this.foo = 456;
+          return this.foo;
+        },
       };
 
       s1.on('ip', (data) => {
@@ -191,7 +194,7 @@ describe('Outport Port', () => {
       p.data(obj,
         { clonable: false }); // default
     });
-    it('should clone clonable objects on fan-out', (t, done) => {
+    it('should clone clonable objects on fan-out', (_t, done) => {
       const p = new noflo.OutPort();
       p.attach(s1);
       p.attach(s2);
@@ -232,7 +235,7 @@ describe('Outport Port', () => {
       p.data(obj,
         { clonable: true });
     });
-    it('should stamp an IP object with the port\'s datatype', (t, done) => {
+    it('should stamp an IP object with the port\'s datatype', (_t, done) => {
       const p = new noflo.OutPort({ datatype: 'string' });
       p.attach(s1);
       s1.on('ip', (data) => {
@@ -244,7 +247,7 @@ describe('Outport Port', () => {
       });
       p.data('Hello');
     });
-    it('should keep an IP object\'s datatype as-is if already set', (t, done) => {
+    it('should keep an IP object\'s datatype as-is if already set', (_t, done) => {
       const p = new noflo.OutPort({ datatype: 'string' });
       p.attach(s1);
       s1.on('ip', (data) => {
@@ -257,7 +260,7 @@ describe('Outport Port', () => {
       p.sendIP(new noflo.IP('data', 123,
         { datatype: 'integer' }));
     });
-    it('should stamp an IP object with the port\'s schema', (t, done) => {
+    it('should stamp an IP object with the port\'s schema', (_t, done) => {
       const p = new noflo.OutPort({
         datatype: 'string',
         schema: 'text/markdown',
@@ -273,7 +276,7 @@ describe('Outport Port', () => {
       });
       p.data('Hello');
     });
-    it('should keep an IP object\'s schema as-is if already set', (t, done) => {
+    it('should keep an IP object\'s schema as-is if already set', (_t, done) => {
       const p = new noflo.OutPort({
         datatype: 'string',
         schema: 'text/markdown',

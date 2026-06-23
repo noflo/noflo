@@ -138,10 +138,9 @@ export default class ProcessOutput {
     if (!('out' in this.ports)) {
       throw new Error('output.pass() requires port "out" to be present');
     }
-    const that = this;
     Object.keys(options).forEach((key) => {
       const val = options[key];
-      that.ip[key] = val;
+      this.ip[key] = val;
     });
     this.ip.data = data;
     this.sendIP('out', this.ip);

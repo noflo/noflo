@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import { describe, it, before, after, beforeEach } from 'node:test';
 import * as noflo from '../src/lib/NoFlo.js';
 
 describe('NoFlo Network (synchronous delivery)', () => {
@@ -85,12 +85,10 @@ describe('NoFlo Network (synchronous delivery)', () => {
     it('should have transmitted the baseDir to the Component Loader', () => {
       assert.strictEqual(n.loader.baseDir, process.cwd());
     });
-    it('should be able to list components', function () {
-      return n.loader.listComponents()
+    it('should be able to list components', () => n.loader.listComponents()
         .then((components) => {
           assert.strictEqual(typeof components, "object");
-        });
-    });
+        }));
     it('should have an uptime', () => {
       assert.ok(n.uptime() >= 0);
     });
@@ -209,7 +207,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
   describe('with a simple graph', () => {
     let g = null;
     let n = null;
-    before(function () {
+    before(() => {
       g = new noflo.Graph();
       g.addNode('Merge', 'Merge');
       g.addNode('Callback', 'Callback');
@@ -347,7 +345,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
       });
     });
     describe('with process icon change', () => {
-      it('should emit an icon event', (t, done) => {
+      it('should emit an icon event', (_t, done) => {
         n.once('icon', (data) => {
           assert.strictEqual(typeof data, "object");
           assert.strictEqual(data.id, 'Func');
@@ -364,7 +362,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         }));
     });
     describe('without the delay option', () => {
-      it('should auto-start', (t, done) => {
+      it('should auto-start', (_t, done) => {
         g.removeInitial('Func', 'callback');
         noflo.graph.loadJSON(g.toJSON())
           .then((graph) => {
@@ -423,8 +421,8 @@ describe('NoFlo Network (synchronous delivery)', () => {
       g.addNode('Cb', 'Cb');
       g.addEdge('Def', 'out', 'Cb', 'in');
     });
-    it('should send default values to nodes without an edge', function (t, done) {
-      testCallback = function (data) {
+    it('should send default values to nodes without an edge', (_t, done) => {
+      testCallback = (data) => {
         assert.strictEqual(data, 'default-value');
         done();
       };
@@ -442,8 +440,8 @@ describe('NoFlo Network (synchronous delivery)', () => {
         .then((nw) => nw.start())
         .catch(done);
     });
-    it('should not send default values to nodes with an edge', function (t, done) {
-      testCallback = function (data) {
+    it('should not send default values to nodes with an edge', (_t, done) => {
+      testCallback = (data) => {
         assert.strictEqual(data, 'from-edge');
         done();
       };
@@ -465,8 +463,8 @@ describe('NoFlo Network (synchronous delivery)', () => {
         .then((nw) => nw.start())
         .catch(done);
     });
-    it('should not send default values to nodes with IIP', function (t, done) {
-      testCallback = function (data) {
+    it('should not send default values to nodes with IIP', (_t, done) => {
+      testCallback = (data) => {
         assert.strictEqual(data, 'from-IIP');
         done();
       };
@@ -496,8 +494,8 @@ describe('NoFlo Network (synchronous delivery)', () => {
         .addNode('Repeat', 'Split')
         .addEdge('Repeat', 'out', 'Callback', 'in');
     });
-    it('should call the Callback with the original IIP value', function (t, done) {
-      const cb = function (packet) {
+    it('should call the Callback with the original IIP value', (_t, done) => {
+      const cb = (packet) => {
         assert.strictEqual(packet, 'Foo');
         done();
       };
@@ -538,8 +536,8 @@ describe('NoFlo Network (synchronous delivery)', () => {
         assert.strictEqual(n.initials.length, 0, 'No IIPs left');
         assert.strictEqual(n.connections.length, 1, 'Only one connection');
       }));
-    it('new IIPs to replace original ones should work correctly', (t, done) => {
-      const cb = function (packet) {
+    it('new IIPs to replace original ones should work correctly', (_t, done) => {
+      const cb = (packet) => {
         assert.strictEqual(packet, 'Baz');
         done();
       };
@@ -570,7 +568,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         assert.strictEqual(n.started, true);
         assert.strictEqual(n.processes.Repeat.component.started, true);
       });
-      it('should emit the end event', function (t, done) {
+      it('should emit the end event', (_t, done) => {
         if (n.stopped) {
           done(new Error('Cannot stop what wasn\'t running'));
           return;
@@ -588,7 +586,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
     });
   });
   describe('with a very large network', () => {
-    it('should be able to connect without errors', function (t, done) {
+    it('should be able to connect without errors', (_t, done) => {
       let n;
       const g = new noflo.Graph();
       let called = 0;

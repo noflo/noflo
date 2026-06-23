@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
-import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import { describe, it, before, afterEach } from 'node:test';
 import * as noflo from '../src/lib/NoFlo.js';
 import flowtrace from 'flowtrace';
 
 describe('asPromise interface', () => {
   let loader = null;
 
-  const processAsync = function () {
+  const processAsync = () => {
     const c = new noflo.Component();
     c.inPorts.add('in',
       { datatype: 'string' });
@@ -19,7 +19,7 @@ describe('asPromise interface', () => {
         1);
     });
   };
-  const processError = function () {
+  const processError = () => {
     const c = new noflo.Component();
     c.inPorts.add('in',
       { datatype: 'string' });
@@ -31,7 +31,7 @@ describe('asPromise interface', () => {
       output.done(new Error(`Received ${data}`));
     });
   };
-  const processValues = function () {
+  const processValues = () => {
     const c = new noflo.Component();
     c.inPorts.add('in', {
       datatype: 'string',
@@ -44,7 +44,7 @@ describe('asPromise interface', () => {
       output.sendDone(data);
     });
   };
-  const neverSend = function () {
+  const neverSend = () => {
     const c = new noflo.Component();
     c.inPorts.add('in',
       { datatype: 'string' });
@@ -54,7 +54,7 @@ describe('asPromise interface', () => {
       input.getData('in');
     });
   };
-  const streamify = function () {
+  const streamify = () => {
     const c = new noflo.Component();
     c.inPorts.add('in',
       { datatype: 'string' });
@@ -93,7 +93,7 @@ describe('asPromise interface', () => {
       wrapped = noflo.asPromise('foo/Bar',
         { loader });
     });
-    it('should be able to wrap it', (t, done) => {
+    it('should be able to wrap it', (_t, done) => {
       assert.strictEqual(typeof wrapped, "function");
       assert.strictEqual(wrapped.length, 1);
       done();
@@ -111,7 +111,7 @@ describe('asPromise interface', () => {
       wrapped = noflo.asPromise('process/Async',
         { loader });
     });
-    it('should be able to wrap it', (t, done) => {
+    it('should be able to wrap it', (_t, done) => {
       assert.strictEqual(typeof wrapped, "function");
       assert.strictEqual(wrapped.length, 1);
       done();
@@ -134,7 +134,7 @@ describe('asPromise interface', () => {
           assert.deepStrictEqual(out, expected);
         });
     });
-    it('should not mix up simultaneous runs', (t, done) => {
+    it('should not mix up simultaneous runs', (_t, done) => {
       let received = 0;
       for (let idx = 0; idx <= 100; idx += 1) {
         /* eslint-disable no-loop-func */
@@ -317,7 +317,7 @@ describe('asPromise interface', () => {
   describe('with a graph instead of component name', () => {
     let graph = null;
     let wrapped = null;
-    before((t, done) => {
+    before((_t, done) => {
       noflo.graph.loadFBP(`\
 INPORT=Async.IN:IN
 OUTPORT=Stream.OUT:OUT
@@ -355,7 +355,7 @@ Async(process/Async) OUT -> IN Stream(process/Streamify)\
   describe('with a graph instead of component name (synchronous)', () => {
     let graph = null;
     let wrapped = null;
-    before((t, done) => {
+    before((_t, done) => {
       noflo.graph.loadFBP(`\
 INPORT=Async.IN:IN
 OUTPORT=Stream.OUT:OUT
@@ -391,7 +391,7 @@ Async(process/Async) OUT -> IN Stream(process/Streamify)\
   describe('with a graph containing a component supporting only certain values', () => {
     let graph = null;
     let wrapped = null;
-    before((t, done) => {
+    before((_t, done) => {
       noflo.graph.loadFBP(`\
 INPORT=Async.IN:IN
 OUTPORT=Values.OUT:OUT
@@ -448,7 +448,7 @@ Async(process/Async) OUT -> IN Values(process/Values)\
       called = 0;
       started = 0;
     });
-    it('should not provide network at callbackization time', (t, done) => {
+    it('should not provide network at callbackization time', (_t, done) => {
       assert.strictEqual(called, 0);
       wrapped = noflo.asPromise('process/Async', {
         loader,

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import { describe, it, before, beforeEach } from 'node:test';
 import flowtrace from 'flowtrace';
 import * as noflo from '../src/lib/NoFlo.js';
 
@@ -25,7 +25,7 @@ describe('NoFlo Graph component', () => {
       c.inPorts.graph.attach(g);
     }));
 
-  const Split = function () {
+  const Split = () => {
     const inst = new noflo.Component();
     inst.inPorts.add('in',
       { datatype: 'all' });
@@ -38,7 +38,7 @@ describe('NoFlo Graph component', () => {
     return inst;
   };
 
-  const SubgraphMerge = function () {
+  const SubgraphMerge = () => {
     const inst = new noflo.Component();
     inst.inPorts.add('in',
       { datatype: 'all' });
@@ -72,7 +72,7 @@ describe('NoFlo Graph component', () => {
     });
   });
   describe('with JSON graph definition', () => {
-    it('should emit a ready event after network has been loaded', (t, done) => {
+    it('should emit a ready event after network has been loaded', (_t, done) => {
       c.baseDir = process.cwd();
       c.once('ready', () => {
         assert.notEqual(c.network, null);
@@ -99,7 +99,7 @@ describe('NoFlo Graph component', () => {
         },
       });
     });
-    it('should expose available ports', (t, done) => {
+    it('should expose available ports', (_t, done) => {
       c.baseDir = process.cwd();
       c.once('ready', () => {
         assert.deepEqual(Object.keys(c.inPorts.ports), [
@@ -139,7 +139,7 @@ describe('NoFlo Graph component', () => {
         ],
       });
     });
-    it('should update description from the graph', (t, done) => {
+    it('should update description from the graph', (_t, done) => {
       c.baseDir = process.cwd();
       c.once('ready', () => {
         assert.notEqual(c.network, null);
@@ -167,7 +167,7 @@ describe('NoFlo Graph component', () => {
         },
       });
     });
-    it('should expose only exported ports when they exist', (t, done) => {
+    it('should expose only exported ports when they exist', (_t, done) => {
       c.baseDir = process.cwd();
       c.once('ready', () => {
         assert.deepEqual(Object.keys(c.inPorts.ports), [
@@ -215,7 +215,7 @@ describe('NoFlo Graph component', () => {
         ],
       });
     });
-    it('should be able to run the graph', (t, done) => {
+    it('should be able to run the graph', (_t, done) => {
       c.baseDir = process.cwd();
       c.once('ready', () => {
         const ins = noflo.internalSocket.createSocket();
@@ -283,7 +283,7 @@ describe('NoFlo Graph component', () => {
       gr.addInport('in', 'Merge', 'in');
       gr.addOutport('out', 'Split', 'out');
     });
-    it('should emit a ready event after network has been loaded', (t, done) => {
+    it('should emit a ready event after network has been loaded', (_t, done) => {
       c.baseDir = process.cwd();
       c.once('ready', () => {
         assert.notEqual(c.network, null);
@@ -302,7 +302,7 @@ describe('NoFlo Graph component', () => {
       g.send(gr);
       assert.strictEqual(c.ready, false);
     });
-    it('should expose available ports', (t, done) => {
+    it('should expose available ports', (_t, done) => {
       c.baseDir = process.cwd();
       c.once('ready', () => {
         assert.deepEqual(Object.keys(c.inPorts.ports), [
@@ -325,7 +325,7 @@ describe('NoFlo Graph component', () => {
       });
       g.send(gr);
     });
-    it('should be able to run the graph', (t, done) => {
+    it('should be able to run the graph', (_t, done) => {
       c.baseDir = process.cwd();
       let doned = false;
       c.once('ready', () => {
@@ -357,7 +357,7 @@ describe('NoFlo Graph component', () => {
   });
   describe('with a FBP file with INPORTs and OUTPORTs', () => {
     const file = `${loadingPrefix}spec/fixtures/subgraph.fbp`;
-    it('should emit a ready event after network has been loaded', function (t, done) {
+    it('should emit a ready event after network has been loaded', (_t, done) => {
       c.baseDir = process.cwd();
       c.once('ready', () => {
         assert.notEqual(c.network, null);
@@ -376,7 +376,7 @@ describe('NoFlo Graph component', () => {
       g.send(file);
       assert.strictEqual(c.ready, false);
     });
-    it('should expose available ports', function (t, done) {
+    it('should expose available ports', (_t, done) => {
       c.baseDir = process.cwd();
       c.once('ready', () => {
         assert.deepEqual(Object.keys(c.inPorts.ports), [
@@ -399,7 +399,7 @@ describe('NoFlo Graph component', () => {
       });
       g.send(file);
     });
-    it('should be able to run the graph', function (t, done) {
+    it('should be able to run the graph', (_t, done) => {
       c.baseDir = process.cwd();
       c.once('ready', () => {
         const ins = noflo.internalSocket.createSocket();
@@ -432,7 +432,7 @@ describe('NoFlo Graph component', () => {
     });
   });
   describe('when a subgraph is used as a component', () => {
-    const createSplit = function () {
+    const createSplit = () => {
       c = new noflo.Component();
       c.inPorts.add('in', {
         required: true,
@@ -464,7 +464,7 @@ describe('NoFlo Graph component', () => {
     grInitials.addEdge('SplitIn', 'out', 'SplitOut', 'in');
 
     let cl = null;
-    before(function () {
+    before(() => {
       cl = new noflo.ComponentLoader(process.cwd());
       return cl.listComponents()
         .then(() => {
@@ -474,8 +474,12 @@ describe('NoFlo Graph component', () => {
         });
     });
 
-    it('should send defaults', (t, done) => {
+    it('should send defaults', (_t, done) => {
       cl.load('Defaults', (err, inst) => {
+        if (err) {
+          done(err);
+          return;
+        }
         const o = noflo.internalSocket.createSocket();
         inst.outPorts.out.attach(o);
         o.once('data', (data) => {
@@ -490,8 +494,12 @@ describe('NoFlo Graph component', () => {
       });
     });
 
-    it('should send initials', (t, done) => {
+    it('should send initials', (_t, done) => {
       cl.load('Initials', (err, inst) => {
+        if (err) {
+          done(err);
+          return;
+        }
         const o = noflo.internalSocket.createSocket();
         inst.outPorts.out.attach(o);
         o.once('data', (data) => {
@@ -506,8 +514,12 @@ describe('NoFlo Graph component', () => {
       });
     });
 
-    it('should not send defaults when an inport is attached externally', (t, done) => {
+    it('should not send defaults when an inport is attached externally', (_t, done) => {
       cl.load('Defaults', (err, inst) => {
+        if (err) {
+          done(err);
+          return;
+        }
         const i = noflo.internalSocket.createSocket();
         const o = noflo.internalSocket.createSocket();
         inst.inPorts.in.attach(i);
@@ -525,8 +537,12 @@ describe('NoFlo Graph component', () => {
       });
     });
 
-    it('should deactivate after processing is complete', (t, done) => {
+    it('should deactivate after processing is complete', (_t, done) => {
       cl.load('Defaults', (err, inst) => {
+        if (err) {
+          done(err);
+          return;
+        }
         const i = noflo.internalSocket.createSocket();
         const o = noflo.internalSocket.createSocket();
         inst.inPorts.in.attach(i);
@@ -559,8 +575,12 @@ describe('NoFlo Graph component', () => {
       });
     });
 
-    it.skip('should activate automatically when receiving data', (t, done) => {
+    it.skip('should activate automatically when receiving data', (_t, done) => {
       cl.load('Defaults', (err, inst) => {
+        if (err) {
+          done(err);
+          return;
+        }
         const i = noflo.internalSocket.createSocket();
         const o = noflo.internalSocket.createSocket();
         inst.inPorts.in.attach(i);
@@ -583,8 +603,12 @@ describe('NoFlo Graph component', () => {
       });
     });
 
-    it('should reactivate when receiving new data packets', (t, done) => {
+    it('should reactivate when receiving new data packets', (_t, done) => {
       cl.load('Defaults', (err, inst) => {
+        if (err) {
+          done(err);
+          return;
+        }
         const i = noflo.internalSocket.createSocket();
         const o = noflo.internalSocket.createSocket();
         inst.inPorts.in.attach(i);
@@ -607,7 +631,7 @@ describe('NoFlo Graph component', () => {
           ['Bar', 'Baz'],
           ['Foobar'],
         ];
-        const sendNext = function () {
+        const sendNext = () => {
           if (!send.length) { return; }
           const sends = send.shift();
           for (const d of sends) { i.post(new noflo.IP('data', d)); }
@@ -639,7 +663,7 @@ describe('NoFlo Graph component', () => {
     describe('with a single level subgraph', () => {
       let graph = null;
       let network = null;
-      before((t, done) => {
+      before((_t, done) => {
         graph = new noflo.Graph('main');
         graph.baseDir = process.cwd();
         noflo.createNetwork(graph, {
@@ -669,7 +693,7 @@ describe('NoFlo Graph component', () => {
           });
         });
       });
-      it('should instantiate the subgraph when node is added', (t, done) => {
+      it('should instantiate the subgraph when node is added', (_t, done) => {
         network.addNode({
           id: 'Sub',
           component: 'foo/AB',
@@ -710,10 +734,10 @@ describe('NoFlo Graph component', () => {
           });
         });
       });
-      it('should be possible to start the graph', (t, done) => {
+      it('should be possible to start the graph', (_t, done) => {
         network.start(done);
       });
-      it('should forward IP events', (t, done) => {
+      it('should forward IP events', (_t, done) => {
         network.once('ip', (ip) => {
           assert.strictEqual(ip.id, 'DATA -> IN Sub()');
           assert.strictEqual(ip.type, 'data');
@@ -755,7 +779,7 @@ describe('NoFlo Graph component', () => {
       let graph = null;
       let network = null;
       const trace = new flowtrace.Flowtrace();
-      before((t, done) => {
+      before((_t, done) => {
         graph = new noflo.Graph('main');
         graph.baseDir = process.cwd();
         noflo.createNetwork(graph, {
@@ -798,7 +822,7 @@ describe('NoFlo Graph component', () => {
           });
         });
       });
-      it('should instantiate the subgraphs when node is added', (t, done) => {
+      it('should instantiate the subgraphs when node is added', (_t, done) => {
         network.addNode({
           id: 'Sub',
           component: 'foo/AB2',
@@ -839,10 +863,10 @@ describe('NoFlo Graph component', () => {
           });
         });
       });
-      it('should be possible to start the graph', (t, done) => {
+      it('should be possible to start the graph', (_t, done) => {
         network.start(done);
       });
-      it('should forward IP events', (t, done) => {
+      it('should forward IP events', (_t, done) => {
         network.once('ip', (ip) => {
           assert.strictEqual(ip.id, 'DATA -> IN Sub()');
           assert.strictEqual(ip.type, 'data');
@@ -888,7 +912,7 @@ describe('NoFlo Graph component', () => {
           }
         });
       });
-      it('should finish', (t, done) => {
+      it('should finish', (_t, done) => {
         network.once('end', () => {
           done();
         });

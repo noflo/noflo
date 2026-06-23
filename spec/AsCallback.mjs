@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {
-  describe, it, before, after, beforeEach, afterEach,
+  describe, it, before, afterEach,
 } from 'node:test';
 import flowtrace from 'flowtrace';
 import * as noflo from '../src/lib/NoFlo.js';
@@ -8,7 +8,7 @@ import * as noflo from '../src/lib/NoFlo.js';
 describe('asCallback interface', () => {
   let loader = null;
 
-  const processAsync = function () {
+  const processAsync = () => {
     const c = new noflo.Component();
     c.inPorts.add('in',
       { datatype: 'string' });
@@ -21,7 +21,7 @@ describe('asCallback interface', () => {
         1);
     });
   };
-  const processError = function () {
+  const processError = () => {
     const c = new noflo.Component();
     c.inPorts.add('in',
       { datatype: 'string' });
@@ -33,7 +33,7 @@ describe('asCallback interface', () => {
       output.done(new Error(`Received ${data}`));
     });
   };
-  const processValues = function () {
+  const processValues = () => {
     const c = new noflo.Component();
     c.inPorts.add('in', {
       datatype: 'string',
@@ -46,7 +46,7 @@ describe('asCallback interface', () => {
       output.sendDone(data);
     });
   };
-  const neverSend = function () {
+  const neverSend = () => {
     const c = new noflo.Component();
     c.inPorts.add('in',
       { datatype: 'string' });
@@ -56,7 +56,7 @@ describe('asCallback interface', () => {
       input.getData('in');
     });
   };
-  const streamify = function () {
+  const streamify = () => {
     const c = new noflo.Component();
     c.inPorts.add('in',
       { datatype: 'string' });
@@ -93,12 +93,12 @@ describe('asCallback interface', () => {
     before(() => {
       wrapped = noflo.asCallback('foo/Bar', { loader });
     });
-    it('should be able to wrap it', (t, done) => {
+    it('should be able to wrap it', (_t, done) => {
       assert.strictEqual(typeof wrapped, 'function');
       assert.strictEqual(wrapped.length, 2);
       done();
     });
-    it('should fail execution', (t, done) => {
+    it('should fail execution', (_t, done) => {
       wrapped(1, (err) => {
         assert.ok(Error.isError(err));
         done();
@@ -111,12 +111,12 @@ describe('asCallback interface', () => {
       wrapped = noflo.asCallback('process/Async',
         { loader });
     });
-    it('should be able to wrap it', (t, done) => {
+    it('should be able to wrap it', (_t, done) => {
       assert.strictEqual(typeof wrapped, 'function');
       assert.strictEqual(wrapped.length, 2);
       done();
     });
-    it('should execute network with input map and provide output map', (t, done) => {
+    it('should execute network with input map and provide output map', (_t, done) => {
       const expected = { hello: 'world' };
 
       wrapped(
@@ -131,7 +131,7 @@ describe('asCallback interface', () => {
         },
       );
     });
-    it('should execute network with simple input and provide simple output', (t, done) => {
+    it('should execute network with simple input and provide simple output', (_t, done) => {
       const expected = { hello: 'world' };
 
       wrapped(expected, (err, out) => {
@@ -143,7 +143,7 @@ describe('asCallback interface', () => {
         done();
       });
     });
-    it('should not mix up simultaneous runs', (t, done) => {
+    it('should not mix up simultaneous runs', (_t, done) => {
       let received = 0;
       for (let idx = 0; idx <= 100; idx += 1) {
         /* eslint-disable no-loop-func */
@@ -159,7 +159,7 @@ describe('asCallback interface', () => {
         });
       }
     });
-    it('should execute a network with a sequence and provide output sequence', (t, done) => {
+    it('should execute a network with a sequence and provide output sequence', (_t, done) => {
       const sent = [
         { in: 'hello' },
         { in: 'world' },
@@ -177,7 +177,7 @@ describe('asCallback interface', () => {
       });
     });
     describe('with the raw option', () => {
-      it('should execute a network with a sequence and provide output sequence', (t, done) => {
+      it('should execute a network with a sequence and provide output sequence', (_t, done) => {
         const wrappedRaw = noflo.asCallback('process/Async', {
           loader,
           raw: true,
@@ -219,7 +219,7 @@ describe('asCallback interface', () => {
       wrapped = noflo.asCallback('process/Error',
         { loader });
     });
-    it('should execute network with input map and provide error', (t, done) => {
+    it('should execute network with input map and provide error', (_t, done) => {
       const expected = 'hello there';
       wrapped(
         { in: expected },
@@ -230,7 +230,7 @@ describe('asCallback interface', () => {
         },
       );
     });
-    it('should execute network with simple input and provide error', (t, done) => {
+    it('should execute network with simple input and provide error', (_t, done) => {
       const expected = 'hello world';
       wrapped(expected, (err) => {
         assert.ok(Error.isError(err));
@@ -245,7 +245,7 @@ describe('asCallback interface', () => {
       wrapped = noflo.asCallback('process/Values',
         { loader });
     });
-    it('should execute network with input map and provide output map', (t, done) => {
+    it('should execute network with input map and provide output map', (_t, done) => {
       const expected = 'blue';
       wrapped(
         { in: expected },
@@ -259,7 +259,7 @@ describe('asCallback interface', () => {
         },
       );
     });
-    it('should execute network with simple input and provide simple output', (t, done) => {
+    it('should execute network with simple input and provide simple output', (_t, done) => {
       const expected = 'blue';
       wrapped(expected, (err, out) => {
         if (err) {
@@ -270,7 +270,7 @@ describe('asCallback interface', () => {
         done();
       });
     });
-    it('should execute network with wrong map and provide error', (t, done) => {
+    it('should execute network with wrong map and provide error', (_t, done) => {
       wrapped(
         { in: 'red' },
         (err) => {
@@ -280,7 +280,7 @@ describe('asCallback interface', () => {
         },
       );
     });
-    it('should execute network with wrong input and provide error', (t, done) => {
+    it('should execute network with wrong input and provide error', (_t, done) => {
       wrapped('red', (err) => {
         assert.ok(Error.isError(err));
         assert.ok(err.message.includes('Invalid data=\'red\' received, not in [green,blue]'));
@@ -294,10 +294,10 @@ describe('asCallback interface', () => {
       wrapped = noflo.asCallback('process/Streamify',
         { loader });
     });
-    it('should execute network with input map and provide output map with streams as arrays', (t, done) => {
+    it('should execute network with input map and provide output map with streams as arrays', (_t, done) => {
       wrapped(
         { in: 'hello world' },
-        (err, out) => {
+        (_err, out) => {
           assert.deepStrictEqual(out.out, [
             ['h', 'e', 'l', 'l', 'o'],
             ['w', 'o', 'r', 'l', 'd'],
@@ -306,8 +306,8 @@ describe('asCallback interface', () => {
         },
       );
     });
-    it('should execute network with simple input and and provide simple output with streams as arrays', (t, done) => {
-      wrapped('hello there', (err, out) => {
+    it('should execute network with simple input and and provide simple output with streams as arrays', (_t, done) => {
+      wrapped('hello there', (_err, out) => {
         assert.deepStrictEqual(out, [
           ['h', 'e', 'l', 'l', 'o'],
           ['t', 'h', 'e', 'r', 'e'],
@@ -316,14 +316,14 @@ describe('asCallback interface', () => {
       });
     });
     describe('with the raw option', () => {
-      it('should execute network with input map and provide output map with IP objects', (t, done) => {
+      it('should execute network with input map and provide output map with IP objects', (_t, done) => {
         const wrappedRaw = noflo.asCallback('process/Streamify', {
           loader,
           raw: true,
         });
         wrappedRaw(
           { in: 'hello world' },
-          (err, out) => {
+          (_err, out) => {
             const types = out.out.map((ip) => `${ip.type} ${ip.data}`);
             assert.deepStrictEqual(types, [
               'openBracket 0',
@@ -350,7 +350,7 @@ describe('asCallback interface', () => {
   describe('with a graph instead of component name', () => {
     let graph = null;
     let wrapped = null;
-    before((t, done) => {
+    before((_t, done) => {
       noflo.graph.loadFBP(`\
 INPORT=Async.IN:IN
 OUTPORT=Stream.OUT:OUT
@@ -366,7 +366,7 @@ Async(process/Async) OUT -> IN Stream(process/Streamify)\
         done();
       });
     });
-    it('should execute network with input map and provide output map with streams as arrays', (t, done) => {
+    it('should execute network with input map and provide output map with streams as arrays', (_t, done) => {
       wrapped(
         { in: 'hello world' },
         (err, out) => {
@@ -382,7 +382,7 @@ Async(process/Async) OUT -> IN Stream(process/Streamify)\
         },
       );
     });
-    it('should execute network with simple input and and provide simple output with streams as arrays', (t, done) => {
+    it('should execute network with simple input and and provide simple output with streams as arrays', (_t, done) => {
       wrapped('hello there', (err, out) => {
         if (err) {
           done(err);
@@ -399,7 +399,7 @@ Async(process/Async) OUT -> IN Stream(process/Streamify)\
   describe('with a graph containing a component supporting only certain values', () => {
     let graph = null;
     let wrapped = null;
-    before((t, done) => {
+    before((_t, done) => {
       noflo.graph.loadFBP(`\
 INPORT=Async.IN:IN
 OUTPORT=Values.OUT:OUT
@@ -415,7 +415,7 @@ Async(process/Async) OUT -> IN Values(process/Values)\
         done();
       });
     });
-    it('should execute network with input map and provide output map', (t, done) => {
+    it('should execute network with input map and provide output map', (_t, done) => {
       const expected = 'blue';
       wrapped(
         { in: expected },
@@ -429,7 +429,7 @@ Async(process/Async) OUT -> IN Values(process/Values)\
         },
       );
     });
-    it('should execute network with simple input and provide simple output', (t, done) => {
+    it('should execute network with simple input and provide simple output', (_t, done) => {
       const expected = 'blue';
       wrapped(expected, (err, out) => {
         if (err) {
@@ -440,7 +440,7 @@ Async(process/Async) OUT -> IN Values(process/Values)\
         done();
       });
     });
-    it('should execute network with wrong map and provide error', (t, done) => {
+    it('should execute network with wrong map and provide error', (_t, done) => {
       wrapped(
         { in: 'red' },
         (err) => {
@@ -450,7 +450,7 @@ Async(process/Async) OUT -> IN Values(process/Values)\
         },
       );
     });
-    it('should execute network with wrong input and provide error', (t, done) => {
+    it('should execute network with wrong input and provide error', (_t, done) => {
       wrapped('red', (err) => {
         assert.ok(Error.isError(err));
         assert.ok(err.message.includes('Invalid data=\'red\' received, not in [green,blue]'));
@@ -466,7 +466,7 @@ Async(process/Async) OUT -> IN Values(process/Values)\
       called = 0;
       started = 0;
     });
-    it('should not provide network at callbackization time', (t, done) => {
+    it('should not provide network at callbackization time', (_t, done) => {
       assert.strictEqual(called, 0);
       wrapped = noflo.asCallback('process/Async', {
         loader,
@@ -481,7 +481,7 @@ Async(process/Async) OUT -> IN Values(process/Values)\
       assert.strictEqual(called, 0);
       done();
     });
-    it('should provide the network to the callback when executed', (t, done) => {
+    it('should provide the network to the callback when executed', (_t, done) => {
       const expected = { hello: 'world' };
       assert.strictEqual(called, 0);
 
@@ -495,12 +495,12 @@ Async(process/Async) OUT -> IN Values(process/Values)\
         done();
       });
     });
-    it.skip('should provide the network before actual execution so that we catch the start event', (t, done) => {
+    it.skip('should provide the network before actual execution so that we catch the start event', (_t, done) => {
       const expected = { hello: 'world' };
       assert.strictEqual(called, 0, 'not called before call');
       assert.strictEqual(started, 0);
 
-      wrapped(expected, (err, out) => {
+      wrapped(expected, () => {
         assert.equal(called, 0, 'not called immediately after call');
         assert.equal(started, 0);
 
@@ -517,7 +517,7 @@ Async(process/Async) OUT -> IN Values(process/Values)\
       });
     });
     describe('with flowtrace option', () => {
-      it('should store a trace for a simple component execution', (t, done) => {
+      it('should store a trace for a simple component execution', (_t, done) => {
         const trace = new flowtrace.Flowtrace();
         const wrapped = noflo.asCallback('process/Async', {
           loader,

@@ -4,8 +4,8 @@
     no-underscore-dangle,
     prefer-destructuring,
 */
-import * as path from 'path';
-import * as fs from 'fs';
+import * as path from 'node:path';
+import * as fs from 'node:fs';
 import * as manifest from 'fbp-manifest';
 import * as fbpGraph from 'fbp-graph';
 import { promisify } from 'util';
@@ -21,7 +21,7 @@ import('coffeescript')
   .then((compiler) => {
     CoffeeScript = compiler;
   })
-  .catch((e) => {
+  .catch((_e) => {
     // If there is no CoffeeScript compiler installed, we simply don't support compiling
   });
 
@@ -30,10 +30,10 @@ let typescript;
 // eslint-disable-next-line import/no-unresolved,import/no-extraneous-dependencies
 import('typescript')
   .then((compiler) => {
-    // @ts-ignore
+    // @ts-expect-error
     typescript = compiler.default;
     })
-  .catch((e) => {
+  .catch((_e) => {
     // If there is no TypeScript compiler installed, we simply don't support compiling
   });
 
@@ -106,9 +106,8 @@ function transpileSource(packageId, name, source, language) {
  * @returns {Promise<Object|Function>}
  */
 function evaluateModule(baseDir, packageId, name, source) {
-  return import('module')
+  return import('node:module')
     .then(({ Module }) => {
-      let implementation;
       // Use the Node.js module API to evaluate in the correct directory context
       let extension = '.js';
       if (source.indexOf('require(') !== -1) {
@@ -117,12 +116,12 @@ function evaluateModule(baseDir, packageId, name, source) {
       }
       const modulePath = path.resolve(baseDir, `./components/${name}${extension}`);
       const moduleImpl = new Module(modulePath);
-      // @ts-ignore
+      // @ts-expect-error
       moduleImpl.paths = Module._nodeModulePaths(path.dirname(modulePath));
       moduleImpl.filename = modulePath;
-      // @ts-ignore
+      // @ts-expect-error
       moduleImpl._compile(source, modulePath);
-      implementation = moduleImpl.exports;
+      const implementation = moduleImpl.exports;
       if ((typeof implementation !== 'function') && (typeof implementation.getComponent !== 'function')) {
         return Promise.reject(new Error(`Provided source for ${packageId}/${name} failed to create a runnable component`));
       }
@@ -326,7 +325,7 @@ export function getSource(loader, name, callback) {
     }
   }
 
-  if (loader.sourcesForComponents && loader.sourcesForComponents[componentName]) {
+  if (loader.sourcesForComponents?.[componentName]) {
     finalize(null, {
       name: nameParts[1],
       library: nameParts[0],
@@ -410,7 +409,7 @@ function registerModules(loader, modules, callback) {
       loader.setLibraryIcon(m.name, m.icon);
     }
 
-    if (m.noflo && m.noflo.loader) {
+    if (m.noflo?.loader) {
       const loaderPath = path.resolve(loader.baseDir, m.base, m.noflo.loader);
       componentLoaders.push(loaderPath);
     }

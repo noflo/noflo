@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import { describe, it, before, after } from 'node:test';
 import path from 'node:path';
 import * as noflo from '../src/lib/NoFlo.js';
 
@@ -19,7 +19,7 @@ if ((typeof process !== 'undefined') && process.execPath && process.execPath.mat
 const baseDir = process.cwd();
 
 describe('ComponentLoader with no external packages installed', () => {
-  let l = new noflo.ComponentLoader(baseDir);
+  const l = new noflo.ComponentLoader(baseDir);
   class Split extends noflo.Component {
     constructor() {
       const options = {
@@ -38,7 +38,7 @@ describe('ComponentLoader with no external packages installed', () => {
   }
   Split.getComponent = () => new Split();
 
-  const Merge = function () {
+  const Merge = () => {
     const inst = new noflo.Component();
     inst.inPorts.add('in');
     inst.outPorts.add('out');
@@ -88,14 +88,9 @@ describe('ComponentLoader with no external packages installed', () => {
         assert.strictEqual(components, l.components, 'should have returned the full list');
         assert.strictEqual(l.ready, true, 'should have been set ready');
       });
-
-    if (!noflo.isBrowser()) {
-      // Browser component registry can be synchronous
-      assert.strictEqual(typeof l.processing, 'should have started processing', "promise");
-    }
   });
   describe('calling listComponents twice simultaneously', () => {
-    it('should return the same results', (t, done) => {
+    it('should return the same results', (_t, done) => {
       const loader = new noflo.ComponentLoader(baseDir);
       const received = [];
       loader.listComponents()
@@ -159,15 +154,15 @@ describe('ComponentLoader with no external packages installed', () => {
   });
 
   describe('loading a subgraph', () => {
-    l = new noflo.ComponentLoader(baseDir);
+    const l2 = new noflo.ComponentLoader(baseDir);
     const file = `${urlPrefix}spec/fixtures/subgraph.fbp`;
     it('should remove `graph` and `start` ports', () => {
-      return l.listComponents()
+      return l2.listComponents()
         .then(() => {
-          l.components.Merge = Merge;
-          l.components.Subgraph = file;
-          l.components.Split = Split;
-          return l.load('Subgraph')
+          l2.components.Merge = Merge;
+          l2.components.Subgraph = file;
+          l2.components.Split = Split;
+          return l2.load('Subgraph')
         })
         .then((inst) => {
           assert.strictEqual(typeof inst, "object");
@@ -261,14 +256,12 @@ describe('ComponentLoader with no external packages installed', () => {
       } else {
         str = 'Cannot find package';
       }
-      loader.load('InvalidComponent', (err) => {
       return loader.load('InvalidComponent')
         .then(() => Promise.reject(new Error('Unexpected success')))
         .catch((err) => {
           assert.strictEqual(Error.isError(err), true);
           assert.ok(err.message.includes(str));
         });
-      });
     });
   });
   describe('register a component at runtime', () => {
@@ -307,7 +300,7 @@ describe('ComponentLoader with no external packages installed', () => {
     it('should have inherited its icon from the library', () => {
       assert.equal(instance.getIcon(), 'star');
     });
-    it('should emit an event on icon change', (t, done) => {
+    it('should emit an event on icon change', (_t, done) => {
       instance.once('icon', (newIcon) => {
         assert.strictEqual(newIcon, 'smile');
         done();
@@ -322,7 +315,7 @@ describe('ComponentLoader with no external packages installed', () => {
         });
     });
     // TODO reconsider this test after full decaffeination
-    it.skip('after setting an icon for the Component class, new instances should have that', (t, done) => {
+    it.skip('after setting an icon for the Component class, new instances should have that', (_t, done) => {
       FooSplit.prototype.icon = 'trophy';
       l.load('foo/Split', (err, split) => {
         if (err) {
@@ -474,7 +467,7 @@ export function getComponent() {
               assert.strictEqual(source.code, workingSource);
             });
         });
-        it('should be able to set the source for non-ready ComponentLoader', function () {
+        it('should be able to set the source for non-ready ComponentLoader', () => {
           const loader = new noflo.ComponentLoader(baseDir);
           return loader.setSource('foo', 'RepeatData', workingSource, 'javascript');
         });
@@ -784,7 +777,7 @@ exports.getComponent = function() {
           assert.strictEqual(instance.icon, 'car');
         });
     });
-    it('should be able to load a CoffeeScript component from a dependency', (t, done) => {
+    it('should be able to load a CoffeeScript component from a dependency', (_t, done) => {
       l.load('example/RepeatAsync', (err, instance) => {
         if (err) {
           done(err);
@@ -795,7 +788,7 @@ exports.getComponent = function() {
         done();
       });
     });
-    it('should be able to find specs for a CoffeeScript component from a dependency', (t, done) => {
+    it('should be able to find specs for a CoffeeScript component from a dependency', (_t, done) => {
       l.getSource('example/RepeatAsync', (err, source) => {
         if (err) {
           done(err);
@@ -805,7 +798,7 @@ exports.getComponent = function() {
         done();
       });
     });
-    it('should be able to load a TypeScript component from a dependency', (t, done) => {
+    it('should be able to load a TypeScript component from a dependency', (_t, done) => {
       l.load('example/Repeat', (err, instance) => {
         if (err) {
           done(err);
@@ -816,7 +809,7 @@ exports.getComponent = function() {
         done();
       });
     });
-    it('should be able to load a dynamically registered component from a dependency', (t, done) => {
+    it('should be able to load a dynamically registered component from a dependency', (_t, done) => {
       l.load('example/Hello', (err, instance) => {
         if (err) {
           done(err);
@@ -827,7 +820,7 @@ exports.getComponent = function() {
         done();
       });
     });
-    it('should be able to load core Graph component', (t, done) => {
+    it('should be able to load core Graph component', (_t, done) => {
       l.load('Graph', (err, instance) => {
         if (err) {
           done(err);
@@ -866,8 +859,7 @@ exports.getComponent = function() {
           return unlink(manifestPath);
         });
     });
-    it('should be possible to pre-heat the cache file', function (done) {
-      return import('node:child_process')
+    it('should be possible to pre-heat the cache file', () => import('node:child_process')
         .then(({ exec }) => {
           return new Promise((resolve, reject) => {
             exec(
@@ -882,8 +874,7 @@ exports.getComponent = function() {
               }
             );
           });
-        });
-    });
+        }));
     it('should have populated a fbp-manifest file', () => {
       const manifestPath = path.resolve(fixtureRoot, 'fbp.json');
       return import('node:fs/promises')

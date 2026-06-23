@@ -66,7 +66,7 @@ export class Graph extends Component {
         .then((instance) => this.createNetwork(instance));
     }
     let graphName = graph;
-    if ((graphName.substr(0, 1) !== '/') && (graphName.substr(1, 1) !== ':') && process && process.cwd) {
+    if ((graphName.substr(0, 1) !== '/') && (graphName.substr(1, 1) !== ':') && process?.cwd) {
       graphName = `${process.cwd()}/${graphName}`;
     }
     return fbpGraph.loadFile(graphName)
@@ -143,12 +143,12 @@ export class Graph extends Component {
   }
 
   /**
-   * @param {import("../lib/InPort").default} port
+   * @param {import("../lib/InPort").default} _port
    * @param {string} nodeName
    * @param {string} portName
    * @returns {boolean|string}
    */
-  isExportedInport(port, nodeName, portName) {
+  isExportedInport(_port, nodeName, portName) {
     if (!this.network) {
       return false;
     }
@@ -167,12 +167,12 @@ export class Graph extends Component {
   }
 
   /**
-   * @param {import("../lib/OutPort").default} port
+   * @param {import("../lib/OutPort").default} _port
    * @param {string} nodeName
    * @param {string} portName
    * @returns {boolean|string}
    */
-  isExportedOutport(port, nodeName, portName) {
+  isExportedOutport(_port, nodeName, portName) {
     if (!this.network) {
       return false;
     }
