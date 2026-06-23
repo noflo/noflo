@@ -12,31 +12,31 @@ describe('Ports collection', () => {
       p.add('foo',
         { datatype: 'string' });
       assert.strictEqual(typeof p.ports.foo, "object");
-      chai.expect(p.ports.foo.getDataType()).to.equal('string');
+      assert.equal(p.ports.foo.getDataType(), 'string');
     });
     it('should allow overriding  a port', () => {
       p.add('foo',
         { datatype: 'boolean' });
       assert.strictEqual(typeof p.ports.foo, "object");
-      chai.expect(p.ports.foo.getDataType()).to.equal('boolean');
+      assert.equal(p.ports.foo.getDataType(), 'boolean');
     });
     it('should throw if trying to add an \'add\' port', () => {
-      chai.expect(() => p.add('add')).to.throw();
+      assert.throws(() => p.add('add'));
     });
     it('should throw if trying to add an \'remove\' port', () => {
-      chai.expect(() => p.add('remove')).to.throw();
+      assert.throws(() => p.add('remove'));
     });
     it('should throw if trying to add a port with invalid characters', () => {
-      chai.expect(() => p.add('hello world!')).to.throw();
+      assert.throws(() => p.add('hello world!'));
     });
     it('should throw if trying to remove a port that doesn\'t exist', () => {
-      chai.expect(() => p.remove('bar')).to.throw();
+      assert.throws(() => p.remove('bar'));
     });
     it('should throw if trying to subscribe to a port that doesn\'t exist', () => {
-      chai.expect(() => p.once('bar', 'ip', () => {})).to.throw();
-      chai.expect(() => p.on('bar', 'ip', () => {})).to.throw();
+      assert.throws(() => p.once('bar', 'ip', () => {}));
+      assert.throws(() => p.on('bar', 'ip', () => {}));
     });
-    it('should allow subscribing to an existing port', (done) => {
+    it('should allow subscribing to an existing port', (t, done) => {
       let received = 0;
       p.ports.foo.once('ip', () => {
         received++;
@@ -62,28 +62,28 @@ describe('Ports collection', () => {
       p.add('foo',
         { datatype: 'string' });
       assert.strictEqual(typeof p.ports.foo, "object");
-      chai.expect(p.ports.foo.getDataType()).to.equal('string');
+      assert.equal(p.ports.foo.getDataType(), 'string');
     });
     it('should throw if trying to add an \'add\' port', () => {
-      chai.expect(() => p.add('add')).to.throw();
+      assert.throws(() => p.add('add'));
     });
     it('should throw if trying to add an \'remove\' port', () => {
-      chai.expect(() => p.add('remove')).to.throw();
+      assert.throws(() => p.add('remove'));
     });
     it('should throw when calling connect with port that doesn\'t exist', () => {
-      chai.expect(() => p.connect('bar')).to.throw();
+      assert.throws(() => p.connect('bar'));
     });
     it('should throw when calling beginGroup with port that doesn\'t exist', () => {
-      chai.expect(() => p.beginGroup('bar')).to.throw();
+      assert.throws(() => p.beginGroup('bar'));
     });
     it('should throw when calling send with port that doesn\'t exist', () => {
-      chai.expect(() => p.send('bar')).to.throw();
+      assert.throws(() => p.send('bar'));
     });
     it('should throw when calling endGroup with port that doesn\'t exist', () => {
-      chai.expect(() => p.endGroup('bar')).to.throw();
+      assert.throws(() => p.endGroup('bar'));
     });
     it('should throw when calling disconnect with port that doesn\'t exist', () => {
-      chai.expect(() => p.disconnect('bar')).to.throw();
+      assert.throws(() => p.disconnect('bar'));
     });
   });
 });

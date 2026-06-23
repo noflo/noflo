@@ -15,7 +15,7 @@ describe('Outport Port', () => {
       p.attach(s1);
       p.attach(s2);
       p.attach(s3);
-      assert.deepEqual(p.listAttached()).to.eql([0, 1, 2]);
+      assert.deepEqual(p.listAttached(), [0, 1, 2]);
       s1.on('data', () => {
         assert.strictEqual(true, false);
       });
@@ -27,7 +27,7 @@ describe('Outport Port', () => {
       });
       p.send('some-data', 1);
     });
-    it('should be able to send to index 0', (done) => {
+    it('should be able to send to index 0', (t, done) => {
       const p = new noflo.OutPort({ addressable: true });
       p.attach(s1);
       s1.on('data', (data) => {
@@ -37,16 +37,16 @@ describe('Outport Port', () => {
       p.send('my-data', 0);
     });
     it('should throw an error when sent data without address', () => {
-      chai.expect(() => p.send('some-data')).to.throw;
+      assert.throws(() => p.send('some-data'));
     });
     it('should throw an error when a specific port is requested with non-addressable port', () => {
       const p = new noflo.OutPort();
       p.attach(s1);
       p.attach(s2);
       p.attach(s3);
-      chai.expect(() => p.send('some-data', 1)).to.throw;
+      assert.throws(() => p.send('some-data', 1));
     });
-    it('should give correct port index when detaching a connection', (done) => {
+    it('should give correct port index when detaching a connection', (t, done) => {
       const p = new noflo.OutPort({ addressable: true });
       p.attach(s1, 3);
       p.attach(s2, 1);
@@ -60,11 +60,11 @@ describe('Outport Port', () => {
       p.on('detach', (socket, index) => {
         assert.strictEqual(socket, expectedSockets.shift());
         assert.strictEqual(index, expected.shift());
-        chai.expect(p.isAttached(index)).to.equal(false);
+        assert.equal(p.isAttached(index), false);
         const atts = expectedAttached.shift();
-        chai.expect(p.listAttached()).to.eql(atts);
+        assert.deepEqual(p.listAttached(), atts);
         for (const att of atts) {
-          chai.expect(p.isAttached(att)).to.equal(true);
+          assert.equal(p.isAttached(att), true);
         }
         if (!expected.length) { done(); }
       });
@@ -79,7 +79,7 @@ describe('Outport Port', () => {
       s2 = new noflo.internalSocket.InternalSocket();
       s3 = new noflo.internalSocket.InternalSocket();
     });
-    it('should repeat the previously sent value on attach event', (done) => {
+    it('should repeat the previously sent value on attach event', (t, done) => {
       const p = new noflo.OutPort({ caching: true });
 
       s1.once('data', (data) => {
@@ -102,7 +102,7 @@ describe('Outport Port', () => {
       p.send('bar');
       p.disconnect();
     });
-    it('should support addressable ports', (done) => {
+    it('should support addressable ports', (t, done) => {
       const p = new noflo.OutPort({
         addressable: true,
         caching: true,
@@ -135,7 +135,7 @@ describe('Outport Port', () => {
       s2 = new noflo.internalSocket.InternalSocket();
       s3 = new noflo.internalSocket.InternalSocket();
     });
-    it('should send data IPs and substreams', (done) => {
+    it('should send data IPs and substreams', (t, done) => {
       const p = new noflo.OutPort();
       p.attach(s1);
       const expectedEvents = [
@@ -157,7 +157,7 @@ describe('Outport Port', () => {
         .data('my-data')
         .closeBracket();
     });
-    it('should send non-clonable objects by reference', (done) => {
+    it('should send non-clonable objects by reference', (t, done) => {
       const p = new noflo.OutPort();
       p.attach(s1);
       p.attach(s2);
@@ -191,7 +191,7 @@ describe('Outport Port', () => {
       p.data(obj,
         { clonable: false }); // default
     });
-    it('should clone clonable objects on fan-out', (done) => {
+    it('should clone clonable objects on fan-out', (t, done) => {
       const p = new noflo.OutPort();
       p.attach(s1);
       p.attach(s2);
@@ -214,13 +214,13 @@ describe('Outport Port', () => {
         assert.strictEqual(typeof data.data.func, "function");
         s2.on('ip', (data) => {
           assert.strictEqual(typeof data, "object");
-          chai.expect(data.data).to.not.equal(obj);
+          assert.notEqual(data.data, obj);
           assert.strictEqual(data.data.foo, obj.foo);
           assert.deepStrictEqual(data.data.bar, obj.bar);
           assert.strictEqual(data.data.func, undefined);
           s3.on('ip', (data) => {
             assert.strictEqual(typeof data, "object");
-            chai.expect(data.data).to.not.equal(obj);
+            assert.notEqual(data.data, obj);
             assert.strictEqual(data.data.foo, obj.foo);
             assert.deepStrictEqual(data.data.bar, obj.bar);
             assert.strictEqual(data.data.func, undefined);
@@ -232,7 +232,7 @@ describe('Outport Port', () => {
       p.data(obj,
         { clonable: true });
     });
-    it('should stamp an IP object with the port\'s datatype', (done) => {
+    it('should stamp an IP object with the port\'s datatype', (t, done) => {
       const p = new noflo.OutPort({ datatype: 'string' });
       p.attach(s1);
       s1.on('ip', (data) => {
@@ -244,7 +244,7 @@ describe('Outport Port', () => {
       });
       p.data('Hello');
     });
-    it('should keep an IP object\'s datatype as-is if already set', (done) => {
+    it('should keep an IP object\'s datatype as-is if already set', (t, done) => {
       const p = new noflo.OutPort({ datatype: 'string' });
       p.attach(s1);
       s1.on('ip', (data) => {
@@ -257,7 +257,7 @@ describe('Outport Port', () => {
       p.sendIP(new noflo.IP('data', 123,
         { datatype: 'integer' }));
     });
-    it('should stamp an IP object with the port\'s schema', (done) => {
+    it('should stamp an IP object with the port\'s schema', (t, done) => {
       const p = new noflo.OutPort({
         datatype: 'string',
         schema: 'text/markdown',
@@ -273,7 +273,7 @@ describe('Outport Port', () => {
       });
       p.data('Hello');
     });
-    it('should keep an IP object\'s schema as-is if already set', (done) => {
+    it('should keep an IP object\'s schema as-is if already set', (t, done) => {
       const p = new noflo.OutPort({
         datatype: 'string',
         schema: 'text/markdown',

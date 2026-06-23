@@ -184,7 +184,7 @@ const processGenerator = function () {
 };
 
 describe('Network Lifecycle', () => {
-  const loader = new noflo.ComponentLoader(baseDir);
+  const loader = new noflo.ComponentLoader(process.cwd());
   before(() => loader.listComponents()
     .then(() => {
       loader.registerComponent('process', 'Async', processAsync);
@@ -200,17 +200,17 @@ describe('Network Lifecycle', () => {
     it('should recognize legacy component as such', () => loader
       .load('legacy/Sync')
       .then((inst) => {
-        chai.expect(inst.isLegacy()).to.equal(true);
+        assert.equal(inst.isLegacy(), true);
       }));
     it('should recognize Process API component as non-legacy', () => loader
       .load('process/Async')
       .then((inst) => {
-        chai.expect(inst.isLegacy()).to.equal(false);
+        assert.equal(inst.isLegacy(), false);
       }));
     it('should recognize Graph component as non-legacy', () => loader
       .load('Graph')
       .then((inst) => {
-        chai.expect(inst.isLegacy()).to.equal(false);
+        assert.equal(inst.isLegacy(), false);
       }));
   });
   describe('with single Process API component receiving IIP', () => {
@@ -235,7 +235,7 @@ describe('Network Lifecycle', () => {
       out = null;
       return c.shutdown();
     });
-    it('should execute and finish', (done) => {
+    it('should execute and finish', (t, done) => {
       const expected = [
         'DATA helloPc',
       ];
@@ -267,7 +267,7 @@ describe('Network Lifecycle', () => {
       c.network.once('end', checkEnd);
       c.start().catch(done);
     });
-    it('should execute twice if IIP changes', (done) => {
+    it('should execute twice if IIP changes', (t, done) => {
       const expected = [
         'DATA helloPc',
         'DATA worldPc',
@@ -320,7 +320,7 @@ describe('Network Lifecycle', () => {
       c.network.once('end', checkEnd);
       c.start().catch(done);
     });
-    it('should not send new IIP if network was stopped', (done) => {
+    it('should not send new IIP if network was stopped', (t, done) => {
       const expected = [
         'DATA helloPc',
       ];
@@ -347,7 +347,7 @@ describe('Network Lifecycle', () => {
         assert.strictEqual(wasStarted, true);
         c.network.stop()
           .then(() => {
-            chai.expect(c.network.isStopped()).to.equal(true);
+            assert.equal(c.network.isStopped(), true);
             c.network.once('start', () => {
               throw new Error('Unexpected network start');
             });
@@ -400,7 +400,7 @@ describe('Network Lifecycle', () => {
       out = null;
       return c.shutdown();
     });
-    it('should execute and finish', (done) => {
+    it('should execute and finish', (t, done) => {
       const expected = [
         'DATA helloPc',
       ];
@@ -459,7 +459,7 @@ describe('Network Lifecycle', () => {
       out = null;
       return c.shutdown();
     });
-    it('should execute and finish', (done) => {
+    it('should execute and finish', (t, done) => {
       const expected = [
         'DATA helloNonSendingSync',
       ];
@@ -528,7 +528,7 @@ describe('Network Lifecycle', () => {
       out = null;
       return c.shutdown();
     });
-    it('should forward new-style brackets as expected', (done) => {
+    it('should forward new-style brackets as expected', (t, done) => {
       const expected = [
         'CONN',
         '< 1',
@@ -583,7 +583,7 @@ describe('Network Lifecycle', () => {
           in1.disconnect();
         }, done);
     });
-    it('should forward new-style brackets as expected regardless of sending order', (done) => {
+    it('should forward new-style brackets as expected regardless of sending order', (t, done) => {
       const expected = [
         'CONN',
         '< 1',
@@ -638,7 +638,7 @@ describe('Network Lifecycle', () => {
           in2.disconnect();
         }, done);
     });
-    it('should forward scopes as expected', (done) => {
+    it('should forward scopes as expected', (t, done) => {
       const expected = [
         'x < 1',
         'x DATA 1onePc1:2twoPc2:PcMerge',
@@ -722,7 +722,7 @@ describe('Network Lifecycle', () => {
       out = null;
       return c.shutdown();
     });
-    it('should forward new-style brackets as expected', (done) => {
+    it('should forward new-style brackets as expected', (t, done) => {
       const expected = [
         'CONN',
         '< 1',
@@ -777,7 +777,7 @@ describe('Network Lifecycle', () => {
           in1.disconnect();
         }, done);
     });
-    it('should forward new-style brackets as expected regardless of sending order', (done) => {
+    it('should forward new-style brackets as expected regardless of sending order', (t, done) => {
       const expected = [
         'CONN',
         '< 1',
@@ -870,30 +870,30 @@ describe('Network Lifecycle', () => {
       return c.shutdown();
     });
     it('should not be running initially', () => {
-      chai.expect(c.network.isRunning()).to.equal(false);
+      assert.equal(c.network.isRunning(), false);
     });
     it('should not be running even when network starts', () => c.start()
       .then(() => {
-        chai.expect(c.network.isRunning()).to.equal(false);
+        assert.equal(c.network.isRunning(), false);
       }));
-    it('should start generating when receiving a start packet', (done) => {
+    it('should start generating when receiving a start packet', (t, done) => {
       c.start()
         .then(() => {
           out.once('data', () => {
-            chai.expect(c.network.isRunning()).to.equal(true);
+            assert.equal(c.network.isRunning(), true);
             done();
           });
           start.send(true);
         }, done);
     });
-    it('should stop generating when receiving a stop packet', (done) => {
+    it('should stop generating when receiving a stop packet', (t, done) => {
       c.start()
         .then(() => {
           out.once('data', () => {
-            chai.expect(c.network.isRunning()).to.equal(true);
+            assert.equal(c.network.isRunning(), true);
             stop.send(true);
             setTimeout(() => {
-              chai.expect(c.network.isRunning()).to.equal(false);
+              assert.equal(c.network.isRunning(), false);
               done();
             }, 10);
           });

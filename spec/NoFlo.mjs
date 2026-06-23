@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import path from 'node:path';
 import * as noflo from '../src/lib/NoFlo.js';
 
 let browser;
@@ -11,44 +12,40 @@ if ((typeof process !== 'undefined') && process.execPath && process.execPath.mat
 
 describe('NoFlo interface', () => {
   it('should be able to tell whether it is running on browser', () => {
-    chai.expect(noflo.isBrowser()).to.equal(browser);
+    assert.equal(noflo.isBrowser(), browser);
   });
   describe('working with graph files', () => {
     let targetPath = null;
-    before(function () {
+    before(() => {
       // These features only work on Node.js
       if (noflo.isBrowser()) {
         this.skip();
         return;
       }
-      targetPath = path.resolve(__dirname, 'tmp.json');
+      targetPath = path.resolve(import.meta.dirname, 'tmp.json');
     });
-    after((done) => {
+    after(() => {
       if (noflo.isBrowser()) {
-        done();
-        return;
+        return Promise.resolve();
       }
-      const fs = require('fs');
-      fs.unlink(targetPath, done);
+      return import('node:fs/promises')
+        .then(({ unlink }) => {
+          return unlink(targetPath);
+        });
     });
-    it('should be able to save a graph file', (done) => {
+    it('should be able to save a graph file', () => {
       const graph = new noflo.Graph();
       graph.addNode('G', 'Graph');
-      noflo.saveFile(graph, targetPath, done);
+      return noflo.saveFile(graph, targetPath);
     });
-    it('should be able to load a graph file', (done) => {
-      noflo.loadFile(targetPath, {
+    it('should be able to load a graph file', () => {
+      return noflo.loadFile(targetPath, {
         baseDir: process.cwd(),
         delay: true,
-      },
-      (err, network) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        chai.expect(network.isRunning()).to.equal(false);
-        done();
-      });
+      })
+        .then((network) => {
+          assert.equal(network.isRunning(), false);
+        });
     });
   });
 });

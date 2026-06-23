@@ -59,19 +59,19 @@ describe('NoFlo Network (synchronous delivery)', () => {
         });
     });
     it('should initially be marked as stopped', () => {
-      chai.expect(n.isStarted()).to.equal(false);
+      assert.equal(n.isStarted()), false);
     });
     it('should initially have no processes', () => {
-      chai.expect(n.processes).to.be.empty;
+      assert.deepEqual(n.processes, {});
     });
     it('should initially have no active processes', () => {
-      chai.expect(n.getActiveProcesses()).to.eql([]);
+      assert.deepEqual(n.getActiveProcesses(), []);
     });
     it('should initially have to connections', () => {
-      chai.expect(n.connections).to.be.empty;
+      assert.deepEqual(n.connections, []);
     });
     it('should initially have no IIPs', () => {
-      chai.expect(n.initials).to.be.empty;
+      assert.deepEqual(n.initials, []);
     });
     it('should have reference to the graph', () => {
       assert.strictEqual(n.graph, g);
@@ -86,14 +86,13 @@ describe('NoFlo Network (synchronous delivery)', () => {
       assert.strictEqual(n.loader.baseDir, baseDir);
     });
     it('should be able to list components', function () {
-      this.timeout(60 * 1000);
       return n.loader.listComponents()
         .then((components) => {
           assert.strictEqual(typeof components, "object");
         });
     });
     it('should have an uptime', () => {
-      chai.expect(n.uptime()).to.be.at.least(0);
+      assert.ok(n.uptime() >= 0);
     });
     describe('with new node', () => {
       it('should contain the node', () => n
@@ -110,7 +109,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         assert.strictEqual(node.component, 'Graph');
       });
       it('should have transmitted the node metadata to the process', () => {
-        chai.expect(n.processes.Graph.component.metadata).to.exist;
+        assert.ok(n.processes.Graph.component.metadata);
         assert.strictEqual(typeof n.processes.Graph.component.metadata, "object");
         assert.deepStrictEqual(n.processes.Graph.component.metadata, g.getNode('Graph').metadata);
       });
@@ -126,7 +125,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         id: 'Graph',
       })
         .then(() => {
-          chai.expect(n.processes).to.be.empty;
+          assert.deepEqual(n.processes, {});
         }));
       it('should have removed the node from the graph', () => {
         const node = g.getNode('graph');
@@ -172,7 +171,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         },
       })
         .then(() => {
-          chai.expect(n.connections).not.to.be.empty;
+          assert.notDeepEqual(n.connections, []);
           assert.deepStrictEqual(n.connections[0].from, {
             process: n.getNode('A'),
             port: 'out',
@@ -186,7 +185,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         }));
       it('should have registered the edge with the graph', () => {
         const edge = g.getEdge('A', 'out', 'B', 'in');
-        chai.expect(edge).to.not.be.a('null');
+        assert.notEqual(edge, null);
       });
       it('should not contain the edge after removal', () => n.removeEdge({
         from: {
@@ -199,7 +198,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         },
       })
         .then(() => {
-          chai.expect(n.connections).to.be.empty;
+          assert.deepEqual(n.connections, []);
         }));
       it('should have removed the edge from the graph', () => {
         const edge = g.getEdge('A', 'out', 'B', 'in');
@@ -211,7 +210,6 @@ describe('NoFlo Network (synchronous delivery)', () => {
     let g = null;
     let n = null;
     before(function () {
-      this.timeout(60 * 1000);
       g = new noflo.Graph();
       g.addNode('Merge', 'Merge');
       g.addNode('Callback', 'Callback');
@@ -239,14 +237,14 @@ describe('NoFlo Network (synchronous delivery)', () => {
         });
     });
     it('should send some initials when started', () => {
-      chai.expect(n.initials).not.to.be.empty;
+      assert.notDeepEqual(n.initials, []);
       return n.start();
     });
     it('should contain two processes', () => {
-      chai.expect(n.processes).to.not.be.empty;
-      chai.expect(n.processes.Merge).to.exist;
+      assert.notDeepEqual(n.processes, {});
+      assert.ok(n.processes.Merge);
       assert.strictEqual(typeof n.processes.Merge, "Object");
-      chai.expect(n.processes.Callback).to.exist;
+      assert.ok(n.processes.Callback).to.exist;
       assert.strictEqual(typeof n.processes.Callback, "Object");
     });
     it('the ports of the processes should know the node names', () => {
@@ -254,22 +252,22 @@ describe('NoFlo Network (synchronous delivery)', () => {
         const port = n.processes.Callback.component.inPorts.ports[name];
         assert.strictEqual(port.name, name);
         assert.strictEqual(port.node, 'Callback');
-        chai.expect(port.getId()).to.equal(`Callback ${name.toUpperCase()}`);
+        assert.equal(port.getId(), `Callback ${name.toUpperCase()}`);
       });
       Object.keys(n.processes.Callback.component.outPorts.ports).forEach((name) => {
         const port = n.processes.Callback.component.outPorts.ports[name];
         assert.strictEqual(port.name, name);
         assert.strictEqual(port.node, 'Callback');
-        chai.expect(port.getId()).to.equal(`Callback ${name.toUpperCase()}`);
+        assert.equal(port.getId(), `Callback ${name.toUpperCase()}`);
       });
     });
     it('should contain 1 connection between processes and 2 for IIPs', () => {
-      chai.expect(n.connections).to.not.be.empty;
+      assert.notDeepEqual(n.connections, []);
       assert.strictEqual(n.connections.length, 3);
     });
     it('should have started in debug mode', () => {
       assert.strictEqual(n.debug, true);
-      chai.expect(n.getDebug()).to.equal(true);
+      assert.equal(n.getDebug(), true);
     });
     it('should emit a process-error when a component throws', () => Promise.resolve()
       .then(() => n.removeInitial({
@@ -322,8 +320,8 @@ describe('NoFlo Network (synchronous delivery)', () => {
         assert.strictEqual(n.processes.Callback, undefined);
       });
       it('should have updated the name in the graph', () => {
-        chai.expect(n.getNode('Callback')).to.not.exist;
-        chai.expect(n.getNode('Func')).to.exist;
+        assert.equal(n.getNode('Callback'), null);
+        assert.notEqual(n.getNode('Func'), null);
       });
       it('should fail to rename with the old name', () => n.renameNode('Callback', 'Func')
         .then(
@@ -338,13 +336,13 @@ describe('NoFlo Network (synchronous delivery)', () => {
           const port = n.processes.Func.component.inPorts.ports[name];
           assert.strictEqual(port.name, name);
           assert.strictEqual(port.node, 'Func');
-          chai.expect(port.getId()).to.equal(`Func ${name.toUpperCase()}`);
+          assert.equal(port.getId(), `Func ${name.toUpperCase()}`);
         });
         Object.keys(n.processes.Func.component.outPorts.ports).forEach((name) => {
           const port = n.processes.Func.component.outPorts.ports[name];
           assert.strictEqual(port.name, name);
           assert.strictEqual(port.node, 'Func');
-          chai.expect(port.getId()).to.equal(`Func ${name.toUpperCase()}`);
+          assert.equal(port.getId(), `Func ${name.toUpperCase()}`);
         });
       });
     });
@@ -362,7 +360,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
     describe('once stopped', () => {
       it('should be marked as stopped', () => n.stop()
         .then(() => {
-          chai.expect(n.isStarted()).to.equal(false);
+          assert.equal(n.isStarted(), false);
         }));
     });
     describe('without the delay option', () => {
@@ -426,7 +424,6 @@ describe('NoFlo Network (synchronous delivery)', () => {
       g.addEdge('Def', 'out', 'Cb', 'in');
     });
     it('should send default values to nodes without an edge', function (done) {
-      this.timeout(60 * 1000);
       testCallback = function (data) {
         assert.strictEqual(data, 'default-value');
         done();
@@ -446,7 +443,6 @@ describe('NoFlo Network (synchronous delivery)', () => {
         .catch(done);
     });
     it('should not send default values to nodes with an edge', function (done) {
-      this.timeout(60 * 1000);
       testCallback = function (data) {
         assert.strictEqual(data, 'from-edge');
         done();
@@ -470,7 +466,6 @@ describe('NoFlo Network (synchronous delivery)', () => {
         .catch(done);
     });
     it('should not send default values to nodes with IIP', function (done) {
-      this.timeout(60 * 1000);
       testCallback = function (data) {
         assert.strictEqual(data, 'from-IIP');
         done();
@@ -502,7 +497,6 @@ describe('NoFlo Network (synchronous delivery)', () => {
         .addEdge('Repeat', 'out', 'Callback', 'in');
     });
     it('should call the Callback with the original IIP value', function (done) {
-      this.timeout(6000);
       const cb = function (packet) {
         assert.strictEqual(packet, 'Foo');
         done();
@@ -577,7 +571,6 @@ describe('NoFlo Network (synchronous delivery)', () => {
         assert.strictEqual(n.processes.Repeat.component.started, true);
       });
       it('should emit the end event', function (done) {
-        this.timeout(5000);
         // Ensure we have a connection open
         n.once('end', (endTimes) => {
           assert.strictEqual(typeof endTimes, "object");
@@ -593,7 +586,6 @@ describe('NoFlo Network (synchronous delivery)', () => {
   describe('with a very large network', () => {
     it('should be able to connect without errors', function (done) {
       let n;
-      this.timeout(100000);
       const g = new noflo.Graph();
       let called = 0;
       for (n = 0; n <= 10000; n++) {
@@ -877,19 +869,19 @@ describe('NoFlo Network (synchronous delivery)', () => {
         });
     });
     it('should initially have debug enabled', () => {
-      chai.expect(n.getDebug()).to.equal(true);
+      assert.equal(n.getDebug(), true);
     });
     it('should have propagated debug setting to connections', () => {
       assert.strictEqual(n.connections[0].debug, n.getDebug());
     });
     it('calling setDebug with same value should be no-op', () => {
       n.setDebug(true);
-      chai.expect(n.getDebug()).to.equal(true);
+      assert.equal(n.getDebug(), true);
       assert.strictEqual(n.connections[0].debug, n.getDebug());
     });
     it('disabling debug should get propagated to connections', () => {
       n.setDebug(false);
-      chai.expect(n.getDebug()).to.equal(false);
+      assert.equal(n.getDebug(), false);
       assert.strictEqual(n.connections[0].debug, n.getDebug());
     });
   });
