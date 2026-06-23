@@ -53,10 +53,10 @@ describe('ComponentLoader with no external packages installed', () => {
     assert.strictEqual(l.ready, false);
   });
   it('should not initially be processing', () => {
-    assert.strictEqual(typeof l.processing, "null");
+    assert.strictEqual(l.processing, null);
   });
   it('should not have any packages in the checked list', () => {
-    chai.expect(l.checked).to.not.exist;
+    assert.strictEqual(l.checked, undefined);
   });
   describe('normalizing names', () => {
     it('should return simple module names as-is', () => {
@@ -118,7 +118,7 @@ describe('ComponentLoader with no external packages installed', () => {
   });
   describe('after listing components', () => {
     it('should have the Graph component registered', () => {
-      chai.expect(l.components.Graph).not.to.be.empty;
+      assert.ok(l.components.Graph);
     });
   });
   describe('loading the Graph component', () => {
@@ -139,16 +139,15 @@ describe('ComponentLoader with no external packages installed', () => {
       assert.strictEqual(typeof instance.inPorts.graph.on, "function");
     });
     it('it should know that Graph is a subgraph', () => {
-      chai.expect(instance.isSubgraph()).to.equal(true);
+      assert.strictEqual(instance.isSubgraph(), true);
     });
     it('should know the description for the Graph', () => {
-      chai.expect(instance.getDescription()).to.be.a('string');
+      assert.strictEqual(typeof instance.getDescription(), 'string');
     });
     it('should be able to provide an icon for the Graph', () => {
-      chai.expect(instance.getIcon()).to.be.a('string');
-      chai.expect(instance.getIcon()).to.equal('sitemap');
+      assert.strictEqual(instance.getIcon(), 'sitemap');
     });
-    it('should be able to load the component with non-ready ComponentLoader', (t, done) => {
+    it('should be able to load the component with non-ready ComponentLoader', () => {
       const loader = new noflo.ComponentLoader(baseDir);
       return loader.load('Graph')
         .then((inst) => {
@@ -162,95 +161,78 @@ describe('ComponentLoader with no external packages installed', () => {
   describe('loading a subgraph', () => {
     l = new noflo.ComponentLoader(baseDir);
     const file = `${urlPrefix}spec/fixtures/subgraph.fbp`;
-    it('should remove `graph` and `start` ports', (t, done) => {
-      l.listComponents((err) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        l.components.Merge = Merge;
-        l.components.Subgraph = file;
-        l.components.Split = Split;
-        l.load('Subgraph', (err, inst) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          assert.strictEqual(typeof inst, "object");
-          inst.once('ready', () => {
-            chai.expect(inst.inPorts.ports).not.to.have.keys(['graph', 'start']);
-            chai.expect(inst.inPorts.ports).to.have.keys(['in']);
-            chai.expect(inst.outPorts.ports).to.have.keys(['out']);
-            done();
-          });
-        });
-      });
-    });
-    it('should not automatically start the subgraph if there is no `start` port', (t, done) => {
-      l.listComponents((err) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        l.components.Merge = Merge;
-        l.components.Subgraph = file;
-        l.components.Split = Split;
-        l.load('Subgraph', (err, inst) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          assert.strictEqual(typeof inst, "object");
-          inst.once('ready', () => {
-            assert.strictEqual(inst.started, false);
-            done();
-          });
-        });
-      });
-    });
-    it('should also work with a passed graph object', (t, done) => {
-      noflo.graph.loadFile(file, (err, graph) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        l.listComponents((err) => {
-          if (err) {
-            done(err);
-            return;
-          }
+    it('should remove `graph` and `start` ports', () => {
+      return l.listComponents()
+        .then(() => {
           l.components.Merge = Merge;
-          l.components.Subgraph = graph;
+          l.components.Subgraph = file;
           l.components.Split = Split;
-          l.load('Subgraph', (err, inst) => {
-            if (err) {
-              done(err);
-              return;
-            }
-            assert.strictEqual(typeof inst, "object");
+          return l.load('Subgraph')
+        })
+        .then((inst) => {
+          assert.strictEqual(typeof inst, "object");
+          return new Promise((resolve) => {
             inst.once('ready', () => {
-              chai.expect(inst.inPorts.ports).not.to.have.keys(['graph', 'start']);
-              chai.expect(inst.inPorts.ports).to.have.keys(['in']);
-              chai.expect(inst.outPorts.ports).to.have.keys(['out']);
-              done();
+              assert.equal(Object.keys(inst.inPorts).includes('graph'), false, 'has GRAPH port');
+              assert.equal(Object.keys(inst.inPorts).includes('start'), false, 'has START port');
+              assert.equal(Object.keys(inst.inPorts).includes('in'), true, 'has IN port');
+              assert.equal(Object.keys(inst.outPorts).includes('out'), true, 'has OUT port');
+              resolve();
             });
           });
         });
-      });
+    });
+    it('should not automatically start the subgraph if there is no `start` port', () => {
+      return l.listComponents()
+        .then(() => {
+          l.components.Merge = Merge;
+          l.components.Subgraph = file;
+          l.components.Split = Split;
+          return l.load('Subgraph');
+        })
+        .then((inst) => {
+          assert.strictEqual(typeof inst, "object");
+          return new Promise((resolve) => {
+            inst.once('ready', () => {
+              assert.strictEqual(inst.started, false);
+              resolve()
+            });
+          });
+        });
+    });
+    it('should also work with a passed graph object', () => {
+      return noflo.graph.loadFile(file)
+        .then((graph) => {
+          return l.listComponents()
+            .then(() => {
+              l.components.Merge = Merge;
+              l.components.Subgraph = graph;
+              l.components.Split = Split;
+              return l.load('Subgraph');
+            });
+        })
+        .then((inst) => {
+          assert.strictEqual(typeof inst, "object");
+          return new Promise((resolve) => {
+            inst.once('ready', () => {
+              assert.equal(Object.keys(inst.inPorts).includes('graph'), false, 'has GRAPH port');
+              assert.equal(Object.keys(inst.inPorts).includes('start'), false, 'has START port');
+              assert.equal(Object.keys(inst.inPorts).includes('in'), true, 'has IN port');
+              assert.equal(Object.keys(inst.outPorts).includes('out'), true, 'has OUT port');
+              resolve();
+            });
+          });
+        });
     });
   });
   describe('loading the Graph component', () => {
     let instance = null;
-    it('should be able to load the component', (t, done) => {
-      l.load('Graph', (err, graph) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.strictEqual(typeof graph, "object");
-        instance = graph;
-        done();
-      });
+    it('should be able to load the component', () => {
+      return l.load('Graph')
+        .then((graph) => {
+          assert.strictEqual(typeof graph, "object");
+          instance = graph;
+        });
     });
     it('should have a reference to the Component Loader\'s baseDir', () => {
       assert.strictEqual(instance.baseDir, l.baseDir);
@@ -258,19 +240,20 @@ describe('ComponentLoader with no external packages installed', () => {
   });
   describe('loading a component', () => {
     let loader = null;
-    before((t, done) => {
+    before(() => {
       loader = new noflo.ComponentLoader(baseDir);
-      loader.listComponents(done);
+      return loader.listComponents();
     });
-    it('should return an error on an invalid component type', (t, done) => {
+    it('should return an error on an invalid component type', () => {
       loader.components.InvalidComponent = true;
-      loader.load('InvalidComponent', (err) => {
-        assert.strictEqual(typeof err, "error");
-        assert.strictEqual(err.message, 'Invalid type boolean for component InvalidComponent.');
-        done();
-      });
+      return loader.load('InvalidComponent')
+        .then(() => Promise.reject(new Error('Unexpected success')))
+        .catch((err) => {
+          assert.strictEqual(Error.isError(err), true);
+          assert.strictEqual(err.message, 'Invalid type boolean for component InvalidComponent.');
+        });
     });
-    it('should return an error on a missing component path', (t, done) => {
+    it('should return an error on a missing component path', () => {
       let str;
       loader.components.InvalidComponent = 'missing-file.js';
       if (noflo.isBrowser()) {
@@ -279,9 +262,12 @@ describe('ComponentLoader with no external packages installed', () => {
         str = 'Cannot find package';
       }
       loader.load('InvalidComponent', (err) => {
-        assert.strictEqual(typeof err, "error");
-        assert.ok(err.message.includes(str));
-        done();
+      return loader.load('InvalidComponent')
+        .then(() => Promise.reject(new Error('Unexpected success')))
+        .catch((err) => {
+          assert.strictEqual(Error.isError(err), true);
+          assert.ok(err.message.includes(str));
+        });
       });
     });
   });
@@ -304,25 +290,22 @@ describe('ComponentLoader with no external packages installed', () => {
     l.libraryIcons.foo = 'star';
     it('should be available in the components list', () => {
       l.registerComponent('foo', 'Split', FooSplit);
-      chai.expect(l.components).to.contain.keys(['foo/Split', 'Graph']);
+      assert.ok(Object.keys(l.components).includes('foo/Split'));
+      assert.ok(Object.keys(l.components).includes('Graph'));
     });
-    it('should be able to load the component', (t, done) => {
-      l.load('foo/Split', (err, split) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.strictEqual(typeof split, "object");
-        instance = split;
-        done();
-      });
+    it('should be able to load the component', () => {
+      return l.load('foo/Split')
+        .then((split) => {
+          assert.strictEqual(typeof split, "object");
+          instance = split;
+        });
     });
     it('should have the correct ports', () => {
-      chai.expect(instance.inPorts.ports).to.have.keys(['in']);
-      chai.expect(instance.outPorts.ports).to.have.keys(['out']);
+      assert.equal(Object.keys(instance.inPorts).includes('in'), true, 'has IN port');
+      assert.equal(Object.keys(instance.outPorts).includes('out'), true, 'has OUT port');
     });
     it('should have inherited its icon from the library', () => {
-      chai.expect(instance.getIcon()).to.equal('star');
+      assert.equal(instance.getIcon(), 'star');
     });
     it('should emit an event on icon change', (t, done) => {
       instance.once('icon', (newIcon) => {
@@ -331,16 +314,12 @@ describe('ComponentLoader with no external packages installed', () => {
       });
       instance.setIcon('smile');
     });
-    it('new instances should still contain the original icon', (t, done) => {
-      l.load('foo/Split', (err, split) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.strictEqual(typeof split, "object");
-        chai.expect(split.getIcon()).to.equal('star');
-        done();
-      });
+    it('new instances should still contain the original icon', () => {
+      return l.load('foo/Split')
+        .then((split) => {
+          assert.strictEqual(typeof split, "object");
+          assert.equal(split.getIcon(), 'star');
+        });
     });
     // TODO reconsider this test after full decaffeination
     it.skip('after setting an icon for the Component class, new instances should have that', (t, done) => {
@@ -356,101 +335,77 @@ describe('ComponentLoader with no external packages installed', () => {
       });
     });
     it('should not affect the original instance', () => {
-      chai.expect(instance.getIcon()).to.equal('smile');
+      assert.equal(instance.getIcon(), 'smile');
     });
   });
   describe('reading sources', () => {
-    it('should be able to provide source code for a component', (t, done) => {
-      l.getSource('Graph', (err, component) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.strictEqual(typeof component, "object");
-        assert.strictEqual(typeof component.code, "string");
-        chai.expect(component.code.indexOf('Component')).to.not.equal(-1);
+    it('should be able to provide source code for a component', () => {
+      return l.getSource('Graph')
+        .then((component) => {
+          assert.strictEqual(typeof component, "object");
+          assert.strictEqual(typeof component.code, "string");
+          assert.notEqual(component.code.indexOf('Graph'), -1);
+          assert.notEqual(component.code.indexOf('export function getComponent'), -1);
 
-        if (!noflo.isBrowser()) {
-          chai.expect(component.code.indexOf('export function getComponent')).to.not.equal(-1);
-        } else {
-          chai.expect(component.code.indexOf('exports.getComponent')).to.not.equal(-1);
-        }
-
-        assert.strictEqual(component.name, 'Graph');
-        assert.strictEqual(component.library, '');
-        assert.strictEqual(component.language, shippingLanguage);
-        done();
-      });
+          assert.strictEqual(component.name, 'Graph');
+          assert.strictEqual(component.library, '');
+          assert.strictEqual(component.language, shippingLanguage);
+        });
     });
-    it('should return an error for missing components', (t, done) => {
-      l.getSource('foo/BarBaz', (err) => {
-        assert.strictEqual(typeof err, "error");
-        done();
-      });
+    it('should return an error for missing components', () => {
+      return l.getSource('foo/BarBaz')
+        .then(() => Promise.reject(new Error('Unexpected success')))
+        .catch((err) => {
+          assert.strictEqual(Error.isError(err), true);
+          assert.ok(err.message.includes('not installed'));
+        });
     });
-    it('should return an error for non-file components', (t, done) => {
+    it('should return an error for non-file components', (t) => {
       if (noflo.isBrowser()) {
         // Browser runtime actually supports this via toString()
-        done();
+        t.skip();
         return;
       }
-      l.getSource('foo/Split', (err) => {
-        assert.strictEqual(typeof err, "error");
-        done();
-      });
+      return l.getSource('foo/Split')
+        .then(() => Promise.reject(new Error('Unexpected success')))
+        .catch((err) => {
+          assert.strictEqual(Error.isError(err), true);
+          assert.ok(err.message.includes('Not a file'));
+        });
     });
-    it('should be able to provide source for a graph file component', (t, done) => {
+    it('should be able to provide source for a graph file component', () => {
       const file = `${urlPrefix}spec/fixtures/subgraph.fbp`;
       l.components.Subgraph = file;
-      l.getSource('Subgraph', (err, src) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        chai.expect(src.code).to.not.be.empty;
-        assert.strictEqual(src.language, 'json');
-        done();
-      });
-    });
-    it('should be able to provide source for a graph object component', (t, done) => {
-      const file = `${urlPrefix}spec/fixtures/subgraph.fbp`;
-      noflo.graph.loadFile(file, (err, graph) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        l.components.Subgraph2 = graph;
-        l.getSource('Subgraph2', (err, src) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          chai.expect(src.code).to.not.be.empty;
+      return l.getSource('Subgraph')
+        .then((src) => {
+          assert.ok(src.code.length > 0);
           assert.strictEqual(src.language, 'json');
-          done();
         });
-      });
     });
-    it('should be able to get the source for non-ready ComponentLoader', (t, done) => {
+    it('should be able to provide source for a graph object component', () => {
+      const file = `${urlPrefix}spec/fixtures/subgraph.fbp`;
+      return noflo.graph.loadFile(file)
+        .then((graph) => {
+          l.components.Subgraph2 = graph;
+          return l.getSource('Subgraph2')
+        })
+        .then((src) => {
+          assert.ok(src.code.length > 0);
+          assert.strictEqual(src.language, 'json');
+        });
+    });
+    it('should be able to get the source for non-ready ComponentLoader', () => {
       const loader = new noflo.ComponentLoader(baseDir);
-      loader.getSource('Graph', (err, component) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.strictEqual(typeof component, "object");
-        assert.strictEqual(typeof component.code, "string");
-        chai.expect(component.code.indexOf('Component')).to.not.equal(-1);
-        if (!noflo.isBrowser()) {
-          chai.expect(component.code.indexOf('export function getComponent')).to.not.equal(-1);
-        } else {
-          chai.expect(component.code.indexOf('exports.getComponent')).to.not.equal(-1);
-        }
-        assert.strictEqual(component.name, 'Graph');
-        assert.strictEqual(component.library, '');
-        assert.strictEqual(component.language, shippingLanguage);
-        done();
-      });
+      return loader.getSource('Graph')
+        .then((component) => {
+          assert.strictEqual(typeof component, "object");
+          assert.strictEqual(typeof component.code, "string");
+          assert.notEqual(component.code.indexOf('Graph'), -1);
+          assert.notEqual(component.code.indexOf('export function getComponent'), -1);
+          assert.strictEqual(component.name, 'Graph');
+          assert.strictEqual(component.library, '');
+          assert.strictEqual(component.language, shippingLanguage);
+        });
     });
   });
   describe('getting supported languages', () => {
@@ -673,16 +628,12 @@ exports.getComponent = (): Component => {
               });
             });
         });
-        it('should return sources in the same format', (t, done) => {
-          l.getSource('foo/RepeatDataTypeScript', (err, source) => {
-            if (err) {
-              done(err);
-              return;
-            }
-            assert.strictEqual(source.language, 'typescript');
-            assert.strictEqual(source.code, workingSource);
-            done();
-          });
+        it('should return sources in the same format', () => {
+          return l.getSource('foo/RepeatDataTypeScript')
+            .then((source) => {
+              assert.strictEqual(source.language, 'typescript');
+              assert.strictEqual(source.code, workingSource);
+            });
         });
       });
     });
@@ -778,7 +729,7 @@ exports.getComponent = function() {
       l = new noflo.ComponentLoader(path.resolve(import.meta.dirname, 'fixtures/componentloader'));
     });
     it('should initially know of no components', () => {
-      assert.strictEqual(typeof l.components, "null");
+      assert.strictEqual(l.components, null);
     });
     it('should not initially be ready', () => {
       assert.strictEqual(l.ready, false);
@@ -787,7 +738,7 @@ exports.getComponent = function() {
       return l.listComponents()
         .then((components) => {
           assert.strictEqual(l.processing, null);
-          assert.deepNotEqual(l.components, []);
+          assert.notDeepEqual(l.components, []);
           assert.strictEqual(components, l.components);
           assert.strictEqual(l.ready, true);
         });
@@ -806,48 +757,32 @@ exports.getComponent = function() {
           assert.strictEqual(instance.icon, 'cloud');
         });
     });
-    it('should be able to load a local CoffeeScript component', (t, done) => {
-      l.load('componentloader/RepeatAsync', (err, instance) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.strictEqual(instance.description, 'Repeat stuff async');
-        assert.strictEqual(instance.icon, 'forward');
-        done();
-      });
+    it('should be able to load a local CoffeeScript component', () => {
+      return l.load('componentloader/RepeatAsync')
+        .then((instance) => {
+          assert.strictEqual(instance.description, 'Repeat stuff async');
+          assert.strictEqual(instance.icon, 'forward');
+        });
     });
-    it('should be able to load a local TypeScript component', (t, done) => {
-      l.load('componentloader/Repeat', (err, instance) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.strictEqual(instance.description, 'Repeat stuff');
-        assert.strictEqual(instance.icon, 'cloud');
-        done();
-      });
+    it('should be able to load a local TypeScript component', () => {
+      return l.load('componentloader/Repeat')
+        .then((instance) => {
+          assert.strictEqual(instance.description, 'Repeat stuff');
+          assert.strictEqual(instance.icon, 'cloud');
+        });
     });
-    it('should be able to find specs for a local TypeScript component', (t, done) => {
-      l.getSource('componentloader/Repeat', (err, source) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        chai.expect(source.tests).to.include('componentloader/Repeat');
-        done();
-      });
+    it('should be able to find specs for a local TypeScript component', () => {
+      return l.getSource('componentloader/Repeat')
+        .then((source) => {
+          assert.ok(source.tests.indexOf('componentloader/Repeat') !== -1);
+        });
     });
-    it('should be able to load a JavaScript component from a dependency', (t, done) => {
-      l.load('example/Forward', (err, instance) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.strictEqual(instance.description, 'Forward stuff');
-        assert.strictEqual(instance.icon, 'car');
-        done();
-      });
+    it('should be able to load a JavaScript component from a dependency', () => {
+      return l.load('example/Forward')
+        .then((instance) => {
+          assert.strictEqual(instance.description, 'Forward stuff');
+          assert.strictEqual(instance.icon, 'car');
+        });
     });
     it('should be able to load a CoffeeScript component from a dependency', (t, done) => {
       l.load('example/RepeatAsync', (err, instance) => {
@@ -866,7 +801,7 @@ exports.getComponent = function() {
           done(err);
           return;
         }
-        chai.expect(source.tests).to.include('example/RepeatAsync');
+        assert.ok(source.tests.indexOf('example/RepeatAsync') !== -1);
         done();
       });
     });
@@ -902,167 +837,154 @@ exports.getComponent = function() {
         done();
       });
     });
-    it('should fail loading a missing component', (t, done) => {
-      l.load('componentloader/Missing', (err) => {
-        assert.strictEqual(typeof err, "error");
-        done();
-      });
+    it('should fail loading a missing component', () => {
+      return l.load('componentloader/Missing')
+        .then(() => Promise.reject(new Error('Unexpected success')))
+        .catch((err) => {
+          assert.strictEqual(Error.isError(err), true);
+          assert.ok(err.message.includes('not available'));
+        });
     });
   });
   describe('ComponentLoader with a fixture project and caching', () => {
     let l = null;
     let fixtureRoot = null;
-    before(function () {
+    before((t) => {
       if (noflo.isBrowser()) {
-        this.skip();
+        t.skip();
         return;
       }
       fixtureRoot = path.resolve(import.meta.dirname, 'fixtures/componentloader');
     });
-    after((t, done) => {
+    after(() => {
       if (noflo.isBrowser()) {
-        done();
-        return;
+        return Promise.resolve();
       }
       const manifestPath = path.resolve(fixtureRoot, 'fbp.json');
-      const { unlink } = require('fs');
-      unlink(manifestPath, done);
+      return import('node:fs/promises')
+        .then(({ unlink }) => {
+          return unlink(manifestPath);
+        });
     });
     it('should be possible to pre-heat the cache file', function (done) {
-      const { exec } = require('child_process');
-      exec(
-        `node ${path.resolve(import.meta.dirname, '../bin/noflo-cache-preheat')}`,
-        { cwd: fixtureRoot },
-        done,
-      );
+      return import('node:child_process')
+        .then(({ exec }) => {
+          return new Promise((resolve, reject) => {
+            exec(
+              `node ${path.resolve(import.meta.dirname, '../bin/noflo-cache-preheat')}`,
+              { cwd: fixtureRoot },
+              (err) => {
+                if (err) {
+                  reject(err);
+                  return;
+                }
+                resolve();
+              }
+            );
+          });
+        });
     });
-    it('should have populated a fbp-manifest file', (t, done) => {
+    it('should have populated a fbp-manifest file', () => {
       const manifestPath = path.resolve(fixtureRoot, 'fbp.json');
-      const { stat } = require('fs');
-      stat(manifestPath, (err, stats) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        chai.expect(stats.isFile()).to.equal(true);
-        done();
-      });
+      return import('node:fs/promises')
+        .then(({ stat }) => {
+          return stat(manifestPath);
+        })
+        .then((stats) => {
+          assert.strictEqual(stats.isFile(), true);
+        });
     });
     it('should be possible to instantiate', () => {
       l = new noflo.ComponentLoader(fixtureRoot,
         { cache: true });
     });
     it('should initially know of no components', () => {
-      assert.strictEqual(typeof l.components, "null");
+      assert.strictEqual(l.components, null);
     });
     it('should not initially be ready', () => {
       assert.strictEqual(l.ready, false);
     });
-    it('should be able to read a list of components', (t, done) => {
-      l.listComponents((err, components) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.strictEqual(l.processing, null);
-        chai.expect(l.components).not.to.be.empty;
-        assert.strictEqual(components, l.components);
-        assert.strictEqual(l.ready, true);
-        done();
-      });
-      assert.strictEqual(typeof l.processing, "promise");
+    it('should be able to read a list of components', () => {
+      return l.listComponents()
+        .then((components) => {
+          assert.strictEqual(l.processing, null);
+          assert.ok(Object.keys(l.components).length > 0);
+          assert.strictEqual(components, l.components);
+          assert.strictEqual(l.ready, true);
+        });
     });
-    it('should be able to load a local ES Module component', (t, done) => {
-      l.load('componentloader/SendString', (err, instance) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.strictEqual(instance.description, 'Send string');
-        assert.strictEqual(instance.icon, 'cloud');
-        done();
-      });
+    it('should be able to load a local ES Module component', () => {
+      return l.load('componentloader/SendString')
+        .then((instance) => {
+          assert.strictEqual(instance.description, 'Send string');
+          assert.strictEqual(instance.icon, 'cloud');
+        });
     });
-    it('should be able to load a local CommonJS component', (t, done) => {
-      l.load('componentloader/Output', (err, instance) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.strictEqual(instance.description, 'Output stuff');
-        assert.strictEqual(instance.icon, 'cloud');
-        done();
-      });
+    it('should be able to load a local CommonJS component', () => {
+      return l.load('componentloader/Output')
+        .then((instance) => {
+          assert.strictEqual(instance.description, 'Output stuff');
+          assert.strictEqual(instance.icon, 'cloud');
+        });
     });
-    it('should be able to load a component from a dependency', (t, done) => {
-      l.load('example/Forward', (err, instance) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.strictEqual(instance.description, 'Forward stuff');
-        assert.strictEqual(instance.icon, 'car');
-        done();
-      });
+    it('should be able to load a component from a dependency', () => {
+      return l.load('example/Forward')
+        .then((instance) => {
+          assert.strictEqual(instance.description, 'Forward stuff');
+          assert.strictEqual(instance.icon, 'car');
+        });
     });
-    it('should be able to load a dynamically registered component from a dependency', (t, done) => {
-      l.load('example/Hello', (err, instance) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.strictEqual(instance.description, 'Hello stuff');
-        assert.strictEqual(instance.icon, 'bicycle');
-        done();
-      });
+    it('should be able to load a dynamically registered component from a dependency', () => {
+      return l.load('example/Hello')
+        .then((instance) => {
+          assert.strictEqual(instance.description, 'Hello stuff');
+          assert.strictEqual(instance.icon, 'bicycle');
+        });
     });
-    it('should be able to load core Graph component', (t, done) => {
-      l.load('Graph', (err, instance) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.strictEqual(instance.icon, 'sitemap');
-        done();
-      });
+    it('should be able to load core Graph component', () => {
+      return l.load('Graph')
+        .then((instance) => {
+          assert.strictEqual(instance.icon, 'sitemap');
+        });
     });
-    it('should fail loading a missing component', (t, done) => {
-      l.load('componentloader/Missing', (err) => {
-        assert.strictEqual(typeof err, "error");
-        done();
-      });
+    it('should fail loading a missing component', () => {
+      return l.load('componentloader/Missing')
+        .then(() => Promise.reject(new Error('Unexpected success')))
+        .catch((err) => {
+          assert.strictEqual(Error.isError(err), true);
+          assert.ok(err.message.includes('not available'));
+        });
     });
-    it('should fail with missing manifest without discover option', (t, done) => {
+    it('should fail with missing manifest without discover option', () => {
       l = new noflo.ComponentLoader(fixtureRoot, {
         cache: true,
         discover: false,
         manifest: 'fbp2.json',
       });
-      l.listComponents((err) => {
-        assert.strictEqual(typeof err, "error");
-        done();
-      });
+      return l.listComponents()
+        .then(() => Promise.reject(new Error('Unexpected success')))
+        .catch((err) => {
+          assert.strictEqual(Error.isError(err), true);
+        });
     });
-    it('should be able to use a custom manifest file', function (done) {
+    it('should be able to use a custom manifest file', () => {
       l = new noflo.ComponentLoader(fixtureRoot, {
         cache: true,
         discover: true,
         manifest: 'fbp2.json',
       });
-      l.listComponents((err) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.strictEqual(l.processing, null);
-        chai.expect(l.components).not.to.be.empty;
-        done();
-      });
+      return l.listComponents()
+        .then(() => {
+          assert.strictEqual(l.processing, null);
+          assert.ok(Object.keys(l.components).length > 0);
+        });
     });
-    it('should have saved the new manifest', (t, done) => {
+    it('should have saved the new manifest', () => {
       const manifestPath = path.resolve(fixtureRoot, 'fbp2.json');
-      const { unlink } = require('fs');
-      unlink(manifestPath, done);
+      return import('node:fs/promises')
+        .then(({ unlink }) => {
+          return unlink(manifestPath);
+        });
     });
   });
 });
