@@ -1,5 +1,7 @@
-exports.getComponent = function () {
-  const c = new noflo.Component({
+import { Component } from '../../src/lib/Component.js';
+
+export function getComponent() {
+  const c = new Component({
     desciption: 'Merges two objects into one (cloning)',
     inPorts: {
       obj1: {

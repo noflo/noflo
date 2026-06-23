@@ -17,32 +17,33 @@ describe('MergeObjects component', () => {
     title: 'Attorney',
     age: 33,
   };
-  before(function (done) {
+  before((t) => {
     if (noflo.isBrowser()) {
-      this.skip();
+      t.skip();
       return;
     }
-    const MergeObjects = require('./components/MergeObjects');
-    c = MergeObjects.getComponent();
-    sin1 = new noflo.internalSocket.InternalSocket();
-    sin2 = new noflo.internalSocket.InternalSocket();
-    sin3 = new noflo.internalSocket.InternalSocket();
-    sout1 = new noflo.internalSocket.InternalSocket();
-    sout2 = new noflo.internalSocket.InternalSocket();
-    c.inPorts.obj1.attach(sin1);
-    c.inPorts.obj2.attach(sin2);
-    c.inPorts.overwrite.attach(sin3);
-    c.outPorts.result.attach(sout1);
-    c.outPorts.error.attach(sout2);
-    done();
+    return import('./components/MergeObjects.mjs')
+      .then((MergeObjects) => {
+        console.log(MergeObjects);
+        c = MergeObjects.getComponent();
+        sin1 = new noflo.internalSocket.InternalSocket();
+        sin2 = new noflo.internalSocket.InternalSocket();
+        sin3 = new noflo.internalSocket.InternalSocket();
+        sout1 = new noflo.internalSocket.InternalSocket();
+        sout2 = new noflo.internalSocket.InternalSocket();
+        c.inPorts.obj1.attach(sin1);
+        c.inPorts.obj2.attach(sin2);
+        c.inPorts.overwrite.attach(sin3);
+        c.outPorts.result.attach(sout1);
+        c.outPorts.error.attach(sout2);
+      });
   });
-  beforeEach((done) => {
+  beforeEach(() => {
     sout1.removeAllListeners();
     sout2.removeAllListeners();
-    done();
   });
 
-  it('should not trigger if input is not complete', (done) => {
+  it('should not trigger if input is not complete', (t, done) => {
     sout1.once('ip', () => {
       done(new Error('Premature result'));
     });
@@ -56,7 +57,7 @@ describe('MergeObjects component', () => {
     setTimeout(done, 10);
   });
 
-  it('should merge objects when input is complete', (done) => {
+  it('should merge objects when input is complete', (t, done) => {
     sout1.once('ip', (ip) => {
       assert.strictEqual(typeof ip, "object");
       assert.strictEqual(ip.type, 'data');
@@ -73,7 +74,7 @@ describe('MergeObjects component', () => {
     sin3.post(new noflo.IP('data', false));
   });
 
-  it('should obey the overwrite control', (done) => {
+  it('should obey the overwrite control', (t, done) => {
     sout1.once('ip', (ip) => {
       assert.strictEqual(typeof ip, "object");
       assert.strictEqual(ip.type, 'data');
