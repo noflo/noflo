@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import {
+  describe, it, beforeEach,
+} from 'node:test';
 import * as noflo from '../src/lib/NoFlo.js';
 
 describe('Outport Port', () => {
@@ -15,7 +17,7 @@ describe('Outport Port', () => {
       p.attach(s1);
       p.attach(s2);
       p.attach(s3);
-      assert.deepEqual(p.listAttached()).to.eql([0, 1, 2]);
+      assert.deepStrictEqual(p.listAttached(), [0, 1, 2]);
       s1.on('data', () => {
         assert.strictEqual(true, false);
       });
@@ -62,9 +64,9 @@ describe('Outport Port', () => {
         assert.strictEqual(index, expected.shift());
         assert.equal(p.isAttached(index), false);
         const atts = expectedAttached.shift();
-        chai.expect(p.listAttached()).to.eql(atts);
+        assert.deepStrictEqual(p.listAttached(), atts);
         for (const att of atts) {
-          chai.expect(p.isAttached(att)).to.equal(true);
+          assert.strictEqual(p.isAttached(att), true);
         }
         if (!expected.length) { done(); }
       });
@@ -147,7 +149,7 @@ describe('Outport Port', () => {
       let count = 0;
       s1.on('ip', (data) => {
         count++;
-        assert.strictEqual(typeof data, "object");
+        assert.strictEqual(typeof data, 'object');
         assert.strictEqual(data.type, expectedEvents.shift());
         if (data.type === 'data') { assert.strictEqual(data.data, 'my-data'); }
         if (count === 4) { done(); }
@@ -172,17 +174,17 @@ describe('Outport Port', () => {
       };
 
       s1.on('ip', (data) => {
-        assert.strictEqual(typeof data, "object");
+        assert.strictEqual(typeof data, 'object');
         assert.strictEqual(data.data, obj);
-        assert.strictEqual(typeof data.data.func, "function");
+        assert.strictEqual(typeof data.data.func, 'function');
         s2.on('ip', (data) => {
-          assert.strictEqual(typeof data, "object");
+          assert.strictEqual(typeof data, 'object');
           assert.strictEqual(data.data, obj);
-          assert.strictEqual(typeof data.data.func, "function");
+          assert.strictEqual(typeof data.data.func, 'function');
           s3.on('ip', (data) => {
-            assert.strictEqual(typeof data, "object");
+            assert.strictEqual(typeof data, 'object');
             assert.strictEqual(data.data, obj);
-            assert.strictEqual(typeof data.data.func, "function");
+            assert.strictEqual(typeof data.data.func, 'function');
             done();
           });
         });
@@ -208,18 +210,18 @@ describe('Outport Port', () => {
       };
 
       s1.on('ip', (data) => {
-        assert.strictEqual(typeof data, "object");
+        assert.strictEqual(typeof data, 'object');
         // First send is non-cloning
         assert.strictEqual(data.data, obj);
-        assert.strictEqual(typeof data.data.func, "function");
+        assert.strictEqual(typeof data.data.func, 'function');
         s2.on('ip', (data) => {
-          assert.strictEqual(typeof data, "object");
+          assert.strictEqual(typeof data, 'object');
           chai.expect(data.data).to.not.equal(obj);
           assert.strictEqual(data.data.foo, obj.foo);
           assert.deepStrictEqual(data.data.bar, obj.bar);
           assert.strictEqual(data.data.func, undefined);
           s3.on('ip', (data) => {
-            assert.strictEqual(typeof data, "object");
+            assert.strictEqual(typeof data, 'object');
             chai.expect(data.data).to.not.equal(obj);
             assert.strictEqual(data.data.foo, obj.foo);
             assert.deepStrictEqual(data.data.bar, obj.bar);
@@ -236,7 +238,7 @@ describe('Outport Port', () => {
       const p = new noflo.OutPort({ datatype: 'string' });
       p.attach(s1);
       s1.on('ip', (data) => {
-        assert.strictEqual(typeof data, "object");
+        assert.strictEqual(typeof data, 'object');
         assert.strictEqual(data.type, 'data');
         assert.strictEqual(data.data, 'Hello');
         assert.strictEqual(data.datatype, 'string');
@@ -248,7 +250,7 @@ describe('Outport Port', () => {
       const p = new noflo.OutPort({ datatype: 'string' });
       p.attach(s1);
       s1.on('ip', (data) => {
-        assert.strictEqual(typeof data, "object");
+        assert.strictEqual(typeof data, 'object');
         assert.strictEqual(data.type, 'data');
         assert.strictEqual(data.data, 123);
         assert.strictEqual(data.datatype, 'integer');
@@ -264,7 +266,7 @@ describe('Outport Port', () => {
       });
       p.attach(s1);
       s1.on('ip', (data) => {
-        assert.strictEqual(typeof data, "object");
+        assert.strictEqual(typeof data, 'object');
         assert.strictEqual(data.type, 'data');
         assert.strictEqual(data.data, 'Hello');
         assert.strictEqual(data.datatype, 'string');
@@ -280,7 +282,7 @@ describe('Outport Port', () => {
       });
       p.attach(s1);
       s1.on('ip', (data) => {
-        assert.strictEqual(typeof data, "object");
+        assert.strictEqual(typeof data, 'object');
         assert.strictEqual(data.type, 'data');
         assert.strictEqual(data.data, 'Hello');
         assert.strictEqual(data.datatype, 'string');

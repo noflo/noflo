@@ -15,7 +15,7 @@ describe('Component', () => {
         },
       });
       c.outPorts.optional_port.attach(s2);
-      chai.expect(() => c.outPorts.required_port.send('foo')).to.throw();
+      assert.throws(() => c.outPorts.required_port.send('foo'));
     });
     it('should be cool with an attached port', () => {
       const s1 = new noflo.internalSocket.InternalSocket();
@@ -34,7 +34,7 @@ describe('Component', () => {
         s1.send('some-more-data');
         s2.send('some-data');
       };
-      chai.expect(f).to.not.throw();
+      assert.doesNotThrow(() => );
     });
   });
   describe('with component creation shorthand', () => {
@@ -178,7 +178,7 @@ describe('Component', () => {
         assert.strictEqual(grp, groups.shift());
       });
       s2.on('data', (err) => {
-        chai.expect(err).to.be.an.instanceOf(Error);
+        assert.instanceOf(, Error);
         assert.strictEqual(groups.length, 0);
         done();
       });
@@ -315,7 +315,7 @@ describe('Component', () => {
     });
   });
   describe('starting a component', () => {
-    it('should flag the component as started', (done) => {
+    it('should flag the component as started', () => {
       const c = new noflo.Component({
         inPorts: {
           in: {
@@ -326,15 +326,11 @@ describe('Component', () => {
       });
       const i = new noflo.internalSocket.InternalSocket();
       c.inPorts.in.attach(i);
-      c.start((err) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.strictEqual(c.started, true);
-        chai.expect(c.isStarted()).to.equal(true);
-        done();
-      });
+      return c.start()
+        .then(() => {
+          assert.strictEqual(c.started, true);
+          assert.stringEqual(c.isStarted(), true);
+        });
     });
   });
   describe('shutting down a component', () => {
@@ -1546,7 +1542,7 @@ describe('Component', () => {
 
       sout1.on('ip', (ip) => {
         assert.strictEqual(typeof ip, "object");
-        chai.expect(ip.data).to.be.an.instanceOf(Error);
+        assert.instanceOf(, Error);
         assert.strictEqual(ip.scope, 'some-scope');
         done();
       });
@@ -1596,7 +1592,7 @@ describe('Component', () => {
         if (ip.type === 'openBracket') { actual.push('<'); }
         if (ip.type === 'closeBracket') { actual.push('>'); }
         if (ip.type === 'data') {
-          chai.expect(ip.data).to.be.an.instanceOf(Error);
+          assert.instanceOf(, Error);
           actual.push(ip.data.message);
         }
         if (count === 4) {
@@ -3008,7 +3004,6 @@ describe('Component', () => {
       });
     });
     it('should emit activate/deactivate event on every tick', function (done) {
-      this.timeout(100);
       let count = 0;
       let dcount = 0;
       c.on('activate', () => {

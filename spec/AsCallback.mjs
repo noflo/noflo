@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
-import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import {
+  describe, it, before, after, beforeEach, afterEach,
+} from 'node:test';
+import flowtrace from 'flowtrace';
 import * as noflo from '../src/lib/NoFlo.js';
 
 describe('asCallback interface', () => {
@@ -75,7 +78,7 @@ describe('asCallback interface', () => {
   };
 
   before(() => {
-    loader = new noflo.ComponentLoader(baseDir);
+    loader = new noflo.ComponentLoader(process.cwd());
     return loader.listComponents()
       .then(() => {
         loader.registerComponent('process', 'Async', processAsync);
@@ -88,17 +91,16 @@ describe('asCallback interface', () => {
   describe('with a non-existing component', () => {
     let wrapped = null;
     before(() => {
-      wrapped = noflo.asCallback('foo/Bar',
-        { loader });
+      wrapped = noflo.asCallback('foo/Bar', { loader });
     });
     it('should be able to wrap it', (t, done) => {
-      assert.strictEqual(typeof wrapped, "function");
+      assert.strictEqual(typeof wrapped, 'function');
       assert.strictEqual(wrapped.length, 2);
       done();
     });
     it('should fail execution', (t, done) => {
       wrapped(1, (err) => {
-        assert.strictEqual(typeof err, "error");
+        assert.strictEqual(typeof err, 'error');
         done();
       });
     });
@@ -110,7 +112,7 @@ describe('asCallback interface', () => {
         { loader });
     });
     it('should be able to wrap it', (t, done) => {
-      assert.strictEqual(typeof wrapped, "function");
+      assert.strictEqual(typeof wrapped, 'function');
       assert.strictEqual(wrapped.length, 2);
       done();
     });
@@ -222,7 +224,7 @@ describe('asCallback interface', () => {
       wrapped(
         { in: expected },
         (err) => {
-          assert.strictEqual(typeof err, "error");
+          assert.strictEqual(typeof err, 'error');
           assert.ok(err.message.includes(expected));
           done();
         },
@@ -231,7 +233,7 @@ describe('asCallback interface', () => {
     it('should execute network with simple input and provide error', (t, done) => {
       const expected = 'hello world';
       wrapped(expected, (err) => {
-        assert.strictEqual(typeof err, "error");
+        assert.strictEqual(typeof err, 'error');
         assert.ok(err.message.includes(expected));
         done();
       });
@@ -272,7 +274,7 @@ describe('asCallback interface', () => {
       wrapped(
         { in: 'red' },
         (err) => {
-          assert.strictEqual(typeof err, "error");
+          assert.strictEqual(typeof err, 'error');
           assert.ok(err.message.includes('Invalid data=\'red\' received, not in [green,blue]'));
           done();
         },
@@ -280,7 +282,7 @@ describe('asCallback interface', () => {
     });
     it('should execute network with wrong input and provide error', (t, done) => {
       wrapped('red', (err) => {
-        assert.strictEqual(typeof err, "error");
+        assert.strictEqual(typeof err, 'error');
         assert.ok(err.message.includes('Invalid data=\'red\' received, not in [green,blue]'));
         done();
       });
@@ -442,7 +444,7 @@ Async(process/Async) OUT -> IN Values(process/Values)\
       wrapped(
         { in: 'red' },
         (err) => {
-          assert.strictEqual(typeof err, "error");
+          assert.strictEqual(typeof err, 'error');
           assert.ok(err.message.includes('Invalid data=\'red\' received, not in [green,blue]'));
           done();
         },
@@ -450,7 +452,7 @@ Async(process/Async) OUT -> IN Values(process/Values)\
     });
     it('should execute network with wrong input and provide error', (t, done) => {
       wrapped('red', (err) => {
-        assert.strictEqual(typeof err, "error");
+        assert.strictEqual(typeof err, 'error');
         assert.ok(err.message.includes('Invalid data=\'red\' received, not in [green,blue]'));
         done();
       });
@@ -475,7 +477,7 @@ Async(process/Async) OUT -> IN Values(process/Values)\
           called++;
         },
       });
-      assert.strictEqual(typeof wrapped, "function");
+      assert.strictEqual(typeof wrapped, 'function');
       assert.strictEqual(called, 0);
       done();
     });
@@ -499,59 +501,60 @@ Async(process/Async) OUT -> IN Values(process/Values)\
       assert.strictEqual(started, 0);
 
       wrapped(expected, (err, out) => {
-      assert.equal(called, 0);
-      assert.equal(started, 0);
+        assert.equal(called, 0);
+        assert.equal(started, 0);
 
-      wrapped(expected, (err, out) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.deepEqual(out, expected);
-        assert.equal(called, 1);
-        assert.equal(started, 1);
-        done();
+        wrapped(expected, (err, out) => {
+          if (err) {
+            done(err);
+            return;
+          }
+          assert.deepEqual(out, expected);
+          assert.equal(called, 1);
+          assert.equal(started, 1);
+          done();
+        });
       });
     });
-  });
-  describe('with flowtrace option', () => {
-    it('should store a trace for a simple component execution', (t, done) => {
-      const trace = new flowtrace.Flowtrace();
-      const wrapped = noflo.asCallback('process/Async', {
-        loader,
-        flowtrace: trace,
-      });
-      wrapped('hello', (err, out) => {
-        assert.strictEqual(typeof err, "null");
-        assert.strictEqual(out, 'hello');
-        const collectedTrace = trace.toJSON();
-        chai.expect(collectedTrace.header.metadata).to.include.keys(['start', 'end']);
-        assert.strictEqual(typeof collectedTrace.header.graphs['process/Async'], "object");
-        assert.strictEqual(collectedTrace.header.main, 'process/Async');
-        const eventTypes = collectedTrace.events.map((e) => `${e.protocol}:${e.command}`);
-        assert.deepStrictEqual(eventTypes, [
-          'network:started',
-          'network:data',
-          'network:data',
-          'network:stopped',
-        ]);
-        chai.expect(JSON.parse(JSON.stringify(collectedTrace.events[1].payload))).to.eql({
-          data: 'hello',
-          src: null,
-          tgt: {
-            node: 'process/Async',
-            port: 'in',
-          },
+    describe('with flowtrace option', () => {
+      it('should store a trace for a simple component execution', (t, done) => {
+        const trace = new flowtrace.Flowtrace();
+        const wrapped = noflo.asCallback('process/Async', {
+          loader,
+          flowtrace: trace,
         });
-        chai.expect(JSON.parse(JSON.stringify(collectedTrace.events[2].payload))).to.eql({
-          data: 'hello',
-          src: {
-            node: 'process/Async',
-            port: 'out',
-          },
-          tgt: null,
+        wrapped('hello', (err, out) => {
+          assert.strictEqual(typeof err, 'null');
+          assert.strictEqual(out, 'hello');
+          const collectedTrace = trace.toJSON();
+          assert.deepStrictEqual(Object.keys(), []);
+          assert.strictEqual(typeof collectedTrace.header.graphs['process/Async'], 'object');
+          assert.strictEqual(collectedTrace.header.main, 'process/Async');
+          const eventTypes = collectedTrace.events.map((e) => `${e.protocol}:${e.command}`);
+          assert.deepStrictEqual(eventTypes, [
+            'network:started',
+            'network:data',
+            'network:data',
+            'network:stopped',
+          ]);
+          assert.deepEqual(JSON.parse(JSON.stringify(collectedTrace.events[1].payload)), {
+            data: 'hello',
+            src: null,
+            tgt: {
+              node: 'process/Async',
+              port: 'in',
+            },
+          });
+          asseet.deepEqual(JSON.parse(JSON.stringify(collectedTrace.events[2].payload)), {
+            data: 'hello',
+            src: {
+              node: 'process/Async',
+              port: 'out',
+            },
+            tgt: null,
+          });
+          done();
         });
-        done();
       });
     });
   });

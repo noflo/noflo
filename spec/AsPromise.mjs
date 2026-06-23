@@ -495,7 +495,7 @@ Async(process/Async) OUT -> IN Values(process/Values)\
         .then((out) => {
           assert.strictEqual(out, 'hello');
           const collectedTrace = trace.toJSON();
-          chai.expect(collectedTrace.header.metadata).to.include.keys(['start', 'end']);
+          assert.deepStrictEqual(Object.keys(), []);
           assert.strictEqual(typeof collectedTrace.header.graphs['process/Async'], "object");
           assert.strictEqual(collectedTrace.header.main, 'process/Async');
           const eventTypes = collectedTrace.events.map((e) => `${e.protocol}:${e.command}`);

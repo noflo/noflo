@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import flowtrace from 'flowtrace';
 import * as noflo from '../src/lib/NoFlo.js';
 
 let loadingPrefix;
@@ -74,7 +75,7 @@ describe('NoFlo Graph component', () => {
     it('should emit a ready event after network has been loaded', (t, done) => {
       c.baseDir = process.cwd();
       c.once('ready', () => {
-        chai.expect(c.network).not.to.be.null;
+        assert.notEqual(c.network, null);
         assert.strictEqual(c.ready, true);
         done();
       });
@@ -82,7 +83,7 @@ describe('NoFlo Graph component', () => {
         network.loader.components.Split = Split;
         network.loader.registerComponent('', 'Merge', SubgraphMerge);
         assert.strictEqual(c.ready, false);
-        chai.expect(c.network).not.to.be.null;
+        assert.notEqual(c.network, null);
         c.start((err) => {
           if (err) { done(err); }
         });
@@ -466,19 +467,14 @@ describe('NoFlo Graph component', () => {
     grInitials.addEdge('SplitIn', 'out', 'SplitOut', 'in');
 
     let cl = null;
-    before(function (t, done) {
-      this.timeout(6000);
+    before(function () {
       cl = new noflo.ComponentLoader(process.cwd());
-      cl.listComponents((err) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        cl.components.Split = createSplit;
-        cl.components.Defaults = grDefaults;
-        cl.components.Initials = grInitials;
-        done();
-      });
+      return cl.listComponents()
+        .then(() => {
+          cl.components.Split = createSplit;
+          cl.components.Defaults = grDefaults;
+          cl.components.Initials = grInitials;
+        });
     });
 
     it('should send defaults', (t, done) => {
@@ -672,7 +668,7 @@ describe('NoFlo Graph component', () => {
               done(err);
               return;
             }
-            network.connect(t, done);
+            network.connect(done);
           });
         });
       });
@@ -800,7 +796,7 @@ describe('NoFlo Graph component', () => {
                 done(err);
                 return;
               }
-              network.connect(t, done);
+              network.connect(done);
             });
           });
         });
