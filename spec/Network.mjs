@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import { describe, it, before, after, beforeEach } from 'node:test';
 import * as noflo from '../src/lib/NoFlo.js';
 
 describe('NoFlo Network', () => {
@@ -85,12 +85,10 @@ describe('NoFlo Network', () => {
     it('should have transmitted the baseDir to the Component Loader', () => {
       assert.strictEqual(n.loader.baseDir, process.cwd());
     });
-    it('should be able to list components', function () {
-      return n.loader.listComponents()
+    it('should be able to list components', () => n.loader.listComponents()
         .then((components) => {
           assert.strictEqual(typeof components, "object");
-        });
-    });
+        }));
     it('should have an uptime', () => {
       assert.ok(n.uptime() >= 0);
     });
@@ -349,7 +347,7 @@ describe('NoFlo Network', () => {
       });
     });
     describe('with process icon change', () => {
-      it('should emit an icon event', (t, done) => {
+      it('should emit an icon event', (_t, done) => {
         n.once('icon', (data) => {
           assert.strictEqual(typeof data, "object");
           assert.strictEqual(data.id, 'Func');
@@ -366,7 +364,7 @@ describe('NoFlo Network', () => {
         }));
     });
     describe('without the delay option', () => {
-      it('should auto-start', (t, done) => {
+      it('should auto-start', (_t, done) => {
         g.removeInitial('Func', 'callback');
         noflo.graph.loadJSON(g.toJSON())
           .then((graph) => {
@@ -425,8 +423,8 @@ describe('NoFlo Network', () => {
       g.addNode('Cb', 'Cb');
       g.addEdge('Def', 'out', 'Cb', 'in');
     });
-    it('should send default values to nodes without an edge', function (t, done) {
-      testCallback = function (data) {
+    it('should send default values to nodes without an edge', (_t, done) => {
+      testCallback = (data) => {
         assert.strictEqual(data, 'default-value');
         done();
       };
@@ -444,8 +442,8 @@ describe('NoFlo Network', () => {
         .then((nw) => nw.start())
         .catch(done);
     });
-    it('should not send default values to nodes with an edge', function (t, done) {
-      testCallback = function (data) {
+    it('should not send default values to nodes with an edge', (_t, done) => {
+      testCallback = (data) => {
         assert.strictEqual(data, 'from-edge');
         done();
       };
@@ -467,8 +465,8 @@ describe('NoFlo Network', () => {
         .then((nw) => nw.start())
         .catch(done);
     });
-    it('should not send default values to nodes with IIP', function (t, done) {
-      testCallback = function (data) {
+    it('should not send default values to nodes with IIP', (_t, done) => {
+      testCallback = (data) => {
         assert.strictEqual(data, 'from-IIP');
         done();
       };
@@ -498,8 +496,8 @@ describe('NoFlo Network', () => {
         .addNode('Repeat', 'Split')
         .addEdge('Repeat', 'out', 'Callback', 'in');
     });
-    it('should call the Callback with the original IIP value', function (t, done) {
-      const cb = function (packet) {
+    it('should call the Callback with the original IIP value', (_t, done) => {
+      const cb = (packet) => {
         assert.strictEqual(packet, 'Foo');
         done();
       };
@@ -540,8 +538,8 @@ describe('NoFlo Network', () => {
         assert.strictEqual(n.initials.length, 0, 'No IIPs left');
         assert.strictEqual(n.connections.length, 1, 'Only one connection');
       }));
-    it('new IIPs to replace original ones should work correctly', (t, done) => {
-      const cb = function (packet) {
+    it('new IIPs to replace original ones should work correctly', (_t, done) => {
+      const cb = (packet) => {
         assert.strictEqual(packet, 'Baz');
         done();
       };
@@ -572,7 +570,7 @@ describe('NoFlo Network', () => {
         assert.strictEqual(n.started, true);
         assert.strictEqual(n.processes.Repeat.component.started, true);
       });
-      it('should emit the end event', function (t, done) {
+      it('should emit the end event', (_t, done) => {
         if (n.stopped) {
           done(new Error('Cannot stop what wasn\'t running'));
           return;
@@ -590,10 +588,10 @@ describe('NoFlo Network', () => {
     });
   });
   describe('with a very large network', () => {
-    it('should be able to connect without errors', function (t, done) {
+    it('should be able to connect without errors', (_t, done) => {
       if (noflo.isBrowser()) {
         // Async mode is too much for Puppeteer here
-        this.skip();
+        _t.skip();
         return;
       }
       let n;

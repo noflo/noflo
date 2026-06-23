@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import { describe, it, before, beforeEach } from 'node:test';
 import * as noflo from '../src/lib/NoFlo.js';
 
 describe('MergeObjects component', () => {
@@ -43,7 +43,7 @@ describe('MergeObjects component', () => {
     sout2.removeAllListeners();
   });
 
-  it('should not trigger if input is not complete', (t, done) => {
+  it('should not trigger if input is not complete', (_t, done) => {
     sout1.once('ip', () => {
       done(new Error('Premature result'));
     });
@@ -57,7 +57,7 @@ describe('MergeObjects component', () => {
     setTimeout(done, 10);
   });
 
-  it('should merge objects when input is complete', (t, done) => {
+  it('should merge objects when input is complete', (_t, done) => {
     sout1.once('ip', (ip) => {
       assert.strictEqual(typeof ip, "object");
       assert.strictEqual(ip.type, 'data');
@@ -74,7 +74,7 @@ describe('MergeObjects component', () => {
     sin3.post(new noflo.IP('data', false));
   });
 
-  it('should obey the overwrite control', (t, done) => {
+  it('should obey the overwrite control', (_t, done) => {
     sout1.once('ip', (ip) => {
       assert.strictEqual(typeof ip, "object");
       assert.strictEqual(ip.type, 'data');

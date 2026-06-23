@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import { describe, it, before, beforeEach, afterEach } from 'node:test';
 import * as noflo from '../src/lib/NoFlo.js';
 
-const legacyBasic = function () {
+const legacyBasic = () => {
   const c = new noflo.Component();
   c.inPorts.add('in',
     { datatype: 'string' });
@@ -26,7 +26,7 @@ const legacyBasic = function () {
   return c;
 };
 
-const processAsync = function () {
+const processAsync = () => {
   const c = new noflo.Component();
   c.inPorts.add('in',
     { datatype: 'string' });
@@ -43,7 +43,7 @@ const processAsync = function () {
   return c;
 };
 
-const processPromise = function () {
+const processPromise = () => {
   const c = new noflo.Component();
   c.inPorts.add('in',
     { datatype: 'string' });
@@ -59,7 +59,7 @@ const processPromise = function () {
   return c;
 };
 
-const processMerge = function () {
+const processMerge = () => {
   const c = new noflo.Component();
   c.inPorts.add('in1',
     { datatype: 'string' });
@@ -80,7 +80,7 @@ const processMerge = function () {
   return c;
 };
 
-const processSync = function () {
+const processSync = () => {
   const c = new noflo.Component();
   c.inPorts.add('in',
     { datatype: 'string' });
@@ -94,14 +94,14 @@ const processSync = function () {
   return c;
 };
 
-const processBracketize = function () {
+const processBracketize = () => {
   const c = new noflo.Component();
   c.inPorts.add('in',
     { datatype: 'string' });
   c.outPorts.add('out',
     { datatype: 'string' });
   c.counter = 0;
-  c.tearDown = function (callback) {
+  c.tearDown = (callback) => {
     c.counter = 0;
     callback();
   };
@@ -116,7 +116,7 @@ const processBracketize = function () {
   return c;
 };
 
-const processNonSending = function () {
+const processNonSending = () => {
   const c = new noflo.Component();
   c.inPorts.add('in',
     { datatype: 'string' });
@@ -139,7 +139,7 @@ const processNonSending = function () {
   return c;
 };
 
-const processGenerator = function () {
+const processGenerator = () => {
   const c = new noflo.Component();
   c.inPorts.add('start',
     { datatype: 'bang' });
@@ -149,13 +149,13 @@ const processGenerator = function () {
     { datatype: 'bang' });
   c.autoOrdering = false;
 
-  const cleanUp = function () {
+  const cleanUp = () => {
     if (!c.timer) { return; }
     clearInterval(c.timer.interval);
     c.timer.deactivate();
     c.timer = null;
   };
-  c.tearDown = function (callback) {
+  c.tearDown = (callback) => {
     cleanUp();
     callback();
   };
@@ -235,7 +235,7 @@ describe('Network Lifecycle', () => {
       out = null;
       return c.shutdown();
     });
-    it('should execute and finish', (t, done) => {
+    it('should execute and finish', (_t, done) => {
       const expected = [
         'DATA helloPc',
       ];
@@ -254,11 +254,11 @@ describe('Network Lifecycle', () => {
         }
       });
       let wasStarted = false;
-      const checkStart = function () {
+      const checkStart = () => {
         assert.strictEqual(wasStarted, false);
         wasStarted = true;
       };
-      const checkEnd = function () {
+      const checkEnd = () => {
         assert.deepStrictEqual(received, expected);
         assert.strictEqual(wasStarted, true);
         done();
@@ -267,7 +267,7 @@ describe('Network Lifecycle', () => {
       c.network.once('end', checkEnd);
       c.start().catch(done);
     });
-    it('should execute twice if IIP changes', (t, done) => {
+    it('should execute twice if IIP changes', (_t, done) => {
       const expected = [
         'DATA helloPc',
         'DATA worldPc',
@@ -287,11 +287,11 @@ describe('Network Lifecycle', () => {
         }
       });
       let wasStarted = false;
-      const checkStart = function () {
+      const checkStart = () => {
         assert.strictEqual(wasStarted, false);
         wasStarted = true;
       };
-      const checkEnd = function () {
+      const checkEnd = () => {
         assert.strictEqual(wasStarted, true);
         if (received.length < expected.length) {
           wasStarted = false;
@@ -316,7 +316,7 @@ describe('Network Lifecycle', () => {
       c.network.once('end', checkEnd);
       c.start().catch(done);
     });
-    it('should not send new IIP if network was stopped', (t, done) => {
+    it('should not send new IIP if network was stopped', (_t, done) => {
       const expected = [
         'DATA helloPc',
       ];
@@ -335,11 +335,11 @@ describe('Network Lifecycle', () => {
         }
       });
       let wasStarted = false;
-      const checkStart = function () {
+      const checkStart = () => {
         assert.strictEqual(wasStarted, false);
         wasStarted = true;
       };
-      const checkEnd = function () {
+      const checkEnd = () => {
         assert.strictEqual(wasStarted, true);
         c.network.stop()
           .then(() => {
@@ -396,7 +396,7 @@ describe('Network Lifecycle', () => {
       out = null;
       return c.shutdown();
     });
-    it('should execute and finish', (t, done) => {
+    it('should execute and finish', (_t, done) => {
       const expected = [
         'DATA helloPc',
       ];
@@ -415,11 +415,11 @@ describe('Network Lifecycle', () => {
         }
       });
       let wasStarted = false;
-      const checkStart = function () {
+      const checkStart = () => {
         assert.strictEqual(wasStarted, false);
         wasStarted = true;
       };
-      const checkEnd = function () {
+      const checkEnd = () => {
         assert.deepStrictEqual(received, expected);
         assert.strictEqual(wasStarted, true);
         done();
@@ -455,7 +455,7 @@ describe('Network Lifecycle', () => {
       out = null;
       return c.shutdown();
     });
-    it('should execute and finish', (t, done) => {
+    it('should execute and finish', (_t, done) => {
       const expected = [
         'DATA helloNonSendingSync',
       ];
@@ -474,11 +474,11 @@ describe('Network Lifecycle', () => {
         }
       });
       let wasStarted = false;
-      const checkStart = function () {
+      const checkStart = () => {
         assert.strictEqual(wasStarted, false);
         wasStarted = true;
       };
-      const checkEnd = function () {
+      const checkEnd = () => {
         setTimeout(() => {
           assert.deepStrictEqual(received, expected);
           assert.strictEqual(wasStarted, true);
@@ -524,7 +524,7 @@ describe('Network Lifecycle', () => {
       out = null;
       return c.shutdown();
     });
-    it('should forward new-style brackets as expected', (t, done) => {
+    it('should forward new-style brackets as expected', (_t, done) => {
       const expected = [
         'CONN',
         '< 1',
@@ -553,11 +553,11 @@ describe('Network Lifecycle', () => {
       });
 
       let wasStarted = false;
-      const checkStart = function () {
+      const checkStart = () => {
         assert.strictEqual(wasStarted, false);
         wasStarted = true;
       };
-      const checkEnd = function () {
+      const checkEnd = () => {
         assert.deepStrictEqual(received, expected);
         assert.strictEqual(wasStarted, true);
         done();
@@ -579,7 +579,7 @@ describe('Network Lifecycle', () => {
           in1.disconnect();
         }, done);
     });
-    it('should forward new-style brackets as expected regardless of sending order', (t, done) => {
+    it('should forward new-style brackets as expected regardless of sending order', (_t, done) => {
       const expected = [
         'CONN',
         '< 1',
@@ -608,11 +608,11 @@ describe('Network Lifecycle', () => {
       });
 
       let wasStarted = false;
-      const checkStart = function () {
+      const checkStart = () => {
         assert.strictEqual(wasStarted, false);
         wasStarted = true;
       };
-      const checkEnd = function () {
+      const checkEnd = () => {
         assert.deepStrictEqual(received, expected);
         assert.strictEqual(wasStarted, true);
         done();
@@ -634,7 +634,7 @@ describe('Network Lifecycle', () => {
           in2.disconnect();
         }, done);
     });
-    it('should forward scopes as expected', (t, done) => {
+    it('should forward scopes as expected', (_t, done) => {
       const expected = [
         'x < 1',
         'x DATA 1onePc1:2twoPc2:PcMerge',
@@ -659,11 +659,11 @@ describe('Network Lifecycle', () => {
         }
       });
       let wasStarted = false;
-      const checkStart = function () {
+      const checkStart = () => {
         assert.strictEqual(wasStarted, false);
         wasStarted = true;
       };
-      const checkEnd = function () {
+      const checkEnd = () => {
         assert.deepStrictEqual(received, expected);
         assert.strictEqual(wasStarted, true);
         done();
@@ -718,7 +718,7 @@ describe('Network Lifecycle', () => {
       out = null;
       return c.shutdown();
     });
-    it('should forward new-style brackets as expected', (t, done) => {
+    it('should forward new-style brackets as expected', (_t, done) => {
       const expected = [
         'CONN',
         '< 1',
@@ -747,11 +747,11 @@ describe('Network Lifecycle', () => {
       });
 
       let wasStarted = false;
-      const checkStart = function () {
+      const checkStart = () => {
         assert.strictEqual(wasStarted, false);
         wasStarted = true;
       };
-      const checkEnd = function () {
+      const checkEnd = () => {
         assert.deepStrictEqual(received, expected);
         assert.strictEqual(wasStarted, true);
         done();
@@ -773,7 +773,7 @@ describe('Network Lifecycle', () => {
           in1.disconnect();
         }, done);
     });
-    it('should forward new-style brackets as expected regardless of sending order', (t, done) => {
+    it('should forward new-style brackets as expected regardless of sending order', (_t, done) => {
       const expected = [
         'CONN',
         '< 1',
@@ -802,11 +802,11 @@ describe('Network Lifecycle', () => {
       });
 
       let wasStarted = false;
-      const checkStart = function () {
+      const checkStart = () => {
         assert.strictEqual(wasStarted, false);
         wasStarted = true;
       };
-      const checkEnd = function () {
+      const checkEnd = () => {
         assert.deepStrictEqual(received, expected);
         assert.strictEqual(wasStarted, true);
         done();
@@ -873,7 +873,7 @@ describe('Network Lifecycle', () => {
       .then(() => {
         assert.equal(c.network.isRunning(), false);
       }));
-    it('should start generating when receiving a start packet', (t, done) => {
+    it('should start generating when receiving a start packet', (_t, done) => {
       c.start()
         .then(() => {
           out.once('data', () => {
@@ -883,7 +883,7 @@ describe('Network Lifecycle', () => {
           start.send(true);
         }, done);
     });
-    it('should stop generating when receiving a stop packet', (t, done) => {
+    it('should stop generating when receiving a stop packet', (_t, done) => {
       c.start()
         .then(() => {
           out.once('data', () => {

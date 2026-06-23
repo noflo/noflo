@@ -2,7 +2,7 @@
 //     (c) 2013-2017 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import IP from './IP.js';
 import { makeAsync } from './Platform.js';
 
@@ -316,7 +316,7 @@ export class InternalSocket extends EventEmitter {
     this.emitEvent('ip', ip);
 
     // Emit the legacy event
-    if (!ip || !ip.type) { return; }
+    if (!ip?.type) { return; }
 
     if (isIP) {
       const legacy = ipToLegacy(ip);

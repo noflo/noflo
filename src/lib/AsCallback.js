@@ -165,7 +165,10 @@ function runNetwork(network, inputs) {
     outPorts.forEach((outport) => {
       const portDef = network.graph.outports[outport];
       const process = network.getNode(portDef.process);
-      if (!process || !process.component) {
+      if (!process) {
+        return;
+      }
+      if (!process.component) {
         return;
       }
       outSockets[outport] = internalSocket.createSocket({}, {
@@ -232,7 +235,11 @@ function runNetwork(network, inputs) {
                 return;
               }
               const process = network.getNode(portDef.process);
-              if (!process || !process.component) {
+              if (!process) {
+                reject(new Error(`Process ${portDef.process} for port ${port} not available in the graph`));
+                return;
+              }
+              if (!process.component) {
                 reject(new Error(`Process ${portDef.process} for port ${port} not available in the graph`));
                 return;
               }

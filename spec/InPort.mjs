@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import { describe, it, beforeEach } from 'node:test';
 import * as noflo from '../src/lib/NoFlo.js';
 
 describe('Inport Port', () => {
@@ -43,7 +43,7 @@ describe('Inport Port', () => {
     });
   });
   describe('with processing function called with port as context', () => {
-    it('should set context to port itself', (t, done) => {
+    it('should set context to port itself', (_t, done) => {
       const s = new noflo.internalSocket.InternalSocket();
       const p = new noflo.InPort();
       p.on('data', function (packet) {
@@ -63,14 +63,14 @@ describe('Inport Port', () => {
       s = new noflo.internalSocket.InternalSocket();
       p.attach(s);
     });
-    it('should send the default value as a packet, though on next tick after initialization', (t, done) => {
+    it('should send the default value as a packet, though on next tick after initialization', (_t, done) => {
       p.on('data', (data) => {
         assert.strictEqual(data, 'default-value');
         done();
       });
       s.send();
     });
-    it('should send the default value before IIP', (t, done) => {
+    it('should send the default value before IIP', (_t, done) => {
       const received = ['default-value', 'some-iip'];
       p.on('data', (data) => {
         assert.strictEqual(data, received.shift());
@@ -94,7 +94,7 @@ describe('Inport Port', () => {
       };
       const p = new noflo.InPort(options);
       for (const name in options) {
-        if (Object.prototype.hasOwnProperty.call(options, name)) {
+        if (Object.hasOwn(options, name)) {
           const option = options[name];
           assert.strictEqual(p.options[name], option);
         }
@@ -125,7 +125,7 @@ describe('Inport Port', () => {
     });
   });
   describe('with accepted enumerated values', () => {
-    it('should accept certain values', (t, done) => {
+    it('should accept certain values', (_t, done) => {
       const p = new noflo.InPort({ values: 'noflo is awesome'.split(' ') });
       const s = new noflo.internalSocket.InternalSocket();
       p.attach(s);
@@ -147,7 +147,7 @@ describe('Inport Port', () => {
     });
   });
   describe('with processing shorthand', () => {
-    it('should also accept metadata (i.e. options) when provided', (t, done) => {
+    it('should also accept metadata (i.e. options) when provided', (_t, done) => {
       const s = new noflo.internalSocket.InternalSocket();
       const ps = {
         outPorts: new noflo.OutPorts({ out: new noflo.OutPort() }),
@@ -167,7 +167,7 @@ describe('Inport Port', () => {
       s.send('some-data');
       s.disconnect();
     });
-    it('should translate IP objects to legacy events', (t, done) => {
+    it('should translate IP objects to legacy events', (_t, done) => {
       const s = new noflo.internalSocket.InternalSocket();
       const expectedEvents = [
         'connect',
@@ -198,7 +198,7 @@ describe('Inport Port', () => {
       assert.deepEqual(ps.inPorts.in.listAttached(), [0]);
       s.post(new noflo.IP('data', 'some-data'));
     });
-    it('should stamp an IP object with the port\'s datatype', (t, done) => {
+    it('should stamp an IP object with the port\'s datatype', (_t, done) => {
       const p = new noflo.InPort({ datatype: 'string' });
       p.on('ip', (data) => {
         assert.strictEqual(typeof data, "object");
@@ -209,7 +209,7 @@ describe('Inport Port', () => {
       });
       p.handleIP(new noflo.IP('data', 'Hello'));
     });
-    it('should keep an IP object\'s datatype as-is if already set', (t, done) => {
+    it('should keep an IP object\'s datatype as-is if already set', (_t, done) => {
       const p = new noflo.InPort({ datatype: 'string' });
       p.on('ip', (data) => {
         assert.strictEqual(typeof data, "object");
@@ -221,7 +221,7 @@ describe('Inport Port', () => {
       p.handleIP(new noflo.IP('data', 123,
         { datatype: 'integer' }));
     });
-    it('should stamp an IP object with the port\'s schema', (t, done) => {
+    it('should stamp an IP object with the port\'s schema', (_t, done) => {
       const p = new noflo.InPort({
         datatype: 'string',
         schema: 'text/markdown',
@@ -236,7 +236,7 @@ describe('Inport Port', () => {
       });
       p.handleIP(new noflo.IP('data', 'Hello'));
     });
-    it('should keep an IP object\'s schema as-is if already set', (t, done) => {
+    it('should keep an IP object\'s schema as-is if already set', (_t, done) => {
       const p = new noflo.InPort({
         datatype: 'string',
         schema: 'text/markdown',

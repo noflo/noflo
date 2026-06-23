@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import { describe, it, before, beforeEach, afterEach } from 'node:test';
 import * as noflo from '../src/lib/NoFlo.js';
 
 describe('Scope isolation', () => {
   let loader = null;
-  const processAsync = function () {
+  const processAsync = () => {
     const c = new noflo.Component();
     c.inPorts.add('in',
       { datatype: 'string' });
@@ -19,7 +19,7 @@ describe('Scope isolation', () => {
     return c;
   };
 
-  const processMerge = function () {
+  const processMerge = () => {
     const c = new noflo.Component();
     c.inPorts.add('in1',
       { datatype: 'string' });
@@ -40,7 +40,7 @@ describe('Scope isolation', () => {
     return c;
   };
 
-  const processMergeUnscoped = function () {
+  const processMergeUnscoped = () => {
     const c = new noflo.Component();
     c.inPorts.add('in1',
       { datatype: 'string' });
@@ -63,7 +63,7 @@ describe('Scope isolation', () => {
     return c;
   };
 
-  const processUnscope = function () {
+  const processUnscope = () => {
     const c = new noflo.Component();
     c.inPorts.add('in',
       { datatype: 'string' });
@@ -83,7 +83,7 @@ describe('Scope isolation', () => {
   };
 
   // Merge with an addressable port
-  const processMergeA = function () {
+  const processMergeA = () => {
     const c = new noflo.Component();
     c.inPorts.add('in1',
       { datatype: 'string' });
@@ -151,7 +151,7 @@ describe('Scope isolation', () => {
       c.outPorts.out.detach(out);
       out = null;
     });
-    it('should forward new-style brackets as expected', (t, done) => {
+    it('should forward new-style brackets as expected', (_t, done) => {
       const expected = [
         'CONN',
         '< 1',
@@ -192,7 +192,7 @@ describe('Scope isolation', () => {
       in1.endGroup();
       in1.disconnect();
     });
-    it('should forward new-style brackets as expected regardless of sending order', (t, done) => {
+    it('should forward new-style brackets as expected regardless of sending order', (_t, done) => {
       const expected = [
         'CONN',
         '< 1',
@@ -233,7 +233,7 @@ describe('Scope isolation', () => {
       in2.send('foo');
       in2.disconnect();
     });
-    it('should forward scopes as expected', (t, done) => {
+    it('should forward scopes as expected', (_t, done) => {
       const expected = [
         'x < 1',
         'x DATA 1onePc1:2twoPc2:PcMerge',
@@ -270,7 +270,7 @@ describe('Scope isolation', () => {
       in1.post(new noflo.IP('closeBracket', 1,
         { scope: 'x' }));
     });
-    it('should not forward when scopes don\'t match', (t, done) => {
+    it('should not forward when scopes don\'t match', (_t, done) => {
       out.on('ip', (ip) => {
         throw new Error(`Received unexpected ${ip.type} packet`);
       });

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import { describe, it } from 'node:test';
 import * as noflo from '../src/lib/NoFlo.js';
 
 describe('Ports collection', () => {
@@ -36,7 +36,7 @@ describe('Ports collection', () => {
       assert.throws(() => p.once('bar', 'ip', () => {}));
       assert.throws(() => p.on('bar', 'ip', () => {}));
     });
-    it('should allow subscribing to an existing port', (t, done) => {
+    it('should allow subscribing to an existing port', (_t, done) => {
       let received = 0;
       p.ports.foo.once('ip', () => {
         received++;

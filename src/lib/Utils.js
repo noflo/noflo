@@ -73,6 +73,7 @@ export function debounce(func, wait, immediate) {
 
   return function after() {
     context = this;
+    // biome-ignore lint/complexity/noArguments: We keep as-is
     args = arguments;
     timestamp = Date.now();
     const callNow = immediate && !timeout;
