@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.5.2] - 2026-06-22
 ### Added
 - Support for loading components that are ES Modules. Note that they must directly import `noflo/src/lib/Component` instead of `noflo` to prevent circular dependencies:
 
@@ -17,6 +17,9 @@ export function getComponent() {
   return c;
 }
 ```
+
+### Fixed
+- Fixed loading components in CommonJS context
 
 ### Changed
 - Project's unit tests are now executed using the Node.js built-in test runner
