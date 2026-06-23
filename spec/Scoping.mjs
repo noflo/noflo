@@ -1,3 +1,7 @@
+import assert from 'node:assert/strict';
+import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import * as noflo from '../src/lib/NoFlo.js';
+
 describe('Scope isolation', () => {
   let loader = null;
   const processAsync = function () {
@@ -173,7 +177,7 @@ describe('Scope isolation', () => {
       });
       out.on('disconnect', () => {
         received.push('DISC');
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
 
@@ -214,7 +218,7 @@ describe('Scope isolation', () => {
       });
       out.on('disconnect', () => {
         received.push('DISC');
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
 
@@ -251,7 +255,7 @@ describe('Scope isolation', () => {
             received.push(`${ip.scope} >`);
             brackets.pop();
             if (brackets.length) { return; }
-            chai.expect(received).to.eql(expected);
+            assert.deepStrictEqual(received, expected);
             done();
             break;
         }
@@ -330,7 +334,7 @@ describe('Scope isolation', () => {
             received.push(`${ip.scope} >`);
             brackets.pop();
             if (brackets.length) { return; }
-            chai.expect(received).to.eql(expected);
+            assert.deepStrictEqual(received, expected);
             done();
             break;
         }
@@ -397,7 +401,7 @@ describe('Scope isolation', () => {
             received.push(`${ip.scope} >`);
             brackets.pop();
             if (brackets.length) { return; }
-            chai.expect(received).to.eql(expected);
+            assert.deepStrictEqual(received, expected);
             done();
             break;
         }
@@ -432,7 +436,7 @@ describe('Scope isolation', () => {
             received.push(`${ip.scope} >`);
             brackets.pop();
             if (brackets.length) { return; }
-            chai.expect(received).to.eql(expected);
+            assert.deepStrictEqual(received, expected);
             done();
             break;
         }
@@ -466,7 +470,7 @@ describe('Scope isolation', () => {
             received.push(`${ip.scope} >`);
             brackets.pop();
             if (brackets.length) { return; }
-            chai.expect(received).to.eql(expected);
+            assert.deepStrictEqual(received, expected);
             done();
             break;
         }
@@ -535,7 +539,7 @@ describe('Scope isolation', () => {
             received.push(`${ip.scope} >`);
             brackets.pop();
             if (brackets.length) { return; }
-            chai.expect(received).to.eql(expected);
+            assert.deepStrictEqual(received, expected);
             done();
             break;
         }
@@ -570,7 +574,7 @@ describe('Scope isolation', () => {
             received.push(`${ip.scope} >`);
             brackets.pop();
             if (brackets.length) { return; }
-            chai.expect(received).to.eql(expected);
+            assert.deepStrictEqual(received, expected);
             done();
             break;
         }
@@ -604,7 +608,7 @@ describe('Scope isolation', () => {
             received.push(`${ip.scope} >`);
             brackets.pop();
             if (brackets.length) { return; }
-            chai.expect(received).to.eql(expected);
+            assert.deepStrictEqual(received, expected);
             done();
             break;
         }
@@ -670,7 +674,7 @@ describe('Scope isolation', () => {
             received.push(`${ip.scope} >`);
             brackets.pop();
             if (brackets.length) { return; }
-            chai.expect(received).to.eql(expected);
+            assert.deepStrictEqual(received, expected);
             done();
             break;
         }

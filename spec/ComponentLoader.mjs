@@ -1,3 +1,7 @@
+import assert from 'node:assert/strict';
+import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import * as noflo from '../src/lib/NoFlo.js';
+
 /* eslint-disable
   max-classes-per-file
 */
@@ -40,13 +44,13 @@ describe('ComponentLoader with no external packages installed', () => {
   };
 
   it('should initially know of no components', () => {
-    chai.expect(l.components).to.be.null;
+    assert.strictEqual(l.components, null);
   });
   it('should not initially be ready', () => {
-    chai.expect(l.ready).to.be.false;
+    assert.strictEqual(l.ready, false);
   });
   it('should not initially be processing', () => {
-    chai.expect(l.processing).to.be.a('null');
+    assert.strictEqual(typeof l.processing, "null");
   });
   it('should not have any packages in the checked list', () => {
     chai.expect(l.checked).to.not.exist;
@@ -54,23 +58,23 @@ describe('ComponentLoader with no external packages installed', () => {
   describe('normalizing names', () => {
     it('should return simple module names as-is', () => {
       const normalized = l.getModulePrefix('foo');
-      chai.expect(normalized).to.equal('foo');
+      assert.strictEqual(normalized, 'foo');
     });
     it('should return empty for NoFlo core', () => {
       const normalized = l.getModulePrefix('noflo');
-      chai.expect(normalized).to.equal('');
+      assert.strictEqual(normalized, '');
     });
     it('should strip noflo-', () => {
       const normalized = l.getModulePrefix('noflo-image');
-      chai.expect(normalized).to.equal('image');
+      assert.strictEqual(normalized, 'image');
     });
     it('should strip NPM scopes', () => {
       const normalized = l.getModulePrefix('@noflo/foo');
-      chai.expect(normalized).to.equal('foo');
+      assert.strictEqual(normalized, 'foo');
     });
     it('should strip NPM scopes and noflo-', () => {
       const normalized = l.getModulePrefix('@noflo/noflo-image');
-      chai.expect(normalized).to.equal('image');
+      assert.strictEqual(normalized, 'image');
     });
   });
   it('should be able to read a list of components', function (done) {
@@ -80,16 +84,16 @@ describe('ComponentLoader with no external packages installed', () => {
         done(err);
         return;
       }
-      chai.expect(l.processing, 'should have stopped processing').to.equal(null);
+      assert.strictEqual(l.processing, 'should have stopped processing', null);
       chai.expect(l.components, 'should contain components').not.to.be.empty;
-      chai.expect(components, 'should have returned the full list').to.equal(l.components);
-      chai.expect(l.ready, 'should have been set ready').to.equal(true);
+      assert.strictEqual(components, 'should have returned the full list', l.components);
+      assert.strictEqual(l.ready, 'should have been set ready', true);
       done();
     });
 
     if (!noflo.isBrowser()) {
       // Browser component registry can be synchronous
-      chai.expect(l.processing, 'should have started processing').to.be.a('promise');
+      assert.strictEqual(typeof l.processing, 'should have started processing', "promise");
     }
   });
   describe('calling listComponents twice simultaneously', () => {
@@ -103,7 +107,7 @@ describe('ComponentLoader with no external packages installed', () => {
         }
         received.push(components);
         if (received.length !== 2) { return; }
-        chai.expect(received[0]).to.equal(received[1]);
+        assert.strictEqual(received[0], received[1]);
         done();
       });
       loader.listComponents((err, components) => {
@@ -113,7 +117,7 @@ describe('ComponentLoader with no external packages installed', () => {
         }
         received.push(components);
         if (received.length !== 2) { return; }
-        chai.expect(received[0]).to.equal(received[1]);
+        assert.strictEqual(received[0], received[1]);
         done();
       });
     });
@@ -131,18 +135,18 @@ describe('ComponentLoader with no external packages installed', () => {
           done(err);
           return;
         }
-        chai.expect(inst).to.be.an('object');
-        chai.expect(inst.componentName).to.equal('Graph');
+        assert.strictEqual(typeof inst, "object");
+        assert.strictEqual(inst.componentName, 'Graph');
         instance = inst;
         done();
       });
     });
     it('should contain input ports', () => {
-      chai.expect(instance.inPorts).to.be.an('object');
-      chai.expect(instance.inPorts.graph).to.be.an('object');
+      assert.strictEqual(typeof instance.inPorts, "object");
+      assert.strictEqual(typeof instance.inPorts.graph, "object");
     });
     it('should have "on" method on the input port', () => {
-      chai.expect(instance.inPorts.graph.on).to.be.a('function');
+      assert.strictEqual(typeof instance.inPorts.graph.on, "function");
     });
     it('it should know that Graph is a subgraph', () => {
       chai.expect(instance.isSubgraph()).to.equal(true);
@@ -161,8 +165,8 @@ describe('ComponentLoader with no external packages installed', () => {
           done(err);
           return;
         }
-        chai.expect(inst).to.be.an('object');
-        chai.expect(inst.componentName).to.equal('Graph');
+        assert.strictEqual(typeof inst, "object");
+        assert.strictEqual(inst.componentName, 'Graph');
         instance = inst;
         done();
       });
@@ -186,7 +190,7 @@ describe('ComponentLoader with no external packages installed', () => {
             done(err);
             return;
           }
-          chai.expect(inst).to.be.an('object');
+          assert.strictEqual(typeof inst, "object");
           inst.once('ready', () => {
             chai.expect(inst.inPorts.ports).not.to.have.keys(['graph', 'start']);
             chai.expect(inst.inPorts.ports).to.have.keys(['in']);
@@ -210,9 +214,9 @@ describe('ComponentLoader with no external packages installed', () => {
             done(err);
             return;
           }
-          chai.expect(inst).to.be.an('object');
+          assert.strictEqual(typeof inst, "object");
           inst.once('ready', () => {
-            chai.expect(inst.started).to.equal(false);
+            assert.strictEqual(inst.started, false);
             done();
           });
         });
@@ -237,7 +241,7 @@ describe('ComponentLoader with no external packages installed', () => {
               done(err);
               return;
             }
-            chai.expect(inst).to.be.an('object');
+            assert.strictEqual(typeof inst, "object");
             inst.once('ready', () => {
               chai.expect(inst.inPorts.ports).not.to.have.keys(['graph', 'start']);
               chai.expect(inst.inPorts.ports).to.have.keys(['in']);
@@ -257,13 +261,13 @@ describe('ComponentLoader with no external packages installed', () => {
           done(err);
           return;
         }
-        chai.expect(graph).to.be.an('object');
+        assert.strictEqual(typeof graph, "object");
         instance = graph;
         done();
       });
     });
     it('should have a reference to the Component Loader\'s baseDir', () => {
-      chai.expect(instance.baseDir).to.equal(l.baseDir);
+      assert.strictEqual(instance.baseDir, l.baseDir);
     });
   });
   describe('loading a component', () => {
@@ -275,8 +279,8 @@ describe('ComponentLoader with no external packages installed', () => {
     it('should return an error on an invalid component type', (done) => {
       loader.components.InvalidComponent = true;
       loader.load('InvalidComponent', (err) => {
-        chai.expect(err).to.be.an('error');
-        chai.expect(err.message).to.equal('Invalid type boolean for component InvalidComponent.');
+        assert.strictEqual(typeof err, "error");
+        assert.strictEqual(err.message, 'Invalid type boolean for component InvalidComponent.');
         done();
       });
     });
@@ -289,8 +293,8 @@ describe('ComponentLoader with no external packages installed', () => {
         str = 'Cannot find package';
       }
       loader.load('InvalidComponent', (err) => {
-        chai.expect(err).to.be.an('error');
-        chai.expect(err.message).to.contain(str);
+        assert.strictEqual(typeof err, "error");
+        assert.ok(err.message.includes(str));
         done();
       });
     });
@@ -322,7 +326,7 @@ describe('ComponentLoader with no external packages installed', () => {
           done(err);
           return;
         }
-        chai.expect(split).to.be.an('object');
+        assert.strictEqual(typeof split, "object");
         instance = split;
         done();
       });
@@ -336,7 +340,7 @@ describe('ComponentLoader with no external packages installed', () => {
     });
     it('should emit an event on icon change', (done) => {
       instance.once('icon', (newIcon) => {
-        chai.expect(newIcon).to.equal('smile');
+        assert.strictEqual(newIcon, 'smile');
         done();
       });
       instance.setIcon('smile');
@@ -347,7 +351,7 @@ describe('ComponentLoader with no external packages installed', () => {
           done(err);
           return;
         }
-        chai.expect(split).to.be.an('object');
+        assert.strictEqual(typeof split, "object");
         chai.expect(split.getIcon()).to.equal('star');
         done();
       });
@@ -360,7 +364,7 @@ describe('ComponentLoader with no external packages installed', () => {
           done(err);
           return;
         }
-        chai.expect(split).to.be.an('object');
+        assert.strictEqual(typeof split, "object");
         chai.expect(split.getIcon()).to.equal('trophy');
         done();
       });
@@ -376,8 +380,8 @@ describe('ComponentLoader with no external packages installed', () => {
           done(err);
           return;
         }
-        chai.expect(component).to.be.an('object');
-        chai.expect(component.code).to.be.a('string');
+        assert.strictEqual(typeof component, "object");
+        assert.strictEqual(typeof component.code, "string");
         chai.expect(component.code.indexOf('Component')).to.not.equal(-1);
 
         if (!noflo.isBrowser()) {
@@ -386,15 +390,15 @@ describe('ComponentLoader with no external packages installed', () => {
           chai.expect(component.code.indexOf('exports.getComponent')).to.not.equal(-1);
         }
 
-        chai.expect(component.name).to.equal('Graph');
-        chai.expect(component.library).to.equal('');
-        chai.expect(component.language).to.equal(shippingLanguage);
+        assert.strictEqual(component.name, 'Graph');
+        assert.strictEqual(component.library, '');
+        assert.strictEqual(component.language, shippingLanguage);
         done();
       });
     });
     it('should return an error for missing components', (done) => {
       l.getSource('foo/BarBaz', (err) => {
-        chai.expect(err).to.be.an('error');
+        assert.strictEqual(typeof err, "error");
         done();
       });
     });
@@ -405,7 +409,7 @@ describe('ComponentLoader with no external packages installed', () => {
         return;
       }
       l.getSource('foo/Split', (err) => {
-        chai.expect(err).to.be.an('error');
+        assert.strictEqual(typeof err, "error");
         done();
       });
     });
@@ -418,7 +422,7 @@ describe('ComponentLoader with no external packages installed', () => {
           return;
         }
         chai.expect(src.code).to.not.be.empty;
-        chai.expect(src.language).to.equal('json');
+        assert.strictEqual(src.language, 'json');
         done();
       });
     });
@@ -436,7 +440,7 @@ describe('ComponentLoader with no external packages installed', () => {
             return;
           }
           chai.expect(src.code).to.not.be.empty;
-          chai.expect(src.language).to.equal('json');
+          assert.strictEqual(src.language, 'json');
           done();
         });
       });
@@ -448,17 +452,17 @@ describe('ComponentLoader with no external packages installed', () => {
           done(err);
           return;
         }
-        chai.expect(component).to.be.an('object');
-        chai.expect(component.code).to.be.a('string');
+        assert.strictEqual(typeof component, "object");
+        assert.strictEqual(typeof component.code, "string");
         chai.expect(component.code.indexOf('Component')).to.not.equal(-1);
         if (!noflo.isBrowser()) {
           chai.expect(component.code.indexOf('export function getComponent')).to.not.equal(-1);
         } else {
           chai.expect(component.code.indexOf('exports.getComponent')).to.not.equal(-1);
         }
-        chai.expect(component.name).to.equal('Graph');
-        chai.expect(component.library).to.equal('');
-        chai.expect(component.language).to.equal(shippingLanguage);
+        assert.strictEqual(component.name, 'Graph');
+        assert.strictEqual(component.library, '');
+        assert.strictEqual(component.language, shippingLanguage);
         done();
       });
     });
@@ -473,7 +477,7 @@ describe('ComponentLoader with no external packages installed', () => {
       expectedLanguages.sort();
       const supportedLanguages = l.getLanguages();
       supportedLanguages.sort();
-      chai.expect(supportedLanguages).to.eql(expectedLanguages);
+      assert.deepStrictEqual(supportedLanguages, expectedLanguages);
     });
   });
   describe('writing sources', () => {
@@ -515,7 +519,7 @@ exports.getComponent = function() {
               done(err);
               return;
             }
-            chai.expect(inst).to.be.an('object');
+            assert.strictEqual(typeof inst, "object");
             chai.expect(inst.inPorts).to.contain.keys(['in']);
             chai.expect(inst.outPorts).to.contain.keys(['out']);
             const ins = new noflo.internalSocket.InternalSocket();
@@ -523,8 +527,8 @@ exports.getComponent = function() {
             inst.inPorts.in.attach(ins);
             inst.outPorts.out.attach(out);
             out.on('ip', (ip) => {
-              chai.expect(ip.type).to.equal('data');
-              chai.expect(ip.data).to.equal('ES5');
+              assert.strictEqual(ip.type, 'data');
+              assert.strictEqual(ip.data, 'ES5');
               done();
             });
             ins.send('ES5');
@@ -536,8 +540,8 @@ exports.getComponent = function() {
               done(err);
               return;
             }
-            chai.expect(source.language).to.equal('javascript');
-            chai.expect(source.code).to.equal(workingSource);
+            assert.strictEqual(source.language, 'javascript');
+            assert.strictEqual(source.code, workingSource);
             done();
           });
         });
@@ -585,7 +589,7 @@ exports.getComponent = () => {
               done(err);
               return;
             }
-            chai.expect(inst).to.be.an('object');
+            assert.strictEqual(typeof inst, "object");
             chai.expect(inst.inPorts).to.contain.keys(['in']);
             chai.expect(inst.outPorts).to.contain.keys(['out']);
             const ins = new noflo.internalSocket.InternalSocket();
@@ -593,8 +597,8 @@ exports.getComponent = () => {
             inst.inPorts.in.attach(ins);
             inst.outPorts.out.attach(out);
             out.on('ip', (ip) => {
-              chai.expect(ip.type).to.equal('data');
-              chai.expect(ip.data).to.equal('ES6');
+              assert.strictEqual(ip.type, 'data');
+              assert.strictEqual(ip.data, 'ES6');
               done();
             });
             ins.send('ES6');
@@ -606,8 +610,8 @@ exports.getComponent = () => {
               done(err);
               return;
             }
-            chai.expect(source.language).to.equal('es2015');
-            chai.expect(source.code).to.equal(workingSource);
+            assert.strictEqual(source.language, 'es2015');
+            assert.strictEqual(source.code, workingSource);
             done();
           });
         });
@@ -647,7 +651,7 @@ exports.getComponent = ->
               done(err);
               return;
             }
-            chai.expect(inst).to.be.an('object');
+            assert.strictEqual(typeof inst, "object");
             chai.expect(inst.inPorts).to.contain.keys(['in']);
             chai.expect(inst.outPorts).to.contain.keys(['out']);
             const ins = new noflo.internalSocket.InternalSocket();
@@ -655,8 +659,8 @@ exports.getComponent = ->
             inst.inPorts.in.attach(ins);
             inst.outPorts.out.attach(out);
             out.on('ip', (ip) => {
-              chai.expect(ip.type).to.equal('data');
-              chai.expect(ip.data).to.equal('CoffeeScript');
+              assert.strictEqual(ip.type, 'data');
+              assert.strictEqual(ip.data, 'CoffeeScript');
               done();
             });
             ins.send('CoffeeScript');
@@ -668,8 +672,8 @@ exports.getComponent = ->
               done(err);
               return;
             }
-            chai.expect(source.language).to.equal('coffeescript');
-            chai.expect(source.code).to.equal(workingSource);
+            assert.strictEqual(source.language, 'coffeescript');
+            assert.strictEqual(source.code, workingSource);
             done();
           });
         });
@@ -712,7 +716,7 @@ exports.getComponent = (): Component => {
               done(err);
               return;
             }
-            chai.expect(inst).to.be.an('object');
+            assert.strictEqual(typeof inst, "object");
             chai.expect(inst.inPorts).to.contain.keys(['in']);
             chai.expect(inst.outPorts).to.contain.keys(['out']);
             const ins = new noflo.internalSocket.InternalSocket();
@@ -720,8 +724,8 @@ exports.getComponent = (): Component => {
             inst.inPorts.in.attach(ins);
             inst.outPorts.out.attach(out);
             out.on('ip', (ip) => {
-              chai.expect(ip.type).to.equal('data');
-              chai.expect(ip.data).to.equal('TypeScript');
+              assert.strictEqual(ip.type, 'data');
+              assert.strictEqual(ip.data, 'TypeScript');
               done();
             });
             ins.send('TypeScript');
@@ -733,8 +737,8 @@ exports.getComponent = (): Component => {
               done(err);
               return;
             }
-            chai.expect(source.language).to.equal('typescript');
-            chai.expect(source.code).to.equal(workingSource);
+            assert.strictEqual(source.language, 'typescript');
+            assert.strictEqual(source.code, workingSource);
             done();
           });
         });
@@ -765,15 +769,15 @@ var getComponent = function() {
             nonWorkingSource = nonWorkingSource.replace("'noflo'", localNofloPath);
           }
           l.setSource('foo', 'NotWorking', nonWorkingSource, 'js', (err) => {
-            chai.expect(err).to.be.an('error');
-            chai.expect(err.message).to.contain('runnable component');
+            assert.strictEqual(typeof err, "error");
+            assert.ok(err.message.includes('runnable component'));
             done();
           });
         });
         it('should not be a loadable component', (done) => {
           l.load('foo/NotWorking', (err, inst) => {
-            chai.expect(err).to.be.an('error');
-            chai.expect(inst).to.be.an('undefined');
+            assert.strictEqual(typeof err, "error");
+            assert.strictEqual(typeof inst, "undefined");
             done();
           });
         });
@@ -804,14 +808,14 @@ exports.getComponent = function() {
             nonWorkingSource = nonWorkingSource.replace("'noflo'", localNofloPath);
           }
           l.setSource('foo', 'NotWorking', nonWorkingSource, 'js', (err) => {
-            chai.expect(err).to.be.an('error');
+            assert.strictEqual(typeof err, "error");
             done();
           });
         });
         it('should not be a loadable component', (done) => {
           l.load('foo/NotWorking', (err, inst) => {
-            chai.expect(err).to.be.an('error');
-            chai.expect(inst).to.be.an('undefined');
+            assert.strictEqual(typeof err, "error");
+            assert.strictEqual(typeof inst, "undefined");
             done();
           });
         });
@@ -830,10 +834,10 @@ describe('ComponentLoader with a fixture project', () => {
     l = new noflo.ComponentLoader(path.resolve(__dirname, 'fixtures/componentloader'));
   });
   it('should initially know of no components', () => {
-    chai.expect(l.components).to.be.a('null');
+    assert.strictEqual(typeof l.components, "null");
   });
   it('should not initially be ready', () => {
-    chai.expect(l.ready).to.be.false;
+    assert.strictEqual(l.ready, false);
   });
   it('should be able to read a list of components', (done) => {
     l.listComponents((err, components) => {
@@ -841,13 +845,13 @@ describe('ComponentLoader with a fixture project', () => {
         done(err);
         return;
       }
-      chai.expect(l.processing).to.equal(null);
+      assert.strictEqual(l.processing, null);
       chai.expect(l.components).not.to.be.empty;
-      chai.expect(components).to.equal(l.components);
-      chai.expect(l.ready).to.equal(true);
+      assert.strictEqual(components, l.components);
+      assert.strictEqual(l.ready, true);
       done();
     });
-    chai.expect(l.processing).to.be.a('promise');
+    assert.strictEqual(typeof l.processing, "promise");
   });
   it('should be able to load a local ES Module component', (done) => {
     l.load('componentloader/SendString', (err, instance) => {
@@ -855,8 +859,8 @@ describe('ComponentLoader with a fixture project', () => {
         done(err);
         return;
       }
-      chai.expect(instance.description).to.equal('Send string');
-      chai.expect(instance.icon).to.equal('cloud');
+      assert.strictEqual(instance.description, 'Send string');
+      assert.strictEqual(instance.icon, 'cloud');
       done();
     });
   });
@@ -866,8 +870,8 @@ describe('ComponentLoader with a fixture project', () => {
         done(err);
         return;
       }
-      chai.expect(instance.description).to.equal('Output stuff');
-      chai.expect(instance.icon).to.equal('cloud');
+      assert.strictEqual(instance.description, 'Output stuff');
+      assert.strictEqual(instance.icon, 'cloud');
       done();
     });
   });
@@ -877,8 +881,8 @@ describe('ComponentLoader with a fixture project', () => {
         done(err);
         return;
       }
-      chai.expect(instance.description).to.equal('Repeat stuff async');
-      chai.expect(instance.icon).to.equal('forward');
+      assert.strictEqual(instance.description, 'Repeat stuff async');
+      assert.strictEqual(instance.icon, 'forward');
       done();
     });
   });
@@ -888,8 +892,8 @@ describe('ComponentLoader with a fixture project', () => {
         done(err);
         return;
       }
-      chai.expect(instance.description).to.equal('Repeat stuff');
-      chai.expect(instance.icon).to.equal('cloud');
+      assert.strictEqual(instance.description, 'Repeat stuff');
+      assert.strictEqual(instance.icon, 'cloud');
       done();
     });
   });
@@ -909,8 +913,8 @@ describe('ComponentLoader with a fixture project', () => {
         done(err);
         return;
       }
-      chai.expect(instance.description).to.equal('Forward stuff');
-      chai.expect(instance.icon).to.equal('car');
+      assert.strictEqual(instance.description, 'Forward stuff');
+      assert.strictEqual(instance.icon, 'car');
       done();
     });
   });
@@ -920,8 +924,8 @@ describe('ComponentLoader with a fixture project', () => {
         done(err);
         return;
       }
-      chai.expect(instance.description).to.equal('Repeat stuff async');
-      chai.expect(instance.icon).to.equal('forward');
+      assert.strictEqual(instance.description, 'Repeat stuff async');
+      assert.strictEqual(instance.icon, 'forward');
       done();
     });
   });
@@ -941,8 +945,8 @@ describe('ComponentLoader with a fixture project', () => {
         done(err);
         return;
       }
-      chai.expect(instance.description).to.equal('Repeat stuff');
-      chai.expect(instance.icon).to.equal('car');
+      assert.strictEqual(instance.description, 'Repeat stuff');
+      assert.strictEqual(instance.icon, 'car');
       done();
     });
   });
@@ -952,8 +956,8 @@ describe('ComponentLoader with a fixture project', () => {
         done(err);
         return;
       }
-      chai.expect(instance.description).to.equal('Hello stuff');
-      chai.expect(instance.icon).to.equal('bicycle');
+      assert.strictEqual(instance.description, 'Hello stuff');
+      assert.strictEqual(instance.icon, 'bicycle');
       done();
     });
   });
@@ -963,13 +967,13 @@ describe('ComponentLoader with a fixture project', () => {
         done(err);
         return;
       }
-      chai.expect(instance.icon).to.equal('sitemap');
+      assert.strictEqual(instance.icon, 'sitemap');
       done();
     });
   });
   it('should fail loading a missing component', (done) => {
     l.load('componentloader/Missing', (err) => {
-      chai.expect(err).to.be.an('error');
+      assert.strictEqual(typeof err, "error");
       done();
     });
   });
@@ -1019,10 +1023,10 @@ describe('ComponentLoader with a fixture project and caching', () => {
       { cache: true });
   });
   it('should initially know of no components', () => {
-    chai.expect(l.components).to.be.a('null');
+    assert.strictEqual(typeof l.components, "null");
   });
   it('should not initially be ready', () => {
-    chai.expect(l.ready).to.be.false;
+    assert.strictEqual(l.ready, false);
   });
   it('should be able to read a list of components', (done) => {
     l.listComponents((err, components) => {
@@ -1030,13 +1034,13 @@ describe('ComponentLoader with a fixture project and caching', () => {
         done(err);
         return;
       }
-      chai.expect(l.processing).to.equal(null);
+      assert.strictEqual(l.processing, null);
       chai.expect(l.components).not.to.be.empty;
-      chai.expect(components).to.equal(l.components);
-      chai.expect(l.ready).to.equal(true);
+      assert.strictEqual(components, l.components);
+      assert.strictEqual(l.ready, true);
       done();
     });
-    chai.expect(l.processing).to.be.a('promise');
+    assert.strictEqual(typeof l.processing, "promise");
   });
   it('should be able to load a local ES Module component', (done) => {
     l.load('componentloader/SendString', (err, instance) => {
@@ -1044,8 +1048,8 @@ describe('ComponentLoader with a fixture project and caching', () => {
         done(err);
         return;
       }
-      chai.expect(instance.description).to.equal('Send string');
-      chai.expect(instance.icon).to.equal('cloud');
+      assert.strictEqual(instance.description, 'Send string');
+      assert.strictEqual(instance.icon, 'cloud');
       done();
     });
   });
@@ -1055,8 +1059,8 @@ describe('ComponentLoader with a fixture project and caching', () => {
         done(err);
         return;
       }
-      chai.expect(instance.description).to.equal('Output stuff');
-      chai.expect(instance.icon).to.equal('cloud');
+      assert.strictEqual(instance.description, 'Output stuff');
+      assert.strictEqual(instance.icon, 'cloud');
       done();
     });
   });
@@ -1066,8 +1070,8 @@ describe('ComponentLoader with a fixture project and caching', () => {
         done(err);
         return;
       }
-      chai.expect(instance.description).to.equal('Forward stuff');
-      chai.expect(instance.icon).to.equal('car');
+      assert.strictEqual(instance.description, 'Forward stuff');
+      assert.strictEqual(instance.icon, 'car');
       done();
     });
   });
@@ -1077,8 +1081,8 @@ describe('ComponentLoader with a fixture project and caching', () => {
         done(err);
         return;
       }
-      chai.expect(instance.description).to.equal('Hello stuff');
-      chai.expect(instance.icon).to.equal('bicycle');
+      assert.strictEqual(instance.description, 'Hello stuff');
+      assert.strictEqual(instance.icon, 'bicycle');
       done();
     });
   });
@@ -1088,13 +1092,13 @@ describe('ComponentLoader with a fixture project and caching', () => {
         done(err);
         return;
       }
-      chai.expect(instance.icon).to.equal('sitemap');
+      assert.strictEqual(instance.icon, 'sitemap');
       done();
     });
   });
   it('should fail loading a missing component', (done) => {
     l.load('componentloader/Missing', (err) => {
-      chai.expect(err).to.be.an('error');
+      assert.strictEqual(typeof err, "error");
       done();
     });
   });
@@ -1105,7 +1109,7 @@ describe('ComponentLoader with a fixture project and caching', () => {
       manifest: 'fbp2.json',
     });
     l.listComponents((err) => {
-      chai.expect(err).to.be.an('error');
+      assert.strictEqual(typeof err, "error");
       done();
     });
   });
@@ -1121,7 +1125,7 @@ describe('ComponentLoader with a fixture project and caching', () => {
         done(err);
         return;
       }
-      chai.expect(l.processing).to.equal(null);
+      assert.strictEqual(l.processing, null);
       chai.expect(l.components).not.to.be.empty;
       done();
     });

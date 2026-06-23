@@ -1,21 +1,25 @@
+import assert from 'node:assert/strict';
+import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import * as noflo from '../src/lib/NoFlo.js';
+
 describe('IP object', () => {
   it('should create IPs of different types', () => {
     const open = new noflo.IP('openBracket');
     const data = new noflo.IP('data', 'Payload');
     const close = new noflo.IP('closeBracket');
-    chai.expect(open.type).to.equal('openBracket');
-    chai.expect(close.type).to.equal('closeBracket');
-    chai.expect(data.type).to.equal('data');
+    assert.strictEqual(open.type, 'openBracket');
+    assert.strictEqual(close.type, 'closeBracket');
+    assert.strictEqual(data.type, 'data');
   });
   it('should be moved to an owner', () => {
     const p = new noflo.IP('data', 'Token');
     p.move('SomeProc');
-    chai.expect(p.owner).to.equal('SomeProc');
+    assert.strictEqual(p.owner, 'SomeProc');
   });
   it('should support sync context scoping', () => {
     const p = new noflo.IP('data', 'Request-specific');
     p.scope = 'request-12345';
-    chai.expect(p.scope).to.equal('request-12345');
+    assert.strictEqual(p.scope, 'request-12345');
   });
   it('should be able to clone itself', () => {
     const d1 = new noflo.IP('data', 'Trooper', {
@@ -28,12 +32,12 @@ describe('IP object', () => {
     });
     const d2 = d1.clone();
     chai.expect(d2).not.to.equal(d1);
-    chai.expect(d2.type).to.equal(d1.type);
-    chai.expect(d2.schema).to.equal(d1.schema);
-    chai.expect(d2.data).to.eql(d1.data);
-    chai.expect(d2.groups).to.eql(d2.groups);
+    assert.strictEqual(d2.type, d1.type);
+    assert.strictEqual(d2.schema, d1.schema);
+    assert.deepStrictEqual(d2.data, d1.data);
+    assert.deepStrictEqual(d2.groups, d2.groups);
     chai.expect(d2.owner).not.to.equal(d1.owner);
-    chai.expect(d2.scope).to.equal(d1.scope);
+    assert.strictEqual(d2.scope, d1.scope);
   });
   it('should dispose its contents when dropped', () => {
     const p = new noflo.IP('data', 'Garbage');

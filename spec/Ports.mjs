@@ -1,19 +1,23 @@
+import assert from 'node:assert/strict';
+import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import * as noflo from '../src/lib/NoFlo.js';
+
 describe('Ports collection', () => {
   describe('InPorts', () => {
     const p = new noflo.InPorts();
     it('should initially contain no ports', () => {
-      chai.expect(p.ports).to.eql({});
+      assert.deepStrictEqual(p.ports, {});
     });
     it('should allow adding a port', () => {
       p.add('foo',
         { datatype: 'string' });
-      chai.expect(p.ports.foo).to.be.an('object');
+      assert.strictEqual(typeof p.ports.foo, "object");
       chai.expect(p.ports.foo.getDataType()).to.equal('string');
     });
     it('should allow overriding  a port', () => {
       p.add('foo',
         { datatype: 'boolean' });
-      chai.expect(p.ports.foo).to.be.an('object');
+      assert.strictEqual(typeof p.ports.foo, "object");
       chai.expect(p.ports.foo.getDataType()).to.equal('boolean');
     });
     it('should throw if trying to add an \'add\' port', () => {
@@ -46,18 +50,18 @@ describe('Ports collection', () => {
     });
     it('should be able to remove a port', () => {
       p.remove('foo');
-      chai.expect(p.ports).to.eql({});
+      assert.deepStrictEqual(p.ports, {});
     });
   });
   describe('OutPorts', () => {
     const p = new noflo.OutPorts();
     it('should initially contain no ports', () => {
-      chai.expect(p.ports).to.eql({});
+      assert.deepStrictEqual(p.ports, {});
     });
     it('should allow adding a port', () => {
       p.add('foo',
         { datatype: 'string' });
-      chai.expect(p.ports.foo).to.be.an('object');
+      assert.strictEqual(typeof p.ports.foo, "object");
       chai.expect(p.ports.foo.getDataType()).to.equal('string');
     });
     it('should throw if trying to add an \'add\' port', () => {

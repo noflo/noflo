@@ -1,3 +1,7 @@
+import assert from 'node:assert/strict';
+import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import * as noflo from '../src/lib/NoFlo.js';
+
 const legacyBasic = function () {
   const c = new noflo.Component();
   c.inPorts.add('in',
@@ -251,12 +255,12 @@ describe('Network Lifecycle', () => {
       });
       let wasStarted = false;
       const checkStart = function () {
-        chai.expect(wasStarted).to.equal(false);
+        assert.strictEqual(wasStarted, false);
         wasStarted = true;
       };
       const checkEnd = function () {
-        chai.expect(received).to.eql(expected);
-        chai.expect(wasStarted).to.equal(true);
+        assert.deepStrictEqual(received, expected);
+        assert.strictEqual(wasStarted, true);
         done();
       };
       c.network.once('start', checkStart);
@@ -284,11 +288,11 @@ describe('Network Lifecycle', () => {
       });
       let wasStarted = false;
       const checkStart = function () {
-        chai.expect(wasStarted).to.equal(false);
+        assert.strictEqual(wasStarted, false);
         wasStarted = true;
       };
       const checkEnd = function () {
-        chai.expect(wasStarted).to.equal(true);
+        assert.strictEqual(wasStarted, true);
         if (received.length < expected.length) {
           wasStarted = false;
           c.network.once('start', checkStart);
@@ -309,7 +313,7 @@ describe('Network Lifecycle', () => {
           });
           return;
         }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       };
       c.network.once('start', checkStart);
@@ -336,11 +340,11 @@ describe('Network Lifecycle', () => {
       });
       let wasStarted = false;
       const checkStart = function () {
-        chai.expect(wasStarted).to.equal(false);
+        assert.strictEqual(wasStarted, false);
         wasStarted = true;
       };
       const checkEnd = function () {
-        chai.expect(wasStarted).to.equal(true);
+        assert.strictEqual(wasStarted, true);
         c.network.stop()
           .then(() => {
             chai.expect(c.network.isStopped()).to.equal(true);
@@ -364,7 +368,7 @@ describe('Network Lifecycle', () => {
               }
             });
             setTimeout(() => {
-              chai.expect(received).to.eql(expected);
+              assert.deepStrictEqual(received, expected);
               done();
             }, 1000);
           }, done);
@@ -416,12 +420,12 @@ describe('Network Lifecycle', () => {
       });
       let wasStarted = false;
       const checkStart = function () {
-        chai.expect(wasStarted).to.equal(false);
+        assert.strictEqual(wasStarted, false);
         wasStarted = true;
       };
       const checkEnd = function () {
-        chai.expect(received).to.eql(expected);
-        chai.expect(wasStarted).to.equal(true);
+        assert.deepStrictEqual(received, expected);
+        assert.strictEqual(wasStarted, true);
         done();
       };
       c.network.once('start', checkStart);
@@ -475,13 +479,13 @@ describe('Network Lifecycle', () => {
       });
       let wasStarted = false;
       const checkStart = function () {
-        chai.expect(wasStarted).to.equal(false);
+        assert.strictEqual(wasStarted, false);
         wasStarted = true;
       };
       const checkEnd = function () {
         setTimeout(() => {
-          chai.expect(received).to.eql(expected);
-          chai.expect(wasStarted).to.equal(true);
+          assert.deepStrictEqual(received, expected);
+          assert.strictEqual(wasStarted, true);
           done();
         },
         100);
@@ -554,12 +558,12 @@ describe('Network Lifecycle', () => {
 
       let wasStarted = false;
       const checkStart = function () {
-        chai.expect(wasStarted).to.equal(false);
+        assert.strictEqual(wasStarted, false);
         wasStarted = true;
       };
       const checkEnd = function () {
-        chai.expect(received).to.eql(expected);
-        chai.expect(wasStarted).to.equal(true);
+        assert.deepStrictEqual(received, expected);
+        assert.strictEqual(wasStarted, true);
         done();
       };
       c.network.once('start', checkStart);
@@ -609,12 +613,12 @@ describe('Network Lifecycle', () => {
 
       let wasStarted = false;
       const checkStart = function () {
-        chai.expect(wasStarted).to.equal(false);
+        assert.strictEqual(wasStarted, false);
         wasStarted = true;
       };
       const checkEnd = function () {
-        chai.expect(received).to.eql(expected);
-        chai.expect(wasStarted).to.equal(true);
+        assert.deepStrictEqual(received, expected);
+        assert.strictEqual(wasStarted, true);
         done();
       };
       c.network.once('start', checkStart);
@@ -660,12 +664,12 @@ describe('Network Lifecycle', () => {
       });
       let wasStarted = false;
       const checkStart = function () {
-        chai.expect(wasStarted).to.equal(false);
+        assert.strictEqual(wasStarted, false);
         wasStarted = true;
       };
       const checkEnd = function () {
-        chai.expect(received).to.eql(expected);
-        chai.expect(wasStarted).to.equal(true);
+        assert.deepStrictEqual(received, expected);
+        assert.strictEqual(wasStarted, true);
         done();
       };
       c.network.once('start', checkStart);
@@ -748,12 +752,12 @@ describe('Network Lifecycle', () => {
 
       let wasStarted = false;
       const checkStart = function () {
-        chai.expect(wasStarted).to.equal(false);
+        assert.strictEqual(wasStarted, false);
         wasStarted = true;
       };
       const checkEnd = function () {
-        chai.expect(received).to.eql(expected);
-        chai.expect(wasStarted).to.equal(true);
+        assert.deepStrictEqual(received, expected);
+        assert.strictEqual(wasStarted, true);
         done();
       };
       c.network.once('start', checkStart);
@@ -803,12 +807,12 @@ describe('Network Lifecycle', () => {
 
       let wasStarted = false;
       const checkStart = function () {
-        chai.expect(wasStarted).to.equal(false);
+        assert.strictEqual(wasStarted, false);
         wasStarted = true;
       };
       const checkEnd = function () {
-        chai.expect(received).to.eql(expected);
-        chai.expect(wasStarted).to.equal(true);
+        assert.deepStrictEqual(received, expected);
+        assert.strictEqual(wasStarted, true);
         done();
       };
       c.network.once('start', checkStart);

@@ -1,3 +1,7 @@
+import assert from 'node:assert/strict';
+import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import * as noflo from '../src/lib/NoFlo.js';
+
 describe('NoFlo Network', () => {
   const Split = () => new noflo.Component({
     inPorts: {
@@ -70,22 +74,22 @@ describe('NoFlo Network', () => {
       chai.expect(n.initials).to.be.empty;
     });
     it('should have reference to the graph', () => {
-      chai.expect(n.graph).to.equal(g);
+      assert.strictEqual(n.graph, g);
     });
     it('should know its baseDir', () => {
-      chai.expect(n.baseDir).to.equal(baseDir);
+      assert.strictEqual(n.baseDir, baseDir);
     });
     it('should have a ComponentLoader', () => {
-      chai.expect(n.loader).to.be.an('object');
+      assert.strictEqual(typeof n.loader, "object");
     });
     it('should have transmitted the baseDir to the Component Loader', () => {
-      chai.expect(n.loader.baseDir).to.equal(baseDir);
+      assert.strictEqual(n.loader.baseDir, baseDir);
     });
     it('should be able to list components', function () {
       this.timeout(60 * 1000);
       return n.loader.listComponents()
         .then((components) => {
-          chai.expect(components).to.be.an('object');
+          assert.strictEqual(typeof components, "object");
         });
     });
     it('should have an uptime', () => {
@@ -102,20 +106,20 @@ describe('NoFlo Network', () => {
         }));
       it('should have registered the node with the graph', () => {
         const node = g.getNode('Graph');
-        chai.expect(node).to.be.an('object');
-        chai.expect(node.component).to.equal('Graph');
+        assert.strictEqual(typeof node, "object");
+        assert.strictEqual(node.component, 'Graph');
       });
       it('should have transmitted the node metadata to the process', () => {
         chai.expect(n.processes.Graph.component.metadata).to.exist;
-        chai.expect(n.processes.Graph.component.metadata).to.be.an('object');
-        chai.expect(n.processes.Graph.component.metadata).to.eql(g.getNode('Graph').metadata);
+        assert.strictEqual(typeof n.processes.Graph.component.metadata, "object");
+        assert.deepStrictEqual(n.processes.Graph.component.metadata, g.getNode('Graph').metadata);
       });
       it('adding the same node again should be a no-op', () => {
         const originalProcess = n.getNode('Graph');
         const graphNode = g.getNode('Graph');
         return n.addNode(graphNode)
           .then((newProcess) => {
-            chai.expect(newProcess).to.equal(originalProcess);
+            assert.strictEqual(newProcess, originalProcess);
           });
       });
       it('should not contain the node after removal', () => n.removeNode({
@@ -126,7 +130,7 @@ describe('NoFlo Network', () => {
         }));
       it('should have removed the node from the graph', () => {
         const node = g.getNode('graph');
-        chai.expect(node).to.be.a('null');
+        assert.strictEqual(typeof node, "null");
       });
       it('should fail when removing the removed node again', () => n.removeNode({
         id: 'Graph',
@@ -134,8 +138,8 @@ describe('NoFlo Network', () => {
         .then(
           () => Promise.reject(new Error('Unexpected success')),
           (err) => {
-            chai.expect(err).to.be.an('error');
-            chai.expect(err.message).to.contain('not found');
+            assert.strictEqual(typeof err, "error");
+            assert.ok(err.message.includes('not found'));
           },
         ));
     });
@@ -169,12 +173,12 @@ describe('NoFlo Network', () => {
       })
         .then(() => {
           chai.expect(n.connections).not.to.be.empty;
-          chai.expect(n.connections[0].from).to.eql({
+          assert.deepStrictEqual(n.connections[0].from, {
             process: n.getNode('A'),
             port: 'out',
             index: undefined,
           });
-          chai.expect(n.connections[0].to).to.eql({
+          assert.deepStrictEqual(n.connections[0].to, {
             process: n.getNode('B'),
             port: 'in',
             index: undefined,
@@ -199,7 +203,7 @@ describe('NoFlo Network', () => {
         }));
       it('should have removed the edge from the graph', () => {
         const edge = g.getEdge('A', 'out', 'B', 'in');
-        chai.expect(edge).to.be.a('null');
+        assert.strictEqual(typeof edge, "null");
       });
     });
   });
@@ -214,7 +218,7 @@ describe('NoFlo Network', () => {
       g.addEdge('Merge', 'out', 'Callback', 'in');
       g.addInitial(
         (data) => {
-          chai.expect(data).to.equal('Foo');
+          assert.strictEqual(data, 'Foo');
         },
         'Callback',
         'callback',
@@ -241,30 +245,30 @@ describe('NoFlo Network', () => {
     it('should contain two processes', () => {
       chai.expect(n.processes).to.not.be.empty;
       chai.expect(n.processes.Merge).to.exist;
-      chai.expect(n.processes.Merge).to.be.an('Object');
+      assert.strictEqual(typeof n.processes.Merge, "Object");
       chai.expect(n.processes.Callback).to.exist;
-      chai.expect(n.processes.Callback).to.be.an('Object');
+      assert.strictEqual(typeof n.processes.Callback, "Object");
     });
     it('the ports of the processes should know the node names', () => {
       Object.keys(n.processes.Callback.component.inPorts.ports).forEach((name) => {
         const port = n.processes.Callback.component.inPorts.ports[name];
-        chai.expect(port.name).to.equal(name);
-        chai.expect(port.node).to.equal('Callback');
+        assert.strictEqual(port.name, name);
+        assert.strictEqual(port.node, 'Callback');
         chai.expect(port.getId()).to.equal(`Callback ${name.toUpperCase()}`);
       });
       Object.keys(n.processes.Callback.component.outPorts.ports).forEach((name) => {
         const port = n.processes.Callback.component.outPorts.ports[name];
-        chai.expect(port.name).to.equal(name);
-        chai.expect(port.node).to.equal('Callback');
+        assert.strictEqual(port.name, name);
+        assert.strictEqual(port.node, 'Callback');
         chai.expect(port.getId()).to.equal(`Callback ${name.toUpperCase()}`);
       });
     });
     it('should contain 1 connection between processes and 2 for IIPs', () => {
       chai.expect(n.connections).to.not.be.empty;
-      chai.expect(n.connections.length).to.equal(3);
+      assert.strictEqual(n.connections.length, 3);
     });
     it('should have started in debug mode', () => {
-      chai.expect(n.debug).to.equal(true);
+      assert.strictEqual(n.debug, true);
       chai.expect(n.getDebug()).to.equal(true);
     });
     it('should emit a process-error when a component throws', () => Promise.resolve()
@@ -300,11 +304,11 @@ describe('NoFlo Network', () => {
       }))
       .then(() => new Promise((resolve, reject) => {
         n.once('process-error', (err) => {
-          chai.expect(err).to.be.an('object');
-          chai.expect(err.id).to.equal('Callback');
-          chai.expect(err.metadata).to.be.an('object');
-          chai.expect(err.error).to.be.an('error');
-          chai.expect(err.error.message).to.equal('got Foo');
+          assert.strictEqual(typeof err, "object");
+          assert.strictEqual(err.id, 'Callback');
+          assert.strictEqual(typeof err.metadata, "object");
+          assert.strictEqual(typeof err.error, "error");
+          assert.strictEqual(err.error.message, 'got Foo');
           resolve();
         });
         n.sendInitials().catch(reject);
@@ -312,10 +316,10 @@ describe('NoFlo Network', () => {
     describe('with a renamed node', () => {
       it('should have the process in a new location', () => n.renameNode('Callback', 'Func')
         .then(() => {
-          chai.expect(n.processes.Func).to.be.an('object');
+          assert.strictEqual(typeof n.processes.Func, "object");
         }));
       it('shouldn\'t have the process in the old location', () => {
-        chai.expect(n.processes.Callback).to.be.undefined;
+        assert.strictEqual(n.processes.Callback, undefined);
       });
       it('should have updated the name in the graph', () => {
         chai.expect(n.getNode('Callback')).to.not.exist;
@@ -325,21 +329,21 @@ describe('NoFlo Network', () => {
         .then(
           () => Promise.reject(new Error('Unexpected success')),
           (err) => {
-            chai.expect(err).to.be.an('error');
-            chai.expect(err.message).to.contain('not found');
+            assert.strictEqual(typeof err, "error");
+            assert.ok(err.message.includes('not found'));
           },
         ));
       it('should have informed the ports of their new node name', () => {
         Object.keys(n.processes.Func.component.inPorts.ports).forEach((name) => {
           const port = n.processes.Func.component.inPorts.ports[name];
-          chai.expect(port.name).to.equal(name);
-          chai.expect(port.node).to.equal('Func');
+          assert.strictEqual(port.name, name);
+          assert.strictEqual(port.node, 'Func');
           chai.expect(port.getId()).to.equal(`Func ${name.toUpperCase()}`);
         });
         Object.keys(n.processes.Func.component.outPorts.ports).forEach((name) => {
           const port = n.processes.Func.component.outPorts.ports[name];
-          chai.expect(port.name).to.equal(name);
-          chai.expect(port.node).to.equal('Func');
+          assert.strictEqual(port.name, name);
+          assert.strictEqual(port.node, 'Func');
           chai.expect(port.getId()).to.equal(`Func ${name.toUpperCase()}`);
         });
       });
@@ -347,9 +351,9 @@ describe('NoFlo Network', () => {
     describe('with process icon change', () => {
       it('should emit an icon event', (done) => {
         n.once('icon', (data) => {
-          chai.expect(data).to.be.an('object');
-          chai.expect(data.id).to.equal('Func');
-          chai.expect(data.icon).to.equal('flask');
+          assert.strictEqual(typeof data, "object");
+          assert.strictEqual(data.id, 'Func');
+          assert.strictEqual(data.icon, 'flask');
           done();
         });
         n.processes.Func.component.setIcon('flask');
@@ -369,7 +373,7 @@ describe('NoFlo Network', () => {
             // Pass the already-initialized component loader
             graph.addInitial(
               (data) => {
-                chai.expect(data).to.equal('Foo');
+                assert.strictEqual(data, 'Foo');
                 done();
               },
               'Func',
@@ -424,7 +428,7 @@ describe('NoFlo Network', () => {
     it('should send default values to nodes without an edge', function (done) {
       this.timeout(60 * 1000);
       testCallback = function (data) {
-        chai.expect(data).to.equal('default-value');
+        assert.strictEqual(data, 'default-value');
         done();
       };
       noflo.createNetwork(g, {
@@ -444,7 +448,7 @@ describe('NoFlo Network', () => {
     it('should not send default values to nodes with an edge', function (done) {
       this.timeout(60 * 1000);
       testCallback = function (data) {
-        chai.expect(data).to.equal('from-edge');
+        assert.strictEqual(data, 'from-edge');
         done();
       };
       g.addNode('Merge', 'Merge');
@@ -468,7 +472,7 @@ describe('NoFlo Network', () => {
     it('should not send default values to nodes with IIP', function (done) {
       this.timeout(60 * 1000);
       testCallback = function (data) {
-        chai.expect(data).to.equal('from-IIP');
+        assert.strictEqual(data, 'from-IIP');
         done();
       };
       g.addInitial('from-IIP', 'Def', 'in');
@@ -500,7 +504,7 @@ describe('NoFlo Network', () => {
     it('should call the Callback with the original IIP value', function (done) {
       this.timeout(6000);
       const cb = function (packet) {
-        chai.expect(packet).to.equal('Foo');
+        assert.strictEqual(packet, 'Foo');
         done();
       };
       g.addInitial(cb, 'Callback', 'callback');
@@ -537,12 +541,12 @@ describe('NoFlo Network', () => {
         },
       }))
       .then(() => {
-        chai.expect(n.initials.length).to.equal(0, 'No IIPs left');
-        chai.expect(n.connections.length).to.equal(1, 'Only one connection');
+        assert.strictEqual(n.initials.length, 0, 'No IIPs left');
+        assert.strictEqual(n.connections.length, 1, 'Only one connection');
       }));
     it('new IIPs to replace original ones should work correctly', (done) => {
       const cb = function (packet) {
-        chai.expect(packet).to.equal('Baz');
+        assert.strictEqual(packet, 'Baz');
         done();
       };
       Promise.resolve()
@@ -569,20 +573,20 @@ describe('NoFlo Network', () => {
     });
     describe('on stopping', () => {
       it('processes should be running before the stop call', () => {
-        chai.expect(n.started).to.be.true;
-        chai.expect(n.processes.Repeat.component.started).to.equal(true);
+        assert.strictEqual(n.started, true);
+        assert.strictEqual(n.processes.Repeat.component.started, true);
       });
       it('should emit the end event', function (done) {
         this.timeout(5000);
         // Ensure we have a connection open
         n.once('end', (endTimes) => {
-          chai.expect(endTimes).to.be.an('object');
+          assert.strictEqual(typeof endTimes, "object");
           done();
         });
         n.stop().catch(done);
       });
       it('should have called the shutdown method of each process', () => {
-        chai.expect(n.processes.Repeat.component.started).to.equal(false);
+        assert.strictEqual(n.processes.Repeat.component.started, false);
       });
     });
   });
@@ -621,7 +625,7 @@ describe('NoFlo Network', () => {
           nw.loader.components.Split = Split;
           nw.loader.components.Callback = Callback;
           nw.once('end', () => {
-            chai.expect(called).to.equal(10001);
+            assert.strictEqual(called, 10001);
             done();
           });
           return nw.connect();
@@ -654,8 +658,8 @@ describe('NoFlo Network', () => {
           .then(
             () => Promise.reject(new Error('Unexpected success')),
             (err) => {
-              chai.expect(err).to.be.an('error');
-              chai.expect(err.message).to.contain('not available');
+              assert.strictEqual(typeof err, "error");
+              assert.ok(err.message.includes('not available'));
             },
           ));
     });
@@ -674,8 +678,8 @@ describe('NoFlo Network', () => {
           .then(
             () => Promise.reject(new Error('Unexpected success')),
             (err) => {
-              chai.expect(err).to.be.an('error');
-              chai.expect(err.message).to.contain('No inport');
+              assert.strictEqual(typeof err, "error");
+              assert.ok(err.message.includes('No inport'));
             },
           ));
     });
@@ -694,8 +698,8 @@ describe('NoFlo Network', () => {
           .then(
             () => Promise.reject(new Error('Unexpected success')),
             (err) => {
-              chai.expect(err).to.be.an('error');
-              chai.expect(err.message).to.contain('No outport');
+              assert.strictEqual(typeof err, "error");
+              assert.ok(err.message.includes('No outport'));
             },
           ));
     });
@@ -715,8 +719,8 @@ describe('NoFlo Network', () => {
           .then(
             () => Promise.reject(new Error('Unexpected success')),
             (err) => {
-              chai.expect(err).to.be.an('error');
-              chai.expect(err.message).to.contain('No inport');
+              assert.strictEqual(typeof err, "error");
+              assert.ok(err.message.includes('No inport'));
             },
           ));
     });
@@ -736,8 +740,8 @@ describe('NoFlo Network', () => {
           .then(
             () => Promise.reject(new Error('Unexpected success')),
             (err) => {
-              chai.expect(err).to.be.an('error');
-              chai.expect(err.message).to.contain('No component defined');
+              assert.strictEqual(typeof err, "error");
+              assert.ok(err.message.includes('No component defined'));
             },
           ));
     });
@@ -764,8 +768,8 @@ describe('NoFlo Network', () => {
         .then(
           () => Promise.reject(new Error('Unexpected success')),
           (err) => {
-            chai.expect(err).to.be.an('error');
-            chai.expect(err.message).to.contain('No process defined for outbound node');
+            assert.strictEqual(typeof err, "error");
+            assert.ok(err.message.includes('No process defined for outbound node'));
           },
         );
     });
@@ -792,8 +796,8 @@ describe('NoFlo Network', () => {
         .then(
           () => Promise.reject(new Error('Unexpected success')),
           (err) => {
-            chai.expect(err).to.be.an('error');
-            chai.expect(err.message).to.contain('No process defined for inbound node');
+            assert.strictEqual(typeof err, "error");
+            assert.ok(err.message.includes('No process defined for inbound node'));
           },
         );
     });
@@ -808,7 +812,7 @@ describe('NoFlo Network', () => {
         asyncDelivery: true,
       })
         .then((nw) => {
-          chai.expect(nw.baseDir).to.equal(baseDir);
+          assert.strictEqual(nw.baseDir, baseDir);
         });
     });
     it('should fall back to CWD if graph has no baseDir', function () {
@@ -823,7 +827,7 @@ describe('NoFlo Network', () => {
         asyncDelivery: true,
       })
         .then((nw) => {
-          chai.expect(nw.baseDir).to.equal(process.cwd());
+          assert.strictEqual(nw.baseDir, process.cwd());
         });
     });
     it('should set the baseDir for the component loader', () => {
@@ -835,8 +839,8 @@ describe('NoFlo Network', () => {
         baseDir,
       })
         .then((nw) => {
-          chai.expect(nw.baseDir).to.equal(baseDir);
-          chai.expect(nw.loader.baseDir).to.equal(baseDir);
+          assert.strictEqual(nw.baseDir, baseDir);
+          assert.strictEqual(nw.loader.baseDir, baseDir);
         });
     });
   });
@@ -880,17 +884,17 @@ describe('NoFlo Network', () => {
       chai.expect(n.getDebug()).to.equal(true);
     });
     it('should have propagated debug setting to connections', () => {
-      chai.expect(n.connections[0].debug).to.equal(n.getDebug());
+      assert.strictEqual(n.connections[0].debug, n.getDebug());
     });
     it('calling setDebug with same value should be no-op', () => {
       n.setDebug(true);
       chai.expect(n.getDebug()).to.equal(true);
-      chai.expect(n.connections[0].debug).to.equal(n.getDebug());
+      assert.strictEqual(n.connections[0].debug, n.getDebug());
     });
     it('disabling debug should get propagated to connections', () => {
       n.setDebug(false);
       chai.expect(n.getDebug()).to.equal(false);
-      chai.expect(n.connections[0].debug).to.equal(n.getDebug());
+      assert.strictEqual(n.connections[0].debug, n.getDebug());
     });
   });
 });

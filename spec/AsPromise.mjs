@@ -1,3 +1,6 @@
+import assert from 'node:assert/strict';
+import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import * as noflo from '../src/lib/NoFlo.js';
 describe('asPromise interface', () => {
   let loader = null;
 
@@ -88,16 +91,16 @@ describe('asPromise interface', () => {
       wrapped = noflo.asPromise('foo/Bar',
         { loader });
     });
-    it('should be able to wrap it', (done) => {
-      chai.expect(wrapped).to.be.a('function');
-      chai.expect(wrapped.length).to.equal(1);
+    it('should be able to wrap it', (t, done) => {
+      assert.strictEqual(typeof wrapped, "function");
+      assert.strictEqual(wrapped.length, 1);
       done();
     });
     it('should fail execution', () => wrapped(1)
       .then(() => {
         throw new Error('Unexpected pass');
       }, (err) => {
-        chai.expect(err).to.be.an('error');
+        assert.strictEqual(typeof err, "error");
       }));
   });
   describe('with simple asynchronous component', () => {
@@ -106,9 +109,9 @@ describe('asPromise interface', () => {
       wrapped = noflo.asPromise('process/Async',
         { loader });
     });
-    it('should be able to wrap it', (done) => {
-      chai.expect(wrapped).to.be.a('function');
-      chai.expect(wrapped.length).to.equal(1);
+    it('should be able to wrap it', (t, done) => {
+      assert.strictEqual(typeof wrapped, "function");
+      assert.strictEqual(wrapped.length, 1);
       done();
     });
     it('should execute network with input map and provide output map', () => {
@@ -118,7 +121,7 @@ describe('asPromise interface', () => {
         in: expected,
       })
         .then((out) => {
-          chai.expect(out.out).to.eql(expected);
+          assert.deepStrictEqual(out.out, expected);
         });
     });
     it('should execute network with simple input and provide simple output', () => {
@@ -126,16 +129,16 @@ describe('asPromise interface', () => {
 
       return wrapped(expected)
         .then((out) => {
-          chai.expect(out).to.eql(expected);
+          assert.deepStrictEqual(out, expected);
         });
     });
-    it('should not mix up simultaneous runs', (done) => {
+    it('should not mix up simultaneous runs', (t, done) => {
       let received = 0;
       for (let idx = 0; idx <= 100; idx += 1) {
         /* eslint-disable no-loop-func */
         wrapped(idx)
           .then((out) => {
-            chai.expect(out).to.equal(idx);
+            assert.strictEqual(out, idx);
             received++;
             if (received !== 101) { return; }
             done();
@@ -152,7 +155,7 @@ describe('asPromise interface', () => {
       const expected = sent.map((portmap) => ({ out: portmap.in }));
       return wrapped(sent)
         .then((out) => {
-          chai.expect(out).to.eql(expected);
+          assert.deepStrictEqual(out, expected);
         });
     });
     describe('with the raw option', () => {
@@ -174,7 +177,7 @@ describe('asPromise interface', () => {
         return wrappedRaw(sent)
           .then((out) => {
             const types = out.map((map) => `${map.out.type} ${map.out.data}`);
-            chai.expect(types).to.eql([
+            assert.deepStrictEqual(types, [
               'openBracket a',
               'data hello',
               'data world',
@@ -202,8 +205,8 @@ describe('asPromise interface', () => {
         .then(() => {
           throw new Error('Received unexpected output');
         }, (err) => {
-          chai.expect(err).to.be.an('error');
-          chai.expect(err.message).to.contain(expected);
+          assert.strictEqual(typeof err, "error");
+          assert.ok(err.message.includes(expected));
         });
     });
     it('should execute network with simple input and provide error', () => {
@@ -212,8 +215,8 @@ describe('asPromise interface', () => {
         .then(() => {
           throw new Error('Received unexpected output');
         }, (err) => {
-          chai.expect(err).to.be.an('error');
-          chai.expect(err.message).to.contain(expected);
+          assert.strictEqual(typeof err, "error");
+          assert.ok(err.message.includes(expected));
         });
     });
   });
@@ -229,14 +232,14 @@ describe('asPromise interface', () => {
         in: expected,
       })
         .then((out) => {
-          chai.expect(out.out).to.eql(expected);
+          assert.deepStrictEqual(out.out, expected);
         });
     });
     it('should execute network with simple input and provide simple output', () => {
       const expected = 'blue';
       return wrapped(expected)
         .then((out) => {
-          chai.expect(out).to.eql(expected);
+          assert.deepStrictEqual(out, expected);
         });
     });
     it('should execute network with wrong map and provide error', () => wrapped({
@@ -245,15 +248,15 @@ describe('asPromise interface', () => {
       .then(() => {
         throw new Error('Received unexpected output');
       }, (err) => {
-        chai.expect(err).to.be.an('error');
-        chai.expect(err.message).to.contain('Invalid data=\'red\' received, not in [green,blue]');
+        assert.strictEqual(typeof err, "error");
+        assert.ok(err.message.includes('Invalid data=\'red\' received, not in [green,blue]'));
       }));
     it('should execute network with wrong input and provide error', () => wrapped('red')
       .then(() => {
         throw new Error('Received unexpected output');
       }, (err) => {
-        chai.expect(err).to.be.an('error');
-        chai.expect(err.message).to.contain('Invalid data=\'red\' received, not in [green,blue]');
+        assert.strictEqual(typeof err, "error");
+        assert.ok(err.message.includes('Invalid data=\'red\' received, not in [green,blue]'));
       }));
   });
   describe('with a component sending streams', () => {
@@ -266,14 +269,14 @@ describe('asPromise interface', () => {
       in: 'hello world',
     })
       .then((out) => {
-        chai.expect(out.out).to.eql([
+        assert.deepStrictEqual(out.out, [
           ['h', 'e', 'l', 'l', 'o'],
           ['w', 'o', 'r', 'l', 'd'],
         ]);
       }));
     it('should execute network with simple input and and provide simple output with streams as arrays', () => wrapped('hello there')
       .then((out) => {
-        chai.expect(out).to.eql([
+        assert.deepStrictEqual(out, [
           ['h', 'e', 'l', 'l', 'o'],
           ['t', 'h', 'e', 'r', 'e'],
         ]);
@@ -289,7 +292,7 @@ describe('asPromise interface', () => {
         })
           .then((out) => {
             const types = out.out.map((ip) => `${ip.type} ${ip.data}`);
-            chai.expect(types).to.eql([
+            assert.deepStrictEqual(types, [
               'openBracket 0',
               'data h',
               'data e',
@@ -312,7 +315,7 @@ describe('asPromise interface', () => {
   describe('with a graph instead of component name', () => {
     let graph = null;
     let wrapped = null;
-    before((done) => {
+    before((t, done) => {
       noflo.graph.loadFBP(`\
 INPORT=Async.IN:IN
 OUTPORT=Stream.OUT:OUT
@@ -334,14 +337,14 @@ Async(process/Async) OUT -> IN Stream(process/Streamify)\
       in: 'hello world',
     })
       .then((out) => {
-        chai.expect(out.out).to.eql([
+        assert.deepStrictEqual(out.out, [
           ['h', 'e', 'l', 'l', 'o'],
           ['w', 'o', 'r', 'l', 'd'],
         ]);
       }));
     it('should execute network with simple input and and provide simple output with streams as arrays', () => wrapped('hello there')
       .then((out) => {
-        chai.expect(out).to.eql([
+        assert.deepStrictEqual(out, [
           ['h', 'e', 'l', 'l', 'o'],
           ['t', 'h', 'e', 'r', 'e'],
         ]);
@@ -350,7 +353,7 @@ Async(process/Async) OUT -> IN Stream(process/Streamify)\
   describe('with a graph instead of component name (synchronous)', () => {
     let graph = null;
     let wrapped = null;
-    before((done) => {
+    before((t, done) => {
       noflo.graph.loadFBP(`\
 INPORT=Async.IN:IN
 OUTPORT=Stream.OUT:OUT
@@ -370,14 +373,14 @@ Async(process/Async) OUT -> IN Stream(process/Streamify)\
       in: 'hello world',
     })
       .then((out) => {
-        chai.expect(out.out).to.eql([
+        assert.deepStrictEqual(out.out, [
           ['h', 'e', 'l', 'l', 'o'],
           ['w', 'o', 'r', 'l', 'd'],
         ]);
       }));
     it('should execute network with simple input and and provide simple output with streams as arrays', () => wrapped('hello there')
       .then((out) => {
-        chai.expect(out).to.eql([
+        assert.deepStrictEqual(out, [
           ['h', 'e', 'l', 'l', 'o'],
           ['t', 'h', 'e', 'r', 'e'],
         ]);
@@ -386,7 +389,7 @@ Async(process/Async) OUT -> IN Stream(process/Streamify)\
   describe('with a graph containing a component supporting only certain values', () => {
     let graph = null;
     let wrapped = null;
-    before((done) => {
+    before((t, done) => {
       noflo.graph.loadFBP(`\
 INPORT=Async.IN:IN
 OUTPORT=Values.OUT:OUT
@@ -408,14 +411,14 @@ Async(process/Async) OUT -> IN Values(process/Values)\
         in: expected,
       })
         .then((out) => {
-          chai.expect(out.out).to.eql(expected);
+          assert.deepStrictEqual(out.out, expected);
         });
     });
     it('should execute network with simple input and provide simple output', () => {
       const expected = 'blue';
       return wrapped(expected)
         .then((out) => {
-          chai.expect(out).to.eql(expected);
+          assert.deepStrictEqual(out, expected);
         });
     });
     it('should execute network with wrong map and provide error', () => wrapped({
@@ -424,15 +427,15 @@ Async(process/Async) OUT -> IN Values(process/Values)\
       .then(() => {
         throw new Error('Unexpected pass');
       }, (err) => {
-        chai.expect(err).to.be.an('error');
-        chai.expect(err.message).to.contain('Invalid data=\'red\' received, not in [green,blue]');
+        assert.strictEqual(typeof err, "error");
+        assert.ok(err.message.includes('Invalid data=\'red\' received, not in [green,blue]'));
       }));
     it('should execute network with wrong input and provide error', () => wrapped('red')
       .then(() => {
         throw new Error('Unexpected pass');
       }, (err) => {
-        chai.expect(err).to.be.an('error');
-        chai.expect(err.message).to.contain('Invalid data=\'red\' received, not in [green,blue]');
+        assert.strictEqual(typeof err, "error");
+        assert.ok(err.message.includes('Invalid data=\'red\' received, not in [green,blue]'));
       }));
   });
   describe('with networkCallback option', () => {
@@ -443,8 +446,8 @@ Async(process/Async) OUT -> IN Values(process/Values)\
       called = 0;
       started = 0;
     });
-    it('should not provide network at callbackization time', (done) => {
-      chai.expect(called).to.equal(0);
+    it('should not provide network at callbackization time', (t, done) => {
+      assert.strictEqual(called, 0);
       wrapped = noflo.asPromise('process/Async', {
         loader,
         networkCallback: (network) => {
@@ -454,30 +457,30 @@ Async(process/Async) OUT -> IN Values(process/Values)\
           called++;
         },
       });
-      chai.expect(wrapped).to.be.a('function');
-      chai.expect(called).to.equal(0);
+      assert.strictEqual(typeof wrapped, "function");
+      assert.strictEqual(called, 0);
       done();
     });
     it('should provide the network to the callback when executed', () => {
       const expected = { hello: 'world' };
-      chai.expect(called).to.equal(0);
+      assert.strictEqual(called, 0);
 
       return wrapped(expected)
         .then((out) => {
-          chai.expect(out).to.eql(expected);
-          chai.expect(called).to.equal(1);
+          assert.deepStrictEqual(out, expected);
+          assert.strictEqual(called, 1);
         });
     });
     it('should provide the network before actual execution so that we catch the start event', () => {
       const expected = { hello: 'world' };
-      chai.expect(called).to.equal(0);
-      chai.expect(started).to.equal(0);
+      assert.strictEqual(called, 0);
+      assert.strictEqual(started, 0);
 
       return wrapped(expected)
         .then((out) => {
-          chai.expect(out).to.eql(expected);
-          chai.expect(called).to.equal(1);
-          chai.expect(started).to.equal(1);
+          assert.deepStrictEqual(out, expected);
+          assert.strictEqual(called, 1);
+          assert.strictEqual(started, 1);
         });
     });
   });
@@ -490,13 +493,13 @@ Async(process/Async) OUT -> IN Values(process/Values)\
       });
       return wrapped('hello')
         .then((out) => {
-          chai.expect(out).to.equal('hello');
+          assert.strictEqual(out, 'hello');
           const collectedTrace = trace.toJSON();
           chai.expect(collectedTrace.header.metadata).to.include.keys(['start', 'end']);
-          chai.expect(collectedTrace.header.graphs['process/Async']).to.be.an('object');
-          chai.expect(collectedTrace.header.main).to.equal('process/Async');
+          assert.strictEqual(typeof collectedTrace.header.graphs['process/Async'], "object");
+          assert.strictEqual(collectedTrace.header.main, 'process/Async');
           const eventTypes = collectedTrace.events.map((e) => `${e.protocol}:${e.command}`);
-          chai.expect(eventTypes).to.eql([
+          assert.deepStrictEqual(eventTypes, [
             'network:started',
             'network:data',
             'network:data',

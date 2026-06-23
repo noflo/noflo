@@ -1,3 +1,7 @@
+import assert from 'node:assert/strict';
+import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import * as noflo from '../src/lib/NoFlo.js';
+
 describe('Component', () => {
   describe('with required ports', () => {
     it('should throw an error upon sending packet to an unattached required port', () => {
@@ -47,13 +51,13 @@ describe('Component', () => {
           let packet;
           if (input.hasData('in')) {
             packet = input.getData('in');
-            chai.expect(packet).to.equal('some-data');
+            assert.strictEqual(packet, 'some-data');
             output.done();
             return;
           }
           if (input.hasData('just_processor')) {
             packet = input.getData('just_processor');
-            chai.expect(packet).to.equal('some-data');
+            assert.strictEqual(packet, 'some-data');
             output.done();
             done();
           }
@@ -79,7 +83,7 @@ describe('Component', () => {
         },
         process(input, output) {
           const packet = input.getData('in');
-          chai.expect(packet).to.equal('some-data');
+          assert.strictEqual(packet, 'some-data');
           chai.expect(() => output.error(new Error())).to.throw(Error);
           done();
         },
@@ -106,7 +110,7 @@ describe('Component', () => {
         },
         process(input, output) {
           const packet = input.getData('in');
-          chai.expect(packet).to.equal('some-data');
+          assert.strictEqual(packet, 'some-data');
           chai.expect(() => output.error(new Error())).to.throw(Error);
           done();
         },
@@ -132,7 +136,7 @@ describe('Component', () => {
         },
         process(input) {
           const packet = input.getData('in');
-          chai.expect(packet).to.equal('some-data');
+          assert.strictEqual(packet, 'some-data');
           c.error(new Error());
           done();
         },
@@ -159,7 +163,7 @@ describe('Component', () => {
         process(input, output) {
           if (!input.hasData('in')) { return; }
           const packet = input.getData('in');
-          chai.expect(packet).to.equal('some-data');
+          assert.strictEqual(packet, 'some-data');
           output.done(new Error());
         },
       });
@@ -171,11 +175,11 @@ describe('Component', () => {
         'bar',
       ];
       s2.on('begingroup', (grp) => {
-        chai.expect(grp).to.equal(groups.shift());
+        assert.strictEqual(grp, groups.shift());
       });
       s2.on('data', (err) => {
         chai.expect(err).to.be.an.instanceOf(Error);
-        chai.expect(groups.length).to.equal(0);
+        assert.strictEqual(groups.length, 0);
         done();
       });
 
@@ -230,8 +234,8 @@ describe('Component', () => {
         try {
           input.attached('foo');
         } catch (e) {
-          chai.expect(e).to.be.an('Error');
-          chai.expect(e.message).to.contain('foo');
+          assert.strictEqual(typeof e, "Error");
+          assert.ok(e.message.includes('foo'));
           done();
           return;
         }
@@ -247,8 +251,8 @@ describe('Component', () => {
         try {
           input.has('foo');
         } catch (e) {
-          chai.expect(e).to.be.an('Error');
-          chai.expect(e.message).to.contain('foo');
+          assert.strictEqual(typeof e, "Error");
+          assert.ok(e.message.includes('foo'));
           done();
           return;
         }
@@ -264,8 +268,8 @@ describe('Component', () => {
         try {
           input.has(['foo', 0]);
         } catch (e) {
-          chai.expect(e).to.be.an('Error');
-          chai.expect(e.message).to.contain('foo');
+          assert.strictEqual(typeof e, "Error");
+          assert.ok(e.message.includes('foo'));
           done();
           return;
         }
@@ -281,8 +285,8 @@ describe('Component', () => {
         try {
           input.hasData('foo');
         } catch (e) {
-          chai.expect(e).to.be.an('Error');
-          chai.expect(e.message).to.contain('foo');
+          assert.strictEqual(typeof e, "Error");
+          assert.ok(e.message.includes('foo'));
           done();
           return;
         }
@@ -298,8 +302,8 @@ describe('Component', () => {
         try {
           input.hasStream('foo');
         } catch (e) {
-          chai.expect(e).to.be.an('Error');
-          chai.expect(e.message).to.contain('foo');
+          assert.strictEqual(typeof e, "Error");
+          assert.ok(e.message.includes('foo'));
           done();
           return;
         }
@@ -327,7 +331,7 @@ describe('Component', () => {
           done(err);
           return;
         }
-        chai.expect(c.started).to.equal(true);
+        assert.strictEqual(c.started, true);
         chai.expect(c.isStarted()).to.equal(true);
         done();
       });
@@ -356,7 +360,7 @@ describe('Component', () => {
             done(err);
             return;
           }
-          chai.expect(c.started).to.equal(false);
+          assert.strictEqual(c.started, false);
           chai.expect(c.isStarted()).to.equal(false);
           done();
         });
@@ -385,12 +389,12 @@ describe('Component', () => {
       const s2 = new noflo.internalSocket.InternalSocket();
 
       s2.on('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.groups).to.be.an('array');
-        chai.expect(ip.groups).to.eql(['foo']);
-        chai.expect(ip.data).to.be.a('string');
-        chai.expect(ip.data).to.equal('some-data');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(typeof ip.groups, "array");
+        assert.deepStrictEqual(ip.groups, ['foo']);
+        assert.strictEqual(typeof ip.data, "string");
+        assert.strictEqual(ip.data, 'some-data');
         done();
       });
 
@@ -469,9 +473,9 @@ describe('Component', () => {
       const s3 = new noflo.internalSocket.InternalSocket();
 
       s3.on('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.data).to.equal('<p><em>Hello</em>, <strong>World!</strong></p>');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.data, '<p><em>Hello</em>, <strong>World!</strong></p>');
         done();
       });
 
@@ -526,10 +530,10 @@ describe('Component', () => {
       sout1.on('ip', () => {
         count++;
         if (count === 1) {
-          chai.expect(hadIPs).to.eql(['foo']);
+          assert.deepStrictEqual(hadIPs, ['foo']);
         }
         if (count === 2) {
-          chai.expect(hadIPs).to.eql(['foo', 'bar']);
+          assert.deepStrictEqual(hadIPs, ['foo', 'bar']);
           done();
         }
       });
@@ -574,14 +578,14 @@ describe('Component', () => {
       sout1.on('ip', () => {
         count++;
         if (count === 1) {
-          chai.expect(receivedIndexes).to.eql([{
+          assert.deepStrictEqual(receivedIndexes, [{
             idx: 1,
             payload: 'first',
           },
           ]);
         }
         if (count === 2) {
-          chai.expect(receivedIndexes).to.eql([{
+          assert.deepStrictEqual(receivedIndexes, [{
             idx: 1,
             payload: 'first',
           },
@@ -636,7 +640,7 @@ describe('Component', () => {
           data: ip.data,
           index: 1,
         };
-        chai.expect(received).to.eql(exp);
+        assert.deepStrictEqual(received, exp);
         if (!expected.length) { done(); }
       });
       sout2.on('ip', (ip) => {
@@ -645,7 +649,7 @@ describe('Component', () => {
           data: ip.data,
           index: 0,
         };
-        chai.expect(received).to.eql(exp);
+        assert.deepStrictEqual(received, exp);
         if (!expected.length) { done(); }
       });
       sin1.post(new noflo.IP('data', 'first'));
@@ -726,7 +730,7 @@ describe('Component', () => {
           port: 'out1',
           data: ip.data,
         };
-        chai.expect(received).to.eql(exp);
+        assert.deepStrictEqual(received, exp);
         if (!expected.length) { done(); }
       });
       sout2.on('ip', (ip) => {
@@ -735,7 +739,7 @@ describe('Component', () => {
           port: 'out2',
           data: ip.data,
         };
-        chai.expect(received).to.eql(exp);
+        assert.deepStrictEqual(received, exp);
         if (!expected.length) { done(); }
       });
       sin1.post(new noflo.IP('data', 'first'));
@@ -767,10 +771,10 @@ describe('Component', () => {
       sout1.on('ip', () => {
         count++;
         if (count === 1) {
-          chai.expect(triggered).to.eql(['bar']);
+          assert.deepStrictEqual(triggered, ['bar']);
         }
         if (count === 2) {
-          chai.expect(triggered).to.eql(['bar', 'bar']);
+          assert.deepStrictEqual(triggered, ['bar', 'bar']);
           done();
         }
       });
@@ -800,9 +804,9 @@ describe('Component', () => {
         process(input) {
           if (!input.has('foo')) { return; }
           const [foo, bar, baz] = input.getData('foo', 'bar', 'baz');
-          chai.expect(foo).to.be.a('string');
-          chai.expect(bar).to.be.undefined;
-          chai.expect(baz).to.be.undefined;
+          assert.strictEqual(typeof foo, "string");
+          assert.strictEqual(bar, undefined);
+          assert.strictEqual(baz, undefined);
           done();
         },
       });
@@ -845,13 +849,13 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.data.foo).to.equal('foo');
-        chai.expect(ip.data.bar).to.equal('bar');
-        chai.expect(ip.data.groups).to.eql(['foo']);
-        chai.expect(ip.data.type).to.equal('data');
-        chai.expect(ip.groups).to.eql(['baz']);
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.data.foo, 'foo');
+        assert.strictEqual(ip.data.bar, 'bar');
+        assert.deepStrictEqual(ip.data.groups, ['foo']);
+        assert.strictEqual(ip.data.type, 'data');
+        assert.deepStrictEqual(ip.groups, ['baz']);
         done();
       });
 
@@ -879,10 +883,10 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.data).to.equal('foo');
-        chai.expect(ip.datatype).to.equal('string');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.data, 'foo');
+        assert.strictEqual(ip.datatype, 'string');
         done();
       });
 
@@ -907,10 +911,10 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.data).to.equal('foo');
-        chai.expect(ip.datatype).to.equal('string');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.data, 'foo');
+        assert.strictEqual(ip.datatype, 'string');
         done();
       });
 
@@ -938,11 +942,11 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.data).to.equal('foo');
-        chai.expect(ip.datatype).to.equal('string');
-        chai.expect(ip.schema).to.equal('text/markdown');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.data, 'foo');
+        assert.strictEqual(ip.datatype, 'string');
+        assert.strictEqual(ip.schema, 'text/markdown');
         done();
       });
 
@@ -970,11 +974,11 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.data).to.equal('foo');
-        chai.expect(ip.datatype).to.equal('string');
-        chai.expect(ip.schema).to.equal('text/markdown');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.data, 'foo');
+        assert.strictEqual(ip.datatype, 'string');
+        assert.strictEqual(ip.schema, 'text/markdown');
         done();
       });
 
@@ -1005,10 +1009,10 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.data.foo).to.equal('foo');
-        chai.expect(ip.data.bar).to.equal('bar');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.data.foo, 'foo');
+        assert.strictEqual(ip.data.bar, 'bar');
         done();
       });
 
@@ -1051,11 +1055,11 @@ describe('Component', () => {
       let shouldHaveSent = false;
 
       sout1.on('ip', (ip) => {
-        chai.expect(shouldHaveSent, 'Should not sent before its time').to.equal(true);
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.data).to.equal('hello:hello');
-        chai.expect(called).to.equal(10);
+        assert.strictEqual(shouldHaveSent, 'Should not sent before its time', true);
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.data, 'hello:hello');
+        assert.strictEqual(called, 10);
         done();
       });
 
@@ -1093,15 +1097,15 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.data.foo).to.equal('foo');
-        chai.expect(ip.data.bar).to.equal('bar');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.data.foo, 'foo');
+        assert.strictEqual(ip.data.bar, 'bar');
         sout1.once('ip', (ip) => {
-          chai.expect(ip).to.be.an('object');
-          chai.expect(ip.type).to.equal('data');
-          chai.expect(ip.data.foo).to.equal('boo');
-          chai.expect(ip.data.bar).to.equal('bar');
+          assert.strictEqual(typeof ip, "object");
+          assert.strictEqual(ip.type, 'data');
+          assert.strictEqual(ip.data.foo, 'boo');
+          assert.strictEqual(ip.data.bar, 'bar');
           done();
         });
       });
@@ -1138,15 +1142,15 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.data.foo).to.equal('foo');
-        chai.expect(ip.data.bar).to.equal('bar');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.data.foo, 'foo');
+        assert.strictEqual(ip.data.bar, 'bar');
         sout1.once('ip', (ip) => {
-          chai.expect(ip).to.be.an('object');
-          chai.expect(ip.type).to.equal('data');
-          chai.expect(ip.data.foo).to.equal('boo');
-          chai.expect(ip.data.bar).to.equal('bar');
+          assert.strictEqual(typeof ip, "object");
+          assert.strictEqual(ip.type, 'data');
+          assert.strictEqual(ip.data.foo, 'boo');
+          assert.strictEqual(ip.data.bar, 'bar');
           done();
         });
       });
@@ -1178,15 +1182,15 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.scope).to.equal('1');
-        chai.expect(ip.data).to.equal('Josh and Laura');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.scope, '1');
+        assert.strictEqual(ip.data, 'Josh and Laura');
         sout1.once('ip', (ip) => {
-          chai.expect(ip).to.be.an('object');
-          chai.expect(ip.type).to.equal('data');
-          chai.expect(ip.scope).to.equal('2');
-          chai.expect(ip.data).to.equal('Jane and Luke');
+          assert.strictEqual(typeof ip, "object");
+          assert.strictEqual(ip.type, 'data');
+          assert.strictEqual(ip.scope, '2');
+          assert.strictEqual(ip.data, 'Jane and Luke');
           done();
         });
       });
@@ -1214,10 +1218,10 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.scope).to.equal('baz');
-        chai.expect(ip.data).to.equal('foo');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.scope, 'baz');
+        assert.strictEqual(ip.data, 'foo');
         done();
       });
 
@@ -1244,20 +1248,20 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.scope).to.equal(1);
-        chai.expect(ip.data).to.equal('Josh and Laura');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.scope, 1);
+        assert.strictEqual(ip.data, 'Josh and Laura');
         sout1.once('ip', (ip) => {
-          chai.expect(ip).to.be.an('object');
-          chai.expect(ip.type).to.equal('data');
-          chai.expect(ip.scope).to.equal(0);
-          chai.expect(ip.data).to.equal('Jane and Luke');
+          assert.strictEqual(typeof ip, "object");
+          assert.strictEqual(ip.type, 'data');
+          assert.strictEqual(ip.scope, 0);
+          assert.strictEqual(ip.data, 'Jane and Luke');
           sout1.once('ip', (ip) => {
-            chai.expect(ip).to.be.an('object');
-            chai.expect(ip.type).to.equal('data');
-            chai.expect(ip.scope).to.be.null;
-            chai.expect(ip.data).to.equal('Tom and Anna');
+            assert.strictEqual(typeof ip, "object");
+            assert.strictEqual(ip.type, 'data');
+            assert.strictEqual(ip.scope, null);
+            assert.strictEqual(ip.data, 'Tom and Anna');
             done();
           });
         });
@@ -1300,7 +1304,7 @@ describe('Component', () => {
       ];
 
       sout1.on('ip', (ip) => {
-        chai.expect(ip.data).to.eql(sample.shift());
+        assert.deepStrictEqual(ip.data, sample.shift());
         if (sample.length === 0) { done(); }
       });
 
@@ -1348,7 +1352,7 @@ describe('Component', () => {
           case 3: src = sample[2]; break;
           case 4: src = sample[0]; break;
         }
-        chai.expect(ip.data).to.eql(src);
+        assert.deepStrictEqual(ip.data, src);
         if (count === 4) { done(); }
       });
 
@@ -1367,7 +1371,7 @@ describe('Component', () => {
         },
         process(input, output) {
           const packet = input.get('in');
-          chai.expect(packet.data).to.equal('some-data');
+          assert.strictEqual(packet.data, 'some-data');
           chai.expect(() => output.done(new Error('Should fail'))).to.throw(Error);
           done();
         },
@@ -1392,7 +1396,7 @@ describe('Component', () => {
         },
         process(input, output) {
           const packet = input.get('in');
-          chai.expect(packet.data).to.equal('some-data');
+          assert.strictEqual(packet.data, 'some-data');
           chai.expect(() => output.sendDone(new Error('Should fail'))).to.throw(Error);
           done();
         },
@@ -1416,7 +1420,7 @@ describe('Component', () => {
         },
         process(input, output) {
           const packet = input.get('in');
-          chai.expect(packet.data).to.equal('some-data');
+          assert.strictEqual(packet.data, 'some-data');
           output.sendDone(new Error('Should not fail'));
           done();
         },
@@ -1448,8 +1452,8 @@ describe('Component', () => {
       });
 
       sout1.on('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.data).to.equal('some data');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.data, 'some data');
         done();
       });
 
@@ -1481,8 +1485,8 @@ describe('Component', () => {
       });
 
       sout1.on('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.data).to.eql({ some: 'data' });
+        assert.strictEqual(typeof ip, "object");
+        assert.deepStrictEqual(ip.data, { some: 'data' });
         done();
       });
 
@@ -1534,16 +1538,16 @@ describe('Component', () => {
         },
         process(input, output) {
           const packet = input.get('in');
-          chai.expect(packet.data).to.equal('some-data');
-          chai.expect(packet.scope).to.equal('some-scope');
+          assert.strictEqual(packet.data, 'some-data');
+          assert.strictEqual(packet.scope, 'some-scope');
           output.sendDone(new Error('Should fail'));
         },
       });
 
       sout1.on('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
+        assert.strictEqual(typeof ip, "object");
         chai.expect(ip.data).to.be.an.instanceOf(Error);
-        chai.expect(ip.scope).to.equal('some-scope');
+        assert.strictEqual(ip.scope, 'some-scope');
         done();
       });
 
@@ -1567,8 +1571,8 @@ describe('Component', () => {
         },
         process(input, output) {
           const packet = input.get('in');
-          chai.expect(packet.data).to.equal('some-data');
-          chai.expect(packet.scope).to.equal('some-scope');
+          assert.strictEqual(packet.data, 'some-data');
+          assert.strictEqual(packet.scope, 'some-scope');
           const errors = [];
           errors.push(new Error('One thing is invalid'));
           errors.push(new Error('Another thing is invalid'));
@@ -1587,8 +1591,8 @@ describe('Component', () => {
 
       sout1.on('ip', (ip) => {
         count++;
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.scope).to.equal('some-scope');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.scope, 'some-scope');
         if (ip.type === 'openBracket') { actual.push('<'); }
         if (ip.type === 'closeBracket') { actual.push('>'); }
         if (ip.type === 'data') {
@@ -1596,7 +1600,7 @@ describe('Component', () => {
           actual.push(ip.data.message);
         }
         if (count === 4) {
-          chai.expect(actual).to.eql(expected);
+          assert.deepStrictEqual(actual, expected);
           done();
         }
       });
@@ -1651,7 +1655,7 @@ describe('Component', () => {
             default: return ip.data;
           }
         })();
-        chai.expect(data).to.equal(source[count].toUpperCase());
+        assert.strictEqual(data, source[count].toUpperCase());
         count++;
         if (count === 4) { done(); }
       });
@@ -1724,7 +1728,7 @@ describe('Component', () => {
             break;
         }
         if (received.length !== expected.length) { return; }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
       sout2.on('ip', (ip) => {
@@ -1740,7 +1744,7 @@ describe('Component', () => {
             break;
         }
         if (received.length !== expected.length) { return; }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
 
@@ -1808,7 +1812,7 @@ describe('Component', () => {
             break;
         }
         if (received.length !== expected.length) { return; }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
       sout2.on('ip', (ip) => {
@@ -1824,7 +1828,7 @@ describe('Component', () => {
             break;
         }
         if (received.length !== expected.length) { return; }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
 
@@ -1894,7 +1898,7 @@ describe('Component', () => {
             break;
         }
         if (received.length !== expected.length) { return; }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
       sout2.on('ip', (ip) => {
@@ -1911,7 +1915,7 @@ describe('Component', () => {
         }
         if (received.length !== expected.length) { return; }
         if (received.length !== expected.length) { return; }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
 
@@ -1983,7 +1987,7 @@ describe('Component', () => {
             break;
         }
         if (received.length !== expected.length) { return; }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
       sout2.on('ip', (ip) => {
@@ -1999,7 +2003,7 @@ describe('Component', () => {
             break;
         }
         if (received.length !== expected.length) { return; }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
 
@@ -2052,14 +2056,14 @@ describe('Component', () => {
         count++;
         switch (count) {
           case 1:
-            chai.expect(ip.type).to.equal('openBracket');
+            assert.strictEqual(ip.type, 'openBracket');
             break;
           case 2:
-            chai.expect(ip.type).to.equal('data');
-            chai.expect(ip.data).to.be.an('error');
+            assert.strictEqual(ip.type, 'data');
+            assert.strictEqual(typeof ip.data, "error");
             break;
           case 3:
-            chai.expect(ip.type).to.equal('closeBracket');
+            assert.strictEqual(ip.type, 'closeBracket');
             break;
         }
         if (count === 3) { done(); }
@@ -2172,16 +2176,16 @@ describe('Component', () => {
         let src = null;
         switch (count) {
           case 0:
-            chai.expect(ip.type).to.equal('openBracket');
-            chai.expect(ip.data).to.equal('msg');
+            assert.strictEqual(ip.type, 'openBracket');
+            assert.strictEqual(ip.data, 'msg');
             break;
           case 5:
-            chai.expect(ip.type).to.equal('closeBracket');
-            chai.expect(ip.data).to.equal('msg');
+            assert.strictEqual(ip.type, 'closeBracket');
+            assert.strictEqual(ip.data, 'msg');
             break;
           default: src = sample[count - 1];
         }
-        if (src) { chai.expect(ip.data).to.eql(src); }
+        if (src) { assert.deepStrictEqual(ip.data, src); }
         count++;
         // done() if count is 6
       });
@@ -2189,24 +2193,24 @@ describe('Component', () => {
       sout2.on('ip', (ip) => {
         switch (errCount) {
           case 0:
-            chai.expect(ip.type).to.equal('openBracket');
-            chai.expect(ip.data).to.equal('msg');
+            assert.strictEqual(ip.type, 'openBracket');
+            assert.strictEqual(ip.data, 'msg');
             break;
           case 1:
-            chai.expect(ip.type).to.equal('openBracket');
-            chai.expect(ip.data).to.equal('delay');
+            assert.strictEqual(ip.type, 'openBracket');
+            assert.strictEqual(ip.data, 'delay');
             break;
           case 2:
-            chai.expect(ip.type).to.equal('data');
-            chai.expect(ip.data).to.be.an('error');
+            assert.strictEqual(ip.type, 'data');
+            assert.strictEqual(typeof ip.data, "error");
             break;
           case 3:
-            chai.expect(ip.type).to.equal('closeBracket');
-            chai.expect(ip.data).to.equal('delay');
+            assert.strictEqual(ip.type, 'closeBracket');
+            assert.strictEqual(ip.data, 'delay');
             break;
           case 4:
-            chai.expect(ip.type).to.equal('closeBracket');
-            chai.expect(ip.data).to.equal('msg');
+            assert.strictEqual(ip.type, 'closeBracket');
+            assert.strictEqual(ip.data, 'msg');
             break;
         }
         errCount++;
@@ -2292,7 +2296,7 @@ describe('Component', () => {
             break;
         }
         if (received.length !== expected.length) { return; }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
 
@@ -2380,7 +2384,7 @@ describe('Component', () => {
             break;
         }
         if (received.length !== expected.length) { return; }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
 
@@ -2443,7 +2447,7 @@ describe('Component', () => {
           case 3: src = sample[2]; break;
           case 4: src = sample[0]; break;
         }
-        chai.expect(ip.data).to.eql(src);
+        assert.deepStrictEqual(ip.data, src);
         if (count === 4) { done(); }
       });
 
@@ -2494,11 +2498,11 @@ describe('Component', () => {
       ];
       let count = 0;
       sout1.on('ip', (ip) => {
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.count).to.be.a('number');
-        chai.expect(ip.length).to.be.a('number');
-        chai.expect(ip.data).to.equal(source[ip.count].toUpperCase());
-        chai.expect(ip.length).to.equal(source.length);
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(typeof ip.count, "number");
+        assert.strictEqual(typeof ip.length, "number");
+        assert.strictEqual(ip.data, source[ip.count].toUpperCase());
+        assert.strictEqual(ip.length, source.length);
         count++;
         if (count === source.length) { done(); }
       });
@@ -2599,9 +2603,9 @@ describe('Component', () => {
           done(new Error('Unexpected baz'));
         });
         sout2.once('ip', (ip) => {
-          chai.expect(ip).to.be.an('object');
-          chai.expect(ip.data).to.be.an('error');
-          chai.expect(ip.data.message).to.contain('Bar');
+          assert.strictEqual(typeof ip, "object");
+          assert.strictEqual(typeof ip.data, "error");
+          assert.ok(ip.data.message.includes('Bar'));
           done();
         });
 
@@ -2636,7 +2640,7 @@ describe('Component', () => {
               actual.push(ip.data.foo);
           }
           if (count === 6) {
-            chai.expect(actual).to.eql(expected);
+            assert.deepStrictEqual(actual, expected);
             done();
           }
         });
@@ -2721,7 +2725,7 @@ describe('Component', () => {
             if (!input.hasStream('eh')) { return; }
             const stream = input.getStream('eh');
             const packetTypes = stream.map((ip) => [ip.type, ip.data]);
-            chai.expect(packetTypes).to.eql([
+            assert.deepStrictEqual(packetTypes, [
               ['data', 'moose'],
             ]);
             chai.expect(input.has('eh')).to.equal(false);
@@ -2748,7 +2752,7 @@ describe('Component', () => {
             if (!input.hasStream('eh')) { return; }
             const stream = input.getStream('eh');
             const packetTypes = stream.map((ip) => [ip.type, ip.data]);
-            chai.expect(packetTypes).to.eql([
+            assert.deepStrictEqual(packetTypes, [
               ['openBracket', null],
               ['openBracket', 'foo'],
               ['data', 'moose'],
@@ -2785,8 +2789,8 @@ describe('Component', () => {
           process(input, output) {
             if (!input.hasStream('eh')) { return; }
             const data = input.get('eh');
-            chai.expect(data.type).to.equal('data');
-            chai.expect(data.data).to.equal('moose');
+            assert.strictEqual(data.type, 'data');
+            assert.strictEqual(data.data, 'moose');
             output.sendDone(data);
           },
         });
@@ -2802,7 +2806,7 @@ describe('Component', () => {
         sout1.on('ip', (ip) => {
           received.push([ip.type, ip.data]);
           if (received.length !== expected.length) { return; }
-          chai.expect(received).to.eql(expected);
+          assert.deepStrictEqual(received, expected);
           done();
         });
         c.inPorts.eh.attach(sin1);
@@ -2852,7 +2856,7 @@ describe('Component', () => {
           received.push(ip.data);
         });
         sout1.on('disconnect', () => {
-          chai.expect(received).to.eql([
+          assert.deepStrictEqual(received, [
             '< 1',
             '< 2',
             'A',
@@ -2909,7 +2913,7 @@ describe('Component', () => {
           received.push(ip.data);
         });
         sout1.on('disconnect', () => {
-          chai.expect(received).to.eql([
+          assert.deepStrictEqual(received, [
             '< 1',
             '< 2',
             'A',
@@ -2994,7 +2998,7 @@ describe('Component', () => {
 
     it('should emit start event when started', (done) => {
       c.on('start', () => {
-        chai.expect(c.started).to.be.true;
+        assert.strictEqual(c.started, true);
         done();
       });
       c.start((err) => {
@@ -3023,7 +3027,7 @@ describe('Component', () => {
     });
     it('should emit end event when stopped and no activate after it', (done) => {
       c.on('end', () => {
-        chai.expect(c.started).to.be.false;
+        assert.strictEqual(c.started, false);
         done();
       });
       c.on('activate', () => {

@@ -1,3 +1,7 @@
+import assert from 'node:assert/strict';
+import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import * as noflo from '../src/lib/NoFlo.js';
+
 describe('Inport Port', () => {
   describe('with default options', () => {
     const p = new noflo.InPort();
@@ -35,7 +39,7 @@ describe('Inport Port', () => {
       chai.expect(p.isConnected()).to.equal(false);
     });
     it('should not contain a socket initially', () => {
-      chai.expect(p.sockets.length).to.equal(0);
+      assert.strictEqual(p.sockets.length, 0);
     });
   });
   describe('with processing function called with port as context', () => {
@@ -43,8 +47,8 @@ describe('Inport Port', () => {
       const s = new noflo.internalSocket.InternalSocket();
       const p = new noflo.InPort();
       p.on('data', function (packet) {
-        chai.expect(this).to.equal(p);
-        chai.expect(packet).to.equal('some-data');
+        assert.strictEqual(this, p);
+        assert.strictEqual(packet, 'some-data');
         done();
       });
       p.attach(s);
@@ -61,7 +65,7 @@ describe('Inport Port', () => {
     });
     it('should send the default value as a packet, though on next tick after initialization', (done) => {
       p.on('data', (data) => {
-        chai.expect(data).to.equal('default-value');
+        assert.strictEqual(data, 'default-value');
         done();
       });
       s.send();
@@ -69,7 +73,7 @@ describe('Inport Port', () => {
     it('should send the default value before IIP', (done) => {
       const received = ['default-value', 'some-iip'];
       p.on('data', (data) => {
-        chai.expect(data).to.equal(received.shift());
+        assert.strictEqual(data, received.shift());
         if (received.length === 0) { done(); }
       });
       setTimeout(() => {
@@ -92,7 +96,7 @@ describe('Inport Port', () => {
       for (const name in options) {
         if (Object.prototype.hasOwnProperty.call(options, name)) {
           const option = options[name];
-          chai.expect(p.options[name]).to.equal(option);
+          assert.strictEqual(p.options[name], option);
         }
       }
     });
@@ -126,7 +130,7 @@ describe('Inport Port', () => {
       const s = new noflo.internalSocket.InternalSocket();
       p.attach(s);
       p.on('data', (data) => {
-        chai.expect(data).to.equal('awesome');
+        assert.strictEqual(data, 'awesome');
         done();
       });
       s.send('awesome');
@@ -155,7 +159,7 @@ describe('Inport Port', () => {
       });
       ps.inPorts.in.on('ip', (ip) => {
         if (ip.type !== 'data') { return; }
-        chai.expect(ip.data).to.equal('some-data');
+        assert.strictEqual(ip.data, 'some-data');
         done();
       });
       ps.inPorts.in.attach(s);
@@ -187,7 +191,7 @@ describe('Inport Port', () => {
       });
       ps.inPorts.in.on('disconnect', () => {
         receivedEvents.push('disconnect');
-        chai.expect(receivedEvents).to.eql(expectedEvents);
+        assert.deepStrictEqual(receivedEvents, expectedEvents);
         done();
       });
       ps.inPorts.in.attach(s);
@@ -197,10 +201,10 @@ describe('Inport Port', () => {
     it('should stamp an IP object with the port\'s datatype', (done) => {
       const p = new noflo.InPort({ datatype: 'string' });
       p.on('ip', (data) => {
-        chai.expect(data).to.be.an('object');
-        chai.expect(data.type).to.equal('data');
-        chai.expect(data.data).to.equal('Hello');
-        chai.expect(data.datatype).to.equal('string');
+        assert.strictEqual(typeof data, "object");
+        assert.strictEqual(data.type, 'data');
+        assert.strictEqual(data.data, 'Hello');
+        assert.strictEqual(data.datatype, 'string');
         done();
       });
       p.handleIP(new noflo.IP('data', 'Hello'));
@@ -208,10 +212,10 @@ describe('Inport Port', () => {
     it('should keep an IP object\'s datatype as-is if already set', (done) => {
       const p = new noflo.InPort({ datatype: 'string' });
       p.on('ip', (data) => {
-        chai.expect(data).to.be.an('object');
-        chai.expect(data.type).to.equal('data');
-        chai.expect(data.data).to.equal(123);
-        chai.expect(data.datatype).to.equal('integer');
+        assert.strictEqual(typeof data, "object");
+        assert.strictEqual(data.type, 'data');
+        assert.strictEqual(data.data, 123);
+        assert.strictEqual(data.datatype, 'integer');
         done();
       });
       p.handleIP(new noflo.IP('data', 123,
@@ -223,11 +227,11 @@ describe('Inport Port', () => {
         schema: 'text/markdown',
       });
       p.on('ip', (data) => {
-        chai.expect(data).to.be.an('object');
-        chai.expect(data.type).to.equal('data');
-        chai.expect(data.data).to.equal('Hello');
-        chai.expect(data.datatype).to.equal('string');
-        chai.expect(data.schema).to.equal('text/markdown');
+        assert.strictEqual(typeof data, "object");
+        assert.strictEqual(data.type, 'data');
+        assert.strictEqual(data.data, 'Hello');
+        assert.strictEqual(data.datatype, 'string');
+        assert.strictEqual(data.schema, 'text/markdown');
         done();
       });
       p.handleIP(new noflo.IP('data', 'Hello'));
@@ -238,11 +242,11 @@ describe('Inport Port', () => {
         schema: 'text/markdown',
       });
       p.on('ip', (data) => {
-        chai.expect(data).to.be.an('object');
-        chai.expect(data.type).to.equal('data');
-        chai.expect(data.data).to.equal('Hello');
-        chai.expect(data.datatype).to.equal('string');
-        chai.expect(data.schema).to.equal('text/plain');
+        assert.strictEqual(typeof data, "object");
+        assert.strictEqual(data.type, 'data');
+        assert.strictEqual(data.data, 'Hello');
+        assert.strictEqual(data.datatype, 'string');
+        assert.strictEqual(data.schema, 'text/plain');
         done();
       });
       p.handleIP(new noflo.IP('data', 'Hello', {

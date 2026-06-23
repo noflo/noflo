@@ -1,3 +1,7 @@
+import assert from 'node:assert/strict';
+import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import * as noflo from '../src/lib/NoFlo.js';
+
 let browser;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   browser = false;

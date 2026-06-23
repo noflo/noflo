@@ -37,14 +37,14 @@ describe('Outport Port', () => {
       p.send('my-data', 0);
     });
     it('should throw an error when sent data without address', () => {
-      assert.throws(() => p.send('some-data'));
+      chai.expect(() => p.send('some-data')).to.throw;
     });
     it('should throw an error when a specific port is requested with non-addressable port', () => {
       const p = new noflo.OutPort();
       p.attach(s1);
       p.attach(s2);
       p.attach(s3);
-      assert.throws(() => p.send('some-data', 1));
+      chai.expect(() => p.send('some-data', 1)).to.throw;
     });
     it('should give correct port index when detaching a connection', (done) => {
       const p = new noflo.OutPort({ addressable: true });
@@ -60,7 +60,7 @@ describe('Outport Port', () => {
       p.on('detach', (socket, index) => {
         assert.strictEqual(socket, expectedSockets.shift());
         assert.strictEqual(index, expected.shift());
-        assert.equal(p.isAttached(index), false);
+        chai.expect(p.isAttached(index)).to.equal(false);
         const atts = expectedAttached.shift();
         chai.expect(p.listAttached()).to.eql(atts);
         for (const att of atts) {
