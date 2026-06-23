@@ -29,6 +29,8 @@ The library is meant to be a durable piece of software that can be run and maint
 - Standard JavaScript following the EcmaScript specification as supported in evergreen browsers and Node.js
 - JsDoc annotations are used to document all library functions and to define TypeScript type safety
 - TypeScript compiler is used to verify type safety and to extract type definitions to their own files
+- Testing is done using Node.js native test runner and assertion functionality
+- Linting and formatting is done using Biome (default settings)
 
 In NoFlo 1.x series:
 - Dataflow is implemented using Node.js EventEmitter
@@ -36,8 +38,7 @@ In NoFlo 1.x series:
 - Library methods support callback arguments and return Promises when this is not supplied
 - Component loading and registration is done inside the NoFlo library
 - Components may be written using CommonJS or ES Modules
-- Testing is done using Mocha and Chai and executed in both Node.js and Karma. nyc is used for coverage analysis
-- Linting is done using eslint following AirBnB rules (with some local modifications)
+- In addition to JavaScript, components can be written in CoffeeScript or TypeScript
 
 NoFlo 2.x series goals:
 - Dataflow is implemented using Web Streams API
@@ -45,8 +46,7 @@ NoFlo 2.x series goals:
 - Library methods use Promises, not callbacks
 - Component loading and registration is done by the application calling NoFlo library
 - Components must be written using ES Modules
-- Testing is done using Node.js native test runner and assertion functionality
-- Linting and formatting is done using Biome (default settings)
+- In addition to JavaScript, components can be written TypeScript
 
 ## Commands
 
