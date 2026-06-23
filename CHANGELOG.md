@@ -20,6 +20,7 @@ export function getComponent() {
 
 ### Changed
 - Project's unit tests are now executed using the Node.js built-in test runner
+- We are now using Biome for linting instead of ESlint
 
 ## [1.5.1] - 2026-06-20
 ### Changed
