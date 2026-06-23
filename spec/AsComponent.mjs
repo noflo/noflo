@@ -1,3 +1,6 @@
+import assert from 'node:assert/strict';
+import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import * as noflo from '../src/lib/NoFlo.js';
 let isBrowser;
 if ((typeof process !== 'undefined') && process.execPath && process.execPath.match(/node|iojs/)) {
   isBrowser = false;
@@ -6,32 +9,28 @@ if ((typeof process !== 'undefined') && process.execPath && process.execPath.mat
 }
 describe('asComponent interface', () => {
   let loader = null;
-  before((done) => {
-    loader = new noflo.ComponentLoader(baseDir);
-    loader.listComponents(done);
+  before(() => {
+    loader = new noflo.ComponentLoader(process.cwd());
+    return loader.listComponents();
   });
   describe('with a synchronous function taking a single parameter', () => {
     describe('with returned value', () => {
       const func = (hello) => `Hello ${hello}`;
-      it('should be possible to componentize', (done) => {
+      it('should be possible to componentize', (t, done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'sync-one', component, done);
       });
-      it('should be loadable', (done) => {
-        loader.load('ascomponent/sync-one', done);
+      it('should be loadable', () => {
+        return loader.load('ascomponent/sync-one');
       });
-      it('should contain correct ports', (done) => {
-        loader.load('ascomponent/sync-one', (err, instance) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          chai.expect(Object.keys(instance.inPorts.ports)).to.eql(['hello']);
-          chai.expect(Object.keys(instance.outPorts.ports)).to.eql(['out', 'error']);
-          done();
-        });
+      it('should contain correct ports', () => {
+        return loader.load('ascomponent/sync-one')
+          .then((instance) => {
+            assert.deepEqual(Object.keys(instance.inPorts.ports), ['hello']);
+            assert.deepEqual(Object.keys(instance.outPorts.ports), ['out', 'error']);
+          });
       });
-      it('should send to OUT port', (done) => {
+      it('should send to OUT port', (t, done) => {
         const wrapped = noflo.asCallback('ascomponent/sync-one',
           { loader });
         wrapped('World', (err, res) => {
@@ -39,11 +38,11 @@ describe('asComponent interface', () => {
             done(err);
             return;
           }
-          chai.expect(res).to.equal('Hello World');
+          assert.strictEqual(res, 'Hello World');
           done();
         });
       });
-      it('should forward brackets to OUT port', (done) => {
+      it('should forward brackets to OUT port', (t, done) => {
         loader.load('ascomponent/sync-one', (err, instance) => {
           if (err) {
             done(err);
@@ -67,7 +66,7 @@ describe('asComponent interface', () => {
           out.on('ip', (ip) => {
             received.push(`${ip.type} ${ip.data}`);
             if (received.length !== expected.length) { return; }
-            chai.expect(received).to.eql(expected);
+            assert.deepStrictEqual(received, expected);
             done();
           });
           ins.post(new noflo.IP('openBracket', 'a'));
@@ -80,11 +79,11 @@ describe('asComponent interface', () => {
     });
     describe('with returned NULL', () => {
       const func = () => null;
-      it('should be possible to componentize', (done) => {
+      it('should be possible to componentize', (t, done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'sync-null', component, done);
       });
-      it('should send to OUT port', (done) => {
+      it('should send to OUT port', (t, done) => {
         const wrapped = noflo.asCallback('ascomponent/sync-null',
           { loader });
         wrapped('World', (err, res) => {
@@ -92,7 +91,7 @@ describe('asComponent interface', () => {
             done(err);
             return;
           }
-          chai.expect(res).to.be.a('null');
+          assert.strictEqual(res, null);
           done();
         });
       });
@@ -101,16 +100,16 @@ describe('asComponent interface', () => {
       const func = function (hello) {
         throw new Error(`Hello ${hello}`);
       };
-      it('should be possible to componentize', (done) => {
+      it('should be possible to componentize', (t, done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'sync-throw', component, done);
       });
-      it('should send to ERROR port', (done) => {
+      it('should send to ERROR port', (t, done) => {
         const wrapped = noflo.asCallback('ascomponent/sync-throw',
           { loader });
         wrapped('Error', (err) => {
-          chai.expect(err).to.be.an('error');
-          chai.expect(err.message).to.equal('Hello Error');
+          assert.strictEqual(Error.isError(err), true);
+          assert.strictEqual(err.message, 'Hello Error');
           done();
         });
       });
@@ -119,25 +118,25 @@ describe('asComponent interface', () => {
   describe('with a synchronous function taking a multiple parameters', () => {
     describe('with returned value', () => {
       const func = (greeting, name) => `${greeting} ${name}`;
-      it('should be possible to componentize', (done) => {
+      it('should be possible to componentize', (t, done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'sync-two', component, done);
       });
-      it('should be loadable', (done) => {
+      it('should be loadable', (t, done) => {
         loader.load('ascomponent/sync-two', done);
       });
-      it('should contain correct ports', (done) => {
+      it('should contain correct ports', (t, done) => {
         loader.load('ascomponent/sync-two', (err, instance) => {
           if (err) {
             done(err);
             return;
           }
-          chai.expect(Object.keys(instance.inPorts.ports)).to.eql(['greeting', 'name']);
-          chai.expect(Object.keys(instance.outPorts.ports)).to.eql(['out', 'error']);
+          assert.deepEqual(Object.keys(instance.inPorts.ports), ['greeting', 'name']);
+          assert.deepEqual(Object.keys(instance.outPorts.ports), ['out', 'error']);
           done();
         });
       });
-      it('should send to OUT port', (done) => {
+      it('should send to OUT port', (t, done) => {
         const wrapped = noflo.asCallback('ascomponent/sync-two',
           { loader });
         wrapped({
@@ -149,7 +148,7 @@ describe('asComponent interface', () => {
             done(err);
             return;
           }
-          chai.expect(res).to.eql({ out: 'Hei Maailma' });
+          assert.deepStrictEqual(res, { out: 'Hei Maailma' });
           done();
         });
       });
@@ -158,29 +157,29 @@ describe('asComponent interface', () => {
       before(function () {
         if (isBrowser) { return this.skip(); }
       }); // Browser runs with ES5 which didn't have defaults
-      it('should be possible to componentize', (done) => {
+      it('should be possible to componentize', (t, done) => {
         const component = () => noflo.asComponent((name, greeting = 'Hello') => `${greeting} ${name}`);
         loader.registerComponent('ascomponent', 'sync-default', component, done);
       });
-      it('should be loadable', (done) => {
+      it('should be loadable', (t, done) => {
         loader.load('ascomponent/sync-default', done);
       });
-      it('should contain correct ports', (done) => {
+      it('should contain correct ports', (t, done) => {
         loader.load('ascomponent/sync-default', (err, instance) => {
           if (err) {
             done(err);
             return;
           }
-          chai.expect(Object.keys(instance.inPorts.ports)).to.eql(['name', 'greeting']);
-          chai.expect(Object.keys(instance.outPorts.ports)).to.eql(['out', 'error']);
-          chai.expect(instance.inPorts.name.isRequired()).to.equal(true);
-          chai.expect(instance.inPorts.name.hasDefault()).to.equal(false);
-          chai.expect(instance.inPorts.greeting.isRequired()).to.equal(false);
-          chai.expect(instance.inPorts.greeting.hasDefault()).to.equal(true);
+          assert.deepEqual(Object.keys(instance.inPorts.ports), ['name', 'greeting']);
+          assert.deepEqual(Object.keys(instance.outPorts.ports), ['out', 'error']);
+          assert.equal(instance.inPorts.name.isRequired(), true);
+          assert.equal(instance.inPorts.name.hasDefault(), false);
+          assert.equal(instance.inPorts.greeting.isRequired(), false);
+          assert.equal(instance.inPorts.greeting.hasDefault(), true);
           done();
         });
       });
-      it('should send to OUT port', (done) => {
+      it('should send to OUT port', (t, done) => {
         const wrapped = noflo.asCallback('ascomponent/sync-default',
           { loader });
         wrapped(
@@ -190,7 +189,7 @@ describe('asComponent interface', () => {
               done(err);
               return;
             }
-            chai.expect(res).to.eql({ out: 'Hello Maailma' });
+            assert.deepStrictEqual(res, { out: 'Hello Maailma' });
             done();
           },
         );
@@ -207,11 +206,11 @@ describe('asComponent interface', () => {
           resolve(`Hello ${hello}`);
         }, 5);
       });
-      it('should be possible to componentize', (done) => {
+      it('should be possible to componentize', (t, done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'promise-one', component, done);
       });
-      it('should send to OUT port', (done) => {
+      it('should send to OUT port', (t, done) => {
         const wrapped = noflo.asCallback('ascomponent/promise-one',
           { loader });
         wrapped('World', (err, res) => {
@@ -219,7 +218,7 @@ describe('asComponent interface', () => {
             done(err);
             return;
           }
-          chai.expect(res).to.equal('Hello World');
+          assert.strictEqual(res, 'Hello World');
           done();
         });
       });
@@ -235,16 +234,16 @@ describe('asComponent interface', () => {
           reject(new Error(`Hello ${hello}`));
         }, 5);
       });
-      it('should be possible to componentize', (done) => {
+      it('should be possible to componentize', (t, done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'sync-throw', component, done);
       });
-      it('should send to ERROR port', (done) => {
+      it('should send to ERROR port', (t, done) => {
         const wrapped = noflo.asCallback('ascomponent/sync-throw',
           { loader });
         wrapped('Error', (err) => {
-          chai.expect(err).to.be.an('error');
-          chai.expect(err.message).to.equal('Hello Error');
+          assert.strictEqual(Error.isError(err), true);
+          assert.strictEqual(err.message, 'Hello Error');
           done();
         });
       });
@@ -253,22 +252,22 @@ describe('asComponent interface', () => {
   describe('with a synchronous function taking zero parameters', () => {
     describe('with returned value', () => {
       const func = () => 'Hello there';
-      it('should be possible to componentize', (done) => {
+      it('should be possible to componentize', (t, done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'sync-zero', component, done);
       });
-      it('should contain correct ports', (done) => {
+      it('should contain correct ports', (t, done) => {
         loader.load('ascomponent/sync-zero', (err, instance) => {
           if (err) {
             done(err);
             return;
           }
-          chai.expect(Object.keys(instance.inPorts.ports)).to.eql(['in']);
-          chai.expect(Object.keys(instance.outPorts.ports)).to.eql(['out', 'error']);
+          assert.deepEqual(Object.keys(instance.inPorts.ports), ['in']);
+          assert.deepEqual(Object.keys(instance.outPorts.ports), ['out', 'error']);
           done();
         });
       });
-      it('should send to OUT port', (done) => {
+      it('should send to OUT port', (t, done) => {
         const wrapped = noflo.asCallback('ascomponent/sync-zero',
           { loader });
         wrapped('bang', (err, res) => {
@@ -276,28 +275,28 @@ describe('asComponent interface', () => {
             done(err);
             return;
           }
-          chai.expect(res).to.equal('Hello there');
+          assert.strictEqual(res, 'Hello there');
           done();
         });
       });
     });
     describe('with a built-in function', () => {
-      it('should be possible to componentize', (done) => {
+      it('should be possible to componentize', (t, done) => {
         const component = () => noflo.asComponent(Math.random);
         loader.registerComponent('ascomponent', 'sync-zero', component, done);
       });
-      it('should contain correct ports', (done) => {
+      it('should contain correct ports', (t, done) => {
         loader.load('ascomponent/sync-zero', (err, instance) => {
           if (err) {
             done(err);
             return;
           }
-          chai.expect(Object.keys(instance.inPorts.ports)).to.eql(['in']);
-          chai.expect(Object.keys(instance.outPorts.ports)).to.eql(['out', 'error']);
+          assert.deepEqual(Object.keys(instance.inPorts.ports), ['in']);
+          assert.deepEqual(Object.keys(instance.outPorts.ports), ['out', 'error']);
           done();
         });
       });
-      it('should send to OUT port', (done) => {
+      it('should send to OUT port', (t, done) => {
         const wrapped = noflo.asCallback('ascomponent/sync-zero',
           { loader });
         wrapped('bang', (err, res) => {
@@ -305,7 +304,7 @@ describe('asComponent interface', () => {
             done(err);
             return;
           }
-          chai.expect(res).to.be.a('number');
+          assert.strictEqual(typeof res, "number");
           done();
         });
       });
@@ -317,25 +316,25 @@ describe('asComponent interface', () => {
         setTimeout(() => callback(null, `Hello ${hello}`),
           5);
       };
-      it('should be possible to componentize', (done) => {
+      it('should be possible to componentize', (t, done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'async-one', component, done);
       });
-      it('should be loadable', (done) => {
+      it('should be loadable', (t, done) => {
         loader.load('ascomponent/async-one', done);
       });
-      it('should contain correct ports', (done) => {
+      it('should contain correct ports', (t, done) => {
         loader.load('ascomponent/async-one', (err, instance) => {
           if (err) {
             done(err);
             return;
           }
-          chai.expect(Object.keys(instance.inPorts.ports)).to.eql(['hello']);
-          chai.expect(Object.keys(instance.outPorts.ports)).to.eql(['out', 'error']);
+          assert.deepEqual(Object.keys(instance.inPorts.ports), ['hello']);
+          assert.deepEqual(Object.keys(instance.outPorts.ports), ['out', 'error']);
           done();
         });
       });
-      it('should send to OUT port', (done) => {
+      it('should send to OUT port', (t, done) => {
         const wrapped = noflo.asCallback('ascomponent/async-one',
           { loader });
         wrapped('World', (err, res) => {
@@ -343,7 +342,7 @@ describe('asComponent interface', () => {
             done(err);
             return;
           }
-          chai.expect(res).to.equal('Hello World');
+          assert.strictEqual(res, 'Hello World');
           done();
         });
       });
@@ -353,16 +352,16 @@ describe('asComponent interface', () => {
         setTimeout(() => callback(new Error(`Hello ${hello}`)),
           5);
       };
-      it('should be possible to componentize', (done) => {
+      it('should be possible to componentize', (t, done) => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'async-throw', component, done);
       });
-      it('should send to ERROR port', (done) => {
+      it('should send to ERROR port', (t, done) => {
         const wrapped = noflo.asCallback('ascomponent/async-throw',
           { loader });
         wrapped('Error', (err) => {
-          chai.expect(err).to.be.an('error');
-          chai.expect(err.message).to.equal('Hello Error');
+          assert.strictEqual(Error.isError(err), true)
+          assert.strictEqual(err.message, 'Hello Error');
           done();
         });
       });

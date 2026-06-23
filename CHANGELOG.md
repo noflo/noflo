@@ -18,6 +18,9 @@ export function getComponent() {
 }
 ```
 
+### Changed
+- Project's unit tests are now executed using the Node.js built-in test runner
+
 ## [1.5.1] - 2026-06-20
 ### Changed
 - NoFlo can now be imported either ES Module or CommonJS

@@ -1,3 +1,7 @@
+import assert from 'node:assert/strict';
+import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
+import * as noflo from '../src/lib/NoFlo.js';
+
 describe('Component', () => {
   describe('with required ports', () => {
     it('should throw an error upon sending packet to an unattached required port', () => {
@@ -11,7 +15,7 @@ describe('Component', () => {
         },
       });
       c.outPorts.optional_port.attach(s2);
-      chai.expect(() => c.outPorts.required_port.send('foo')).to.throw();
+      assert.throws(() => c.outPorts.required_port.send('foo'));
     });
     it('should be cool with an attached port', () => {
       const s1 = new noflo.internalSocket.InternalSocket();
@@ -30,11 +34,11 @@ describe('Component', () => {
         s1.send('some-more-data');
         s2.send('some-data');
       };
-      chai.expect(f).to.not.throw();
+      assert.doesNotThrow(f);
     });
   });
   describe('with component creation shorthand', () => {
-    it('should make component creation easy', (done) => {
+    it('should make component creation easy', (t, done) => {
       const c = new noflo.Component({
         inPorts: {
           in: {
@@ -47,13 +51,13 @@ describe('Component', () => {
           let packet;
           if (input.hasData('in')) {
             packet = input.getData('in');
-            chai.expect(packet).to.equal('some-data');
+            assert.strictEqual(packet, 'some-data');
             output.done();
             return;
           }
           if (input.hasData('just_processor')) {
             packet = input.getData('just_processor');
-            chai.expect(packet).to.equal('some-data');
+            assert.strictEqual(packet, 'some-data');
             output.done();
             done();
           }
@@ -69,7 +73,7 @@ describe('Component', () => {
       s1.send('some-data');
       s2.send('some-data');
     });
-    it('should throw errors if there is no error port', (done) => {
+    it('should throw errors if there is no error port', (t, done) => {
       const c = new noflo.Component({
         inPorts: {
           in: {
@@ -79,8 +83,8 @@ describe('Component', () => {
         },
         process(input, output) {
           const packet = input.getData('in');
-          chai.expect(packet).to.equal('some-data');
-          chai.expect(() => output.error(new Error())).to.throw(Error);
+          assert.strictEqual(packet, 'some-data');
+          assert.throws(() => output.error(new Error()));
           done();
         },
       });
@@ -90,7 +94,7 @@ describe('Component', () => {
       c.inPorts.in.nodeInstance = c;
       s1.send('some-data');
     });
-    it('should throw errors if there is a non-attached error port', (done) => {
+    it('should throw errors if there is a non-attached error port', (t, done) => {
       const c = new noflo.Component({
         inPorts: {
           in: {
@@ -106,8 +110,8 @@ describe('Component', () => {
         },
         process(input, output) {
           const packet = input.getData('in');
-          chai.expect(packet).to.equal('some-data');
-          chai.expect(() => output.error(new Error())).to.throw(Error);
+          assert.strictEqual(packet, 'some-data');
+          assert.throws(() => output.error(new Error()));
           done();
         },
       });
@@ -117,7 +121,7 @@ describe('Component', () => {
       c.inPorts.in.nodeInstance = c;
       s1.send('some-data');
     });
-    it('should not throw errors if there is a non-required error port', (done) => {
+    it('should not throw errors if there is a non-required error port', (t, done) => {
       const c = new noflo.Component({
         inPorts: {
           in: {
@@ -132,7 +136,7 @@ describe('Component', () => {
         },
         process(input) {
           const packet = input.getData('in');
-          chai.expect(packet).to.equal('some-data');
+          assert.strictEqual(packet, 'some-data');
           c.error(new Error());
           done();
         },
@@ -143,7 +147,7 @@ describe('Component', () => {
       c.inPorts.in.nodeInstance = c;
       s1.send('some-data');
     });
-    it('should send errors if there is a connected error port', (done) => {
+    it('should send errors if there is a connected error port', (t, done) => {
       const c = new noflo.Component({
         inPorts: {
           in: {
@@ -159,7 +163,7 @@ describe('Component', () => {
         process(input, output) {
           if (!input.hasData('in')) { return; }
           const packet = input.getData('in');
-          chai.expect(packet).to.equal('some-data');
+          assert.strictEqual(packet, 'some-data');
           output.done(new Error());
         },
       });
@@ -171,11 +175,11 @@ describe('Component', () => {
         'bar',
       ];
       s2.on('begingroup', (grp) => {
-        chai.expect(grp).to.equal(groups.shift());
+        assert.strictEqual(grp, groups.shift());
       });
       s2.on('data', (err) => {
-        chai.expect(err).to.be.an.instanceOf(Error);
-        chai.expect(groups.length).to.equal(0);
+        assert.equal(Error.isError(err), true);
+        assert.strictEqual(groups.length, 0);
         done();
       });
 
@@ -194,7 +198,7 @@ describe('Component', () => {
           fooPort: {},
         },
       });
-      chai.expect(shorthand).to.throw();
+      assert.throws(shorthand);
     });
     it('should throw an error with uppercase letters in outport', () => {
       const shorthand = () => new noflo.Component({
@@ -202,7 +206,7 @@ describe('Component', () => {
           BarPort: {},
         },
       });
-      chai.expect(shorthand).to.throw();
+      assert.throws(shorthand);
     });
     it('should throw an error with special characters in inport', () => {
       const shorthand = () => new noflo.Component({
@@ -210,7 +214,7 @@ describe('Component', () => {
           '$%^&*a': {},
         },
       });
-      chai.expect(shorthand).to.throw();
+      assert.throws(shorthand);
     });
   });
   describe('with non-existing ports', () => {
@@ -224,14 +228,14 @@ describe('Component', () => {
         },
       });
     };
-    it('should throw an error when checking attached for non-existing port', (done) => {
+    it('should throw an error when checking attached for non-existing port', (t, done) => {
       const c = getComponent();
       c.process((input) => {
         try {
           input.attached('foo');
         } catch (e) {
-          chai.expect(e).to.be.an('Error');
-          chai.expect(e.message).to.contain('foo');
+          assert.strictEqual(Error.isError(e), true);
+          assert.ok(e.message.includes('foo'));
           done();
           return;
         }
@@ -241,14 +245,14 @@ describe('Component', () => {
       c.inPorts.in.attach(sin1);
       sin1.send('hello');
     });
-    it('should throw an error when checking IP for non-existing port', (done) => {
+    it('should throw an error when checking IP for non-existing port', (t, done) => {
       const c = getComponent();
       c.process((input) => {
         try {
           input.has('foo');
         } catch (e) {
-          chai.expect(e).to.be.an('Error');
-          chai.expect(e.message).to.contain('foo');
+          assert.strictEqual(Error.isError(e), true);
+          assert.ok(e.message.includes('foo'));
           done();
           return;
         }
@@ -258,14 +262,14 @@ describe('Component', () => {
       c.inPorts.in.attach(sin1);
       sin1.send('hello');
     });
-    it('should throw an error when checking IP for non-existing addressable port', (done) => {
+    it('should throw an error when checking IP for non-existing addressable port', (t, done) => {
       const c = getComponent();
       c.process((input) => {
         try {
           input.has(['foo', 0]);
         } catch (e) {
-          chai.expect(e).to.be.an('Error');
-          chai.expect(e.message).to.contain('foo');
+          assert.strictEqual(Error.isError(e), true);
+          assert.ok(e.message.includes('foo'));
           done();
           return;
         }
@@ -275,14 +279,14 @@ describe('Component', () => {
       c.inPorts.in.attach(sin1);
       sin1.send('hello');
     });
-    it('should throw an error when checking data for non-existing port', (done) => {
+    it('should throw an error when checking data for non-existing port', (t, done) => {
       const c = getComponent();
       c.process((input) => {
         try {
           input.hasData('foo');
         } catch (e) {
-          chai.expect(e).to.be.an('Error');
-          chai.expect(e.message).to.contain('foo');
+          assert.strictEqual(Error.isError(e), true);
+          assert.ok(e.message.includes('foo'));
           done();
           return;
         }
@@ -292,14 +296,14 @@ describe('Component', () => {
       c.inPorts.in.attach(sin1);
       sin1.send('hello');
     });
-    it('should throw an error when checking stream for non-existing port', (done) => {
+    it('should throw an error when checking stream for non-existing port', (t, done) => {
       const c = getComponent();
       c.process((input) => {
         try {
           input.hasStream('foo');
         } catch (e) {
-          chai.expect(e).to.be.an('Error');
-          chai.expect(e.message).to.contain('foo');
+          assert.strictEqual(Error.isError(e), true);
+          assert.ok(e.message.includes('foo'));
           done();
           return;
         }
@@ -311,7 +315,7 @@ describe('Component', () => {
     });
   });
   describe('starting a component', () => {
-    it('should flag the component as started', (done) => {
+    it('should flag the component as started', () => {
       const c = new noflo.Component({
         inPorts: {
           in: {
@@ -322,19 +326,15 @@ describe('Component', () => {
       });
       const i = new noflo.internalSocket.InternalSocket();
       c.inPorts.in.attach(i);
-      c.start((err) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        chai.expect(c.started).to.equal(true);
-        chai.expect(c.isStarted()).to.equal(true);
-        done();
-      });
+      return c.start()
+        .then(() => {
+          assert.strictEqual(c.started, true);
+          assert.strictEqual(c.isStarted(), true);
+        });
     });
   });
   describe('shutting down a component', () => {
-    it('should flag the component as not started', (done) => {
+    it('should flag the component as not started', (t, done) => {
       const c = new noflo.Component({
         inPorts: {
           in: {
@@ -350,21 +350,21 @@ describe('Component', () => {
           done(err);
           return;
         }
-        chai.expect(c.isStarted()).to.equal(true);
+        assert.equal(c.isStarted(), true);
         c.shutdown((err) => {
           if (err) {
             done(err);
             return;
           }
-          chai.expect(c.started).to.equal(false);
-          chai.expect(c.isStarted()).to.equal(false);
+          assert.strictEqual(c.started, false);
+          assert.equal(c.isStarted(), false);
           done();
         });
       });
     });
   });
   describe('with object-based IPs', () => {
-    it('should speak IP objects', (done) => {
+    it('should speak IP objects', (t, done) => {
       const c = new noflo.Component({
         inPorts: {
           in: {
@@ -385,22 +385,24 @@ describe('Component', () => {
       const s2 = new noflo.internalSocket.InternalSocket();
 
       s2.on('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.groups).to.be.an('array');
-        chai.expect(ip.groups).to.eql(['foo']);
-        chai.expect(ip.data).to.be.a('string');
-        chai.expect(ip.data).to.equal('some-data');
+        console.log(ip);
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(Array.isArray(ip.groups), true);
+        assert.deepStrictEqual(ip.groups, ['foo']);
+        assert.strictEqual(typeof ip.data, "string");
+        assert.strictEqual(ip.data, 'some-data');
         done();
       });
 
       c.inPorts.in.attach(s1);
       c.outPorts.out.attach(s2);
 
-      s1.post(new noflo.IP('data', 'some-data',
-        { groups: ['foo'] }));
+      s1.post(new noflo.IP('data', 'some-data', {
+        groups: ['foo'],
+      }));
     });
-    it('should support substreams', (done) => {
+    it('should support substreams', (t, done) => {
       const c = new noflo.Component({
         forwardBrackets: {},
         inPorts: {
@@ -460,7 +462,7 @@ describe('Component', () => {
           output.send({ tags: new noflo.IP('data', 'World!') });
           output.send({ tags: new noflo.IP('closeBracket', 'strong') });
           output.send({ tags: new noflo.IP('closeBracket', 'p') });
-          outout.done();
+          output.done();
         },
       });
 
@@ -469,9 +471,9 @@ describe('Component', () => {
       const s3 = new noflo.internalSocket.InternalSocket();
 
       s3.on('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.data).to.equal('<p><em>Hello</em>, <strong>World!</strong></p>');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.data, '<p><em>Hello</em>, <strong>World!</strong></p>');
         done();
       });
 
@@ -491,7 +493,7 @@ describe('Component', () => {
     let sout1 = null;
     let sout2 = null;
 
-    beforeEach((done) => {
+    beforeEach((t, done) => {
       sin1 = new noflo.internalSocket.InternalSocket();
       sin2 = new noflo.internalSocket.InternalSocket();
       sin3 = new noflo.internalSocket.InternalSocket();
@@ -500,7 +502,7 @@ describe('Component', () => {
       done();
     });
 
-    it('should trigger on IPs', (done) => {
+    it('should trigger on IPs', (t, done) => {
       let hadIPs = [];
       c = new noflo.Component({
         inPorts: {
@@ -526,10 +528,10 @@ describe('Component', () => {
       sout1.on('ip', () => {
         count++;
         if (count === 1) {
-          chai.expect(hadIPs).to.eql(['foo']);
+          assert.deepStrictEqual(hadIPs, ['foo']);
         }
         if (count === 2) {
-          chai.expect(hadIPs).to.eql(['foo', 'bar']);
+          assert.deepStrictEqual(hadIPs, ['foo', 'bar']);
           done();
         }
       });
@@ -537,7 +539,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('data', 'first'));
       sin2.post(new noflo.IP('data', 'second'));
     });
-    it('should trigger on IPs to addressable ports', (done) => {
+    it('should trigger on IPs to addressable ports', (t, done) => {
       const receivedIndexes = [];
       c = new noflo.Component({
         inPorts: {
@@ -574,14 +576,14 @@ describe('Component', () => {
       sout1.on('ip', () => {
         count++;
         if (count === 1) {
-          chai.expect(receivedIndexes).to.eql([{
+          assert.deepStrictEqual(receivedIndexes, [{
             idx: 1,
             payload: 'first',
           },
           ]);
         }
         if (count === 2) {
-          chai.expect(receivedIndexes).to.eql([{
+          assert.deepStrictEqual(receivedIndexes, [{
             idx: 1,
             payload: 'first',
           },
@@ -596,7 +598,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('data', 'first'));
       sin2.post(new noflo.IP('data', 'second'));
     });
-    it('should be able to send IPs to addressable connections', (done) => {
+    it('should be able to send IPs to addressable connections', (t, done) => {
       const expected = [{
         data: 'first',
         index: 1,
@@ -636,7 +638,7 @@ describe('Component', () => {
           data: ip.data,
           index: 1,
         };
-        chai.expect(received).to.eql(exp);
+        assert.deepStrictEqual(received, exp);
         if (!expected.length) { done(); }
       });
       sout2.on('ip', (ip) => {
@@ -645,13 +647,13 @@ describe('Component', () => {
           data: ip.data,
           index: 0,
         };
-        chai.expect(received).to.eql(exp);
+        assert.deepStrictEqual(received, exp);
         if (!expected.length) { done(); }
       });
       sin1.post(new noflo.IP('data', 'first'));
       sin1.post(new noflo.IP('data', 'second'));
     });
-    it('trying to send to addressable port without providing index should fail', (done) => {
+    it('trying to send to addressable port without providing index should fail', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: {
@@ -668,7 +670,7 @@ describe('Component', () => {
           if (!input.hasData('foo')) { return; }
           const packet = input.get('foo');
           const noIndex = new noflo.IP('data', packet.data);
-          chai.expect(() => output.sendDone(noIndex)).to.throw(Error);
+          assert.throws(() => output.sendDone(noIndex));
           done();
         },
       });
@@ -682,7 +684,7 @@ describe('Component', () => {
 
       sin1.post(new noflo.IP('data', 'first'));
     });
-    it('should be able to send falsy IPs', (done) => {
+    it('should be able to send falsy IPs', (t, done) => {
       const expected = [{
         port: 'out1',
         data: 1,
@@ -726,7 +728,7 @@ describe('Component', () => {
           port: 'out1',
           data: ip.data,
         };
-        chai.expect(received).to.eql(exp);
+        assert.deepStrictEqual(received, exp);
         if (!expected.length) { done(); }
       });
       sout2.on('ip', (ip) => {
@@ -735,12 +737,12 @@ describe('Component', () => {
           port: 'out2',
           data: ip.data,
         };
-        chai.expect(received).to.eql(exp);
+        assert.deepStrictEqual(received, exp);
         if (!expected.length) { done(); }
       });
       sin1.post(new noflo.IP('data', 'first'));
     });
-    it('should not be triggered by non-triggering ports', (done) => {
+    it('should not be triggered by non-triggering ports', (t, done) => {
       const triggered = [];
       c = new noflo.Component({
         inPorts: {
@@ -767,10 +769,10 @@ describe('Component', () => {
       sout1.on('ip', () => {
         count++;
         if (count === 1) {
-          chai.expect(triggered).to.eql(['bar']);
+          assert.deepStrictEqual(triggered, ['bar']);
         }
         if (count === 2) {
-          chai.expect(triggered).to.eql(['bar', 'bar']);
+          assert.deepStrictEqual(triggered, ['bar', 'bar']);
           done();
         }
       });
@@ -780,7 +782,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('data', 'first'));
       sin2.post(new noflo.IP('data', 'second'));
     });
-    it('should fetch undefined for premature data', (done) => {
+    it('should fetch undefined for premature data', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: {
@@ -800,9 +802,9 @@ describe('Component', () => {
         process(input) {
           if (!input.has('foo')) { return; }
           const [foo, bar, baz] = input.getData('foo', 'bar', 'baz');
-          chai.expect(foo).to.be.a('string');
-          chai.expect(bar).to.be.undefined;
-          chai.expect(baz).to.be.undefined;
+          assert.strictEqual(typeof foo, "string");
+          assert.strictEqual(bar, undefined);
+          assert.strictEqual(baz, undefined);
           done();
         },
       });
@@ -815,7 +817,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('data', true));
       sin3.post(new noflo.IP('data', 'first'));
     });
-    it('should receive and send complete noflo.IP objects', (done) => {
+    it('should receive and send complete noflo.IP objects', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: { datatype: 'string' },
@@ -845,13 +847,13 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.data.foo).to.equal('foo');
-        chai.expect(ip.data.bar).to.equal('bar');
-        chai.expect(ip.data.groups).to.eql(['foo']);
-        chai.expect(ip.data.type).to.equal('data');
-        chai.expect(ip.groups).to.eql(['baz']);
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.data.foo, 'foo');
+        assert.strictEqual(ip.data.bar, 'bar');
+        assert.deepStrictEqual(ip.data.groups, ['foo']);
+        assert.strictEqual(ip.data.type, 'data');
+        assert.deepStrictEqual(ip.groups, ['baz']);
         done();
       });
 
@@ -860,7 +862,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('data', 'bar',
         { groups: ['bar'] }));
     });
-    it('should stamp IP objects with the datatype of the outport when sending', (done) => {
+    it('should stamp IP objects with the datatype of the outport when sending', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: { datatype: 'all' },
@@ -879,16 +881,16 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.data).to.equal('foo');
-        chai.expect(ip.datatype).to.equal('string');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.data, 'foo');
+        assert.strictEqual(ip.datatype, 'string');
         done();
       });
 
       sin1.post(new noflo.IP('data', 'foo'));
     });
-    it('should stamp IP objects with the datatype of the inport when receiving', (done) => {
+    it('should stamp IP objects with the datatype of the inport when receiving', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: { datatype: 'string' },
@@ -907,16 +909,16 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.data).to.equal('foo');
-        chai.expect(ip.datatype).to.equal('string');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.data, 'foo');
+        assert.strictEqual(ip.datatype, 'string');
         done();
       });
 
       sin1.post(new noflo.IP('data', 'foo'));
     });
-    it('should stamp IP objects with the schema of the outport when sending', (done) => {
+    it('should stamp IP objects with the schema of the outport when sending', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: { datatype: 'all' },
@@ -938,17 +940,17 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.data).to.equal('foo');
-        chai.expect(ip.datatype).to.equal('string');
-        chai.expect(ip.schema).to.equal('text/markdown');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.data, 'foo');
+        assert.strictEqual(ip.datatype, 'string');
+        assert.strictEqual(ip.schema, 'text/markdown');
         done();
       });
 
       sin1.post(new noflo.IP('data', 'foo'));
     });
-    it('should stamp IP objects with the schema of the inport when receiving', (done) => {
+    it('should stamp IP objects with the schema of the inport when receiving', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: {
@@ -970,17 +972,17 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.data).to.equal('foo');
-        chai.expect(ip.datatype).to.equal('string');
-        chai.expect(ip.schema).to.equal('text/markdown');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.data, 'foo');
+        assert.strictEqual(ip.datatype, 'string');
+        assert.strictEqual(ip.schema, 'text/markdown');
         done();
       });
 
       sin1.post(new noflo.IP('data', 'foo'));
     });
-    it('should receive and send just IP data if wanted', (done) => {
+    it('should receive and send just IP data if wanted', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: { datatype: 'string' },
@@ -1005,10 +1007,10 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.data.foo).to.equal('foo');
-        chai.expect(ip.data.bar).to.equal('bar');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.data.foo, 'foo');
+        assert.strictEqual(ip.data.bar, 'bar');
         done();
       });
 
@@ -1017,7 +1019,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('data', 'bar',
         { groups: ['bar'] }));
     });
-    it('should receive IPs and be able to selectively find them', (done) => {
+    it('should receive IPs and be able to selectively find them', (t, done) => {
       let called = 0;
       c = new noflo.Component({
         inPorts: {
@@ -1051,11 +1053,11 @@ describe('Component', () => {
       let shouldHaveSent = false;
 
       sout1.on('ip', (ip) => {
-        chai.expect(shouldHaveSent, 'Should not sent before its time').to.equal(true);
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.data).to.equal('hello:hello');
-        chai.expect(called).to.equal(10);
+        assert.strictEqual(shouldHaveSent, true, 'Should not sent before its time');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.data, 'hello:hello');
+        assert.strictEqual(called, 10);
         done();
       });
 
@@ -1065,7 +1067,7 @@ describe('Component', () => {
       shouldHaveSent = true;
       sin2.post(new noflo.IP('data', 'hello'));
     });
-    it('should keep last value for controls', (done) => {
+    it('should keep last value for controls', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: { datatype: 'string' },
@@ -1093,15 +1095,15 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.data.foo).to.equal('foo');
-        chai.expect(ip.data.bar).to.equal('bar');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.data.foo, 'foo');
+        assert.strictEqual(ip.data.bar, 'bar');
         sout1.once('ip', (ip) => {
-          chai.expect(ip).to.be.an('object');
-          chai.expect(ip.type).to.equal('data');
-          chai.expect(ip.data.foo).to.equal('boo');
-          chai.expect(ip.data.bar).to.equal('bar');
+          assert.strictEqual(typeof ip, "object");
+          assert.strictEqual(ip.type, 'data');
+          assert.strictEqual(ip.data.foo, 'boo');
+          assert.strictEqual(ip.data.bar, 'bar');
           done();
         });
       });
@@ -1110,7 +1112,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('data', 'bar'));
       sin1.post(new noflo.IP('data', 'boo'));
     });
-    it('should keep last data-typed IP packet for controls', (done) => {
+    it('should keep last data-typed IP packet for controls', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: { datatype: 'string' },
@@ -1138,15 +1140,15 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.data.foo).to.equal('foo');
-        chai.expect(ip.data.bar).to.equal('bar');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.data.foo, 'foo');
+        assert.strictEqual(ip.data.bar, 'bar');
         sout1.once('ip', (ip) => {
-          chai.expect(ip).to.be.an('object');
-          chai.expect(ip.type).to.equal('data');
-          chai.expect(ip.data.foo).to.equal('boo');
-          chai.expect(ip.data.bar).to.equal('bar');
+          assert.strictEqual(typeof ip, "object");
+          assert.strictEqual(ip.type, 'data');
+          assert.strictEqual(ip.data.foo, 'boo');
+          assert.strictEqual(ip.data.bar, 'bar');
           done();
         });
       });
@@ -1157,7 +1159,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('closeBracket'));
       sin1.post(new noflo.IP('data', 'boo'));
     });
-    it('should isolate packets with different scopes', (done) => {
+    it('should isolate packets with different scopes', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: { datatype: 'string' },
@@ -1178,15 +1180,15 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.scope).to.equal('1');
-        chai.expect(ip.data).to.equal('Josh and Laura');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.scope, '1');
+        assert.strictEqual(ip.data, 'Josh and Laura');
         sout1.once('ip', (ip) => {
-          chai.expect(ip).to.be.an('object');
-          chai.expect(ip.type).to.equal('data');
-          chai.expect(ip.scope).to.equal('2');
-          chai.expect(ip.data).to.equal('Jane and Luke');
+          assert.strictEqual(typeof ip, "object");
+          assert.strictEqual(ip.type, 'data');
+          assert.strictEqual(ip.scope, '2');
+          assert.strictEqual(ip.data, 'Jane and Luke');
           done();
         });
       });
@@ -1196,7 +1198,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('data', 'Laura', { scope: '1' }));
       sin1.post(new noflo.IP('data', 'Jane', { scope: '2' }));
     });
-    it('should be able to change scope', (done) => {
+    it('should be able to change scope', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: { datatype: 'string' },
@@ -1214,16 +1216,16 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.scope).to.equal('baz');
-        chai.expect(ip.data).to.equal('foo');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.scope, 'baz');
+        assert.strictEqual(ip.data, 'foo');
         done();
       });
 
       sin1.post(new noflo.IP('data', 'foo', { scope: 'foo' }));
     });
-    it('should support integer scopes', (done) => {
+    it('should support integer scopes', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           foo: { datatype: 'string' },
@@ -1244,20 +1246,20 @@ describe('Component', () => {
       c.outPorts.baz.attach(sout1);
 
       sout1.once('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.scope).to.equal(1);
-        chai.expect(ip.data).to.equal('Josh and Laura');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(ip.scope, 1);
+        assert.strictEqual(ip.data, 'Josh and Laura');
         sout1.once('ip', (ip) => {
-          chai.expect(ip).to.be.an('object');
-          chai.expect(ip.type).to.equal('data');
-          chai.expect(ip.scope).to.equal(0);
-          chai.expect(ip.data).to.equal('Jane and Luke');
+          assert.strictEqual(typeof ip, "object");
+          assert.strictEqual(ip.type, 'data');
+          assert.strictEqual(ip.scope, 0);
+          assert.strictEqual(ip.data, 'Jane and Luke');
           sout1.once('ip', (ip) => {
-            chai.expect(ip).to.be.an('object');
-            chai.expect(ip.type).to.equal('data');
-            chai.expect(ip.scope).to.be.null;
-            chai.expect(ip.data).to.equal('Tom and Anna');
+            assert.strictEqual(typeof ip, "object");
+            assert.strictEqual(ip.type, 'data');
+            assert.strictEqual(ip.scope, null);
+            assert.strictEqual(ip.data, 'Tom and Anna');
             done();
           });
         });
@@ -1270,7 +1272,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('data', 'Jane', { scope: 0 }));
       sin2.post(new noflo.IP('data', 'Anna'));
     });
-    it('should preserve order between input and output', (done) => {
+    it('should preserve order between input and output', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           msg: { datatype: 'string' },
@@ -1300,7 +1302,7 @@ describe('Component', () => {
       ];
 
       sout1.on('ip', (ip) => {
-        chai.expect(ip.data).to.eql(sample.shift());
+        assert.deepStrictEqual(ip.data, sample.shift());
         if (sample.length === 0) { done(); }
       });
 
@@ -1309,7 +1311,7 @@ describe('Component', () => {
         sin2.post(new noflo.IP('data', ip.delay));
       }
     });
-    it('should ignore order between input and output', (done) => {
+    it('should ignore order between input and output', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           msg: { datatype: 'string' },
@@ -1348,7 +1350,7 @@ describe('Component', () => {
           case 3: src = sample[2]; break;
           case 4: src = sample[0]; break;
         }
-        chai.expect(ip.data).to.eql(src);
+        assert.deepStrictEqual(ip.data, src);
         if (count === 4) { done(); }
       });
 
@@ -1357,7 +1359,7 @@ describe('Component', () => {
         sin2.post(new noflo.IP('data', ip.delay));
       }
     });
-    it('should throw errors if there is no error port', (done) => {
+    it('should throw errors if there is no error port', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -1367,8 +1369,8 @@ describe('Component', () => {
         },
         process(input, output) {
           const packet = input.get('in');
-          chai.expect(packet.data).to.equal('some-data');
-          chai.expect(() => output.done(new Error('Should fail'))).to.throw(Error);
+          assert.strictEqual(packet.data, 'some-data');
+          assert.throws(() => output.done(new Error('Should fail')));
           done();
         },
       });
@@ -1376,7 +1378,7 @@ describe('Component', () => {
       c.inPorts.in.attach(sin1);
       sin1.post(new noflo.IP('data', 'some-data'));
     });
-    it('should throw errors if there is a non-attached error port', (done) => {
+    it('should throw errors if there is a non-attached error port', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -1392,8 +1394,8 @@ describe('Component', () => {
         },
         process(input, output) {
           const packet = input.get('in');
-          chai.expect(packet.data).to.equal('some-data');
-          chai.expect(() => output.sendDone(new Error('Should fail'))).to.throw(Error);
+          assert.strictEqual(packet.data, 'some-data');
+          assert.throws(() => output.sendDone(new Error('Should fail')));
           done();
         },
       });
@@ -1401,7 +1403,7 @@ describe('Component', () => {
       c.inPorts.in.attach(sin1);
       sin1.post(new noflo.IP('data', 'some-data'));
     });
-    it('should not throw errors if there is a non-required error port', (done) => {
+    it('should not throw errors if there is a non-required error port', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -1416,7 +1418,7 @@ describe('Component', () => {
         },
         process(input, output) {
           const packet = input.get('in');
-          chai.expect(packet.data).to.equal('some-data');
+          assert.strictEqual(packet.data, 'some-data');
           output.sendDone(new Error('Should not fail'));
           done();
         },
@@ -1425,7 +1427,7 @@ describe('Component', () => {
       c.inPorts.in.attach(sin1);
       sin1.post(new noflo.IP('data', 'some-data'));
     });
-    it('should send out string other port if there is only one port aside from error', (done) => {
+    it('should send out string other port if there is only one port aside from error', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -1448,8 +1450,8 @@ describe('Component', () => {
       });
 
       sout1.on('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.data).to.equal('some data');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.data, 'some data');
         done();
       });
 
@@ -1458,7 +1460,7 @@ describe('Component', () => {
 
       sin1.post(new noflo.IP('data', 'first'));
     });
-    it('should send object out other port if there is only one port aside from error', (done) => {
+    it('should send object out other port if there is only one port aside from error', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -1481,8 +1483,8 @@ describe('Component', () => {
       });
 
       sout1.on('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.data).to.eql({ some: 'data' });
+        assert.strictEqual(typeof ip, "object");
+        assert.deepStrictEqual(ip.data, { some: 'data' });
         done();
       });
 
@@ -1491,7 +1493,7 @@ describe('Component', () => {
 
       sin1.post(new noflo.IP('data', 'first'));
     });
-    it('should throw an error if sending without specifying a port and there are multiple ports', (done) => {
+    it('should throw an error if sending without specifying a port and there are multiple ports', (t, done) => {
       const f = function () {
         c = new noflo.Component({
           inPorts: {
@@ -1516,10 +1518,10 @@ describe('Component', () => {
         c.inPorts.in.attach(sin1);
         sin1.post(new noflo.IP('data', 'some-data'));
       };
-      chai.expect(f).to.throw(Error);
+      assert.throws(f);
       done();
     });
-    it('should send errors if there is a connected error port', (done) => {
+    it('should send errors if there is a connected error port', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -1534,16 +1536,16 @@ describe('Component', () => {
         },
         process(input, output) {
           const packet = input.get('in');
-          chai.expect(packet.data).to.equal('some-data');
-          chai.expect(packet.scope).to.equal('some-scope');
+          assert.strictEqual(packet.data, 'some-data');
+          assert.strictEqual(packet.scope, 'some-scope');
           output.sendDone(new Error('Should fail'));
         },
       });
 
       sout1.on('ip', (ip) => {
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.data).to.be.an.instanceOf(Error);
-        chai.expect(ip.scope).to.equal('some-scope');
+        assert.strictEqual(typeof ip, "object");
+        assert.ok(Error.isError(ip.data));
+        assert.strictEqual(ip.scope, 'some-scope');
         done();
       });
 
@@ -1552,7 +1554,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('data', 'some-data',
         { scope: 'some-scope' }));
     });
-    it('should send substreams with multiple errors per activation', (done) => {
+    it('should send substreams with multiple errors per activation', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -1567,8 +1569,8 @@ describe('Component', () => {
         },
         process(input, output) {
           const packet = input.get('in');
-          chai.expect(packet.data).to.equal('some-data');
-          chai.expect(packet.scope).to.equal('some-scope');
+          assert.strictEqual(packet.data, 'some-data');
+          assert.strictEqual(packet.scope, 'some-scope');
           const errors = [];
           errors.push(new Error('One thing is invalid'));
           errors.push(new Error('Another thing is invalid'));
@@ -1587,16 +1589,16 @@ describe('Component', () => {
 
       sout1.on('ip', (ip) => {
         count++;
-        chai.expect(ip).to.be.an('object');
-        chai.expect(ip.scope).to.equal('some-scope');
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.scope, 'some-scope');
         if (ip.type === 'openBracket') { actual.push('<'); }
         if (ip.type === 'closeBracket') { actual.push('>'); }
         if (ip.type === 'data') {
-          chai.expect(ip.data).to.be.an.instanceOf(Error);
+          assert.ok(Error.isError(ip.data));
           actual.push(ip.data.message);
         }
         if (count === 4) {
-          chai.expect(actual).to.eql(expected);
+          assert.deepStrictEqual(actual, expected);
           done();
         }
       });
@@ -1606,7 +1608,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('data', 'some-data',
         { scope: 'some-scope' }));
     });
-    it('should forward brackets for map-style components', (done) => {
+    it('should forward brackets for map-style components', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -1651,7 +1653,7 @@ describe('Component', () => {
             default: return ip.data;
           }
         })();
-        chai.expect(data).to.equal(source[count].toUpperCase());
+        assert.strictEqual(data, source[count].toUpperCase());
         count++;
         if (count === 4) { done(); }
       });
@@ -1670,7 +1672,7 @@ describe('Component', () => {
         }
       }
     });
-    it('should forward brackets for map-style components with addressable outport', (done) => {
+    it('should forward brackets for map-style components with addressable outport', (t, done) => {
       let sent = false;
       c = new noflo.Component({
         inPorts: {
@@ -1724,7 +1726,7 @@ describe('Component', () => {
             break;
         }
         if (received.length !== expected.length) { return; }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
       sout2.on('ip', (ip) => {
@@ -1740,7 +1742,7 @@ describe('Component', () => {
             break;
         }
         if (received.length !== expected.length) { return; }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
 
@@ -1753,7 +1755,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('closeBracket', 'bar'));
       sin1.post(new noflo.IP('closeBracket', 'a'));
     });
-    it('should forward brackets for async map-style components with addressable outport', (done) => {
+    it('should forward brackets for async map-style components with addressable outport', (t, done) => {
       let sent = false;
       c = new noflo.Component({
         inPorts: {
@@ -1808,7 +1810,7 @@ describe('Component', () => {
             break;
         }
         if (received.length !== expected.length) { return; }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
       sout2.on('ip', (ip) => {
@@ -1824,7 +1826,7 @@ describe('Component', () => {
             break;
         }
         if (received.length !== expected.length) { return; }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
 
@@ -1837,7 +1839,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('closeBracket', 'bar'));
       sin1.post(new noflo.IP('closeBracket', 'a'));
     });
-    it('should forward brackets for map-style components with addressable in/outports', (done) => {
+    it('should forward brackets for map-style components with addressable in/outports', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -1894,7 +1896,7 @@ describe('Component', () => {
             break;
         }
         if (received.length !== expected.length) { return; }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
       sout2.on('ip', (ip) => {
@@ -1911,7 +1913,7 @@ describe('Component', () => {
         }
         if (received.length !== expected.length) { return; }
         if (received.length !== expected.length) { return; }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
 
@@ -1924,7 +1926,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('closeBracket', 'bar'));
       sin1.post(new noflo.IP('closeBracket', 'a'));
     });
-    it('should forward brackets for async map-style components with addressable in/outports', (done) => {
+    it('should forward brackets for async map-style components with addressable in/outports', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -1983,7 +1985,7 @@ describe('Component', () => {
             break;
         }
         if (received.length !== expected.length) { return; }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
       sout2.on('ip', (ip) => {
@@ -1999,7 +2001,7 @@ describe('Component', () => {
             break;
         }
         if (received.length !== expected.length) { return; }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
 
@@ -2012,7 +2014,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('closeBracket', 'bar'));
       sin1.post(new noflo.IP('closeBracket', 'a'));
     });
-    it('should forward brackets to error port in async components', (done) => {
+    it('should forward brackets to error port in async components', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -2052,14 +2054,14 @@ describe('Component', () => {
         count++;
         switch (count) {
           case 1:
-            chai.expect(ip.type).to.equal('openBracket');
+            assert.strictEqual(ip.type, 'openBracket');
             break;
           case 2:
-            chai.expect(ip.type).to.equal('data');
-            chai.expect(ip.data).to.be.an('error');
+            assert.strictEqual(ip.type, 'data');
+            assert.strictEqual(Error.isError(ip.data), true);
             break;
           case 3:
-            chai.expect(ip.type).to.equal('closeBracket');
+            assert.strictEqual(ip.type, 'closeBracket');
             break;
         }
         if (count === 3) { done(); }
@@ -2069,7 +2071,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('data', { bar: 'baz' }));
       sin1.post(new noflo.IP('closeBracket', 'foo'));
     });
-    it('should not forward brackets if error port is not connected', (done) => {
+    it('should not forward brackets if error port is not connected', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -2111,13 +2113,13 @@ describe('Component', () => {
         done(new Error(`Unexpected error IP: ${ip.type} ${ip.data}`));
       });
 
-      chai.expect(() => {
+      assert.doesNotThrow(() => {
         sin1.post(new noflo.IP('openBracket', 'foo'));
         sin1.post(new noflo.IP('data', 'bar'));
         sin1.post(new noflo.IP('closeBracket', 'foo'));
-      }).to.not.throw();
+      });
     });
-    it('should support custom bracket forwarding mappings with auto-ordering', (done) => {
+    it('should support custom bracket forwarding mappings with auto-ordering', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           msg: {
@@ -2172,16 +2174,16 @@ describe('Component', () => {
         let src = null;
         switch (count) {
           case 0:
-            chai.expect(ip.type).to.equal('openBracket');
-            chai.expect(ip.data).to.equal('msg');
+            assert.strictEqual(ip.type, 'openBracket');
+            assert.strictEqual(ip.data, 'msg');
             break;
           case 5:
-            chai.expect(ip.type).to.equal('closeBracket');
-            chai.expect(ip.data).to.equal('msg');
+            assert.strictEqual(ip.type, 'closeBracket');
+            assert.strictEqual(ip.data, 'msg');
             break;
           default: src = sample[count - 1];
         }
-        if (src) { chai.expect(ip.data).to.eql(src); }
+        if (src) { assert.deepStrictEqual(ip.data, src); }
         count++;
         // done() if count is 6
       });
@@ -2189,24 +2191,24 @@ describe('Component', () => {
       sout2.on('ip', (ip) => {
         switch (errCount) {
           case 0:
-            chai.expect(ip.type).to.equal('openBracket');
-            chai.expect(ip.data).to.equal('msg');
+            assert.strictEqual(ip.type, 'openBracket');
+            assert.strictEqual(ip.data, 'msg');
             break;
           case 1:
-            chai.expect(ip.type).to.equal('openBracket');
-            chai.expect(ip.data).to.equal('delay');
+            assert.strictEqual(ip.type, 'openBracket');
+            assert.strictEqual(ip.data, 'delay');
             break;
           case 2:
-            chai.expect(ip.type).to.equal('data');
-            chai.expect(ip.data).to.be.an('error');
+            assert.strictEqual(ip.type, 'data');
+            assert.strictEqual(Error.isError(ip.data), true);
             break;
           case 3:
-            chai.expect(ip.type).to.equal('closeBracket');
-            chai.expect(ip.data).to.equal('delay');
+            assert.strictEqual(ip.type, 'closeBracket');
+            assert.strictEqual(ip.data, 'delay');
             break;
           case 4:
-            chai.expect(ip.type).to.equal('closeBracket');
-            chai.expect(ip.data).to.equal('msg');
+            assert.strictEqual(ip.type, 'closeBracket');
+            assert.strictEqual(ip.data, 'msg');
             break;
         }
         errCount++;
@@ -2224,7 +2226,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('closeBracket', 'delay'));
       sin1.post(new noflo.IP('closeBracket', 'msg'));
     });
-    it('should de-duplicate brackets when asynchronously forwarding from multiple inports', (done) => {
+    it('should de-duplicate brackets when asynchronously forwarding from multiple inports', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           in1: {
@@ -2292,7 +2294,7 @@ describe('Component', () => {
             break;
         }
         if (received.length !== expected.length) { return; }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
 
@@ -2313,7 +2315,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('closeBracket', 'b'));
       sin2.post(new noflo.IP('closeBracket', 'a'));
     });
-    it('should de-duplicate brackets when synchronously forwarding from multiple inports', (done) => {
+    it('should de-duplicate brackets when synchronously forwarding from multiple inports', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           in1: {
@@ -2380,7 +2382,7 @@ describe('Component', () => {
             break;
         }
         if (received.length !== expected.length) { return; }
-        chai.expect(received).to.eql(expected);
+        assert.deepStrictEqual(received, expected);
         done();
       });
 
@@ -2401,7 +2403,7 @@ describe('Component', () => {
       sin2.post(new noflo.IP('closeBracket', 'b'));
       sin2.post(new noflo.IP('closeBracket', 'a'));
     });
-    it('should not apply auto-ordering if that option is false', (done) => {
+    it('should not apply auto-ordering if that option is false', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           msg: { datatype: 'string' },
@@ -2443,7 +2445,7 @@ describe('Component', () => {
           case 3: src = sample[2]; break;
           case 4: src = sample[0]; break;
         }
-        chai.expect(ip.data).to.eql(src);
+        assert.deepStrictEqual(ip.data, src);
         if (count === 4) { done(); }
       });
 
@@ -2458,7 +2460,7 @@ describe('Component', () => {
       sin1.post(new noflo.IP('closeBracket', 'msg'));
       sin2.post(new noflo.IP('closeBracket', 'delay'));
     });
-    it('should forward noflo.IP metadata for map-style components', (done) => {
+    it('should forward noflo.IP metadata for map-style components', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -2494,11 +2496,11 @@ describe('Component', () => {
       ];
       let count = 0;
       sout1.on('ip', (ip) => {
-        chai.expect(ip.type).to.equal('data');
-        chai.expect(ip.count).to.be.a('number');
-        chai.expect(ip.length).to.be.a('number');
-        chai.expect(ip.data).to.equal(source[ip.count].toUpperCase());
-        chai.expect(ip.length).to.equal(source.length);
+        assert.strictEqual(ip.type, 'data');
+        assert.strictEqual(typeof ip.count, "number");
+        assert.strictEqual(typeof ip.length, "number");
+        assert.strictEqual(ip.data, source[ip.count].toUpperCase());
+        assert.strictEqual(ip.length, source.length);
         count++;
         if (count === source.length) { done(); }
       });
@@ -2516,7 +2518,7 @@ describe('Component', () => {
         }));
       }
     });
-    it('should be safe dropping IPs', (done) => {
+    it('should be safe dropping IPs', (t, done) => {
       c = new noflo.Component({
         inPorts: {
           in: {
@@ -2551,7 +2553,7 @@ describe('Component', () => {
         { meta: 'bar' }));
     });
     describe('with custom callbacks', () => {
-      beforeEach((done) => {
+      beforeEach((t, done) => {
         c = new noflo.Component({
           inPorts: {
             foo: { datatype: 'string' },
@@ -2594,21 +2596,21 @@ describe('Component', () => {
         c.outPorts.err.attach(sout2);
         done();
       });
-      it('should fail on wrong input', (done) => {
+      it('should fail on wrong input', (t, done) => {
         sout1.once('ip', () => {
           done(new Error('Unexpected baz'));
         });
         sout2.once('ip', (ip) => {
-          chai.expect(ip).to.be.an('object');
-          chai.expect(ip.data).to.be.an('error');
-          chai.expect(ip.data.message).to.contain('Bar');
+          assert.strictEqual(typeof ip, "object");
+          assert.strictEqual(Error.isError(ip.data), true);
+          assert.ok(ip.data.message.includes('Bar'));
           done();
         });
 
         sin1.post(new noflo.IP('data', 'fff'));
         sin2.post(new noflo.IP('data', -120));
       });
-      it('should send substreams', (done) => {
+      it('should send substreams', (t, done) => {
         const sample = [
           { bar: 30, foo: 'one' },
           { bar: 0, foo: 'two' },
@@ -2636,7 +2638,7 @@ describe('Component', () => {
               actual.push(ip.data.foo);
           }
           if (count === 6) {
-            chai.expect(actual).to.eql(expected);
+            assert.deepStrictEqual(actual, expected);
             done();
           }
         });
@@ -2651,7 +2653,7 @@ describe('Component', () => {
       });
     });
     describe('using streams', () => {
-      it('should not trigger without a full stream without getting the whole stream', (done) => {
+      it('should not trigger without a full stream without getting the whole stream', (t, done) => {
         c = new noflo.Component({
           inPorts: {
             in: {
@@ -2683,7 +2685,7 @@ describe('Component', () => {
         sin1.post(new noflo.IP('data', 'eh'));
         sin1.post(new noflo.IP('closeBracket'));
       });
-      it('should trigger when forwardingBrackets because then it is only data with no brackets and is a full stream', (done) => {
+      it('should trigger when forwardingBrackets because then it is only data with no brackets and is a full stream', (t, done) => {
         c = new noflo.Component({
           inPorts: {
             in: {
@@ -2705,7 +2707,7 @@ describe('Component', () => {
         c.inPorts.in.attach(sin1);
         sin1.post(new noflo.IP('data', 'eh'));
       });
-      it('should get full stream when it has a single packet stream and it should clear it', (done) => {
+      it('should get full stream when it has a single packet stream and it should clear it', (t, done) => {
         c = new noflo.Component({
           inPorts: {
             eh: {
@@ -2721,10 +2723,10 @@ describe('Component', () => {
             if (!input.hasStream('eh')) { return; }
             const stream = input.getStream('eh');
             const packetTypes = stream.map((ip) => [ip.type, ip.data]);
-            chai.expect(packetTypes).to.eql([
+            assert.deepStrictEqual(packetTypes, [
               ['data', 'moose'],
             ]);
-            chai.expect(input.has('eh')).to.equal(false);
+            assert.equal(input.has('eh'), false);
             done();
           },
         });
@@ -2732,7 +2734,7 @@ describe('Component', () => {
         c.inPorts.eh.attach(sin1);
         sin1.post(new noflo.IP('data', 'moose'));
       });
-      it('should get full stream when it has a full stream, and it should clear it', (done) => {
+      it('should get full stream when it has a full stream, and it should clear it', (t, done) => {
         c = new noflo.Component({
           inPorts: {
             eh: {
@@ -2748,14 +2750,14 @@ describe('Component', () => {
             if (!input.hasStream('eh')) { return; }
             const stream = input.getStream('eh');
             const packetTypes = stream.map((ip) => [ip.type, ip.data]);
-            chai.expect(packetTypes).to.eql([
+            assert.deepStrictEqual(packetTypes, [
               ['openBracket', null],
               ['openBracket', 'foo'],
               ['data', 'moose'],
               ['closeBracket', 'foo'],
               ['closeBracket', null],
             ]);
-            chai.expect(input.has('eh')).to.equal(false);
+            assert.equal(input.has('eh'), false);
             done();
           },
         });
@@ -2767,7 +2769,7 @@ describe('Component', () => {
         sin1.post(new noflo.IP('closeBracket', 'foo'));
         sin1.post(new noflo.IP('closeBracket'));
       });
-      it('should get data when it has a full stream', (done) => {
+      it('should get data when it has a full stream', (t, done) => {
         c = new noflo.Component({
           inPorts: {
             eh: {
@@ -2785,8 +2787,8 @@ describe('Component', () => {
           process(input, output) {
             if (!input.hasStream('eh')) { return; }
             const data = input.get('eh');
-            chai.expect(data.type).to.equal('data');
-            chai.expect(data.data).to.equal('moose');
+            assert.strictEqual(data.type, 'data');
+            assert.strictEqual(data.data, 'moose');
             output.sendDone(data);
           },
         });
@@ -2802,7 +2804,7 @@ describe('Component', () => {
         sout1.on('ip', (ip) => {
           received.push([ip.type, ip.data]);
           if (received.length !== expected.length) { return; }
-          chai.expect(received).to.eql(expected);
+          assert.deepStrictEqual(received, expected);
           done();
         });
         c.inPorts.eh.attach(sin1);
@@ -2815,7 +2817,7 @@ describe('Component', () => {
       });
     });
     describe('with a simple ordered stream', () => {
-      it('should send packets with brackets in expected order when synchronous', (done) => {
+      it('should send packets with brackets in expected order when synchronous', (t, done) => {
         const received = [];
         c = new noflo.Component({
           inPorts: {
@@ -2852,7 +2854,7 @@ describe('Component', () => {
           received.push(ip.data);
         });
         sout1.on('disconnect', () => {
-          chai.expect(received).to.eql([
+          assert.deepStrictEqual(received, [
             '< 1',
             '< 2',
             'A',
@@ -2871,7 +2873,7 @@ describe('Component', () => {
         sin1.endGroup();
         sin1.disconnect();
       });
-      it('should send packets with brackets in expected order when asynchronous', (done) => {
+      it('should send packets with brackets in expected order when asynchronous', (t, done) => {
         const received = [];
         c = new noflo.Component({
           inPorts: {
@@ -2909,7 +2911,7 @@ describe('Component', () => {
           received.push(ip.data);
         });
         sout1.on('disconnect', () => {
-          chai.expect(received).to.eql([
+          assert.deepStrictEqual(received, [
             '< 1',
             '< 2',
             'A',
@@ -2938,7 +2940,7 @@ describe('Component', () => {
     let sin3 = null;
     let sout1 = null;
     let sout2 = null;
-    before((done) => {
+    before((t, done) => {
       c = new noflo.Component({
         inPorts: {
           interval: {
@@ -2992,9 +2994,9 @@ describe('Component', () => {
       done();
     });
 
-    it('should emit start event when started', (done) => {
+    it('should emit start event when started', (t, done) => {
       c.on('start', () => {
-        chai.expect(c.started).to.be.true;
+        assert.strictEqual(c.started, true);
         done();
       });
       c.start((err) => {
@@ -3003,8 +3005,7 @@ describe('Component', () => {
         }
       });
     });
-    it('should emit activate/deactivate event on every tick', function (done) {
-      this.timeout(100);
+    it('should emit activate/deactivate event on every tick', function (t, done) {
       let count = 0;
       let dcount = 0;
       c.on('activate', () => {
@@ -3021,9 +3022,9 @@ describe('Component', () => {
       sin1.post(new noflo.IP('data', 2));
       sin2.post(new noflo.IP('data', true));
     });
-    it('should emit end event when stopped and no activate after it', (done) => {
+    it('should emit end event when stopped and no activate after it', (t, done) => {
       c.on('end', () => {
-        chai.expect(c.started).to.be.false;
+        assert.strictEqual(c.started, false);
         done();
       });
       c.on('activate', () => {
