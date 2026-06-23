@@ -129,7 +129,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         }));
       it('should have removed the node from the graph', () => {
         const node = g.getNode('graph');
-        assert.strictEqual(typeof node, "null");
+        assert.strictEqual(node, null);
       });
       it('should fail when removing the removed node again', () => n.removeNode({
         id: 'Graph',
@@ -137,7 +137,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         .then(
           () => Promise.reject(new Error('Unexpected success')),
           (err) => {
-            assert.strictEqual(typeof err, "error");
+            assert.ok(Error.isError(err));
             assert.ok(err.message.includes('not found'));
           },
         ));
@@ -202,7 +202,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         }));
       it('should have removed the edge from the graph', () => {
         const edge = g.getEdge('A', 'out', 'B', 'in');
-        assert.strictEqual(typeof edge, "null");
+        assert.strictEqual(edge, null);
       });
     });
   });
@@ -305,7 +305,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
           assert.strictEqual(typeof err, "object");
           assert.strictEqual(err.id, 'Callback');
           assert.strictEqual(typeof err.metadata, "object");
-          assert.strictEqual(typeof err.error, "error");
+          assert.ok(Error.isError(err.error))
           assert.strictEqual(err.error.message, 'got Foo');
           resolve();
         });
@@ -327,7 +327,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         .then(
           () => Promise.reject(new Error('Unexpected success')),
           (err) => {
-            assert.strictEqual(typeof err, "error");
+            assert.ok(Error.isError(err));
             assert.ok(err.message.includes('not found'));
           },
         ));
@@ -650,7 +650,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
           .then(
             () => Promise.reject(new Error('Unexpected success')),
             (err) => {
-              assert.strictEqual(typeof err, "error");
+              assert.ok(Error.isError(err));
               assert.ok(err.message.includes('not available'));
             },
           ));
@@ -670,7 +670,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
           .then(
             () => Promise.reject(new Error('Unexpected success')),
             (err) => {
-              assert.strictEqual(typeof err, "error");
+              assert.ok(Error.isError(err));
               assert.ok(err.message.includes('No inport'));
             },
           ));
@@ -690,7 +690,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
           .then(
             () => Promise.reject(new Error('Unexpected success')),
             (err) => {
-              assert.strictEqual(typeof err, "error");
+              assert.ok(Error.isError(err));
               assert.ok(err.message.includes('No outport'));
             },
           ));
@@ -711,7 +711,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
           .then(
             () => Promise.reject(new Error('Unexpected success')),
             (err) => {
-              assert.strictEqual(typeof err, "error");
+              assert.ok(Error.isError(err));
               assert.ok(err.message.includes('No inport'));
             },
           ));
@@ -732,7 +732,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
           .then(
             () => Promise.reject(new Error('Unexpected success')),
             (err) => {
-              assert.strictEqual(typeof err, "error");
+              assert.ok(Error.isError(err));
               assert.ok(err.message.includes('No component defined'));
             },
           ));
@@ -760,7 +760,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         .then(
           () => Promise.reject(new Error('Unexpected success')),
           (err) => {
-            assert.strictEqual(typeof err, "error");
+            assert.ok(Error.isError(err));
             assert.ok(err.message.includes('No process defined for outbound node'));
           },
         );
@@ -788,7 +788,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         .then(
           () => Promise.reject(new Error('Unexpected success')),
           (err) => {
-            assert.strictEqual(typeof err, "error");
+            assert.ok(Error.isError(err));
             assert.ok(err.message.includes('No process defined for inbound node'));
           },
         );
@@ -828,11 +828,11 @@ describe('NoFlo Network (synchronous delivery)', () => {
         delay: true,
         subscribeGraph: false,
         asyncDelivery: false,
-        baseDir,
+        baseDir: process.cwd(),
       })
         .then((nw) => {
-          assert.strictEqual(nw.baseDir, baseDir);
-          assert.strictEqual(nw.loader.baseDir, baseDir);
+          assert.strictEqual(nw.baseDir, process.cwd());
+          assert.strictEqual(nw.loader.baseDir, process.cwd());
         });
     });
   });
@@ -845,7 +845,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         subscribeGraph: false,
         asyncDelivery: false,
         delay: true,
-        baseDir,
+        baseDir: process.cwd(),
       })
         .then((network) => {
           n = network;
