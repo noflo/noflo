@@ -20,19 +20,15 @@ describe('asComponent interface', () => {
         const component = () => noflo.asComponent(func);
         loader.registerComponent('ascomponent', 'sync-one', component, done);
       });
-      it('should be loadable', (t, done) => {
-        loader.load('ascomponent/sync-one', done);
+      it('should be loadable', () => {
+        return loader.load('ascomponent/sync-one');
       });
-      it('should contain correct ports', (t, done) => {
-        loader.load('ascomponent/sync-one', (err, instance) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          assert.deepEqual(Object.keys(instance.inPorts.ports), ['hello']);
-          assert.deepEqual(Object.keys(instance.outPorts.ports), ['out', 'error']);
-          done();
-        });
+      it('should contain correct ports', () => {
+        return loader.load('ascomponent/sync-one')
+          .then((instance) => {
+            assert.deepEqual(Object.keys(instance.inPorts.ports), ['hello']);
+            assert.deepEqual(Object.keys(instance.outPorts.ports), ['out', 'error']);
+          });
       });
       it('should send to OUT port', (t, done) => {
         const wrapped = noflo.asCallback('ascomponent/sync-one',
@@ -95,7 +91,7 @@ describe('asComponent interface', () => {
             done(err);
             return;
           }
-          assert.strictEqual(typeof res, "null");
+          assert.strictEqual(res, null);
           done();
         });
       });
@@ -112,7 +108,7 @@ describe('asComponent interface', () => {
         const wrapped = noflo.asCallback('ascomponent/sync-throw',
           { loader });
         wrapped('Error', (err) => {
-          assert.strictEqual(typeof err, "error");
+          assert.strictEqual(Error.isError(err), true);
           assert.strictEqual(err.message, 'Hello Error');
           done();
         });
@@ -135,8 +131,8 @@ describe('asComponent interface', () => {
             done(err);
             return;
           }
-          chai.expect(Object.keys(instance.inPorts.ports)).to.eql(['greeting', 'name']);
-          chai.expect(Object.keys(instance.outPorts.ports)).to.eql(['out', 'error']);
+          assert.deepEqual(Object.keys(instance.inPorts.ports), ['greeting', 'name']);
+          assert.deepEqual(Object.keys(instance.outPorts.ports), ['out', 'error']);
           done();
         });
       });
@@ -174,12 +170,12 @@ describe('asComponent interface', () => {
             done(err);
             return;
           }
-          chai.expect(Object.keys(instance.inPorts.ports)).to.eql(['name', 'greeting']);
-          chai.expect(Object.keys(instance.outPorts.ports)).to.eql(['out', 'error']);
-          chai.expect(instance.inPorts.name.isRequired()).to.equal(true);
-          chai.expect(instance.inPorts.name.hasDefault()).to.equal(false);
-          chai.expect(instance.inPorts.greeting.isRequired()).to.equal(false);
-          chai.expect(instance.inPorts.greeting.hasDefault()).to.equal(true);
+          assert.deepEqual(Object.keys(instance.inPorts.ports), ['name', 'greeting']);
+          assert.deepEqual(Object.keys(instance.outPorts.ports), ['out', 'error']);
+          assert.equal(instance.inPorts.name.isRequired(), true);
+          assert.equal(instance.inPorts.name.hasDefault(), false);
+          assert.equal(instance.inPorts.greeting.isRequired(), false);
+          assert.equal(instance.inPorts.greeting.hasDefault(), true);
           done();
         });
       });
@@ -246,7 +242,7 @@ describe('asComponent interface', () => {
         const wrapped = noflo.asCallback('ascomponent/sync-throw',
           { loader });
         wrapped('Error', (err) => {
-          assert.strictEqual(typeof err, "error");
+          assert.strictEqual(Error.isError(err), true);
           assert.strictEqual(err.message, 'Hello Error');
           done();
         });
@@ -266,8 +262,8 @@ describe('asComponent interface', () => {
             done(err);
             return;
           }
-          chai.expect(Object.keys(instance.inPorts.ports)).to.eql(['in']);
-          chai.expect(Object.keys(instance.outPorts.ports)).to.eql(['out', 'error']);
+          assert.deepEqual(Object.keys(instance.inPorts.ports), ['in']);
+          assert.deepEqual(Object.keys(instance.outPorts.ports), ['out', 'error']);
           done();
         });
       });
@@ -295,8 +291,8 @@ describe('asComponent interface', () => {
             done(err);
             return;
           }
-          chai.expect(Object.keys(instance.inPorts.ports)).to.eql(['in']);
-          chai.expect(Object.keys(instance.outPorts.ports)).to.eql(['out', 'error']);
+          assert.deepEqual(Object.keys(instance.inPorts.ports), ['in']);
+          assert.deepEqual(Object.keys(instance.outPorts.ports), ['out', 'error']);
           done();
         });
       });
@@ -333,8 +329,8 @@ describe('asComponent interface', () => {
             done(err);
             return;
           }
-          chai.expect(Object.keys(instance.inPorts.ports)).to.eql(['hello']);
-          chai.expect(Object.keys(instance.outPorts.ports)).to.eql(['out', 'error']);
+          assert.deepEqual(Object.keys(instance.inPorts.ports), ['hello']);
+          assert.deepEqual(Object.keys(instance.outPorts.ports), ['out', 'error']);
           done();
         });
       });
@@ -364,7 +360,7 @@ describe('asComponent interface', () => {
         const wrapped = noflo.asCallback('ascomponent/async-throw',
           { loader });
         wrapped('Error', (err) => {
-          assert.strictEqual(typeof err, "error");
+          assert.strictEqual(Error.isError(err), true)
           assert.strictEqual(err.message, 'Hello Error');
           done();
         });

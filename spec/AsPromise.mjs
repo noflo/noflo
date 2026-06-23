@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
 import * as noflo from '../src/lib/NoFlo.js';
+import flowtrace from 'flowtrace';
+
 describe('asPromise interface', () => {
   let loader = null;
 
@@ -74,7 +76,7 @@ describe('asPromise interface', () => {
   };
 
   before(() => {
-    loader = new noflo.ComponentLoader(baseDir);
+    loader = new noflo.ComponentLoader(process.cwd());
     return loader
       .listComponents()
       .then(() => {
@@ -100,7 +102,7 @@ describe('asPromise interface', () => {
       .then(() => {
         throw new Error('Unexpected pass');
       }, (err) => {
-        assert.strictEqual(typeof err, "error");
+        assert.strictEqual(Error.isError(err), true);
       }));
   });
   describe('with simple asynchronous component', () => {
@@ -205,7 +207,7 @@ describe('asPromise interface', () => {
         .then(() => {
           throw new Error('Received unexpected output');
         }, (err) => {
-          assert.strictEqual(typeof err, "error");
+          assert.strictEqual(Error.isError(err), true);
           assert.ok(err.message.includes(expected));
         });
     });
@@ -215,7 +217,7 @@ describe('asPromise interface', () => {
         .then(() => {
           throw new Error('Received unexpected output');
         }, (err) => {
-          assert.strictEqual(typeof err, "error");
+          assert.strictEqual(Error.isError(err), true);
           assert.ok(err.message.includes(expected));
         });
     });
@@ -248,14 +250,14 @@ describe('asPromise interface', () => {
       .then(() => {
         throw new Error('Received unexpected output');
       }, (err) => {
-        assert.strictEqual(typeof err, "error");
+        assert.strictEqual(Error.isError(err), true);
         assert.ok(err.message.includes('Invalid data=\'red\' received, not in [green,blue]'));
       }));
     it('should execute network with wrong input and provide error', () => wrapped('red')
       .then(() => {
         throw new Error('Received unexpected output');
       }, (err) => {
-        assert.strictEqual(typeof err, "error");
+        assert.strictEqual(Error.isError(err), true);
         assert.ok(err.message.includes('Invalid data=\'red\' received, not in [green,blue]'));
       }));
   });
@@ -427,14 +429,14 @@ Async(process/Async) OUT -> IN Values(process/Values)\
       .then(() => {
         throw new Error('Unexpected pass');
       }, (err) => {
-        assert.strictEqual(typeof err, "error");
+        assert.strictEqual(Error.isError(err), true);
         assert.ok(err.message.includes('Invalid data=\'red\' received, not in [green,blue]'));
       }));
     it('should execute network with wrong input and provide error', () => wrapped('red')
       .then(() => {
         throw new Error('Unexpected pass');
       }, (err) => {
-        assert.strictEqual(typeof err, "error");
+        assert.strictEqual(Error.isError(err), true);
         assert.ok(err.message.includes('Invalid data=\'red\' received, not in [green,blue]'));
       }));
   });
@@ -495,7 +497,7 @@ Async(process/Async) OUT -> IN Values(process/Values)\
         .then((out) => {
           assert.strictEqual(out, 'hello');
           const collectedTrace = trace.toJSON();
-          assert.deepStrictEqual(Object.keys(), []);
+          assert.deepStrictEqual(Object.keys(collectedTrace.header.metadata), ['start', 'end']);
           assert.strictEqual(typeof collectedTrace.header.graphs['process/Async'], "object");
           assert.strictEqual(collectedTrace.header.main, 'process/Async');
           const eventTypes = collectedTrace.events.map((e) => `${e.protocol}:${e.command}`);
@@ -505,7 +507,7 @@ Async(process/Async) OUT -> IN Values(process/Values)\
             'network:data',
             'network:stopped',
           ]);
-          chai.expect(JSON.parse(JSON.stringify(collectedTrace.events[1].payload))).to.eql({
+          assert.deepEqual(JSON.parse(JSON.stringify(collectedTrace.events[1].payload)), {
             data: 'hello',
             src: null,
             tgt: {
@@ -513,7 +515,7 @@ Async(process/Async) OUT -> IN Values(process/Values)\
               port: 'in',
             },
           });
-          chai.expect(JSON.parse(JSON.stringify(collectedTrace.events[2].payload))).to.eql({
+          assert.deepEqual(JSON.parse(JSON.stringify(collectedTrace.events[2].payload)), {
             data: 'hello',
             src: {
               node: 'process/Async',

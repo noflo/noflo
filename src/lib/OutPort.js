@@ -212,6 +212,9 @@ export default class OutPort extends BasePort {
       }
       return [this.sockets[idx]];
     }
+    if (index !== null) {
+      throw new Error(`${this.getId()} is not addressable port and index ${index} provided`);
+    }
     // Regular sockets affect all outbound connections
     return this.sockets;
   }
