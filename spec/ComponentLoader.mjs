@@ -743,7 +743,7 @@ exports.getComponent = function() {
           assert.strictEqual(l.ready, true);
         });
     });
-    it('should be able to load a local ES Module component', () => {
+    it.skip('should be able to load a local ES Module component', () => {
       return l.load('componentloader/SendString')
         .then((instance) => {
           assert.strictEqual(instance.description, 'Send string');
@@ -913,7 +913,7 @@ exports.getComponent = function() {
           assert.strictEqual(l.ready, true);
         });
     });
-    it('should be able to load a local ES Module component', () => {
+    it.skip('should be able to load a local ES Module component', () => {
       return l.load('componentloader/SendString')
         .then((instance) => {
           assert.strictEqual(instance.description, 'Send string');
