@@ -31,18 +31,18 @@ describe('IP object', () => {
       schema: 'text/plain',
     });
     const d2 = d1.clone();
-    chai.expect(d2).not.to.equal(d1);
+    assert.notEqual(d2, d1);
     assert.strictEqual(d2.type, d1.type);
     assert.strictEqual(d2.schema, d1.schema);
     assert.deepStrictEqual(d2.data, d1.data);
     assert.deepStrictEqual(d2.groups, d2.groups);
-    chai.expect(d2.owner).not.to.equal(d1.owner);
+    assert.notEqual(d2.owner, d1.owner);
     assert.strictEqual(d2.scope, d1.scope);
   });
   it('should dispose its contents when dropped', () => {
     const p = new noflo.IP('data', 'Garbage');
     p.groups = ['foo', 'bar'];
     p.drop();
-    chai.expect(Object.keys(p)).to.have.lengthOf(0);
+    assert.deepEqual(Object.keys(p), []);
   });
 });

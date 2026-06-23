@@ -51,7 +51,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         subscribeGraph: false,
         asyncDelivery: false,
         delay: true,
-        baseDir,
+        baseDir: process.cwd(),
       })
         .then((network) => {
           n = network;
@@ -59,7 +59,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         });
     });
     it('should initially be marked as stopped', () => {
-      assert.equal(n.isStarted()), false);
+      assert.equal(n.isStarted(), false);
     });
     it('should initially have no processes', () => {
       assert.deepEqual(n.processes, {});
@@ -77,13 +77,13 @@ describe('NoFlo Network (synchronous delivery)', () => {
       assert.strictEqual(n.graph, g);
     });
     it('should know its baseDir', () => {
-      assert.strictEqual(n.baseDir, baseDir);
+      assert.strictEqual(n.baseDir, process.cwd());
     });
     it('should have a ComponentLoader', () => {
       assert.strictEqual(typeof n.loader, "object");
     });
     it('should have transmitted the baseDir to the Component Loader', () => {
-      assert.strictEqual(n.loader.baseDir, baseDir);
+      assert.strictEqual(n.loader.baseDir, process.cwd());
     });
     it('should be able to list components', function () {
       return n.loader.listComponents()
@@ -226,7 +226,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         subscribeGraph: false,
         asyncDelivery: false,
         delay: true,
-        baseDir,
+        baseDir: process.cwd(),
       })
         .then((nw) => {
           nw.loader.components.Split = Split;
@@ -243,9 +243,9 @@ describe('NoFlo Network (synchronous delivery)', () => {
     it('should contain two processes', () => {
       assert.notDeepEqual(n.processes, {});
       assert.ok(n.processes.Merge);
-      assert.strictEqual(typeof n.processes.Merge, "Object");
-      assert.ok(n.processes.Callback).to.exist;
-      assert.strictEqual(typeof n.processes.Callback, "Object");
+      assert.strictEqual(typeof n.processes.Merge, "object");
+      assert.ok(n.processes.Callback);
+      assert.strictEqual(typeof n.processes.Callback, "object");
     });
     it('the ports of the processes should know the node names', () => {
       Object.keys(n.processes.Callback.component.inPorts.ports).forEach((name) => {
@@ -317,10 +317,10 @@ describe('NoFlo Network (synchronous delivery)', () => {
           assert.strictEqual(typeof n.processes.Func, "object");
         }));
       it('shouldn\'t have the process in the old location', () => {
-        assert.strictEqual(n.processes.Callback, undefined);
+        assert.strictEqual(Object.keys(n.processes).includes('Callback'), false);
       });
       it('should have updated the name in the graph', () => {
-        assert.equal(n.getNode('Callback'), null);
+        assert.equal(n.getNode('Callback'), undefined);
         assert.notEqual(n.getNode('Func'), null);
       });
       it('should fail to rename with the old name', () => n.renameNode('Callback', 'Func')
@@ -347,7 +347,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
       });
     });
     describe('with process icon change', () => {
-      it('should emit an icon event', (done) => {
+      it('should emit an icon event', (t, done) => {
         n.once('icon', (data) => {
           assert.strictEqual(typeof data, "object");
           assert.strictEqual(data.id, 'Func');
@@ -364,7 +364,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         }));
     });
     describe('without the delay option', () => {
-      it('should auto-start', (done) => {
+      it('should auto-start', (t, done) => {
         g.removeInitial('Func', 'callback');
         noflo.graph.loadJSON(g.toJSON())
           .then((graph) => {
@@ -423,7 +423,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
       g.addNode('Cb', 'Cb');
       g.addEdge('Def', 'out', 'Cb', 'in');
     });
-    it('should send default values to nodes without an edge', function (done) {
+    it('should send default values to nodes without an edge', function (t, done) {
       testCallback = function (data) {
         assert.strictEqual(data, 'default-value');
         done();
@@ -432,7 +432,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         subscribeGraph: false,
         asyncDelivery: false,
         delay: true,
-        baseDir,
+        baseDir: process.cwd(),
       })
         .then((nw) => {
           nw.loader.components.Def = () => c;
@@ -442,7 +442,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         .then((nw) => nw.start())
         .catch(done);
     });
-    it('should not send default values to nodes with an edge', function (done) {
+    it('should not send default values to nodes with an edge', function (t, done) {
       testCallback = function (data) {
         assert.strictEqual(data, 'from-edge');
         done();
@@ -454,7 +454,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         subscribeGraph: false,
         asyncDelivery: false,
         delay: true,
-        baseDir,
+        baseDir: process.cwd(),
       })
         .then((nw) => {
           nw.loader.components.Def = () => c;
@@ -465,7 +465,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         .then((nw) => nw.start())
         .catch(done);
     });
-    it('should not send default values to nodes with IIP', function (done) {
+    it('should not send default values to nodes with IIP', function (t, done) {
       testCallback = function (data) {
         assert.strictEqual(data, 'from-IIP');
         done();
@@ -475,7 +475,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         subscribeGraph: false,
         asyncDelivery: false,
         delay: true,
-        baseDir,
+        baseDir: process.cwd(),
       })
         .then((nw) => {
           nw.loader.components.Def = () => c;
@@ -496,7 +496,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         .addNode('Repeat', 'Split')
         .addEdge('Repeat', 'out', 'Callback', 'in');
     });
-    it('should call the Callback with the original IIP value', function (done) {
+    it('should call the Callback with the original IIP value', function (t, done) {
       const cb = function (packet) {
         assert.strictEqual(packet, 'Foo');
         done();
@@ -508,7 +508,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
           delay: true,
           subscribeGraph: false,
           asyncDelivery: false,
-          baseDir,
+          baseDir: process.cwd(),
         })
           .then((nw) => {
             nw.loader.components.Split = Split;
@@ -538,7 +538,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         assert.strictEqual(n.initials.length, 0, 'No IIPs left');
         assert.strictEqual(n.connections.length, 1, 'Only one connection');
       }));
-    it('new IIPs to replace original ones should work correctly', (done) => {
+    it('new IIPs to replace original ones should work correctly', (t, done) => {
       const cb = function (packet) {
         assert.strictEqual(packet, 'Baz');
         done();
@@ -570,7 +570,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         assert.strictEqual(n.started, true);
         assert.strictEqual(n.processes.Repeat.component.started, true);
       });
-      it('should emit the end event', function (done) {
+      it('should emit the end event', function (t, done) {
         // Ensure we have a connection open
         n.once('end', (endTimes) => {
           assert.strictEqual(typeof endTimes, "object");
@@ -584,7 +584,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
     });
   });
   describe('with a very large network', () => {
-    it('should be able to connect without errors', function (done) {
+    it('should be able to connect without errors', function (t, done) {
       let n;
       const g = new noflo.Graph();
       let called = 0;
@@ -607,7 +607,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
         delay: true,
         subscribeGraph: false,
         asyncDelivery: false,
-        baseDir,
+        baseDir: process.cwd(),
       })
         .then((nw) => {
           nw.loader.components.Split = Split;
@@ -625,7 +625,7 @@ describe('NoFlo Network (synchronous delivery)', () => {
   describe('with a faulty graph', () => {
     let loader = null;
     before(() => {
-      loader = new noflo.ComponentLoader(baseDir);
+      loader = new noflo.ComponentLoader(process.cwd());
       return loader.listComponents()
         .then(() => {
           loader.components.Split = Split;
@@ -793,14 +793,14 @@ describe('NoFlo Network (synchronous delivery)', () => {
   describe('baseDir setting', () => {
     it('should set baseDir based on given graph (deprecated)', () => {
       const g = new noflo.Graph();
-      g.properties.baseDir = baseDir;
+      g.properties.baseDir = process.cwd();
       return noflo.createNetwork(g, {
         delay: true,
         subscribeGraph: false,
         asyncDelivery: false,
       })
         .then((nw) => {
-          assert.strictEqual(nw.baseDir, baseDir);
+          assert.strictEqual(nw.baseDir, process.cwd());
         });
     });
     it('should fall back to CWD if graph has no baseDir', function () {

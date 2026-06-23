@@ -305,12 +305,8 @@ describe('Network Lifecycle', () => {
               node: 'Pc',
               port: 'in',
             },
-          },
-          (err) => {
-            if (err) {
-              done(err);
-            }
-          });
+          })
+            .catch(done);
           return;
         }
         assert.deepStrictEqual(received, expected);
@@ -838,27 +834,28 @@ describe('Network Lifecycle', () => {
     let start = null;
     let stop = null;
     let out = null;
-    before((done) => {
+    before(() => {
       const fbpData = 'INPORT=PcGen.START:START\n'
                     + 'INPORT=PcGen.STOP:STOP\n'
                     + 'OUTPORT=Pc.OUT:OUT\n'
                     + 'PcGen(process/Generator) OUT -> IN Pc(process/Async)\n';
-      noflo.graph.loadFBP(fbpData)
+      return noflo.graph.loadFBP(fbpData)
         .then((g) => {
           loader.registerComponent('scope', 'Connected', g);
           return loader.load('scope/Connected');
         })
         .then((instance) => {
-          instance.once('ready', () => {
-            c = instance;
-            start = noflo.internalSocket.createSocket();
-            c.inPorts.start.attach(start);
-            stop = noflo.internalSocket.createSocket();
-            c.inPorts.stop.attach(stop);
-            done();
+          return new Promise((resolve) => {
+            instance.once('ready', () => {
+              c = instance;
+              start = noflo.internalSocket.createSocket();
+              c.inPorts.start.attach(start);
+              stop = noflo.internalSocket.createSocket();
+              c.inPorts.stop.attach(stop);
+              resolve();
+            });
           });
-        })
-        .catch(done);
+        });
     });
     beforeEach(() => {
       out = noflo.internalSocket.createSocket();
