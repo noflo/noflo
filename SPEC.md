@@ -26,14 +26,14 @@ The library is meant to be a durable piece of software that can be run and maint
 
 ## Tech stack
 
-- Standard JavaScript following the EcmaScript specification as supported in evergreen browsers and Node.js
+- Standard JavaScript following the EcmaScript specification as supported in evergreen browsers and Node.js. Limiting dependencies to WinterTC specification is preferred
 - JsDoc annotations are used to document all library functions and to define TypeScript type safety
 - TypeScript compiler is used to verify type safety and to extract type definitions to their own files
 - Testing is done using Node.js native test runner and assertion functionality
 - Linting and formatting is done using Biome (default settings)
 
 In NoFlo 1.x series:
-- Dataflow is implemented using Node.js EventEmitter
+- Dataflow and network lifecycle events are implemented using Node.js EventEmitter
 - Library is published as both CommonJS and ES Modules
 - Library methods support callback arguments and return Promises when this is not supplied
 - Component loading and registration is done inside the NoFlo library
@@ -41,7 +41,8 @@ In NoFlo 1.x series:
 - In addition to JavaScript, components can be written in CoffeeScript or TypeScript
 
 NoFlo 2.x series goals:
-- Dataflow is implemented using Web Streams API
+- Dataflow is implemented using Web Streams API, adding backpressure support
+- Lifecycle events are implemented using eventTarget API
 - Library is published only as ES Modules
 - Library methods use Promises, not callbacks
 - Component loading and registration is done by the application calling NoFlo library
@@ -60,8 +61,11 @@ NoFlo 2.x series goals:
 - `spec/`: unit and integration tests
 - `docs/`: documentation in Markdown format
 
+Technical work is planned using work documents (in Markdown) that are managed [using rngit](https://reticulum.network/manual/git.html#work-documents) in <rns://3ea5aad068a337670f5bb8073226adb4/public/noflo>.
+
 ## Boundaries
 
-- ✅ Always: create a branch for any major change set, run tests after every change set
-- ⚠️ Ask first: changes to public API, adding dependencies, modify CI config
-- 🚫 Never: AI agents may not make commits on their own
+- ✅ **Always**: create a branch for any major change set, run tests after every change set
+- ✅ **Always:** Defer deep implementation mechanics (e.g., internal stream queue management, backpressure hand-offs, exact loader interfaces) to dedicated Work Documents managed in `rngit`. The `SPEC.md` defines the architectural contract; Work Documents dictate the execution.
+- ⚠️ **Ask first**: changes to public API, adding dependencies, modify CI config
+- 🚫 **Never**: AI agents may not make commits on their own
