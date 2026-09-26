@@ -1,32 +1,108 @@
-name: Publish Node.js Package
+name: Publish to npm
 
+# Additional convenience distribution to the npm registry (and later JSR).
+# The CANONICAL release is the rngit release (signed tarballs over the mesh);
+# this workflow merely mirrors the same tagged versions to npmjs.com so the
+# broader JS ecosystem can `npm install` them. It runs only when a `v*` tag
+# reaches the `github` remote.
 on:
   push:
     tags:
-      - "*"
+      - "v*"
+
+permissions:
+  contents: read
+
+# Never run two publishes for the same tag at once; never cancel one mid-flight.
+concurrency:
+  group: npm-publish-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2.3.4
-      - uses: actions/setup-node@v2.1.5
-        with:
-          node-version: 24
-      - run: npm install
-      - run: npm test
+      - uses: actions/checkout@v6
 
-  publish-npm:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2.3.4
-      - uses: actions/setup-node@v2.1.5
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org/
-      - run: npm install
-      - run: npm run build
-      - run: npm publish
+          node-version: "24.x"
+          cache: npm
+          # Writing registry-url makes setup-node author ~/.npmrc for publish,
+          # using the NODE_AUTH_TOKEN env var on the publish step.
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+
+      # Lockstep: the tag (minus the leading v) must equal the package versions.
+      # Stops a stray/mistyped tag from publishing unintended versions.
+      - name: Verify the tag matches the package version
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME#v}"
+          NOFLO=$(node -p "require('./packages/noflo/package.json').version")
+          echo "Tag: $TAG   noflo version: $NOFLO"
+          if [ "$TAG" != "$NOFLO" ]; then
+            echo "::error::Tag 'v$TAG' does not match packages version '$NOFLO'"
+            exit 1
+          fi
+
+      # lib/ is git-ignored/generated, not committed — build it for the
+      # tarballs (this also runs the tests via the package's pretest hook).
+      - name: Build and test
+        run: npm test
+
+      # Generated declarations (`types/`, `lib/*.d.ts`) are git-ignored (build
+      # artifacts, never committed). JSR's underlying `deno publish` honors
+      # `.gitignore`, so it would drop the declarations — un-ignore them here
+      # so the `jsr publish` steps below can ship them. Affects only the
+      # ephemeral CI checkout. See `scripts/jsr-dryrun.sh` for the equivalent
+      # local helper. No-ops while no package ships a jsr.json.
+      - name: Expose generated declarations to JSR
+        run: |
+          printf '\n!packages/*/types/**\n!packages/*/lib/**/*.d.ts\n' >> .gitignore
+
+      # Publish every package independently: one failing package must not
+      # block the rest — the loop below continues past failures and only
+      # fails the job for real publish errors. (The npm loop iterates
+      # packages/*; order is irrelevant because npm resolves dep version
+      # ranges at install time. The JSR loop — dormant until packages gain a
+      # jsr.json under the @noflo namespace — uses a topological order via
+      # scripts/jsr-publish-order.mjs, because JSR resolves its jsr:
+      # dependencies at PUBLISH time.)
+      - name: Publish all to NPM
         env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -uo pipefail
+          real_failures=0
+          for dir in packages/*/; do
+            name=$(node -p "require('./$dir/package.json').name")
+            echo "::group::npm publish $name"
+            if npm publish "$dir" --access public; then
+              echo "published $name"
+            else
+              echo "::error::$name failed to publish"
+              real_failures=$((real_failures+1))
+            fi
+            echo "::endgroup::"
+          done
+          exit "$real_failures"
+
+      - name: Publish all to JSR
+        run: |
+          set -uo pipefail
+          real_failures=0
+          for dir in $(node scripts/jsr-publish-order.mjs); do
+            name=$(node -p "require('./$dir/jsr.json').name")
+            echo "::group::jsr publish $name"
+            if (cd "$dir" && npx -y jsr publish --allow-dirty); then
+              echo "published $name"
+            else
+              echo "::error::$name failed to publish to JSR"
+              real_failures=$((real_failures+1))
+            fi
+            echo "::endgroup::"
+          done
+          exit "$real_failures"
