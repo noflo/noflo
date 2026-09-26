@@ -11,6 +11,7 @@ on:
       - "v*"
 
 permissions:
+  id-token: write  # Required for OIDC trusted publishing
   contents: read
 
 # Never run two publishes for the same tag at once; never cancel one mid-flight.
@@ -29,8 +30,9 @@ jobs:
         with:
           node-version: "24.x"
           cache: npm
-          # Writing registry-url makes setup-node author ~/.npmrc for publish,
-          # using the NODE_AUTH_TOKEN env var on the publish step.
+          # Writing registry-url makes setup-node author ~/.npmrc so npm
+          # publish targets the right registry; auth comes from OIDC
+          # trusted publishing (no NPM_TOKEN needed).
           registry-url: https://registry.npmjs.org
 
       - run: npm ci
@@ -72,8 +74,6 @@ jobs:
       # scripts/jsr-publish-order.mjs, because JSR resolves its jsr:
       # dependencies at PUBLISH time.)
       - name: Publish all to NPM
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -uo pipefail
           real_failures=0
