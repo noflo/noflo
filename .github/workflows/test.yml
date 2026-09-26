@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Check file formatting against EditorConfig
-        uses: editorconfig-checker/action-editorconfig-checker@v1.0.0
+        uses: editorconfig-checker/action-editorconfig-checker@v3.0.0
       - uses: actions/setup-node@v4
         with:
           node-version: '24.x'
