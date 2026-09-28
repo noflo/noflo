@@ -591,9 +591,11 @@ export class BaseNetwork extends EventEmitter {
       return;
     }
     if (!node.component.isReady()) {
-      node.component.once("ready", () => {
+      /** @param {Event} _event */ const onReady = (_event) => {
+        node.component.removeEventListener("ready", onReady);
         this.subscribeSubgraph(node);
-      });
+      };
+      node.component.addEventListener("ready", onReady);
       return;
     }
 
@@ -710,21 +712,24 @@ export class BaseNetwork extends EventEmitter {
     const instance = /** @type {import("./Component").Component} */ (
       node.component
     );
-    instance.on("activate", () => {
+    instance.addEventListener("activate", () => {
       if (this.debouncedEnd) {
         this.abortDebounce = true;
       }
     });
-    instance.on("deactivate", (load) => {
-      if (load > 0) {
-        return;
-      }
-      this.checkIfFinished();
-    });
+    instance.addEventListener(
+      "deactivate",
+      /** @param {Event & { detail: number }} event */ (event) => {
+        if (event.detail > 0) {
+          return;
+        }
+        this.checkIfFinished();
+      },
+    );
     if (!instance.getIcon) {
       return;
     }
-    instance.on("icon", () => {
+    instance.addEventListener("icon", () => {
       this.bufferedEmit("icon", {
         id: node.id,
         icon: instance.getIcon(),
@@ -755,9 +760,11 @@ export class BaseNetwork extends EventEmitter {
     );
     if (!comp.isReady()) {
       return new Promise((resolve) => {
-        comp.once("ready", () => {
+        /** @param {Event} _event */ const onReady = (_event) => {
+          comp.removeEventListener("ready", onReady);
           resolve(instance);
-        });
+        };
+        comp.addEventListener("ready", onReady);
       });
     }
     return Promise.resolve(instance);

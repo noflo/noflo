@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reformatted all source code to Biome standards
 - Repository reorganized into a monorepo layout; the NoFlo npm package is now built from `packages/noflo`
 - `ComponentLoader.registerComponent`, `registerGraph`, and `registerLoader` now return Promises; providing callbacks to them is deprecated and logs a warning
+- `Component` now inherits from native `EventTarget` instead of Node.js EventEmitter. The legacy EventEmitter-style API (`on`, `once`, `off`, `removeListener`, `emit`, `listeners`) is provided by a compatibility mixin with deprecation warnings; internal engine dispatches go through a typed `dispatchLifecycleEvent` helper
 
 ## [1.5.2] - 2026-06-22
 ### Added

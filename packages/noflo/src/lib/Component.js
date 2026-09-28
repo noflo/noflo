@@ -8,7 +8,7 @@
     no-underscore-dangle,
     import/prefer-default-export,
 */
-import { EventEmitter } from "node:events";
+import { LegacyEventBase } from "./LegacyEvents.js";
 import debug from "debug";
 import InPort from "./InPort.js"; // eslint-disable-line no-unused-vars
 import IP from "./IP.js"; // eslint-disable-line no-unused-vars
@@ -59,7 +59,7 @@ const debugSend = debug("noflo:component:send");
 //
 // The `noflo.Component` interface provides a way to instantiate
 // and extend NoFlo components.
-export class Component extends EventEmitter {
+export class Component extends LegacyEventBase {
   /**
    * @param {ComponentOptions} [options]
    */
@@ -167,7 +167,7 @@ export class Component extends EventEmitter {
    */
   setIcon(icon) {
     this.icon = icon;
-    this.emit("icon", this.icon);
+    this.dispatchLifecycleEvent("icon", this.icon);
   }
 
   getIcon() {
@@ -268,7 +268,7 @@ export class Component extends EventEmitter {
         }
       }).then(() => {
         this.started = true;
-        this.emit("start");
+        this.dispatchLifecycleEvent("start");
         return Promise.resolve();
       });
     }
@@ -316,16 +316,16 @@ export class Component extends EventEmitter {
             if (this.load > 0) {
               // Some in-flight processes, wait for them to finish
               /**
-               * @param {number} load
+               * @param {Event & { detail: number }} event
                */
-              const checkLoad = (load) => {
-                if (load > 0) {
+              const checkLoad = (event) => {
+                if (event.detail > 0) {
                   return;
                 }
-                this.removeListener("deactivate", checkLoad);
+                this.removeEventListener("deactivate", checkLoad);
                 resolve();
               };
-              this.on("deactivate", checkLoad);
+              this.addEventListener("deactivate", checkLoad);
               return;
             }
             resolve();
@@ -350,7 +350,7 @@ export class Component extends EventEmitter {
           return Promise.resolve();
         }
         this.started = false;
-        this.emit("end");
+        this.dispatchLifecycleEvent("end");
         return Promise.resolve();
       });
     if (callback) {
@@ -931,7 +931,7 @@ export class Component extends EventEmitter {
     context.activated = true;
     context.deactivated = false;
     this.load += 1;
-    this.emit("activate", this.load);
+    this.dispatchLifecycleEvent("activate", this.load);
     if (this.ordered || this.autoOrdering) {
       this.outputQ.push(context.result);
     }
@@ -954,7 +954,7 @@ export class Component extends EventEmitter {
       this.processOutputQueue();
     }
     this.load -= 1;
-    this.emit("deactivate", this.load);
+    this.dispatchLifecycleEvent("deactivate", this.load);
   }
 }
 Component.description = "";
