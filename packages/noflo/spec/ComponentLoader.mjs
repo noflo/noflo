@@ -386,6 +386,123 @@ describe("ComponentLoader with no external packages installed", () => {
       assert.equal(instance.getIcon(), "smile");
     });
   });
+  describe("registering components, graphs and loaders with Promises", () => {
+    /**
+     * @param {() => Promise<any>} fn - Operation expected to warn
+     * @returns {Promise<string[]>} The captured warning texts
+     */
+    const captureWarnings = (fn) => {
+      const warnings = [];
+      const originalWarn = console.warn;
+      console.warn = (message) => {
+        warnings.push(String(message));
+      };
+      const restore = () => {
+        console.warn = originalWarn;
+      };
+      return Promise.resolve()
+        .then(fn)
+        .then(
+          (result) => {
+            restore();
+            return [result, warnings];
+          },
+          (err) => {
+            restore();
+            throw [err, warnings];
+          },
+        );
+    };
+
+    it("registerComponent should return a Promise without warning", () => {
+      return captureWarnings(() =>
+        l.registerComponent("promise", "Split", noflo.Component),
+      ).then(([result, warnings]) => {
+        assert.strictEqual(result, undefined);
+        assert.deepEqual(warnings, []);
+        assert.ok(Object.keys(l.components).includes("promise/Split"));
+      });
+    });
+    it("registerComponent with a callback should still work but warn", () => {
+      return captureWarnings(
+        () =>
+          new Promise((resolve, reject) => {
+            l.registerComponent("promise", "CB", noflo.Component, (err) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+              resolve();
+            });
+          }),
+      ).then(([, warnings]) => {
+        assert.equal(warnings.length, 1);
+        assert.match(warnings[0], /registerComponent is deprecated/);
+        assert.ok(Object.keys(l.components).includes("promise/CB"));
+      });
+    });
+    it("registerGraph should return a Promise", () => {
+      return l.registerGraph("promise", "Graph", new noflo.Graph()).then(() => {
+        assert.ok(Object.keys(l.components).includes("promise/Graph"));
+      });
+    });
+    it("registerLoader should resolve once the loader finishes", () => {
+      return captureWarnings(() =>
+        l.registerLoader((loader, callback) => {
+          loader.registerComponent("promise", "Loaded", noflo.Component);
+          callback(null);
+        }),
+      ).then(([result, warnings]) => {
+        assert.strictEqual(result, undefined);
+        assert.deepEqual(warnings, []);
+        assert.ok(Object.keys(l.components).includes("promise/Loaded"));
+      });
+    });
+    it("registerLoader should reject with an Error when the loader fails", () => {
+      return l
+        .registerLoader((_loader, callback) => {
+          callback(new Error("loader failed"));
+        })
+        .then(
+          () => {
+            throw new Error("should not have resolved");
+          },
+          (err) => {
+            assert.ok(err instanceof Error);
+            assert.equal(err.message, "loader failed");
+          },
+        );
+    });
+    it("registerLoader with a failing callback path should deliver the error and warn", () => {
+      return captureWarnings(
+        () =>
+          new Promise((resolve, reject) => {
+            l.registerLoader(
+              (_loader, callback) => {
+                callback(new Error("loader failed"));
+              },
+              (err) => {
+                if (err) {
+                  reject(err);
+                  return;
+                }
+                resolve();
+              },
+            );
+          }),
+      ).then(
+        () => {
+          throw new Error("should not have resolved");
+        },
+        ([err, warnings]) => {
+          assert.ok(err instanceof Error);
+          assert.equal(err.message, "loader failed");
+          assert.equal(warnings.length, 1);
+          assert.match(warnings[0], /registerLoader is deprecated/);
+        },
+      );
+    });
+  });
   describe("reading sources", () => {
     it("should be able to provide source code for a component", () => {
       return l.getSource("Graph").then((component) => {

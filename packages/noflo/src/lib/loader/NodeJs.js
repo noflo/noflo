@@ -423,23 +423,14 @@ function registerCustomLoaders(loader, componentLoaders, callback) {
       (chain, componentLoader) =>
         chain
           .then(() => import(componentLoader))
-          .then(
-            (customLoader) =>
-              new Promise((resolve, reject) => {
-                let loaderFunc = customLoader;
-                if (typeof customLoader === "object" && customLoader.default) {
-                  // CommonJS loader
-                  loaderFunc = customLoader.default;
-                }
-                loader.registerLoader(loaderFunc, (err) => {
-                  if (err) {
-                    reject(err);
-                    return;
-                  }
-                  resolve();
-                });
-              }),
-          ),
+          .then((customLoader) => {
+            let loaderFunc = customLoader;
+            if (typeof customLoader === "object" && customLoader.default) {
+              // CommonJS loader
+              loaderFunc = customLoader.default;
+            }
+            return loader.registerLoader(loaderFunc);
+          }),
       Promise.resolve(),
     )
     .then(() => {

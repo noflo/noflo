@@ -57,8 +57,13 @@ NoFlo 2.x series goals:
 
 ## Project structure
 
-- `src/`: library source code
-- `spec/`: unit and integration tests
+NoFlo is developed as a monorepo managed with npm workspaces. The commands above are run from the repository root and apply to all workspace packages.
+
+- `packages/noflo/`: the NoFlo npm package
+  - `src/`: library source code
+  - `spec/`: unit and integration tests
+  - `examples/`: example graphs and components
+- `scripts/`: monorepo release and tooling scripts (version bumping, changelog compilation, JSR publishing helpers)
 - `docs/`: documentation in Markdown format
 
 Technical work is planned using work documents (in Markdown) that are managed [using rngit](https://reticulum.network/manual/git.html#work-documents) in <rns://3ea5aad068a337670f5bb8073226adb4/public/noflo>.

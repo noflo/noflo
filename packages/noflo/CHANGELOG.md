@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Reformatted all source code to Biome standards
 - Repository reorganized into a monorepo layout; the NoFlo npm package is now built from `packages/noflo`
+- `ComponentLoader.registerComponent`, `registerGraph`, and `registerLoader` now return Promises; providing callbacks to them is deprecated and logs a warning
 
 ## [1.5.2] - 2026-06-22
 ### Added

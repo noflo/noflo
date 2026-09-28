@@ -445,13 +445,21 @@ export class ComponentLoader {
    * @param {string} name
    * @param {ComponentDefinition} cPath
    * @param {ErrorableCallback} [callback]
+   * @returns {Promise<void>}
    */
   registerComponent(packageId, name, cPath, callback) {
     const fullName = this.normalizeName(packageId, name);
     this.components[fullName] = cPath;
+    const promise = Promise.resolve();
     if (callback) {
-      callback(null);
+      deprecated(
+        "Providing a callback to ComponentLoader.registerComponent is deprecated, use Promises",
+      );
+      promise.then(() => {
+        callback(null);
+      }, callback);
     }
+    return promise;
   }
 
   // With the `registerGraph` method you can register new
@@ -461,9 +469,10 @@ export class ComponentLoader {
    * @param {string} name
    * @param {import("fbp-graph").Graph} gPath
    * @param {ErrorableCallback} [callback]
+   * @returns {Promise<void>}
    */
   registerGraph(packageId, name, gPath, callback) {
-    this.registerComponent(packageId, name, gPath, callback);
+    return this.registerComponent(packageId, name, gPath, callback);
   }
 
   // With `registerLoader` you can register custom component
@@ -477,10 +486,28 @@ export class ComponentLoader {
    */
   /**
    * @param {CustomLoader} loader
-   * @param {ErrorableCallback} callback
+   * @param {ErrorableCallback} [callback]
+   * @returns {Promise<void>}
    */
   registerLoader(loader, callback) {
-    loader(this, callback);
+    const promise = new Promise((resolve, reject) => {
+      loader(this, (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve();
+      });
+    });
+    if (callback) {
+      deprecated(
+        "Providing a callback to ComponentLoader.registerLoader is deprecated, use Promises",
+      );
+      promise.then(() => {
+        callback(null);
+      }, callback);
+    }
+    return promise;
   }
 
   // With `setSource` you can register a component by providing
