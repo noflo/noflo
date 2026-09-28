@@ -135,7 +135,7 @@ export class Graph extends Component {
      * @type {Array<SubgraphContext>}
      */
     const contexts = [];
-    network.on("start", () => {
+    network.addEventListener("start", () => {
       const ctx = {
         activated: false,
         deactivated: false,
@@ -144,7 +144,7 @@ export class Graph extends Component {
       contexts.push(ctx);
       this.activate(ctx);
     });
-    network.on("end", () => {
+    network.addEventListener("end", () => {
       const ctx = contexts.pop();
       if (!ctx) {
         return;

@@ -9,7 +9,7 @@
     import/prefer-default-export,
 */
 
-import { EventEmitter } from "node:events";
+import { LegacyEventBase } from "./LegacyEvents.js";
 import { ComponentLoader } from "./ComponentLoader.js";
 import * as internalSocket from "./InternalSocket.js";
 import IP from "./IP.js";
@@ -109,7 +109,7 @@ function connectPort(socket, process, port, index, inbound) {
 // instantiate all the necessary processes from the designated
 // components, attach sockets between them, and handle the sending
 // of Initial Information Packets.
-export class BaseNetwork extends EventEmitter {
+export class BaseNetwork extends LegacyEventBase {
   /**
    * All NoFlo networks are instantiated with a graph. Upon instantiation
    * they will load all the needed components, instantiate them, and
@@ -301,7 +301,7 @@ export class BaseNetwork extends EventEmitter {
     this.traceEvent(event, payload);
     // Errors get emitted immediately, like does network end
     if (["icon", "error", "process-error", "end"].includes(event)) {
-      this.emit(event, payload);
+      this.dispatchLifecycleEvent(event, payload);
       return;
     }
     if (!this.isStarted() && event !== "end") {
@@ -312,12 +312,12 @@ export class BaseNetwork extends EventEmitter {
       return;
     }
 
-    this.emit(event, payload);
+    this.dispatchLifecycleEvent(event, payload);
 
     if (event === "start") {
       // Once network has started we can send the IP-related events
       this.eventBuffer.forEach((ev) => {
-        this.emit(ev.type, ev.payload);
+        this.dispatchLifecycleEvent(ev.type, ev.payload);
       });
       this.eventBuffer = [];
     }
