@@ -10,7 +10,7 @@
     "fbp-spec"
   ],
   "author": "Henri Bergius <henri.bergius@iki.fi>",
-  "license": "MIT",
+  "license": "EUPL-1.2",
   "type": "module",
   "engines": {
     "node": ">= 20"
