@@ -1,0 +1,10 @@
+{
+  "name": "fbp-spec-runner-fixtures",
+  "type": "module",
+  "noflo": {
+    "components": {
+      "Repeat": "components/Repeat.js",
+      "Accumulate": "components/Accumulate.js"
+    }
+  }
+}

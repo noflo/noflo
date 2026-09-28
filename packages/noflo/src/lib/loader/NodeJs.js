@@ -208,20 +208,11 @@ function transpileAndRegisterForModule(
     .then((implementation) => {
       registerSources(loader, module.name, component.name, source, language);
       registerSpecs(loader, module.name, component.name, component.tests || "");
-      return new Promise((resolve, reject) => {
-        loader.registerComponent(
-          module.name,
-          component.name,
-          implementation,
-          (err) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-            resolve();
-          },
-        );
-      });
+      return loader.registerComponent(
+        module.name,
+        component.name,
+        implementation,
+      );
     });
 }
 
@@ -461,40 +452,24 @@ function registerModules(loader, modules, callback) {
       }
 
       return Promise.all(
-        m.components.map(
-          (c) =>
-            new Promise((resolve, reject) => {
-              const language = utils.guessLanguageFromFilename(c.path);
-              if (language === "typescript" || language === "coffeescript") {
-                // We can't require a module that requires transpilation, go the setSource route
-                readFile(path.resolve(loader.baseDir, c.path), "utf-8")
-                  .then((source) =>
-                    transpileAndRegisterForModule(
-                      loader,
-                      m,
-                      c,
-                      source,
-                      language,
-                    ),
-                  )
-                  .then(resolve, reject);
-                return;
-              }
-              registerSpecs(loader, m.name, c.name, c.tests);
-              loader.registerComponent(
-                m.name,
-                c.name,
-                path.resolve(loader.baseDir, c.path),
-                (err) => {
-                  if (err) {
-                    reject(err);
-                    return;
-                  }
-                  resolve();
-                },
-              );
-            }),
-        ),
+        m.components.map((c) => {
+          const language = utils.guessLanguageFromFilename(c.path);
+          if (language === "typescript" || language === "coffeescript") {
+            // We can't require a module that requires transpilation, go the setSource route
+            return readFile(
+              path.resolve(loader.baseDir, c.path),
+              "utf-8",
+            ).then((source) =>
+              transpileAndRegisterForModule(loader, m, c, source, language),
+            );
+          }
+          registerSpecs(loader, m.name, c.name, c.tests);
+          return loader.registerComponent(
+            m.name,
+            c.name,
+            path.resolve(loader.baseDir, c.path),
+          );
+        }),
       );
     }),
   ).then(() => {

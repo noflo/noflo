@@ -1,0 +1,41 @@
+{
+  "name": "@noflo/fbp-spec-runner",
+  "version": "1.5.2",
+  "description": "In-process fbp-spec test runner for NoFlo components, built on node:test",
+  "keywords": [
+    "fbp",
+    "flowbased",
+    "noflo",
+    "testing",
+    "fbp-spec"
+  ],
+  "author": "Henri Bergius <henri.bergius@iki.fi>",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">= 20"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0"
+  },
+  "dependencies": {
+    "noflo": "^1.5.2"
+  },
+  "bin": {
+    "fbp-spec-runner": "./src/cli.js"
+  },
+  "files": [
+    "src",
+    "vendor",
+    "CHANGELOG.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/noflo/noflo.git"
+  },
+  "scripts": {
+    "test": "node --test spec/*.mjs",
+    "lint": "npx @biomejs/biome check --use-editorconfig=true src/ spec/ utils/",
+    "types": "tsc --checkJs --noEmit -p ."
+  }
+}
