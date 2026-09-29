@@ -357,3 +357,89 @@ describe("hierarchical high-water mark wiring through networks", () => {
     assert.equal(socket.edge.highWaterMark, null);
   });
 });
+
+describe("network-level edge observation", () => {
+  let observeLoader;
+  before(async () => {
+    observeLoader = new noflo.ComponentLoader(process.cwd());
+    await observeLoader.listComponents();
+    const repeat = () => {
+      const c = new noflo.Component();
+      c.inPorts.add("in", { datatype: "all" });
+      c.outPorts.add("out", { datatype: "all" });
+      c.process((input, output) => {
+        output.sendDone({ out: input.getData("in") });
+      });
+      return c;
+    };
+    observeLoader.registerComponent("obs", "Repeat", repeat);
+  });
+
+  it("sees every IP on every edge before delivery, with socket context", async () => {
+    const g = new noflo.Graph();
+    g.addNode("A", "obs/Repeat");
+    g.addNode("B", "obs/Repeat");
+    g.addNode("C", "obs/Repeat");
+    g.addEdge("A", "out", "B", "in");
+    g.addEdge("B", "out", "C", "in");
+    const nw = await noflo.createNetwork(g, {
+      delay: true,
+      subscribeGraph: false,
+      componentLoader: observeLoader,
+    });
+    await nw.connect();
+    /** @type {{ from: string, data: any }[]} */
+    const seen = [];
+    nw.observe((ip, socket, next) => {
+      seen.push({
+        from: socket.from ? socket.from.process.id : null,
+        data: ip.data,
+      });
+      next();
+    });
+    await nw.addInitial({
+      from: { data: "hello" },
+      to: { node: "A", port: "in" },
+    });
+    await nw.start();
+    await new Promise((resolve) => {
+      setTimeout(resolve, 50);
+    });
+    // The packet traverses the IIP edge (no source process) and both
+    // component edges
+    assert.deepEqual(
+      seen.map((entry) => entry.from),
+      [null, "A", "B"],
+    );
+    assert.ok(seen.every((entry) => entry.data === "hello"));
+  });
+
+  it("observers registered before wiring still apply to later edges", async () => {
+    const g = new noflo.Graph();
+    g.addNode("A", "obs/Repeat");
+    g.addNode("B", "obs/Repeat");
+    const nw = await noflo.createNetwork(g, {
+      delay: true,
+      subscribeGraph: false,
+      componentLoader: observeLoader,
+    });
+    let observed = 0;
+    nw.observe((_ip, _socket, next) => {
+      observed += 1;
+      next();
+    });
+    // Load processes, then wire an edge after observer registration
+    await nw.connect();
+    await nw.addEdge({
+      from: { node: "A", port: "out" },
+      to: { node: "B", port: "in" },
+    });
+    await nw.addInitial({ from: { data: 42 }, to: { node: "A", port: "in" } });
+    await nw.start();
+    await new Promise((resolve) => {
+      setTimeout(resolve, 50);
+    });
+    // Both the IIP edge and the component edge observe the packet
+    assert.equal(observed, 2);
+  });
+});
