@@ -44,7 +44,8 @@ export class Graph extends Component {
     });
     this.outPorts = new OutPorts();
 
-    this.inPorts.ports.graph.on("ip", (packet) => {
+    this.inPorts.ports.graph.addEventListener("ip", (event) => {
+      const packet = event.detail;
       if (packet.type !== "data") {
         return;
       }
@@ -238,7 +239,7 @@ export class Graph extends Component {
         return;
       }
       this.inPorts.add(targetPortName, port);
-      this.inPorts.ports[targetPortName].on("connect", () => {
+      this.inPorts.ports[targetPortName].addEventListener("connect", () => {
         // Start the network implicitly if we're starting to get data
         if (this.starting || !this.network) {
           return;

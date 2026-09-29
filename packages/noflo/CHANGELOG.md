@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ComponentLoader.registerComponent`, `registerGraph`, and `registerLoader` now return Promises; providing callbacks to them is deprecated and logs a warning
 - `Component` now inherits from native `EventTarget` instead of Node.js EventEmitter. The legacy EventEmitter-style API (`on`, `once`, `off`, `removeListener`, `emit`, `listeners`) is provided by a compatibility mixin with deprecation warnings; internal engine dispatches go through a typed `dispatchLifecycleEvent` helper
 - Networks now also inherit from native `EventTarget` with the same compatibility mixin. Network events (`start`, `end`, `icon`, `process-error`, `ip`, …) are dispatched as `CustomEvent`s with the payload in `event.detail`; subscribing via `addEventListener` works alongside the legacy `on` API
+- Port collections and ports (`Ports`, `BasePort`, `InPort`) inherit from native `EventTarget` as well. Addressable `attach`/`detach` events now carry `[socket, index]` as the event `detail`; forwarded socket events on ports keep a single payload with the index available on the IP object's `index` property. `InternalSocket` remains on Node.js EventEmitter until the Web Streams migration rebuilds it
+- Event dispatch in NoFlo is synchronous like EventEmitter: listener exceptions propagate to the dispatcher instead of becoming uncaught exceptions as with native `dispatchEvent`. This keeps the engine's error-escalation chain working
 
 ## [1.5.2] - 2026-06-22
 ### Added

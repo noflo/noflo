@@ -3,15 +3,15 @@
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
 
+import debug from "debug";
+import InPort from "./InPort.js"; // eslint-disable-line no-unused-vars
+import IP from "./IP.js"; // eslint-disable-line no-unused-vars
 /* eslint-disable
     class-methods-use-this,
     no-underscore-dangle,
     import/prefer-default-export,
 */
 import { LegacyEventBase } from "./LegacyEvents.js";
-import debug from "debug";
-import InPort from "./InPort.js"; // eslint-disable-line no-unused-vars
-import IP from "./IP.js"; // eslint-disable-line no-unused-vars
 import OutPort from "./OutPort.js"; // eslint-disable-line no-unused-vars
 import { deprecated } from "./Platform.js";
 import { InPorts, normalizePortName, OutPorts } from "./Ports.js";
@@ -423,7 +423,7 @@ export class Component extends LegacyEventBase {
       if (!port.name) {
         port.name = name;
       }
-      port.on("ip", (ip) => this.handleIP(ip, port));
+      port.addEventListener("ip", (event) => this.handleIP(event.detail, port));
     });
     return this;
   }

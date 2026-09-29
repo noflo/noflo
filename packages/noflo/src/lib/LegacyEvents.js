@@ -2,21 +2,28 @@
  * @file LegacyEvents module
  * @description EventTarget compatibility layer for the 1.x EventEmitter API.
  *
- *   NoFlo 2.x core classes inherit from the native `EventTarget` API.
- *   During the migration period this mixin provides the legacy EventEmitter
- *   surface (`on`, `once`, `off`, `removeListener`, `emit`, `listeners`) on
- *   top of `addEventListener`/`dispatchEvent`, with deprecation warnings
- *   (once per event type) guiding users toward native EventTarget usage.
+ *   NoFlo 2.x core classes use the native `EventTarget` registration API
+ *   (`addEventListener`/`removeEventListener`). During the migration period
+ *   this mixin provides the legacy EventEmitter surface (`on`, `once`,
+ *   `off`, `removeListener`, `emit`, `listeners`) on top, with deprecation
+ *   warnings (once per event type) guiding users toward native usage.
+ *
+ *   Dispatching intentionally does NOT go through the native
+ *   `dispatchEvent`: Node's EventTarget isolates listener exceptions
+ *   (surfacing them as uncaught exceptions) instead of propagating them
+ *   synchronously to the caller like EventEmitter's `emit`. NoFlo's error
+ *   semantics depend on synchronous propagation — a listener throw must
+ *   reach the dispatcher so the socket/network error-escalation chain
+ *   works. {@link LegacyEventBase#dispatchLifecycleEvent} therefore invokes
+ *   registered listeners itself, synchronously and in registration order.
  *
  *   Legacy handlers are invoked with the event's `detail` as their single
- *   argument, mirroring `emit(type, payload) → handler(payload)`.
+ *   argument and with the emitter as `this`, mirroring
+ *   `emit(type, payload) → handler.call(emitter, payload)`.
  *
- *   The mixin also tracks listener registrations per event type — native
- *   ones included — because `EventTarget` exposes no listener count and the
- *   engine's error-escalation semantics ("no process-error listener ⇒
- *   throw") depend on it. Use {@link LegacyEventBase#listeners} or
- *   {@link LegacyEventBase#dispatchLifecycleEvent} instead of assuming
- *   EventEmitter internals.
+ *   The mixin tracks listener registrations per event type — native ones
+ *   included — because the engine's error-escalation semantics ("no
+ *   process-error listener ⇒ throw") depend on knowing the count.
  */
 
 import { deprecated } from "./Platform.js";
@@ -56,9 +63,24 @@ function warnOnce(method, type) {
 }
 
 /**
+ * Validate the legacy listener contract, matching EventEmitter's behavior
+ * of rejecting non-function listeners.
+ *
+ * @param {Function} handler
+ * @param {string} method
+ */
+function assertListener(handler, method) {
+  if (typeof handler !== "function") {
+    throw new TypeError(
+      `The "${method}" handler must be a function. Received ${typeof handler}`,
+    );
+  }
+}
+
+/**
  * Per-instance listener registry.
  * @typedef {Object} ListenerRegistry
- * @property {Map<string, Set<Function>>} active - event type → registered listener functions
+ * @property {Map<string, { listener: Function, once: boolean }[]>} active - event type → registrations in order
  * @property {Map<string, { handler: Function, wrapper: Function }[]>} legacy - event type → legacy handler/wrapper pairs
  */
 
@@ -87,7 +109,8 @@ export function LegacyEventMixin(Base) {
   return class LegacyEventBase extends Base {
     /**
      * Track listener registrations, so `listeners()` can answer the
-     * "is anyone listening" question EventTarget can't.
+     * "is anyone listening" question EventTarget can't, and so
+     * `dispatchLifecycleEvent` can invoke listeners synchronously.
      *
      * @param {string} type
      * @param {Function} listener
@@ -95,8 +118,17 @@ export function LegacyEventMixin(Base) {
      */
     addEventListener(type, listener, options) {
       const registry = registryFor(this);
-      if (!registry.active.has(type)) registry.active.set(type, new Set());
-      registry.active.get(type).add(listener);
+      if (!registry.active.has(type)) registry.active.set(type, []);
+      const listeners = /** @type {{ listener: Function, once: boolean }[]} */ (
+        registry.active.get(type)
+      );
+      // Mirror the EventTarget de-duplication of identical listener functions
+      if (listeners.some((entry) => entry.listener === listener)) {
+        return;
+      }
+      const once =
+        typeof options === "object" && options !== null && options.once;
+      listeners.push({ listener, once });
       super.addEventListener(type, listener, options);
     }
 
@@ -107,7 +139,15 @@ export function LegacyEventMixin(Base) {
      */
     removeEventListener(type, listener, options) {
       const registry = registryFor(this);
-      registry.active.get(type)?.delete(listener);
+      const listeners = registry.active.get(type);
+      if (listeners) {
+        const index = listeners.findIndex(
+          (entry) => entry.listener === listener,
+        );
+        if (index !== -1) {
+          listeners.splice(index, 1);
+        }
+      }
       registry.legacy.set(
         type,
         (registry.legacy.get(type) || []).filter(
@@ -127,7 +167,7 @@ export function LegacyEventMixin(Base) {
      */
     listeners(type) {
       const registry = registryFor(this);
-      return [...(registry.active.get(type) || [])];
+      return (registry.active.get(type) || []).map((entry) => entry.listener);
     }
 
     /**
@@ -139,8 +179,9 @@ export function LegacyEventMixin(Base) {
      */
     on(type, handler) {
       warnOnce("on", type);
+      assertListener(handler, "on");
       /** @param {DetailEvent} event */ const wrapper = (event) =>
-        handler(event.detail);
+        handler.call(this, event.detail);
       const registry = registryFor(this);
       if (!registry.legacy.has(type)) registry.legacy.set(type, []);
       registry.legacy.get(type).push({ handler, wrapper });
@@ -157,11 +198,12 @@ export function LegacyEventMixin(Base) {
      */
     once(type, handler) {
       warnOnce("once", type);
+      assertListener(handler, "once");
       /**
        * @param {DetailEvent} event
        */ const wrapper = (event) => {
         this.removeEventListener(type, wrapper);
-        handler(event.detail);
+        handler.call(this, event.detail);
       };
       const registry = registryFor(this);
       if (!registry.legacy.has(type)) registry.legacy.set(type, []);
@@ -211,18 +253,34 @@ export function LegacyEventMixin(Base) {
      */
     emit(type, detail) {
       warnOnce("emit", type);
-      return this.dispatchEvent(makeDetailEvent(type, detail));
+      return this.dispatchLifecycleEvent(type, detail);
     }
 
     /**
-     * Internal, clean-room dispatch used by 2.x code paths.
+     * Internal, clean-room dispatch used by engine code paths. Invokes the
+     * registered listeners synchronously, in registration order, letting
+     * listener exceptions propagate to the caller (matching EventEmitter
+     * semantics that NoFlo's error escalation relies on).
      *
      * @param {string} type
      * @param {any} [detail]
      * @returns {boolean}
      */
     dispatchLifecycleEvent(type, detail) {
-      return this.dispatchEvent(makeDetailEvent(type, detail));
+      const registry = registryFor(this);
+      const listeners = registry.active.get(type) || [];
+      if (!listeners.length) {
+        return false;
+      }
+      const event = makeDetailEvent(type, detail);
+      // Snapshot: a listener may remove itself or others during dispatch
+      for (const entry of [...listeners]) {
+        if (entry.once) {
+          this.removeEventListener(type, entry.listener);
+        }
+        entry.listener(event);
+      }
+      return true;
     }
   };
 }

@@ -56,7 +56,7 @@ describe("Outport Port", () => {
       const expectedSockets = [s2, s3];
       const expected = [1, 5];
       const expectedAttached = [[3, 5], [3]];
-      p.on("detach", (socket, index) => {
+      p.on("detach", ([socket, index]) => {
         assert.strictEqual(socket, expectedSockets.shift());
         assert.strictEqual(index, expected.shift());
         assert.equal(p.isAttached(index), false);

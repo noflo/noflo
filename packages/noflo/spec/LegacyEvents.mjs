@@ -155,4 +155,47 @@ describe("LegacyEvents EventTarget compatibility layer", () => {
     assert.equal(viaLegacy, "smile");
     assert.equal(viaNative, "smile");
   });
+
+  it("listener exceptions propagate synchronously to the dispatcher", () => {
+    const c = new Component();
+    c.addEventListener("boom", () => {
+      throw new Error("listener exploded");
+    });
+    assert.throws(
+      () => c.dispatchLifecycleEvent("boom", 1),
+      /listener exploded/,
+    );
+  });
+
+  it("on()/once() reject non-function handlers like EventEmitter", () => {
+    const c = new Component();
+    assert.throws(() => c.on("data", "not-a-function"), /must be a function/);
+    assert.throws(() => c.once("data", "not-a-function"), /must be a function/);
+  });
+
+  it("addEventListener honors the once option", () => {
+    const c = new Component();
+    let calls = 0;
+    c.addEventListener(
+      "end",
+      () => {
+        calls += 1;
+      },
+      { once: true },
+    );
+    c.dispatchLifecycleEvent("end");
+    c.dispatchLifecycleEvent("end");
+    assert.equal(calls, 1);
+    assert.equal(c.listeners("end").length, 0);
+  });
+
+  it("legacy handlers are called with the emitter as this", () => {
+    const c = new Component();
+    let context = null;
+    c.on("activate", function onActivate() {
+      context = this;
+    });
+    c.dispatchLifecycleEvent("activate", 1);
+    assert.strictEqual(context, c);
+  });
 });
