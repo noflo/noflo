@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- `Edge` data-plane transport over Web Streams, the infrastructure for the 2.x dataflow migration: hierarchical `highWaterMark` resolution (edge metadata ∪ component default ∪ runtime global; `0` = synchronous, positive = buffered, `null`/absent = unbounded 1.x behavior), an `observe()` middleware hook for fbp-protocol/Flowtrace, bracket-substream integrity validation, and admission-based backpressure. Not yet wired into networks
+
 ### Changed
 - Reformatted all source code to Biome standards
 - Repository reorganized into a monorepo layout; the NoFlo npm package is now built from `packages/noflo`
