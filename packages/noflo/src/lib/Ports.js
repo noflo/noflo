@@ -2,8 +2,9 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
-import { EventEmitter } from "node:events";
+
 import InPort from "./InPort.js";
+import { LegacyEventBase } from "./LegacyEvents.js";
 import OutPort from "./OutPort.js";
 
 /**
@@ -14,7 +15,7 @@ import OutPort from "./OutPort.js";
 //
 // Ports collection classes for NoFlo components. These are
 // used to hold a set of input or output ports of a component.
-class Ports extends EventEmitter {
+class Ports extends LegacyEventBase {
   /**
    * @param {Object<string, import("./BasePort").default|PortOptions>} ports
    * @param {typeof import("./BasePort").default} model
@@ -64,7 +65,7 @@ class Ports extends EventEmitter {
 
     this[name] = this.ports[name];
 
-    this.emit("add", name);
+    this.dispatchLifecycleEvent("add", name);
 
     return this; // chainable
   }
@@ -78,7 +79,7 @@ class Ports extends EventEmitter {
     }
     delete this.ports[name];
     delete this[name];
-    this.emit("remove", name);
+    this.dispatchLifecycleEvent("remove", name);
 
     return this; // chainable
   }

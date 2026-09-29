@@ -9,10 +9,10 @@
     import/prefer-default-export,
 */
 
-import { EventEmitter } from "node:events";
 import { ComponentLoader } from "./ComponentLoader.js";
 import * as internalSocket from "./InternalSocket.js";
 import IP from "./IP.js";
+import { LegacyEventBase } from "./LegacyEvents.js";
 import { deprecated, isBrowser, makeAsync } from "./Platform.js";
 import { debounce } from "./Utils.js";
 
@@ -109,7 +109,7 @@ function connectPort(socket, process, port, index, inbound) {
 // instantiate all the necessary processes from the designated
 // components, attach sockets between them, and handle the sending
 // of Initial Information Packets.
-export class BaseNetwork extends EventEmitter {
+export class BaseNetwork extends LegacyEventBase {
   /**
    * All NoFlo networks are instantiated with a graph. Upon instantiation
    * they will load all the needed components, instantiate them, and
@@ -301,7 +301,7 @@ export class BaseNetwork extends EventEmitter {
     this.traceEvent(event, payload);
     // Errors get emitted immediately, like does network end
     if (["icon", "error", "process-error", "end"].includes(event)) {
-      this.emit(event, payload);
+      this.dispatchLifecycleEvent(event, payload);
       return;
     }
     if (!this.isStarted() && event !== "end") {
@@ -312,12 +312,12 @@ export class BaseNetwork extends EventEmitter {
       return;
     }
 
-    this.emit(event, payload);
+    this.dispatchLifecycleEvent(event, payload);
 
     if (event === "start") {
       // Once network has started we can send the IP-related events
       this.eventBuffer.forEach((ev) => {
-        this.emit(ev.type, ev.payload);
+        this.dispatchLifecycleEvent(ev.type, ev.payload);
       });
       this.eventBuffer = [];
     }
@@ -591,9 +591,11 @@ export class BaseNetwork extends EventEmitter {
       return;
     }
     if (!node.component.isReady()) {
-      node.component.once("ready", () => {
+      /** @param {Event} _event */ const onReady = (_event) => {
+        node.component.removeEventListener("ready", onReady);
         this.subscribeSubgraph(node);
-      });
+      };
+      node.component.addEventListener("ready", onReady);
       return;
     }
 
@@ -641,14 +643,14 @@ export class BaseNetwork extends EventEmitter {
     /**
      * @type {IP} data
      */
-    instance.network.on("ip", (data) => {
-      emitSub("ip", data);
+    instance.network.addEventListener("ip", (event) => {
+      emitSub("ip", event.detail);
     });
     /**
      * @type {Error} data
      */
-    instance.network.on("process-error", (data) => {
-      emitSub("process-error", data);
+    instance.network.addEventListener("process-error", (event) => {
+      emitSub("process-error", event.detail);
     });
   }
 
@@ -658,7 +660,8 @@ export class BaseNetwork extends EventEmitter {
    * @param {NetworkProcess} [source]
    */
   subscribeSocket(socket, source) {
-    socket.on("ip", (ip) => {
+    socket.addEventListener("ip", (event) => {
+      const ip = event.detail;
       this.bufferedEmit("ip", {
         id: socket.getId(),
         type: ip.type,
@@ -667,14 +670,15 @@ export class BaseNetwork extends EventEmitter {
         metadata: socket.metadata,
       });
     });
-    socket.on("error", (event) => {
+    socket.addEventListener("error", (event) => {
+      const errEvent = event.detail;
       if (this.listeners("process-error").length === 0) {
-        if (event.id && event.metadata && event.error) {
-          throw event.error;
+        if (errEvent.id && errEvent.metadata && errEvent.error) {
+          throw errEvent.error;
         }
-        throw event;
+        throw errEvent;
       }
-      this.bufferedEmit("process-error", event);
+      this.bufferedEmit("process-error", errEvent);
     });
     if (!source?.component?.isLegacy()) {
       return;
@@ -683,13 +687,13 @@ export class BaseNetwork extends EventEmitter {
       source.component
     );
     // Handle activation for legacy components via connects/disconnects
-    socket.on("connect", () => {
+    socket.addEventListener("connect", () => {
       if (!comp.__openConnections) {
         comp.__openConnections = 0;
       }
       comp.__openConnections += 1;
     });
-    socket.on("disconnect", () => {
+    socket.addEventListener("disconnect", () => {
       comp.__openConnections -= 1;
       if (comp.__openConnections < 0) {
         comp.__openConnections = 0;
@@ -710,21 +714,24 @@ export class BaseNetwork extends EventEmitter {
     const instance = /** @type {import("./Component").Component} */ (
       node.component
     );
-    instance.on("activate", () => {
+    instance.addEventListener("activate", () => {
       if (this.debouncedEnd) {
         this.abortDebounce = true;
       }
     });
-    instance.on("deactivate", (load) => {
-      if (load > 0) {
-        return;
-      }
-      this.checkIfFinished();
-    });
+    instance.addEventListener(
+      "deactivate",
+      /** @param {Event & { detail: number }} event */ (event) => {
+        if (event.detail > 0) {
+          return;
+        }
+        this.checkIfFinished();
+      },
+    );
     if (!instance.getIcon) {
       return;
     }
-    instance.on("icon", () => {
+    instance.addEventListener("icon", () => {
       this.bufferedEmit("icon", {
         id: node.id,
         icon: instance.getIcon(),
@@ -755,9 +762,11 @@ export class BaseNetwork extends EventEmitter {
     );
     if (!comp.isReady()) {
       return new Promise((resolve) => {
-        comp.once("ready", () => {
+        /** @param {Event} _event */ const onReady = (_event) => {
+          comp.removeEventListener("ready", onReady);
           resolve(instance);
-        });
+        };
+        comp.addEventListener("ready", onReady);
       });
     }
     return Promise.resolve(instance);

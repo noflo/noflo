@@ -44,7 +44,8 @@ export class Graph extends Component {
     });
     this.outPorts = new OutPorts();
 
-    this.inPorts.ports.graph.on("ip", (packet) => {
+    this.inPorts.ports.graph.addEventListener("ip", (event) => {
+      const packet = event.detail;
       if (packet.type !== "data") {
         return;
       }
@@ -104,7 +105,7 @@ export class Graph extends Component {
       .listComponents()
       .then(() => {
         this.network = network;
-        this.emit("network", network);
+        this.dispatchLifecycleEvent("network", network);
         // Subscribe to network lifecycle
         this.subscribeNetwork(network);
         // Wire the network up
@@ -135,7 +136,7 @@ export class Graph extends Component {
      * @type {Array<SubgraphContext>}
      */
     const contexts = [];
-    network.on("start", () => {
+    network.addEventListener("start", () => {
       const ctx = {
         activated: false,
         deactivated: false,
@@ -144,7 +145,7 @@ export class Graph extends Component {
       contexts.push(ctx);
       this.activate(ctx);
     });
-    network.on("end", () => {
+    network.addEventListener("end", () => {
       const ctx = contexts.pop();
       if (!ctx) {
         return;
@@ -209,12 +210,12 @@ export class Graph extends Component {
     ) {
       process.nextTick(() => {
         this.ready = true;
-        return this.emit("ready");
+        return this.dispatchLifecycleEvent("ready");
       });
     } else {
       setTimeout(() => {
         this.ready = true;
-        return this.emit("ready");
+        return this.dispatchLifecycleEvent("ready");
       }, 0);
     }
   }
@@ -238,7 +239,7 @@ export class Graph extends Component {
         return;
       }
       this.inPorts.add(targetPortName, port);
-      this.inPorts.ports[targetPortName].on("connect", () => {
+      this.inPorts.ports[targetPortName].addEventListener("connect", () => {
         // Start the network implicitly if we're starting to get data
         if (this.starting || !this.network) {
           return;
@@ -284,9 +285,11 @@ export class Graph extends Component {
     this.starting = true;
     if (!this.isReady()) {
       return new Promise((resolve, reject) => {
-        this.once("ready", () => {
+        /** @param {Event} _event */ const onReady = (_event) => {
+          this.removeEventListener("ready", onReady);
           this.setUp().then(resolve, reject);
-        });
+        };
+        this.addEventListener("ready", onReady);
       });
     }
     if (!this.network) {

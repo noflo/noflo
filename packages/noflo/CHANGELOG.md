@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reformatted all source code to Biome standards
 - Repository reorganized into a monorepo layout; the NoFlo npm package is now built from `packages/noflo`
 - `ComponentLoader.registerComponent`, `registerGraph`, and `registerLoader` now return Promises; providing callbacks to them is deprecated and logs a warning
+- `Component` now inherits from native `EventTarget` instead of Node.js EventEmitter. The legacy EventEmitter-style API (`on`, `once`, `off`, `removeListener`, `emit`, `listeners`) is provided by a compatibility mixin with deprecation warnings; internal engine dispatches go through a typed `dispatchLifecycleEvent` helper
+- Networks now also inherit from native `EventTarget` with the same compatibility mixin. Network events (`start`, `end`, `icon`, `process-error`, `ip`, …) are dispatched as `CustomEvent`s with the payload in `event.detail`; subscribing via `addEventListener` works alongside the legacy `on` API
+- Port collections and ports (`Ports`, `BasePort`, `InPort`) inherit from native `EventTarget` as well. Addressable port events carry `[payload, index]` as the event `detail` — `attach`/`detach` give `[socket, index]`, and forwarded socket events (`data`, `connect`, `disconnect`, brackets) give `[payload, index]`; the modern `ip` events keep the raw IP object with its `index` property.
+- Event dispatch in NoFlo is synchronous like EventEmitter: listener exceptions propagate to the dispatcher instead of becoming uncaught exceptions as with native `dispatchEvent`. This keeps the engine's error-escalation chain working
+- Node.js 18 is now the minimum supported version, matching the runtime requirements of the native `EventTarget`-based event system
 
 ## [1.5.2] - 2026-06-22
 ### Added

@@ -1,7 +1,7 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
-import { EventEmitter } from "node:events";
+import { LegacyEventBase } from "./LegacyEvents.js";
 
 // ## NoFlo Port Base class
 //
@@ -85,7 +85,7 @@ function handleOptions(options) {
   });
 }
 
-export default class BasePort extends EventEmitter {
+export default class BasePort extends LegacyEventBase {
   /**
    * @param {BaseOptions} options
    */
@@ -141,10 +141,10 @@ export default class BasePort extends EventEmitter {
     this.sockets[idx] = socket;
     this.attachSocket(socket, idx);
     if (this.isAddressable()) {
-      this.emit("attach", socket, idx);
+      this.dispatchLifecycleEvent("attach", [socket, idx]);
       return;
     }
-    this.emit("attach", socket);
+    this.dispatchLifecycleEvent("attach", socket);
   }
 
   /**
@@ -164,10 +164,10 @@ export default class BasePort extends EventEmitter {
     }
     this.sockets[index] = undefined;
     if (this.isAddressable()) {
-      this.emit("detach", socket, index);
+      this.dispatchLifecycleEvent("detach", [socket, index]);
       return;
     }
-    this.emit("detach", socket);
+    this.dispatchLifecycleEvent("detach", socket);
   }
 
   isAddressable() {

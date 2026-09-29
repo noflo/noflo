@@ -2,8 +2,9 @@
 //     (c) 2013-2017 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
-import { EventEmitter } from "node:events";
+
 import IP from "./IP.js";
+import { LegacyEventBase } from "./LegacyEvents.js";
 import { makeAsync } from "./Platform.js";
 
 function legacyToIp(event, payload) {
@@ -61,12 +62,12 @@ function ipToLegacy(ip) {
 // packets sent from processes' outports, and emitting corresponding
 // events so that the packets can be caught to the inport of the
 // connected process.
-export class InternalSocket extends EventEmitter {
+export class InternalSocket extends LegacyEventBase {
   /**
    * @private
    */
   regularEmitEvent(event, data) {
-    this.emit(event, data);
+    this.dispatchLifecycleEvent(event, data);
   }
 
   /**
@@ -74,14 +75,14 @@ export class InternalSocket extends EventEmitter {
    */
   debugEmitEvent(event, data) {
     try {
-      this.emit(event, data);
+      this.dispatchLifecycleEvent(event, data);
     } catch (error) {
       if (error.id && error.metadata && error.error) {
         // Wrapped debuggable error coming from downstream, no need to wrap
         if (this.listeners("error").length === 0) {
           throw error.error;
         }
-        this.emit("error", error);
+        this.dispatchLifecycleEvent("error", error);
         return;
       }
 
@@ -89,7 +90,7 @@ export class InternalSocket extends EventEmitter {
         throw error;
       }
 
-      this.emit("error", {
+      this.dispatchLifecycleEvent("error", {
         id: this.to ? this.to.process.id : null,
         error,
         metadata: this.metadata,

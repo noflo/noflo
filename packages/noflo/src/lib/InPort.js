@@ -62,23 +62,27 @@ export default class InPort extends BasePort {
       socket.setDataDelegate(() => this.options.default);
     }
 
-    socket.on("connect", () =>
-      this.handleSocketEvent("connect", socket, localId),
+    /**
+     * @param {string} type
+     * @param {any} detail
+     */
+    const forward = (type, detail) =>
+      this.handleSocketEvent(type, detail, localId);
+    socket.addEventListener("connect", () => forward("connect", socket));
+    socket.addEventListener("begingroup", (event) =>
+      forward("begingroup", event.detail),
     );
-    socket.on("begingroup", (group) =>
-      this.handleSocketEvent("begingroup", group, localId),
-    );
-    socket.on("data", (data) => {
-      this.validateData(data);
-      return this.handleSocketEvent("data", data, localId);
+    socket.addEventListener("data", (event) => {
+      this.validateData(event.detail);
+      return forward("data", event.detail);
     });
-    socket.on("endgroup", (group) =>
-      this.handleSocketEvent("endgroup", group, localId),
+    socket.addEventListener("endgroup", (event) =>
+      forward("endgroup", event.detail),
     );
-    socket.on("disconnect", () =>
-      this.handleSocketEvent("disconnect", socket, localId),
+    socket.addEventListener("disconnect", () => forward("disconnect", socket));
+    socket.addEventListener("ip", (event) =>
+      this.handleIP(event.detail, localId),
     );
-    socket.on("ip", (ip) => this.handleIP(ip, localId));
   }
 
   /**
@@ -109,20 +113,21 @@ export default class InPort extends BasePort {
       buf.shift();
     }
 
-    this.emit("ip", ip, index);
+    this.dispatchLifecycleEvent("ip", ip);
   }
 
   /**
    * @param {string} event
    * @param {any} payload
-   * @param {number} [id]
    */
   handleSocketEvent(event, payload, id) {
-    // Emit port event
+    // Emit port event. Addressable ports carry [payload, index] as the
+    // event detail (matching attach/detach); `ip` events keep the raw IP
+    // object with its `index` property.
     if (this.isAddressable()) {
-      return this.emit(event, payload, id);
+      return this.dispatchLifecycleEvent(event, [payload, id]);
     }
-    return this.emit(event, payload);
+    return this.dispatchLifecycleEvent(event, payload);
   }
 
   hasDefault() {

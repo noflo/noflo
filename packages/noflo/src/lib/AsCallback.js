@@ -186,7 +186,8 @@ function runNetwork(network, inputs) {
         process,
         port: portDef.port,
       };
-      outSockets[outport].on("ip", (ip) => {
+      outSockets[outport].addEventListener("ip", (event) => {
+        const ip = event.detail;
         /** @type Object<string, IP> */
         const res = {};
         res[outport] = ip;
@@ -205,14 +206,17 @@ function runNetwork(network, inputs) {
      */
     /** @type {EndListener} */
     let onEnd;
-    /** @type {ErrorListener} */
-    const onError = (err) => {
+    /** @type {(event: Event & { detail: import("./InternalSocket").SocketError }) => void} */
+    const onError = (event) => {
+      network.removeEventListener("process-error", onError);
+      const err = event.detail;
       reject(err.error);
-      network.removeListener("end", onEnd);
+      network.removeEventListener("end", onEnd);
     };
-    network.once("process-error", onError);
+    network.addEventListener("process-error", onError);
     // Subscribe network finish
     onEnd = () => {
+      network.removeEventListener("end", onEnd);
       // Clear listeners
       Object.keys(outSockets).forEach((port) => {
         const socket = outSockets[port];
@@ -221,9 +225,9 @@ function runNetwork(network, inputs) {
       outSockets = {};
       inSockets = {};
       resolve(received);
-      network.removeListener("process-error", onError);
+      network.removeEventListener("process-error", onError);
     };
-    network.once("end", onEnd);
+    network.addEventListener("end", onEnd);
     // Start network
     network.start().then(() => {
       // Send inputs
@@ -279,8 +283,8 @@ function runNetwork(network, inputs) {
             }
           } catch (e) {
             reject(e);
-            network.removeListener("process-error", onError);
-            network.removeListener("end", onEnd);
+            network.removeEventListener("process-error", onError);
+            network.removeEventListener("end", onEnd);
             return;
           }
         }

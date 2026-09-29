@@ -11,7 +11,7 @@
   "version": "1.5.2",
   "license": "MIT",
   "engines": {
-    "node": ">= 6"
+    "node": ">= 18"
   },
   "dependencies": {
     "debug": "^4.0.1",
