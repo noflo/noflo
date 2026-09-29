@@ -216,4 +216,38 @@ describe("LegacyEvents EventTarget compatibility layer", () => {
     c.removeAllListeners();
     assert.equal(c.listeners("icon").length, 0);
   });
+
+  it("emit('error') with no listener throws, like EventEmitter", () => {
+    const c = new Component();
+    assert.throws(() => c.emit("error", new Error("unhandled")), /unhandled/);
+    const seen = [];
+    c.on("error", (e) => {
+      seen.push(e);
+    });
+    c.emit("error", new Error("handled"));
+    assert.equal(seen.length, 1);
+  });
+
+  it("legacy introspection methods work", () => {
+    const c = new Component();
+    c.on("start", () => {});
+    c.addEventListener("icon", () => {});
+    assert.equal(c.listenerCount("start"), 1);
+    assert.deepEqual(c.eventNames().sort(), ["icon", "start"]);
+    assert.equal(c.setMaxListeners(10), c);
+    assert.equal(c.rawListeners("start").length, 1);
+  });
+
+  it("prependListener runs before regular listeners", () => {
+    const c = new Component();
+    const order = [];
+    c.on("end", () => {
+      order.push("regular");
+    });
+    c.prependListener("end", () => {
+      order.push("prepended");
+    });
+    c.dispatchLifecycleEvent("end");
+    assert.deepEqual(order, ["prepended", "regular"]);
+  });
 });

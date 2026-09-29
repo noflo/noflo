@@ -111,6 +111,8 @@ export function LegacyEventMixin(Base) {
      * Track listener registrations, so `listeners()` can answer the
      * "is anyone listening" question EventTarget can't, and so
      * `dispatchLifecycleEvent` can invoke listeners synchronously.
+     * An internal `prepend` option inserts at the front of the dispatch
+     * order (used by the legacy prependListener methods).
      *
      * @param {string} type
      * @param {Function} listener
@@ -128,7 +130,12 @@ export function LegacyEventMixin(Base) {
       }
       const once =
         typeof options === "object" && options !== null && options.once;
-      listeners.push({ listener, once });
+      const entry = { listener, once };
+      if (typeof options === "object" && options !== null && options.prepend) {
+        listeners.unshift(entry);
+      } else {
+        listeners.push(entry);
+      }
       super.addEventListener(type, listener, options);
     }
 
@@ -177,7 +184,7 @@ export function LegacyEventMixin(Base) {
      * @param {Function} handler
      * @returns {this}
      */
-    on(type, handler) {
+    on(type, handler, registrationOptions) {
       warnOnce("on", type);
       assertListener(handler, "on");
       /** @param {DetailEvent} event */ const wrapper = (event) =>
@@ -185,7 +192,7 @@ export function LegacyEventMixin(Base) {
       const registry = registryFor(this);
       if (!registry.legacy.has(type)) registry.legacy.set(type, []);
       registry.legacy.get(type).push({ handler, wrapper });
-      this.addEventListener(type, wrapper);
+      this.addEventListener(type, wrapper, registrationOptions);
       return this;
     }
 
@@ -196,7 +203,7 @@ export function LegacyEventMixin(Base) {
      * @param {Function} handler
      * @returns {this}
      */
-    once(type, handler) {
+    once(type, handler, registrationOptions) {
       warnOnce("once", type);
       assertListener(handler, "once");
       /**
@@ -208,7 +215,7 @@ export function LegacyEventMixin(Base) {
       const registry = registryFor(this);
       if (!registry.legacy.has(type)) registry.legacy.set(type, []);
       registry.legacy.get(type).push({ handler, wrapper });
-      this.addEventListener(type, wrapper);
+      this.addEventListener(type, wrapper, registrationOptions);
       return this;
     }
 
@@ -272,7 +279,77 @@ export function LegacyEventMixin(Base) {
      */
     emit(type, detail) {
       warnOnce("emit", type);
+      // Match EventEmitter's special handling of 'error': throwing when
+      // no listener is registered
+      if (type === "error" && this.listeners("error").length === 0) {
+        throw detail instanceof Error ? detail : new Error(String(detail));
+      }
       return this.dispatchLifecycleEvent(type, detail);
+    }
+
+    /**
+     * Legacy `listenerCount`.
+     *
+     * @param {string} type
+     * @returns {number}
+     */
+    listenerCount(type) {
+      return this.listeners(type).length;
+    }
+
+    /**
+     * Legacy `eventNames`.
+     *
+     * @returns {string[]}
+     */
+    eventNames() {
+      const registry = registryFor(this);
+      return [...registry.active.keys()].filter(
+        (eventype) => (registry.active.get(eventype) || []).length > 0,
+      );
+    }
+
+    /**
+     * Legacy no-op (EventTarget has no listener limit).
+     *
+     * @returns {this}
+     */
+    setMaxListeners() {
+      return this;
+    }
+
+    /**
+     * Legacy `prependListener`: register at the front of the dispatch order.
+     *
+     * @param {string} type
+     * @param {Function} handler
+     * @returns {this}
+     */
+    prependListener(type, handler) {
+      warnOnce("prependListener", type);
+      return this.on(type, handler, { prepend: true });
+    }
+
+    /**
+     * Legacy `prependOnceListener`.
+     *
+     * @param {string} type
+     * @param {Function} handler
+     * @returns {this}
+     */
+    prependOnceListener(type, handler) {
+      warnOnce("prependOnceListener", type);
+      return this.once(type, handler, { prepend: true });
+    }
+
+    /**
+     * Legacy `rawListeners`: the wrapper functions actually invoked.
+     *
+     * @param {string} type
+     * @returns {Function[]}
+     */
+    rawListeners(type) {
+      return this.listeners(type);
     }
 
     /**
