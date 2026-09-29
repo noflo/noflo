@@ -10,6 +10,7 @@
 */
 
 import { ComponentLoader } from "./ComponentLoader.js";
+import { resolveHighWaterMark } from "./Edge.js";
 import * as internalSocket from "./InternalSocket.js";
 import IP from "./IP.js";
 import { LegacyEventBase } from "./LegacyEvents.js";
@@ -94,6 +95,7 @@ function connectPort(socket, process, port, index, inbound) {
  * @property {ComponentLoader} [componentLoader] - Component loader instance to use, if any
  * @property {Object} [flowtrace] - Flowtrace instance to use for tracing this network run
  * @property {boolean} [asyncDelivery] - Make Information Packet delivery asynchronous
+ * @property {number|null} [highWaterMark] - Default backpressure buffer size for all edges in this network; null = unbounded
  */
 
 /**
@@ -127,6 +129,8 @@ export class BaseNetwork extends LegacyEventBase {
     // Connections contains all the socket connections in the network
     /** @type {Array<internalSocket.InternalSocket>} */
     this.connections = [];
+    /** @type {((ip: any, socket: internalSocket.InternalSocket, next: () => void) => void)[]} */
+    this.edgeObservers = [];
     // Initials contains all Initial Information Packets (IIPs)
     /** @type {Array<NetworkIIP>} */
     this.initials = [];
@@ -660,6 +664,10 @@ export class BaseNetwork extends LegacyEventBase {
    * @param {NetworkProcess} [source]
    */
   subscribeSocket(socket, source) {
+    // Transport-level observation: pre-delivery middleware on the edge
+    for (const observer of this.edgeObservers) {
+      socket.edge.observe((ip, next) => observer(ip, socket, next));
+    }
     socket.addEventListener("ip", (event) => {
       const ip = event.detail;
       this.bufferedEmit("ip", {
@@ -773,6 +781,25 @@ export class BaseNetwork extends LegacyEventBase {
   }
 
   /**
+   * Register a transport-level observer for every edge in this network:
+   * the middleware sees each Information Packet on each edge before it is
+   * delivered, as `(ip, socket, next)`. Call `next()` to continue delivery.
+   * Observers registered after the network is wired also apply to all
+   * existing edges. This is the observability hook for fbp-protocol and
+   * Flowtrace; packet tracing via network events is unaffected.
+   *
+   * @param {(ip: any, socket: internalSocket.InternalSocket, next: () => void) => void} callback
+   * @returns {this}
+   */
+  observe(callback) {
+    this.edgeObservers.push(callback);
+    for (const socket of this.connections) {
+      socket.edge.observe((ip, next) => callback(ip, socket, next));
+    }
+    return this;
+  }
+
+  /**
    * @callback AddEdgeCallback
    * @param {Error|null} error
    * @param {internalSocket.InternalSocket} [socket]
@@ -790,9 +817,22 @@ export class BaseNetwork extends LegacyEventBase {
       options = {};
     }
     const promise = this.ensureNode(edge.from.node, "outbound").then((from) => {
+      // Hierarchical high-water mark resolution: edge metadata wins over
+      // the source port's component default, which wins over the network
+      // runtime default. The socket applies its metadata on top of the
+      // pre-resolved default.
+      const sourcePort = /** @type {any} */ (from.component.outPorts.ports)[
+        edge.from.port
+      ];
+      const portDefault = sourcePort?.options?.highWaterMark;
       const socket = internalSocket.createSocket(edge.metadata, {
         debug: this.debug,
         async: this.asyncDelivery,
+        highWaterMark: resolveHighWaterMark(
+          undefined,
+          portDefault,
+          this.options.highWaterMark,
+        ),
       });
       return this.ensureNode(edge.to.node, "inbound")
         .then((to) => {

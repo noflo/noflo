@@ -3,6 +3,7 @@
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
 
+import { Edge, resolveHighWaterMark } from "./Edge.js";
 import IP from "./IP.js";
 import { LegacyEventBase } from "./LegacyEvents.js";
 import { makeAsync } from "./Platform.js";
@@ -102,6 +103,7 @@ export class InternalSocket extends LegacyEventBase {
    * @typedef InternalSocketOptions
    * @property {boolean} [debug] - Whether to catch exceptions caused by IP transmission
    * @property {boolean} [async] - Whether IP transmission should be asynchronous
+   * @property {number|null} [highWaterMark] - Pre-resolved default (component ∪ runtime levels); the socket's edge metadata still takes precedence
    */
 
   /**
@@ -118,6 +120,51 @@ export class InternalSocket extends LegacyEventBase {
     this.async = options.async || false;
     this.from = null;
     this.to = null;
+    // Data-plane transport: IPs flow through an Edge. The high-water mark
+    // is resolved from this socket's edge metadata over the pre-resolved
+    // default (component port and runtime levels, merged by the network);
+    // unbounded (the 1.x default) takes the Edge's synchronous fast path,
+    // preserving the legacy delivery timing exactly.
+    this.edge = new Edge({
+      highWaterMark: resolveHighWaterMark(metadata, options.highWaterMark),
+    });
+    this.edge.onDelivery((ip) => this.#deliverIP(ip));
+    this.edge.onErrorDelivery((error) => {
+      if (this.listeners("error").length === 0) {
+        // Loud escalation in the async delivery context, mirroring the
+        // synchronous no-listener throw
+        setImmediate(() => {
+          throw error;
+        });
+        return;
+      }
+      this.dispatchLifecycleEvent("error", {
+        id: this.to ? this.to.process.id : null,
+        error,
+        metadata: this.metadata,
+      });
+    });
+  }
+
+  /**
+   * Deliver an IP from the edge to the socket's listeners: the modern
+   * `ip` event plus the derived legacy event.
+   *
+   * @param {IP} ip
+   */
+  #deliverIP(ip) {
+    this.emitEvent("ip", ip);
+    if (!ip?.type) {
+      return;
+    }
+    const legacy = ipToLegacy(ip);
+    if (legacy.event === "connect") {
+      this.connected = true;
+    }
+    if (legacy.event === "disconnect") {
+      this.connected = false;
+    }
+    this.emitEvent(legacy.event, legacy.payload);
   }
 
   emitEvent(event, data) {
@@ -337,26 +384,8 @@ export class InternalSocket extends LegacyEventBase {
       this.brackets.pop();
     }
 
-    // Emit the IP Object
-    this.emitEvent("ip", ip);
-
-    // Emit the legacy event
-    if (!ip?.type) {
-      return;
-    }
-
-    if (isIP) {
-      const legacy = ipToLegacy(ip);
-      ({ event, payload } = legacy);
-    }
-
-    if (event === "connect") {
-      this.connected = true;
-    }
-    if (event === "disconnect") {
-      this.connected = false;
-    }
-    this.emitEvent(event, payload);
+    // Transport the IP through the edge; delivery emits the events
+    this.edge.write(ip);
   }
 }
 

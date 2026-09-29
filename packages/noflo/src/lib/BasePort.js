@@ -34,6 +34,7 @@ const validTypes = [
  * @property {string} [type=null]
  * @property {boolean} [required=false]
  * @property {boolean} [scoped=true]
+ * @property {number|null} [highWaterMark] - Backpressure buffer size for edges from this port; null = unbounded
  */
 
 /**

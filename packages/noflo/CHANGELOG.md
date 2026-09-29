@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- `Edge` data-plane transport over Web Streams, the infrastructure for the 2.x dataflow migration: hierarchical `highWaterMark` resolution (edge metadata ∪ component default ∪ runtime global; `0` = synchronous, positive = buffered, `null`/absent = unbounded 1.x behavior), an `observe()` middleware hook for fbp-protocol/Flowtrace, bracket-substream integrity validation, and admission-based backpressure. Not yet wired into networks
+
 ### Changed
 - Reformatted all source code to Biome standards
 - Repository reorganized into a monorepo layout; the NoFlo npm package is now built from `packages/noflo`
@@ -874,3 +877,6 @@ NoFlo internals:
 Changes to core components:
 New core components:
 
+- `InternalSocket` now transports Information Packets through an `Edge` internally: bracket bookkeeping and connect/disconnect lifecycle stay on the socket, while `ip` and derived legacy events are emitted from edge delivery. Unbounded edges (the default) take a synchronous fast path preserving 1.x delivery timing exactly; a `highWaterMark` in the socket's edge metadata activates stream-based transport with admission backpressure
+- The high-water mark hierarchy is fully wired: `edge.metadata.highWaterMark` wins over the source port's `highWaterMark` option (`outPorts.add('out', { highWaterMark: 16 })`), which wins over the network-level `highWaterMark` option; resolved when the network builds each edge's socket
+- Networks expose `network.observe(callback)`: a transport-level middleware seeing every Information Packet on every edge (including IIP edges) before delivery, as `(ip, socket, next)`. The observability hook for fbp-protocol and Flowtrace
