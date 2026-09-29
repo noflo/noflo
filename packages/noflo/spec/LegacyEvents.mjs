@@ -198,4 +198,22 @@ describe("LegacyEvents EventTarget compatibility layer", () => {
     c.dispatchLifecycleEvent("activate", 1);
     assert.strictEqual(context, c);
   });
+
+  it("removeAllListeners clears one type or everything", () => {
+    const c = new Component();
+    let calls = 0;
+    c.on("end", () => {
+      calls += 1;
+    });
+    c.addEventListener("icon", () => {
+      calls += 1;
+    });
+    c.removeAllListeners("end");
+    c.dispatchLifecycleEvent("end");
+    assert.equal(calls, 0);
+    assert.equal(c.listeners("end").length, 0);
+    assert.equal(c.listeners("icon").length, 1);
+    c.removeAllListeners();
+    assert.equal(c.listeners("icon").length, 0);
+  });
 });

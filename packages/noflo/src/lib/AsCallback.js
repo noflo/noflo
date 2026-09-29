@@ -186,7 +186,8 @@ function runNetwork(network, inputs) {
         process,
         port: portDef.port,
       };
-      outSockets[outport].on("ip", (ip) => {
+      outSockets[outport].addEventListener("ip", (event) => {
+        const ip = event.detail;
         /** @type Object<string, IP> */
         const res = {};
         res[outport] = ip;

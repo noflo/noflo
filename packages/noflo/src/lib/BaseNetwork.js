@@ -9,10 +9,10 @@
     import/prefer-default-export,
 */
 
-import { LegacyEventBase } from "./LegacyEvents.js";
 import { ComponentLoader } from "./ComponentLoader.js";
 import * as internalSocket from "./InternalSocket.js";
 import IP from "./IP.js";
+import { LegacyEventBase } from "./LegacyEvents.js";
 import { deprecated, isBrowser, makeAsync } from "./Platform.js";
 import { debounce } from "./Utils.js";
 
@@ -660,7 +660,8 @@ export class BaseNetwork extends LegacyEventBase {
    * @param {NetworkProcess} [source]
    */
   subscribeSocket(socket, source) {
-    socket.on("ip", (ip) => {
+    socket.addEventListener("ip", (event) => {
+      const ip = event.detail;
       this.bufferedEmit("ip", {
         id: socket.getId(),
         type: ip.type,
@@ -669,14 +670,15 @@ export class BaseNetwork extends LegacyEventBase {
         metadata: socket.metadata,
       });
     });
-    socket.on("error", (event) => {
+    socket.addEventListener("error", (event) => {
+      const errEvent = event.detail;
       if (this.listeners("process-error").length === 0) {
-        if (event.id && event.metadata && event.error) {
-          throw event.error;
+        if (errEvent.id && errEvent.metadata && errEvent.error) {
+          throw errEvent.error;
         }
-        throw event;
+        throw errEvent;
       }
-      this.bufferedEmit("process-error", event);
+      this.bufferedEmit("process-error", errEvent);
     });
     if (!source?.component?.isLegacy()) {
       return;
@@ -685,13 +687,13 @@ export class BaseNetwork extends LegacyEventBase {
       source.component
     );
     // Handle activation for legacy components via connects/disconnects
-    socket.on("connect", () => {
+    socket.addEventListener("connect", () => {
       if (!comp.__openConnections) {
         comp.__openConnections = 0;
       }
       comp.__openConnections += 1;
     });
-    socket.on("disconnect", () => {
+    socket.addEventListener("disconnect", () => {
       comp.__openConnections -= 1;
       if (comp.__openConnections < 0) {
         comp.__openConnections = 0;

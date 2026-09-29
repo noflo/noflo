@@ -243,6 +243,25 @@ export function LegacyEventMixin(Base) {
     }
 
     /**
+     * Legacy `removeAllListeners`: remove registrations for one event type,
+     * or for all types when no type is given.
+     *
+     * @param {string} [type]
+     * @returns {this}
+     */
+    removeAllListeners(type) {
+      const registry = registryFor(this);
+      const types = type ? [type] : [...registry.active.keys()];
+      for (const eventype of types) {
+        for (const entry of [...(registry.active.get(eventype) || [])]) {
+          this.removeEventListener(eventype, entry.listener);
+        }
+        registry.legacy.set(eventype, []);
+      }
+      return this;
+    }
+
+    /**
      * Legacy `emit` for external callers. Internal engine code uses
      * {@link LegacyEventBase#dispatchLifecycleEvent} instead, which does
      * not warn.
