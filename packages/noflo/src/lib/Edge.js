@@ -45,9 +45,9 @@ function validateHighWaterMark(value, source) {
  * wins over the component-level default, which wins over the runtime
  * global. `null`/absent everywhere means unbounded.
  *
- * @param {Record<string, any>|undefined} metadata - Graph edge metadata
- * @param {number|null|undefined} componentDefault - Port/component default
- * @param {number|null|undefined} runtimeDefault - Network-level global
+ * @param {Record<string, any>|undefined} [metadata] - Graph edge metadata
+ * @param {number|null|undefined} [componentDefault] - Port/component default
+ * @param {number|null|undefined} [runtimeDefault] - Network-level global
  * @returns {number|null} Resolved high-water mark, or null for unbounded
  */
 export function resolveHighWaterMark(
@@ -148,7 +148,9 @@ export class Edge {
   /**
    * Consume the readable side, delivering each IP to the registered
    * handler. If the handler returns a Promise, the pump waits for it
-   * before reading the next IP — consumer-paced backpressure.
+   * before reading the next IP — consumer-paced backpressure. Handler
+   * exceptions are routed to the registered error handler so the
+   * engine's escalation chain stays in control.
    *
    * @param {ReadableStreamDefaultReader<any>} reader
    */
@@ -168,10 +170,26 @@ export class Edge {
         // Complete the sink write for this IP and admit parked writers
         this.#delivered();
       } catch (error) {
+        if (this.onError) {
+          this.onError(error);
+          return;
+        }
         this.lastError = error;
         return;
       }
     }
+  }
+
+  /**
+   * Register the error handler invoked when delivery throws. Without
+   * one, the error is recorded and delivery stops.
+   *
+   * @param {(error: any) => void} handler
+   * @returns {this}
+   */
+  onErrorDelivery(handler) {
+    this.onError = handler;
+    return this;
   }
 
   /**
@@ -262,6 +280,37 @@ export class Edge {
       return Promise.reject(error);
     }
     const observers = this.observers;
+
+    // Unbounded edges use a synchronous fast path: delivery happens
+    // during the write call itself, preserving the 1.x fire-and-forget
+    // timing exactly. Streams stay idle.
+    if (this.highWaterMark === null) {
+      const fastDeliver = () => {
+        if (this.deliver) {
+          const release = this.deliver(ip);
+          void release;
+        }
+      };
+      if (!observers.length) {
+        fastDeliver();
+        return Promise.resolve();
+      }
+      return new Promise((resolve) => {
+        /**
+         * @param {number} index
+         */
+        const runObserver = (index) => {
+          if (index >= observers.length) {
+            fastDeliver();
+            resolve();
+            return;
+          }
+          observers[index](ip, () => runObserver(index + 1));
+        };
+        runObserver(0);
+      });
+    }
+
     /**
      * @param {() => void} resolve
      * @param {(err: Error) => void} reject

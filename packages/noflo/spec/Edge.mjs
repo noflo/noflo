@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { Edge, resolveHighWaterMark } from "../src/lib/Edge.js";
+import * as internalSocket from "../src/lib/InternalSocket.js";
 import IP from "../src/lib/IP.js";
 
 /** Await a couple of microtask/macrotask turns so stream machinery settles. */
@@ -202,5 +203,67 @@ describe("Edge data transport", () => {
     await edge.write(new IP("data", 1));
     await edge.close();
     await assert.rejects(edge.write(new IP("data", 2)));
+  });
+});
+
+describe("InternalSocket delegating transport to Edge", () => {
+  it("delivers posted IPs synchronously by default (1.x semantics)", () => {
+    const socket = internalSocket.createSocket();
+    const received = [];
+    socket.on("ip", (ip) => {
+      received.push(ip);
+    });
+    socket.post(new IP("data", "first"));
+    socket.post(new IP("data", "second"));
+    // No awaiting: unbounded edge takes the synchronous fast path
+    assert.deepEqual(
+      received.map((ip) => ip.data),
+      ["first", "second"],
+    );
+  });
+
+  it("emits derived legacy events alongside ip events", () => {
+    const socket = internalSocket.createSocket();
+    const events = [];
+    socket.on("ip", (ip) => {
+      events.push(`ip:${ip.type}`);
+    });
+    socket.on("data", (data) => {
+      events.push(`data:${data}`);
+    });
+    socket.on("begingroup", (group) => {
+      events.push(`begingroup:${group}`);
+    });
+    socket.post(new IP("openBracket", "g"));
+    socket.post(new IP("data", 42));
+    socket.post(new IP("closeBracket", "g"));
+    assert.deepEqual(events, [
+      "ip:openBracket",
+      "begingroup:g",
+      "ip:data",
+      "data:42",
+      "ip:closeBracket",
+    ]);
+  });
+
+  it("applies the edge metadata high-water mark", async () => {
+    const socket = internalSocket.createSocket({ highWaterMark: 1 });
+    assert.equal(socket.edge.highWaterMark, 1);
+    const received = [];
+    socket.on("ip", (ip) => {
+      received.push(ip);
+    });
+    socket.post(new IP("data", 1));
+    socket.post(new IP("data", 2));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 10);
+    });
+    assert.deepEqual(
+      received.map((ip) => ip.data),
+      [1, 2],
+    );
+    // With no consumer pacing (fire-and-forget legacy delivery), capacity
+    // returns once both packets have been delivered
+    assert.equal(socket.edge.desiredSize(), 1);
   });
 });
