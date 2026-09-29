@@ -1,0 +1,24 @@
+name: Accumulate sequences
+topic: Accumulate
+cases:
+  - name: stateful sequence
+    assertion: should see the running total change between steps
+    inputs:
+      - in: 1
+      - in: 2
+      - in: 10
+    expect:
+      - out:
+          equals: 1
+      - out:
+          above: 2
+      - out:
+          equals: 13
+  - name: object keys
+    assertion: should support key assertions
+    inputs:
+      in: 5
+    expect:
+      out:
+        above: 4
+        below: 6

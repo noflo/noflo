@@ -1,0 +1,10 @@
+name: Failing suite
+topic: Repeat
+cases:
+  - name: deliberately wrong expectation
+    assertion: should fail
+    inputs:
+      in: 1000
+    expect:
+      out:
+        equals: 1003

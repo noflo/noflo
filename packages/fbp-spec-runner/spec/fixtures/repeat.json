@@ -1,0 +1,12 @@
+{
+  "name": "Repeat from JSON",
+  "topic": "Repeat",
+  "cases": [
+    {
+      "name": "sending a number",
+      "assertion": "should repeat the same value",
+      "inputs": { "in": 42 },
+      "expect": { "out": { "equals": 42 } }
+    }
+  ]
+}

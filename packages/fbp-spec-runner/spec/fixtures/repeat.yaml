@@ -1,0 +1,46 @@
+name: Repeat
+topic: Repeat
+cases:
+  - name: sending a boolean
+    assertion: should repeat the same value
+    inputs:
+      in: true
+    expect:
+      out:
+        equals: true
+  - name: sending a number
+    assertion: should repeat the same value
+    inputs:
+      in: 1000
+    expect:
+      out:
+        equals: 1000
+  - name: sending a string
+    assertion: should repeat with type check
+    inputs:
+      in: hello world
+    expect:
+      out:
+        type: string
+        contains: world
+  - name: sending an object with JSONPath
+    assertion: should allow targeting nested data
+    inputs:
+      in:
+        users:
+          - name: alice
+            active: true
+          - name: bob
+            active: false
+    expect:
+      out:
+        path: $.users[?(@.active==true)].name
+        equals: alice
+  - name: skipped case
+    assertion: should not run
+    skip: not applicable in v1
+    inputs:
+      in: 1
+    expect:
+      out:
+        equals: 1

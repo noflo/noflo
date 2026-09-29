@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "module": "nodenext",
+    "target": "esnext",
+    "types": ["node"],
+    "checkJs": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowJs": true,
+    "strict": false
+  },
+  "include": ["src/**/*.js"],
+  "exclude": ["../**/vendor/**", "vendor/**"]
+}

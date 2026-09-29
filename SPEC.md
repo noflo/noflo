@@ -57,7 +57,7 @@ NoFlo 2.x series goals:
 
 ## Project structure
 
-NoFlo is developed as a monorepo managed with npm workspaces. The commands above are run from the repository root and apply to all workspace packages.
+NoFlo is developed as a monorepo managed with npm workspaces. The commands above are run from the repository root and apply to all workspace packages. New workspace packages are published under the `@noflo` npm/JSR namespace. The NoFlo core package remains MIT licensed; new packages are licensed under EUPL-1.2.
 
 - `packages/noflo/`: the NoFlo npm package
   - `src/`: library source code

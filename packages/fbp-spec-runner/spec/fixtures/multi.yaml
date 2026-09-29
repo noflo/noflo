@@ -1,0 +1,23 @@
+---
+name: Multi suite one
+topic: Repeat
+cases:
+  - name: first suite case
+    assertion: should repeat
+    inputs:
+      in: first
+    expect:
+      out:
+        equals: first
+---
+name: Multi suite two
+topic: Repeat
+skip: entire suite skipped
+cases:
+  - name: never runs
+    assertion: should not run
+    inputs:
+      in: 1
+    expect:
+      out:
+        equals: 1
