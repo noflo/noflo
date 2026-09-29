@@ -878,3 +878,4 @@ Changes to core components:
 New core components:
 
 - `InternalSocket` now transports Information Packets through an `Edge` internally: bracket bookkeeping and connect/disconnect lifecycle stay on the socket, while `ip` and derived legacy events are emitted from edge delivery. Unbounded edges (the default) take a synchronous fast path preserving 1.x delivery timing exactly; a `highWaterMark` in the socket's edge metadata activates stream-based transport with admission backpressure
+- The high-water mark hierarchy is fully wired: `edge.metadata.highWaterMark` wins over the source port's `highWaterMark` option (`outPorts.add('out', { highWaterMark: 16 })`), which wins over the network-level `highWaterMark` option; resolved when the network builds each edge's socket

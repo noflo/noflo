@@ -103,6 +103,7 @@ export class InternalSocket extends LegacyEventBase {
    * @typedef InternalSocketOptions
    * @property {boolean} [debug] - Whether to catch exceptions caused by IP transmission
    * @property {boolean} [async] - Whether IP transmission should be asynchronous
+   * @property {number|null} [highWaterMark] - Pre-resolved default (component ∪ runtime levels); the socket's edge metadata still takes precedence
    */
 
   /**
@@ -120,10 +121,13 @@ export class InternalSocket extends LegacyEventBase {
     this.from = null;
     this.to = null;
     // Data-plane transport: IPs flow through an Edge. The high-water mark
-    // is resolved from this socket's edge metadata; unbounded (the 1.x
-    // default) takes the Edge's synchronous fast path, preserving the
-    // legacy delivery timing exactly.
-    this.edge = new Edge({ highWaterMark: resolveHighWaterMark(metadata) });
+    // is resolved from this socket's edge metadata over the pre-resolved
+    // default (component port and runtime levels, merged by the network);
+    // unbounded (the 1.x default) takes the Edge's synchronous fast path,
+    // preserving the legacy delivery timing exactly.
+    this.edge = new Edge({
+      highWaterMark: resolveHighWaterMark(metadata, options.highWaterMark),
+    });
     this.edge.onDelivery((ip) => this.#deliverIP(ip));
     this.edge.onErrorDelivery((error) => {
       if (this.listeners("error").length === 0) {

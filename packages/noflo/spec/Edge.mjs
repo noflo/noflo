@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { before, describe, it } from "node:test";
 import { Edge, resolveHighWaterMark } from "../src/lib/Edge.js";
 import * as internalSocket from "../src/lib/InternalSocket.js";
 import IP from "../src/lib/IP.js";
+import * as noflo from "../src/lib/NoFlo.js";
 
 /** Await a couple of microtask/macrotask turns so stream machinery settles. */
 const settle = (turns = 5) =>
@@ -265,5 +266,94 @@ describe("InternalSocket delegating transport to Edge", () => {
     // With no consumer pacing (fire-and-forget legacy delivery), capacity
     // returns once both packets have been delivered
     assert.equal(socket.edge.desiredSize(), 1);
+  });
+});
+
+describe("hierarchical high-water mark wiring through networks", () => {
+  let loader;
+  before(async () => {
+    loader = new noflo.ComponentLoader(process.cwd());
+    await loader.listComponents();
+    const bounded = () => {
+      const c = new noflo.Component();
+      c.inPorts.add("in", { datatype: "all" });
+      c.outPorts.add("out", { datatype: "all", highWaterMark: 4 });
+      c.process((input, output) => {
+        output.sendDone({ out: input.getData("in") });
+      });
+      return c;
+    };
+    const plain = () => {
+      const c = new noflo.Component();
+      c.inPorts.add("in", { datatype: "all" });
+      c.outPorts.add("out", { datatype: "all" });
+      c.process((input, output) => {
+        output.sendDone({ out: input.getData("in") });
+      });
+      return c;
+    };
+    loader.registerComponent("hwm", "Bounded", bounded);
+    loader.registerComponent("hwm", "Plain", plain);
+  });
+
+  it("edge metadata wins over the component port default", async () => {
+    const g = new noflo.Graph();
+    g.addNode("A", "hwm/Bounded");
+    g.addNode("B", "hwm/Plain");
+    g.addEdge("A", "out", "B", "in", { highWaterMark: 2 });
+    const nw = await noflo.createNetwork(g, {
+      delay: true,
+      subscribeGraph: false,
+      componentLoader: loader,
+    });
+    await nw.connect();
+    const socket = nw.connections[0];
+    assert.equal(socket.edge.highWaterMark, 2);
+  });
+
+  it("the component port default applies without edge metadata", async () => {
+    const g = new noflo.Graph();
+    g.addNode("A", "hwm/Bounded");
+    g.addNode("B", "hwm/Plain");
+    g.addEdge("A", "out", "B", "in");
+    const nw = await noflo.createNetwork(g, {
+      delay: true,
+      subscribeGraph: false,
+      componentLoader: loader,
+    });
+    await nw.connect();
+    const socket = nw.connections[0];
+    assert.equal(socket.edge.highWaterMark, 4);
+  });
+
+  it("the network runtime default applies with neither set", async () => {
+    const g = new noflo.Graph();
+    g.addNode("A", "hwm/Plain");
+    g.addNode("B", "hwm/Plain");
+    g.addEdge("A", "out", "B", "in");
+    const nw = await noflo.createNetwork(g, {
+      delay: true,
+      subscribeGraph: false,
+      componentLoader: loader,
+      highWaterMark: 8,
+    });
+    await nw.connect();
+    const socket = nw.connections[0];
+    assert.equal(socket.edge.highWaterMark, 8);
+  });
+
+  it("absent everywhere stays unbounded (1.x behavior)", async () => {
+    const g = new noflo.Graph();
+    g.addNode("A", "hwm/Plain");
+    g.addNode("B", "hwm/Plain");
+    g.addEdge("A", "out", "B", "in");
+    const nw = await noflo.createNetwork(g, {
+      delay: true,
+      subscribeGraph: false,
+      componentLoader: loader,
+    });
+    await nw.connect();
+    const socket = nw.connections[0];
+    assert.equal(socket.edge.highWaterMark, null);
   });
 });

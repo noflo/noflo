@@ -10,6 +10,7 @@
 */
 
 import { ComponentLoader } from "./ComponentLoader.js";
+import { resolveHighWaterMark } from "./Edge.js";
 import * as internalSocket from "./InternalSocket.js";
 import IP from "./IP.js";
 import { LegacyEventBase } from "./LegacyEvents.js";
@@ -94,6 +95,7 @@ function connectPort(socket, process, port, index, inbound) {
  * @property {ComponentLoader} [componentLoader] - Component loader instance to use, if any
  * @property {Object} [flowtrace] - Flowtrace instance to use for tracing this network run
  * @property {boolean} [asyncDelivery] - Make Information Packet delivery asynchronous
+ * @property {number|null} [highWaterMark] - Default backpressure buffer size for all edges in this network; null = unbounded
  */
 
 /**
@@ -790,9 +792,22 @@ export class BaseNetwork extends LegacyEventBase {
       options = {};
     }
     const promise = this.ensureNode(edge.from.node, "outbound").then((from) => {
+      // Hierarchical high-water mark resolution: edge metadata wins over
+      // the source port's component default, which wins over the network
+      // runtime default. The socket applies its metadata on top of the
+      // pre-resolved default.
+      const sourcePort = /** @type {any} */ (from.component.outPorts.ports)[
+        edge.from.port
+      ];
+      const portDefault = sourcePort?.options?.highWaterMark;
       const socket = internalSocket.createSocket(edge.metadata, {
         debug: this.debug,
         async: this.asyncDelivery,
+        highWaterMark: resolveHighWaterMark(
+          undefined,
+          portDefault,
+          this.options.highWaterMark,
+        ),
       });
       return this.ensureNode(edge.to.node, "inbound")
         .then((to) => {
