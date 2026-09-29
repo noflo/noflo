@@ -145,6 +145,13 @@ export function LegacyEventMixin(Base) {
      * @param {any} [options]
      */
     removeEventListener(type, listener, options) {
+      // Note: listeners registered with { once: true } and dispatched via
+      // the *native* dispatchEvent are removed by the platform without
+      // going through this override, leaving the tracked registry stale
+      // (listeners() may over-report until the entry is re-registered).
+      // Engine code dispatches via dispatchLifecycleEvent, which keeps
+      // the registry accurate; treat native dispatching of engine events
+      // as unsupported.
       const registry = registryFor(this);
       const listeners = registry.active.get(type);
       if (listeners) {
@@ -228,6 +235,7 @@ export function LegacyEventMixin(Base) {
      */
     off(type, handler) {
       warnOnce("off", type);
+      assertListener(handler, "off");
       const registry = registryFor(this);
       const entries = registry.legacy.get(type) || [];
       const entry = entries.find((candidate) => candidate.handler === handler);
@@ -246,6 +254,7 @@ export function LegacyEventMixin(Base) {
      */
     removeListener(type, handler) {
       warnOnce("removeListener", type);
+      assertListener(handler, "removeListener");
       return this.off(type, handler);
     }
 

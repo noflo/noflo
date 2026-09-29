@@ -120,9 +120,13 @@ export default class InPort extends BasePort {
    * @param {string} event
    * @param {any} payload
    */
-  handleSocketEvent(event, payload, _id) {
-    // Emit port event. For addressable ports the index is available on
-    // the IP object's `index` property; the event payload stays single.
+  handleSocketEvent(event, payload, id) {
+    // Emit port event. Addressable ports carry [payload, index] as the
+    // event detail (matching attach/detach); `ip` events keep the raw IP
+    // object with its `index` property.
+    if (this.isAddressable()) {
+      return this.dispatchLifecycleEvent(event, [payload, id]);
+    }
     return this.dispatchLifecycleEvent(event, payload);
   }
 

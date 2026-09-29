@@ -171,6 +171,33 @@ describe("LegacyEvents EventTarget compatibility layer", () => {
     const c = new Component();
     assert.throws(() => c.on("data", "not-a-function"), /must be a function/);
     assert.throws(() => c.once("data", "not-a-function"), /must be a function/);
+    assert.throws(() => c.off("data", "not-a-function"), /must be a function/);
+    assert.throws(() => c.removeListener("data", null), /must be a function/);
+  });
+
+  it("legacy on() registers the same handler multiple times like EventEmitter", () => {
+    const c = new Component();
+    let calls = 0;
+    const handler = () => {
+      calls += 1;
+    };
+    c.on("end", handler);
+    c.on("end", handler);
+    c.dispatchLifecycleEvent("end");
+    assert.equal(calls, 2);
+    assert.equal(c.listeners("end").length, 2);
+  });
+
+  it("addressable port data events carry [payload, index] as detail", () => {
+    const c = new Component();
+    c.inPorts.add("in", { addressable: true, datatype: "all" });
+    const port = c.inPorts.ports.in;
+    let received = null;
+    port.addEventListener("data", (event) => {
+      received = event.detail;
+    });
+    port.handleSocketEvent("data", "payload-value", 2);
+    assert.deepEqual(received, ["payload-value", 2]);
   });
 
   it("addEventListener honors the once option", () => {

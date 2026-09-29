@@ -643,14 +643,14 @@ export class BaseNetwork extends LegacyEventBase {
     /**
      * @type {IP} data
      */
-    instance.network.on("ip", (data) => {
-      emitSub("ip", data);
+    instance.network.addEventListener("ip", (event) => {
+      emitSub("ip", event.detail);
     });
     /**
      * @type {Error} data
      */
-    instance.network.on("process-error", (data) => {
-      emitSub("process-error", data);
+    instance.network.addEventListener("process-error", (event) => {
+      emitSub("process-error", event.detail);
     });
   }
 
