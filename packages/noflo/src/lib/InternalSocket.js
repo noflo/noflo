@@ -384,8 +384,24 @@ export class InternalSocket extends LegacyEventBase {
       this.brackets.pop();
     }
 
-    // Transport the IP through the edge; delivery emits the events
-    this.edge.write(ip);
+    // Transport the IP through the edge; delivery emits the events. A
+    // rejected write escalates through the socket error path, matching
+    // the synchronous-throw semantics of the 1.x EventEmitter flow.
+    this.edge.write(ip).catch((error) => {
+      if (this.listeners("error").length === 0) {
+        // No error listener: escalate loudly, like the 1.x debug
+        // emission path did
+        setImmediate(() => {
+          throw error;
+        });
+        return;
+      }
+      this.dispatchLifecycleEvent("error", {
+        id: this.to ? this.to.process.id : null,
+        error,
+        metadata: this.metadata,
+      });
+    });
   }
 }
 
