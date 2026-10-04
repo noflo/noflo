@@ -55,8 +55,8 @@
     "build": "npm run build:node",
     "postbuild": "replace 'node/events' 'events' lib -r",
     "pretest": "npm run lint && npm run build",
-    "test:esmodules": "node --test spec/*.mjs",
-    "test:commonjs": "node --test spec/*.cjs",
+    "test:esmodules": "node --test --test-force-exit --test-timeout 30000 spec/*.mjs",
+    "test:commonjs": "node --test --test-force-exit --test-timeout 30000 spec/*.cjs",
     "test": "npm run test:esmodules && npm run test:commonjs"
   },
   "docco_husky": {

@@ -2,11 +2,10 @@
  * @file Edge module
  * @description The 2.x data-plane transport between two processes.
  *
- *   An `Edge` moves Information Packets from an outport to an inport
- *   through a pair of Web Streams, providing native backpressure.
- *   The high-water mark is resolved hierarchically at graph
- *   initialization time (edge metadata, then component default, then
- *   runtime global) and applied as an admission policy on writes:
+ *   An `Edge` moves Information Packets from an outport to an inport with
+ *   native backpressure. The high-water mark is resolved hierarchically
+ *   at graph initialization time (edge metadata, then component default,
+ *   then runtime global) and applied as an admission policy on writes:
  *
  *   - `0` — synchronous: every write's Promise resolves only once the
  *     consumer has taken the packet
@@ -16,12 +15,16 @@
  *   - `null` (or absent) — unbounded, fire-and-forget writes matching
  *     1.x behavior exactly
  *
- *   `observe(callback)` registers a synchronous middleware that sees
- *   every IP before it enters the stream — the hook for `fbp-protocol`
- *   and Flowtrace.
+ *   The write side is a Web Streams `WritableStream`, so writers observe
+ *   the same backpressure semantics as any stream consumer. Delivery is
+ *   invoked synchronously from the sink: NoFlo's error escalation relies
+ *   on listener exceptions reaching the sender, and a resident pump would
+ *   leave dangling reads that hang test-runner finalization.
  *
- *   IPs are atomic; bracket streams are validated so that substream
- *   integrity holds across the stream boundary.
+ *   `observe(callback)` registers a synchronous middleware that sees
+ *   every IP before it is delivered — the hook for `fbp-protocol` and
+ *   Flowtrace. IPs are atomic; bracket streams are validated so that
+ *   substream integrity holds across the transport.
  */
 
 /**
@@ -102,119 +105,100 @@ export class Edge {
     /** @type {{ resolve: () => void, reject: (err: Error) => void }[]} */
     this.waitingWriters = [];
 
-    /** @type {ReadableStreamDefaultController<any>|null} */
-    let readableController = null;
-    /** @type {(() => void) | null} */
-    this.pendingSinkCompletion = null;
-
-    const strategy = undefined;
-    void strategy;
-
-    this.readableStream = new ReadableStream({
-      start(controller) {
-        readableController = controller;
-      },
-      cancel(reason) {
-        void reason;
-      },
-    });
-
     const self = this;
     this.writableStream = new WritableStream({
-      // The sink defers completion until the delivery handler has
-      // released the IP, so the writer-side queue reflects undelivered
-      // packets. Admission pacing lives in write() instead.
+      // The sink runs delivery synchronously and completes once the
+      // delivery handler has released the IP — so the writer-side queue
+      // reflects undelivered packets. Unbounded edges complete writes
+      // immediately (fire-and-forget, matching 1.x).
       write(ip) {
         if (self.highWaterMark === null) {
-          readableController.enqueue(ip);
+          if (self.deliver) {
+            const release = self.deliver(ip);
+            if (release && typeof release.then === "function") {
+              release.then(
+                () => self.#released(),
+                () => self.#released(),
+              );
+            }
+          }
           return Promise.resolve();
         }
-        return new Promise((resolve) => {
-          self.pendingSinkCompletion = resolve;
-          readableController.enqueue(ip);
+        return new Promise((resolveSink) => {
+          let release = null;
+          if (self.deliver) {
+            release = self.deliver(ip);
+          }
+          const finish = () => {
+            self.#released();
+            resolveSink();
+          };
+          if (release && typeof release.then === "function") {
+            release.then(
+              () => finish(),
+              () => finish(),
+            );
+            return;
+          }
+          finish();
         });
       },
       abort(reason) {
-        readableController.error(reason);
+        self.lastError = reason;
       },
     });
 
     this.writer = this.writableStream.getWriter();
-    const reader = this.readableStream.getReader();
-    this.reader = reader;
-    this.pumpPromise = this.#pump(reader);
   }
 
   /**
-   * Consume the readable side, delivering each IP to the registered
-   * handler. If the handler returns a Promise, the pump waits for it
-   * before reading the next IP — consumer-paced backpressure. Handler
-   * exceptions are routed to the registered error handler so the
-   * engine's escalation chain stays in control.
+   * Deliver one IP to the registered handler. If the handler returns a
+   * Promise, the completion link is registered so that the release
+   * (delivery consumed) frees writer capacity.
+   * Handler exceptions propagate synchronously to the caller.
    *
-   * @param {ReadableStreamDefaultReader<any>} reader
+   * @param {any} ip
    */
-  async #pump(reader) {
-    for (;;) {
-      try {
-        const { done, value } = await reader.read();
-        if (done) {
-          return;
-        }
-        if (this.deliver) {
-          const release = this.deliver(value);
-          if (release && typeof release.then === "function") {
-            await release;
-          }
-        }
-        // Complete the sink write for this IP and admit parked writers
-        this.#delivered();
-      } catch (error) {
-        if (this.onError) {
-          this.onError(error);
-          return;
-        }
-        this.lastError = error;
+  #deliver(ip) {
+    if (this.deliver) {
+      const release = this.deliver(ip);
+      if (release && typeof release.then === "function") {
+        release.then(
+          () => this.#released(),
+          () => this.#released(),
+        );
         return;
       }
+      this.#released();
     }
   }
 
   /**
-   * Register the error handler invoked when delivery throws. Without
-   * one, the error is recorded and delivery stops.
-   *
-   * @param {(error: any) => void} handler
-   * @returns {this}
+   * Mark delivery as consumed: decrement in-flight count and admit a
+   * parked writer if one is waiting.
    */
-  onErrorDelivery(handler) {
-    this.onError = handler;
-    return this;
-  }
-
-  /**
-   * Mark one admitted IP as delivered: complete its sink write and wake
-   * a parked writer if any.
-   */
-  #delivered() {
+  #released() {
+    if (this.highWaterMark === null) {
+      return;
+    }
+    this.inFlight -= 1;
+    const next = this.waitingWriters.shift();
+    if (next) {
+      this.inFlight += 1;
+      next.resolve();
+    }
     const completion = this.pendingSinkCompletion;
     this.pendingSinkCompletion = null;
     if (completion) {
       completion();
     }
-    if (this.highWaterMark !== null) {
-      this.inFlight -= 1;
-      const next = this.waitingWriters.shift();
-      if (next) {
-        this.inFlight += 1;
-        next.resolve();
-      }
-    }
   }
 
   /**
-   * Register the delivery handler invoked for each IP arriving on the
-   * readable side. At most one handler is active.
+   * Register the delivery handler invoked for each IP entering the edge.
+   * At most one handler is active. If the handler returns a Promise, the
+   * IP is considered delivered only once that Promise resolves
+   * (consumer-paced backpressure).
    *
    * @param {(ip: any) => void | Promise<void>} handler
    * @returns {this}
@@ -225,8 +209,20 @@ export class Edge {
   }
 
   /**
+   * Register the error handler invoked when delivery throws. Without
+   * one, the error is recorded on the edge and delivery stops.
+   *
+   * @param {(error: any) => void} handler
+   * @returns {this}
+   */
+  onErrorDelivery(handler) {
+    this.onError = handler;
+    return this;
+  }
+
+  /**
    * Register an observation middleware. Observers run synchronously,
-   * in registration order, before an IP enters the stream. Each observer
+   * in registration order, before an IP is delivered. Each observer
    * receives the IP and a `next()` to continue the chain.
    *
    * @param {(ip: any, next: () => void) => void} callback
@@ -238,7 +234,7 @@ export class Edge {
   }
 
   /**
-   * Track bracket stream integrity across the stream boundary.
+   * Track bracket stream integrity across the transport.
    *
    * @param {any} ip
    */
@@ -279,20 +275,25 @@ export class Edge {
     } catch (error) {
       return Promise.reject(error);
     }
-    const observers = this.observers;
 
-    // Unbounded edges use a synchronous fast path: delivery happens
-    // during the write call itself, preserving the 1.x fire-and-forget
-    // timing exactly. Streams stay idle.
+    // Unbounded edges (the 1.x default) use a synchronous fast path:
+    // delivery happens during the write call itself, preserving legacy
+    // timing exactly. No stream machinery, no allocations.
     if (this.highWaterMark === null) {
-      const fastDeliver = () => {
+      const deliverSync = () => {
         if (this.deliver) {
           const release = this.deliver(ip);
-          void release;
+          if (release && typeof release.then === "function") {
+            release.then(
+              () => this.#released(),
+              () => this.#released(),
+            );
+          }
         }
       };
+      const observers = this.observers;
       if (!observers.length) {
-        fastDeliver();
+        deliverSync();
         return Promise.resolve();
       }
       return new Promise((resolve) => {
@@ -301,7 +302,7 @@ export class Edge {
          */
         const runObserver = (index) => {
           if (index >= observers.length) {
-            fastDeliver();
+            deliverSync();
             resolve();
             return;
           }
@@ -311,14 +312,15 @@ export class Edge {
       });
     }
 
+    const observers = this.observers;
     /**
      * @param {() => void} resolve
      * @param {(err: Error) => void} reject
      */
     const admitted = (resolve, reject) => {
-      // Unbounded and zero-HWM writes resolve with the sink: immediately
-      // for unbounded, on delivery for zero. Bounded writes with capacity
-      // resolve on admission, tracking delivery separately.
+      // Bounded edges with capacity: resolve the writer on admission;
+      // delivery completion is tracked separately. Unbounded resolves
+      // immediately; zero resolves on delivery.
       if (this.highWaterMark !== null && this.highWaterMark > 0) {
         this.writer.write(ip).then(null, (error) => {
           this.lastError = error;
@@ -396,7 +398,7 @@ export class Edge {
   }
 
   /**
-   * Close the edge for writing. The delivery pump finishes with the
+   * Close the edge for writing. The delivery handler finishes with the
    * remaining IPs.
    *
    * @returns {Promise<void>}
