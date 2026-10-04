@@ -656,52 +656,58 @@ describe("NoFlo Network", () => {
     });
   });
   describe("with a very large network", () => {
-    it("should be able to connect without errors", (_t, done) => {
-      if (noflo.isBrowser()) {
-        // Async mode is too much for Puppeteer here
-        _t.skip();
-        return;
-      }
-      let n;
-      const g = new noflo.Graph();
-      let called = 0;
-      for (n = 0; n <= 10000; n++) {
-        g.addNode(`Repeat${n}`, "Split");
-      }
-      g.addNode("Callback", "Callback");
-      for (n = 0; n <= 10000; n++) {
-        g.addEdge(`Repeat${n}`, "out", "Callback", "in");
-      }
-      g.addInitial(
-        () => {
-          called++;
-        },
-        "Callback",
-        "callback",
-      );
-      for (n = 0; n <= 10000; n++) {
-        g.addInitial(n, `Repeat${n}`, "in");
-      }
+    // Stress test: 10k nodes, edges and IIPs. Runs close to the default
+    // timeout budget on constrained runners, so it carries its own.
+    it(
+      "should be able to connect without errors",
+      { timeout: 120000 },
+      (_t, done) => {
+        if (noflo.isBrowser()) {
+          // Async mode is too much for Puppeteer here
+          _t.skip();
+          return;
+        }
+        let n;
+        const g = new noflo.Graph();
+        let called = 0;
+        for (n = 0; n <= 10000; n++) {
+          g.addNode(`Repeat${n}`, "Split");
+        }
+        g.addNode("Callback", "Callback");
+        for (n = 0; n <= 10000; n++) {
+          g.addEdge(`Repeat${n}`, "out", "Callback", "in");
+        }
+        g.addInitial(
+          () => {
+            called++;
+          },
+          "Callback",
+          "callback",
+        );
+        for (n = 0; n <= 10000; n++) {
+          g.addInitial(n, `Repeat${n}`, "in");
+        }
 
-      noflo
-        .createNetwork(g, {
-          delay: true,
-          subscribeGraph: false,
-          asyncDelivery: true,
-          baseDir: process.cwd(),
-        })
-        .then((nw) => {
-          nw.loader.components.Split = Split;
-          nw.loader.components.Callback = Callback;
-          nw.once("end", () => {
-            assert.strictEqual(called, 10001);
-            done();
-          });
-          return nw.connect();
-        })
-        .then((nw) => nw.start())
-        .catch(done);
-    });
+        noflo
+          .createNetwork(g, {
+            delay: true,
+            subscribeGraph: false,
+            asyncDelivery: true,
+            baseDir: process.cwd(),
+          })
+          .then((nw) => {
+            nw.loader.components.Split = Split;
+            nw.loader.components.Callback = Callback;
+            nw.once("end", () => {
+              assert.strictEqual(called, 10001);
+              done();
+            });
+            return nw.connect();
+          })
+          .then((nw) => nw.start())
+          .catch(done);
+      },
+    );
   });
   describe("with a faulty graph", () => {
     let loader = null;
