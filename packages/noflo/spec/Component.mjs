@@ -2906,50 +2906,44 @@ describe("Component", () => {
         sin1.post(new noflo.IP("closeBracket", "foo"));
         sin1.post(new noflo.IP("closeBracket"));
       });
-      it(
-        "should get full stream from a forwarding inport when it has a bracketed stream (#545)",
-        {
-          skip: "Red test for issue #545: getStream on a forwarding inport currently returns only a single data packet instead of the complete bracketed stream. Fix lands with the ProcessInput stream-collection rework in the Web Streams Phase 2",
-        },
-        (_t, done) => {
-          c = new noflo.Component({
-            inPorts: {
-              in: {
-                datatype: "string",
-              },
+      it("should get full stream from a forwarding inport when it has a bracketed stream (#545)", (_t, done) => {
+        c = new noflo.Component({
+          inPorts: {
+            in: {
+              datatype: "string",
             },
-            outPorts: {
-              out: {
-                datatype: "string",
-              },
+          },
+          outPorts: {
+            out: {
+              datatype: "string",
             },
-            process(input, output) {
-              if (!input.hasStream("in")) {
-                return;
-              }
-              const stream = input.getStream("in");
-              const packetTypes = stream.map((ip) => [ip.type, ip.data]);
-              assert.deepStrictEqual(packetTypes, [
-                ["openBracket", "foo"],
-                ["data", "one"],
-                ["data", "two"],
-                ["closeBracket", "foo"],
-              ]);
-              assert.equal(input.has("in"), false);
-              output.sendDone({ out: "ok" });
-              done();
-            },
-          });
-          c.forwardBrackets = { in: ["out"] };
+          },
+          process(input, output) {
+            if (!input.hasStream("in")) {
+              return;
+            }
+            const stream = input.getStream("in");
+            const packetTypes = stream.map((ip) => [ip.type, ip.data]);
+            assert.deepStrictEqual(packetTypes, [
+              ["openBracket", "foo"],
+              ["data", "one"],
+              ["data", "two"],
+              ["closeBracket", "foo"],
+            ]);
+            assert.equal(input.has("in"), false);
+            output.sendDone({ out: "ok" });
+            done();
+          },
+        });
+        c.forwardBrackets = { in: ["out"] };
 
-          c.inPorts.in.attach(sin1);
-          c.outPorts.out.attach(sout1);
-          sin1.post(new noflo.IP("openBracket", "foo"));
-          sin1.post(new noflo.IP("data", "one"));
-          sin1.post(new noflo.IP("data", "two"));
-          sin1.post(new noflo.IP("closeBracket", "foo"));
-        },
-      );
+        c.inPorts.in.attach(sin1);
+        c.outPorts.out.attach(sout1);
+        sin1.post(new noflo.IP("openBracket", "foo"));
+        sin1.post(new noflo.IP("data", "one"));
+        sin1.post(new noflo.IP("data", "two"));
+        sin1.post(new noflo.IP("closeBracket", "foo"));
+      });
       it("should get data when it has a full stream", (_t, done) => {
         c = new noflo.Component({
           inPorts: {
