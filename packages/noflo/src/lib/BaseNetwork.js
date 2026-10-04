@@ -667,11 +667,22 @@ export class BaseNetwork extends LegacyEventBase {
     // Transport-level observation: one stable dispatcher per edge that
     // forwards to the CURRENT network observer list at event time, so
     // observer registration can never drift out of sync with wired edges
-    // (and future removal stays trivial).
+    // (and future removal stays trivial). The dispatcher always calls
+    // next() exactly once — also when there are no observers — so the
+    // Edge delivery chain can never stall.
     socket.edge.observe((ip, next) => {
+      let advanced = false;
+      const advance = () => {
+        if (advanced) {
+          return;
+        }
+        advanced = true;
+        next();
+      };
       for (const observer of this.edgeObservers) {
-        observer(ip, socket, next);
+        observer(ip, socket, advance);
       }
+      advance();
     });
     socket.addEventListener("ip", (event) => {
       const ip = event.detail;

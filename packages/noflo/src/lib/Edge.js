@@ -107,38 +107,47 @@ export class Edge {
 
     const self = this;
     this.writableStream = new WritableStream({
-      // The sink runs delivery synchronously and completes once the
-      // delivery handler has released the IP — so the writer-side queue
-      // reflects undelivered packets. Unbounded edges complete writes
-      // immediately (fire-and-forget, matching 1.x).
+      // Delivery runs one microtask after the write call, matching the
+      // pump design's timing: the sending side's bookkeeping (network
+      // start ordering, connected state) settles before the receiving
+      // side's cascade begins. The sink completes once the delivery
+      // handler has released the IP, so the writer-side queue reflects
+      // undelivered packets. Unbounded edges complete writes right after
+      // delivery (fire-and-forget, matching 1.x).
       write(ip) {
-        if (self.highWaterMark === null) {
-          if (self.deliver) {
-            const release = self.deliver(ip);
-            if (release && typeof release.then === "function") {
-              release.then(
-                () => self.#released(),
-                () => self.#released(),
-              );
+        return Promise.resolve().then(() => {
+          console.log(
+            "SINK: hwm",
+            self.highWaterMark,
+            "deliver?",
+            typeof self.deliver,
+          );
+          if (self.highWaterMark === null) {
+            if (self.deliver) {
+              const release = self.deliver(ip);
+              if (release && typeof release.then === "function") {
+                release.then(
+                  () => self.#released(),
+                  () => self.#released(),
+                );
+              }
             }
+            return;
           }
-          return Promise.resolve();
-        }
-        return new Promise((resolveSink) => {
           let release = null;
           if (self.deliver) {
             release = self.deliver(ip);
           }
           const finish = () => {
             self.#released();
-            resolveSink();
           };
           if (release && typeof release.then === "function") {
-            release.then(
+            // Returning the release promise keeps the sink (and this
+            // write) pending until the delivery handler releases the IP
+            return release.then(
               () => finish(),
               () => finish(),
             );
-            return;
           }
           finish();
         });
@@ -276,9 +285,8 @@ export class Edge {
       return Promise.reject(error);
     }
 
-    // Unbounded edges (the 1.x default) use a synchronous fast path:
-    // delivery happens during the write call itself, preserving legacy
-    // timing exactly. No stream machinery, no allocations.
+    // Unbounded edges (the 1.x default) deliver synchronously during the
+    // write call, preserving legacy timing exactly.
     if (this.highWaterMark === null) {
       const deliverSync = () => {
         if (this.deliver) {
