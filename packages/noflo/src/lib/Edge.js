@@ -106,58 +106,43 @@ export class Edge {
     this.waitingWriters = [];
 
     const self = this;
-    this.writableStream = new WritableStream({
-      // Delivery runs one microtask after the write call, matching the
-      // pump design's timing: the sending side's bookkeeping (network
-      // start ordering, connected state) settles before the receiving
-      // side's cascade begins. The sink completes once the delivery
-      // handler has released the IP, so the writer-side queue reflects
-      // undelivered packets. Unbounded edges complete writes right after
-      // delivery (fire-and-forget, matching 1.x).
-      write(ip) {
-        return Promise.resolve().then(() => {
-          console.log(
-            "SINK: hwm",
-            self.highWaterMark,
-            "deliver?",
-            typeof self.deliver,
-          );
-          if (self.highWaterMark === null) {
+    if (this.highWaterMark !== null) {
+      // Bounded edges get the stream machinery for admission-paced
+      // delivery. Unbounded edges (the 1.x default) stay allocation-free:
+      // their writes take the synchronous fast path and never touch it.
+      this.writableStream = new WritableStream({
+        // Delivery runs one microtask after the write call, matching the
+        // pump design's timing: the sending side's bookkeeping settles
+        // before the receiving side's cascade begins. The sink completes
+        // once the delivery handler has released the IP, so the
+        // writer-side queue reflects undelivered packets.
+        write(ip) {
+          return Promise.resolve().then(() => {
+            let release = null;
             if (self.deliver) {
-              const release = self.deliver(ip);
-              if (release && typeof release.then === "function") {
-                release.then(
-                  () => self.#released(),
-                  () => self.#released(),
-                );
-              }
+              release = self.deliver(ip);
             }
-            return;
-          }
-          let release = null;
-          if (self.deliver) {
-            release = self.deliver(ip);
-          }
-          const finish = () => {
-            self.#released();
-          };
-          if (release && typeof release.then === "function") {
-            // Returning the release promise keeps the sink (and this
-            // write) pending until the delivery handler releases the IP
-            return release.then(
-              () => finish(),
-              () => finish(),
-            );
-          }
-          finish();
-        });
-      },
-      abort(reason) {
-        self.lastError = reason;
-      },
-    });
+            const finish = () => {
+              self.#released();
+            };
+            if (release && typeof release.then === "function") {
+              // Returning the release promise keeps the sink (and this
+              // write) pending until the delivery handler releases the IP
+              return release.then(
+                () => finish(),
+                () => finish(),
+              );
+            }
+            finish();
+          });
+        },
+        abort(reason) {
+          self.lastError = reason;
+        },
+      });
 
-    this.writer = this.writableStream.getWriter();
+      this.writer = this.writableStream.getWriter();
+    }
   }
 
   /**
@@ -418,6 +403,9 @@ export class Edge {
     for (const waiter of parked) {
       waiter.reject(new Error("Edge is closed for writing"));
     }
-    return this.writer.close();
+    if (this.writer) {
+      return this.writer.close();
+    }
+    return Promise.resolve();
   }
 }
