@@ -664,10 +664,15 @@ export class BaseNetwork extends LegacyEventBase {
    * @param {NetworkProcess} [source]
    */
   subscribeSocket(socket, source) {
-    // Transport-level observation: pre-delivery middleware on the edge
-    for (const observer of this.edgeObservers) {
-      socket.edge.observe((ip, next) => observer(ip, socket, next));
-    }
+    // Transport-level observation: one stable dispatcher per edge that
+    // forwards to the CURRENT network observer list at event time, so
+    // observer registration can never drift out of sync with wired edges
+    // (and future removal stays trivial).
+    socket.edge.observe((ip, next) => {
+      for (const observer of this.edgeObservers) {
+        observer(ip, socket, next);
+      }
+    });
     socket.addEventListener("ip", (event) => {
       const ip = event.detail;
       this.bufferedEmit("ip", {
@@ -784,18 +789,15 @@ export class BaseNetwork extends LegacyEventBase {
    * Register a transport-level observer for every edge in this network:
    * the middleware sees each Information Packet on each edge before it is
    * delivered, as `(ip, socket, next)`. Call `next()` to continue delivery.
-   * Observers registered after the network is wired also apply to all
-   * existing edges. This is the observability hook for fbp-protocol and
-   * Flowtrace; packet tracing via network events is unaffected.
+   * Applies to edges wired before and after registration. This is the
+   * observability hook for fbp-protocol and Flowtrace; packet tracing via
+   * network events is unaffected.
    *
    * @param {(ip: any, socket: internalSocket.InternalSocket, next: () => void) => void} callback
    * @returns {this}
    */
   observe(callback) {
     this.edgeObservers.push(callback);
-    for (const socket of this.connections) {
-      socket.edge.observe((ip, next) => callback(ip, socket, next));
-    }
     return this;
   }
 
