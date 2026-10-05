@@ -503,25 +503,24 @@ export class Component extends LegacyEventBase {
    */
   handleIP(ip, port) {
     if (!port.options.triggering) {
-      // Work document #1 Phase 2 (#607): a newly arrived data packet on a
-      // control (non-triggering) port fires the process once per scope
-      // that has pending non-control data, provided at least one
-      // non-control (triggering) inport holds buffered IPs. The control
-      // IP itself stays buffered: it is a non-consuming standing gate.
-      // Bracket IPs on control ports do not fire. The control gate reads
-      // the port's unscoped buffer, so unscoped control IPs gate and stay
-      // buffered regardless of the port's `scoped` option; a SCOPED
-      // control IP is not seen by this gate (it lands in the scoped
-      // buffer, which control firing does not read). Addressable control
-      // ports do not participate in control-triggered firing yet.
+      // Work document #1 Phase 2 (#607): control-triggered firing reacts
+      // to any data IP arriving on a non-triggering port, in any scope.
+      // Reading the control value follows normal port scoping: declare
+      // the control port scoped: false when an unscoped standing control
+      // IP should gate scoped data. The control IP stays buffered (a
+      // non-consuming standing gate) and each arrival is one firing
+      // edge. Bracket IPs on control ports do not fire. Addressable
+      // control ports do not participate in control-triggered firing
+      // yet.
       if (ip.type !== "data") {
         return;
       }
-      if (port.options.scoped) {
-        // Control firing resolves reads per scope; a scoped control port
-        // would leave its IPs in the unscoped buffer unread
+      if (port.options.scoped && ip.scope == null) {
+        // The one broken arrival: a scoped control port fed an unscoped
+        // control IP. The firing happens, but the control value is
+        // unreadable at this scope — warn loudly.
         debugComponent(
-          `${this.nodeId} control port '${port.name}' is scoped; control firing expects scoped: false`,
+          `${this.nodeId} unscoped control IP on scoped control port '${port.name}': the control value cannot be read; declare the port scoped: false`,
         );
       }
       const hasPendingData = (buffer) =>
