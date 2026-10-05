@@ -583,7 +583,6 @@ describe("ComponentLoader with no external packages installed", () => {
     it("should include the expected ones", () => {
       const expectedLanguages = ["es2015", "javascript"];
       if (!noflo.isBrowser()) {
-        expectedLanguages.push("coffeescript");
         expectedLanguages.push("typescript");
       }
       expectedLanguages.sort();
@@ -722,67 +721,7 @@ exports.getComponent = () => {
           });
         });
       });
-      describe("with CoffeeScript", () => {
-        before(function () {
-          if (l.getLanguages().indexOf("coffeescript") === -1) {
-            this.skip();
-          }
-        });
-        let workingSource = `\
-noflo = require 'noflo'
-exports.getComponent = ->
-  c = new noflo.Component
-  c.inPorts.add 'in'
-  c.outPorts.add 'out'
-  c.process (input, output) ->
-    output.sendDone input.get 'in'\
-`;
 
-        it("should be able to set the source", () => {
-          if (!noflo.isBrowser()) {
-            workingSource = workingSource.replace("'noflo'", localNofloPath);
-          }
-          return l.setSource(
-            "foo",
-            "RepeatDataCoffee",
-            workingSource,
-            "coffeescript",
-          );
-        });
-        it("should be a loadable component", () => {
-          return l.load("foo/RepeatDataCoffee").then((inst) => {
-            assert.strictEqual(typeof inst, "object");
-            assert.equal(
-              Object.keys(inst.inPorts).includes("in"),
-              true,
-              "has IN port",
-            );
-            assert.equal(
-              Object.keys(inst.outPorts).includes("out"),
-              true,
-              "has OUT port",
-            );
-            const ins = new noflo.internalSocket.InternalSocket();
-            const out = new noflo.internalSocket.InternalSocket();
-            inst.inPorts.in.attach(ins);
-            inst.outPorts.out.attach(out);
-            return new Promise((resolve) => {
-              out.on("ip", (ip) => {
-                assert.strictEqual(ip.type, "data");
-                assert.strictEqual(ip.data, "CoffeeScript");
-                resolve();
-              });
-              ins.send("CoffeeScript");
-            });
-          });
-        });
-        it("should return sources in the same format", () => {
-          return l.getSource("foo/RepeatDataCoffee").then((source) => {
-            assert.strictEqual(source.language, "coffeescript");
-            assert.strictEqual(source.code, workingSource);
-          });
-        });
-      });
       describe("with TypeScript", () => {
         before(function () {
           if (l.getLanguages().indexOf("typescript") === -1) {
@@ -978,12 +917,6 @@ exports.getComponent = function() {
         assert.strictEqual(instance.icon, "cloud");
       });
     });
-    it("should be able to load a local CoffeeScript component", () => {
-      return l.load("componentloader/RepeatAsync").then((instance) => {
-        assert.strictEqual(instance.description, "Repeat stuff async");
-        assert.strictEqual(instance.icon, "forward");
-      });
-    });
     it("should be able to load a local TypeScript component", () => {
       return l.load("componentloader/Repeat").then((instance) => {
         assert.strictEqual(instance.description, "Repeat stuff");
@@ -999,27 +932,6 @@ exports.getComponent = function() {
       return l.load("example/Forward").then((instance) => {
         assert.strictEqual(instance.description, "Forward stuff");
         assert.strictEqual(instance.icon, "car");
-      });
-    });
-    it("should be able to load a CoffeeScript component from a dependency", (_t, done) => {
-      l.load("example/RepeatAsync", (err, instance) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.strictEqual(instance.description, "Repeat stuff async");
-        assert.strictEqual(instance.icon, "forward");
-        done();
-      });
-    });
-    it("should be able to find specs for a CoffeeScript component from a dependency", (_t, done) => {
-      l.getSource("example/RepeatAsync", (err, source) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.ok(source.tests.indexOf("example/RepeatAsync") !== -1);
-        done();
       });
     });
     it("should be able to load a TypeScript component from a dependency", (_t, done) => {

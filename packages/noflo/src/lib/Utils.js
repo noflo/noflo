@@ -13,9 +13,6 @@
  * @returns {string}
  */
 export function guessLanguageFromFilename(filename) {
-  if (/.*\.coffee$/.test(filename)) {
-    return "coffeescript";
-  }
   if (/.*\.ts$/.test(filename)) {
     return "typescript";
   }

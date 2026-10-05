@@ -554,10 +554,9 @@ export class ComponentLoader {
   }
 
   // With `setSource` you can register a component by providing
-  // a source code string. Supported languages and techniques
-  // depend on the runtime environment, for example CoffeeScript
-  // components can only be registered via `setSource` if
-  // the environment has a CoffeeScript compiler loaded.
+  // a source code string. Supported languages depend on the runtime
+  // environment: JavaScript and TypeScript where a TypeScript compiler
+  // is available. CoffeeScript is no longer supported.
   /**
    * @param {string} packageId
    * @param {string} name

@@ -16,17 +16,6 @@ import { deprecated } from "../Platform.js";
 const writeFile = promisify(fs.writeFile);
 const readFile = promisify(fs.readFile);
 
-// Type loading CoffeeScript compiler
-let CoffeeScript;
-// eslint-disable-next-line import/no-unresolved,import/no-extraneous-dependencies
-import("coffeescript")
-  .then((compiler) => {
-    CoffeeScript = compiler;
-  })
-  .catch((_e) => {
-    // If there is no CoffeeScript compiler installed, we simply don't support compiling
-  });
-
 // Try loading TypeScript compiler
 let typescript;
 // eslint-disable-next-line import/no-unresolved,import/no-extraneous-dependencies
@@ -59,26 +48,6 @@ import("typescript")
 function transpileSource(packageId, name, source, language) {
   let src;
   switch (language) {
-    case "coffeescript": {
-      deprecated(
-        "Loading CoffeeScript components is deprecated; port the component to Process API JavaScript or TypeScript",
-      );
-      if (!CoffeeScript) {
-        return Promise.reject(
-          new Error(
-            `Unsupported component source language ${language} for ${packageId}/${name}: no CoffeeScript compiler installed`,
-          ),
-        );
-      }
-      try {
-        src = CoffeeScript.compile(source, {
-          bare: true,
-        });
-      } catch (err) {
-        return Promise.reject(err);
-      }
-      break;
-    }
     case "typescript": {
       if (!typescript) {
         return Promise.reject(
@@ -401,9 +370,6 @@ export function getSource(loader, name, callback) {
  */
 export function getLanguages() {
   const languages = ["javascript", "es2015"];
-  if (CoffeeScript) {
-    languages.push("coffeescript");
-  }
   if (typescript) {
     languages.push("typescript");
   }
@@ -461,7 +427,7 @@ function registerModules(loader, modules, callback) {
       return Promise.all(
         m.components.map((c) => {
           const language = utils.guessLanguageFromFilename(c.path);
-          if (language === "typescript" || language === "coffeescript") {
+          if (language === "typescript") {
             // We can't require a module that requires transpilation, go the setSource route
             return readFile(
               path.resolve(loader.baseDir, c.path),
