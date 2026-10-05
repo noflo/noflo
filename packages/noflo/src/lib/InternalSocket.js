@@ -252,6 +252,15 @@ export class InternalSocket extends LegacyEventBase {
   // As _connect_ event is considered as open bracket, it needs to be followed
   // by a _disconnect_ event or a closing bracket. In the new simplified
   // sending semantics single IP objects can be sent without open/close brackets.
+  /**
+   * @param {IP} packet
+   * @param {boolean} [autoDisconnect]
+   * @returns {Promise<void>} Resolves when the packet has been admitted
+   *   by the edge per its high-water mark. Send errors are NOT reported
+   *   through this promise: they escalate through the socket error path
+   *   (process-error with a listener, loud throw without). Fire-and-
+   *   forget compatible: callers may ignore the Promise.
+   */
   post(packet, autoDisconnect = true) {
     let ip = packet;
     if (ip === undefined && typeof this.dataDelegate === "function") {
@@ -261,10 +270,15 @@ export class InternalSocket extends LegacyEventBase {
     if (!this.isConnected() && this.brackets.length === 0) {
       this.connect();
     }
-    this.handleSocketEvent("ip", ip, false);
+    const write = this.handleSocketEvent("ip", ip, false);
+    // Side-channel: keep fire-and-forget use rejection-free. Errors
+    // reach awaiting callers through the returned promise and escalate
+    // through the error plane for everyone else.
+    write.catch(() => {});
     if (autoDisconnect && this.isConnected() && this.brackets.length === 0) {
       this.disconnect();
     }
+    return write;
   }
 
   // ## Information Packet grouping
@@ -385,9 +399,12 @@ export class InternalSocket extends LegacyEventBase {
     }
 
     // Transport the IP through the edge; delivery emits the events. A
-    // rejected write escalates through the socket error path, matching
-    // the synchronous-throw semantics of the 1.x EventEmitter flow.
-    this.edge.write(ip).catch((error) => {
+    // rejected write escalates through the socket error path (side-
+    // channel catch — the returned promise still rejects for awaiting
+    // callers, so transport errors reach them without becoming unhandled
+    // rejections in fire-and-forget call sites).
+    const write = this.edge.write(ip);
+    write.catch((error) => {
       if (this.listeners("error").length === 0) {
         // No error listener: escalate loudly, like the 1.x debug
         // emission path did
@@ -402,6 +419,7 @@ export class InternalSocket extends LegacyEventBase {
         metadata: this.metadata,
       });
     });
+    return write;
   }
 }
 

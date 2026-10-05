@@ -6,9 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- `Edge` data-plane transport over Web Streams, the infrastructure for the 2.x dataflow migration: hierarchical `highWaterMark` resolution (edge metadata ∪ component default ∪ runtime global; `0` = synchronous, positive = buffered, `null`/absent = unbounded 1.x behavior), an `observe()` middleware hook for fbp-protocol/Flowtrace, bracket-substream integrity validation, and admission-based backpressure. Not yet wired into networks
+- `Edge` data-plane transport over Web Streams, the infrastructure for the 2.x dataflow migration: hierarchical `highWaterMark` resolution (edge metadata ∪ component default ∪ runtime global; `0` = synchronous, positive = buffered, `null`/absent = unbounded 1.x behavior), an `observe()` middleware hook for fbp-protocol/Flowtrace, bracket-substream integrity validation, and admission-based backpressure
+- `getStream` on forwarding inports now returns the complete buffered stream including brackets (#545): the collection consumes the stream while mirroring the bracket-context side effects, so output forwarding keeps working
+- `output.send()` (and `sendIP`/`pass` on process output) returns an admission Promise that resolves once the packet has been admitted by the receiving edge per its `highWaterMark`, enabling `await output.send()` backpressure in process functions. The Promise does not reject: send errors escalate through the socket error path (`process-error` with a listener, loud throw without). `OutPort` exposes the same promise per send as `lastWrite`
+- Network-level `network.observe(callback)` middleware: sees every Information Packet on every edge before delivery, as `(ip, socket, next)` with socket context
 
 ### Changed
+- **#607**: a newly arrived packet on a control (non-triggering) inport now fires the process once per scope that has pending data, provided at least one non-control inport holds buffered IPs. The control IP itself stays buffered (non-consuming standing gate); scoped firings stamp the process context with the scope. Control ports must use `scoped: false` (the default for non-scoped declarations); addressable control ports do not participate in control-triggered firing yet. This is a deliberate change from 1.x, where control ports never triggered firing; it is 2.x semantics to be documented in the migration guide
+- `sendDone(null)` and `sendDone(undefined)` now only mark the process done instead of emitting a `data: null` packet
+- InternalSocket `post` returns the edge admission Promise; rejections are escalated through the socket error path (side-channel handled, so fire-and-forget call sites stay rejection-free)
 - Reformatted all source code to Biome standards
 - Repository reorganized into a monorepo layout; the NoFlo npm package is now built from `packages/noflo`
 - `ComponentLoader.registerComponent`, `registerGraph`, and `registerLoader` now return Promises; providing callbacks to them is deprecated and logs a warning

@@ -508,44 +508,43 @@ export class Component extends LegacyEventBase {
       // that has pending non-control data, provided at least one
       // non-control (triggering) inport holds buffered IPs. The control
       // IP itself stays buffered: it is a non-consuming standing gate.
-      // Bracket IPs on control ports do not fire.
+      // Bracket IPs on control ports do not fire. Control ports must
+      // declare `scoped: false` (the default for unscoped declarations):
+      // reads resolve against the unscoped buffer while scoped firings
+      // stamp the context. Addressable control ports do not participate
+      // in control-triggered firing yet.
       if (ip.type !== "data") {
         return;
       }
       const hasPendingData = (buffer) =>
-        buffer && buffer.some((buffered) => buffered.type === "data");
+        Boolean(buffer?.some((buffered) => buffered.type === "data"));
       const isNonControl = (other) =>
         other !== port && other.options.triggering !== false;
-      let anyPending = false;
       /** @type {Array<string|null>} */
       const scopesToFire = [];
+      let anyPending = false;
       Object.keys(this.inPorts.ports).forEach((name) => {
         const other = this.inPorts.ports[name];
         if (!isNonControl(other)) {
           return;
         }
-        const buffer = other.getBuffer(null, null);
-        if (hasPendingData(buffer) && !scopesToFire.includes(null)) {
-          scopesToFire.push(null);
-          anyPending = true;
-        }
-      });
-      // Union of the scopes other ports hold data for
-      const scopes = new Set();
-      Object.keys(this.inPorts.ports).forEach((name) => {
-        const other = this.inPorts.ports[name];
-        if (!isNonControl(other) || !other.scopedBuffer) {
-          return;
-        }
-        Object.keys(other.scopedBuffer).forEach((scope) => {
-          if (hasPendingData(other.scopedBuffer[scope])) {
-            scopes.add(scope);
+        if (hasPendingData(other.getBuffer(null, null))) {
+          if (!scopesToFire.includes(null)) {
+            scopesToFire.push(null);
+            anyPending = true;
           }
-        });
-      });
-      scopes.forEach((scope) => {
-        scopesToFire.push(scope);
-        anyPending = true;
+        }
+        if (other.scopedBuffer) {
+          Object.keys(other.scopedBuffer).forEach((scope) => {
+            if (
+              hasPendingData(other.scopedBuffer[scope]) &&
+              !scopesToFire.includes(scope)
+            ) {
+              scopesToFire.push(scope);
+              anyPending = true;
+            }
+          });
+        }
       });
       if (!anyPending) {
         return;

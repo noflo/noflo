@@ -774,53 +774,49 @@ describe("Component", () => {
       });
       sin1.post(new noflo.IP("data", "first"));
     });
-    it(
-      "should trigger from non-triggering ports when other ports hold buffered data (#607)",
-      { timeout: 30000 },
-      (_t, done) => {
-        const triggered = [];
-        c = new noflo.Component({
-          inPorts: {
-            foo: {
-              datatype: "string",
-              triggering: false,
-            },
-            bar: { datatype: "string" },
+    it("should trigger from non-triggering ports when other ports hold buffered data (#607)", (_t, done) => {
+      const triggered = [];
+      c = new noflo.Component({
+        inPorts: {
+          foo: {
+            datatype: "string",
+            triggering: false,
           },
-          outPorts: {
-            baz: { datatype: "boolean" },
-          },
-          process(input, output) {
-            triggered.push(input.port.name);
-            output.sendDone({ baz: true });
-          },
-        });
+          bar: { datatype: "string" },
+        },
+        outPorts: {
+          baz: { datatype: "boolean" },
+        },
+        process(input, output) {
+          triggered.push(input.port.name);
+          output.sendDone({ baz: true });
+        },
+      });
 
-        c.inPorts.foo.attach(sin1);
-        c.inPorts.bar.attach(sin2);
-        c.outPorts.baz.attach(sout1);
+      c.inPorts.foo.attach(sin1);
+      c.inPorts.bar.attach(sin2);
+      c.outPorts.baz.attach(sout1);
 
-        let count = 0;
-        sout1.on("ip", () => {
-          count++;
-          if (count === 1) {
-            assert.deepStrictEqual(triggered, ["bar"]);
-          }
-          if (count === 2) {
-            assert.deepStrictEqual(triggered, ["bar", "foo"]);
-          }
-          if (count === 3) {
-            assert.deepStrictEqual(triggered, ["bar", "foo", "bar"]);
-            done();
-          }
-        });
+      let count = 0;
+      sout1.on("ip", () => {
+        count++;
+        if (count === 1) {
+          assert.deepStrictEqual(triggered, ["bar"]);
+        }
+        if (count === 2) {
+          assert.deepStrictEqual(triggered, ["bar", "foo"]);
+        }
+        if (count === 3) {
+          assert.deepStrictEqual(triggered, ["bar", "foo", "bar"]);
+          done();
+        }
+      });
 
-        sin1.post(new noflo.IP("data", "first"));
-        sin2.post(new noflo.IP("data", "second"));
-        sin1.post(new noflo.IP("data", "first"));
-        sin2.post(new noflo.IP("data", "second"));
-      },
-    );
+      sin1.post(new noflo.IP("data", "first"));
+      sin2.post(new noflo.IP("data", "second"));
+      sin1.post(new noflo.IP("data", "first"));
+      sin2.post(new noflo.IP("data", "second"));
+    });
     it("should fetch undefined for premature data", (_t, done) => {
       c = new noflo.Component({
         inPorts: {
@@ -3341,6 +3337,22 @@ describe("control port firing (#607)", () => {
       c.inPorts.ports.control.buffer.length,
       1,
       "control IP stays buffered",
+    );
+  });
+
+  it("fires per scope for scoped data with an unscoped control", () => {
+    build();
+    c.inPorts.ports.in.options.scoped = true;
+    c.inPorts.ports.control.options.scoped = false;
+    const scopedIp = new noflo.IP("data", 42);
+    scopedIp.scope = "scope-a";
+    sin.post(scopedIp);
+    scontrol.post(new noflo.IP("data", "go"));
+    assert.deepEqual(received, [42]);
+    assert.equal(
+      c.inPorts.ports.control.buffer.length,
+      1,
+      "unscoped control stays buffered",
     );
   });
 
