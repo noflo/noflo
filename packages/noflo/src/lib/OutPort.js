@@ -185,9 +185,13 @@ export default class OutPort extends BasePort {
         writes.push(socket.post(ip, autoConnect));
       }
     });
-    // Admission promise for the most recent send. Fire-and-forget safe:
-    // each socket post carries its own error escalation.
-    this.lastWrite = Promise.all(writes).then(() => undefined);
+    // Admission promise for the most recent send. The noop catch keeps
+    // fire-and-forget callers off the unhandled-rejection channel —
+    // send errors are escalated at the socket level — while awaiters of
+    // lastWrite still receive them.
+    const admission = Promise.all(writes).then(() => undefined);
+    admission.catch(() => {});
+    this.lastWrite = admission;
     return this;
   }
 

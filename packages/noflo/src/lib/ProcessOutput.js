@@ -152,7 +152,11 @@ export default class ProcessOutput {
       const packet = outputMap[port];
       writes.push(this.sendIP(port, packet));
     });
-    return Promise.all(writes).then(() => undefined);
+    const admission = Promise.all(writes).then(() => undefined);
+    // Noop-marked like OutPort.lastWrite: fire-and-forget callers stay
+    // off the unhandled-rejection channel, awaiters still see rejections
+    admission.catch(() => {});
+    return admission;
   }
 
   // Sends the argument via `send()` and marks activation as `done()`.

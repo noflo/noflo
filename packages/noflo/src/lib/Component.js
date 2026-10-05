@@ -516,6 +516,13 @@ export class Component extends LegacyEventBase {
       if (ip.type !== "data") {
         return;
       }
+      if (port.options.scoped) {
+        // Control firing resolves reads per scope; a scoped control port
+        // would leave its IPs in the unscoped buffer unread
+        debugComponent(
+          `${this.nodeId} control port '${port.name}' is scoped; control firing expects scoped: false`,
+        );
+      }
       const hasPendingData = (buffer) =>
         Boolean(buffer?.some((buffered) => buffered.type === "data"));
       const isNonControl = (other) =>
