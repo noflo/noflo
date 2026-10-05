@@ -3234,3 +3234,39 @@ describe("Component", () => {
     });
   });
 });
+
+describe("Process API backpressure via awaitable output.send()", () => {
+  it("returns an admission promise and delivers the packet", async () => {
+    const c = new noflo.Component({
+      inPorts: { in: { datatype: "int", required: true } },
+      outPorts: { out: { datatype: "int" } },
+    });
+    let sendPromise = null;
+    c.process((input, output) => {
+      sendPromise = output.send({ out: input.getData("in") });
+      if (sendPromise && typeof sendPromise.then === "function") {
+        return sendPromise.then(() => output.done());
+      }
+      output.done();
+    });
+    const sin = noflo.internalSocket.createSocket({ highWaterMark: 1 });
+    const sout = noflo.internalSocket.createSocket({ highWaterMark: 1 });
+    c.inPorts.in.attach(sin);
+    c.outPorts.out.attach(sout);
+    const received = [];
+    // The legacy on() API delivers the payload directly (unwrapped)
+    sout.on("ip", (ip) => {
+      if (ip.type === "data") {
+        received.push(ip.data);
+      }
+    });
+    sin.post(new noflo.IP("data", 42));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 50);
+    });
+    assert.equal(typeof sendPromise, "object");
+    assert.equal(typeof sendPromise.then, "function");
+    assert.deepEqual(received, [42]);
+    await sendPromise;
+  });
+});

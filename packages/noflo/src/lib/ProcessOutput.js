@@ -67,7 +67,9 @@ export default class ProcessOutput {
   /**
    * @param {string} port - Port to send to
    * @param {IP|any} packet - IP or data to send
-   * @returns {void}
+   * @returns {Promise<void>|void} Resolves when the packet has been
+   *   admitted by the receiving edge per its high-water mark. Fire-and-
+   *   forget compatible: callers may ignore the Promise.
    */
   sendIP(port, packet) {
     const ip = IP.isIP(packet) ? packet : new IP("data", packet);
@@ -100,12 +102,17 @@ export default class ProcessOutput {
       ip.scope = null;
     }
     portImpl.sendIP(ip);
+    return portImpl.lastWrite;
   }
 
   // Sends packets for each port as a key in the map
   // or sends Error or a list of Errors if passed such
   /**
    * @param {Error|Array<Error>|Object<string, any>} outputMap
+   * @returns {Promise<void>|void} Resolves when all sent packets have
+   *   been admitted by their edges per the high-water marks. Callers may
+   *   await it for backpressure; fire-and-forget use stays safe (send
+   *   errors escalate through the socket error path).
    */
   send(outputMap) {
     if (isError(outputMap)) {
@@ -132,27 +139,38 @@ export default class ProcessOutput {
     });
 
     if (componentPorts.length === 1 && !mapIsInPorts) {
-      this.sendIP(componentPorts[0], outputMap);
-      return;
+      return this.sendIP(componentPorts[0], outputMap);
     }
 
     if (componentPorts.length > 1 && !mapIsInPorts) {
       throw new Error("Port must be specified for sending output");
     }
 
+    /** @type {Array<Promise<void>|void>} */
+    const writes = [];
     Object.keys(outputMap).forEach((port) => {
       const packet = outputMap[port];
-      this.sendIP(port, packet);
+      writes.push(this.sendIP(port, packet));
     });
+    return Promise.all(writes).then(() => undefined);
   }
 
-  // Sends the argument via `send()` and marks activation as `done()`
+  // Sends the argument via `send()` and marks activation as `done()`.
+  // A null/undefined outputMap (e.g. a `return output.done()` chain
+  // resolving with nothing) marks done without sending a null packet.
   /**
-   * @param {Error|Array<Error>|Object<string, any>} outputMap
+   * @param {Error|Array<Error>|Object<string, any>|null|undefined} outputMap
+   * @returns {Promise<void>|void} Resolves when sent packets have been
+   *   admitted and the activation has been marked done
    */
   sendDone(outputMap) {
-    this.send(outputMap);
+    if (outputMap == null) {
+      this.done();
+      return;
+    }
+    const sent = this.send(outputMap);
     this.done();
+    return sent;
   }
 
   // Makes a map-style component pass a result value to `out`
@@ -171,8 +189,9 @@ export default class ProcessOutput {
       this.ip[key] = val;
     });
     this.ip.data = data;
-    this.sendIP("out", this.ip);
+    const sent = this.sendIP("out", this.ip);
     this.done();
+    return sent;
   }
 
   // Finishes process activation gracefully

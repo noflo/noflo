@@ -35,6 +35,15 @@ export default class OutPort extends BasePort {
 
     /** @type {Object<string, IP>} */
     this.cache = {};
+
+    /**
+     * Admission promise for the most recent send: resolves when all
+     * packets sent by the last sendIP call have been admitted by their
+     * edges per the high-water marks.
+     *
+     * @type {Promise<void>}
+     */
+    this.lastWrite = Promise.resolve();
   }
 
   /**
@@ -160,20 +169,25 @@ export default class OutPort extends BasePort {
       this.cache[`${idx}`] = ip;
     }
     let pristine = true;
+    /** @type {Array<Promise<void>|void>} */
+    const writes = [];
     sockets.forEach((socket) => {
       if (!socket) {
         return;
       }
       if (pristine) {
-        socket.post(ip, autoConnect);
+        writes.push(socket.post(ip, autoConnect));
         pristine = false;
       } else {
         if (ip.clonable) {
           ip = ip.clone();
         }
-        socket.post(ip, autoConnect);
+        writes.push(socket.post(ip, autoConnect));
       }
     });
+    // Admission promise for the most recent send. Fire-and-forget safe:
+    // each socket post carries its own error escalation.
+    this.lastWrite = Promise.all(writes).then(() => undefined);
     return this;
   }
 
