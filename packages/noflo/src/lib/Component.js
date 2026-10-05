@@ -508,11 +508,12 @@ export class Component extends LegacyEventBase {
       // that has pending non-control data, provided at least one
       // non-control (triggering) inport holds buffered IPs. The control
       // IP itself stays buffered: it is a non-consuming standing gate.
-      // Bracket IPs on control ports do not fire. Control ports must
-      // declare `scoped: false` (the default for unscoped declarations):
-      // reads resolve against the unscoped buffer while scoped firings
-      // stamp the context. Addressable control ports do not participate
-      // in control-triggered firing yet.
+      // Bracket IPs on control ports do not fire. The control gate reads
+      // the port's unscoped buffer, so unscoped control IPs gate and stay
+      // buffered regardless of the port's `scoped` option; a SCOPED
+      // control IP is not seen by this gate (it lands in the scoped
+      // buffer, which control firing does not read). Addressable control
+      // ports do not participate in control-triggered firing yet.
       if (ip.type !== "data") {
         return;
       }
