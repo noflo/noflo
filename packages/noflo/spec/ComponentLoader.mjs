@@ -1199,3 +1199,96 @@ exports.getComponent = function() {
     });
   });
 });
+
+describe("with an application-supplied registry (work document #6)", () => {
+  let loader = null;
+  let registryCalls = 0;
+  const noOpDummy = (name) => {
+    const inst = new noflo.Component();
+    inst.nodeId = name;
+    return inst;
+  };
+
+  before(async () => {
+    loader = new noflo.ComponentLoader(process.cwd(), {
+      registry: {
+        list: async () => ({
+          "registry/Split": {
+            getComponent: () => {
+              const c = new noflo.Component();
+              c.inPorts.add("in", { datatype: "string" });
+              c.outPorts.add("out", { datatype: "string" });
+              c.process((input, output) => {
+                output.sendDone({ out: input.getData("in") });
+              });
+              return c;
+            },
+          },
+        }),
+        get: async (name) => {
+          registryCalls += 1;
+          if (name === "dummy/NoOp") {
+            // #593: no-op dummy components for top-down design
+            return {
+              getComponent: () => {
+                const c = new noflo.Component();
+                c.inPorts.add("in");
+                c.outPorts.add("out");
+                c.process((input, output) => output.done());
+                return c;
+              },
+            };
+          }
+          return undefined;
+        },
+      },
+    });
+    await loader.listComponents();
+  });
+
+  it("merges registry entries into the component list", () => {
+    assert.ok(Object.keys(loader.components).includes("registry/Split"));
+  });
+
+  it("loads registry-supplied components", async () => {
+    const instance = await loader.load("registry/Split");
+    assert.strictEqual(typeof instance, "object");
+    assert.ok(instance.inPorts.ports.in);
+  });
+
+  it("resolves unknown names through registry.get (#593 dummy support)", async () => {
+    const instance = await loader.load("dummy/NoOp");
+    assert.strictEqual(typeof instance, "object");
+    assert.ok(registryCalls > 0);
+  });
+
+  it("rejects names the registry cannot resolve", async () => {
+    await assert.rejects(
+      loader.load("registry/Missing"),
+      /Component registry\/Missing not available/,
+    );
+  });
+
+  it("the registry wins over project components on name conflicts", async () => {
+    loader.registry = {
+      list: async () => ({
+        "registry/Override": {
+          getComponent: () => {
+            const c = new noflo.Component();
+            c.icon = "from-registry";
+            return c;
+          },
+        },
+      }),
+      get: async () => undefined,
+    };
+    // Force re-discovery so the registry merge runs
+    loader.ready = false;
+    loader.processing = null;
+    await loader.listComponents();
+    assert.equal(
+      loader.components["registry/Override"].getComponent().icon,
+      "from-registry",
+    );
+  });
+});

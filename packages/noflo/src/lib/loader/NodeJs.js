@@ -11,6 +11,7 @@ import * as fbpGraph from "fbp-graph";
 import * as manifest from "fbp-manifest";
 import { promisify } from "util";
 import * as utils from "../Utils.js";
+import { deprecated } from "../Platform.js";
 
 const writeFile = promisify(fs.writeFile);
 const readFile = promisify(fs.readFile);
@@ -59,6 +60,9 @@ function transpileSource(packageId, name, source, language) {
   let src;
   switch (language) {
     case "coffeescript": {
+      deprecated(
+        "Loading CoffeeScript components is deprecated; port the component to Process API JavaScript or TypeScript",
+      );
       if (!CoffeeScript) {
         return Promise.reject(
           new Error(
@@ -124,6 +128,9 @@ function evaluateModule(baseDir, packageId, name, source) {
     let extension = ".js";
     if (source.indexOf("require(") !== -1) {
       // CommonJS
+      deprecated(
+        "Loading CommonJS components is deprecated; port the component to Process API ESM",
+      );
       extension = ".cjs";
     }
     const modulePath = path.resolve(

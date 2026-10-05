@@ -48,6 +48,12 @@ import { deprecated, makeAsync } from "./Platform.js";
  * @property {boolean} [recursive]
  * @property {string[]} [runtimes]
  * @property {string} [manifest]
+ * @property {{ get?: (name: string) => Promise<any>, list?: () => Promise<ComponentList> }} [registry]
+ *   Application-supplied component registry (work document #6). `list`
+ *   entries are merged into the component list when it is built;
+ * `get` resolves names the classic discovery does not know about.
+ *   The registry is the application's discovery mechanism — entries it
+ *   returns win over project components on name conflicts.
  */
 
 // ## The NoFlo Component Loader
@@ -71,6 +77,8 @@ export class ComponentLoader {
   constructor(baseDir, options = {}) {
     this.baseDir = baseDir;
     this.options = options;
+    /** @type {{ get?: Function, list?: Function }|null} Application-supplied registry */
+    this.registry = options.registry || null;
     /** @type {ComponentList|null} */
     this.components = null;
     /** @type {Object<string, string>} */
@@ -134,9 +142,23 @@ export class ComponentLoader {
               reject(err);
               return;
             }
-            this.ready = true;
-            this.processing = null;
-            resolve(this.components);
+            const mergeRegistryList =
+              this.registry && typeof this.registry.list === "function"
+                ? Promise.resolve(this.registry.list()).then((list) => {
+                    // The registry is the application's discovery
+                    // mechanism: its entries win on name conflicts
+                    Object.keys(list || {}).forEach((name) => {
+                      this.components[name] = list[name];
+                    });
+                  })
+                : Promise.resolve();
+            mergeRegistryList
+              .then(() => {
+                this.ready = true;
+                this.processing = null;
+                resolve(this.components);
+              })
+              .catch(reject);
           });
         });
       });
@@ -194,15 +216,36 @@ export class ComponentLoader {
             break;
           }
         }
-        if (!component) {
-          // Failure to load
-          reject(
-            new Error(
-              `Component ${name} not available with base ${this.baseDir}`,
-            ),
+      }
+      if (!component) {
+        // Work document #6: the application registry resolves names the
+        // classic discovery does not know about (also covers #593
+        // dummy-component support for top-down design)
+        if (this.registry && typeof this.registry.get === "function") {
+          resolve(
+            Promise.resolve(this.registry.get(name)).then((impl) => {
+              if (!impl) {
+                reject(
+                  new Error(
+                    `Component ${name} not available with base ${this.baseDir}`,
+                  ),
+                );
+                return undefined;
+              }
+              return impl;
+            }),
           );
           return;
         }
+      }
+      if (!component) {
+        // Failure to load
+        reject(
+          new Error(
+            `Component ${name} not available with base ${this.baseDir}`,
+          ),
+        );
+        return;
       }
       resolve(component);
     }).then((component) => {
