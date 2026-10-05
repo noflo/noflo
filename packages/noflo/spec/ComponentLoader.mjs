@@ -721,6 +721,28 @@ exports.getComponent = () => {
           });
         });
       });
+      describe("with CoffeeScript", () => {
+        it("should reject the source with an unsupported language error", () => {
+          return l
+            .setSource(
+              "foo",
+              "RepeatDataCoffee",
+              "exports.getComponent = ->",
+              "coffeescript",
+            )
+            .then(
+              () => {
+                throw new Error("Unexpected success");
+              },
+              (err) => {
+                assert.ok(
+                  err.message.includes("Unsupported component source language"),
+                  `Expected unsupported language error, got: ${err.message}`,
+                );
+              },
+            );
+        });
+      });
 
       describe("with TypeScript", () => {
         before(function () {

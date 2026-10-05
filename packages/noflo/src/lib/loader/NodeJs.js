@@ -10,8 +10,8 @@ import * as path from "node:path";
 import * as fbpGraph from "fbp-graph";
 import * as manifest from "fbp-manifest";
 import { promisify } from "util";
-import * as utils from "../Utils.js";
 import { deprecated } from "../Platform.js";
+import * as utils from "../Utils.js";
 
 const writeFile = promisify(fs.writeFile);
 const readFile = promisify(fs.readFile);
@@ -429,11 +429,9 @@ function registerModules(loader, modules, callback) {
           const language = utils.guessLanguageFromFilename(c.path);
           if (language === "typescript") {
             // We can't require a module that requires transpilation, go the setSource route
-            return readFile(
-              path.resolve(loader.baseDir, c.path),
-              "utf-8",
-            ).then((source) =>
-              transpileAndRegisterForModule(loader, m, c, source, language),
+            return readFile(path.resolve(loader.baseDir, c.path), "utf-8").then(
+              (source) =>
+                transpileAndRegisterForModule(loader, m, c, source, language),
             );
           }
           registerSpecs(loader, m.name, c.name, c.tests);
