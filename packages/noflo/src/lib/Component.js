@@ -503,10 +503,78 @@ export class Component extends LegacyEventBase {
    */
   handleIP(ip, port) {
     if (!port.options.triggering) {
-      // If port is non-triggering, we can skip the process function call
+      // Work document #1 Phase 2 (#607): a newly arrived data packet on a
+      // control (non-triggering) port fires the process once per scope
+      // that has pending non-control data, provided at least one
+      // non-control (triggering) inport holds buffered IPs. The control
+      // IP itself stays buffered: it is a non-consuming standing gate.
+      // Bracket IPs on control ports do not fire.
+      if (ip.type !== "data") {
+        return;
+      }
+      const hasPendingData = (buffer) =>
+        buffer && buffer.some((buffered) => buffered.type === "data");
+      const isNonControl = (other) =>
+        other !== port && other.options.triggering !== false;
+      let anyPending = false;
+      /** @type {Array<string|null>} */
+      const scopesToFire = [];
+      Object.keys(this.inPorts.ports).forEach((name) => {
+        const other = this.inPorts.ports[name];
+        if (!isNonControl(other)) {
+          return;
+        }
+        const buffer = other.getBuffer(null, null);
+        if (hasPendingData(buffer) && !scopesToFire.includes(null)) {
+          scopesToFire.push(null);
+          anyPending = true;
+        }
+      });
+      // Union of the scopes other ports hold data for
+      const scopes = new Set();
+      Object.keys(this.inPorts.ports).forEach((name) => {
+        const other = this.inPorts.ports[name];
+        if (!isNonControl(other) || !other.scopedBuffer) {
+          return;
+        }
+        Object.keys(other.scopedBuffer).forEach((scope) => {
+          if (hasPendingData(other.scopedBuffer[scope])) {
+            scopes.add(scope);
+          }
+        });
+      });
+      scopes.forEach((scope) => {
+        scopesToFire.push(scope);
+        anyPending = true;
+      });
+      if (!anyPending) {
+        return;
+      }
+      // Fire once per scope: unscoped for the default buffer, and once
+      // with the scope stamped on the context for each scoped buffer.
+      // The control IP itself stays buffered (non-consuming gate); each
+      // firing context carries the control packet with the scope set so
+      // that reads and output stamping resolve to that scope.
+      scopesToFire.forEach((scope) => {
+        const contextIp =
+          scope === null ? ip : new IP(ip.type, ip.data, { scope });
+        this.fireProcess(contextIp, port);
+      });
       return;
     }
 
+    this.fireProcess(ip, port);
+  }
+
+  /**
+   * Run the processing function for an Information Packet in a prepared
+   * context. Precondition checks (forwarding brackets, firing gates)
+   * are the caller's responsibility.
+   *
+   * @param {IP} ip
+   * @param {InPort} port
+   */
+  fireProcess(ip, port) {
     if (
       ip.type === "openBracket" &&
       this.autoOrdering === null &&

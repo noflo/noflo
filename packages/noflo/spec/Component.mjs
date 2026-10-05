@@ -774,46 +774,53 @@ describe("Component", () => {
       });
       sin1.post(new noflo.IP("data", "first"));
     });
-    it("should not be triggered by non-triggering ports", (_t, done) => {
-      const triggered = [];
-      c = new noflo.Component({
-        inPorts: {
-          foo: {
-            datatype: "string",
-            triggering: false,
+    it(
+      "should trigger from non-triggering ports when other ports hold buffered data (#607)",
+      { timeout: 30000 },
+      (_t, done) => {
+        const triggered = [];
+        c = new noflo.Component({
+          inPorts: {
+            foo: {
+              datatype: "string",
+              triggering: false,
+            },
+            bar: { datatype: "string" },
           },
-          bar: { datatype: "string" },
-        },
-        outPorts: {
-          baz: { datatype: "boolean" },
-        },
-        process(input, output) {
-          triggered.push(input.port.name);
-          output.sendDone({ baz: true });
-        },
-      });
+          outPorts: {
+            baz: { datatype: "boolean" },
+          },
+          process(input, output) {
+            triggered.push(input.port.name);
+            output.sendDone({ baz: true });
+          },
+        });
 
-      c.inPorts.foo.attach(sin1);
-      c.inPorts.bar.attach(sin2);
-      c.outPorts.baz.attach(sout1);
+        c.inPorts.foo.attach(sin1);
+        c.inPorts.bar.attach(sin2);
+        c.outPorts.baz.attach(sout1);
 
-      let count = 0;
-      sout1.on("ip", () => {
-        count++;
-        if (count === 1) {
-          assert.deepStrictEqual(triggered, ["bar"]);
-        }
-        if (count === 2) {
-          assert.deepStrictEqual(triggered, ["bar", "bar"]);
-          done();
-        }
-      });
+        let count = 0;
+        sout1.on("ip", () => {
+          count++;
+          if (count === 1) {
+            assert.deepStrictEqual(triggered, ["bar"]);
+          }
+          if (count === 2) {
+            assert.deepStrictEqual(triggered, ["bar", "foo"]);
+          }
+          if (count === 3) {
+            assert.deepStrictEqual(triggered, ["bar", "foo", "bar"]);
+            done();
+          }
+        });
 
-      sin1.post(new noflo.IP("data", "first"));
-      sin2.post(new noflo.IP("data", "second"));
-      sin1.post(new noflo.IP("data", "first"));
-      sin2.post(new noflo.IP("data", "second"));
-    });
+        sin1.post(new noflo.IP("data", "first"));
+        sin2.post(new noflo.IP("data", "second"));
+        sin1.post(new noflo.IP("data", "first"));
+        sin2.post(new noflo.IP("data", "second"));
+      },
+    );
     it("should fetch undefined for premature data", (_t, done) => {
       c = new noflo.Component({
         inPorts: {
@@ -3268,5 +3275,82 @@ describe("Process API backpressure via awaitable output.send()", () => {
     assert.equal(typeof sendPromise.then, "function");
     assert.deepEqual(received, [42]);
     await sendPromise;
+  });
+});
+
+describe("control port firing (#607)", () => {
+  let c = null;
+  let sin = null;
+  let scontrol = null;
+  let sout = null;
+  let received;
+  let firings;
+
+  const build = () => {
+    received = [];
+    firings = 0;
+    c = new noflo.Component({
+      inPorts: {
+        in: { datatype: "int" },
+        control: { datatype: "string", triggering: false },
+      },
+      outPorts: { out: { datatype: "int" } },
+    });
+    c.process((input, output) => {
+      firings += 1;
+      if (!input.has("in") || !input.has("control")) {
+        return;
+      }
+      const data = input.getData("in");
+      output.sendDone({ out: data });
+    });
+    sin = new noflo.internalSocket.InternalSocket();
+    scontrol = new noflo.internalSocket.InternalSocket();
+    sout = new noflo.internalSocket.InternalSocket();
+    c.inPorts.in.attach(sin);
+    c.inPorts.control.attach(scontrol);
+    c.outPorts.out.attach(sout);
+    sout.on("ip", (ip) => {
+      if (ip.type === "data") {
+        received.push(ip.data);
+      }
+    });
+  };
+
+  it("control arrival with no buffered data does not fire", () => {
+    build();
+    scontrol.post(new noflo.IP("data", "go"));
+    assert.equal(firings, 0);
+    assert.deepEqual(received, []);
+  });
+
+  it("control arrival fires once when data is buffered", () => {
+    build();
+    sin.post(new noflo.IP("data", 42));
+    assert.equal(firings, 1, "data arrival fires the process");
+    scontrol.post(new noflo.IP("data", "go"));
+    assert.equal(firings, 2, "control arrival fires the gated process");
+    assert.deepEqual(received, [42]);
+  });
+
+  it("keeps the control IP buffered (non-consuming)", () => {
+    build();
+    sin.post(new noflo.IP("data", 42));
+    scontrol.post(new noflo.IP("data", "go"));
+    assert.equal(
+      c.inPorts.ports.control.buffer.length,
+      1,
+      "control IP stays buffered",
+    );
+  });
+
+  it("a second control IP does not fire without pending data", () => {
+    build();
+    sin.post(new noflo.IP("data", 42));
+    scontrol.post(new noflo.IP("data", "go"));
+    scontrol.post(new noflo.IP("data", "go again"));
+    // The first control consumed the buffered data; with no pending
+    // non-control input the second control does not fire
+    assert.deepEqual(received, [42]);
   });
 });
