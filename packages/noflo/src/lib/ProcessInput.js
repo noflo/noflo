@@ -409,6 +409,18 @@ export default class ProcessInput {
     const datas = [];
     for (let i = 0; i < args.length; i += 1) {
       const port = args[i];
+      const portname = /** @type {string} */ (
+        Array.isArray(port) ? port[0] : port
+      );
+      const idx = Array.isArray(port)
+        ? /** @type {number|undefined} */ (port[1])
+        : undefined;
+      if (this.nodeInstance.isForwardingInport(portname)) {
+        // Forwarding inports keep the full bracketed stream in the
+        // buffer until it is read, so collect it in one go
+        datas.push(this.__getStreamForForwarding(portname, idx));
+        continue;
+      }
       const portBrackets = [];
       /** @type {Array<IP>} */
       let portPackets = [];
@@ -452,5 +464,72 @@ export default class ProcessInput {
       return datas[0];
     }
     return datas;
+  }
+
+  /**
+   * Collect the complete stream buffered for a forwarding inport,
+   * consuming it including its brackets (issue #545). Bracket openings
+   * and closings are mirrored into the bracket forwarding context so
+   * that output forwarding keeps working.
+   *
+   * @private
+   * @param {string} port
+   * @param {number|null} [idx]
+   * @returns {Array<IP>}
+   */
+  __getStreamForForwarding(port, idx) {
+    const portImpl = /** @type {import("./InPort").default} */ (
+      this.ports.ports[port]
+    );
+    /** @type {Array<IP>} */
+    const stream = [];
+    /** @type {Array<any>} */
+    const portBrackets = [];
+    let hasData = false;
+    for (;;) {
+      const buffer = portImpl.getBuffer(this.scope, idx);
+      if (!buffer.length) {
+        break;
+      }
+      const ip = /** @type {IP} */ (portImpl.get(this.scope, idx));
+      stream.push(ip);
+      if (ip.type === "openBracket") {
+        portBrackets.push(ip.data);
+        this.nodeInstance
+          .getBracketContext("in", port, this.scope, idx)
+          .push({ ip, ports: [], source: port });
+        continue;
+      }
+      if (ip.type === "data") {
+        hasData = true;
+        if (!portBrackets.length) {
+          // Unbracketed data packet is a complete stream
+          break;
+        }
+        continue;
+      }
+      if (ip.type === "closeBracket") {
+        portBrackets.pop();
+        const context = this.nodeInstance
+          .getBracketContext("in", port, this.scope, idx)
+          .pop();
+        if (context) {
+          context.closeIp = ip;
+        }
+        if (hasData && !portBrackets.length) {
+          // Last close bracket finishes stream if there was data inside
+          break;
+        }
+      }
+    }
+    // Expose the surrounding bracket contexts so that output sent by
+    // the process is wrapped in them, like __getForForwarding does
+    if (!this.result.__bracketContext) {
+      this.result.__bracketContext = {};
+    }
+    this.result.__bracketContext[port] = this.nodeInstance
+      .getBracketContext("in", port, this.scope, idx)
+      .slice(0);
+    return stream;
   }
 }
