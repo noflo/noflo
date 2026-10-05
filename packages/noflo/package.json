@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@types/debug": "^4.1.5",
-    "@types/node": "^14.14.2",
+    "@types/node": "^24.0.0",
     "flowtrace": "^0.1.8",
     "process": "^0.11.10",
     "replace": "^0.2.2",
@@ -52,7 +52,7 @@
     "build:node": "tsc",
     "postbuild:node": "replace '__dirname' 'import.meta.dirname' src/lib/loader/NodeJs.js && replace 'import \\* as getParams from' 'import getParams from' src/lib/AsComponent.js && replace 'Promise.resolve\\(\\).then\\(\\(\\) => require\\(cPath\\)\\)' 'import(cacheBusted)' src/lib/loader/NodeJs.js",
     "build": "npm run build:node",
-    "types": "tsc --noEmit --project .",
+    "types": "tsc --noEmit --project tsconfig.types.json",
     "postbuild": "replace 'node/events' 'events' lib -r",
     "pretest": "npm run lint && npm run build",
     "test:esmodules": "node --test --test-force-exit --test-timeout 30000 spec/*.mjs",

@@ -21,7 +21,7 @@ let typescript;
 // eslint-disable-next-line import/no-unresolved,import/no-extraneous-dependencies
 import("typescript")
   .then((compiler) => {
-    // @ts-expect-error
+    // @ts-expect-error — the compiler module's shape varies by version
     typescript = compiler.default;
   })
   .catch((_e) => {
