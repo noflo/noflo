@@ -35,6 +35,15 @@ export default class OutPort extends BasePort {
 
     /** @type {Object<string, IP>} */
     this.cache = {};
+
+    /**
+     * Admission promise for the most recent send: resolves when all
+     * packets sent by the last sendIP call have been admitted by their
+     * edges per the high-water marks.
+     *
+     * @type {Promise<void>}
+     */
+    this.lastWrite = Promise.resolve();
   }
 
   /**
@@ -160,20 +169,29 @@ export default class OutPort extends BasePort {
       this.cache[`${idx}`] = ip;
     }
     let pristine = true;
+    /** @type {Array<Promise<void>|void>} */
+    const writes = [];
     sockets.forEach((socket) => {
       if (!socket) {
         return;
       }
       if (pristine) {
-        socket.post(ip, autoConnect);
+        writes.push(socket.post(ip, autoConnect));
         pristine = false;
       } else {
         if (ip.clonable) {
           ip = ip.clone();
         }
-        socket.post(ip, autoConnect);
+        writes.push(socket.post(ip, autoConnect));
       }
     });
+    // Admission promise for the most recent send. The noop catch keeps
+    // fire-and-forget callers off the unhandled-rejection channel —
+    // send errors are escalated at the socket level — while awaiters of
+    // lastWrite still receive them.
+    const admission = Promise.all(writes).then(() => undefined);
+    admission.catch(() => {});
+    this.lastWrite = admission;
     return this;
   }
 
