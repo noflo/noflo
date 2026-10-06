@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import { after, before, describe, it } from "node:test";
+import {
+  getSource as nodeGetSource,
+  setSource as nodeSetSource,
+} from "../src/lib/loader/NodeJs.js";
 import * as noflo from "../src/lib/NoFlo.js";
 
 /* eslint-disable
@@ -24,6 +28,30 @@ const baseDir = process.cwd();
 
 describe("ComponentLoader with no external packages installed", () => {
   const l = new noflo.ComponentLoader(baseDir);
+  // Classic source storage, exposed through a delegating registry so the
+  // registry-only setSource/getSource surface stays covered
+  l.registry = {
+    setSource: (pkg, name, src, lang) =>
+      new Promise((resolve, reject) => {
+        nodeSetSource(l, pkg, name, src, lang, (err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve();
+        });
+      }),
+    getSource: (name) =>
+      new Promise((resolve, reject) => {
+        nodeGetSource(l, name, (err, source) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve(source);
+        });
+      }),
+  };
   class Split extends noflo.Component {
     constructor() {
       const options = {
@@ -565,18 +593,45 @@ describe("ComponentLoader with no external packages installed", () => {
     });
     it("should be able to get the source for non-ready ComponentLoader", () => {
       const loader = new noflo.ComponentLoader(baseDir);
-      return loader.getSource("Graph").then((component) => {
-        assert.strictEqual(typeof component, "object");
-        assert.strictEqual(typeof component.code, "string");
-        assert.notEqual(component.code.indexOf("Graph"), -1);
-        assert.notEqual(
-          component.code.indexOf("export function getComponent"),
-          -1,
-        );
-        assert.strictEqual(component.name, "Graph");
-        assert.strictEqual(component.library, "");
-        assert.strictEqual(component.language, shippingLanguage);
-      });
+      return loader
+        .listComponents()
+        .then(() => {
+          loader.registry = {
+            setSource: (pkg, name, src, lang) =>
+              new Promise((resolve, reject) => {
+                nodeSetSource(loader, pkg, name, src, lang, (err) => {
+                  if (err) {
+                    reject(err);
+                    return;
+                  }
+                  resolve();
+                });
+              }),
+            getSource: (name_) =>
+              new Promise((resolve, reject) => {
+                nodeGetSource(loader, name_, (err, source) => {
+                  if (err) {
+                    reject(err);
+                    return;
+                  }
+                  resolve(source);
+                });
+              }),
+          };
+          return loader.getSource("Graph");
+        })
+        .then((component) => {
+          assert.strictEqual(typeof component, "object");
+          assert.strictEqual(typeof component.code, "string");
+          assert.notEqual(component.code.indexOf("Graph"), -1);
+          assert.notEqual(
+            component.code.indexOf("export function getComponent"),
+            -1,
+          );
+          assert.strictEqual(component.name, "Graph");
+          assert.strictEqual(component.library, "");
+          assert.strictEqual(component.language, shippingLanguage);
+        });
     });
   });
   describe("getting supported languages", () => {
@@ -654,6 +709,28 @@ export function getComponent() {
         });
         it("should be able to set the source for non-ready ComponentLoader", () => {
           const loader = new noflo.ComponentLoader(baseDir);
+          loader.registry = {
+            setSource: (pkg, name, src, lang) =>
+              new Promise((resolve, reject) => {
+                nodeSetSource(loader, pkg, name, src, lang, (err) => {
+                  if (err) {
+                    reject(err);
+                    return;
+                  }
+                  resolve();
+                });
+              }),
+            getSource: (name_) =>
+              new Promise((resolve, reject) => {
+                nodeGetSource(loader, name_, (err, source) => {
+                  if (err) {
+                    reject(err);
+                    return;
+                  }
+                  resolve(source);
+                });
+              }),
+          };
           return loader.setSource(
             "foo",
             "RepeatData",
@@ -912,6 +989,29 @@ exports.getComponent = function() {
       l = new noflo.ComponentLoader(
         path.resolve(import.meta.dirname, "fixtures/componentloader"),
       );
+      // Classic source storage, exposed through a delegating registry
+      l.registry = {
+        setSource: (pkg, name, src, lang) =>
+          new Promise((resolve, reject) => {
+            nodeSetSource(l, pkg, name, src, lang, (err) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+              resolve();
+            });
+          }),
+        getSource: (name_) =>
+          new Promise((resolve, reject) => {
+            nodeGetSource(l, name_, (err, source) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+              resolve(source);
+            });
+          }),
+      };
     });
     it("should initially know of no components", () => {
       assert.strictEqual(l.components, null);

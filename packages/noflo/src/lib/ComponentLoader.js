@@ -101,6 +101,44 @@ export class ComponentLoader {
     this.registry = this.options.registry || null;
     /** @type {ComponentList|null} */
     this.components = null;
+    // Work document #6: a registry that is an EventTarget can signal
+    // component changes and list invalidations. The loader subscribes at
+    // construction so the cache stays in sync with the registry.
+    if (
+      this.registry &&
+      typeof (/** @type {any} */ (this.registry).addEventListener) ===
+        "function"
+    ) {
+      /** @type {any} */ (this.registry).addEventListener(
+        "change",
+        (/** @type {any} */ event) => {
+          const name = event.detail && event.detail.name;
+          if (!name || !this.components) {
+            return;
+          }
+          if (!this.registry || typeof this.registry.get !== "function") {
+            return;
+          }
+          Promise.resolve(this.registry.get(name))
+            .then((impl) => {
+              if (!this.components) {
+                return;
+              }
+              if (impl) {
+                this.components[name] = impl;
+              } else {
+                delete this.components[name];
+              }
+            })
+            .catch(() => {});
+        },
+      );
+      /** @type {any} */ (this.registry).addEventListener("invalidate", () => {
+        this.components = {};
+        this.ready = false;
+        this.listComponents().catch(() => {});
+      });
+    }
     /** @type {Object<string, string>} */
     this.libraryIcons = {};
     /** @type {Object<string, Object>} */
@@ -593,57 +631,27 @@ export class ComponentLoader {
    * @returns {Promise<void>}
    */
   setSource(packageId, name, source, language, callback) {
-    // Work document #6: source storage is a registry concern when the
-    // application supplies one
-    if (this.registry && typeof this.registry.setSource === "function") {
-      const delegated = Promise.resolve(
-        this.registry.setSource(packageId, name, source, language),
-      ).then(() => undefined);
-      if (callback) {
-        deprecated(
-          "Providing a callback to ComponentLoader.setSource is deprecated, use Promises",
-        );
-        delegated.then(() => {
-          callback(null);
-        }, callback);
+    // Work document #6: source storage is a registry concern. There is no
+    // classic fallback — in-memory registration is available via
+    // registerComponent for components the application holds directly.
+    const readyGate = this.ready
+      ? Promise.resolve()
+      : this.listComponents().then(() => {
+          this.ready = true;
+        });
+    return readyGate.then(() => {
+      if (this.registry && typeof this.registry.setSource === "function") {
+        return this.registry.setSource(packageId, name, source, language);
       }
-      return delegated;
-    }
-    if (!this.ready) {
-      return this.listComponents().then(() =>
-        this.setSource(packageId, name, source, language, callback),
+      const err = new Error(
+        "Component source storage requires a component registry (setSource)",
       );
-    }
-    let promise;
-    if (!registerLoader.setSource) {
-      promise = Promise.reject(new Error("setSource not allowed"));
-    } else {
-      promise = new Promise((resolve, reject) => {
-        registerLoader.setSource(
-          this,
-          packageId,
-          name,
-          source,
-          language,
-          (err) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-            resolve();
-          },
-        );
-      });
-    }
-    if (callback) {
-      deprecated(
-        "Providing a callback to ComponentLoader.setSource is deprecated, use Promises",
-      );
-      promise.then(() => {
-        callback(null);
-      }, callback);
-    }
-    return promise;
+      if (callback) {
+        callback(err);
+        return undefined;
+      }
+      throw err;
+    });
   }
 
   // `getSource` allows fetching the source code of a registered
@@ -661,51 +669,29 @@ export class ComponentLoader {
   getSource(name, callback) {
     // Work document #6: source storage is a registry concern when the
     // application supplies one
-    if (this.registry && typeof this.registry.getSource === "function") {
-      const delegated = Promise.resolve(this.registry.getSource(name)).then(
-        (/** @type {ComponentSources|void} */ source) => {
+    const readyGate = this.ready
+      ? Promise.resolve()
+      : this.listComponents().then(() => {
+          this.ready = true;
+        });
+    return readyGate.then(() => {
+      if (this.registry && typeof this.registry.getSource === "function") {
+        return Promise.resolve(this.registry.getSource(name)).then((source) => {
           if (!source) {
             throw new Error(`getSource not available for ${name}`);
           }
           return source;
-        },
+        });
+      }
+      const err = new Error(
+        "Component source storage requires a component registry (getSource)",
       );
       if (callback) {
-        deprecated(
-          "Providing a callback to ComponentLoader.getSource is deprecated, use Promises",
-        );
-        delegated.then((source) => {
-          callback(null, source);
-        }, callback);
+        callback(err);
+        return undefined;
       }
-      return delegated;
-    }
-    if (!this.ready) {
-      return this.listComponents().then(() => this.getSource(name, callback));
-    }
-    let promise;
-    if (!registerLoader.getSource) {
-      promise = Promise.reject(new Error("getSource not allowed"));
-    } else {
-      promise = new Promise((resolve, reject) => {
-        registerLoader.getSource(this, name, (err, source) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve(source);
-        });
-      });
-    }
-    if (callback) {
-      deprecated(
-        "Providing a callback to ComponentLoader.getSource is deprecated, use Promises",
-      );
-      promise.then((source) => {
-        callback(null, source);
-      }, callback);
-    }
-    return promise;
+      throw err;
+    });
   }
 
   // `getLanguages` gets a list of component programming languages supported by the `setSource`
