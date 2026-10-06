@@ -1226,3 +1226,86 @@ describe("with an application-supplied registry (work document #6)", () => {
     );
   });
 });
+
+describe("registry-only loader (no baseDir)", () => {
+  const stored = {};
+  let loader = null;
+
+  before(async () => {
+    const registry = {
+      list: async () => ({
+        "registry/Repeat": {
+          getComponent: () => {
+            const c = new noflo.Component();
+            c.inPorts.add("in", { datatype: "string" });
+            c.outPorts.add("out", { datatype: "string" });
+            c.process((input, output) => {
+              output.sendDone({ out: input.getData("in") });
+            });
+            return c;
+          },
+        },
+      }),
+      get: async (name) => {
+        if (name === "registry/Repeat") {
+          return {
+            getComponent: () => {
+              const c = new noflo.Component();
+              c.inPorts.add("in", { datatype: "string" });
+              c.outPorts.add("out", { datatype: "string" });
+              c.process((input, output) => {
+                output.sendDone({ out: input.getData("in") });
+              });
+              return c;
+            },
+          };
+        }
+        return undefined;
+      },
+      setSource: async (packageId, name, source, language) => {
+        stored[`${packageId}/${name}`] = { source, language };
+      },
+      getSource: async (name) => {
+        const entry = stored[name];
+        if (!entry) {
+          return undefined;
+        }
+        return {
+          name,
+          library: "registry",
+          code: entry.source,
+          language: entry.language,
+        };
+      },
+    };
+    loader = new noflo.ComponentLoader({ registry });
+  });
+
+  it("constructs without a baseDir", () => {
+    assert.equal(loader.baseDir, null);
+  });
+
+  it("lists and loads registry components without touching the filesystem", async () => {
+    await loader.listComponents();
+    assert.ok(Object.keys(loader.components).includes("registry/Repeat"));
+    const instance = await loader.load("registry/Repeat");
+    assert.strictEqual(typeof instance, "object");
+    assert.ok(instance.inPorts.ports.in);
+  });
+
+  it("delegates setSource and getSource to the registry", async () => {
+    const source = "exports.getComponent = () => ({});";
+    await loader.setSource("registry", "Sourced", source, "javascript");
+    assert.deepEqual(Object.keys(stored), ["registry/Sourced"]);
+    const back = await loader.getSource("registry/Sourced");
+    assert.equal(back.code, source);
+    assert.equal(back.language, "javascript");
+  });
+
+  it("getSource rejects for unknown components", async () => {
+    await assert.rejects(
+      loader.getSource("registry/Nope"),
+      /getSource not available/,
+    );
+  });
+});

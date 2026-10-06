@@ -178,7 +178,10 @@ function transpileAndRegisterForModule(
 ) {
   return transpileSource(module.name, component.name, source, language)
     .then((src) => {
-      const moduleBase = path.resolve(loader.baseDir, module.base);
+      const moduleBase = path.resolve(
+        /** @type {string} */ (/** @type {string} */ (loader.baseDir)),
+        module.base,
+      );
       return evaluateModule(moduleBase, module.name, component.name, src);
     })
     .then((implementation) => {
@@ -282,7 +285,7 @@ export function getSource(loader, name, callback) {
     }
     const specPath = loader.specsForComponents[componentName];
     fs.readFile(
-      path.resolve(loader.baseDir, specPath),
+      path.resolve(/** @type {string} */ (loader.baseDir), specPath),
       "utf-8",
       (fsErr, specs) => {
         if (fsErr) {
@@ -420,7 +423,11 @@ function registerModules(loader, modules, callback) {
       }
 
       if (m.noflo?.loader) {
-        const loaderPath = path.resolve(loader.baseDir, m.base, m.noflo.loader);
+        const loaderPath = path.resolve(
+          /** @type {string} */ (loader.baseDir),
+          m.base,
+          m.noflo.loader,
+        );
         componentLoaders.push(loaderPath);
       }
 
@@ -429,16 +436,18 @@ function registerModules(loader, modules, callback) {
           const language = utils.guessLanguageFromFilename(c.path);
           if (language === "typescript") {
             // We can't require a module that requires transpilation, go the setSource route
-            return readFile(path.resolve(loader.baseDir, c.path), "utf-8").then(
-              (source) =>
-                transpileAndRegisterForModule(loader, m, c, source, language),
+            return readFile(
+              path.resolve(/** @type {string} */ (loader.baseDir), c.path),
+              "utf-8",
+            ).then((source) =>
+              transpileAndRegisterForModule(loader, m, c, source, language),
             );
           }
           registerSpecs(loader, m.name, c.name, c.tests);
           return loader.registerComponent(
             m.name,
             c.name,
-            path.resolve(loader.baseDir, c.path),
+            path.resolve(/** @type {string} */ (loader.baseDir), c.path),
           );
         }),
       );
@@ -458,7 +467,7 @@ const dynamicLoader = {
     const opts = manifestOptions;
     opts.discover = true;
     manifest.list
-      .list(loader.baseDir, opts)
+      .list(/** @type {string} */ (loader.baseDir), opts)
       .then(
         (modules) =>
           new Promise((resolve, reject) => {
@@ -492,7 +501,10 @@ const manifestLoader = {
    */
   writeCache(loader, options, manifestContents) {
     const manifestName = options.manifest || "fbp.json";
-    const filePath = path.resolve(loader.baseDir, manifestName);
+    const filePath = path.resolve(
+      /** @type {string} */ (loader.baseDir),
+      manifestName,
+    );
 
     return writeFile(filePath, JSON.stringify(manifestContents, null, 2), {
       encoding: "utf-8",
@@ -505,7 +517,7 @@ const manifestLoader = {
    * @returns {Promise<import("fbp-manifest/dist/lib/list").FbpManifestDocument>}
    */
   readCache(loader, options) {
-    return manifest.load.load(loader.baseDir, {
+    return manifest.load.load(/** @type {string} */ (loader.baseDir), {
       ...options,
       discover: false,
     });

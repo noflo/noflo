@@ -48,12 +48,21 @@ import { deprecated, makeAsync } from "./Platform.js";
  * @property {boolean} [recursive]
  * @property {string[]} [runtimes]
  * @property {string} [manifest]
- * @property {{ get?: (name: string) => Promise<any>, list?: () => Promise<ComponentList> }} [registry]
- *   Application-supplied component registry (work document #6). `list`
- *   entries are merged into the component list when it is built;
- * `get` resolves names the classic discovery does not know about.
- *   The registry is the application's discovery mechanism — entries it
- *   returns win over project components on name conflicts.
+ * @property {ComponentRegistry} [registry] - Application-supplied component registry. When present, the loader needs no baseDir: `list` entries are merged into the component list when it is built, `get` resolves names the classic discovery does not know about, and `setSource`/`getSource` handle source storage.
+ */
+
+/**
+ * Application-supplied component registry (work document #6). All
+ * methods are optional; an application can implement full discovery
+ * replacement (`list`), dynamic resolution (`get`, also covering #593
+ * dummy components for top-down design), and source storage
+ * (`setSource`/`getSource`).
+ *
+ * @typedef {Object} ComponentRegistry
+ * @property {(name: string) => Promise<any>} [get] - Resolve a component implementation by name when classic discovery fails. A falsy result signals "not available".
+ * @property {() => Promise<ComponentList>} [list] - Provide the component list. Entries win over project components on name conflicts.
+ * @property {(packageId: string, name: string, source: string, language: string) => Promise<void>} [setSource] - Store component source.
+ * @property {(name: string) => Promise<ComponentSources>} [getSource] - Return stored source metadata for a component.
  */
 
 // ## The NoFlo Component Loader
@@ -71,14 +80,25 @@ import { deprecated, makeAsync } from "./Platform.js";
 // loader using the [noflo-component-loader](https://github.com/noflo/noflo-component-loader) webpack plugin.
 export class ComponentLoader {
   /**
-   * @param {string} baseDir
+   * @param {string|null|ComponentLoaderOptions} [baseDir] - Project base
+   *   directory for classic discovery, or the options object for
+   *   registry-style construction without a baseDir
    * @param {ComponentLoaderOptions} [options]
    */
   constructor(baseDir, options = {}) {
-    this.baseDir = baseDir;
+    if (
+      baseDir !== null &&
+      baseDir !== undefined &&
+      typeof baseDir === "object"
+    ) {
+      // Registry-style construction: the options object passed directly
+      options = baseDir;
+      baseDir = null;
+    }
+    this.baseDir = baseDir != null ? baseDir : null;
     this.options = options;
-    /** @type {{ get?: Function, list?: Function }|null} Application-supplied registry */
-    this.registry = options.registry || null;
+    /** @type {ComponentRegistry|null} Application-supplied registry */
+    this.registry = this.options.registry || null;
     /** @type {ComponentList|null} */
     this.components = null;
     /** @type {Object<string, string>} */
@@ -136,30 +156,37 @@ export class ComponentLoader {
       this.ready = false;
       this.processing = new Promise((resolve, reject) => {
         makeAsync(() => {
-          registerLoader.register(this, (err) => {
-            if (err) {
-              // We keep the failed promise here in this.processing
-              reject(err);
-              return;
-            }
-            const mergeRegistryList =
-              this.registry && typeof this.registry.list === "function"
-                ? Promise.resolve(this.registry.list()).then((list) => {
-                    // The registry is the application's discovery
-                    // mechanism: its entries win on name conflicts
-                    Object.keys(list || {}).forEach((name) => {
-                      this.components[name] = list[name];
-                    });
-                  })
-                : Promise.resolve();
-            mergeRegistryList
-              .then(() => {
-                this.ready = true;
-                this.processing = null;
-                resolve(this.components);
-              })
-              .catch(reject);
-          });
+          // Classic manifest discovery needs a baseDir; a registry-only
+          // loader (no baseDir) skips it and merges the registry list
+          const classic =
+            this.baseDir && typeof this.baseDir === "string"
+              ? new Promise((res, rej) => {
+                  registerLoader.register(this, (err) => {
+                    if (err) {
+                      rej(err);
+                      return;
+                    }
+                    res();
+                  });
+                })
+              : Promise.resolve();
+          const mergeRegistryList =
+            this.registry && typeof this.registry.list === "function"
+              ? Promise.resolve(this.registry.list()).then((list) => {
+                  // The registry is the application's discovery
+                  // mechanism: its entries win on name conflicts
+                  Object.keys(list || {}).forEach((name) => {
+                    this.components[name] = list[name];
+                  });
+                })
+              : Promise.resolve();
+          Promise.all([classic, mergeRegistryList])
+            .then(() => {
+              this.ready = true;
+              this.processing = null;
+              resolve(this.components);
+            })
+            .catch(reject);
         });
       });
       promise = this.processing;
@@ -262,7 +289,7 @@ export class ComponentLoader {
           }
           const inst = instance;
           if (name === "Graph") {
-            inst.baseDir = this.baseDir;
+            inst.baseDir = /** @type {string} */ (this.baseDir);
           }
           if (typeof name === "string") {
             inst.componentName = name;
@@ -397,7 +424,7 @@ export class ComponentLoader {
       (graph) => {
         const g = /** @type {import("../components/Graph").Graph} */ (graph);
         g.loader = this;
-        g.baseDir = this.baseDir;
+        g.baseDir = /** @type {string} */ (this.baseDir);
         g.inPorts.remove("graph");
         this.setIcon(name, g);
         return g.setGraph(component).then(() => g);
@@ -566,6 +593,22 @@ export class ComponentLoader {
    * @returns {Promise<void>}
    */
   setSource(packageId, name, source, language, callback) {
+    // Work document #6: source storage is a registry concern when the
+    // application supplies one
+    if (this.registry && typeof this.registry.setSource === "function") {
+      const delegated = Promise.resolve(
+        this.registry.setSource(packageId, name, source, language),
+      ).then(() => undefined);
+      if (callback) {
+        deprecated(
+          "Providing a callback to ComponentLoader.setSource is deprecated, use Promises",
+        );
+        delegated.then(() => {
+          callback(null);
+        }, callback);
+      }
+      return delegated;
+    }
     if (!this.ready) {
       return this.listComponents().then(() =>
         this.setSource(packageId, name, source, language, callback),
@@ -616,6 +659,27 @@ export class ComponentLoader {
    * @returns {Promise<ComponentSources>}
    */
   getSource(name, callback) {
+    // Work document #6: source storage is a registry concern when the
+    // application supplies one
+    if (this.registry && typeof this.registry.getSource === "function") {
+      const delegated = Promise.resolve(this.registry.getSource(name)).then(
+        (/** @type {ComponentSources|void} */ source) => {
+          if (!source) {
+            throw new Error(`getSource not available for ${name}`);
+          }
+          return source;
+        },
+      );
+      if (callback) {
+        deprecated(
+          "Providing a callback to ComponentLoader.getSource is deprecated, use Promises",
+        );
+        delegated.then((source) => {
+          callback(null, source);
+        }, callback);
+      }
+      return delegated;
+    }
     if (!this.ready) {
       return this.listComponents().then(() => this.getSource(name, callback));
     }
