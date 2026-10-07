@@ -1,0 +1,49 @@
+#!/usr/bin/env node
+//     @noflo/loader-node - Node.js component discovery for NoFlo
+//     (c) 2013-2026 Flowhub UG
+//     SPDX-License-Identifier: EUPL-1.2
+
+// Pre-heats the NoFlo component manifest cache for a project: runs the
+// node_modules discovery and writes the result as an `fbp.json`
+// manifest, so runtimes can skip the traversal on startup.
+
+import fs from "node:fs";
+import path from "node:path";
+import { createNodeModulesRegistry } from "../src/index.js";
+
+const baseDir = process.cwd();
+const cacheFile = path.resolve(baseDir, "fbp.json");
+
+/**
+ * Run discovery with manifest caching enabled, reporting the size of
+ * the discovered catalog.
+ *
+ * @returns {Promise<number>} Number of discovered components
+ */
+async function preheat() {
+  console.log(`Pre-heating NoFlo cache with manifest for ${baseDir}`);
+  console.time("NPM traversal for NoFlo components");
+  const registry = await createNodeModulesRegistry(baseDir, {
+    cache: true,
+    discover: true,
+  });
+  console.timeEnd("NPM traversal for NoFlo components");
+  return Object.keys(registry.list()).length;
+}
+
+async function main() {
+  try {
+    if (fs.existsSync(cacheFile)) {
+      console.log(`Old cache file ${cacheFile} found, clearing`);
+      await fs.promises.unlink(cacheFile);
+    }
+    const components = await preheat();
+    console.log(`Found ${components} components.`);
+    await fs.promises.access(cacheFile);
+  } catch (err) {
+    console.log(err);
+    process.exit(1);
+  }
+}
+
+main();
