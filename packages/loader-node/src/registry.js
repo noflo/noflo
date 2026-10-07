@@ -117,14 +117,7 @@ function transpileSource(packageId, name, source, language) {
 function evaluateModule(baseDir, packageId, name, source) {
   return import("node:module").then(({ Module }) => {
     // Use the Node.js module API to evaluate in the correct directory context
-    let extension = ".js";
-    if (source.indexOf("require(") !== -1) {
-      // CommonJS
-      utils.deprecated(
-        "Loading CommonJS components is deprecated; port the component to Process API ESM",
-      );
-      extension = ".cjs";
-    }
+    const extension = source.indexOf("require(") !== -1 ? ".cjs" : ".js";
     const modulePath = path.resolve(
       baseDir,
       `./components/${name}${extension}`,

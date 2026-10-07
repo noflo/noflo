@@ -147,12 +147,8 @@ export function getComponent() {
     assert.strictEqual(stored.library, "componentloader");
   });
 
-  it("rejects CommonJS source with a deprecation path that still evaluates", async () => {
-    const warnings = [];
-    const originalWarn = console.warn;
-    console.warn = (message) => warnings.push(message);
-    try {
-      const source = `\
+  it("evaluates CommonJS source", async () => {
+    const source = `\
 const { Component } = require('noflo');
 exports.getComponent = () => {
   const c = new Component();
@@ -162,16 +158,9 @@ exports.getComponent = () => {
   return c;
 };
 `;
-      await registry.setSource("componentloader", "Cjs", source, "javascript");
-    } finally {
-      console.warn = originalWarn;
-    }
+    await registry.setSource("componentloader", "Cjs", source, "javascript");
     const definition = await registry.get("componentloader/Cjs");
     assert.ok(instantiate(definition));
-    assert.ok(
-      warnings.some((w) => w.includes("CommonJS")),
-      "expected a CommonJS deprecation warning",
-    );
   });
 
   it("supports TypeScript source with a transpiler", async function () {

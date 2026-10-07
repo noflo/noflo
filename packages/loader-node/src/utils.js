@@ -13,20 +13,3 @@ export function guessLanguageFromFilename(filename) {
   }
   return "javascript";
 }
-
-// Local deprecation helper matching the NoFlo Platform semantics: loud
-// console warning, or fatal under NOFLO_FATAL_DEPRECATED.
-/**
- * @param {string} message
- * @returns {void}
- */
-export function deprecated(message) {
-  if (
-    typeof process !== "undefined" &&
-    process.env &&
-    process.env.NOFLO_FATAL_DEPRECATED
-  ) {
-    throw new Error(message);
-  }
-  console.warn(message);
-}
