@@ -1,5 +1,5 @@
 {
-  "name": "noflo",
+  "name": "@noflo/noflo",
   "description": "Flow-Based Programming environment for JavaScript",
   "keywords": [
     "fbp",

@@ -30,12 +30,12 @@
     "url": "https://github.com/noflo/noflo/issues"
   },
   "peerDependencies": {
-    "noflo": "^2.0.0-alpha"
+    "@noflo/noflo": "*"
   },
   "dependencies": {
     "get-function-params": "^2.0.6"
   },
   "devDependencies": {
-    "noflo": "*"
+    "@noflo/noflo": "*"
   }
 }

@@ -1,4 +1,4 @@
-import { Component } from "noflo";
+import { Component } from "@noflo/noflo";
 
 exports.getComponent = (): Component => {
   const c = new Component();

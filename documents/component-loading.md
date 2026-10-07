@@ -18,7 +18,7 @@ A component definition is a platform-neutral value: an ESM module object exporti
 For an application with a few known components, the registry is a data literal:
 
 ```js
-import * as noflo from "noflo";
+import * as noflo from "@noflo/noflo";
 
 import * as Repeat from "./components/Repeat.js";
 import * as Split from "./components/Split.js";
@@ -58,7 +58,7 @@ const registry = {
 On Node.js (also Deno and Bun), filesystem and `node_modules` discovery is provided by the `@noflo/loader-node` package as a registry implementation:
 
 ```js
-import noflo from "noflo";
+import noflo from "@noflo/noflo";
 import { createNodeModulesRegistry } from "@noflo/loader-node";
 
 const registry = await createNodeModulesRegistry(process.cwd());

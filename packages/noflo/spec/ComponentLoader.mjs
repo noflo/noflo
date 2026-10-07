@@ -225,6 +225,9 @@ describe("ComponentLoader", () => {
         "my-project",
       );
     });
+    it("maps the scoped core package to the noflo namespace (#13)", () => {
+      assert.strictEqual(l.getModulePrefix("@noflo/noflo"), "noflo");
+    });
     it("should normalize full component names", () => {
       assert.strictEqual(
         l.normalizeName("my-project", "Split"),

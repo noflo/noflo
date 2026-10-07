@@ -19,8 +19,8 @@
     "@types/node": "^24.0.0"
   },
   "dependencies": {
-    "noflo": "*",
-    "@noflo/loader-node": "^2.0.0-alpha.0"
+    "@noflo/loader-node": "^2.0.0-alpha.0",
+    "@noflo/noflo": "*"
   },
   "bin": {
     "fbp-spec-runner": "./src/cli.js"

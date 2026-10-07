@@ -8,7 +8,7 @@ The package discovers components from a project directory and its
 registry to NoFlo core:
 
 ```js
-import noflo from "noflo";
+import noflo from "@noflo/noflo";
 import { createNodeModulesRegistry } from "@noflo/loader-node";
 
 const registry = await createNodeModulesRegistry(process.cwd());

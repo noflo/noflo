@@ -5,7 +5,7 @@
 
 import { describe, it } from "node:test";
 import { createNodeModulesRegistry } from "@noflo/loader-node";
-import * as noflo from "noflo";
+import * as noflo from "@noflo/noflo";
 import { loadSuitesFromFile } from "./loader.js";
 import { executeTestCase } from "./network.js";
 
@@ -18,7 +18,7 @@ import { executeTestCase } from "./network.js";
  * description.
  *
  * @param {Record<string, any>} suite
- * @param {{ loader: import("noflo").ComponentLoader }} context
+ * @param {{ loader: import("@noflo/noflo").ComponentLoader }} context
  */
 export function compileSuite(suite, context) {
   const describeOptions = suite.skip ? { skip: suite.skip } : {};

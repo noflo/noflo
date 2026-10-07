@@ -1,4 +1,4 @@
-import { Component } from "noflo";
+import { Component } from "@noflo/noflo";
 
 export function getComponent() {
   const c = new Component();

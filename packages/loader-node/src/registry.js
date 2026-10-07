@@ -32,14 +32,14 @@ import("typescript")
   });
 
 /**
- * @typedef {import("noflo").Component} Component
+ * @typedef {import("@noflo/noflo").Component} Component
  */
 /**
  * Component definition values stored in the registry. Platform-neutral:
  * factory functions, ESM module objects with `getComponent`, or live
  * `GraphModel` instances.
  *
- * @typedef {import("noflo").ComponentFactory | { getComponent: import("noflo").ComponentFactory } | GraphModel | Function | { getComponent: Function }} ComponentImplementation
+ * @typedef {import("@noflo/noflo").ComponentFactory | { getComponent: import("@noflo/noflo").ComponentFactory } | GraphModel | Function | { getComponent: Function }} ComponentImplementation
  */
 /**
  * @typedef {Object} ComponentSources
