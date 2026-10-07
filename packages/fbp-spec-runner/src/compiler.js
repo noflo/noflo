@@ -4,6 +4,7 @@
  */
 
 import { describe, it } from "node:test";
+import { createNodeModulesRegistry } from "@noflo/loader-node";
 import * as noflo from "noflo";
 import { loadSuitesFromFile } from "./loader.js";
 import { executeTestCase } from "./network.js";
@@ -47,7 +48,6 @@ export function compileSuite(suite, context) {
  * @param {{ baseDir?: string }} [options]
  */
 export async function compileSpecFiles(files, options = {}) {
-  const { createNodeModulesRegistry } = await import("@noflo/loader-node");
   const registry = await createNodeModulesRegistry(
     options.baseDir ?? process.cwd(),
   );
