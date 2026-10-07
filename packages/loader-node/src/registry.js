@@ -11,8 +11,8 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { exportFbpJson, GraphModel } from "@noflo/graph";
 import * as manifest from "fbp-manifest";
-import { promisify } from "util";
-import { loadGraphFile, loadGraphJson } from "./graphFile.js";
+import { promisify } from "node:util";
+import { loadGraphFile } from "./graphFile.js";
 import * as utils from "./utils.js";
 
 const writeFile = promisify(fs.writeFile);

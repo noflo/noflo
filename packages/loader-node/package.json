@@ -12,6 +12,7 @@
     "noflo-cache-preheat": "bin/noflo-cache-preheat.js"
   },
   "scripts": {
+    "lint": "npx @biomejs/biome check --use-editorconfig=true src/ spec/",
     "test": "node --test --test-force-exit --test-timeout 30000 spec/*.mjs",
     "types": "tsc --noEmit -p tsconfig.json"
   },
