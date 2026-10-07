@@ -11,6 +11,18 @@ const binPath = path.resolve(import.meta.dirname, "../bin/noflo-cache-preheat");
 const fixtureDir = path.resolve(import.meta.dirname, "fixtures");
 const sourceProject = path.resolve(fixtureDir, "componentloader");
 
+// Spawn arguments for the current runtime. Deno needs explicit
+// permissions and --no-check (the workspace JSDoc types are not
+// precision-complete yet); Node and Bun run the bin directly.
+const isDeno = typeof Deno !== "undefined";
+
+/**
+ * @returns {string[]}
+ */
+function binRunnerArgs() {
+  return isDeno ? ["run", "--allow-all", "--no-check", binPath] : [binPath];
+}
+
 describe("noflo-cache-preheat bin", () => {
   const projectDir = path.resolve(fixtureDir, "preheatcheck");
 
@@ -24,7 +36,7 @@ describe("noflo-cache-preheat bin", () => {
   });
 
   it("discovers the project and writes the manifest cache", async () => {
-    const { stdout } = await execFileAsync(process.execPath, [binPath], {
+    const { stdout } = await execFileAsync(process.execPath, binRunnerArgs(), {
       cwd: projectDir,
     });
     assert.match(stdout, /Found \d+ components/);
@@ -41,7 +53,7 @@ describe("noflo-cache-preheat bin", () => {
       manifestPath,
       JSON.stringify({ version: 999, modules: [] }),
     );
-    const { stdout } = await execFileAsync(process.execPath, [binPath], {
+    const { stdout } = await execFileAsync(process.execPath, binRunnerArgs(), {
       cwd: projectDir,
     });
     assert.match(stdout, /Old cache file/);
@@ -54,7 +66,7 @@ describe("noflo-cache-preheat bin", () => {
     fs.writeFileSync(projectPackage, "{invalid");
     try {
       await assert.rejects(
-        execFileAsync(process.execPath, [binPath], { cwd: projectDir }),
+        execFileAsync(process.execPath, binRunnerArgs(), { cwd: projectDir }),
       );
     } finally {
       fs.cpSync(path.resolve(sourceProject, "package.json"), projectPackage);
