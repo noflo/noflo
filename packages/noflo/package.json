@@ -14,6 +14,7 @@
     "node": ">= 18"
   },
   "dependencies": {
+    "@noflo/fbp": "^0.1.0",
     "@noflo/graph": "^0.1.0",
     "debug": "^4.0.1",
     "fbp-manifest": "^0.3.1",

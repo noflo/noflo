@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, before, beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
+import { loadFbp } from "./utils/loadFbp.mjs";
 
 const legacyBasic = () => {
   const c = new noflo.Component();
@@ -201,15 +202,13 @@ describe("Network Lifecycle", () => {
         assert.equal(inst.isLegacy(), false);
       }));
   });
-  // TODO: unskip when the .fbp DSL parser lands (origin/fbp-parser)
-  describe.skip("with single Process API component receiving IIP", () => {
+    describe("with single Process API component receiving IIP", () => {
     let c = null;
     let out = null;
     beforeEach(() => {
       const fbpData =
         "OUTPORT=Pc.OUT:OUT\n" + "'hello' -> IN Pc(process/Async)\n";
-      return noflo.graph
-        .loadFBP(fbpData)
+      return Promise.resolve(loadFbp(fbpData))
         .then((graph) => {
           loader.registerComponent("scope", "Connected", graph);
           return loader.load("scope/Connected");
@@ -360,15 +359,13 @@ describe("Network Lifecycle", () => {
       c.start().catch(done);
     });
   });
-  // TODO: unskip when the .fbp DSL parser lands (origin/fbp-parser)
-  describe.skip("with promise-based Process API component receiving IIP", () => {
+    describe("with promise-based Process API component receiving IIP", () => {
     let c = null;
     let out = null;
     beforeEach(() => {
       const fbpData =
         "OUTPORT=Pc.OUT:OUT\n" + "'hello' -> IN Pc(process/Promise)\n";
-      return noflo.graph
-        .loadFBP(fbpData)
+      return Promise.resolve(loadFbp(fbpData))
         .then((graph) => {
           loader.registerComponent("scope", "Promise", graph);
           return loader.load("scope/Promise");
@@ -415,8 +412,7 @@ describe("Network Lifecycle", () => {
       c.start().catch(done);
     });
   });
-  // TODO: unskip when the .fbp DSL parser lands (origin/fbp-parser)
-  describe.skip("with synchronous Process API", () => {
+    describe("with synchronous Process API", () => {
     let c = null;
     let out = null;
     beforeEach(() => {
@@ -427,8 +423,7 @@ describe("Network Lifecycle", () => {
         "Bracketize OUT -> IN NonSending(process/NonSending)\n" +
         "NonSending OUT -> IN Sync(process/Sync)\n" +
         "Sync OUT -> IN2 NonSending\n";
-      return noflo.graph
-        .loadFBP(fbpData)
+      return Promise.resolve(loadFbp(fbpData))
         .then((graph) => {
           loader.registerComponent("scope", "Connected", graph);
           return loader.load("scope/Connected");
@@ -477,8 +472,7 @@ describe("Network Lifecycle", () => {
       c.start().catch(done);
     });
   });
-  // TODO: unskip when the .fbp DSL parser lands (origin/fbp-parser)
-  describe.skip("pure Process API merging two inputs", () => {
+    describe("pure Process API merging two inputs", () => {
     let c = null;
     let in1 = null;
     let in2 = null;
@@ -490,8 +484,7 @@ describe("Network Lifecycle", () => {
         "OUTPORT=PcMerge.OUT:OUT\n" +
         "Pc1(process/Async) OUT -> IN1 PcMerge(process/Merge)\n" +
         "Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\n";
-      return noflo.graph
-        .loadFBP(fbpData)
+      return Promise.resolve(loadFbp(fbpData))
         .then((g) => {
           loader.registerComponent("scope", "Merge", g);
           return loader.load("scope/Merge");
@@ -662,8 +655,7 @@ describe("Network Lifecycle", () => {
       }, done);
     });
   });
-  // TODO: unskip when the .fbp DSL parser lands (origin/fbp-parser)
-  describe.skip("Process API mixed with legacy merging two inputs", () => {
+    describe("Process API mixed with legacy merging two inputs", () => {
     let c = null;
     let in1 = null;
     let in2 = null;
@@ -676,8 +668,7 @@ describe("Network Lifecycle", () => {
         "Leg1(legacy/Sync) OUT -> IN1 PcMerge(process/Merge)\n" +
         "Leg2(legacy/Sync) OUT -> IN2 PcMerge(process/Merge)\n" +
         "PcMerge OUT -> IN Leg3(legacy/Sync)\n";
-      return noflo.graph
-        .loadFBP(fbpData)
+      return Promise.resolve(loadFbp(fbpData))
         .then((g) => {
           loader.registerComponent("scope", "Merge", g);
           return loader.load("scope/Merge");
@@ -808,8 +799,7 @@ describe("Network Lifecycle", () => {
       }, done);
     });
   });
-  // TODO: unskip when the .fbp DSL parser lands (origin/fbp-parser)
-  describe.skip("with a Process API Generator component", () => {
+    describe("with a Process API Generator component", () => {
     let c = null;
     let start = null;
     let stop = null;
@@ -820,8 +810,7 @@ describe("Network Lifecycle", () => {
         "INPORT=PcGen.STOP:STOP\n" +
         "OUTPORT=Pc.OUT:OUT\n" +
         "PcGen(process/Generator) OUT -> IN Pc(process/Async)\n";
-      return noflo.graph
-        .loadFBP(fbpData)
+      return Promise.resolve(loadFbp(fbpData))
         .then((g) => {
           loader.registerComponent("scope", "Connected", g);
           return loader.load("scope/Connected");

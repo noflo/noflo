@@ -77,61 +77,66 @@ export function validateContents(graph) {
 export function validateSchema(graph) {
   /** @type {string[]} */
   const errors = [];
-  if (typeof graph !== 'object' || graph === null || Array.isArray(graph)) {
-    throw new Error('fbp: Did not validate against graph schema:\ngraph must be an object');
+  if (typeof graph !== "object" || graph === null || Array.isArray(graph)) {
+    throw new Error(
+      "fbp: Did not validate against graph schema:\ngraph must be an object",
+    );
   }
-  if (typeof graph.caseSensitive !== 'boolean') {
-    errors.push('caseSensitive must be a boolean');
+  if (typeof graph.caseSensitive !== "boolean") {
+    errors.push("caseSensitive must be a boolean");
   }
-  if (typeof graph.processes !== 'object' || graph.processes === null) {
-    errors.push('processes must be an object');
+  if (typeof graph.processes !== "object" || graph.processes === null) {
+    errors.push("processes must be an object");
   } else {
     for (const name of Object.keys(graph.processes)) {
       const process = graph.processes[name];
-      if (typeof process !== 'object' || process === null) {
+      if (typeof process !== "object" || process === null) {
         errors.push(`process "${name}" must be an object`);
         continue;
       }
-      if (process.component !== undefined && typeof process.component !== 'string') {
+      if (
+        process.component !== undefined &&
+        typeof process.component !== "string"
+      ) {
         errors.push(`process "${name}" component must be a string`);
       }
       if (
         process.metadata !== undefined &&
-        (typeof process.metadata !== 'object' || process.metadata === null)
+        (typeof process.metadata !== "object" || process.metadata === null)
       ) {
         errors.push(`process "${name}" metadata must be an object`);
       }
     }
   }
   if (!Array.isArray(graph.connections)) {
-    errors.push('connections must be an array');
+    errors.push("connections must be an array");
   } else {
     for (const connection of graph.connections) {
-      if (typeof connection !== 'object' || connection === null) {
-        errors.push('connection must be an object');
+      if (typeof connection !== "object" || connection === null) {
+        errors.push("connection must be an object");
         continue;
       }
       const hasSource = connection.src !== undefined;
       const hasData = connection.data !== undefined;
       if (!hasSource && !hasData) {
-        errors.push('connection must have either a src or a data property');
+        errors.push("connection must have either a src or a data property");
       }
       if (hasData && hasSource) {
-        errors.push('connection must not have both src and data properties');
+        errors.push("connection must not have both src and data properties");
       }
       if (connection.tgt === undefined) {
-        errors.push('connection must have a tgt property');
+        errors.push("connection must have a tgt property");
       } else if (!isValidPort(connection.tgt)) {
-        errors.push('connection tgt must have string process and port');
+        errors.push("connection tgt must have string process and port");
       }
       if (hasSource && !isValidPort(connection.src)) {
-        errors.push('connection src must have string process and port');
+        errors.push("connection src must have string process and port");
       }
     }
   }
-  for (const direction of ['inports', 'outports']) {
+  for (const direction of ["inports", "outports"]) {
     const ports = graph[direction];
-    if (typeof ports !== 'object' || ports === null) {
+    if (typeof ports !== "object" || ports === null) {
       errors.push(`${direction} must be an object`);
       continue;
     }
@@ -143,7 +148,7 @@ export function validateSchema(graph) {
   }
   if (errors.length > 0) {
     throw new Error(
-      `fbp: Did not validate against graph schema:\n${errors.join('\n')}`,
+      `fbp: Did not validate against graph schema:\n${errors.join("\n")}`,
     );
   }
 }
@@ -154,9 +159,9 @@ export function validateSchema(graph) {
  */
 function isValidPort(port) {
   return (
-    typeof port === 'object' &&
+    typeof port === "object" &&
     port !== null &&
-    typeof port.process === 'string' &&
-    typeof port.port === 'string'
+    typeof port.process === "string" &&
+    typeof port.port === "string"
   );
 }

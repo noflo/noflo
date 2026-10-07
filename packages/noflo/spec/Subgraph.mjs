@@ -364,8 +364,7 @@ describe("NoFlo Graph component", () => {
       g.send(gr);
     });
   });
-  // TODO: unskip when the .fbp DSL parser lands (origin/fbp-parser)
-  describe.skip("with a FBP file with INPORTs and OUTPORTs", () => {
+    describe("with a FBP file with INPORTs and OUTPORTs", () => {
     const file = `${loadingPrefix}spec/fixtures/subgraph.fbp`;
     it("should emit a ready event after network has been loaded", (_t, done) => {
       c.baseDir = process.cwd();
@@ -790,8 +789,7 @@ describe("NoFlo Graph component", () => {
         );
       });
     });
-    // TODO: unskip when Flowtrace works against the native model
-    describe.skip("with two levels of subgraphs", () => {
+        describe("with two levels of subgraphs", () => {
       let graph = null;
       let network = null;
       const trace = new flowtrace.Flowtrace();

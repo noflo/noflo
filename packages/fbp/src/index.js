@@ -15,4 +15,4 @@
  * const graph = parse("'hello' -> IN Display(Output)");
  */
 
-export { parse, SyntaxError } from './parse.js';
+export { parse, SyntaxError } from "./parse.js";

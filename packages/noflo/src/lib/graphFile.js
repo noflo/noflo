@@ -1,10 +1,12 @@
 /**
  * @file graphFile module
  * @description Loading and saving native graph models from files and JSON
- *   documents (work document #10). FBP JSON is the interchange format; the
- *   .fbp DSL gains its own parser package separately.
+ *   documents (work document #10). `.json` files are FBP JSON; `.fbp` files
+ *   are parsed with `@noflo/fbp` into FBP JSON and imported. FBP JSON is the
+ *   interchange format.
  */
 
+import { parse } from "@noflo/fbp";
 import { exportFbpJson, importFbpJson } from "@noflo/graph";
 
 /**
@@ -23,19 +25,22 @@ export function loadGraphJson(contents) {
 }
 
 /**
- * Load a graph model from a `.json` graph file. Node.js only.
+ * Load a graph model from a `.json` or `.fbp` graph file. Node.js only.
+ *
+ * `.fbp` files are parsed with legacy case-insensitive semantics: that is
+ * what the existing .fbp corpus in the ecosystem means. The `@noflo/fbp`
+ * package default (`caseSensitive: true`) is the 2.x policy for new code.
  *
  * @param {string} file
  * @returns {Promise<GraphModel>}
  */
 export async function loadGraphFile(file) {
-  if (file.endsWith(".fbp")) {
-    throw new Error(
-      "Loading .fbp DSL files is not supported yet; the DSL parser ships as a separate package",
-    );
-  }
   const { readFile } = await import("node:fs/promises");
-  return loadGraphJson(await readFile(file, "utf-8"));
+  const contents = await readFile(file, "utf-8");
+  if (file.endsWith(".fbp")) {
+    return loadGraphJson(parse(contents, { caseSensitive: false }));
+  }
+  return loadGraphJson(contents);
 }
 
 /**

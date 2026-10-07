@@ -6,6 +6,7 @@ import {
   setSource as nodeSetSource,
 } from "../src/lib/loader/NodeJs.js";
 import * as noflo from "../src/lib/NoFlo.js";
+import { loadGraphFile } from "../src/lib/graphFile.js";
 import { nativeGraph } from "./utils/nativeGraph.mjs";
 
 /* eslint-disable
@@ -193,8 +194,7 @@ describe("ComponentLoader with no external packages installed", () => {
     });
   });
 
-  // TODO: unskip when the .fbp DSL parser lands (origin/fbp-parser)
-  describe.skip("loading a subgraph", () => {
+    describe("loading a subgraph", () => {
     const l2 = new noflo.ComponentLoader(baseDir);
     const file = `${urlPrefix}spec/fixtures/subgraph.fbp`;
     it("should remove `graph` and `start` ports", () => {
@@ -254,10 +254,8 @@ describe("ComponentLoader with no external packages installed", () => {
           });
         });
     });
-    // TODO: unskip when the .fbp DSL parser lands (origin/fbp-parser)
-    it.skip("should also work with a passed graph object", () => {
-      return noflo.graph
-        .loadFile(file)
+        it("should also work with a passed graph object", () => {
+      return loadGraphFile(file)
         .then((graph) => {
           return l.listComponents().then(() => {
             l.components.Merge = Merge;
@@ -573,8 +571,7 @@ describe("ComponentLoader with no external packages installed", () => {
           assert.ok(err.message.includes("Not a file"));
         });
     });
-    // TODO: unskip when the .fbp DSL parser lands (origin/fbp-parser)
-    it.skip("should be able to provide source for a graph file component", () => {
+        it("should be able to provide source for a graph file component", () => {
       const file = `${urlPrefix}spec/fixtures/subgraph.fbp`;
       l.components.Subgraph = file;
       return l.getSource("Subgraph").then((src) => {
@@ -582,11 +579,9 @@ describe("ComponentLoader with no external packages installed", () => {
         assert.strictEqual(src.language, "json");
       });
     });
-    // TODO: unskip when the .fbp DSL parser lands (origin/fbp-parser)
-    it.skip("should be able to provide source for a graph object component", () => {
+        it("should be able to provide source for a graph object component", () => {
       const file = `${urlPrefix}spec/fixtures/subgraph.fbp`;
-      return noflo.graph
-        .loadFile(file)
+      return loadGraphFile(file)
         .then((graph) => {
           l.components.Subgraph2 = graph;
           return l.getSource("Subgraph2");

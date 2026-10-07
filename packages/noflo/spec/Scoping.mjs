@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, before, beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
+import { loadFbp } from "./utils/loadFbp.mjs";
 
 describe("Scope isolation", () => {
   let loader = null;
@@ -115,8 +116,7 @@ describe("Scope isolation", () => {
       );
     });
   });
-  // TODO: unskip when the .fbp DSL parser lands (origin/fbp-parser)
-  describe.skip("pure Process API merging two inputs", () => {
+    describe("pure Process API merging two inputs", () => {
     let c = null;
     let in1 = null;
     let in2 = null;
@@ -128,8 +128,7 @@ describe("Scope isolation", () => {
         "OUTPORT=PcMerge.OUT:OUT\n" +
         "Pc1(process/Async) OUT -> IN1 PcMerge(process/Merge)\n" +
         "Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)";
-      return noflo.graph
-        .loadFBP(fbpData)
+      return Promise.resolve(loadFbp(fbpData))
         .then((g) => {
           loader.registerComponent("scope", "Merge", g);
           return loader.load("scope/Merge");
@@ -277,8 +276,7 @@ describe("Scope isolation", () => {
       in1.post(new noflo.IP("closeBracket", 1, { scope: 1 }));
     });
   });
-  // TODO: unskip when the .fbp DSL parser lands (origin/fbp-parser)
-  describe.skip("Process API with IIPs and scopes", () => {
+    describe("Process API with IIPs and scopes", () => {
     let c = null;
     let in1 = null;
     let out = null;
@@ -288,8 +286,7 @@ describe("Scope isolation", () => {
         "OUTPORT=PcMerge.OUT:OUT\n" +
         "Pc1(process/Async) -> IN1 PcMerge(process/Merge)\n" +
         "'twoIIP' -> IN2 PcMerge(process/Merge)";
-      return noflo.graph
-        .loadFBP(fbpData)
+      return Promise.resolve(loadFbp(fbpData))
         .then((g) => {
           loader.registerComponent("scope", "MergeIIP", g);
           return loader.load("scope/MergeIIP");
@@ -340,8 +337,7 @@ describe("Scope isolation", () => {
       in1.post(new noflo.IP("closeBracket", 1, { scope: "x" }));
     });
   });
-  // TODO: unskip when the .fbp DSL parser lands (origin/fbp-parser)
-  describe.skip("Process API with unscoped inport and scopes", () => {
+    describe("Process API with unscoped inport and scopes", () => {
     let c = null;
     let in1 = null;
     let in2 = null;
@@ -353,8 +349,7 @@ describe("Scope isolation", () => {
         "OUTPORT=PcMerge.OUT:OUT\n" +
         "Pc1(process/Async) -> IN1 PcMerge(process/MergeUnscoped)\n" +
         "Pc2(process/Async) -> IN2 PcMerge(process/MergeUnscoped)";
-      return noflo.graph
-        .loadFBP(fbpData)
+      return Promise.resolve(loadFbp(fbpData))
         .then((g) => {
           loader.registerComponent("scope", "MergeUnscoped", g);
           return loader.load("scope/MergeUnscoped");
@@ -478,8 +473,7 @@ describe("Scope isolation", () => {
       in1.post(new noflo.IP("closeBracket", 1, { scope: "x" }));
     });
   });
-  // TODO: unskip when the .fbp DSL parser lands (origin/fbp-parser)
-  describe.skip("Process API with unscoped outport and scopes", () => {
+    describe("Process API with unscoped outport and scopes", () => {
     let c = null;
     let in1 = null;
     let in2 = null;
@@ -491,8 +485,7 @@ describe("Scope isolation", () => {
         "OUTPORT=PcMerge.OUT:OUT\n" +
         "Pc1(process/Unscope) -> IN1 PcMerge(process/Merge)\n" +
         "Pc2(process/Unscope) -> IN2 PcMerge";
-      return noflo.graph
-        .loadFBP(fbpData)
+      return Promise.resolve(loadFbp(fbpData))
         .then((g) => {
           loader.registerComponent("scope", "MergeUnscopedOut", g);
           return loader.load("scope/MergeUnscopedOut");
@@ -624,8 +617,7 @@ describe("Scope isolation", () => {
       in2.post(new noflo.IP("closeBracket", 1));
     });
   });
-  // TODO: unskip when the .fbp DSL parser lands (origin/fbp-parser)
-  describe.skip("Process API with IIPs to addressable ports and scopes", () => {
+    describe("Process API with IIPs to addressable ports and scopes", () => {
     let c = null;
     let in1 = null;
     let out = null;
@@ -636,8 +628,7 @@ describe("Scope isolation", () => {
         "Pc1(process/Async) -> IN1 PcMergeA(process/MergeA)\n" +
         "'twoIIP0' -> IN2[0] PcMergeA\n" +
         "'twoIIP1' -> IN2[1] PcMergeA";
-      return noflo.graph
-        .loadFBP(fbpData)
+      return Promise.resolve(loadFbp(fbpData))
         .then((g) => {
           loader.registerComponent("scope", "MergeIIPA", g);
           return loader.load("scope/MergeIIPA");

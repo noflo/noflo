@@ -16,20 +16,20 @@
  * @property {number} end Offset just past the value and its trailing whitespace.
  */
 
-const FAIL = Symbol('json-fail');
+const FAIL = Symbol("json-fail");
 
 const NUMBER_RE = /-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?/y;
 const HEX_RE = /[0-9a-fA-F]/y;
 
 const ESCAPES = /** @type {const} */ ({
   '"': '"',
-  '\\': '\\',
-  '/': '/',
-  b: '\b',
-  f: '\f',
-  n: '\n',
-  r: '\r',
-  t: '\t',
+  "\\": "\\",
+  "/": "/",
+  b: "\b",
+  f: "\f",
+  n: "\n",
+  r: "\r",
+  t: "\t",
 });
 
 /**
@@ -67,7 +67,7 @@ class JsonScanner {
     const input = this.input;
     while (this.pos < input.length) {
       const c = input[this.pos];
-      if (c !== ' ' && c !== '\t' && c !== '\n' && c !== '\r') {
+      if (c !== " " && c !== "\t" && c !== "\n" && c !== "\r") {
         break;
       }
       this.pos++;
@@ -89,18 +89,18 @@ class JsonScanner {
   value() {
     const c = this.input[this.pos];
     switch (c) {
-      case '{':
+      case "{":
         return this.object();
-      case '[':
+      case "[":
         return this.array();
       case '"':
         return this.string();
-      case 't':
-        return this.literal('true', true);
-      case 'f':
-        return this.literal('false', false);
-      case 'n':
-        return this.literal('null', null);
+      case "t":
+        return this.literal("true", true);
+      case "f":
+        return this.literal("false", false);
+      case "n":
+        return this.literal("null", null);
       default:
         return this.number();
     }
@@ -125,7 +125,7 @@ class JsonScanner {
     this.skipWhitespace();
     /** @type {Record<string, any>} */
     const result = {};
-    if (this.input[this.pos] === '}') {
+    if (this.input[this.pos] === "}") {
       this.pos++;
       return result;
     }
@@ -135,7 +135,7 @@ class JsonScanner {
         return FAIL;
       }
       this.skipWhitespace();
-      if (this.input[this.pos] !== ':') {
+      if (this.input[this.pos] !== ":") {
         return FAIL;
       }
       this.pos++;
@@ -146,12 +146,12 @@ class JsonScanner {
       }
       result[key] = value;
       this.skipWhitespace();
-      if (this.input[this.pos] === ',') {
+      if (this.input[this.pos] === ",") {
         this.pos++;
         this.skipWhitespace();
         continue;
       }
-      if (this.input[this.pos] === '}') {
+      if (this.input[this.pos] === "}") {
         this.pos++;
         return result;
       }
@@ -165,7 +165,7 @@ class JsonScanner {
     this.skipWhitespace();
     /** @type {any[]} */
     const result = [];
-    if (this.input[this.pos] === ']') {
+    if (this.input[this.pos] === "]") {
       this.pos++;
       return result;
     }
@@ -176,12 +176,12 @@ class JsonScanner {
       }
       result.push(value);
       this.skipWhitespace();
-      if (this.input[this.pos] === ',') {
+      if (this.input[this.pos] === ",") {
         this.pos++;
         this.skipWhitespace();
         continue;
       }
-      if (this.input[this.pos] === ']') {
+      if (this.input[this.pos] === "]") {
         this.pos++;
         return result;
       }
@@ -195,17 +195,17 @@ class JsonScanner {
       return FAIL;
     }
     this.pos++;
-    let result = '';
+    let result = "";
     while (this.pos < this.input.length) {
       const c = this.input[this.pos];
       if (c === '"') {
         this.pos++;
         return result;
       }
-      if (c === '\\') {
+      if (c === "\\") {
         this.pos++;
         const escape = this.input[this.pos];
-        if (escape === 'u') {
+        if (escape === "u") {
           this.pos++;
           let code = 0;
           for (let i = 0; i < 4; i++) {

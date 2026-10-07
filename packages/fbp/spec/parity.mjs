@@ -7,20 +7,26 @@
  * explicitly here; the package-level default is covered by its own test.
  */
 
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
-import { createRequire } from 'node:module';
+import assert from "node:assert/strict";
+import { createRequire } from "node:module";
+import { test } from "node:test";
 
-import { parse } from '../src/index.js';
-import { accepted, rejected } from './fixtures/corpus.mjs';
+import { parse } from "../src/index.js";
+import { accepted, rejected } from "./fixtures/corpus.mjs";
 
 /** Reference parser, CommonJS. */
 const require = createRequire(import.meta.url);
-const reference = require('fbp');
+const reference = require("fbp");
 
 const optionSets = [
-  { name: 'caseSensitive: false (legacy parity)', options: { caseSensitive: false } },
-  { name: 'caseSensitive: true (2.x policy)', options: { caseSensitive: true } },
+  {
+    name: "caseSensitive: false (legacy parity)",
+    options: { caseSensitive: false },
+  },
+  {
+    name: "caseSensitive: true (2.x policy)",
+    options: { caseSensitive: true },
+  },
 ];
 
 for (const { name, options } of optionSets) {
@@ -39,7 +45,7 @@ for (const { name, options } of optionSets) {
   }
 }
 
-test('package default matches reference caseSensitive: true', () => {
+test("package default matches reference caseSensitive: true", () => {
   for (const entry of accepted) {
     const expected = reference.parse(entry.source, { caseSensitive: true });
     assert.deepStrictEqual(parse(entry.source), expected);
@@ -47,8 +53,8 @@ test('package default matches reference caseSensitive: true', () => {
   }
 });
 
-test('options default tolerates missing options argument', () => {
+test("options default tolerates missing options argument", () => {
   // The reference parser crashes when called with `undefined` options; ours
   // must not.
-  assert.doesNotThrow(() => parse('A(a) -> B(b)', undefined));
+  assert.doesNotThrow(() => parse("A(a) -> B(b)", undefined));
 });

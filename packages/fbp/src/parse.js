@@ -9,11 +9,11 @@
  * @module
  */
 
-import { scanJsonText } from './json-value.js';
-import { validateContents, validateSchema } from './validate.js';
+import { scanJsonText } from "./json-value.js";
+import { validateContents, validateSchema } from "./validate.js";
 
 /** Sentinel returned by internal parse helpers when a rule does not match. */
-const FAIL = Symbol('parse-fail');
+const FAIL = Symbol("parse-fail");
 
 /**
  * @typedef {object} Options
@@ -75,7 +75,7 @@ export class SyntaxError extends Error {
    */
   constructor(message, location, found) {
     super(message);
-    this.name = 'SyntaxError';
+    this.name = "SyntaxError";
     this.location = location;
     this.found = found;
   }
@@ -136,9 +136,9 @@ class FbpParser {
     this.edges = [];
 
     /** @type {string} */
-    this.defaultInPort = 'IN';
+    this.defaultInPort = "IN";
     /** @type {string} */
-    this.defaultOutPort = 'OUT';
+    this.defaultOutPort = "OUT";
 
     /** @type {Record<string, number>} */
     this.anonymousCounters = {};
@@ -148,7 +148,7 @@ class FbpParser {
     /** @type {number} */
     this.maxFailPos = 0;
     /** @type {string} */
-    this.maxFailExpected = 'valid .fbp';
+    this.maxFailExpected = "valid .fbp";
   }
 
   /** @returns {GraphJson} */
@@ -157,7 +157,7 @@ class FbpParser {
       // Parse lines until one fails to match.
     }
     if (this.pos !== this.input.length) {
-      this.fail('end of input');
+      this.fail("end of input");
       throw this.syntaxError();
     }
     return this.getResult();
@@ -224,11 +224,11 @@ class FbpParser {
     const start = this.pos;
 
     this.skipSpaces();
-    if (this.matchString('INPORT=')) {
+    if (this.matchString("INPORT=")) {
       const node = this.parseNode();
-      if (node !== FAIL && this.matchString('.')) {
+      if (node !== FAIL && this.matchString(".")) {
         const port = this.parsePortName();
-        if (port !== FAIL && this.matchString(':')) {
+        if (port !== FAIL && this.matchString(":")) {
           const publicName = this.parsePortName();
           if (publicName !== FAIL) {
             this.skipSpaces();
@@ -242,11 +242,11 @@ class FbpParser {
 
     this.pos = start;
     this.skipSpaces();
-    if (this.matchString('OUTPORT=')) {
+    if (this.matchString("OUTPORT=")) {
       const node = this.parseNode();
-      if (node !== FAIL && this.matchString('.')) {
+      if (node !== FAIL && this.matchString(".")) {
         const port = this.parsePortName();
-        if (port !== FAIL && this.matchString(':')) {
+        if (port !== FAIL && this.matchString(":")) {
           const publicName = this.parsePortName();
           if (publicName !== FAIL) {
             this.skipSpaces();
@@ -260,7 +260,7 @@ class FbpParser {
 
     this.pos = start;
     this.skipSpaces();
-    if (this.matchString('DEFAULT_INPORT=')) {
+    if (this.matchString("DEFAULT_INPORT=")) {
       const name = this.parsePortName();
       if (name !== FAIL) {
         this.skipSpaces();
@@ -272,7 +272,7 @@ class FbpParser {
 
     this.pos = start;
     this.skipSpaces();
-    if (this.matchString('DEFAULT_OUTPORT=')) {
+    if (this.matchString("DEFAULT_OUTPORT=")) {
       const name = this.parsePortName();
       if (name !== FAIL) {
         this.skipSpaces();
@@ -290,7 +290,7 @@ class FbpParser {
 
     this.pos = start;
     this.skipSpaces();
-    if (this.peek() === '#') {
+    if (this.peek() === "#") {
       this.skipToEndOfLine();
       this.matchNewline();
       return true;
@@ -324,37 +324,37 @@ class FbpParser {
    * @returns {true | typeof FAIL}
    */
   parseAnnotation() {
-    if (this.peek() !== '#') {
+    if (this.peek() !== "#") {
       this.fail("'#'");
       return FAIL;
     }
     this.pos++;
     if (!this.matchSpaces()) {
-      this.fail('whitespace');
+      this.fail("whitespace");
       return FAIL;
     }
-    if (!this.matchString('@')) {
+    if (!this.matchString("@")) {
       this.fail("'@'");
       return FAIL;
     }
     const keyMatch = this.matchRegex(ANNOTATION_KEY_RE);
     if (keyMatch === null) {
-      this.fail('annotation key');
+      this.fail("annotation key");
       return FAIL;
     }
     if (!this.matchSpaces()) {
-      this.fail('whitespace');
+      this.fail("whitespace");
       return FAIL;
     }
     const valueMatch = this.matchRegex(ANNOTATION_VALUE_RE);
     if (valueMatch === null) {
-      this.fail('annotation value');
+      this.fail("annotation value");
       return FAIL;
     }
     const key = keyMatch[0];
     const value = valueMatch[0];
     if (!this.matchNewline()) {
-      this.fail('line break');
+      this.fail("line break");
       return FAIL;
     }
     this.registerAnnotation(key, value);
@@ -364,9 +364,9 @@ class FbpParser {
   /** Consumes optional spaces, an optional comma, an optional comment, and an optional line break. @returns {void} */
   lineTerminator() {
     this.skipSpaces();
-    this.matchString(',');
+    this.matchString(",");
     this.skipSpaces();
-    if (this.peek() === '#') {
+    if (this.peek() === "#") {
       this.skipToEndOfLine();
     }
     this.matchNewline();
@@ -382,7 +382,7 @@ class FbpParser {
     const source = this.parseSource();
     if (source !== FAIL) {
       this.skipSpaces();
-      if (this.matchString('->')) {
+      if (this.matchString("->")) {
         this.skipSpaces();
         const rest = this.parseConnection();
         if (rest !== FAIL) {
@@ -496,10 +496,10 @@ class FbpParser {
   /** Single-quoted IIP where only `\'` is escaped. @returns {any | typeof FAIL} */
   parseQuotedIip() {
     this.pos++; // opening quote
-    let value = '';
+    let value = "";
     while (this.pos < this.input.length) {
       const c = this.input[this.pos];
-      if (c === '\\' && this.input[this.pos + 1] === "'") {
+      if (c === "\\" && this.input[this.pos + 1] === "'") {
         value += "'";
         this.pos += 2;
         continue;
@@ -511,7 +511,7 @@ class FbpParser {
       value += c;
       this.pos++;
     }
-    this.fail("closing \"'\"");
+    this.fail('closing "\'"');
     return FAIL;
   }
 
@@ -570,7 +570,7 @@ class FbpParser {
   parseNodeName() {
     const match = this.matchRegex(NODE_NAME_RE);
     if (match === null) {
-      this.fail('process name');
+      this.fail("process name");
       return FAIL;
     }
     return match[0];
@@ -584,12 +584,12 @@ class FbpParser {
   parseComponent() {
     const match = this.matchRegex(COMPONENT_RE);
     if (match === null) {
-      this.fail('component in parentheses');
+      this.fail("component in parentheses");
       return FAIL;
     }
     return {
-      comp: match[1] ?? '',
-      meta: match[2] !== undefined ? match[2].split(',') : null,
+      comp: match[1] ?? "",
+      meta: match[2] !== undefined ? match[2].split(",") : null,
     };
   }
 
@@ -600,8 +600,7 @@ class FbpParser {
       return FAIL;
     }
     const indexMatch = this.matchRegex(PORT_INDEX_RE);
-    const index =
-      indexMatch === null ? undefined : parseInt(indexMatch[1], 10);
+    const index = indexMatch === null ? undefined : parseInt(indexMatch[1], 10);
     return {
       port: this.caseSensitive ? name : name.toLowerCase(),
       index,
@@ -612,7 +611,7 @@ class FbpParser {
   parsePortName() {
     const match = this.matchRegex(PORT_NAME_RE);
     if (match === null) {
-      this.fail('port name');
+      this.fail("port name");
       return FAIL;
     }
     return match[0];
@@ -627,7 +626,7 @@ class FbpParser {
     }
     if (!this.matchSpaces()) {
       this.pos = start;
-      this.fail('whitespace');
+      this.fail("whitespace");
       return FAIL;
     }
     return port;
@@ -637,7 +636,7 @@ class FbpParser {
   parseSpaceBeforePort() {
     const start = this.pos;
     if (!this.matchSpaces()) {
-      this.fail('whitespace');
+      this.fail("whitespace");
       return FAIL;
     }
     const port = this.parsePort();
@@ -690,14 +689,14 @@ class FbpParser {
       /** @type {Record<string, any>} */
       const metadata = {};
       for (const entry of component.meta) {
-        const parts = entry.split('=');
+        const parts = entry.split("=");
         let key = parts[0];
         let value = parts[1];
         if (parts.length === 1) {
-          key = 'routes';
+          key = "routes";
           value = parts[0];
         }
-        if (key === 'x' || key === 'y') {
+        if (key === "x" || key === "y") {
           value = parseFloat(/** @type {string} */ (value));
         }
         metadata[key] = value;
@@ -713,11 +712,11 @@ class FbpParser {
    */
   addAnonymousNode(component, offset) {
     if (!this.anonymousNames[offset]) {
-      const componentName = component.comp.replace(/[^a-zA-Z0-9]+/, '_');
+      const componentName = component.comp.replace(/[^a-zA-Z0-9]+/, "_");
       this.anonymousCounters[componentName] =
         (this.anonymousCounters[componentName] || 0) + 1;
       this.anonymousNames[offset] =
-        '_' + componentName + '_' + this.anonymousCounters[componentName];
+        "_" + componentName + "_" + this.anonymousCounters[componentName];
       this.addNode(this.anonymousNames[offset], component);
     }
     return this.anonymousNames[offset];
@@ -809,7 +808,7 @@ class FbpParser {
     if (!this.properties) {
       this.properties = {};
     }
-    if (key === 'runtime') {
+    if (key === "runtime") {
       this.properties.environment = {};
       this.properties.environment.type = value;
       return;
@@ -835,7 +834,7 @@ class FbpParser {
 
   /** Zero or more ASCII spaces (`_` in the reference grammar). @returns {void} */
   skipSpaces() {
-    while (this.input[this.pos] === ' ') {
+    while (this.input[this.pos] === " ") {
       this.pos++;
     }
   }
@@ -843,11 +842,11 @@ class FbpParser {
   /** One or more ASCII spaces (`__` in the reference grammar). @returns {boolean} */
   matchSpaces() {
     const start = this.pos;
-    while (this.input[this.pos] === ' ') {
+    while (this.input[this.pos] === " ") {
       this.pos++;
     }
     if (this.pos === start) {
-      this.fail('whitespace');
+      this.fail("whitespace");
       return false;
     }
     return true;
@@ -869,11 +868,11 @@ class FbpParser {
   /** @returns {boolean} */
   matchNewline() {
     const c = this.input[this.pos];
-    if (c === '\n' || c === '\r' || c === '\u2028' || c === '\u2029') {
+    if (c === "\n" || c === "\r" || c === "\u2028" || c === "\u2029") {
       this.pos++;
       return true;
     }
-    this.fail('line break');
+    this.fail("line break");
     return false;
   }
 
@@ -901,7 +900,7 @@ class FbpParser {
   skipToEndOfLine() {
     while (this.pos < this.input.length) {
       const c = this.input[this.pos];
-      if (c === '\n' || c === '\r' || c === '\u2028' || c === '\u2029') {
+      if (c === "\n" || c === "\r" || c === "\u2028" || c === "\u2029") {
         break;
       }
       this.pos++;
@@ -924,7 +923,7 @@ class FbpParser {
     const location = this.computeLocation(this.maxFailPos);
     const found = this.input[this.maxFailPos];
     const foundDescription =
-      found === undefined ? 'end of input' : `"${found}"`;
+      found === undefined ? "end of input" : `"${found}"`;
     return new SyntaxError(
       `Expected ${this.maxFailExpected} but ${foundDescription} found at line ${location.start.line}, column ${location.start.column}.`,
       location,
@@ -941,8 +940,8 @@ class FbpParser {
     let lineStart = 0;
     for (let i = 0; i < offset; i++) {
       const c = this.input[i];
-      if (c === '\n' || c === '\r' || c === '\u2028' || c === '\u2029') {
-        if (c === '\r' && this.input[i + 1] === '\n') {
+      if (c === "\n" || c === "\r" || c === "\u2028" || c === "\u2029") {
+        if (c === "\r" && this.input[i + 1] === "\n") {
           i++;
         }
         line++;

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, before, describe, it } from "node:test";
 import flowtrace from "flowtrace";
 import * as noflo from "../src/lib/NoFlo.js";
+import { loadFbp } from "./utils/loadFbp.mjs";
 
 describe("asPromise interface", () => {
   let loader = null;
@@ -314,30 +315,27 @@ describe("asPromise interface", () => {
       });
     });
   });
-  // TODO: unskip when the .fbp DSL parser lands (origin/fbp-parser) or Flowtrace is verified on the native model
-  describe.skip("with a graph instead of component name", () => {
+    describe("with a graph instead of component name", () => {
     let graph = null;
     let wrapped = null;
     before((_t, done) => {
-      noflo.graph.loadFBP(
-        `\
+      try {
+        const g = loadFbp(
+          `\
 INPORT=Async.IN:IN
 OUTPORT=Stream.OUT:OUT
 Async(process/Async) OUT -> IN Stream(process/Streamify)\
-`,
-        (err, g) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          graph = g;
+`
+        );
+        graph = g;
           wrapped = noflo.asPromise(graph, {
             loader,
             asyncDelivery: true,
           });
           done();
-        },
-      );
+      } catch (err) {
+        done(err);
+      }
     });
     it("should execute network with input map and provide output map with streams as arrays", () =>
       wrapped({
@@ -356,27 +354,24 @@ Async(process/Async) OUT -> IN Stream(process/Streamify)\
         ]);
       }));
   });
-  // TODO: unskip when the .fbp DSL parser lands (origin/fbp-parser) or Flowtrace is verified on the native model
-  describe.skip("with a graph instead of component name (synchronous)", () => {
+    describe("with a graph instead of component name (synchronous)", () => {
     let graph = null;
     let wrapped = null;
     before((_t, done) => {
-      noflo.graph.loadFBP(
-        `\
+      try {
+        const g = loadFbp(
+          `\
 INPORT=Async.IN:IN
 OUTPORT=Stream.OUT:OUT
 Async(process/Async) OUT -> IN Stream(process/Streamify)\
-`,
-        (err, g) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          graph = g;
-          wrapped = noflo.asPromise(graph, { loader });
-          done();
-        },
-      );
+`
+        );
+        graph = g;
+        wrapped = noflo.asPromise(graph, { loader });
+        done();
+      } catch (err) {
+        done(err);
+      }
     });
     it("should execute network with input map and provide output map with streams as arrays", () =>
       wrapped({
@@ -395,27 +390,24 @@ Async(process/Async) OUT -> IN Stream(process/Streamify)\
         ]);
       }));
   });
-  // TODO: unskip when the .fbp DSL parser lands (origin/fbp-parser) or Flowtrace is verified on the native model
-  describe.skip("with a graph containing a component supporting only certain values", () => {
+    describe("with a graph containing a component supporting only certain values", () => {
     let graph = null;
     let wrapped = null;
     before((_t, done) => {
-      noflo.graph.loadFBP(
-        `\
+      try {
+        const g = loadFbp(
+          `\
 INPORT=Async.IN:IN
 OUTPORT=Values.OUT:OUT
 Async(process/Async) OUT -> IN Values(process/Values)\
-`,
-        (err, g) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          graph = g;
-          wrapped = noflo.asPromise(graph, { loader });
-          done();
-        },
-      );
+`
+        );
+        graph = g;
+        wrapped = noflo.asPromise(graph, { loader });
+        done();
+      } catch (err) {
+        done(err);
+      }
     });
     it("should execute network with input map and provide output map", () => {
       const expected = "blue";
@@ -506,8 +498,7 @@ Async(process/Async) OUT -> IN Values(process/Values)\
       });
     });
   });
-  // TODO: unskip when the .fbp DSL parser lands (origin/fbp-parser) or Flowtrace is verified on the native model
-  describe.skip("with flowtrace option", () => {
+    describe("with flowtrace option", () => {
     it("should store a trace for a simple component execution", () => {
       const trace = new flowtrace.Flowtrace();
       const wrapped = noflo.asPromise("process/Async", {
