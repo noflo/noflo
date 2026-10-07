@@ -14,7 +14,7 @@ if (
 } else {
   loadingPrefix = "/base/";
 }
-describe("NoFlo Graph component", () => {
+describe("NoFlo Subgraph component", () => {
   let c = null;
   let g = null;
   let loader = null;
@@ -23,7 +23,7 @@ describe("NoFlo Graph component", () => {
     return loader.listComponents();
   });
   beforeEach(() =>
-    loader.load("Graph").then((instance) => {
+    loader.load("Subgraph").then((instance) => {
       c = instance;
       g = noflo.internalSocket.createSocket();
       c.inPorts.graph.attach(g);

@@ -605,7 +605,7 @@ export class BaseNetwork extends LegacyEventBase {
       return;
     }
 
-    const instance = /** @type {import("../components/Graph").Graph} */ (
+    const instance = /** @type {import("../components/Subgraph").Subgraph} */ (
       node.component
     );
     if (!instance.network) {
@@ -1313,7 +1313,7 @@ export class BaseNetwork extends LegacyEventBase {
       }
       const instance = process.component;
       if (instance.isSubgraph()) {
-        const inst = /** @type {import("../components/Graph").Graph} */ (
+        const inst = /** @type {import("../components/Subgraph").Subgraph} */ (
           instance
         );
         inst.network.setDebug(active);
@@ -1340,7 +1340,7 @@ export class BaseNetwork extends LegacyEventBase {
       }
       const instance = process.component;
       if (instance.isSubgraph()) {
-        const inst = /** @type {import("../components/Graph").Graph} */ (
+        const inst = /** @type {import("../components/Subgraph").Subgraph} */ (
           instance
         );
         inst.network.setAsyncDelivery(active);
@@ -1373,7 +1373,7 @@ export class BaseNetwork extends LegacyEventBase {
     Object.keys(this.processes).forEach((nodeId) => {
       // Register existing subgraphs
       const node = this.processes[nodeId];
-      const inst = /** @type {import("../components/Graph").Graph} */ (
+      const inst = /** @type {import("../components/Subgraph").Subgraph} */ (
         node.component
       );
       if (!inst.isSubgraph() || !inst.network) {

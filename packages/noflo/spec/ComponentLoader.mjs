@@ -185,15 +185,15 @@ describe("ComponentLoader with no external packages installed", () => {
   });
   describe("after listing components", () => {
     it("should have the Graph component registered", () => {
-      assert.ok(l.components.Graph);
+      assert.ok(l.components.Subgraph);
     });
   });
   describe("loading the Graph component", () => {
     let instance = null;
     it("should be able to load the component", () => {
-      return l.load("Graph").then((inst) => {
+      return l.load("Subgraph").then((inst) => {
         assert.strictEqual(typeof inst, "object");
-        assert.strictEqual(inst.componentName, "Graph");
+        assert.strictEqual(inst.componentName, "Subgraph");
         instance = inst;
       });
     });
@@ -215,9 +215,9 @@ describe("ComponentLoader with no external packages installed", () => {
     });
     it("should be able to load the component with non-ready ComponentLoader", () => {
       const loader = new noflo.ComponentLoader(baseDir);
-      return loader.load("Graph").then((inst) => {
+      return loader.load("Subgraph").then((inst) => {
         assert.strictEqual(typeof inst, "object");
-        assert.strictEqual(inst.componentName, "Graph");
+        assert.strictEqual(inst.componentName, "Subgraph");
         instance = inst;
       });
     });
@@ -231,9 +231,9 @@ describe("ComponentLoader with no external packages installed", () => {
         .listComponents()
         .then(() => {
           l2.components.Merge = Merge;
-          l2.components.Subgraph = file;
+          l2.components.GraphFile = file;
           l2.components.Split = Split;
-          return l2.load("Subgraph");
+          return l2.load("GraphFile");
         })
         .then((inst) => {
           assert.strictEqual(typeof inst, "object");
@@ -269,9 +269,9 @@ describe("ComponentLoader with no external packages installed", () => {
         .listComponents()
         .then(() => {
           l.components.Merge = Merge;
-          l.components.Subgraph = file;
+          l.components.GraphFile = file;
           l.components.Split = Split;
-          return l.load("Subgraph");
+          return l.load("GraphFile");
         })
         .then((inst) => {
           assert.strictEqual(typeof inst, "object");
@@ -288,9 +288,9 @@ describe("ComponentLoader with no external packages installed", () => {
         .then((graph) => {
           return l.listComponents().then(() => {
             l.components.Merge = Merge;
-            l.components.Subgraph = graph;
+            l.components.GraphObject = graph;
             l.components.Split = Split;
-            return l.load("Subgraph");
+            return l.load("GraphObject");
           });
         })
         .then((inst) => {
@@ -326,7 +326,7 @@ describe("ComponentLoader with no external packages installed", () => {
   describe("loading the Graph component", () => {
     let instance = null;
     it("should be able to load the component", () => {
-      return l.load("Graph").then((graph) => {
+      return l.load("Subgraph").then((graph) => {
         assert.strictEqual(typeof graph, "object");
         instance = graph;
       });
@@ -391,7 +391,7 @@ describe("ComponentLoader with no external packages installed", () => {
     it("should be available in the components list", () => {
       l.registerComponent("foo", "Split", FooSplit);
       assert.ok(Object.keys(l.components).includes("foo/Split"));
-      assert.ok(Object.keys(l.components).includes("Graph"));
+      assert.ok(Object.keys(l.components).includes("Subgraph"));
     });
     it("should be able to load the component", () => {
       return l.load("foo/Split").then((split) => {
@@ -563,16 +563,16 @@ describe("ComponentLoader with no external packages installed", () => {
   });
   describe("reading sources", () => {
     it("should be able to provide source code for a component", () => {
-      return l.getSource("Graph").then((component) => {
+      return l.getSource("Subgraph").then((component) => {
         assert.strictEqual(typeof component, "object");
         assert.strictEqual(typeof component.code, "string");
-        assert.notEqual(component.code.indexOf("Graph"), -1);
+        assert.notEqual(component.code.indexOf("Subgraph"), -1);
         assert.notEqual(
           component.code.indexOf("export function getComponent"),
           -1,
         );
 
-        assert.strictEqual(component.name, "Graph");
+        assert.strictEqual(component.name, "Subgraph");
         assert.strictEqual(component.library, "");
         assert.strictEqual(component.language, shippingLanguage);
       });
@@ -647,17 +647,17 @@ describe("ComponentLoader with no external packages installed", () => {
                 });
               }),
           };
-          return loader.getSource("Graph");
+          return loader.getSource("Subgraph");
         })
         .then((component) => {
           assert.strictEqual(typeof component, "object");
           assert.strictEqual(typeof component.code, "string");
-          assert.notEqual(component.code.indexOf("Graph"), -1);
+          assert.notEqual(component.code.indexOf("Subgraph"), -1);
           assert.notEqual(
             component.code.indexOf("export function getComponent"),
             -1,
           );
-          assert.strictEqual(component.name, "Graph");
+          assert.strictEqual(component.name, "Subgraph");
           assert.strictEqual(component.library, "");
           assert.strictEqual(component.language, shippingLanguage);
         });
@@ -1108,7 +1108,7 @@ exports.getComponent = function() {
       });
     });
     it("should be able to load core Graph component", (_t, done) => {
-      l.load("Graph", (err, instance) => {
+      l.load("Subgraph", (err, instance) => {
         if (err) {
           done(err);
           return;
@@ -1217,7 +1217,7 @@ exports.getComponent = function() {
       });
     });
     it("should be able to load core Graph component", () => {
-      return l.load("Graph").then((instance) => {
+      return l.load("Subgraph").then((instance) => {
         assert.strictEqual(instance.icon, "sitemap");
       });
     });

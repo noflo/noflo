@@ -102,7 +102,7 @@ describe("NoFlo Network", () => {
       it("should contain the node", () =>
         n.addNode({
           entity_id: "Graph",
-          component: "Graph",
+          component: "Subgraph",
           metadata: {
             foo: "Bar",
           },
@@ -110,7 +110,7 @@ describe("NoFlo Network", () => {
       it("should have registered the node with the graph", () => {
         const node = g.node("Graph");
         assert.strictEqual(typeof node, "object");
-        assert.strictEqual(node.component, "Graph");
+        assert.strictEqual(node.component, "Subgraph");
       });
       it("should have transmitted the node metadata to the process", () => {
         assert.ok(n.processes.Graph.component.metadata);

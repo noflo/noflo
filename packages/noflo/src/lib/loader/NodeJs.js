@@ -594,9 +594,9 @@ function registerSubgraph(loader) {
   // Inject subgraph component
   const graphPath = path.resolve(
     import.meta.dirname,
-    "../../components/Graph.js",
+    "../../components/Subgraph.js",
   );
-  loader.registerComponent(null, "Graph", graphPath);
+  loader.registerComponent(null, "Subgraph", graphPath);
 }
 
 /**

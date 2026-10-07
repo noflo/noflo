@@ -326,7 +326,7 @@ export class ComponentLoader {
             );
           }
           const inst = instance;
-          if (name === "Graph") {
+          if (name === "Subgraph") {
             inst.baseDir = /** @type {string} */ (this.baseDir);
           }
           if (typeof name === "string") {
@@ -447,15 +447,15 @@ export class ComponentLoader {
    * @param {string} name
    * @param {import("@noflo/graph").GraphModel} component
    * @param {Object<string, any>} metadata
-   * @returns {Promise<import("../components/Graph").Graph>}
+   * @returns {Promise<import("../components/Subgraph").Subgraph>}
    */
   loadGraph(name, component, metadata) {
     const graphComponent = /** @type {ModuleComponent} */ (
-      this.components.Graph
+      this.components.Subgraph
     );
     return this.createComponent(name, graphComponent, metadata).then(
       (graph) => {
-        const g = /** @type {import("../components/Graph").Graph} */ (graph);
+        const g = /** @type {import("../components/Subgraph").Subgraph} */ (graph);
         g.loader = this;
         g.baseDir = /** @type {string} */ (this.baseDir);
         g.inPorts.remove("graph");

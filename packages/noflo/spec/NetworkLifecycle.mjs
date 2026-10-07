@@ -198,7 +198,7 @@ describe("Network Lifecycle", () => {
         assert.equal(inst.isLegacy(), false);
       }));
     it("should recognize Graph component as non-legacy", () =>
-      loader.load("Graph").then((inst) => {
+      loader.load("Subgraph").then((inst) => {
         assert.equal(inst.isLegacy(), false);
       }));
   });
