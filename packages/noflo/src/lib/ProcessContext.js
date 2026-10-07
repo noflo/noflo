@@ -2,6 +2,7 @@
 //     (c) 2013-2020 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
+/* @ts-self-types="./ProcessContext.js.d.ts" */
 
 export default class ProcessContext {
   /**

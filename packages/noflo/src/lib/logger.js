@@ -1,6 +1,7 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2026 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
+/* @ts-self-types="./logger.js.d.ts" */
 
 /**
  * @file logger module

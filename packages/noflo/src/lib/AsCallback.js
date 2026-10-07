@@ -1,6 +1,7 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2017-2018 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
+/* @ts-self-types="./AsCallback.js.d.ts" */
 
 /* eslint-disable
     no-param-reassign,

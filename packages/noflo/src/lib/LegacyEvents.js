@@ -25,6 +25,7 @@
  *   included — because the engine's error-escalation semantics ("no
  *   process-error listener ⇒ throw") depend on knowing the count.
  */
+/* @ts-self-types="./LegacyEvents.js.d.ts" */
 
 import { deprecated } from "./Platform.js";
 

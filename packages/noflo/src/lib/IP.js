@@ -1,6 +1,7 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2016-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
+/* @ts-self-types="./IP.js.d.ts" */
 
 // ## Information Packets
 //

@@ -356,7 +356,7 @@ function main() {
     );
     const show = c.gaps.filter((g) => g.level === "symbol" || showMembers);
     for (const g of show) {
-      const where = g.file.split(`/packages/${c.pkg}/`)[1] || g.file;
+      const where = g.file ? g.file.split(`/packages/${c.pkg}/`)[1] || g.file : "<synthesized>";
       console.log(
         `  ✗ [${g.level}] ${String(g.kind).padEnd(10)} ${g.name}  (${where})`,
       );

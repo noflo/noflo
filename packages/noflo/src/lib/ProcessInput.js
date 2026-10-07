@@ -3,6 +3,7 @@
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
 /* eslint-disable no-underscore-dangle */
+/* @ts-self-types="./ProcessInput.js.d.ts" */
 
 import IP from "./IP.js"; // eslint-disable-line no-unused-vars
 import { createDebug } from "./logger.js";

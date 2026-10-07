@@ -2,6 +2,7 @@
 //     (c) 2013-2018 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
+/* @ts-self-types="./Network.js.d.ts" */
 import { sameRef } from "@noflo/graph";
 import { BaseNetwork } from "./BaseNetwork.js";
 import { deprecated } from "./Platform.js";
