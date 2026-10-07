@@ -10,6 +10,7 @@ export { stableStringify } from "./graph/canonical.js";
 export {
   entityKinds,
   GraphModelError,
+  sameRef,
 } from "./graph/entities.js";
 export { exportFbpJson, importFbpJson } from "./graph/fbpJson.js";
 export { GraphModel } from "./graph/GraphModel.js";

@@ -49,12 +49,19 @@ describe("GraphModel nodes", () => {
     );
   });
 
-  it("rejects missing component", () => {
+  it("rejects an empty component", () => {
     const model = new GraphModel();
     assert.throws(
       () => model.addNode({ entity_id: "A", component: "" }),
       GraphModelError,
     );
+  });
+
+  it("allows component-less placeholder nodes", () => {
+    const model = new GraphModel();
+    const node = model.addNode({ entity_id: "A" });
+    assert.equal(node.component, undefined);
+    assert.equal(model.node("A").component, undefined);
   });
 
   it("removes a node and fires removeNode", () => {
@@ -165,6 +172,52 @@ describe("GraphModel edges", () => {
           to: { node: "B", port: "in" },
         }),
       /already connects/,
+    );
+  });
+
+  it("treats different array slots as distinct edges", () => {
+    const model = new GraphModel();
+    model.addNode({ entity_id: "A", component: "x" });
+    model.addNode({ entity_id: "B", component: "y" });
+    const first = model.addEdge({
+      from: { node: "A", port: "out", index: 0 },
+      to: { node: "B", port: "in" },
+    });
+    const second = model.addEdge({
+      from: { node: "A", port: "out", index: 1 },
+      to: { node: "B", port: "in" },
+    });
+    assert.notEqual(first.entity_id, second.entity_id);
+    // Same slot twice is still a duplicate
+    assert.throws(
+      () =>
+        model.addEdge({
+          from: { node: "A", port: "out", index: 1 },
+          to: { node: "B", port: "in" },
+        }),
+      /already connects/,
+    );
+  });
+
+  it("rejects invalid array slot indices", () => {
+    const model = new GraphModel();
+    model.addNode({ entity_id: "A", component: "x" });
+    model.addNode({ entity_id: "B", component: "y" });
+    assert.throws(
+      () =>
+        model.addEdge({
+          from: { node: "A", port: "out", index: -1 },
+          to: { node: "B", port: "in" },
+        }),
+      /index must be a non-negative integer/,
+    );
+    assert.throws(
+      () =>
+        model.addEdge({
+          from: { node: "A", port: "out", index: 1.5 },
+          to: { node: "B", port: "in" },
+        }),
+      GraphModelError,
     );
   });
 

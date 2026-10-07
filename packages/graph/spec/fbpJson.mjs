@@ -74,6 +74,54 @@ describe("importFbpJson", () => {
   });
 });
 
+describe("legacy NoFlo JSON import", () => {
+  it("imports the processes/connections shape", () => {
+    const model = importFbpJson({
+      properties: { env: "legacy" },
+      processes: {
+        Read: { component: "fs/ReadFile", metadata: { x: 1 } },
+        Write: { component: "fs/WriteFile" },
+      },
+      connections: [
+        {
+          src: { process: "Read", port: "out" },
+          tgt: { process: "Write", port: "in", index: 2 },
+        },
+        { data: "hello", tgt: { process: "Read", port: "source" } },
+      ],
+      inports: { input: { process: "Read", port: "in" } },
+      outports: { output: { process: "Write", port: "out" } },
+      groups: [{ name: "all", nodes: ["Read", "Write"] }],
+    });
+    assert.equal(model.graphMetadata().env, "legacy");
+    assert.deepEqual(
+      model.nodes().map((n) => n.entity_id),
+      ["Read", "Write"],
+    );
+    assert.equal(model.node("Read").metadata.x, 1);
+    assert.equal(model.edges().length, 1);
+    assert.deepEqual(model.edges()[0].to, {
+      node: "Write",
+      port: "in",
+      index: 2,
+    });
+    assert.equal(model.iips().length, 1);
+    assert.equal(model.exports().length, 2);
+    assert.equal(model.groups().length, 1);
+  });
+
+  it("rejects malformed legacy connections", () => {
+    assert.throws(
+      () =>
+        importFbpJson({
+          processes: { A: { component: "x" } },
+          connections: [{ tgt: { process: "A", port: "in" } }],
+        }),
+      /must have both src and tgt/,
+    );
+  });
+});
+
 describe("exportFbpJson", () => {
   it("exports the standard document shape", () => {
     const model = importFbpJson(SAMPLE);
@@ -99,6 +147,36 @@ describe("exportFbpJson", () => {
 });
 
 describe("FBP JSON round-trip", () => {
+  it("round-trips array port indices", () => {
+    const model = importFbpJson(SAMPLE);
+    model.addEdge({
+      from: { node: "Read", port: "out", index: 2 },
+      to: { node: "Write", port: "in", index: 1 },
+    });
+    const json = exportFbpJson(model);
+    assert.deepEqual(json.edges.at(-1).source, {
+      id: "Read",
+      port: "out",
+      index: 2,
+    });
+    assert.deepEqual(json.edges.at(-1).target, {
+      id: "Write",
+      port: "in",
+      index: 1,
+    });
+    const rebuilt = importFbpJson(json);
+    assert.deepEqual(rebuilt.edges().at(-1).from, {
+      node: "Read",
+      port: "out",
+      index: 2,
+    });
+    assert.deepEqual(rebuilt.edges().at(-1).to, {
+      node: "Write",
+      port: "in",
+      index: 1,
+    });
+  });
+
   it("export → import → export is stable", () => {
     const model = importFbpJson(SAMPLE);
     const first = exportFbpJson(model);

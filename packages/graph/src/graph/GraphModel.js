@@ -66,6 +66,18 @@ import {
  */
 
 /**
+ * Canonical identity key for a connection: both ends' node, port, and
+ * array slot.
+ *
+ * @param {GraphPortRef} from
+ * @param {GraphPortRef} to
+ * @returns {string}
+ */
+function edgeKey(from, to) {
+  return `${from.node}\u0000${from.port}\u0000${from.index ?? ""}\u0001${to.node}\u0000${to.port}\u0000${to.index ?? ""}`;
+}
+
+/**
  * The native graph model. See the {@link module:GraphModel module doc} for
  * the mode split and event contract.
  */
@@ -78,6 +90,9 @@ export class GraphModel extends EventTarget {
 
   /** @type {Map<string, GraphEdge>} */
   #edges = new Map();
+
+  /** Lookup index for duplicate-edge detection: ref-key → entity_id */
+  #edgeIndex = new Map();
 
   /** @type {Map<string, GraphIIP>} */
   #iips = new Map();
@@ -160,9 +175,11 @@ export class GraphModel extends EventTarget {
 
   /**
    * Add a node. When `entity_id` is omitted a compact generated id is
-   * assigned (`n1`, `n2`, …). Node ids are unique within the graph.
+   * assigned (`n1`, `n2`, …). Node ids are unique within the graph. The
+   * `component` may be omitted for placeholder nodes — the engine
+   * registers them without instantiating a process.
    *
-   * @param {{ entity_id?: string, component: string, metadata?: Object<string, any> }} definition
+   * @param {{ entity_id?: string, component?: string, metadata?: Object<string, any> }} definition
    * @returns {GraphNode} The frozen stored entity
    */
   addNode(definition) {
@@ -173,13 +190,17 @@ export class GraphModel extends EventTarget {
     if (this.#nodes.has(entityId)) {
       throw new GraphModelError(`Node "${entityId}" already exists`);
     }
-    const component = requireString(definition.component, "component");
+    const component =
+      definition.component === undefined
+        ? undefined
+        : requireString(definition.component, "component");
     const metadata = freezeMetadata(definition.metadata, "metadata");
     /** @type {GraphNode} */
-    const node =
-      metadata === undefined
-        ? Object.freeze({ entity_id: entityId, component })
-        : Object.freeze({ entity_id: entityId, component, metadata });
+    const node = Object.freeze({
+      entity_id: entityId,
+      ...(component === undefined ? {} : { component }),
+      ...(metadata === undefined ? {} : { metadata }),
+    });
     this.#nodes.set(entityId, node);
     this.#emit("addNode", { entity: node });
     return node;
@@ -322,7 +343,9 @@ export class GraphModel extends EventTarget {
     const node = this.#requireEntity(this.#nodes, "node", entityId);
     for (const edge of [...this.#edges.values()]) {
       if (edge.from.node === entityId || edge.to.node === entityId) {
-        this.#removeEntity(this.#edges, "edge", edge.entity_id, "removeEdge");
+        this.#edgeIndex.delete(edgeKey(edge.from, edge.to));
+        this.#edges.delete(edge.entity_id);
+        this.#emit("removeEdge", { entity: edge });
       }
     }
     for (const iip of [...this.#iips.values()]) {
@@ -399,20 +422,15 @@ export class GraphModel extends EventTarget {
     const to = requirePortRef(definition.to, "to");
     this.#requireNodeRef(from.node, "from.node");
     this.#requireNodeRef(to.node, "to.node");
-    const duplicate = [...this.#edges.values()].find(
-      (edge) =>
-        edge.from.node === from.node &&
-        edge.from.port === from.port &&
-        edge.to.node === to.node &&
-        edge.to.port === to.port,
-    );
-    if (duplicate) {
+    const duplicateId = this.#edgeIndex.get(edgeKey(from, to));
+    if (duplicateId !== undefined) {
       throw new GraphModelError(
-        `Edge "${duplicate.entity_id}" already connects ${from.node}:${from.port} to ${to.node}:${to.port}`,
+        `Edge "${duplicateId}" already connects ${from.node}:${from.port} to ${to.node}:${to.port}`,
       );
     }
     const edge = this.#freezeEdge(entityId, from, to, definition.metadata);
     this.#edges.set(entityId, edge);
+    this.#edgeIndex.set(edgeKey(from, to), entityId);
     this.#emit("addEdge", { entity: edge });
     return edge;
   }
@@ -459,7 +477,11 @@ export class GraphModel extends EventTarget {
    * @returns {GraphEdge} The removed entity
    */
   removeEdge(entityId) {
-    return this.#removeEntity(this.#edges, "edge", entityId, "removeEdge");
+    const edge = this.#requireEntity(this.#edges, "edge", entityId);
+    this.#edgeIndex.delete(edgeKey(edge.from, edge.to));
+    this.#edges.delete(entityId);
+    this.#emit("removeEdge", { entity: edge });
+    return edge;
   }
 
   /**

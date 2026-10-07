@@ -41,30 +41,33 @@ export function importFbpJson(json) {
   if (typeof json !== "object" || json === null || Array.isArray(json)) {
     throw new GraphModelError("FBP JSON document must be an object");
   }
+  const document = normalizeLegacyFbpJson(json);
   const options = /** @type {GraphModelOptions} */ ({});
   if (json.name !== undefined) {
     options.name = requireString(json.name, "name");
   }
   const model = new GraphModel(options);
 
-  for (const [key, value] of Object.entries(json.properties ?? {})) {
+  for (const [key, value] of Object.entries(document.properties ?? {})) {
     model.setGraphMetadata(key, value);
   }
-  for (const node of json.nodes ?? []) {
+  for (const node of document.nodes ?? []) {
     model.addNode({
       entity_id: requireString(node?.id, "node.id"),
-      component: requireString(node?.component, "node.component"),
+      ...(node?.component === undefined
+        ? {}
+        : { component: requireString(node.component, "node.component") }),
       ...(node?.metadata === undefined ? {} : { metadata: node.metadata }),
     });
   }
-  for (const edge of json.edges ?? []) {
+  for (const edge of document.edges ?? []) {
     model.addEdge({
       from: jsonPortRef(edge?.source, "edge.source"),
       to: jsonPortRef(edge?.target, "edge.target"),
       ...(edge?.metadata === undefined ? {} : { metadata: edge.metadata }),
     });
   }
-  const iips = json.inits ?? json.case ?? [];
+  const iips = document.inits ?? document.case ?? [];
   for (const iip of iips) {
     model.addIIP({
       data: iip?.data,
@@ -72,7 +75,7 @@ export function importFbpJson(json) {
       ...(iip?.metadata === undefined ? {} : { metadata: iip.metadata }),
     });
   }
-  for (const [publicName, def] of Object.entries(json.inports ?? {})) {
+  for (const [publicName, def] of Object.entries(document.inports ?? {})) {
     model.addExport({
       direction: "inport",
       public: publicName,
@@ -83,7 +86,7 @@ export function importFbpJson(json) {
       ...withDefinedMetadata(exportMetadata(def)),
     });
   }
-  for (const [publicName, def] of Object.entries(json.outports ?? {})) {
+  for (const [publicName, def] of Object.entries(document.outports ?? {})) {
     model.addExport({
       direction: "outport",
       public: publicName,
@@ -94,7 +97,7 @@ export function importFbpJson(json) {
       ...withDefinedMetadata(exportMetadata(def)),
     });
   }
-  for (const group of json.groups ?? []) {
+  for (const group of document.groups ?? []) {
     model.addGroup({
       name: requireString(group?.name, "group.name"),
       nodes: requireGroupNodes(group?.nodes),
@@ -102,6 +105,90 @@ export function importFbpJson(json) {
     });
   }
   return model;
+}
+
+/**
+ * Normalize a legacy NoFlo JSON document (`processes`/`connections` shape,
+ * as written by 1.x-era tooling) into modern FBP JSON. Modern documents
+ * pass through unchanged.
+ *
+ * @param {Object<string, any>} json
+ * @returns {Object<string, any>}
+ */
+function normalizeLegacyFbpJson(json) {
+  if (json.processes === undefined && json.connections === undefined) {
+    return json;
+  }
+  const document = /** @type {Object<string, any>} */ ({});
+  if (json.properties !== undefined) {
+    document.properties = json.properties;
+  }
+  if (json.processes !== undefined) {
+    document.nodes = Object.entries(json.processes).map(([id, def]) => ({
+      id,
+      component: def?.component,
+      ...(def?.metadata === undefined ? {} : { metadata: def.metadata }),
+    }));
+  }
+  if (json.connections !== undefined) {
+    const edges = /** @type {Object<string, any>[]} */ ([]);
+    const inits = /** @type {Object<string, any>[]} */ ([]);
+    for (const connection of json.connections) {
+      if (connection?.data !== undefined) {
+        inits.push({
+          data: connection.data,
+          target: jsonRefIn(connection.tgt),
+          ...(connection.metadata === undefined
+            ? {}
+            : { metadata: connection.metadata }),
+        });
+      } else if (connection?.src && connection?.tgt) {
+        edges.push({
+          source: jsonRefIn(connection.src),
+          target: jsonRefIn(connection.tgt),
+          ...(connection.metadata === undefined
+            ? {}
+            : { metadata: connection.metadata }),
+        });
+      } else {
+        throw new GraphModelError(
+          "Legacy JSON connection must have both src and tgt, or data and tgt",
+        );
+      }
+    }
+    document.edges = edges;
+    if (inits.length > 0) {
+      document.inits = inits;
+    }
+  }
+  if (json.inports !== undefined) {
+    document.inports = json.inports;
+  }
+  if (json.outports !== undefined) {
+    document.outports = json.outports;
+  }
+  if (json.groups !== undefined) {
+    document.groups = json.groups;
+  }
+  return document;
+}
+
+/**
+ * Convert a legacy JSON port reference (`{ process, port, index? }`) into
+ * the modern `{ id, port, index? }` shape.
+ *
+ * @param {any} ref
+ * @returns {Object<string, any>|undefined}
+ */
+function jsonRefIn(ref) {
+  if (ref === undefined) {
+    return undefined;
+  }
+  return {
+    id: ref.process,
+    port: ref.port,
+    ...(ref.index === undefined ? {} : { index: ref.index }),
+  };
 }
 
 /**
@@ -149,14 +236,14 @@ export function exportFbpJson(model) {
     ...(node.metadata === undefined ? {} : { metadata: node.metadata }),
   }));
   result.edges = model.edges().map((edge) => ({
-    source: { id: edge.from.node, port: edge.from.port },
-    target: { id: edge.to.node, port: edge.to.port },
+    source: jsonRefOut(edge.from),
+    target: jsonRefOut(edge.to),
     ...(edge.metadata === undefined ? {} : { metadata: edge.metadata }),
   }));
 
   const iips = model.iips().map((iip) => ({
     data: iip.from.data,
-    target: { id: iip.to.node, port: iip.to.port },
+    target: jsonRefOut(iip.to),
     ...(iip.metadata === undefined ? {} : { metadata: iip.metadata }),
   }));
   if (iips.length > 0) {
@@ -183,6 +270,20 @@ function exportMetadata(def) {
 }
 
 /**
+ * Convert a native port reference into an FBP JSON `{ id, port, index? }`.
+ *
+ * @param {{ node: string, port: string, index?: number }} ref
+ * @returns {Object<string, any>}
+ */
+function jsonRefOut(ref) {
+  return {
+    id: ref.node,
+    port: ref.port,
+    ...(ref.index === undefined ? {} : { index: ref.index }),
+  };
+}
+
+/**
  * Convert an FBP JSON port reference (`{ id, port }`) into a native
  * `{ node, port }` reference, validating on the way.
  *
@@ -191,7 +292,14 @@ function exportMetadata(def) {
  * @returns {import("./entities.js").GraphPortRef}
  */
 function jsonPortRef(ref, field) {
-  return requirePortRef({ node: ref?.id, port: ref?.port }, field);
+  return requirePortRef(
+    {
+      node: ref?.id,
+      port: ref?.port,
+      ...(ref?.index === undefined ? {} : { index: ref.index }),
+    },
+    field,
+  );
 }
 
 /**

@@ -23,11 +23,13 @@
 
 /**
  * Reference to one end of a connection: a node (by `entity_id`) and one of
- * its ports.
+ * its ports. Addressable (array) ports target a specific slot through the
+ * optional `index`.
  *
  * @typedef {Object} GraphPortRef
  * @property {string} node - `entity_id` of the referenced node
  * @property {string} port - Port name on that node
+ * @property {number} [index] - Slot index for addressable ports
  */
 
 /**
@@ -35,7 +37,7 @@
  *
  * @typedef {Object} GraphNode
  * @property {string} entity_id - Stable reference key; the node name
- * @property {string} component - Component the node instantiates
+ * @property {string} [component] - Component the node instantiates; absent for placeholder nodes
  * @property {Object<string, any>} [metadata] - JSON-able key/value map
  */
 
@@ -97,6 +99,22 @@
 export const entityKinds = ["node", "edge", "iip", "export", "group"];
 
 /**
+ * Compare two port references for identity: same node, port, and array
+ * slot (where `undefined` and absence both mean "not addressable").
+ *
+ * @param {GraphPortRef} a
+ * @param {GraphPortRef} b
+ * @returns {boolean}
+ */
+export function sameRef(a, b) {
+  return (
+    a.node === b.node &&
+    a.port === b.port &&
+    (a.index ?? undefined) === (b.index ?? undefined)
+  );
+}
+
+/**
  * Error thrown for invalid entity shapes or referential integrity
  * violations (for example an edge referencing a node that does not exist).
  * Distinguishable from programming errors (`TypeError`) so the engine seam
@@ -136,10 +154,24 @@ export function requirePortRef(value, field) {
   const ref = /** @type {Record<string, unknown>} */ (value);
   requireString(ref.node, `${field}.node`);
   requireString(ref.port, `${field}.port`);
-  return {
+  /** @type {{ node: string, port: string, index?: number }} */
+  const out = {
     node: /** @type {string} */ (ref.node),
     port: /** @type {string} */ (ref.port),
   };
+  if (ref.index !== undefined) {
+    if (
+      typeof ref.index !== "number" ||
+      !Number.isInteger(ref.index) ||
+      ref.index < 0
+    ) {
+      throw new GraphModelError(
+        `${field}.index must be a non-negative integer`,
+      );
+    }
+    out.index = ref.index;
+  }
+  return out;
 }
 
 /**
