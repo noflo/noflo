@@ -3,7 +3,6 @@
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
 
-import debug from "debug";
 import InPort from "./InPort.js"; // eslint-disable-line no-unused-vars
 import IP from "./IP.js"; // eslint-disable-line no-unused-vars
 /* eslint-disable
@@ -12,6 +11,7 @@ import IP from "./IP.js"; // eslint-disable-line no-unused-vars
     import/prefer-default-export,
 */
 import { LegacyEventBase } from "./LegacyEvents.js";
+import { createDebug } from "./logger.js";
 import OutPort from "./OutPort.js"; // eslint-disable-line no-unused-vars
 import { deprecated } from "./Platform.js";
 import { InPorts, normalizePortName, OutPorts } from "./Ports.js";
@@ -19,9 +19,9 @@ import ProcessContext from "./ProcessContext.js";
 import ProcessInput from "./ProcessInput.js";
 import ProcessOutput from "./ProcessOutput.js";
 
-const debugComponent = debug("noflo:component");
-const debugBrackets = debug("noflo:component:brackets");
-const debugSend = debug("noflo:component:send");
+const debugComponent = createDebug("noflo:component");
+const debugBrackets = createDebug("noflo:component:brackets");
+const debugSend = createDebug("noflo:component:send");
 
 /**
  * @callback ProcessingFunction

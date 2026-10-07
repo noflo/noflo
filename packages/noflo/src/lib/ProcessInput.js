@@ -3,10 +3,11 @@
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
 /* eslint-disable no-underscore-dangle */
-import debug from "debug";
-import IP from "./IP.js"; // eslint-disable-line no-unused-vars
 
-const debugComponent = debug("noflo:component");
+import IP from "./IP.js"; // eslint-disable-line no-unused-vars
+import { createDebug } from "./logger.js";
+
+const debugComponent = createDebug("noflo:component");
 
 export default class ProcessInput {
   /**

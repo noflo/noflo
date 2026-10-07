@@ -3,11 +3,11 @@
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
 
-/* eslint-disable no-underscore-dangle */
-import debug from "debug";
 import IP from "./IP.js";
+/* eslint-disable no-underscore-dangle */
+import { createDebug } from "./logger.js";
 
-const debugComponent = debug("noflo:component");
+const debugComponent = createDebug("noflo:component");
 
 // Checks if a value is an Error
 /**
