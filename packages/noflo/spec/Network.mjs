@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
+import { nativeGraph } from "./utils/nativeGraph.mjs";
 
 describe("NoFlo Network", () => {
   const Split = () =>
@@ -51,10 +52,9 @@ describe("NoFlo Network", () => {
     let g = null;
     let n = null;
     before(() => {
-      g = new noflo.Graph();
+      g = nativeGraph();
       return noflo
         .createNetwork(g, {
-          subscribeGraph: false,
           asyncDelivery: true,
           delay: true,
           baseDir: process.cwd(),
@@ -101,14 +101,14 @@ describe("NoFlo Network", () => {
     describe("with new node", () => {
       it("should contain the node", () =>
         n.addNode({
-          id: "Graph",
+          entity_id: "Graph",
           component: "Graph",
           metadata: {
             foo: "Bar",
           },
         }));
       it("should have registered the node with the graph", () => {
-        const node = g.getNode("Graph");
+        const node = g.node("Graph");
         assert.strictEqual(typeof node, "object");
         assert.strictEqual(node.component, "Graph");
       });
@@ -120,12 +120,12 @@ describe("NoFlo Network", () => {
         );
         assert.deepStrictEqual(
           n.processes.Graph.component.metadata,
-          g.getNode("Graph").metadata,
+          g.node("Graph").metadata,
         );
       });
       it("adding the same node again should be a no-op", () => {
         const originalProcess = n.getNode("Graph");
-        const graphNode = g.getNode("Graph");
+        const graphNode = g.node("Graph");
         return n.addNode(graphNode).then((newProcess) => {
           assert.strictEqual(newProcess, originalProcess);
         });
@@ -133,20 +133,20 @@ describe("NoFlo Network", () => {
       it("should not contain the node after removal", () => {
         return n
           .removeNode({
-            id: "Graph",
+            entity_id: "Graph",
           })
           .then(() => {
             assert.deepEqual(n.processes, {});
           });
       });
       it("should have removed the node from the graph", () => {
-        const node = g.getNode("graph");
-        assert.strictEqual(node, null);
+        const node = g.node("graph");
+        assert.strictEqual(node, undefined);
       });
       it("should fail when removing the removed node again", () =>
         n
           .removeNode({
-            id: "Graph",
+            entity_id: "Graph",
           })
           .then(
             () => Promise.reject(new Error("Unexpected success")),
@@ -161,12 +161,12 @@ describe("NoFlo Network", () => {
         n.loader.components.Split = Split;
         return n
           .addNode({
-            id: "A",
+            entity_id: "A",
             component: "Split",
           })
           .then(() =>
             n.addNode({
-              id: "B",
+              entity_id: "B",
               component: "Split",
             }),
           );
@@ -174,11 +174,11 @@ describe("NoFlo Network", () => {
       after(() =>
         n
           .removeNode({
-            id: "A",
+            entity_id: "A",
           })
           .then(() =>
             n.removeNode({
-              id: "B",
+              entity_id: "B",
             }),
           ),
       );
@@ -208,8 +208,16 @@ describe("NoFlo Network", () => {
             });
           }));
       it("should have registered the edge with the graph", () => {
-        const edge = g.getEdge("A", "out", "B", "in");
-        assert.notEqual(edge, null);
+        const edge = g
+          .edges()
+          .find(
+            (candidate) =>
+              candidate.from.node === "A" &&
+              candidate.from.port === "out" &&
+              candidate.to.node === "B" &&
+              candidate.to.port === "in",
+          );
+        assert.notEqual(edge, undefined);
       });
       it("should not contain the edge after removal", () =>
         n
@@ -227,8 +235,16 @@ describe("NoFlo Network", () => {
             assert.deepEqual(n.connections, []);
           }));
       it("should have removed the edge from the graph", () => {
-        const edge = g.getEdge("A", "out", "B", "in");
-        assert.strictEqual(edge, null);
+        const edge = g
+          .edges()
+          .find(
+            (candidate) =>
+              candidate.from.node === "A" &&
+              candidate.from.port === "out" &&
+              candidate.to.node === "B" &&
+              candidate.to.port === "in",
+          );
+        assert.strictEqual(edge, undefined);
       });
     });
   });
@@ -236,7 +252,7 @@ describe("NoFlo Network", () => {
     let g = null;
     let n = null;
     before(() => {
-      g = new noflo.Graph();
+      g = nativeGraph();
       g.addNode("Merge", "Merge");
       g.addNode("Callback", "Callback");
       g.addEdge("Merge", "out", "Callback", "in");
@@ -250,7 +266,6 @@ describe("NoFlo Network", () => {
       g.addInitial("Foo", "Merge", "in");
       return noflo
         .createNetwork(g, {
-          subscribeGraph: false,
           asyncDelivery: true,
           delay: true,
           baseDir: process.cwd(),
@@ -418,25 +433,22 @@ describe("NoFlo Network", () => {
     describe("without the delay option", () => {
       it("should auto-start", (_t, done) => {
         g.removeInitial("Func", "callback");
-        noflo.graph
-          .loadJSON(g.toJSON())
-          .then((graph) => {
-            // Pass the already-initialized component loader
-            graph.addInitial(
-              (data) => {
-                assert.strictEqual(data, "Foo");
-                done();
-              },
-              "Func",
-              "callback",
-            );
-            return noflo.createNetwork(graph, {
-              subscribeGraph: false,
-              asyncDelivery: true,
-              delay: false,
-              componentLoader: n.loader,
-            });
+        const graph = g.clone();
+        // Pass the already-initialized component loader
+        graph.addIIP({
+          data: (data) => {
+            assert.strictEqual(data, "Foo");
+            done();
+          },
+          to: { node: "Func", port: "callback" },
+        });
+        noflo
+          .createNetwork(graph, {
+            asyncDelivery: true,
+            delay: false,
+            componentLoader: n.loader,
           })
+
           .catch(done);
       });
     });
@@ -473,7 +485,7 @@ describe("NoFlo Network", () => {
         }
         testCallback(input.getData("in"));
       });
-      g = new noflo.Graph();
+      g = nativeGraph();
       g.addNode("Def", "Def");
       g.addNode("Cb", "Cb");
       g.addEdge("Def", "out", "Cb", "in");
@@ -485,7 +497,6 @@ describe("NoFlo Network", () => {
       };
       noflo
         .createNetwork(g, {
-          subscribeGraph: false,
           asyncDelivery: true,
           delay: true,
           baseDir: process.cwd(),
@@ -508,7 +519,6 @@ describe("NoFlo Network", () => {
       g.addInitial("from-edge", "Merge", "in");
       noflo
         .createNetwork(g, {
-          subscribeGraph: false,
           asyncDelivery: true,
           delay: true,
           baseDir: process.cwd(),
@@ -530,7 +540,6 @@ describe("NoFlo Network", () => {
       g.addInitial("from-IIP", "Def", "in");
       noflo
         .createNetwork(g, {
-          subscribeGraph: false,
           asyncDelivery: true,
           delay: true,
           baseDir: process.cwd(),
@@ -549,7 +558,7 @@ describe("NoFlo Network", () => {
     let g = null;
     let n = null;
     before(() => {
-      g = new noflo.Graph()
+      g = nativeGraph()
         .addNode("Callback", "Callback")
         .addNode("Repeat", "Split")
         .addEdge("Repeat", "out", "Callback", "in");
@@ -565,7 +574,6 @@ describe("NoFlo Network", () => {
         noflo
           .createNetwork(g, {
             delay: true,
-            subscribeGraph: false,
             asyncDelivery: true,
             baseDir: process.cwd(),
           })
@@ -668,7 +676,7 @@ describe("NoFlo Network", () => {
           return;
         }
         let n;
-        const g = new noflo.Graph();
+        const g = nativeGraph();
         let called = 0;
         for (n = 0; n <= 10000; n++) {
           g.addNode(`Repeat${n}`, "Split");
@@ -691,7 +699,6 @@ describe("NoFlo Network", () => {
         noflo
           .createNetwork(g, {
             delay: true,
-            subscribeGraph: false,
             asyncDelivery: true,
             baseDir: process.cwd(),
           })
@@ -718,14 +725,13 @@ describe("NoFlo Network", () => {
       });
     });
     it("should fail on connect with non-existing component", () => {
-      const g = new noflo.Graph();
+      const g = nativeGraph();
       g.addNode("Repeat1", "Baz");
       g.addNode("Repeat2", "Split");
       g.addEdge("Repeat1", "out", "Repeat2", "in");
       return noflo
         .createNetwork(g, {
           delay: true,
-          subscribeGraph: false,
           asyncDelivery: true,
           componentLoader: loader,
         })
@@ -740,14 +746,13 @@ describe("NoFlo Network", () => {
         );
     });
     it("should fail on connect with missing target port", () => {
-      const g = new noflo.Graph();
+      const g = nativeGraph();
       g.addNode("Repeat1", "Split");
       g.addNode("Repeat2", "Split");
       g.addEdge("Repeat1", "out", "Repeat2", "foo");
       return noflo
         .createNetwork(g, {
           delay: true,
-          subscribeGraph: false,
           asyncDelivery: true,
           componentLoader: loader,
         })
@@ -762,14 +767,13 @@ describe("NoFlo Network", () => {
         );
     });
     it("should fail on connect with missing source port", () => {
-      const g = new noflo.Graph();
+      const g = nativeGraph();
       g.addNode("Repeat1", "Split");
       g.addNode("Repeat2", "Split");
       g.addEdge("Repeat1", "foo", "Repeat2", "in");
       return noflo
         .createNetwork(g, {
           delay: true,
-          subscribeGraph: false,
           asyncDelivery: true,
           componentLoader: loader,
         })
@@ -784,7 +788,7 @@ describe("NoFlo Network", () => {
         );
     });
     it("should fail on connect with missing IIP target port", () => {
-      const g = new noflo.Graph();
+      const g = nativeGraph();
       g.addNode("Repeat1", "Split");
       g.addNode("Repeat2", "Split");
       g.addEdge("Repeat1", "out", "Repeat2", "in");
@@ -792,7 +796,6 @@ describe("NoFlo Network", () => {
       return noflo
         .createNetwork(g, {
           delay: true,
-          subscribeGraph: false,
           asyncDelivery: true,
           componentLoader: loader,
         })
@@ -807,7 +810,7 @@ describe("NoFlo Network", () => {
         );
     });
     it("should fail on connect with node without component", () => {
-      const g = new noflo.Graph();
+      const g = nativeGraph();
       g.addNode("Repeat1", "Split");
       g.addNode("Repeat2");
       g.addEdge("Repeat1", "out", "Repeat2", "in");
@@ -815,7 +818,6 @@ describe("NoFlo Network", () => {
       return noflo
         .createNetwork(g, {
           delay: true,
-          subscribeGraph: false,
           asyncDelivery: true,
           componentLoader: loader,
         })
@@ -830,12 +832,11 @@ describe("NoFlo Network", () => {
         );
     });
     it("should fail to add an edge to a missing outbound node", () => {
-      const g = new noflo.Graph();
+      const g = nativeGraph();
       g.addNode("Repeat1", "Split");
       return noflo
         .createNetwork(g, {
           delay: true,
-          subscribeGraph: false,
           asyncDelivery: true,
           componentLoader: loader,
         })
@@ -863,12 +864,11 @@ describe("NoFlo Network", () => {
         );
     });
     it("should fail to add an edge to a missing inbound node", () => {
-      const g = new noflo.Graph();
+      const g = nativeGraph();
       g.addNode("Repeat1", "Split");
       return noflo
         .createNetwork(g, {
           delay: true,
-          subscribeGraph: false,
           asyncDelivery: true,
           componentLoader: loader,
         })
@@ -898,12 +898,11 @@ describe("NoFlo Network", () => {
   });
   describe("baseDir setting", () => {
     it("should set baseDir based on given graph (deprecated)", () => {
-      const g = new noflo.Graph();
-      g.properties.baseDir = process.cwd();
+      const g = nativeGraph();
+      g.setGraphMetadata("baseDir", process.cwd());
       return noflo
         .createNetwork(g, {
           delay: true,
-          subscribeGraph: false,
           asyncDelivery: true,
         })
         .then((nw) => {
@@ -915,11 +914,10 @@ describe("NoFlo Network", () => {
         this.skip();
         return;
       }
-      const g = new noflo.Graph();
+      const g = nativeGraph();
       return noflo
         .createNetwork(g, {
           delay: true,
-          subscribeGraph: false,
           asyncDelivery: true,
         })
         .then((nw) => {
@@ -927,11 +925,10 @@ describe("NoFlo Network", () => {
         });
     });
     it("should set the baseDir for the component loader", () => {
-      const g = new noflo.Graph();
+      const g = nativeGraph();
       return noflo
         .createNetwork(g, {
           delay: true,
-          subscribeGraph: false,
           asyncDelivery: true,
           baseDir: process.cwd(),
         })
@@ -945,10 +942,9 @@ describe("NoFlo Network", () => {
     let n = null;
     let g = null;
     before(() => {
-      g = new noflo.Graph();
+      g = nativeGraph();
       return noflo
         .createNetwork(g, {
-          subscribeGraph: false,
           asyncDelivery: true,
           delay: true,
           baseDir: process.cwd(),
@@ -959,13 +955,13 @@ describe("NoFlo Network", () => {
           return Promise.resolve()
             .then(() =>
               n.addNode({
-                id: "A",
+                entity_id: "A",
                 component: "Split",
               }),
             )
             .then(() =>
               n.addNode({
-                id: "B",
+                entity_id: "B",
                 component: "Split",
               }),
             )

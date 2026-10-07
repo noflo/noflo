@@ -7,9 +7,10 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import * as fbpGraph from "fbp-graph";
+import { exportFbpJson, GraphModel } from "@noflo/graph";
 import * as manifest from "fbp-manifest";
 import { promisify } from "util";
+import { loadGraphFile } from "../graphFile.js";
 import { deprecated } from "../Platform.js";
 import * as utils from "../Utils.js";
 
@@ -302,41 +303,34 @@ export function getSource(loader, name, callback) {
   };
 
   if (loader.isGraph(component)) {
-    if (typeof component === "object") {
-      const comp = /** @type import("fbp-graph").Graph */ (component);
-      if (typeof comp.toJSON === "function") {
-        finalize(null, {
-          name: nameParts[1],
-          library: nameParts[0],
-          code: JSON.stringify(comp.toJSON()),
-          language: "json",
-        });
-        return;
-      }
-      finalize(
-        new Error(`Can't provide source for ${componentName}. Not a file`),
-      );
-      return;
-    }
-    if (typeof component === "string") {
-      fbpGraph.graph.loadFile(component, (err, graph) => {
-        if (err) {
-          finalize(err);
-          return;
-        }
-        if (!graph) {
-          finalize(new Error("Unable to load graph"));
-          return;
-        }
-        finalize(null, {
-          name: nameParts[1],
-          library: nameParts[0],
-          code: JSON.stringify(graph.toJSON()),
-          language: "json",
-        });
+    if (component instanceof GraphModel) {
+      finalize(null, {
+        name: nameParts[1],
+        library: nameParts[0],
+        code: JSON.stringify(exportFbpJson(component)),
+        language: "json",
       });
       return;
     }
+    if (typeof component === "string") {
+      loadGraphFile(component)
+        .then((graph) => {
+          finalize(null, {
+            name: nameParts[1],
+            library: nameParts[0],
+            code: JSON.stringify(exportFbpJson(graph)),
+            language: "json",
+          });
+        })
+        .catch((err) => {
+          finalize(err);
+        });
+      return;
+    }
+    finalize(
+      new Error(`Can't provide source for ${componentName}. Not a file`),
+    );
+    return;
   }
 
   if (loader.sourcesForComponents?.[componentName]) {

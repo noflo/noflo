@@ -9,13 +9,13 @@
     import/prefer-default-export,
 */
 
-import { Graph } from "fbp-graph";
+import { GraphModel } from "@noflo/graph";
 import * as registerLoader from "./loader/register.js";
 import { deprecated, makeAsync } from "./Platform.js";
 
 /**
  * @callback ComponentFactory
- * @param {import("fbp-graph/lib/Types").GraphNodeMetadata} [metadata]
+ * @param {Object<string, any>} [metadata]
  * @returns {import("./Component").Component}
  */
 
@@ -25,7 +25,7 @@ import { deprecated, makeAsync } from "./Platform.js";
  */
 
 // eslint-disable-next-line max-len
-/** @typedef {string | ModuleComponent | ComponentFactory | import("fbp-graph").Graph } ComponentDefinition */
+/** @typedef {string | ModuleComponent | ComponentFactory | import("@noflo/graph").GraphModel } ComponentDefinition */
 /** @typedef {string | ModuleComponent | ComponentFactory } ComponentDefinitionWithoutGraph */
 
 /**
@@ -246,7 +246,7 @@ export class ComponentLoader {
   // component.
   /**
    * @param {string} name - Component name
-   * @param {import("fbp-graph/lib/Types").GraphNodeMetadata} meta - Node metadata
+   * @param {Object<string, any>} meta - Node metadata
    * @param {any} [cb] - Legacy callback
    * @returns {Promise<import("./Component").Component>}
    */
@@ -359,7 +359,7 @@ export class ComponentLoader {
    * Creates an instance of a component.
    * @param {string} name
    * @param {ComponentDefinitionWithoutGraph} component
-   * @param {import("fbp-graph/lib/Types").GraphNodeMetadata} metadata
+   * @param {Object<string, any>} metadata
    * @returns {Promise<import("./Component").Component>}
    */
   createComponent(name, component, metadata) {
@@ -421,22 +421,20 @@ export class ComponentLoader {
 
   // Check if a given filesystem path is actually a graph
   /**
-   * @param {import("fbp-graph").Graph|object|string} cPath
+   * @param {import("@noflo/graph").GraphModel|object|string} cPath
    * @returns {boolean}
    */
   isGraph(cPath) {
-    // Live graph instance
-    if (
-      typeof cPath === "object" &&
-      (cPath instanceof Graph ||
-        (Array.isArray(cPath.nodes) &&
-          Array.isArray(cPath.edges) &&
-          Array.isArray(cPath.initializers)))
-    ) {
+    // Live graph model instance
+    if (cPath instanceof GraphModel) {
       return true;
     }
-    // Graph JSON definition
-    if (typeof cPath === "object" && cPath.processes && cPath.connections) {
+    // FBP JSON definition
+    if (
+      typeof cPath === "object" &&
+      Array.isArray(cPath.nodes) &&
+      Array.isArray(cPath.edges)
+    ) {
       return true;
     }
     if (typeof cPath !== "string") {
@@ -450,8 +448,8 @@ export class ComponentLoader {
   /**
    * @protected
    * @param {string} name
-   * @param {import("fbp-graph").Graph} component
-   * @param {import("fbp-graph/lib/Types").GraphNodeMetadata} metadata
+   * @param {import("@noflo/graph").GraphModel} component
+   * @param {Object<string, any>} metadata
    * @returns {Promise<import("../components/Graph").Graph>}
    */
   loadGraph(name, component, metadata) {
@@ -575,7 +573,7 @@ export class ComponentLoader {
   /**
    * @param {string} packageId
    * @param {string} name
-   * @param {import("fbp-graph").Graph} gPath
+   * @param {import("@noflo/graph").GraphModel} gPath
    * @param {ErrorableCallback} [callback]
    * @returns {Promise<void>}
    */
