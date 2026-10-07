@@ -13,7 +13,7 @@ import IP from "./IP.js";
  * @property {boolean} [caching]
  */
 /**
- * @typedef {import("./BasePort").BaseOptions & OutPortOptions} PortOptions
+ * @typedef {import("./BasePort.js").BaseOptions & OutPortOptions} PortOptions
  */
 
 export default class OutPort extends BasePort {
@@ -47,7 +47,7 @@ export default class OutPort extends BasePort {
   }
 
   /**
-   * @param {import("./InternalSocket").InternalSocket} socket
+   * @param {import("./InternalSocket.js").InternalSocket} socket
    * @param {number|null} [index]
    */
   attach(socket, index = null) {
@@ -135,7 +135,7 @@ export default class OutPort extends BasePort {
   /**
    * @param {string|IP} type
    * @param {any} [data]
-   * @param {import("./IP").IPOptions} [options]
+   * @param {import("./IP.js").IPOptions} [options]
    * @param {number|null} [index]
    * @param {boolean} [autoConnect]
    */
@@ -197,7 +197,7 @@ export default class OutPort extends BasePort {
 
   /**
    * @param {string|null} data
-   * @param {import("./IP").IPOptions} options
+   * @param {import("./IP.js").IPOptions} options
    * @param {number|null} [index]
    */
   openBracket(data = null, options = {}, index = null) {
@@ -206,7 +206,7 @@ export default class OutPort extends BasePort {
 
   /**
    * @param {any} data
-   * @param {import("./IP").IPOptions} options
+   * @param {import("./IP.js").IPOptions} options
    * @param {number|null} [index]
    */
   data(data, options = {}, index = null) {
@@ -215,7 +215,7 @@ export default class OutPort extends BasePort {
 
   /**
    * @param {string|null} data
-   * @param {import("./IP").IPOptions} options
+   * @param {import("./IP.js").IPOptions} options
    * @param {number|null} [index]
    */
   closeBracket(data = null, options = {}, index = null) {
@@ -223,7 +223,7 @@ export default class OutPort extends BasePort {
   }
 
   /**
-   * @param {Array<import("./InternalSocket").InternalSocket|void>} sockets
+   * @param {Array<import("./InternalSocket.js").InternalSocket|void>} sockets
    */
   checkRequired(sockets) {
     if (sockets.length === 0 && this.isRequired()) {
@@ -233,7 +233,7 @@ export default class OutPort extends BasePort {
 
   /**
    * @param {number|null} index
-   * @returns {Array<import("./InternalSocket").InternalSocket|void>}
+   * @returns {Array<import("./InternalSocket.js").InternalSocket|void>}
    */
   getSockets(index) {
     // Addressable sockets affect only one connection at time

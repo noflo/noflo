@@ -33,8 +33,8 @@ const debugSend = createDebug("noflo:component:send");
 
 /**
  * @typedef ComponentOptions
- * @property {import("./Ports").InPortsOptions | InPorts} [inPorts] - Inports for the component
- * @property {import("./Ports").OutPortsOptions | OutPorts} [outPorts] - Outports for the component
+ * @property {import("./Ports.js").InPortsOptions | InPorts} [inPorts] - Inports for the component
+ * @property {import("./Ports.js").OutPortsOptions | OutPorts} [outPorts] - Outports for the component
  * @property {string} [icon]
  * @property {string} [description]
  * @property {ProcessingFunction} [options.process] - Component processsing function

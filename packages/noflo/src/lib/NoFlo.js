@@ -131,7 +131,7 @@ import IP from "./IP.js";
  */
 
 /**
- * @typedef { CreateNetworkOptions & import("./BaseNetwork").NetworkOptions} NetworkOptions
+ * @typedef { CreateNetworkOptions & import("./BaseNetwork.js").NetworkOptions} NetworkOptions
  */
 
 /**

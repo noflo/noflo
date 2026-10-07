@@ -4,3 +4,4 @@
 /spec/*.xml
 /coverage/
 /.nyc_output/
+/lib/

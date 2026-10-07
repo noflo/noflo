@@ -24,12 +24,12 @@ export class Subgraph extends Component {
   constructor(metadata) {
     super();
     this.metadata = metadata;
-    /** @type {import("../lib/Network").Network|null} */
+    /** @type {import("../lib/Network.js").Network|null} */
     this.network = null;
     this.ready = true;
     this.started = false;
     this.starting = false;
-    /** @type {import("../lib/ComponentLoader").ComponentLoader|null} */
+    /** @type {import("../lib/ComponentLoader.js").ComponentLoader|null} */
     this.loader = null;
     this.load = 0;
 
@@ -117,7 +117,7 @@ export class Subgraph extends Component {
    */
 
   /**
-   * @param {import("../lib/Network").Network} network
+   * @param {import("../lib/Network.js").Network} network
    */
   subscribeNetwork(network) {
     /**
@@ -143,7 +143,7 @@ export class Subgraph extends Component {
   }
 
   /**
-   * @param {import("../lib/InPort").default} _port
+   * @param {import("../lib/InPort.js").default} _port
    * @param {string} nodeName
    * @param {string} portName
    * @returns {boolean|string}
@@ -169,7 +169,7 @@ export class Subgraph extends Component {
   }
 
   /**
-   * @param {import("../lib/OutPort").default} _port
+   * @param {import("../lib/OutPort.js").default} _port
    * @param {string} nodeName
    * @param {string} portName
    * @returns {boolean|string}
@@ -214,7 +214,7 @@ export class Subgraph extends Component {
 
   /**
    * @param {string} name
-   * @param {import("../lib/BaseNetwork").NetworkProcess} process
+   * @param {import("../lib/BaseNetwork.js").NetworkProcess} process
    * @returns {boolean}
    */
   findEdgePorts(name, process) {

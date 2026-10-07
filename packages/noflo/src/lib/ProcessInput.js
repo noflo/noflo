@@ -11,8 +11,8 @@ const debugComponent = createDebug("noflo:component");
 
 export default class ProcessInput {
   /**
-   * @param {import("./Ports").InPorts} ports - Component inports
-   * @param {import("./ProcessContext").default} context - Processing context
+   * @param {import("./Ports.js").InPorts} ports - Component inports
+   * @param {import("./ProcessContext.js").default} context - Processing context
    */
   constructor(ports, context) {
     this.ports = ports;
@@ -84,7 +84,7 @@ export default class ProcessInput {
   // checking of packets.
   /**
    * @typedef {string|Array<string|number>} GetArgument
-   * @typedef {import("./InPort").HasValidationCallback} HasValidationCallback
+   * @typedef {import("./InPort.js").HasValidationCallback} HasValidationCallback
    */
   /**
    * @typedef {GetArgument|HasValidationCallback} HasArgument
@@ -109,7 +109,7 @@ export default class ProcessInput {
     for (let i = 0; i < args.length; i += 1) {
       const port = args[i];
       if (Array.isArray(port)) {
-        const portImpl = /** @type {import("./InPort").default} */ (
+        const portImpl = /** @type {import("./InPort.js").default} */ (
           this.ports.ports[port[0]]
         );
         if (!portImpl) {
@@ -128,7 +128,7 @@ export default class ProcessInput {
           return false;
         }
       } else if (typeof port === "string") {
-        const portImpl = /** @type {import("./InPort").default} */ (
+        const portImpl = /** @type {import("./InPort.js").default} */ (
           this.ports.ports[port]
         );
         if (!portImpl) {
@@ -164,7 +164,7 @@ export default class ProcessInput {
     const hasArgs = [
       ...args,
       /**
-       * @param {import("./IP").default} ip
+       * @param {import("./IP.js").default} ip
        */
       (ip) => ip.type === "data",
     ];
@@ -274,7 +274,7 @@ export default class ProcessInput {
         ip = this.__getForForwarding(name, idxName);
         res.push(ip);
       } else {
-        const portImpl = /** @type {import("./InPort").default} */ (
+        const portImpl = /** @type {import("./InPort.js").default} */ (
           this.ports.ports[name]
         );
         ip = portImpl.get(this.scope, idxName);
@@ -301,7 +301,7 @@ export default class ProcessInput {
     let ok = true;
     while (ok) {
       // Read next packet
-      const portImpl = /** @type {import("./InPort").default} */ (
+      const portImpl = /** @type {import("./InPort.js").default} */ (
         this.ports.ports[port]
       );
       const ip = portImpl.get(this.scope, idx);
@@ -479,7 +479,7 @@ export default class ProcessInput {
    * @returns {Array<IP>}
    */
   __getStreamForForwarding(port, idx) {
-    const portImpl = /** @type {import("./InPort").default} */ (
+    const portImpl = /** @type {import("./InPort.js").default} */ (
       this.ports.ports[port]
     );
     /** @type {Array<IP>} */

@@ -15,7 +15,7 @@ import { deprecated } from "./Platform.js";
  * @typedef NetworkProcess
  * @property {string} id
  * @property {string} [componentName]
- * @property {import("./Component").Component} [component]
+ * @property {import("./Component.js").Component} [component]
  */
 
 // ## The NoFlo network coordinator
