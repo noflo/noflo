@@ -1,9 +1,9 @@
-import { execFile } from "node:child_process";
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { promisify } from "node:util";
 import { after, before, describe, it } from "node:test";
+import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
