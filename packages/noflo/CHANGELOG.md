@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Network-level `network.observe(callback)` middleware: sees every Information Packet on every edge before delivery, as `(ip, socket, next)` with socket context
 
 ### Changed
+- **Removed CoffeeScript component support** (`#539`-adjacent cleanup): `.coffee` component files are no longer transpiled or loaded; components must be JavaScript or TypeScript. Clear `Unsupported component source language` errors are emitted for `.coffee` sources
 - **#607**: control-triggered firing reacts to any data IP arriving on a non-triggering inport, in any scope; the control IP stays buffered (a non-consuming standing gate) and each arrival is one firing edge. Reading the control value follows normal port scoping — declare the control port `scoped: false` when an unscoped standing control IP should gate scoped data (a scoped control port fed unscoped control IPs fires but the value is unreadable). Addressable control ports do not participate in control-triggered firing yet. This is a deliberate change from 1.x, where control ports never triggered firing; it is 2.x semantics to be documented in the migration guide
 - `sendDone(null)` and `sendDone(undefined)` now only mark the process done instead of emitting a `data: null` packet
 - InternalSocket `post` returns the edge admission Promise; rejections are escalated through the socket error path (side-channel handled, so fire-and-forget call sites stay rejection-free)

@@ -69,7 +69,7 @@ function normalizeOptions(options, component) {
     options.name = component;
   }
   if (options.loader) {
-    options.baseDir = options.loader.baseDir;
+    options.baseDir = /** @type {string} */ (options.loader.baseDir);
   }
   if (!options.baseDir && process && process.cwd) {
     options.baseDir = process.cwd();

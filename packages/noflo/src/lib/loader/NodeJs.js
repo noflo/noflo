@@ -10,28 +10,18 @@ import * as path from "node:path";
 import * as fbpGraph from "fbp-graph";
 import * as manifest from "fbp-manifest";
 import { promisify } from "util";
+import { deprecated } from "../Platform.js";
 import * as utils from "../Utils.js";
 
 const writeFile = promisify(fs.writeFile);
 const readFile = promisify(fs.readFile);
-
-// Type loading CoffeeScript compiler
-let CoffeeScript;
-// eslint-disable-next-line import/no-unresolved,import/no-extraneous-dependencies
-import("coffeescript")
-  .then((compiler) => {
-    CoffeeScript = compiler;
-  })
-  .catch((_e) => {
-    // If there is no CoffeeScript compiler installed, we simply don't support compiling
-  });
 
 // Try loading TypeScript compiler
 let typescript;
 // eslint-disable-next-line import/no-unresolved,import/no-extraneous-dependencies
 import("typescript")
   .then((compiler) => {
-    // @ts-expect-error
+    // @ts-expect-error — the compiler module's shape varies by version
     typescript = compiler.default;
   })
   .catch((_e) => {
@@ -58,23 +48,6 @@ import("typescript")
 function transpileSource(packageId, name, source, language) {
   let src;
   switch (language) {
-    case "coffeescript": {
-      if (!CoffeeScript) {
-        return Promise.reject(
-          new Error(
-            `Unsupported component source language ${language} for ${packageId}/${name}: no CoffeeScript compiler installed`,
-          ),
-        );
-      }
-      try {
-        src = CoffeeScript.compile(source, {
-          bare: true,
-        });
-      } catch (err) {
-        return Promise.reject(err);
-      }
-      break;
-    }
     case "typescript": {
       if (!typescript) {
         return Promise.reject(
@@ -124,6 +97,9 @@ function evaluateModule(baseDir, packageId, name, source) {
     let extension = ".js";
     if (source.indexOf("require(") !== -1) {
       // CommonJS
+      deprecated(
+        "Loading CommonJS components is deprecated; port the component to Process API ESM",
+      );
       extension = ".cjs";
     }
     const modulePath = path.resolve(
@@ -202,7 +178,10 @@ function transpileAndRegisterForModule(
 ) {
   return transpileSource(module.name, component.name, source, language)
     .then((src) => {
-      const moduleBase = path.resolve(loader.baseDir, module.base);
+      const moduleBase = path.resolve(
+        /** @type {string} */ (/** @type {string} */ (loader.baseDir)),
+        module.base,
+      );
       return evaluateModule(moduleBase, module.name, component.name, src);
     })
     .then((implementation) => {
@@ -306,7 +285,7 @@ export function getSource(loader, name, callback) {
     }
     const specPath = loader.specsForComponents[componentName];
     fs.readFile(
-      path.resolve(loader.baseDir, specPath),
+      path.resolve(/** @type {string} */ (loader.baseDir), specPath),
       "utf-8",
       (fsErr, specs) => {
         if (fsErr) {
@@ -394,9 +373,6 @@ export function getSource(loader, name, callback) {
  */
 export function getLanguages() {
   const languages = ["javascript", "es2015"];
-  if (CoffeeScript) {
-    languages.push("coffeescript");
-  }
   if (typescript) {
     languages.push("typescript");
   }
@@ -447,17 +423,21 @@ function registerModules(loader, modules, callback) {
       }
 
       if (m.noflo?.loader) {
-        const loaderPath = path.resolve(loader.baseDir, m.base, m.noflo.loader);
+        const loaderPath = path.resolve(
+          /** @type {string} */ (loader.baseDir),
+          m.base,
+          m.noflo.loader,
+        );
         componentLoaders.push(loaderPath);
       }
 
       return Promise.all(
         m.components.map((c) => {
           const language = utils.guessLanguageFromFilename(c.path);
-          if (language === "typescript" || language === "coffeescript") {
+          if (language === "typescript") {
             // We can't require a module that requires transpilation, go the setSource route
             return readFile(
-              path.resolve(loader.baseDir, c.path),
+              path.resolve(/** @type {string} */ (loader.baseDir), c.path),
               "utf-8",
             ).then((source) =>
               transpileAndRegisterForModule(loader, m, c, source, language),
@@ -467,7 +447,7 @@ function registerModules(loader, modules, callback) {
           return loader.registerComponent(
             m.name,
             c.name,
-            path.resolve(loader.baseDir, c.path),
+            path.resolve(/** @type {string} */ (loader.baseDir), c.path),
           );
         }),
       );
@@ -487,7 +467,7 @@ const dynamicLoader = {
     const opts = manifestOptions;
     opts.discover = true;
     manifest.list
-      .list(loader.baseDir, opts)
+      .list(/** @type {string} */ (loader.baseDir), opts)
       .then(
         (modules) =>
           new Promise((resolve, reject) => {
@@ -521,7 +501,10 @@ const manifestLoader = {
    */
   writeCache(loader, options, manifestContents) {
     const manifestName = options.manifest || "fbp.json";
-    const filePath = path.resolve(loader.baseDir, manifestName);
+    const filePath = path.resolve(
+      /** @type {string} */ (loader.baseDir),
+      manifestName,
+    );
 
     return writeFile(filePath, JSON.stringify(manifestContents, null, 2), {
       encoding: "utf-8",
@@ -534,7 +517,7 @@ const manifestLoader = {
    * @returns {Promise<import("fbp-manifest/dist/lib/list").FbpManifestDocument>}
    */
   readCache(loader, options) {
-    return manifest.load.load(loader.baseDir, {
+    return manifest.load.load(/** @type {string} */ (loader.baseDir), {
       ...options,
       discover: false,
     });

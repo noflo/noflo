@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import { after, before, describe, it } from "node:test";
+import {
+  getSource as nodeGetSource,
+  setSource as nodeSetSource,
+} from "../src/lib/loader/NodeJs.js";
 import * as noflo from "../src/lib/NoFlo.js";
 
 /* eslint-disable
@@ -24,6 +28,30 @@ const baseDir = process.cwd();
 
 describe("ComponentLoader with no external packages installed", () => {
   const l = new noflo.ComponentLoader(baseDir);
+  // Classic source storage, exposed through a delegating registry so the
+  // registry-only setSource/getSource surface stays covered
+  l.registry = {
+    setSource: (pkg, name, src, lang) =>
+      new Promise((resolve, reject) => {
+        nodeSetSource(l, pkg, name, src, lang, (err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve();
+        });
+      }),
+    getSource: (name) =>
+      new Promise((resolve, reject) => {
+        nodeGetSource(l, name, (err, source) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve(source);
+        });
+      }),
+  };
   class Split extends noflo.Component {
     constructor() {
       const options = {
@@ -565,25 +593,51 @@ describe("ComponentLoader with no external packages installed", () => {
     });
     it("should be able to get the source for non-ready ComponentLoader", () => {
       const loader = new noflo.ComponentLoader(baseDir);
-      return loader.getSource("Graph").then((component) => {
-        assert.strictEqual(typeof component, "object");
-        assert.strictEqual(typeof component.code, "string");
-        assert.notEqual(component.code.indexOf("Graph"), -1);
-        assert.notEqual(
-          component.code.indexOf("export function getComponent"),
-          -1,
-        );
-        assert.strictEqual(component.name, "Graph");
-        assert.strictEqual(component.library, "");
-        assert.strictEqual(component.language, shippingLanguage);
-      });
+      return loader
+        .listComponents()
+        .then(() => {
+          loader.registry = {
+            setSource: (pkg, name, src, lang) =>
+              new Promise((resolve, reject) => {
+                nodeSetSource(loader, pkg, name, src, lang, (err) => {
+                  if (err) {
+                    reject(err);
+                    return;
+                  }
+                  resolve();
+                });
+              }),
+            getSource: (name_) =>
+              new Promise((resolve, reject) => {
+                nodeGetSource(loader, name_, (err, source) => {
+                  if (err) {
+                    reject(err);
+                    return;
+                  }
+                  resolve(source);
+                });
+              }),
+          };
+          return loader.getSource("Graph");
+        })
+        .then((component) => {
+          assert.strictEqual(typeof component, "object");
+          assert.strictEqual(typeof component.code, "string");
+          assert.notEqual(component.code.indexOf("Graph"), -1);
+          assert.notEqual(
+            component.code.indexOf("export function getComponent"),
+            -1,
+          );
+          assert.strictEqual(component.name, "Graph");
+          assert.strictEqual(component.library, "");
+          assert.strictEqual(component.language, shippingLanguage);
+        });
     });
   });
   describe("getting supported languages", () => {
     it("should include the expected ones", () => {
       const expectedLanguages = ["es2015", "javascript"];
       if (!noflo.isBrowser()) {
-        expectedLanguages.push("coffeescript");
         expectedLanguages.push("typescript");
       }
       expectedLanguages.sort();
@@ -655,6 +709,28 @@ export function getComponent() {
         });
         it("should be able to set the source for non-ready ComponentLoader", () => {
           const loader = new noflo.ComponentLoader(baseDir);
+          loader.registry = {
+            setSource: (pkg, name, src, lang) =>
+              new Promise((resolve, reject) => {
+                nodeSetSource(loader, pkg, name, src, lang, (err) => {
+                  if (err) {
+                    reject(err);
+                    return;
+                  }
+                  resolve();
+                });
+              }),
+            getSource: (name_) =>
+              new Promise((resolve, reject) => {
+                nodeGetSource(loader, name_, (err, source) => {
+                  if (err) {
+                    reject(err);
+                    return;
+                  }
+                  resolve(source);
+                });
+              }),
+          };
           return loader.setSource(
             "foo",
             "RepeatData",
@@ -723,66 +799,28 @@ exports.getComponent = () => {
         });
       });
       describe("with CoffeeScript", () => {
-        before(function () {
-          if (l.getLanguages().indexOf("coffeescript") === -1) {
-            this.skip();
-          }
-        });
-        let workingSource = `\
-noflo = require 'noflo'
-exports.getComponent = ->
-  c = new noflo.Component
-  c.inPorts.add 'in'
-  c.outPorts.add 'out'
-  c.process (input, output) ->
-    output.sendDone input.get 'in'\
-`;
-
-        it("should be able to set the source", () => {
-          if (!noflo.isBrowser()) {
-            workingSource = workingSource.replace("'noflo'", localNofloPath);
-          }
-          return l.setSource(
-            "foo",
-            "RepeatDataCoffee",
-            workingSource,
-            "coffeescript",
-          );
-        });
-        it("should be a loadable component", () => {
-          return l.load("foo/RepeatDataCoffee").then((inst) => {
-            assert.strictEqual(typeof inst, "object");
-            assert.equal(
-              Object.keys(inst.inPorts).includes("in"),
-              true,
-              "has IN port",
+        it("should reject the source with an unsupported language error", () => {
+          return l
+            .setSource(
+              "foo",
+              "RepeatDataCoffee",
+              "exports.getComponent = ->",
+              "coffeescript",
+            )
+            .then(
+              () => {
+                throw new Error("Unexpected success");
+              },
+              (err) => {
+                assert.ok(
+                  err.message.includes("Unsupported component source language"),
+                  `Expected unsupported language error, got: ${err.message}`,
+                );
+              },
             );
-            assert.equal(
-              Object.keys(inst.outPorts).includes("out"),
-              true,
-              "has OUT port",
-            );
-            const ins = new noflo.internalSocket.InternalSocket();
-            const out = new noflo.internalSocket.InternalSocket();
-            inst.inPorts.in.attach(ins);
-            inst.outPorts.out.attach(out);
-            return new Promise((resolve) => {
-              out.on("ip", (ip) => {
-                assert.strictEqual(ip.type, "data");
-                assert.strictEqual(ip.data, "CoffeeScript");
-                resolve();
-              });
-              ins.send("CoffeeScript");
-            });
-          });
-        });
-        it("should return sources in the same format", () => {
-          return l.getSource("foo/RepeatDataCoffee").then((source) => {
-            assert.strictEqual(source.language, "coffeescript");
-            assert.strictEqual(source.code, workingSource);
-          });
         });
       });
+
       describe("with TypeScript", () => {
         before(function () {
           if (l.getLanguages().indexOf("typescript") === -1) {
@@ -951,6 +989,29 @@ exports.getComponent = function() {
       l = new noflo.ComponentLoader(
         path.resolve(import.meta.dirname, "fixtures/componentloader"),
       );
+      // Classic source storage, exposed through a delegating registry
+      l.registry = {
+        setSource: (pkg, name, src, lang) =>
+          new Promise((resolve, reject) => {
+            nodeSetSource(l, pkg, name, src, lang, (err) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+              resolve();
+            });
+          }),
+        getSource: (name_) =>
+          new Promise((resolve, reject) => {
+            nodeGetSource(l, name_, (err, source) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+              resolve(source);
+            });
+          }),
+      };
     });
     it("should initially know of no components", () => {
       assert.strictEqual(l.components, null);
@@ -978,12 +1039,6 @@ exports.getComponent = function() {
         assert.strictEqual(instance.icon, "cloud");
       });
     });
-    it("should be able to load a local CoffeeScript component", () => {
-      return l.load("componentloader/RepeatAsync").then((instance) => {
-        assert.strictEqual(instance.description, "Repeat stuff async");
-        assert.strictEqual(instance.icon, "forward");
-      });
-    });
     it("should be able to load a local TypeScript component", () => {
       return l.load("componentloader/Repeat").then((instance) => {
         assert.strictEqual(instance.description, "Repeat stuff");
@@ -999,27 +1054,6 @@ exports.getComponent = function() {
       return l.load("example/Forward").then((instance) => {
         assert.strictEqual(instance.description, "Forward stuff");
         assert.strictEqual(instance.icon, "car");
-      });
-    });
-    it("should be able to load a CoffeeScript component from a dependency", (_t, done) => {
-      l.load("example/RepeatAsync", (err, instance) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.strictEqual(instance.description, "Repeat stuff async");
-        assert.strictEqual(instance.icon, "forward");
-        done();
-      });
-    });
-    it("should be able to find specs for a CoffeeScript component from a dependency", (_t, done) => {
-      l.getSource("example/RepeatAsync", (err, source) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.ok(source.tests.indexOf("example/RepeatAsync") !== -1);
-        done();
       });
     });
     it("should be able to load a TypeScript component from a dependency", (_t, done) => {
@@ -1197,5 +1231,181 @@ exports.getComponent = function() {
         return unlink(manifestPath);
       });
     });
+  });
+});
+
+describe("with an application-supplied registry (work document #6)", () => {
+  let loader = null;
+  let registryCalls = 0;
+  const noOpDummy = (name) => {
+    const inst = new noflo.Component();
+    inst.nodeId = name;
+    return inst;
+  };
+
+  before(async () => {
+    loader = new noflo.ComponentLoader(process.cwd(), {
+      registry: {
+        list: async () => ({
+          "registry/Split": {
+            getComponent: () => {
+              const c = new noflo.Component();
+              c.inPorts.add("in", { datatype: "string" });
+              c.outPorts.add("out", { datatype: "string" });
+              c.process((input, output) => {
+                output.sendDone({ out: input.getData("in") });
+              });
+              return c;
+            },
+          },
+        }),
+        get: async (name) => {
+          registryCalls += 1;
+          if (name === "dummy/NoOp") {
+            // #593: no-op dummy components for top-down design
+            return {
+              getComponent: () => {
+                const c = new noflo.Component();
+                c.inPorts.add("in");
+                c.outPorts.add("out");
+                c.process((input, output) => output.done());
+                return c;
+              },
+            };
+          }
+          return undefined;
+        },
+      },
+    });
+    await loader.listComponents();
+  });
+
+  it("merges registry entries into the component list", () => {
+    assert.ok(Object.keys(loader.components).includes("registry/Split"));
+  });
+
+  it("loads registry-supplied components", async () => {
+    const instance = await loader.load("registry/Split");
+    assert.strictEqual(typeof instance, "object");
+    assert.ok(instance.inPorts.ports.in);
+  });
+
+  it("resolves unknown names through registry.get (#593 dummy support)", async () => {
+    const instance = await loader.load("dummy/NoOp");
+    assert.strictEqual(typeof instance, "object");
+    assert.ok(registryCalls > 0);
+  });
+
+  it("rejects names the registry cannot resolve", async () => {
+    await assert.rejects(
+      loader.load("registry/Missing"),
+      /Component registry\/Missing not available/,
+    );
+  });
+
+  it("the registry wins over project components on name conflicts", async () => {
+    loader.registry = {
+      list: async () => ({
+        "registry/Override": {
+          getComponent: () => {
+            const c = new noflo.Component();
+            c.icon = "from-registry";
+            return c;
+          },
+        },
+      }),
+      get: async () => undefined,
+    };
+    // Force re-discovery so the registry merge runs
+    loader.ready = false;
+    loader.processing = null;
+    await loader.listComponents();
+    assert.equal(
+      loader.components["registry/Override"].getComponent().icon,
+      "from-registry",
+    );
+  });
+});
+
+describe("registry-only loader (no baseDir)", () => {
+  const stored = {};
+  let loader = null;
+
+  before(async () => {
+    const registry = {
+      list: async () => ({
+        "registry/Repeat": {
+          getComponent: () => {
+            const c = new noflo.Component();
+            c.inPorts.add("in", { datatype: "string" });
+            c.outPorts.add("out", { datatype: "string" });
+            c.process((input, output) => {
+              output.sendDone({ out: input.getData("in") });
+            });
+            return c;
+          },
+        },
+      }),
+      get: async (name) => {
+        if (name === "registry/Repeat") {
+          return {
+            getComponent: () => {
+              const c = new noflo.Component();
+              c.inPorts.add("in", { datatype: "string" });
+              c.outPorts.add("out", { datatype: "string" });
+              c.process((input, output) => {
+                output.sendDone({ out: input.getData("in") });
+              });
+              return c;
+            },
+          };
+        }
+        return undefined;
+      },
+      setSource: async (packageId, name, source, language) => {
+        stored[`${packageId}/${name}`] = { source, language };
+      },
+      getSource: async (name) => {
+        const entry = stored[name];
+        if (!entry) {
+          return undefined;
+        }
+        return {
+          name,
+          library: "registry",
+          code: entry.source,
+          language: entry.language,
+        };
+      },
+    };
+    loader = new noflo.ComponentLoader({ registry });
+  });
+
+  it("constructs without a baseDir", () => {
+    assert.equal(loader.baseDir, null);
+  });
+
+  it("lists and loads registry components without touching the filesystem", async () => {
+    await loader.listComponents();
+    assert.ok(Object.keys(loader.components).includes("registry/Repeat"));
+    const instance = await loader.load("registry/Repeat");
+    assert.strictEqual(typeof instance, "object");
+    assert.ok(instance.inPorts.ports.in);
+  });
+
+  it("delegates setSource and getSource to the registry", async () => {
+    const source = "exports.getComponent = () => ({});";
+    await loader.setSource("registry", "Sourced", source, "javascript");
+    assert.deepEqual(Object.keys(stored), ["registry/Sourced"]);
+    const back = await loader.getSource("registry/Sourced");
+    assert.equal(back.code, source);
+    assert.equal(back.language, "javascript");
+  });
+
+  it("getSource rejects for unknown components", async () => {
+    await assert.rejects(
+      loader.getSource("registry/Nope"),
+      /getSource not available/,
+    );
   });
 });

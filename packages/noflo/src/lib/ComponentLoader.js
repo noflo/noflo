@@ -48,6 +48,21 @@ import { deprecated, makeAsync } from "./Platform.js";
  * @property {boolean} [recursive]
  * @property {string[]} [runtimes]
  * @property {string} [manifest]
+ * @property {ComponentRegistry} [registry] - Application-supplied component registry. When present, the loader needs no baseDir: `list` entries are merged into the component list when it is built, `get` resolves names the classic discovery does not know about, and `setSource`/`getSource` handle source storage.
+ */
+
+/**
+ * Application-supplied component registry (work document #6). All
+ * methods are optional; an application can implement full discovery
+ * replacement (`list`), dynamic resolution (`get`, also covering #593
+ * dummy components for top-down design), and source storage
+ * (`setSource`/`getSource`).
+ *
+ * @typedef {Object} ComponentRegistry
+ * @property {(name: string) => Promise<any>} [get] - Resolve a component implementation by name when classic discovery fails. A falsy result signals "not available".
+ * @property {() => Promise<ComponentList>} [list] - Provide the component list. Entries win over project components on name conflicts.
+ * @property {(packageId: string, name: string, source: string, language: string) => Promise<void>} [setSource] - Store component source.
+ * @property {(name: string) => Promise<ComponentSources>} [getSource] - Return stored source metadata for a component.
  */
 
 // ## The NoFlo Component Loader
@@ -65,14 +80,65 @@ import { deprecated, makeAsync } from "./Platform.js";
 // loader using the [noflo-component-loader](https://github.com/noflo/noflo-component-loader) webpack plugin.
 export class ComponentLoader {
   /**
-   * @param {string} baseDir
+   * @param {string|null|ComponentLoaderOptions} [baseDir] - Project base
+   *   directory for classic discovery, or the options object for
+   *   registry-style construction without a baseDir
    * @param {ComponentLoaderOptions} [options]
    */
   constructor(baseDir, options = {}) {
-    this.baseDir = baseDir;
+    if (
+      baseDir !== null &&
+      baseDir !== undefined &&
+      typeof baseDir === "object"
+    ) {
+      // Registry-style construction: the options object passed directly
+      options = baseDir;
+      baseDir = null;
+    }
+    this.baseDir = baseDir != null ? baseDir : null;
     this.options = options;
+    /** @type {ComponentRegistry|null} Application-supplied registry */
+    this.registry = this.options.registry || null;
     /** @type {ComponentList|null} */
     this.components = null;
+    // Work document #6: a registry that is an EventTarget can signal
+    // component changes and list invalidations. The loader subscribes at
+    // construction so the cache stays in sync with the registry.
+    if (
+      this.registry &&
+      typeof (/** @type {any} */ (this.registry).addEventListener) ===
+        "function"
+    ) {
+      /** @type {any} */ (this.registry).addEventListener(
+        "change",
+        (/** @type {any} */ event) => {
+          const name = event.detail && event.detail.name;
+          if (!name || !this.components) {
+            return;
+          }
+          if (!this.registry || typeof this.registry.get !== "function") {
+            return;
+          }
+          Promise.resolve(this.registry.get(name))
+            .then((impl) => {
+              if (!this.components) {
+                return;
+              }
+              if (impl) {
+                this.components[name] = impl;
+              } else {
+                delete this.components[name];
+              }
+            })
+            .catch(() => {});
+        },
+      );
+      /** @type {any} */ (this.registry).addEventListener("invalidate", () => {
+        this.components = {};
+        this.ready = false;
+        this.listComponents().catch(() => {});
+      });
+    }
     /** @type {Object<string, string>} */
     this.libraryIcons = {};
     /** @type {Object<string, Object>} */
@@ -128,16 +194,37 @@ export class ComponentLoader {
       this.ready = false;
       this.processing = new Promise((resolve, reject) => {
         makeAsync(() => {
-          registerLoader.register(this, (err) => {
-            if (err) {
-              // We keep the failed promise here in this.processing
-              reject(err);
-              return;
-            }
-            this.ready = true;
-            this.processing = null;
-            resolve(this.components);
-          });
+          // Classic manifest discovery needs a baseDir; a registry-only
+          // loader (no baseDir) skips it and merges the registry list
+          const classic =
+            this.baseDir && typeof this.baseDir === "string"
+              ? new Promise((res, rej) => {
+                  registerLoader.register(this, (err) => {
+                    if (err) {
+                      rej(err);
+                      return;
+                    }
+                    res();
+                  });
+                })
+              : Promise.resolve();
+          const mergeRegistryList =
+            this.registry && typeof this.registry.list === "function"
+              ? Promise.resolve(this.registry.list()).then((list) => {
+                  // The registry is the application's discovery
+                  // mechanism: its entries win on name conflicts
+                  Object.keys(list || {}).forEach((name) => {
+                    this.components[name] = list[name];
+                  });
+                })
+              : Promise.resolve();
+          Promise.all([classic, mergeRegistryList])
+            .then(() => {
+              this.ready = true;
+              this.processing = null;
+              resolve(this.components);
+            })
+            .catch(reject);
         });
       });
       promise = this.processing;
@@ -194,15 +281,36 @@ export class ComponentLoader {
             break;
           }
         }
-        if (!component) {
-          // Failure to load
-          reject(
-            new Error(
-              `Component ${name} not available with base ${this.baseDir}`,
-            ),
+      }
+      if (!component) {
+        // Work document #6: the application registry resolves names the
+        // classic discovery does not know about (also covers #593
+        // dummy-component support for top-down design)
+        if (this.registry && typeof this.registry.get === "function") {
+          resolve(
+            Promise.resolve(this.registry.get(name)).then((impl) => {
+              if (!impl) {
+                reject(
+                  new Error(
+                    `Component ${name} not available with base ${this.baseDir}`,
+                  ),
+                );
+                return undefined;
+              }
+              return impl;
+            }),
           );
           return;
         }
+      }
+      if (!component) {
+        // Failure to load
+        reject(
+          new Error(
+            `Component ${name} not available with base ${this.baseDir}`,
+          ),
+        );
+        return;
       }
       resolve(component);
     }).then((component) => {
@@ -219,7 +327,7 @@ export class ComponentLoader {
           }
           const inst = instance;
           if (name === "Graph") {
-            inst.baseDir = this.baseDir;
+            inst.baseDir = /** @type {string} */ (this.baseDir);
           }
           if (typeof name === "string") {
             inst.componentName = name;
@@ -354,7 +462,7 @@ export class ComponentLoader {
       (graph) => {
         const g = /** @type {import("../components/Graph").Graph} */ (graph);
         g.loader = this;
-        g.baseDir = this.baseDir;
+        g.baseDir = /** @type {string} */ (this.baseDir);
         g.inPorts.remove("graph");
         this.setIcon(name, g);
         return g.setGraph(component).then(() => g);
@@ -511,10 +619,9 @@ export class ComponentLoader {
   }
 
   // With `setSource` you can register a component by providing
-  // a source code string. Supported languages and techniques
-  // depend on the runtime environment, for example CoffeeScript
-  // components can only be registered via `setSource` if
-  // the environment has a CoffeeScript compiler loaded.
+  // a source code string. Supported languages depend on the runtime
+  // environment: JavaScript and TypeScript where a TypeScript compiler
+  // is available. CoffeeScript is no longer supported.
   /**
    * @param {string} packageId
    * @param {string} name
@@ -524,41 +631,27 @@ export class ComponentLoader {
    * @returns {Promise<void>}
    */
   setSource(packageId, name, source, language, callback) {
-    if (!this.ready) {
-      return this.listComponents().then(() =>
-        this.setSource(packageId, name, source, language, callback),
+    // Work document #6: source storage is a registry concern. There is no
+    // classic fallback — in-memory registration is available via
+    // registerComponent for components the application holds directly.
+    const readyGate = this.ready
+      ? Promise.resolve()
+      : this.listComponents().then(() => {
+          this.ready = true;
+        });
+    return readyGate.then(() => {
+      if (this.registry && typeof this.registry.setSource === "function") {
+        return this.registry.setSource(packageId, name, source, language);
+      }
+      const err = new Error(
+        "Component source storage requires a component registry (setSource)",
       );
-    }
-    let promise;
-    if (!registerLoader.setSource) {
-      promise = Promise.reject(new Error("setSource not allowed"));
-    } else {
-      promise = new Promise((resolve, reject) => {
-        registerLoader.setSource(
-          this,
-          packageId,
-          name,
-          source,
-          language,
-          (err) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-            resolve();
-          },
-        );
-      });
-    }
-    if (callback) {
-      deprecated(
-        "Providing a callback to ComponentLoader.setSource is deprecated, use Promises",
-      );
-      promise.then(() => {
-        callback(null);
-      }, callback);
-    }
-    return promise;
+      if (callback) {
+        callback(err);
+        return undefined;
+      }
+      throw err;
+    });
   }
 
   // `getSource` allows fetching the source code of a registered
@@ -574,32 +667,31 @@ export class ComponentLoader {
    * @returns {Promise<ComponentSources>}
    */
   getSource(name, callback) {
-    if (!this.ready) {
-      return this.listComponents().then(() => this.getSource(name, callback));
-    }
-    let promise;
-    if (!registerLoader.getSource) {
-      promise = Promise.reject(new Error("getSource not allowed"));
-    } else {
-      promise = new Promise((resolve, reject) => {
-        registerLoader.getSource(this, name, (err, source) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve(source);
+    // Work document #6: source storage is a registry concern when the
+    // application supplies one
+    const readyGate = this.ready
+      ? Promise.resolve()
+      : this.listComponents().then(() => {
+          this.ready = true;
         });
-      });
-    }
-    if (callback) {
-      deprecated(
-        "Providing a callback to ComponentLoader.getSource is deprecated, use Promises",
+    return readyGate.then(() => {
+      if (this.registry && typeof this.registry.getSource === "function") {
+        return Promise.resolve(this.registry.getSource(name)).then((source) => {
+          if (!source) {
+            throw new Error(`getSource not available for ${name}`);
+          }
+          return source;
+        });
+      }
+      const err = new Error(
+        "Component source storage requires a component registry (getSource)",
       );
-      promise.then((source) => {
-        callback(null, source);
-      }, callback);
-    }
-    return promise;
+      if (callback) {
+        callback(err);
+        return undefined;
+      }
+      throw err;
+    });
   }
 
   // `getLanguages` gets a list of component programming languages supported by the `setSource`
