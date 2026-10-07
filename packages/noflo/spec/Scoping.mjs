@@ -116,7 +116,7 @@ describe("Scope isolation", () => {
       );
     });
   });
-    describe("pure Process API merging two inputs", () => {
+  describe("pure Process API merging two inputs", () => {
     let c = null;
     let in1 = null;
     let in2 = null;
@@ -276,7 +276,7 @@ describe("Scope isolation", () => {
       in1.post(new noflo.IP("closeBracket", 1, { scope: 1 }));
     });
   });
-    describe("Process API with IIPs and scopes", () => {
+  describe("Process API with IIPs and scopes", () => {
     let c = null;
     let in1 = null;
     let out = null;
@@ -337,7 +337,7 @@ describe("Scope isolation", () => {
       in1.post(new noflo.IP("closeBracket", 1, { scope: "x" }));
     });
   });
-    describe("Process API with unscoped inport and scopes", () => {
+  describe("Process API with unscoped inport and scopes", () => {
     let c = null;
     let in1 = null;
     let in2 = null;
@@ -473,7 +473,7 @@ describe("Scope isolation", () => {
       in1.post(new noflo.IP("closeBracket", 1, { scope: "x" }));
     });
   });
-    describe("Process API with unscoped outport and scopes", () => {
+  describe("Process API with unscoped outport and scopes", () => {
     let c = null;
     let in1 = null;
     let in2 = null;
@@ -617,7 +617,7 @@ describe("Scope isolation", () => {
       in2.post(new noflo.IP("closeBracket", 1));
     });
   });
-    describe("Process API with IIPs to addressable ports and scopes", () => {
+  describe("Process API with IIPs to addressable ports and scopes", () => {
     let c = null;
     let in1 = null;
     let out = null;

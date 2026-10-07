@@ -202,7 +202,7 @@ describe("Network Lifecycle", () => {
         assert.equal(inst.isLegacy(), false);
       }));
   });
-    describe("with single Process API component receiving IIP", () => {
+  describe("with single Process API component receiving IIP", () => {
     let c = null;
     let out = null;
     beforeEach(() => {
@@ -359,7 +359,7 @@ describe("Network Lifecycle", () => {
       c.start().catch(done);
     });
   });
-    describe("with promise-based Process API component receiving IIP", () => {
+  describe("with promise-based Process API component receiving IIP", () => {
     let c = null;
     let out = null;
     beforeEach(() => {
@@ -412,7 +412,7 @@ describe("Network Lifecycle", () => {
       c.start().catch(done);
     });
   });
-    describe("with synchronous Process API", () => {
+  describe("with synchronous Process API", () => {
     let c = null;
     let out = null;
     beforeEach(() => {
@@ -472,7 +472,7 @@ describe("Network Lifecycle", () => {
       c.start().catch(done);
     });
   });
-    describe("pure Process API merging two inputs", () => {
+  describe("pure Process API merging two inputs", () => {
     let c = null;
     let in1 = null;
     let in2 = null;
@@ -655,7 +655,7 @@ describe("Network Lifecycle", () => {
       }, done);
     });
   });
-    describe("Process API mixed with legacy merging two inputs", () => {
+  describe("Process API mixed with legacy merging two inputs", () => {
     let c = null;
     let in1 = null;
     let in2 = null;
@@ -799,7 +799,7 @@ describe("Network Lifecycle", () => {
       }, done);
     });
   });
-    describe("with a Process API Generator component", () => {
+  describe("with a Process API Generator component", () => {
     let c = null;
     let start = null;
     let stop = null;

@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import { after, before, describe, it } from "node:test";
+import { loadGraphFile } from "../src/lib/graphFile.js";
 import {
   getSource as nodeGetSource,
   setSource as nodeSetSource,
 } from "../src/lib/loader/NodeJs.js";
 import * as noflo from "../src/lib/NoFlo.js";
-import { loadGraphFile } from "../src/lib/graphFile.js";
 import { nativeGraph } from "./utils/nativeGraph.mjs";
 
 /* eslint-disable
@@ -114,6 +114,35 @@ describe("ComponentLoader with no external packages installed", () => {
       assert.strictEqual(normalized, "image");
     });
   });
+  describe("detecting graphs", () => {
+    it("should recognize a live graph model", () => {
+      const graph = new noflo.GraphModel();
+      graph.addNode({ entity_id: "A", component: "foo/Bar" });
+      assert.strictEqual(l.isGraph(graph), true);
+    });
+    it("should recognize FBP JSON with nodes and edges", () => {
+      assert.strictEqual(
+        l.isGraph({
+          nodes: [{ id: "A", component: "foo/Bar" }],
+          edges: [],
+        }),
+        true,
+      );
+    });
+    it("should recognize FBP JSON without edges", () => {
+      // A single node exposing exported ports is a valid subgraph
+      assert.strictEqual(
+        l.isGraph({
+          nodes: [{ id: "A", component: "foo/Bar" }],
+          inports: { in: { process: "A", port: "in" } },
+        }),
+        true,
+      );
+    });
+    it("should not recognize objects without a nodes array", () => {
+      assert.strictEqual(l.isGraph({ foo: "bar" }), false);
+    });
+  });
   it("should be able to read a list of components", () => {
     return l.listComponents().then((components) => {
       assert.strictEqual(l.processing, null, "should have stopped processing");
@@ -194,7 +223,7 @@ describe("ComponentLoader with no external packages installed", () => {
     });
   });
 
-    describe("loading a subgraph", () => {
+  describe("loading a subgraph", () => {
     const l2 = new noflo.ComponentLoader(baseDir);
     const file = `${urlPrefix}spec/fixtures/subgraph.fbp`;
     it("should remove `graph` and `start` ports", () => {
@@ -254,7 +283,7 @@ describe("ComponentLoader with no external packages installed", () => {
           });
         });
     });
-        it("should also work with a passed graph object", () => {
+    it("should also work with a passed graph object", () => {
       return loadGraphFile(file)
         .then((graph) => {
           return l.listComponents().then(() => {
@@ -571,7 +600,7 @@ describe("ComponentLoader with no external packages installed", () => {
           assert.ok(err.message.includes("Not a file"));
         });
     });
-        it("should be able to provide source for a graph file component", () => {
+    it("should be able to provide source for a graph file component", () => {
       const file = `${urlPrefix}spec/fixtures/subgraph.fbp`;
       l.components.Subgraph = file;
       return l.getSource("Subgraph").then((src) => {
@@ -579,7 +608,7 @@ describe("ComponentLoader with no external packages installed", () => {
         assert.strictEqual(src.language, "json");
       });
     });
-        it("should be able to provide source for a graph object component", () => {
+    it("should be able to provide source for a graph object component", () => {
       const file = `${urlPrefix}spec/fixtures/subgraph.fbp`;
       return loadGraphFile(file)
         .then((graph) => {

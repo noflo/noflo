@@ -6,8 +6,8 @@
  *   `caseSensitive: false`; the library default stays case-sensitive.
  */
 
-import { importFbpJson } from "@noflo/graph";
 import { parse } from "@noflo/fbp";
+import { importFbpJson } from "@noflo/graph";
 
 /**
  * @param {string} source

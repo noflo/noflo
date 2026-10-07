@@ -175,6 +175,33 @@ describe("GraphModel edges", () => {
     );
   });
 
+  it("keeps duplicate detection working across a node rename", () => {
+    const model = new GraphModel();
+    model.addNode({ entity_id: "A", component: "x" });
+    model.addNode({ entity_id: "B", component: "y" });
+    model.addEdge({
+      from: { node: "A", port: "out" },
+      to: { node: "B", port: "in" },
+    });
+    model.renameNode("A", "A2");
+    assert.throws(
+      () =>
+        model.addEdge({
+          from: { node: "A2", port: "out" },
+          to: { node: "B", port: "in" },
+        }),
+      /already connects/,
+    );
+    // The stale pre-rename key must not block a legitimately new edge
+    model.removeEdge(model.edges()[0].entity_id);
+    model.addNode({ entity_id: "C", component: "z" });
+    model.addEdge({
+      from: { node: "C", port: "out" },
+      to: { node: "B", port: "in" },
+    });
+    assert.equal(model.edges().length, 1);
+  });
+
   it("treats different array slots as distinct edges", () => {
     const model = new GraphModel();
     model.addNode({ entity_id: "A", component: "x" });
@@ -288,6 +315,34 @@ describe("GraphModel IIPs", () => {
       /** @type {any} */ (iip.from.data).nested.push(3);
     });
     assert.deepEqual(iip.from.data, { nested: [1, 2] });
+  });
+
+  it("stores JSON-able payloads detached from the caller's object", () => {
+    const model = new GraphModel();
+    model.addNode({ entity_id: "A", component: "x" });
+    const payload = { nested: [1, 2] };
+    model.addIIP({ data: payload, to: { node: "A", port: "in" } });
+    // Cloning must not freeze or otherwise mutate the caller's object
+    assert.equal(Object.isFrozen(payload), false);
+    payload.nested.push(3);
+    assert.deepEqual(model.iips()[0].from.data, { nested: [1, 2] });
+  });
+
+  it("stores callbacks by reference so engines can pass them as IIPs", () => {
+    const model = new GraphModel();
+    model.addNode({ entity_id: "A", component: "x" });
+    /** @type {() => void} */
+    let called = () => {};
+    const iip = model.addIIP({
+      data: () => called(),
+      to: { node: "A", port: "in" },
+    });
+    let fired = false;
+    called = () => {
+      fired = true;
+    };
+    /** @type {() => void} */ (iip.from.data)();
+    assert.equal(fired, true);
   });
 });
 

@@ -30,6 +30,7 @@ import { stableStringify } from "./canonical.js";
 import {
   compareEntityIds,
   deepFreeze,
+  freezeIipData,
   freezeMetadata,
   GraphModelError,
   makeEntityId,
@@ -269,10 +270,12 @@ export class GraphModel extends EventTarget {
           edge.to.node === previous
             ? { node: next, port: edge.to.port }
             : edge.to;
+        this.#edgeIndex.delete(edgeKey(edge.from, edge.to));
         this.#edges.set(
           edge.entity_id,
           this.#freezeEdge(edge.entity_id, from, to, edge.metadata),
         );
+        this.#edgeIndex.set(edgeKey(from, to), edge.entity_id);
         this.#emit("changeEdge", {
           entity: this.#edges.get(edge.entity_id),
         });
@@ -521,7 +524,7 @@ export class GraphModel extends EventTarget {
     }
     const to = requirePortRef(definition.to, "to");
     this.#requireNodeRef(to.node, "to.node");
-    const from = Object.freeze({ data: deepFreeze(definition.data) });
+    const from = Object.freeze({ data: freezeIipData(definition.data) });
     const iip = this.#freezeIip(entityId, from, to, definition.metadata);
     this.#iips.set(entityId, iip);
     this.#emit("addIIP", { entity: iip });

@@ -204,8 +204,8 @@ class JsonScanner {
       }
       if (c === "\\") {
         this.pos++;
-        const escape = this.input[this.pos];
-        if (escape === "u") {
+        const escaped = this.input[this.pos];
+        if (escaped === "u") {
           this.pos++;
           let code = 0;
           for (let i = 0; i < 4; i++) {
@@ -220,7 +220,7 @@ class JsonScanner {
           result += String.fromCharCode(code);
           continue;
         }
-        const mapped = ESCAPES[/** @type {keyof typeof ESCAPES} */ (escape)];
+        const mapped = ESCAPES[/** @type {keyof typeof ESCAPES} */ (escaped)];
         if (mapped === undefined) {
           return FAIL;
         }

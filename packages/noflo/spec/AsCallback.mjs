@@ -325,7 +325,7 @@ describe("asCallback interface", () => {
       });
     });
   });
-    describe("with a graph instead of component name", () => {
+  describe("with a graph instead of component name", () => {
     let graph = null;
     let wrapped = null;
     before((_t, done) => {
@@ -335,7 +335,7 @@ describe("asCallback interface", () => {
 INPORT=Async.IN:IN
 OUTPORT=Stream.OUT:OUT
 Async(process/Async) OUT -> IN Stream(process/Streamify)\
-`
+`,
         );
         graph = g;
         wrapped = noflo.asCallback(graph, { loader });
@@ -371,7 +371,7 @@ Async(process/Async) OUT -> IN Stream(process/Streamify)\
       });
     });
   });
-    describe("with a graph containing a component supporting only certain values", () => {
+  describe("with a graph containing a component supporting only certain values", () => {
     let graph = null;
     let wrapped = null;
     before((_t, done) => {
@@ -381,7 +381,7 @@ Async(process/Async) OUT -> IN Stream(process/Streamify)\
 INPORT=Async.IN:IN
 OUTPORT=Values.OUT:OUT
 Async(process/Async) OUT -> IN Values(process/Values)\
-`
+`,
         );
         graph = g;
         wrapped = noflo.asCallback(graph, { loader });
@@ -493,7 +493,7 @@ Async(process/Async) OUT -> IN Values(process/Values)\
         });
       });
     });
-        describe("with flowtrace option", () => {
+    describe("with flowtrace option", () => {
       it("should store a trace for a simple component execution", (_t, done) => {
         const trace = new flowtrace.Flowtrace();
         const wrapped = noflo.asCallback("process/Async", {

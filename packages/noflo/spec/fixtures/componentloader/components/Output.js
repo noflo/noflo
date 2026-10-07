@@ -1,14 +1,12 @@
-const noflo = require('../../../../lib/NoFlo.js');
+const noflo = require("../../../../lib/NoFlo.js");
 
 exports.getComponent = () => {
   const c = new noflo.Component();
-  c.description = 'Output stuff';
-  c.inPorts.add('in',
-    { datatype: 'string' });
-  c.outPorts.add('out',
-    { datatype: 'string' });
+  c.description = "Output stuff";
+  c.inPorts.add("in", { datatype: "string" });
+  c.outPorts.add("out", { datatype: "string" });
   c.process((input, output) => {
-    const data = input.getData('in');
+    const data = input.getData("in");
     console.log(data);
     output.sendDone({ out: data });
   });

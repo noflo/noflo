@@ -67,6 +67,7 @@ const FAIL = Symbol("parse-fail");
  */
 
 /** Error thrown when the input is not valid .fbp. */
+// biome-ignore lint/suspicious/noShadowRestrictedNames: mirrors the reference `fbp` parser API
 export class SyntaxError extends Error {
   /**
    * @param {string} message
@@ -172,11 +173,11 @@ class FbpParser {
       groups: [],
       processes: this.nodes,
       connections: this.processEdges(),
+      caseSensitive: this.caseSensitive || false,
     };
     if (this.properties) {
       result.properties = this.properties;
     }
-    result.caseSensitive = this.caseSensitive || false;
 
     const validateSchemaOption = this.options.validateSchema ?? false;
     if (validateSchemaOption) {
@@ -376,7 +377,11 @@ class FbpParser {
   // Connections
   // ------------------------------------------------------------------
 
-  /** `connection = source "->" connection / destination`. @returns {any | typeof FAIL} */
+  /**
+   * `connection = source "->" connection / destination`.
+   *
+   * @returns {any | typeof FAIL}
+   */
   parseConnection() {
     const start = this.pos;
     const source = this.parseSource();
@@ -691,6 +696,7 @@ class FbpParser {
       for (const entry of component.meta) {
         const parts = entry.split("=");
         let key = parts[0];
+        /** @type {string | number} */
         let value = parts[1];
         if (parts.length === 1) {
           key = "routes";
@@ -716,7 +722,7 @@ class FbpParser {
       this.anonymousCounters[componentName] =
         (this.anonymousCounters[componentName] || 0) + 1;
       this.anonymousNames[offset] =
-        "_" + componentName + "_" + this.anonymousCounters[componentName];
+        `_${componentName}_${this.anonymousCounters[componentName]}`;
       this.addNode(this.anonymousNames[offset], component);
     }
     return this.anonymousNames[offset];

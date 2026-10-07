@@ -6,7 +6,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present && npm run test:scripts && npm run check:jsr",
+    "test": "npm run lint --workspaces --if-present && npm run types --workspaces --if-present && npm run test --workspaces --if-present && npm run test:scripts && npm run check:jsr",
     "test:scripts": "node --test scripts/*.test.mjs",
     "check:jsr": "node scripts/check-jsr-entrypoints.mjs",
     "lint": "npm run lint --workspaces --if-present",

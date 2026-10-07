@@ -20,3 +20,4 @@ npm-debug.log
 .noflo.json
 *.tgz
 RELEASE_NOTES.md
+packages/*/~/

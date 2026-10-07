@@ -1,37 +1,40 @@
-import { Component } from '../../src/lib/Component.js';
+import { Component } from "../../src/lib/Component.js";
 
 export function getComponent() {
   const c = new Component({
-    desciption: 'Merges two objects into one (cloning)',
+    desciption: "Merges two objects into one (cloning)",
     inPorts: {
       obj1: {
-        datatype: 'object',
-        desciption: 'First object',
+        datatype: "object",
+        desciption: "First object",
       },
       obj2: {
-        datatype: 'object',
-        desciption: 'Second object',
+        datatype: "object",
+        desciption: "Second object",
       },
       overwrite: {
-        datatype: 'boolean',
-        desciption: 'Overwrite obj1 properties with obj2',
+        datatype: "boolean",
+        desciption: "Overwrite obj1 properties with obj2",
         control: true,
       },
     },
     outPorts: {
       result: {
-        datatype: 'object',
+        datatype: "object",
       },
       error: {
-        datatype: 'object',
+        datatype: "object",
       },
     },
   });
 
   return c.process((input, output) => {
-    let dst; let src;
-    if (!input.has('obj1', 'obj2', 'overwrite')) { return; }
-    const [obj1, obj2, overwrite] = input.getData('obj1', 'obj2', 'overwrite');
+    let dst;
+    let src;
+    if (!input.has("obj1", "obj2", "overwrite")) {
+      return;
+    }
+    const [obj1, obj2, overwrite] = input.getData("obj1", "obj2", "overwrite");
     try {
       src = JSON.parse(JSON.stringify(overwrite ? obj1 : obj2));
       dst = JSON.parse(JSON.stringify(overwrite ? obj2 : obj1));
@@ -45,4 +48,4 @@ export function getComponent() {
     });
     output.sendDone({ result: src });
   });
-};
+}

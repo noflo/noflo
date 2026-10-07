@@ -192,6 +192,31 @@ export function freezeMetadata(value, field) {
 }
 
 /**
+ * Prepare an IIP payload for storage: deep-frozen, and detached from the
+ * caller's object where possible.
+ *
+ * JSON-able payloads are structured-cloned first, so later mutations of the
+ * caller's object cannot leak into graph state. Payloads that cannot be
+ * structured-cloned (for example callbacks) are frozen and stored by
+ * reference.
+ *
+ * @param {any} value
+ * @returns {any} Frozen payload
+ */
+export function freezeIipData(value) {
+  if (value === null || typeof value !== "object") {
+    return value;
+  }
+  let data = value;
+  try {
+    data = structuredClone(value);
+  } catch {
+    // Non-cloneable payload (e.g. a callback): freeze and store by reference.
+  }
+  return deepFreeze(data);
+}
+
+/**
  * @param {any} value
  * @returns {any}
  */

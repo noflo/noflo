@@ -44,7 +44,7 @@ export function validateContents(graph) {
   }
   for (const edge of graph.connections) {
     if (edge.tgt && !graph.processes[edge.tgt.process]) {
-      if (edge.data) {
+      if (edge.data || !edge.src) {
         throw new Error(
           `IIP containing "${edge.data}" is connected to an undefined target node "${edge.tgt.process}"`,
         );
@@ -134,7 +134,8 @@ export function validateSchema(graph) {
       }
     }
   }
-  for (const direction of ["inports", "outports"]) {
+  const directions = /** @type {const} */ (["inports", "outports"]);
+  for (const direction of directions) {
     const ports = graph[direction];
     if (typeof ports !== "object" || ports === null) {
       errors.push(`${direction} must be an object`);

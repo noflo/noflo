@@ -6,6 +6,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+// biome-ignore lint/suspicious/noShadowRestrictedNames: mirrors the reference `fbp` parser API
 import { parse, SyntaxError } from "../src/index.js";
 
 test("parses a simple IIP graph", () => {

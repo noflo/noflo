@@ -429,12 +429,9 @@ export class ComponentLoader {
     if (cPath instanceof GraphModel) {
       return true;
     }
-    // FBP JSON definition
-    if (
-      typeof cPath === "object" &&
-      Array.isArray(cPath.nodes) &&
-      Array.isArray(cPath.edges)
-    ) {
+    // FBP JSON definition. `edges` may be absent on graphs without any
+    // connections (for example a single node exposing exported ports).
+    if (typeof cPath === "object" && Array.isArray(cPath.nodes)) {
       return true;
     }
     if (typeof cPath !== "string") {
