@@ -35,10 +35,10 @@
     "url": "git://github.com/noflo/noflo.git"
   },
   "scripts": {
-    "test": "node --test spec/*.mjs",
+    "test": "node --test spec/*.js",
     "lint": "npx @biomejs/biome check --use-editorconfig=true src/ spec/ utils/",
     "types": "tsc --checkJs --noEmit -p .",
-    "test:deno": "deno test --allow-all --no-check spec/*.mjs",
-    "test:bun": "bun test ./spec/*.mjs"
+    "test:deno": "deno test --allow-all --no-check spec/*.js",
+    "test:bun": "bun test ./spec/*.js"
   }
 }

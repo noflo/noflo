@@ -12,7 +12,7 @@ import { createRequire } from "node:module";
 import { test } from "node:test";
 
 import { parse } from "../src/index.js";
-import { accepted, rejected } from "./fixtures/corpus.mjs";
+import { accepted, rejected } from "./fixtures/corpus.js";
 
 /** Reference parser, CommonJS. */
 const require = createRequire(import.meta.url);

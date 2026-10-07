@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { importFbpJson } from "@noflo/graph";
 import { Subgraph } from "../src/components/Subgraph.js";
 import * as noflo from "../src/lib/NoFlo.js";
-import { nativeGraph } from "./utils/nativeGraph.mjs";
+import { nativeGraph } from "./utils/nativeGraph.js";
 
 /* eslint-disable
   max-classes-per-file

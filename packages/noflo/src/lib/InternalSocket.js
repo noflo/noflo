@@ -2,7 +2,7 @@
 //     (c) 2013-2017 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
-/* @ts-self-types="./InternalSocket.js.d.ts" */
+/* @ts-self-types="./InternalSocket.d.ts" */
 
 import { Edge, resolveHighWaterMark } from "./Edge.js";
 import IP from "./IP.js";

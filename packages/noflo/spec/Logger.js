@@ -104,9 +104,7 @@ describe("native debug logger", () => {
     assert.equal(output.length, 1);
   });
 
-  it("reads the pattern from localStorage when available", {
-    skip: typeof localStorage === "undefined" ? false : false,
-  }, () => {
+  it("reads the pattern from localStorage when available", () => {
     const originalLocalStorage = globalThis.localStorage;
     Object.defineProperty(globalThis, "localStorage", {
       value: {

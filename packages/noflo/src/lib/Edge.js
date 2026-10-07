@@ -26,7 +26,7 @@
  *   Flowtrace. IPs are atomic; bracket streams are validated so that
  *   substream integrity holds across the transport.
  */
-/* @ts-self-types="./Edge.js.d.ts" */
+/* @ts-self-types="./Edge.d.ts" */
 
 /**
  * Validate a configured high-water mark value.

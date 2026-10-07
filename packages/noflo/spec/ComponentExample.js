@@ -22,7 +22,7 @@ describe("MergeObjects component", () => {
       t.skip();
       return;
     }
-    return import("./components/MergeObjects.mjs").then((MergeObjects) => {
+    return import("./components/MergeObjects.js").then((MergeObjects) => {
       console.log(MergeObjects);
       c = MergeObjects.getComponent();
       sin1 = new noflo.internalSocket.InternalSocket();

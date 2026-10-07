@@ -41,11 +41,11 @@
   },
   "rngit": "rns://3ea5aad068a337670f5bb8073226adb4/public/noflo",
   "scripts": {
-    "lint": "npx @biomejs/biome lint src/ spec/*.mjs",
+    "lint": "npx @biomejs/biome lint src/ spec/*.js",
     "types": "find src -name '*.d.ts' -delete && tsc -p tsconfig.json",
-    "test": "node --test --test-force-exit --test-timeout 30000 spec/*.mjs",
-    "test:deno": "deno test --allow-read=spec,src,CHANGELOG.md --allow-env --no-check spec/*.mjs",
-    "test:bun": "bun test ./spec/*.mjs"
+    "test": "node --test --test-force-exit --test-timeout 30000 spec/*.js",
+    "test:deno": "deno test --allow-read=spec,src,CHANGELOG.md --allow-env --no-check spec/*.js",
+    "test:bun": "bun test ./spec/*.js"
   },
   "docco_husky": {
     "output_dir": "docs",

@@ -6,8 +6,8 @@
   ],
   "scripts": {
     "test": "npm run types --workspaces --if-present && npm run test --workspaces --if-present && npm run test:scripts && npm run check:jsr",
-    "test:scripts": "node --test scripts/*.test.mjs",
-    "check:jsr": "node scripts/check-jsr-entrypoints.mjs",
+    "test:scripts": "node --test scripts/*.test.js",
+    "check:jsr": "node scripts/check-jsr-entrypoints.js",
     "lint": "npm run lint --workspaces --if-present",
     "format": "npx @biomejs/biome check --use-editorconfig=true --write packages/*/src packages/*/spec packages/*/examples scripts",
     "test:deno": "npm run test:deno --workspaces --if-present",

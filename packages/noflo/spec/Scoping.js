@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, before, beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
-import { loadJsonGraphFixture } from "./utils/loadJsonGraph.mjs";
+import { loadJsonGraphFixture } from "./utils/loadJsonGraph.js";
 
 describe("Scope isolation", () => {
   let loader = null;

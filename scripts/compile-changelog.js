@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * @file scripts/compile-changelog.mjs
+ * @file scripts/compile-changelog.js
  * @description Release-time CHANGELOG compiler for the noflo monorepo.
  *
  *   Each package owns a CHANGELOG.md scoped to its own changes — contributors
@@ -22,7 +22,7 @@
  *   script and the smoketest to reuse.
  *
  * Usage:
- *   node scripts/compile-changelog.mjs <version> [--date YYYY-MM-DD] [--dry-run] [--root <dir>]
+ *   node scripts/compile-changelog.js <version> [--date YYYY-MM-DD] [--dry-run] [--root <dir>]
  *
  *   <version>   semver, e.g. 1.6.0
  *   --date      override release date (default: today, ISO)
@@ -331,7 +331,7 @@ export function compileChangelog({
 
 function printHelp() {
   console.log(
-    `Usage: node scripts/compile-changelog.mjs <version> [options]
+    `Usage: node scripts/compile-changelog.js <version> [options]
 
   <version>           semver to release, e.g. 1.6.0
   --date YYYY-MM-DD   override release date (default: today)

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * @file scripts/jsr-doc-coverage.mjs
+ * @file scripts/jsr-doc-coverage.js
  * @description Enumerate a package's JSR public API and report which exported
  *   symbols (and class/interface members) lack a JSDoc *description*.
  *
@@ -19,9 +19,9 @@
  *   (the JSR distribution is dormant until then).
  *
  * Usage:
- *   node scripts/jsr-doc-coverage.mjs [pkgName]          # report
- *   node scripts/jsr-doc-coverage.mjs --min 80 [pkgName] # exit 1 if under 80%
- *   node scripts/jsr-doc-coverage.mjs --members [pkgName]# also list members
+ *   node scripts/jsr-doc-coverage.js [pkgName]          # report
+ *   node scripts/jsr-doc-coverage.js --min 80 [pkgName] # exit 1 if under 80%
+ *   node scripts/jsr-doc-coverage.js --members [pkgName]# also list members
  */
 
 import { execSync } from "node:child_process";
@@ -356,7 +356,9 @@ function main() {
     );
     const show = c.gaps.filter((g) => g.level === "symbol" || showMembers);
     for (const g of show) {
-      const where = g.file ? g.file.split(`/packages/${c.pkg}/`)[1] || g.file : "<synthesized>";
+      const where = g.file
+        ? g.file.split(`/packages/${c.pkg}/`)[1] || g.file
+        : "<synthesized>";
       console.log(
         `  ✗ [${g.level}] ${String(g.kind).padEnd(10)} ${g.name}  (${where})`,
       );

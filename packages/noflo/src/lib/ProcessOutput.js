@@ -2,7 +2,7 @@
 //     (c) 2013-2020 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
-/* @ts-self-types="./ProcessOutput.js.d.ts" */
+/* @ts-self-types="./ProcessOutput.d.ts" */
 
 import IP from "./IP.js";
 /* eslint-disable no-underscore-dangle */

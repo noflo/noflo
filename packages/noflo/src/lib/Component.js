@@ -2,7 +2,7 @@
 //     (c) 2013-2017 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
-/* @ts-self-types="./Component.js.d.ts" */
+/* @ts-self-types="./Component.d.ts" */
 
 import InPort from "./InPort.js"; // eslint-disable-line no-unused-vars
 import IP from "./IP.js"; // eslint-disable-line no-unused-vars

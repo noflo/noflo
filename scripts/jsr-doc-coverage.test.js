@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { hasDescription, parseExports } from "./jsr-doc-coverage.mjs";
+import { hasDescription, parseExports } from "./jsr-doc-coverage.js";
 
 test("hasDescription: a non-empty `doc` is documented (the JSR rule)", () => {
   assert.equal(hasDescription({ doc: "Creates a packet." }), true);
