@@ -1,0 +1,52 @@
+{
+  "inports": {
+    "in1": {
+      "process": "Pc1",
+      "port": "in"
+    }
+  },
+  "outports": {
+    "out": {
+      "process": "PcMergeA",
+      "port": "out"
+    }
+  },
+  "groups": [],
+  "processes": {
+    "Pc1": {
+      "component": "process/Async"
+    },
+    "PcMergeA": {
+      "component": "process/MergeA"
+    }
+  },
+  "connections": [
+    {
+      "src": {
+        "process": "Pc1",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "PcMergeA",
+        "port": "in1"
+      }
+    },
+    {
+      "data": "twoIIP0",
+      "tgt": {
+        "process": "PcMergeA",
+        "port": "in2",
+        "index": 0
+      }
+    },
+    {
+      "data": "twoIIP1",
+      "tgt": {
+        "process": "PcMergeA",
+        "port": "in2",
+        "index": 1
+      }
+    }
+  ],
+  "caseSensitive": false
+}

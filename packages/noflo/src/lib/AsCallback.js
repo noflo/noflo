@@ -33,8 +33,8 @@ import { Network } from "./Network.js";
 //
 // Here we handle the input valus given to the `asCallback`
 // function. This allows passing things like a pre-initialized
-// NoFlo ComponentLoader, or giving the component loading
-// baseDir context.
+// NoFlo ComponentLoader, or a component registry to construct
+// one from.
 /**
  * @typedef {import("@noflo/graph").GraphModel | string} AsCallbackComponent
  */
@@ -42,7 +42,7 @@ import { Network } from "./Network.js";
  * @typedef {Object} AsCallbackOptions
  * @property {string} [name] - Name for the wrapped network
  * @property {ComponentLoader} [loader] - Component loader instance to use, if any
- * @property {string} [baseDir] - Project base directory for component loading
+ * @property {import("./ComponentLoader").ComponentRegistry} [registry] - Component registry, used to construct a loader when no loader is given
  * @property {Object} [flowtrace] - Flowtrace instance to use for tracing this network run
  * @property {NetworkCallback} [networkCallback] - Access to Network instance
  * @property {boolean} [raw] - Whether the callback should operate on raw noflo.IP objects
@@ -68,14 +68,10 @@ function normalizeOptions(options, component) {
   if (!options.name && typeof component === "string") {
     options.name = component;
   }
-  if (options.loader) {
-    options.baseDir = /** @type {string} */ (options.loader.baseDir);
-  }
-  if (!options.baseDir && process && process.cwd) {
-    options.baseDir = process.cwd();
-  }
-  if (options.baseDir && !options.loader) {
-    options.loader = new ComponentLoader(options.baseDir);
+  if (!options.loader) {
+    options.loader = new ComponentLoader({
+      registry: options.registry,
+    });
   }
   if (!options.raw) {
     options.raw = false;
@@ -508,7 +504,7 @@ function sendOutputMap(outputs, resultType, options) {
  * @param {Object} options
  * @param {string} [options.name] - Name for the wrapped network
  * @param {ComponentLoader} [options.loader] - Component loader instance to use, if any
- * @param {string} [options.baseDir] - Project base directory for component loading
+ * @param {import("./ComponentLoader").ComponentRegistry} [options.registry] - Component registry, used to construct a loader when no loader is given
  * @param {Object} [options.flowtrace] - Flowtrace instance to use for tracing this network run
  * @param {NetworkCallback} [options.networkCallback] - Access to Network instance
  * @param {boolean} [options.raw] - Whether the callback should operate on raw noflo.IP objects

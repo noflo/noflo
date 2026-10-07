@@ -1,0 +1,40 @@
+{
+  "inports": {
+    "start": {
+      "process": "PcGen",
+      "port": "start"
+    },
+    "stop": {
+      "process": "PcGen",
+      "port": "stop"
+    }
+  },
+  "outports": {
+    "out": {
+      "process": "Pc",
+      "port": "out"
+    }
+  },
+  "groups": [],
+  "processes": {
+    "PcGen": {
+      "component": "process/Generator"
+    },
+    "Pc": {
+      "component": "process/Async"
+    }
+  },
+  "connections": [
+    {
+      "src": {
+        "process": "PcGen",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "Pc",
+        "port": "in"
+      }
+    }
+  ],
+  "caseSensitive": false
+}

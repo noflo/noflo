@@ -1,3 +1,0 @@
-INPORT=Merge.IN:IN
-OUTPORT=Split.OUT:OUT
-Merge(Merge) OUT -> IN Split(Split)

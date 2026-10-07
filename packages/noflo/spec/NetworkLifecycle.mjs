@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { afterEach, before, beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
-import { loadFbp } from "./utils/loadFbp.mjs";
+import { loadJsonGraphFixture } from "./utils/loadJsonGraph.mjs";
+import { nativeGraph } from "./utils/nativeGraph.mjs";
 
 const legacyBasic = () => {
   const c = new noflo.Component();
@@ -175,7 +176,8 @@ const processGenerator = () => {
 };
 
 describe("Network Lifecycle", () => {
-  const loader = new noflo.ComponentLoader(process.cwd());
+  const loader = new noflo.ComponentLoader({});
+
   before(() =>
     loader.listComponents().then(() => {
       loader.registerComponent("process", "Async", processAsync);
@@ -198,17 +200,18 @@ describe("Network Lifecycle", () => {
         assert.equal(inst.isLegacy(), false);
       }));
     it("should recognize Graph component as non-legacy", () =>
-      loader.load("Graph").then((inst) => {
-        assert.equal(inst.isLegacy(), false);
-      }));
+      loader
+        .registerGraph("scope", "Graph", nativeGraph("legacy-check"))
+        .then(() => loader.load("scope/Graph"))
+        .then((inst) => {
+          assert.equal(inst.isLegacy(), false);
+        }));
   });
   describe("with single Process API component receiving IIP", () => {
     let c = null;
     let out = null;
     beforeEach(() => {
-      const fbpData =
-        "OUTPORT=Pc.OUT:OUT\n" + "'hello' -> IN Pc(process/Async)\n";
-      return Promise.resolve(loadFbp(fbpData))
+      return Promise.resolve(loadJsonGraphFixture("iip-single"))
         .then((graph) => {
           loader.registerComponent("scope", "Connected", graph);
           return loader.load("scope/Connected");
@@ -363,9 +366,7 @@ describe("Network Lifecycle", () => {
     let c = null;
     let out = null;
     beforeEach(() => {
-      const fbpData =
-        "OUTPORT=Pc.OUT:OUT\n" + "'hello' -> IN Pc(process/Promise)\n";
-      return Promise.resolve(loadFbp(fbpData))
+      return Promise.resolve(loadJsonGraphFixture("iip-promise"))
         .then((graph) => {
           loader.registerComponent("scope", "Promise", graph);
           return loader.load("scope/Promise");
@@ -416,14 +417,7 @@ describe("Network Lifecycle", () => {
     let c = null;
     let out = null;
     beforeEach(() => {
-      const fbpData =
-        "OUTPORT=Sync.OUT:OUT\n" +
-        "'foo' -> IN2 NonSending(process/NonSending)\n" +
-        "'hello' -> IN Bracketize(process/Bracketize)\n" +
-        "Bracketize OUT -> IN NonSending(process/NonSending)\n" +
-        "NonSending OUT -> IN Sync(process/Sync)\n" +
-        "Sync OUT -> IN2 NonSending\n";
-      return Promise.resolve(loadFbp(fbpData))
+      return Promise.resolve(loadJsonGraphFixture("bracket-sync"))
         .then((graph) => {
           loader.registerComponent("scope", "Connected", graph);
           return loader.load("scope/Connected");
@@ -478,13 +472,7 @@ describe("Network Lifecycle", () => {
     let in2 = null;
     let out = null;
     before(() => {
-      const fbpData =
-        "INPORT=Pc1.IN:IN1\n" +
-        "INPORT=Pc2.IN:IN2\n" +
-        "OUTPORT=PcMerge.OUT:OUT\n" +
-        "Pc1(process/Async) OUT -> IN1 PcMerge(process/Merge)\n" +
-        "Pc2(process/Async) OUT -> IN2 PcMerge(process/Merge)\n";
-      return Promise.resolve(loadFbp(fbpData))
+      return Promise.resolve(loadJsonGraphFixture("double-merge"))
         .then((g) => {
           loader.registerComponent("scope", "Merge", g);
           return loader.load("scope/Merge");
@@ -661,14 +649,7 @@ describe("Network Lifecycle", () => {
     let in2 = null;
     let out = null;
     before(() => {
-      const fbpData =
-        "INPORT=Leg1.IN:IN1\n" +
-        "INPORT=Leg2.IN:IN2\n" +
-        "OUTPORT=Leg3.OUT:OUT\n" +
-        "Leg1(legacy/Sync) OUT -> IN1 PcMerge(process/Merge)\n" +
-        "Leg2(legacy/Sync) OUT -> IN2 PcMerge(process/Merge)\n" +
-        "PcMerge OUT -> IN Leg3(legacy/Sync)\n";
-      return Promise.resolve(loadFbp(fbpData))
+      return Promise.resolve(loadJsonGraphFixture("legacy-merge"))
         .then((g) => {
           loader.registerComponent("scope", "Merge", g);
           return loader.load("scope/Merge");
@@ -805,12 +786,7 @@ describe("Network Lifecycle", () => {
     let stop = null;
     let out = null;
     before(() => {
-      const fbpData =
-        "INPORT=PcGen.START:START\n" +
-        "INPORT=PcGen.STOP:STOP\n" +
-        "OUTPORT=Pc.OUT:OUT\n" +
-        "PcGen(process/Generator) OUT -> IN Pc(process/Async)\n";
-      return Promise.resolve(loadFbp(fbpData))
+      return Promise.resolve(loadJsonGraphFixture("generator"))
         .then((g) => {
           loader.registerComponent("scope", "Connected", g);
           return loader.load("scope/Connected");

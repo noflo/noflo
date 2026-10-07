@@ -1,0 +1,68 @@
+{
+  "inports": {},
+  "outports": {
+    "out": {
+      "process": "Sync",
+      "port": "out"
+    }
+  },
+  "groups": [],
+  "processes": {
+    "NonSending": {
+      "component": "process/NonSending"
+    },
+    "Bracketize": {
+      "component": "process/Bracketize"
+    },
+    "Sync": {
+      "component": "process/Sync"
+    }
+  },
+  "connections": [
+    {
+      "data": "foo",
+      "tgt": {
+        "process": "NonSending",
+        "port": "in2"
+      }
+    },
+    {
+      "data": "hello",
+      "tgt": {
+        "process": "Bracketize",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "Bracketize",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "NonSending",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "NonSending",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "Sync",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "Sync",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "NonSending",
+        "port": "in2"
+      }
+    }
+  ],
+  "caseSensitive": false
+}

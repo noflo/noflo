@@ -6,10 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Native-API debug logger (work document #17): `createDebug(namespace)` replaces the `debug` npm module with dependency-free code — namespace toggling via `localStorage` (browsers) or `DEBUG` (Node), wildcard and negation patterns with last-match-wins semantics, lazy per-call evaluation so patterns can change at runtime, stable per-namespace colors. Enabled namespaces log to `console.debug` (web) or `console.error` (Node, matching the `debug` module's stderr stream)
 - The engine now runs the native `@noflo/graph` model as its core graph (work document #10): `noflo.createNetwork` and `Network`/`BaseNetwork` consume `GraphModel` instances directly, and the live-edit network methods (`addNode`/`removeNode`/`renameNode`/`addEdge`/`removeEdge`/`addInitial`/`removeInitial`) mirror their mutations back into the model. `GraphModel`, `importFbpJson`, and `exportFbpJson` are re-exported from NoFlo
 - FBP JSON interchange is available through `noflo.importFbpJson`/`noflo.exportFbpJson`, including legacy NoFlo JSON documents (`processes`/`connections` shape) on import
 - **Removed fbp-graph as the core data model**: networks are instantiated from native graph models only; the `Graph`, `graph`, `Journal`, and `journal` fbp-graph re-exports are gone
 ### Removed
+- The `debug` dependency: core runtime dependencies are now `@noflo/graph` alone
+- **Registry-only component loading (work document #16)**: the Node.js loader (`fbp-manifest` discovery, `fbp.json` caching, TypeScript transpilation, CommonJS evaluation, `noflo.loader` plugin discovery) left core for the `@noflo/loader-node` package. Core consumes an application-supplied `ComponentRegistry` (`list`/`get`, optionally `setSource`/`getSource`, optionally EventTarget-based `change`/`invalidate`) plus manual `registerComponent` calls. Node.js applications await `createNodeModulesRegistry(baseDir)` and pass the ready registry; browsers pass a static ESM-URL registry with no build step
+- `ComponentLoader(baseDir)`: the constructor is options/registry-only, readiness machinery is gone (registries are ready at handoff; the catalog is read synchronously at construction), and `baseDir` exits networks and `asCallback` — pass `componentLoader` or `registry` instead
+- `loader.setSource`/`loader.getSource`/`loader.getLanguages`: source storage and language reporting are registry API only; runtimes call the registry they passed in, staying current through `change` events
+- `loader.dynamicLoad` and path-string component definitions: definitions in core are platform-neutral values (factories, ESM module objects, live `GraphModel`s); discovered graph files register as pre-parsed models via the loader package
+- The `Graph` loader catalog entry: the subgraph wrapper (`Subgraph`, renamed from `Graph`) is core machinery instantiated directly for graph definitions. The runtime `graph` inport on directly-instantiated subgraphs is deprecated; loader-loaded subgraphs never see it
+- `fbp-manifest`, `@noflo/fbp`, and `get-function-params` dependencies: core runs on `@noflo/graph` alone
+- `noflo.asComponent` and the `get-function-params` dependency: function-to-component wrapping moved to the standalone `@noflo/as-component` package (work document #16). NoFlo core does not import it back; applications `npm install @noflo/as-component` and call it directly
 - `LegacyNetwork` and the `subscribeGraph` option: live graph subscription was the deprecated EventEmitter-based network variant; mutate networks via the network methods instead. Flowtrace recording now embeds FBP JSON graph definitions
 - `noflo.loadFile` and `noflo.saveFile`: filesystem graph loading will move to a platform-specific package (`@noflo/nodejs`)
 ### Changed

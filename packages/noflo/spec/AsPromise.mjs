@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, before, describe, it } from "node:test";
 import flowtrace from "flowtrace";
 import * as noflo from "../src/lib/NoFlo.js";
-import { loadFbp } from "./utils/loadFbp.mjs";
+import { loadJsonGraphFixture } from "./utils/loadJsonGraph.mjs";
 
 describe("asPromise interface", () => {
   let loader = null;
@@ -69,7 +69,7 @@ describe("asPromise interface", () => {
   };
 
   before(() => {
-    loader = new noflo.ComponentLoader(process.cwd());
+    loader = new noflo.ComponentLoader({});
     return loader.listComponents().then(() => {
       loader.registerComponent("process", "Async", processAsync);
       loader.registerComponent("process", "Error", processError);
@@ -320,13 +320,7 @@ describe("asPromise interface", () => {
     let wrapped = null;
     before((_t, done) => {
       try {
-        const g = loadFbp(
-          `\
-INPORT=Async.IN:IN
-OUTPORT=Stream.OUT:OUT
-Async(process/Async) OUT -> IN Stream(process/Streamify)\
-`,
-        );
+        const g = loadJsonGraphFixture("ascallback-stream");
         graph = g;
         wrapped = noflo.asPromise(graph, {
           loader,
@@ -359,13 +353,7 @@ Async(process/Async) OUT -> IN Stream(process/Streamify)\
     let wrapped = null;
     before((_t, done) => {
       try {
-        const g = loadFbp(
-          `\
-INPORT=Async.IN:IN
-OUTPORT=Stream.OUT:OUT
-Async(process/Async) OUT -> IN Stream(process/Streamify)\
-`,
-        );
+        const g = loadJsonGraphFixture("ascallback-stream");
         graph = g;
         wrapped = noflo.asPromise(graph, { loader });
         done();
@@ -395,13 +383,7 @@ Async(process/Async) OUT -> IN Stream(process/Streamify)\
     let wrapped = null;
     before((_t, done) => {
       try {
-        const g = loadFbp(
-          `\
-INPORT=Async.IN:IN
-OUTPORT=Values.OUT:OUT
-Async(process/Async) OUT -> IN Values(process/Values)\
-`,
-        );
+        const g = loadJsonGraphFixture("ascallback-values");
         graph = g;
         wrapped = noflo.asPromise(graph, { loader });
         done();

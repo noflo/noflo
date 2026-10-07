@@ -10,8 +10,8 @@
 */
 
 import { GraphModel } from "@noflo/graph";
-import * as registerLoader from "./loader/register.js";
-import { deprecated, makeAsync } from "./Platform.js";
+import { Subgraph } from "../components/Subgraph.js";
+import { deprecated } from "./Platform.js";
 
 /**
  * @callback ComponentFactory
@@ -25,8 +25,7 @@ import { deprecated, makeAsync } from "./Platform.js";
  */
 
 // eslint-disable-next-line max-len
-/** @typedef {string | ModuleComponent | ComponentFactory | import("@noflo/graph").GraphModel } ComponentDefinition */
-/** @typedef {string | ModuleComponent | ComponentFactory } ComponentDefinitionWithoutGraph */
+/** @typedef {ModuleComponent | ComponentFactory | import("@noflo/graph").GraphModel } ComponentDefinition */
 
 /**
  * @typedef {Object<string, ComponentDefinition>} ComponentList
@@ -43,64 +42,67 @@ import { deprecated, makeAsync } from "./Platform.js";
 
 /**
  * @typedef ComponentLoaderOptions
- * @property {boolean} [cache]
- * @property {boolean} [discover]
- * @property {boolean} [recursive]
- * @property {string[]} [runtimes]
- * @property {string} [manifest]
- * @property {ComponentRegistry} [registry] - Application-supplied component registry. When present, the loader needs no baseDir: `list` entries are merged into the component list when it is built, `get` resolves names the classic discovery does not know about, and `setSource`/`getSource` handle source storage.
+ * @property {ComponentRegistry} [registry] - Application-supplied component registry. The loader reads `list()` synchronously at construction and resolves names through `get`.
  */
 
 /**
- * Application-supplied component registry (work document #6). All
- * methods are optional; an application can implement full discovery
- * replacement (`list`), dynamic resolution (`get`, also covering #593
- * dummy components for top-down design), and source storage
- * (`setSource`/`getSource`).
+ * Application-supplied component registry (work documents #6 and #16).
+ * Registries are assumed ready and populated at handoff: `list` is a
+ * synchronous read of the catalog, `get` is the async lazy-resolution
+ * path (for example importing an ESM URL in the browser).
+ *
+ * Registries backed by live systems (FBP protocol runtimes, IDE
+ * sessions) may be EventTargets dispatching:
+ *
+ * - `change` (`detail: { name }`): a component implementation was
+ *   updated or added. The loader refreshes its cache entry.
+ * - `invalidate`: the whole catalog changed and needs re-reading.
+ *
+ * Static registries simply never dispatch.
  *
  * @typedef {Object} ComponentRegistry
- * @property {(name: string) => Promise<any>} [get] - Resolve a component implementation by name when classic discovery fails. A falsy result signals "not available".
- * @property {() => Promise<ComponentList>} [list] - Provide the component list. Entries win over project components on name conflicts.
- * @property {(packageId: string, name: string, source: string, language: string) => Promise<void>} [setSource] - Store component source.
- * @property {(name: string) => Promise<ComponentSources>} [getSource] - Return stored source metadata for a component.
+ * @property {() => ComponentList} list - Provide the component catalog. Synchronous; entries win over manual registration on name conflicts when present at construction.
+ * @property {(name: string) => Promise<ComponentDefinition|undefined>} [get] - Resolve a component implementation by name, including names not present in `list` (#593 dummy components).
+ * @property {(packageId: string, name: string, source: string, language: string) => Promise<void>} [setSource] - Store component source. Registry concern only.
+ * @property {(name: string) => Promise<ComponentSources>} [getSource] - Return stored source metadata for a component. Registry concern only.
  */
 
 // ## The NoFlo Component Loader
 //
-// The Component Loader is responsible for discovering components
-// available in the running system, as well as for instantiating
-// them.
+// The Component Loader is responsible for instantiating components
+// available in the running system.
 //
-// Internally the loader uses a registered, platform-specific
-// loader. NoFlo ships with a loader for Node.js that discovers
-// components from the current project's `components/` and
-// `graphs/` folders, as well as those folders of any installed
-// NPM dependencies. For browsers and embedded devices it is
-// possible to generate a statically configured component
-// loader using the [noflo-component-loader](https://github.com/noflo/noflo-component-loader) webpack plugin.
+// The loader consumes an application-supplied `ComponentRegistry` plus
+// manual `registerComponent` calls. Component definitions are
+// platform-neutral values: factory functions, ESM module objects with
+// `getComponent`, or live graph models. No path strings, no source
+// evaluation, no discovery in core: platform-specific discovery lives
+// in registry implementations like `@noflo/loader-node`, and browser
+// applications pass a static ESM-URL registry.
 export class ComponentLoader {
   /**
-   * @param {string|null|ComponentLoaderOptions} [baseDir] - Project base
-   *   directory for classic discovery, or the options object for
-   *   registry-style construction without a baseDir
    * @param {ComponentLoaderOptions} [options]
    */
-  constructor(baseDir, options = {}) {
-    if (
-      baseDir !== null &&
-      baseDir !== undefined &&
-      typeof baseDir === "object"
-    ) {
-      // Registry-style construction: the options object passed directly
-      options = baseDir;
-      baseDir = null;
-    }
-    this.baseDir = baseDir != null ? baseDir : null;
+  constructor(options = {}) {
     this.options = options;
     /** @type {ComponentRegistry|null} Application-supplied registry */
     this.registry = this.options.registry || null;
     /** @type {ComponentList|null} */
-    this.components = null;
+    this.components = {};
+    /** @type {Object<string, string>} */
+    this.libraryIcons = {};
+
+    // The registry catalog is read synchronously at construction: a
+    // registry is ready and populated at handoff. Registry entries win
+    // over manual registration on name conflicts, matching the #6
+    // precedence.
+    if (this.registry && typeof this.registry.list === "function") {
+      const list = this.registry.list();
+      Object.keys(list || {}).forEach((name) => {
+        this.components[name] = list[name];
+      });
+    }
+
     // Work document #6: a registry that is an EventTarget can signal
     // component changes and list invalidations. The loader subscribes at
     // construction so the cache stays in sync with the registry.
@@ -112,11 +114,11 @@ export class ComponentLoader {
       /** @type {any} */ (this.registry).addEventListener(
         "change",
         (/** @type {any} */ event) => {
-          const name = event.detail && event.detail.name;
+          const name = event.detail?.name;
           if (!name || !this.components) {
             return;
           }
-          if (!this.registry || typeof this.registry.get !== "function") {
+          if (typeof this.registry?.get !== "function") {
             return;
           }
           Promise.resolve(this.registry.get(name))
@@ -135,19 +137,14 @@ export class ComponentLoader {
       );
       /** @type {any} */ (this.registry).addEventListener("invalidate", () => {
         this.components = {};
-        this.ready = false;
-        this.listComponents().catch(() => {});
+        if (this.registry && typeof this.registry.list === "function") {
+          const list = this.registry.list();
+          Object.keys(list || {}).forEach((name) => {
+            this.components[name] = list[name];
+          });
+        }
       });
     }
-    /** @type {Object<string, string>} */
-    this.libraryIcons = {};
-    /** @type {Object<string, Object>} */
-    this.sourcesForComponents = {};
-    /** @type {Object<string, string>} */
-    this.specsForComponents = {};
-    /** @type {Promise<ComponentList> | null}; */
-    this.processing = null;
-    this.ready = false;
   }
 
   // Get the library prefix for a given module name. This
@@ -178,57 +175,15 @@ export class ComponentLoader {
     return res.replace(/^noflo-/, "");
   }
 
-  // Get the list of all available components
+  // Get the list of all available components. Promise-returning
+  // accessor per work document #8; the catalog is already populated
+  // at construction.
   /**
    * @param {any} [callback] - Legacy callback
    * @returning {Promise<ComponentList>} Promise resolving to list of loaded components
    */
   listComponents(callback) {
-    let promise;
-    if (this.processing) {
-      promise = this.processing;
-    } else if (this.ready && this.components) {
-      promise = Promise.resolve(this.components);
-    } else {
-      this.components = {};
-      this.ready = false;
-      this.processing = new Promise((resolve, reject) => {
-        makeAsync(() => {
-          // Classic manifest discovery needs a baseDir; a registry-only
-          // loader (no baseDir) skips it and merges the registry list
-          const classic =
-            this.baseDir && typeof this.baseDir === "string"
-              ? new Promise((res, rej) => {
-                  registerLoader.register(this, (err) => {
-                    if (err) {
-                      rej(err);
-                      return;
-                    }
-                    res();
-                  });
-                })
-              : Promise.resolve();
-          const mergeRegistryList =
-            this.registry && typeof this.registry.list === "function"
-              ? Promise.resolve(this.registry.list()).then((list) => {
-                  // The registry is the application's discovery
-                  // mechanism: its entries win on name conflicts
-                  Object.keys(list || {}).forEach((name) => {
-                    this.components[name] = list[name];
-                  });
-                })
-              : Promise.resolve();
-          Promise.all([classic, mergeRegistryList])
-            .then(() => {
-              this.ready = true;
-              this.processing = null;
-              resolve(this.components);
-            })
-            .catch(reject);
-        });
-      });
-      promise = this.processing;
-    }
+    const promise = Promise.resolve(this.components);
     if (callback) {
       deprecated(
         "Providing a callback to ComponentLoader.listComponents is deprecated, use Promises",
@@ -241,12 +196,12 @@ export class ComponentLoader {
   }
 
   // Load an instance of a specific component. If the
-  // registered component is a JSON or FBP graph, it will
-  // be loaded as an instance of the NoFlo subgraph
+  // registered component is a graph model or FBP JSON definition,
+  // it will be loaded as an instance of the NoFlo subgraph
   // component.
   /**
    * @param {string} name - Component name
-   * @param {Object<string, any>} meta - Node metadata
+   * @param {Object<string, any>} [meta] - Node metadata
    * @param {any} [cb] - Legacy callback
    * @returns {Promise<import("./Component").Component>}
    */
@@ -255,19 +210,12 @@ export class ComponentLoader {
     let callback = cb;
     if (typeof meta === "function") {
       callback = meta;
-      metadata = cb;
-    }
-    if (!this.ready) {
-      return this.listComponents().then(() => this.load(name, meta, cb));
+      metadata = undefined;
     }
 
     const promise = new Promise((resolve, reject) => {
       if (!this.components) {
-        reject(
-          new Error(
-            `Component ${name} not available with base ${this.baseDir}`,
-          ),
-        );
+        reject(new Error(`Component ${name} not available`));
         return;
       }
       let component = this.components[name];
@@ -284,17 +232,13 @@ export class ComponentLoader {
       }
       if (!component) {
         // Work document #6: the application registry resolves names the
-        // classic discovery does not know about (also covers #593
-        // dummy-component support for top-down design)
+        // catalog does not know about (also covers #593 dummy-component
+        // support for top-down design)
         if (this.registry && typeof this.registry.get === "function") {
           resolve(
             Promise.resolve(this.registry.get(name)).then((impl) => {
               if (!impl) {
-                reject(
-                  new Error(
-                    `Component ${name} not available with base ${this.baseDir}`,
-                  ),
-                );
+                reject(new Error(`Component ${name} not available`));
                 return undefined;
               }
               return impl;
@@ -305,17 +249,17 @@ export class ComponentLoader {
       }
       if (!component) {
         // Failure to load
-        reject(
-          new Error(
-            `Component ${name} not available with base ${this.baseDir}`,
-          ),
-        );
+        reject(new Error(`Component ${name} not available`));
         return;
       }
       resolve(component);
     }).then((component) => {
       if (this.isGraph(component)) {
-        return this.loadGraph(name, component, metadata);
+        // Subgraph extends Component; the cast keeps the union return of
+        // this chain assignable to Promise<Component>
+        return /** @type {Promise<import("./Component").Component>} */ (
+          this.loadGraph(name, component, metadata)
+        );
       }
 
       return this.createComponent(name, component, metadata).then(
@@ -326,9 +270,6 @@ export class ComponentLoader {
             );
           }
           const inst = instance;
-          if (name === "Graph") {
-            inst.baseDir = /** @type {string} */ (this.baseDir);
-          }
           if (typeof name === "string") {
             inst.componentName = name;
           }
@@ -358,39 +299,14 @@ export class ComponentLoader {
   /**
    * Creates an instance of a component.
    * @param {string} name
-   * @param {ComponentDefinitionWithoutGraph} component
-   * @param {Object<string, any>} metadata
+   * @param {ComponentDefinition} component
+   * @param {Object<string, any>} [metadata]
    * @returns {Promise<import("./Component").Component>}
    */
   createComponent(name, component, metadata) {
     const implementation = component;
     if (!implementation) {
       return Promise.reject(new Error(`Component ${name} not available`));
-    }
-
-    // If a string was specified, attempt to `require` it.
-    if (typeof implementation === "string") {
-      if (typeof registerLoader.dynamicLoad === "function") {
-        return new Promise((resolve, reject) => {
-          registerLoader.dynamicLoad(
-            name,
-            implementation,
-            metadata,
-            (err, instance) => {
-              if (err) {
-                reject(err);
-                return;
-              }
-              resolve(instance);
-            },
-          );
-        });
-      }
-      return Promise.reject(
-        Error(
-          `Dynamic loading of ${implementation} for component ${name} not available on this platform.`,
-        ),
-      );
     }
 
     // Attempt to create the component instance using the `getComponent` method.
@@ -419,9 +335,9 @@ export class ComponentLoader {
     return Promise.resolve(instance);
   }
 
-  // Check if a given filesystem path is actually a graph
+  // Check if a given value is a graph definition
   /**
-   * @param {import("@noflo/graph").GraphModel|object|string} cPath
+   * @param {import("@noflo/graph").GraphModel|object} cPath
    * @returns {boolean}
    */
   isGraph(cPath) {
@@ -429,16 +345,24 @@ export class ComponentLoader {
     if (cPath instanceof GraphModel) {
       return true;
     }
-    // FBP JSON definition. `edges` may be absent on graphs without any
-    // connections (for example a single node exposing exported ports).
-    if (typeof cPath === "object" && Array.isArray(cPath.nodes)) {
-      return true;
-    }
-    if (typeof cPath !== "string") {
+    if (typeof cPath !== "object") {
       return false;
     }
-    // Graph file path
-    return cPath.indexOf(".fbp") !== -1 || cPath.indexOf(".json") !== -1;
+    // FBP JSON definition. `edges` may be absent on graphs without any
+    // connections (for example a single node exposing exported ports).
+    if (Array.isArray(cPath.nodes)) {
+      return true;
+    }
+    // Legacy NoFlo JSON shape (processes/connections), accepted by the
+    // FBP JSON import adapter
+    if (
+      typeof cPath.processes === "object" &&
+      cPath.processes !== null &&
+      !Array.isArray(cPath.processes)
+    ) {
+      return true;
+    }
+    return false;
   }
 
   // Load a graph as a NoFlo subgraph component instance
@@ -446,23 +370,17 @@ export class ComponentLoader {
    * @protected
    * @param {string} name
    * @param {import("@noflo/graph").GraphModel} component
-   * @param {Object<string, any>} metadata
-   * @returns {Promise<import("../components/Graph").Graph>}
+   * @param {Object<string, any>} [metadata]
+   * @returns {Promise<Subgraph>}
    */
   loadGraph(name, component, metadata) {
-    const graphComponent = /** @type {ModuleComponent} */ (
-      this.components.Graph
-    );
-    return this.createComponent(name, graphComponent, metadata).then(
-      (graph) => {
-        const g = /** @type {import("../components/Graph").Graph} */ (graph);
-        g.loader = this;
-        g.baseDir = /** @type {string} */ (this.baseDir);
-        g.inPorts.remove("graph");
-        this.setIcon(name, g);
-        return g.setGraph(component).then(() => g);
-      },
-    );
+    // The subgraph wrapper is core machinery instantiated directly;
+    // there is no user-loadable `Graph` catalog entry
+    const subgraph = new Subgraph(metadata);
+    subgraph.loader = this;
+    subgraph.inPorts.remove("graph");
+    this.setIcon(name, subgraph);
+    return subgraph.setGraph(component).then(() => subgraph);
   }
 
   // Set icon for the component instance. If the instance
@@ -537,7 +455,7 @@ export class ComponentLoader {
 
   // ### Registering components at runtime
   //
-  // In addition to components discovered by the loader,
+  // In addition to components provided by the registry,
   // it is possible to register components at runtime.
   //
   // With the `registerComponent` method you can register
@@ -580,7 +498,10 @@ export class ComponentLoader {
 
   // With `registerLoader` you can register custom component
   // loaders. They will be called immediately and can register
-  // any components or graphs they wish.
+  // any components or graphs they wish. Registry implementations
+  // like `@noflo/loader-node` drive this hook for `noflo.loader`
+  // plugin modules discovered in package manifests; core accepts
+  // plugins, it never discovers them.
   /**
    * @callback CustomLoader
    * @param {ComponentLoader} loader
@@ -613,97 +534,13 @@ export class ComponentLoader {
     return promise;
   }
 
-  // With `setSource` you can register a component by providing
-  // a source code string. Supported languages depend on the runtime
-  // environment: JavaScript and TypeScript where a TypeScript compiler
-  // is available. CoffeeScript is no longer supported.
-  /**
-   * @param {string} packageId
-   * @param {string} name
-   * @param {string} source
-   * @param {string} language
-   * @param {ErrorableCallback} [callback]
-   * @returns {Promise<void>}
-   */
-  setSource(packageId, name, source, language, callback) {
-    // Work document #6: source storage is a registry concern. There is no
-    // classic fallback — in-memory registration is available via
-    // registerComponent for components the application holds directly.
-    const readyGate = this.ready
-      ? Promise.resolve()
-      : this.listComponents().then(() => {
-          this.ready = true;
-        });
-    return readyGate.then(() => {
-      if (this.registry && typeof this.registry.setSource === "function") {
-        return this.registry.setSource(packageId, name, source, language);
-      }
-      const err = new Error(
-        "Component source storage requires a component registry (setSource)",
-      );
-      if (callback) {
-        callback(err);
-        return undefined;
-      }
-      throw err;
-    });
-  }
-
-  // `getSource` allows fetching the source code of a registered
-  // component as a string.
-  /**
-   * @callback SourceCallback
-   * @param {Error|null} error
-   * @param {ComponentSources} [source]
-   */
-  /**
-   * @param {string} name
-   * @param {SourceCallback} [callback]
-   * @returns {Promise<ComponentSources>}
-   */
-  getSource(name, callback) {
-    // Work document #6: source storage is a registry concern when the
-    // application supplies one
-    const readyGate = this.ready
-      ? Promise.resolve()
-      : this.listComponents().then(() => {
-          this.ready = true;
-        });
-    return readyGate.then(() => {
-      if (this.registry && typeof this.registry.getSource === "function") {
-        return Promise.resolve(this.registry.getSource(name)).then((source) => {
-          if (!source) {
-            throw new Error(`getSource not available for ${name}`);
-          }
-          return source;
-        });
-      }
-      const err = new Error(
-        "Component source storage requires a component registry (getSource)",
-      );
-      if (callback) {
-        callback(err);
-        return undefined;
-      }
-      throw err;
-    });
-  }
-
-  // `getLanguages` gets a list of component programming languages supported by the `setSource`
-  // method on this runtime instance.
-  getLanguages() {
-    if (!registerLoader.getLanguages) {
-      // This component loader doesn't support the method, default to normal JS
-      return ["javascript", "es2015"];
-    }
-    return registerLoader.getLanguages();
-  }
-
   clear() {
-    this.components = null;
-    this.sourcesForComponents = {};
-    this.specsForComponents = {};
-    this.ready = false;
-    this.processing = null;
+    this.components = {};
+    if (this.registry && typeof this.registry.list === "function") {
+      const list = this.registry.list();
+      Object.keys(list || {}).forEach((name) => {
+        this.components[name] = list[name];
+      });
+    }
   }
 }
