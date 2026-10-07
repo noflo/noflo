@@ -24,6 +24,9 @@
   ],
   "author": "Henri Bergius <henri.bergius@iki.fi>",
   "license": "EUPL-1.2",
+  "engines": {
+    "node": ">= 20.19"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/noflo/noflo.git"
