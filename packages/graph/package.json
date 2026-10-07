@@ -1,0 +1,35 @@
+{
+  "name": "@noflo/graph",
+  "version": "0.1.0",
+  "description": "Native graph model for NoFlo 2.x: nodes, edges, IIPs, exports, and groups with deterministic canonical serialization",
+  "keywords": [
+    "fbp",
+    "flowbased",
+    "noflo",
+    "graph"
+  ],
+  "author": "Henri Bergius <henri.bergius@iki.fi>",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">= 20"
+  },
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "CHANGELOG.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/noflo/noflo.git"
+  },
+  "scripts": {
+    "test": "node --test spec/*.mjs",
+    "lint": "npx @biomejs/biome check --use-editorconfig=true src/ spec/",
+    "types": "tsc --checkJs --noEmit -p ."
+  }
+}

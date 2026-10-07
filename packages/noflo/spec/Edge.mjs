@@ -4,6 +4,7 @@ import { Edge, resolveHighWaterMark } from "../src/lib/Edge.js";
 import * as internalSocket from "../src/lib/InternalSocket.js";
 import IP from "../src/lib/IP.js";
 import * as noflo from "../src/lib/NoFlo.js";
+import { nativeGraph } from "./utils/nativeGraph.mjs";
 
 /** Await a couple of microtask/macrotask turns so stream machinery settles. */
 const settle = (turns = 5) =>
@@ -297,13 +298,12 @@ describe("hierarchical high-water mark wiring through networks", () => {
   });
 
   it("edge metadata wins over the component port default", async () => {
-    const g = new noflo.Graph();
+    const g = nativeGraph();
     g.addNode("A", "hwm/Bounded");
     g.addNode("B", "hwm/Plain");
     g.addEdge("A", "out", "B", "in", { highWaterMark: 2 });
     const nw = await noflo.createNetwork(g, {
       delay: true,
-      subscribeGraph: false,
       componentLoader: loader,
     });
     await nw.connect();
@@ -312,13 +312,12 @@ describe("hierarchical high-water mark wiring through networks", () => {
   });
 
   it("the component port default applies without edge metadata", async () => {
-    const g = new noflo.Graph();
+    const g = nativeGraph();
     g.addNode("A", "hwm/Bounded");
     g.addNode("B", "hwm/Plain");
     g.addEdge("A", "out", "B", "in");
     const nw = await noflo.createNetwork(g, {
       delay: true,
-      subscribeGraph: false,
       componentLoader: loader,
     });
     await nw.connect();
@@ -327,13 +326,12 @@ describe("hierarchical high-water mark wiring through networks", () => {
   });
 
   it("the network runtime default applies with neither set", async () => {
-    const g = new noflo.Graph();
+    const g = nativeGraph();
     g.addNode("A", "hwm/Plain");
     g.addNode("B", "hwm/Plain");
     g.addEdge("A", "out", "B", "in");
     const nw = await noflo.createNetwork(g, {
       delay: true,
-      subscribeGraph: false,
       componentLoader: loader,
       highWaterMark: 8,
     });
@@ -343,13 +341,12 @@ describe("hierarchical high-water mark wiring through networks", () => {
   });
 
   it("absent everywhere stays unbounded (1.x behavior)", async () => {
-    const g = new noflo.Graph();
+    const g = nativeGraph();
     g.addNode("A", "hwm/Plain");
     g.addNode("B", "hwm/Plain");
     g.addEdge("A", "out", "B", "in");
     const nw = await noflo.createNetwork(g, {
       delay: true,
-      subscribeGraph: false,
       componentLoader: loader,
     });
     await nw.connect();
@@ -376,7 +373,7 @@ describe("network-level edge observation", () => {
   });
 
   it("sees every IP on every edge before delivery, with socket context", async () => {
-    const g = new noflo.Graph();
+    const g = nativeGraph();
     g.addNode("A", "obs/Repeat");
     g.addNode("B", "obs/Repeat");
     g.addNode("C", "obs/Repeat");
@@ -384,7 +381,6 @@ describe("network-level edge observation", () => {
     g.addEdge("B", "out", "C", "in");
     const nw = await noflo.createNetwork(g, {
       delay: true,
-      subscribeGraph: false,
       componentLoader: observeLoader,
     });
     await nw.connect();
@@ -415,12 +411,11 @@ describe("network-level edge observation", () => {
   });
 
   it("observers registered before wiring still apply to later edges", async () => {
-    const g = new noflo.Graph();
+    const g = nativeGraph();
     g.addNode("A", "obs/Repeat");
     g.addNode("B", "obs/Repeat");
     const nw = await noflo.createNetwork(g, {
       delay: true,
-      subscribeGraph: false,
       componentLoader: observeLoader,
     });
     let observed = 0;

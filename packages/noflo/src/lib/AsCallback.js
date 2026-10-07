@@ -6,7 +6,7 @@
     no-param-reassign,
     import/prefer-default-export,
 */
-import { Graph } from "fbp-graph";
+import { GraphModel } from "@noflo/graph";
 import { ComponentLoader } from "./ComponentLoader.js";
 import * as internalSocket from "./InternalSocket.js";
 import IP from "./IP.js";
@@ -36,7 +36,7 @@ import { Network } from "./Network.js";
 // NoFlo ComponentLoader, or giving the component loading
 // baseDir context.
 /**
- * @typedef {Graph | string} AsCallbackComponent
+ * @typedef {import("@noflo/graph").GraphModel | string} AsCallbackComponent
  */
 /**
  * @typedef {Object} AsCallbackOptions
@@ -97,9 +97,8 @@ function normalizeOptions(options, component) {
  * @returns {Promise<Network>}
  */
 function prepareNetwork(component, options) {
-  // If we were given a graph instance, then just create a network
-  if (typeof component === "object") {
-    // This is a graph object
+  // If we were given a graph model, then just create a network
+  if (component instanceof GraphModel) {
     const network = new Network(component, {
       ...options,
       componentLoader: options.loader,
@@ -115,17 +114,27 @@ function prepareNetwork(component, options) {
   // Start by loading the component
   return options.loader.load(component, {}).then((instance) => {
     // Prepare a graph wrapping the component
-    const graph = new Graph(options.name);
+    const graph = new GraphModel(
+      options.name === undefined ? {} : { name: options.name },
+    );
     const nodeName = options.name || "AsCallback";
-    graph.addNode(nodeName, component);
+    graph.addNode({ entity_id: nodeName, component });
     // Expose ports
     const inPorts = instance.inPorts.ports;
     const outPorts = instance.outPorts.ports;
     Object.keys(inPorts).forEach((port) => {
-      graph.addInport(port, nodeName, port);
+      graph.addExport({
+        direction: "inport",
+        public: port,
+        internal: { node: nodeName, port },
+      });
     });
     Object.keys(outPorts).forEach((port) => {
-      graph.addOutport(port, nodeName, port);
+      graph.addExport({
+        direction: "outport",
+        public: port,
+        internal: { node: nodeName, port },
+      });
     });
     // Prepare network
     const network = new Network(graph, {
@@ -160,37 +169,38 @@ function runNetwork(network, inputs) {
     // Subscribe outports
     /** @type {Array<Object<string, IP>>} */
     const received = [];
-    const outPorts = Object.keys(network.graph.outports);
+    const outPorts = network.graph
+      .exports()
+      .filter((exp) => exp.direction === "outport");
     /** @type {Object<string, import("./InternalSocket").InternalSocket>} */
     let outSockets = {};
-    outPorts.forEach((outport) => {
-      const portDef = network.graph.outports[outport];
-      const process = network.getNode(portDef.process);
+    outPorts.forEach((portDef) => {
+      const process = network.getNode(portDef.internal.node);
       if (!process) {
         return;
       }
       if (!process.component) {
         return;
       }
-      outSockets[outport] = internalSocket.createSocket(
+      outSockets[portDef.public] = internalSocket.createSocket(
         {},
         {
           debug: false,
         },
       );
-      network.subscribeSocket(outSockets[outport]);
-      process.component.outPorts.ports[portDef.port].attach(
-        outSockets[outport],
+      network.subscribeSocket(outSockets[portDef.public]);
+      process.component.outPorts.ports[portDef.internal.port].attach(
+        outSockets[portDef.public],
       );
-      outSockets[outport].from = {
+      outSockets[portDef.public].from = {
         process,
-        port: portDef.port,
+        port: portDef.internal.port,
       };
-      outSockets[outport].addEventListener("ip", (event) => {
+      outSockets[portDef.public].addEventListener("ip", (event) => {
         const ip = event.detail;
         /** @type Object<string, IP> */
         const res = {};
-        res[outport] = ip;
+        res[portDef.public] = ip;
         received.push(res);
       });
     });
@@ -238,16 +248,18 @@ function runNetwork(network, inputs) {
           const port = keys[j];
           const value = inputMap[port];
           if (!inSockets[port]) {
-            const portDef = network.graph.inports[port];
+            const portDef = network.graph
+              .exports()
+              .find((exp) => exp.direction === "inport" && exp.public === port);
             if (!portDef) {
               reject(new Error(`Port ${port} not available in the graph`));
               return;
             }
-            const process = network.getNode(portDef.process);
+            const process = network.getNode(portDef.internal.node);
             if (!process) {
               reject(
                 new Error(
-                  `Process ${portDef.process} for port ${port} not available in the graph`,
+                  `Process ${portDef.internal.node} for port ${port} not available in the graph`,
                 ),
               );
               return;
@@ -255,7 +267,7 @@ function runNetwork(network, inputs) {
             if (!process.component) {
               reject(
                 new Error(
-                  `Process ${portDef.process} for port ${port} not available in the graph`,
+                  `Process ${portDef.internal.node} for port ${port} not available in the graph`,
                 ),
               );
               return;
@@ -271,7 +283,7 @@ function runNetwork(network, inputs) {
               process,
               port,
             };
-            process.component.inPorts.ports[portDef.port].attach(
+            process.component.inPorts.ports[portDef.internal.port].attach(
               inSockets[port],
             );
           }
@@ -321,7 +333,11 @@ function getType(inputs, network) {
   }
   for (let i = 0; i < keys.length; i += 1) {
     const key = keys[i];
-    if (!network.graph.inports[key]) {
+    if (
+      !network.graph
+        .exports()
+        .some((exp) => exp.direction === "inport" && exp.public === key)
+    ) {
       return "simple";
     }
   }
@@ -344,12 +360,15 @@ function prepareInputMap(inputs, inputType, network) {
     return [inputs];
   }
   // Simple inputs need to be converted to a sequence
-  let inPort = Object.keys(network.graph.inports)[0];
+  const exportedInports = network.graph
+    .exports()
+    .filter((exp) => exp.direction === "inport");
+  let inPort = exportedInports.length > 0 ? exportedInports[0].public : null;
   if (!inPort) {
     return {};
   }
-  // If we have a port named "IN", send to that
-  if (network.graph.inports.in) {
+  // If we have a port named "in", send to that
+  if (exportedInports.some((exp) => exp.public === "in")) {
     inPort = "in";
   }
   /** @type {InputMap} */
@@ -485,7 +504,7 @@ function sendOutputMap(outputs, resultType, options) {
  */
 
 /**
- * @param {Graph | string} component - Graph or component to load
+ * @param {import("@noflo/graph").GraphModel | string} component - Graph or component to load
  * @param {Object} options
  * @param {string} [options.name] - Name for the wrapped network
  * @param {ComponentLoader} [options.loader] - Component loader instance to use, if any

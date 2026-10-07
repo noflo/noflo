@@ -2,6 +2,7 @@
 //     (c) 2013-2018 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
+import { sameRef } from "@noflo/graph";
 import { BaseNetwork } from "./BaseNetwork.js";
 import { deprecated } from "./Platform.js";
 
@@ -30,7 +31,7 @@ export class Network extends BaseNetwork {
   // Add a process to the network. The node will also be registered
   // with the current graph.
   /**
-   * @param {import("fbp-graph/lib/Types").GraphNode} node
+   * @param {import("@noflo/graph").GraphNode} node
    * @param {Object} options
    * @returns {Promise<NetworkProcess>}
    */
@@ -41,8 +42,8 @@ export class Network extends BaseNetwork {
     }
     options = options || {};
     const promise = super.addNode(node, options).then((process) => {
-      if (!options.initial) {
-        this.graph.addNode(node.id, node.component, node.metadata);
+      if (!options.initial && !this.graph.hasNode(node.entity_id)) {
+        this.graph.addNode(node);
       }
       return process;
     });
@@ -61,7 +62,7 @@ export class Network extends BaseNetwork {
   // from the current graph.
   removeNode(node, callback) {
     const promise = super.removeNode(node).then(() => {
-      this.graph.removeNode(node.id);
+      this.graph.removeNode(node.entity_id);
       return null;
     });
     if (callback) {
@@ -102,15 +103,11 @@ export class Network extends BaseNetwork {
     options = options || {};
     const promise = super.addEdge(edge, options).then((socket) => {
       if (!options.initial) {
-        this.graph.addEdgeIndex(
-          edge.from.node,
-          edge.from.port,
-          edge.from.index,
-          edge.to.node,
-          edge.to.port,
-          edge.to.index,
-          edge.metadata,
-        );
+        this.graph.addEdge({
+          from: edge.from,
+          to: edge.to,
+          ...(edge.metadata === undefined ? {} : { metadata: edge.metadata }),
+        });
       }
       return socket;
     });
@@ -129,12 +126,7 @@ export class Network extends BaseNetwork {
   // from the current graph.
   removeEdge(edge, callback) {
     const promise = super.removeEdge(edge).then(() => {
-      this.graph.removeEdge(
-        edge.from.node,
-        edge.from.port,
-        edge.to.node,
-        edge.to.port,
-      );
+      this.removeGraphEdge(edge);
       return null;
     });
     if (callback) {
@@ -158,13 +150,11 @@ export class Network extends BaseNetwork {
     options = options || {};
     const promise = super.addInitial(iip, options).then((socket) => {
       if (!options.initial) {
-        this.graph.addInitialIndex(
-          iip.from.data,
-          iip.to.node,
-          iip.to.port,
-          iip.to.index,
-          iip.metadata,
-        );
+        this.graph.addIIP({
+          data: iip.from.data,
+          to: iip.to,
+          ...(iip.metadata === undefined ? {} : { metadata: iip.metadata }),
+        });
       }
       return socket;
     });
@@ -183,7 +173,7 @@ export class Network extends BaseNetwork {
   // current graph.
   removeInitial(iip, callback) {
     const promise = super.removeInitial(iip).then(() => {
-      this.graph.removeInitial(iip.to.node, iip.to.port);
+      this.removeGraphIIP(iip);
     });
     if (callback) {
       deprecated(
@@ -194,5 +184,44 @@ export class Network extends BaseNetwork {
       }, callback);
     }
     return promise;
+  }
+
+  /**
+   * Remove the edge matching the given connection from the graph.
+   *
+   * @param {import("@noflo/graph").GraphEdge} edge
+   * @returns {void}
+   */
+  removeGraphEdge(edge) {
+    const match = this.graph
+      .edges()
+      .find(
+        (candidate) =>
+          sameRef(candidate.from, edge.from) && sameRef(candidate.to, edge.to),
+      );
+    if (!match) {
+      throw new Error(
+        `No edge from ${edge.from.node}:${edge.from.port} to ${edge.to.node}:${edge.to.port} to remove`,
+      );
+    }
+    this.graph.removeEdge(match.entity_id);
+  }
+
+  /**
+   * Remove the IIP matching the given initializer from the graph.
+   *
+   * @param {import("@noflo/graph").GraphIIP} iip
+   * @returns {void}
+   */
+  removeGraphIIP(iip) {
+    const match = this.graph
+      .iips()
+      .find((candidate) => sameRef(candidate.to, iip.to));
+    if (!match) {
+      throw new Error(
+        `No IIP targeting ${iip.to.node}:${iip.to.port} to remove`,
+      );
+    }
+    this.graph.removeIIP(match.entity_id);
   }
 }

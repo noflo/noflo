@@ -1,6 +1,6 @@
 const exported = {
-  noflo: require('../../lib/NoFlo'),
-  flowtrace: require('flowtrace'),
+  noflo: require("../../lib/NoFlo"),
+  flowtrace: require("flowtrace"),
 };
 
 if (window) {

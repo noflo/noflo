@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, before, describe, it } from "node:test";
 import flowtrace from "flowtrace";
 import * as noflo from "../src/lib/NoFlo.js";
+import { loadFbp } from "./utils/loadFbp.mjs";
 
 describe("asPromise interface", () => {
   let loader = null;
@@ -318,25 +319,23 @@ describe("asPromise interface", () => {
     let graph = null;
     let wrapped = null;
     before((_t, done) => {
-      noflo.graph.loadFBP(
-        `\
+      try {
+        const g = loadFbp(
+          `\
 INPORT=Async.IN:IN
 OUTPORT=Stream.OUT:OUT
 Async(process/Async) OUT -> IN Stream(process/Streamify)\
 `,
-        (err, g) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          graph = g;
-          wrapped = noflo.asPromise(graph, {
-            loader,
-            asyncDelivery: true,
-          });
-          done();
-        },
-      );
+        );
+        graph = g;
+        wrapped = noflo.asPromise(graph, {
+          loader,
+          asyncDelivery: true,
+        });
+        done();
+      } catch (err) {
+        done(err);
+      }
     });
     it("should execute network with input map and provide output map with streams as arrays", () =>
       wrapped({
@@ -359,22 +358,20 @@ Async(process/Async) OUT -> IN Stream(process/Streamify)\
     let graph = null;
     let wrapped = null;
     before((_t, done) => {
-      noflo.graph.loadFBP(
-        `\
+      try {
+        const g = loadFbp(
+          `\
 INPORT=Async.IN:IN
 OUTPORT=Stream.OUT:OUT
 Async(process/Async) OUT -> IN Stream(process/Streamify)\
 `,
-        (err, g) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          graph = g;
-          wrapped = noflo.asPromise(graph, { loader });
-          done();
-        },
-      );
+        );
+        graph = g;
+        wrapped = noflo.asPromise(graph, { loader });
+        done();
+      } catch (err) {
+        done(err);
+      }
     });
     it("should execute network with input map and provide output map with streams as arrays", () =>
       wrapped({
@@ -397,22 +394,20 @@ Async(process/Async) OUT -> IN Stream(process/Streamify)\
     let graph = null;
     let wrapped = null;
     before((_t, done) => {
-      noflo.graph.loadFBP(
-        `\
+      try {
+        const g = loadFbp(
+          `\
 INPORT=Async.IN:IN
 OUTPORT=Values.OUT:OUT
 Async(process/Async) OUT -> IN Values(process/Values)\
 `,
-        (err, g) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          graph = g;
-          wrapped = noflo.asPromise(graph, { loader });
-          done();
-        },
-      );
+        );
+        graph = g;
+        wrapped = noflo.asPromise(graph, { loader });
+        done();
+      } catch (err) {
+        done(err);
+      }
     });
     it("should execute network with input map and provide output map", () => {
       const expected = "blue";

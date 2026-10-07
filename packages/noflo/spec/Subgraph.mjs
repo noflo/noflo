@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { before, beforeEach, describe, it } from "node:test";
 import flowtrace from "flowtrace";
 import * as noflo from "../src/lib/NoFlo.js";
+import { nativeGraph } from "./utils/nativeGraph.mjs";
 
 let loadingPrefix;
 if (
@@ -282,7 +283,7 @@ describe("NoFlo Graph component", () => {
   describe("with a Graph instance", () => {
     let gr = null;
     before(() => {
-      gr = new noflo.Graph("Hello, world");
+      gr = nativeGraph("Hello, world");
       gr.baseDir = process.cwd();
       gr.addNode("Split", "Split");
       gr.addNode("Merge", "Merge");
@@ -456,14 +457,14 @@ describe("NoFlo Graph component", () => {
       return c;
     };
 
-    const grDefaults = new noflo.Graph("Child Graph Using Defaults");
+    const grDefaults = nativeGraph("Child Graph Using Defaults");
     grDefaults.addNode("SplitIn", "Split");
     grDefaults.addNode("SplitOut", "Split");
     grDefaults.addInport("in", "SplitIn", "in");
     grDefaults.addOutport("out", "SplitOut", "out");
     grDefaults.addEdge("SplitIn", "out", "SplitOut", "in");
 
-    const grInitials = new noflo.Graph("Child Graph Using Initials");
+    const grInitials = nativeGraph("Child Graph Using Initials");
     grInitials.addNode("SplitIn", "Split");
     grInitials.addNode("SplitOut", "Split");
     grInitials.addInport("in", "SplitIn", "in");
@@ -669,13 +670,12 @@ describe("NoFlo Graph component", () => {
       let graph = null;
       let network = null;
       before((_t, done) => {
-        graph = new noflo.Graph("main");
+        graph = nativeGraph("main");
         graph.baseDir = process.cwd();
         noflo.createNetwork(
           graph,
           {
             delay: true,
-            subscribeGraph: false,
           },
           (err, nw) => {
             if (err) {
@@ -685,7 +685,7 @@ describe("NoFlo Graph component", () => {
             network = nw;
             network.loader.components.Split = Split;
             network.loader.components.Merge = SubgraphMerge;
-            const sg = new noflo.Graph("Subgraph");
+            const sg = nativeGraph("Subgraph");
             sg.addNode("A", "Split");
             sg.addNode("B", "Merge");
             sg.addEdge("A", "out", "B", "in");
@@ -704,7 +704,7 @@ describe("NoFlo Graph component", () => {
       it("should instantiate the subgraph when node is added", (_t, done) => {
         network.addNode(
           {
-            id: "Sub",
+            entity_id: "Sub",
             component: "foo/AB",
           },
           (err) => {
@@ -714,7 +714,7 @@ describe("NoFlo Graph component", () => {
             }
             network.addNode(
               {
-                id: "Split",
+                entity_id: "Split",
                 component: "Split",
               },
               (err) => {
@@ -794,13 +794,12 @@ describe("NoFlo Graph component", () => {
       let network = null;
       const trace = new flowtrace.Flowtrace();
       before((_t, done) => {
-        graph = new noflo.Graph("main");
+        graph = nativeGraph("main");
         graph.baseDir = process.cwd();
         noflo.createNetwork(
           graph,
           {
             delay: true,
-            subscribeGraph: false,
             flowtrace: trace,
           },
           (err, net) => {
@@ -811,13 +810,13 @@ describe("NoFlo Graph component", () => {
             network = net;
             network.loader.components.Split = Split;
             network.loader.components.Merge = SubgraphMerge;
-            const sg = new noflo.Graph("Subgraph");
+            const sg = nativeGraph("Subgraph");
             sg.addNode("A", "Split");
             sg.addNode("B", "Merge");
             sg.addEdge("A", "out", "B", "in");
             sg.addInport("in", "A", "in");
             sg.addOutport("out", "B", "out");
-            const sg2 = new noflo.Graph("Subgraph");
+            const sg2 = nativeGraph("Subgraph");
             sg2.addNode("A", "foo/AB");
             sg2.addNode("B", "Merge");
             sg2.addEdge("A", "out", "B", "in");
@@ -842,7 +841,7 @@ describe("NoFlo Graph component", () => {
       it("should instantiate the subgraphs when node is added", (_t, done) => {
         network.addNode(
           {
-            id: "Sub",
+            entity_id: "Sub",
             component: "foo/AB2",
           },
           (err) => {
@@ -852,7 +851,7 @@ describe("NoFlo Graph component", () => {
             }
             network.addNode(
               {
-                id: "Split",
+                entity_id: "Split",
                 component: "Split",
               },
               (err) => {

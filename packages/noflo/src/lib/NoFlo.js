@@ -13,13 +13,12 @@
     import/first
 */
 
+import { exportFbpJson, GraphModel, importFbpJson } from "@noflo/graph";
 // ## Main APIs
 //
 // ### Graph interface
 //
-// [fbp-graph](https://github.com/flowbased/fbp-graph) is used for instantiating FBP graph definitions.
-import { graph } from "fbp-graph";
-import { LegacyNetwork } from "./LegacyNetwork.js";
+// Graphs are instances of the native `@noflo/graph` model (work document #10).
 // ## Network instantiation
 //
 // This function handles instantiation of NoFlo networks from a Graph object. It creates
@@ -54,8 +53,6 @@ import { LegacyNetwork } from "./LegacyNetwork.js";
 //   trace of the network run.
 // * `asyncDelivery`: (default: FALSE) Whether Information Packets should be
 //   delivered asynchronously.
-// * `subscribeGraph`: (default: FALSE) Whether the network should monitor the underlying
-//   graph for changes
 //
 // Options can be passed as a second argument before the callback:
 //
@@ -66,12 +63,11 @@ import { LegacyNetwork } from "./LegacyNetwork.js";
 import { Network } from "./Network.js";
 import { deprecated, isBrowser } from "./Platform.js";
 
-export {
-  Graph,
-  graph,
-  Journal,
-  journal,
-} from "fbp-graph";
+// ### Native graph model
+//
+// The native `@noflo/graph` model is the 2.x core data model, also available
+// as a standalone package for protocol runtimes and tooling.
+export { exportFbpJson, GraphModel, importFbpJson } from "@noflo/graph";
 // ### Component Loader
 //
 // The [ComponentLoader](../ComponentLoader/) is responsible for finding and loading
@@ -125,12 +121,11 @@ import IP from "./IP.js";
 /**
  * @callback NetworkCallback
  * @param {Error | null} err
- * @param {Network|LegacyNetwork} [network]
+ * @param {Network} [network]
  */
 
 /**
  * @typedef CreateNetworkOptions
- * @property {boolean} [subscribeGraph] - Whether the Network should monitor the graph
  * @property {boolean} [delay] - Whether the Network should be started later
  */
 
@@ -139,23 +134,16 @@ import IP from "./IP.js";
  */
 
 /**
- * @param {import("fbp-graph").Graph} graphInstance - Graph definition to build a Network for
+ * @param {import("@noflo/graph").GraphModel} graphInstance - Graph definition to build a Network for
  * @param {NetworkOptions} options - Network options
  * @param {NetworkCallback} [callback] - Legacy callback for the created Network
- * @returns {Promise<Network|LegacyNetwork>}
+ * @returns {Promise<Network>}
  */
 export function createNetwork(graphInstance, options, callback) {
   if (typeof options !== "object") {
     options = {};
   }
-  if (typeof options.subscribeGraph === "undefined") {
-    options.subscribeGraph = false;
-  }
-
-  // Choose legacy or modern network based on whether graph
-  // subscription is needed
-  const NetworkType = options.subscribeGraph ? LegacyNetwork : Network;
-  const network = new NetworkType(graphInstance, options);
+  const network = new Network(graphInstance, options);
 
   // Ensure components are loaded before continuing
   const promise = network.loader.listComponents().then(() => {
@@ -163,9 +151,7 @@ export function createNetwork(graphInstance, options, callback) {
       // In case of delayed execution we don't wire it up
       return Promise.resolve(network);
     }
-    const connected = /** @type {Promise<Network|LegacyNetwork>} */ (
-      network.connect()
-    );
+    const connected = /** @type {Promise<Network>} */ (network.connect());
     return connected.then(() => network.start());
   });
   if (callback) {
@@ -177,49 +163,6 @@ export function createNetwork(graphInstance, options, callback) {
     }, callback);
   }
   return promise;
-}
-
-// ### Starting a network from a file
-//
-// It is also possible to start a NoFlo network by giving it a path to a `.json` or `.fbp` network
-// definition file.
-//
-//     noflo.loadFile('somefile.json', {})
-//       .then((network) => {
-//         console.log('Network is now running!');
-//       });
-/**
- * @param {string} file
- * @param {NetworkOptions} options - Network options
- * @param {any} [callback] - Legacy callback
- * @returning {Promise<Network>}
- */
-export function loadFile(file, options, callback) {
-  const promise = graph
-    .loadFile(file)
-    .then((graphInstance) => createNetwork(graphInstance, options));
-  if (callback) {
-    deprecated(
-      "Providing a callback to NoFlo.loadFile is deprecated, use Promises",
-    );
-    promise.then((network) => {
-      callback(null, network);
-    }, callback);
-  }
-  return promise;
-}
-
-// ### Saving a network definition
-//
-// NoFlo graph files can be saved back into the filesystem with this method.
-/**
- * @param {graph.Graph} graphInstance
- * @param {string} file
- * @param {any} [callback] - Legacy callback
- * @returning {Promise<string>}
- */
-export function saveFile(graphInstance, file, callback) {
-  return graphInstance.save(file, callback);
 }
 
 // ## Embedding NoFlo in existing JavaScript code
@@ -258,8 +201,10 @@ export { asComponent } from "./AsComponent.js";
 import { asComponent } from "./AsComponent.js";
 
 export default {
-  ...graph,
   isBrowser,
+  GraphModel,
+  importFbpJson,
+  exportFbpJson,
   ComponentLoader,
   Component,
   InPorts,
@@ -269,8 +214,6 @@ export default {
   internalSocket,
   IP,
   createNetwork,
-  loadFile,
-  saveFile,
   asCallback,
   asPromise,
   asComponent,

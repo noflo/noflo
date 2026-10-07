@@ -53,7 +53,7 @@ function ipToLegacy(ip) {
  * @typedef SocketError
  * @property {Error} error
  * @property {string} [id]
- * @property {import("fbp-graph/lib/Types").GraphNodeMetadata} [metadata]
+ * @property {Object<string, any>} [metadata]
  */
 
 // ## Internal Sockets
@@ -107,7 +107,7 @@ export class InternalSocket extends LegacyEventBase {
    */
 
   /**
-   * @param {import("fbp-graph/lib/Types").GraphEdgeMetadata} [metadata]
+   * @param {Object<string, any>} [metadata]
    * @param {InternalSocketOptions} [options]
    */
   constructor(metadata = {}, options = {}) {
@@ -429,7 +429,7 @@ export class InternalSocket extends LegacyEventBase {
 }
 
 /**
- * @param {import("fbp-graph/lib/Types").GraphEdgeMetadata} [metadata]
+ * @param {Object<string, any>} [metadata]
  * @param {InternalSocketOptions} [options]
  * @returns {InternalSocket}
  */

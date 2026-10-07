@@ -9,8 +9,9 @@
     import/prefer-default-export,
 */
 
-import { graph as fbpGraph } from "fbp-graph";
+import { GraphModel } from "@noflo/graph";
 import { Component } from "../lib/Component.js";
+import { loadGraphFile, loadGraphJson } from "../lib/graphFile.js";
 import { Network } from "../lib/Network.js";
 import { InPorts, OutPorts } from "../lib/Ports.js";
 
@@ -18,7 +19,7 @@ import { InPorts, OutPorts } from "../lib/Ports.js";
 // another network.
 export class Graph extends Component {
   /**
-   * @param {import("fbp-graph/lib/Types").GraphNodeMetadata} [metadata]
+   * @param {Object<string, any>} [metadata]
    */
   constructor(metadata) {
     super();
@@ -55,20 +56,19 @@ export class Graph extends Component {
   }
 
   /**
-   * @param {import("fbp-graph").Graph|string} graph
+   * @param {import("@noflo/graph").GraphModel|Object<string, any>|string} graph
+   *   A live graph model, an FBP JSON definition, or a path to a graph file
    * @returns {Promise<void>}
    */
   setGraph(graph) {
     this.ready = false;
+    if (graph instanceof GraphModel) {
+      // Existing graph model
+      return this.createNetwork(graph);
+    }
     if (typeof graph === "object") {
-      if (typeof graph.addNode === "function") {
-        // Existing Graph object
-        return this.createNetwork(graph);
-      }
       // JSON definition of a graph
-      return fbpGraph
-        .loadJSON(graph)
-        .then((instance) => this.createNetwork(instance));
+      return this.createNetwork(loadGraphJson(graph));
     }
     let graphName = graph;
     if (
@@ -78,18 +78,19 @@ export class Graph extends Component {
     ) {
       graphName = `${process.cwd()}/${graphName}`;
     }
-    return fbpGraph
-      .loadFile(graphName)
-      .then((instance) => this.createNetwork(instance));
+    return loadGraphFile(graphName).then((instance) =>
+      this.createNetwork(instance),
+    );
   }
 
   /**
-   * @param {import("fbp-graph").Graph} graph
+   * @param {import("@noflo/graph").GraphModel} graph
    * @returns {Promise<void>}
    */
   createNetwork(graph) {
-    this.description = graph.properties.description || "";
-    this.icon = graph.properties.icon || this.icon;
+    const graphMetadata = graph.graphMetadata();
+    this.description = graphMetadata.description || "";
+    this.icon = graphMetadata.icon || this.icon;
 
     const graphObj = graph;
     if (!graphObj.name && this.nodeId) {
@@ -165,13 +166,15 @@ export class Graph extends Component {
       return false;
     }
     // First we check disambiguated exported ports
-    const keys = Object.keys(this.network.graph.inports);
-    for (let i = 0; i < keys.length; i += 1) {
-      const pub = keys[i];
-      const priv = this.network.graph.inports[pub];
-      if (priv.process === nodeName && priv.port === portName) {
-        return pub;
+    for (const exp of this.network.graph.exports()) {
+      if (
+        exp.direction !== "inport" ||
+        exp.internal.node !== nodeName ||
+        exp.internal.port !== portName
+      ) {
+        continue;
       }
+      return exp.public;
     }
 
     // Component has exported ports and this isn't one of them
@@ -189,13 +192,15 @@ export class Graph extends Component {
       return false;
     }
     // First we check disambiguated exported ports
-    const keys = Object.keys(this.network.graph.outports);
-    for (let i = 0; i < keys.length; i += 1) {
-      const pub = keys[i];
-      const priv = this.network.graph.outports[pub];
-      if (priv.process === nodeName && priv.port === portName) {
-        return pub;
+    for (const exp of this.network.graph.exports()) {
+      if (
+        exp.direction !== "outport" ||
+        exp.internal.node !== nodeName ||
+        exp.internal.port !== portName
+      ) {
+        continue;
       }
+      return exp.public;
     }
 
     // Component has exported ports and this isn't one of them
@@ -310,7 +315,7 @@ export class Graph extends Component {
 }
 
 /**
- * @param {import("fbp-graph/lib/Types").GraphNodeMetadata} [metadata]
+ * @param {Object<string, any>} [metadata]
  */
 export function getComponent(metadata) {
   return new Graph(metadata);

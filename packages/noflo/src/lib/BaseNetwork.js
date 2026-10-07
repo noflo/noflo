@@ -9,6 +9,7 @@
     import/prefer-default-export,
 */
 
+import { exportFbpJson } from "@noflo/graph";
 import { ComponentLoader } from "./ComponentLoader.js";
 import { resolveHighWaterMark } from "./Edge.js";
 import * as internalSocket from "./InternalSocket.js";
@@ -117,7 +118,7 @@ export class BaseNetwork extends LegacyEventBase {
    * they will load all the needed components, instantiate them, and
    * set up the defined connections and IIPs.
    *
-   * @param {import("fbp-graph").Graph} graph - Graph definition to build a Network for
+   * @param {import("@noflo/graph").GraphModel} graph - Graph definition to build a Network for
    * @param {NetworkOptions} options - Network options
    */
   constructor(graph, options = {}) {
@@ -139,7 +140,7 @@ export class BaseNetwork extends LegacyEventBase {
     // Container to hold sockets that will be sending default data.
     /** @type {Array<import("./InternalSocket").InternalSocket>} */
     this.defaults = [];
-    // The Graph this network is instantiated with
+    // The native `@noflo/graph` model this network is instantiated with
     this.graph = graph;
     this.started = false;
     this.stopped = true;
@@ -150,7 +151,7 @@ export class BaseNetwork extends LegacyEventBase {
 
     // On Node.js we default the baseDir for component loading to
     // the current working directory
-    if (graph.properties.baseDir && !options.baseDir) {
+    if (this.graph.graphMetadata().baseDir && !options.baseDir) {
       deprecated(
         "Passing baseDir via Graph properties is deprecated, pass via Network options instead",
       );
@@ -158,11 +159,12 @@ export class BaseNetwork extends LegacyEventBase {
     this.baseDir = null;
     if (!isBrowser()) {
       this.baseDir =
-        options.baseDir || graph.properties.baseDir || process.cwd();
+        options.baseDir || this.graph.graphMetadata().baseDir || process.cwd();
       // On browser we default the baseDir to the Component loading
       // root
     } else {
-      this.baseDir = options.baseDir || graph.properties.baseDir || "/";
+      this.baseDir =
+        options.baseDir || this.graph.graphMetadata().baseDir || "/";
     }
 
     // As most NoFlo networks are long-running processes, the
@@ -175,12 +177,12 @@ export class BaseNetwork extends LegacyEventBase {
     if (options.componentLoader) {
       /** @type {ComponentLoader} */
       this.loader = options.componentLoader;
-    } else if (graph.properties.componentLoader) {
+    } else if (this.graph.graphMetadata().componentLoader) {
       deprecated(
         "Passing componentLoader via Graph properties is deprecated, pass via Network options instead",
       );
       /** @type {ComponentLoader} */
-      this.loader = graph.properties.componentLoader;
+      this.loader = this.graph.graphMetadata().componentLoader;
     } else {
       /** @type {ComponentLoader} */
       this.loader = new ComponentLoader(this.baseDir, this.options);
@@ -357,7 +359,7 @@ export class BaseNetwork extends LegacyEventBase {
    */
   /**
    * @param {string} component
-   * @param {import("fbp-graph/lib/Types").GraphNodeMetadata} metadata
+   * @param {import("@noflo/graph").GraphNodeMetadata} metadata
    * @param {ComponentLoadCallback} [callback]
    * @returns {Promise<import("./Component").Component>}
    */
@@ -389,7 +391,7 @@ export class BaseNetwork extends LegacyEventBase {
    * @returns {void}
    */
   /**
-   * @param {import("fbp-graph/lib/Types").GraphNode} node
+   * @param {import("@noflo/graph").GraphNode} node
    * @param {Object} options
    * @param {AddNodeCallback} [callback]
    * @returns {Promise<NetworkProcess>}
@@ -402,11 +404,11 @@ export class BaseNetwork extends LegacyEventBase {
     let promise;
     // Processes are treated as singletons by their identifier. If
     // we already have a process with the given ID, return that.
-    if (this.processes[node.id]) {
-      promise = Promise.resolve(this.processes[node.id]);
+    if (this.processes[node.entity_id]) {
+      promise = Promise.resolve(this.processes[node.entity_id]);
     } else {
       /** @type {NetworkProcess} */
-      const process = { id: node.id };
+      const process = { id: node.entity_id };
       // No component defined, just register the process but don't start.
       if (!node.component) {
         this.processes[process.id] = process;
@@ -414,7 +416,7 @@ export class BaseNetwork extends LegacyEventBase {
       } else {
         // Load the component for the process.
         promise = this.load(node.component, node.metadata).then((instance) => {
-          instance.nodeId = node.id;
+          instance.nodeId = node.entity_id;
           process.component = instance;
           process.componentName = node.component;
           // Inform the ports of the node name
@@ -422,13 +424,13 @@ export class BaseNetwork extends LegacyEventBase {
           const outPorts = process.component.outPorts.ports;
           Object.keys(inPorts).forEach((name) => {
             const port = inPorts[name];
-            port.node = node.id;
+            port.node = node.entity_id;
             port.nodeInstance = instance;
             port.name = name;
           });
           Object.keys(outPorts).forEach((name) => {
             const port = outPorts[name];
-            port.node = node.id;
+            port.node = node.entity_id;
             port.nodeInstance = instance;
             port.name = name;
           });
@@ -456,22 +458,22 @@ export class BaseNetwork extends LegacyEventBase {
   }
 
   /**
-   * @param {import("fbp-graph/lib/Types").GraphNode} node
+   * @param {import("@noflo/graph").GraphNode} node
    * @param {ErrorableCallback} [callback]
    * @returns {Promise<void>}
    */
   removeNode(node, callback) {
     let promise;
-    const process = this.getNode(node.id);
+    const process = this.getNode(node.entity_id);
     if (!process) {
-      promise = Promise.reject(new Error(`Node ${node.id} not found`));
+      promise = Promise.reject(new Error(`Node ${node.entity_id} not found`));
     } else {
       if (!process.component) {
-        delete this.processes[node.id];
+        delete this.processes[node.entity_id];
         return Promise.resolve();
       }
       promise = process.component.shutdown().then(() => {
-        delete this.processes[node.id];
+        delete this.processes[node.entity_id];
         return Promise.resolve();
       });
     }
@@ -554,12 +556,12 @@ export class BaseNetwork extends LegacyEventBase {
    */
   connect(callback) {
     /**
-     * @param {string} key
+     * @param {any[]} entities
      * @param {string} method
      * @returns {Promise<any>}
      */
-    const handleAll = (key, method) =>
-      this.graph[key].reduce(
+    const handleAll = (entities, method) =>
+      entities.reduce(
         (chain, entity) =>
           chain.then(() =>
             this[method](entity, {
@@ -570,10 +572,10 @@ export class BaseNetwork extends LegacyEventBase {
       );
 
     const promise = Promise.resolve()
-      .then(() => handleAll("nodes", "addNode"))
-      .then(() => handleAll("edges", "addEdge"))
-      .then(() => handleAll("initializers", "addInitial"))
-      .then(() => handleAll("nodes", "addDefaults"))
+      .then(() => handleAll(this.graph.nodes(), "addNode"))
+      .then(() => handleAll(this.graph.edges(), "addEdge"))
+      .then(() => handleAll(this.graph.iips(), "addInitial"))
+      .then(() => handleAll(this.graph.nodes(), "addDefaults"))
       .then(() => this);
     if (callback) {
       deprecated(
@@ -819,7 +821,7 @@ export class BaseNetwork extends LegacyEventBase {
    * @returns {void}
    */
   /**
-   * @param {import("fbp-graph/lib/Types").GraphEdge} edge
+   * @param {import("@noflo/graph").GraphEdge} edge
    * @param {Object} options
    * @param {AddEdgeCallback} [callback]
    * @returns {Promise<internalSocket.InternalSocket>}
@@ -874,7 +876,7 @@ export class BaseNetwork extends LegacyEventBase {
   }
 
   /**
-   * @param {import("fbp-graph/lib/Types").GraphEdge} edge
+   * @param {import("@noflo/graph").GraphEdge} edge
    * @param {ErrorableCallback} [callback]
    * @returns {Promise<void>}
    */
@@ -916,11 +918,11 @@ export class BaseNetwork extends LegacyEventBase {
 
   /**
    * @protected
-   * @param {import("fbp-graph/lib/Types").GraphNode} node
+   * @param {import("@noflo/graph").GraphNode} node
    * @returns {Promise<void>}
    */
   addDefaults(node) {
-    return this.ensureNode(node.id, "inbound")
+    return this.ensureNode(node.entity_id, "inbound")
       .then((process) =>
         Promise.all(
           Object.keys(process.component.inPorts.ports).map((key) => {
@@ -953,7 +955,7 @@ export class BaseNetwork extends LegacyEventBase {
   }
 
   /**
-   * @param {import("fbp-graph/lib/Types").GraphIIP} initializer
+   * @param {import("@noflo/graph").GraphIIP} initializer
    * @param {Object} options
    * @param {AddEdgeCallback} [callback]
    * @returns {Promise<internalSocket.InternalSocket>}
@@ -1013,7 +1015,7 @@ export class BaseNetwork extends LegacyEventBase {
   }
 
   /**
-   * @param {import("fbp-graph/lib/Types").GraphIIP} initializer
+   * @param {import("@noflo/graph").GraphIIP} initializer
    * @param {ErrorableCallback} [callback]
    * @returns {Promise<void>}
    */
@@ -1363,7 +1365,11 @@ export class BaseNetwork extends LegacyEventBase {
     }
     this.flowtrace = flowtrace;
     this.flowtraceName = name || this.graph.name;
-    this.flowtrace.addGraph(this.flowtraceName, this.graph, main);
+    this.flowtrace.addGraph(
+      this.flowtraceName,
+      exportFbpJson(this.graph),
+      main,
+    );
     Object.keys(this.processes).forEach((nodeId) => {
       // Register existing subgraphs
       const node = this.processes[nodeId];

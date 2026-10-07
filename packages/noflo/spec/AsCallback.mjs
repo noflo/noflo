@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, before, describe, it } from "node:test";
 import flowtrace from "flowtrace";
 import * as noflo from "../src/lib/NoFlo.js";
+import { loadFbp } from "./utils/loadFbp.mjs";
 
 describe("asCallback interface", () => {
   let loader = null;
@@ -328,22 +329,20 @@ describe("asCallback interface", () => {
     let graph = null;
     let wrapped = null;
     before((_t, done) => {
-      noflo.graph.loadFBP(
-        `\
+      try {
+        const g = loadFbp(
+          `\
 INPORT=Async.IN:IN
 OUTPORT=Stream.OUT:OUT
 Async(process/Async) OUT -> IN Stream(process/Streamify)\
 `,
-        (err, g) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          graph = g;
-          wrapped = noflo.asCallback(graph, { loader });
-          done();
-        },
-      );
+        );
+        graph = g;
+        wrapped = noflo.asCallback(graph, { loader });
+        done();
+      } catch (err) {
+        done(err);
+      }
     });
     it("should execute network with input map and provide output map with streams as arrays", (_t, done) => {
       wrapped({ in: "hello world" }, (err, out) => {
@@ -376,22 +375,20 @@ Async(process/Async) OUT -> IN Stream(process/Streamify)\
     let graph = null;
     let wrapped = null;
     before((_t, done) => {
-      noflo.graph.loadFBP(
-        `\
+      try {
+        const g = loadFbp(
+          `\
 INPORT=Async.IN:IN
 OUTPORT=Values.OUT:OUT
 Async(process/Async) OUT -> IN Values(process/Values)\
 `,
-        (err, g) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          graph = g;
-          wrapped = noflo.asCallback(graph, { loader });
-          done();
-        },
-      );
+        );
+        graph = g;
+        wrapped = noflo.asCallback(graph, { loader });
+        done();
+      } catch (err) {
+        done(err);
+      }
     });
     it("should execute network with input map and provide output map", (_t, done) => {
       const expected = "blue";

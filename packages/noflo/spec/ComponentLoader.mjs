@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import { after, before, describe, it } from "node:test";
+import { loadGraphFile } from "../src/lib/graphFile.js";
 import {
   getSource as nodeGetSource,
   setSource as nodeSetSource,
 } from "../src/lib/loader/NodeJs.js";
 import * as noflo from "../src/lib/NoFlo.js";
+import { nativeGraph } from "./utils/nativeGraph.mjs";
 
 /* eslint-disable
   max-classes-per-file
@@ -110,6 +112,35 @@ describe("ComponentLoader with no external packages installed", () => {
     it("should strip NPM scopes and noflo-", () => {
       const normalized = l.getModulePrefix("@noflo/noflo-image");
       assert.strictEqual(normalized, "image");
+    });
+  });
+  describe("detecting graphs", () => {
+    it("should recognize a live graph model", () => {
+      const graph = new noflo.GraphModel();
+      graph.addNode({ entity_id: "A", component: "foo/Bar" });
+      assert.strictEqual(l.isGraph(graph), true);
+    });
+    it("should recognize FBP JSON with nodes and edges", () => {
+      assert.strictEqual(
+        l.isGraph({
+          nodes: [{ id: "A", component: "foo/Bar" }],
+          edges: [],
+        }),
+        true,
+      );
+    });
+    it("should recognize FBP JSON without edges", () => {
+      // A single node exposing exported ports is a valid subgraph
+      assert.strictEqual(
+        l.isGraph({
+          nodes: [{ id: "A", component: "foo/Bar" }],
+          inports: { in: { process: "A", port: "in" } },
+        }),
+        true,
+      );
+    });
+    it("should not recognize objects without a nodes array", () => {
+      assert.strictEqual(l.isGraph({ foo: "bar" }), false);
     });
   });
   it("should be able to read a list of components", () => {
@@ -253,8 +284,7 @@ describe("ComponentLoader with no external packages installed", () => {
         });
     });
     it("should also work with a passed graph object", () => {
-      return noflo.graph
-        .loadFile(file)
+      return loadGraphFile(file)
         .then((graph) => {
           return l.listComponents().then(() => {
             l.components.Merge = Merge;
@@ -470,7 +500,7 @@ describe("ComponentLoader with no external packages installed", () => {
       });
     });
     it("registerGraph should return a Promise", () => {
-      return l.registerGraph("promise", "Graph", new noflo.Graph()).then(() => {
+      return l.registerGraph("promise", "Graph", nativeGraph()).then(() => {
         assert.ok(Object.keys(l.components).includes("promise/Graph"));
       });
     });
@@ -580,8 +610,7 @@ describe("ComponentLoader with no external packages installed", () => {
     });
     it("should be able to provide source for a graph object component", () => {
       const file = `${urlPrefix}spec/fixtures/subgraph.fbp`;
-      return noflo.graph
-        .loadFile(file)
+      return loadGraphFile(file)
         .then((graph) => {
           l.components.Subgraph2 = graph;
           return l.getSource("Subgraph2");

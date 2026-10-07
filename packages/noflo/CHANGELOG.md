@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- The engine now runs the native `@noflo/graph` model as its core graph (work document #10): `noflo.createNetwork` and `Network`/`BaseNetwork` consume `GraphModel` instances directly, and the live-edit network methods (`addNode`/`removeNode`/`renameNode`/`addEdge`/`removeEdge`/`addInitial`/`removeInitial`) mirror their mutations back into the model. `GraphModel`, `importFbpJson`, and `exportFbpJson` are re-exported from NoFlo
+- FBP JSON interchange is available through `noflo.importFbpJson`/`noflo.exportFbpJson`, including legacy NoFlo JSON documents (`processes`/`connections` shape) on import
+- **Removed fbp-graph as the core data model**: networks are instantiated from native graph models only; the `Graph`, `graph`, `Journal`, and `journal` fbp-graph re-exports are gone
+### Removed
+- `LegacyNetwork` and the `subscribeGraph` option: live graph subscription was the deprecated EventEmitter-based network variant; mutate networks via the network methods instead. Flowtrace recording now embeds FBP JSON graph definitions
+- `noflo.loadFile` and `noflo.saveFile`: filesystem graph loading will move to a platform-specific package (`@noflo/nodejs`)
+### Changed
+- Loading `.fbp` DSL files uses the `@noflo/fbp` parser package (work document #10). Files are parsed with legacy case-insensitive semantics — that is what the existing .fbp corpus means; the `@noflo/fbp` package default remains `caseSensitive: true` per the 2.x case-sensitivity policy for new code
+- Network entity arguments speak the native `@noflo/graph` shapes: nodes are `{ entity_id, component, metadata }` instead of fbp-graph's `{ id, ... }`
+- `Network.removeEdge` and `Network.removeInitial` throw when the graph holds no matching edge or IIP instead of silently ignoring the removal; when multiple IIPs target the same port, the first match is removed
+### Added
 - `Edge` data-plane transport over Web Streams, the infrastructure for the 2.x dataflow migration: hierarchical `highWaterMark` resolution (edge metadata ∪ component default ∪ runtime global; `0` = synchronous, positive = buffered, `null`/absent = unbounded 1.x behavior), an `observe()` middleware hook for fbp-protocol/Flowtrace, bracket-substream integrity validation, and admission-based backpressure
 - `getStream` on forwarding inports now returns the complete buffered stream including brackets (#545): the collection consumes the stream while mirroring the bracket-context side effects, so output forwarding keeps working
 - `output.send()` (and `sendIP`/`pass` on process output) returns an admission Promise that resolves once the packet has been admitted by the receiving edge per its `highWaterMark`, enabling `await output.send()` backpressure in process functions. The Promise rejects on send errors — those also escalate through the socket error path (`process-error` with a listener, loud throw without) — and fire-and-forget callers are protected from unhandled rejections by internal handling. `OutPort` exposes the same promise per send as `lastWrite`
