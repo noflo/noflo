@@ -498,13 +498,12 @@ describe("Component", () => {
     let sout1 = null;
     let sout2 = null;
 
-    beforeEach((_t, done) => {
+    beforeEach(() => {
       sin1 = new noflo.internalSocket.InternalSocket();
       sin2 = new noflo.internalSocket.InternalSocket();
       sin3 = new noflo.internalSocket.InternalSocket();
       sout1 = new noflo.internalSocket.InternalSocket();
       sout2 = new noflo.internalSocket.InternalSocket();
-      done();
     });
 
     it("should trigger on IPs", (_t, done) => {
@@ -2695,7 +2694,7 @@ describe("Component", () => {
       sin1.post(new noflo.IP("data", "foo", { meta: "bar" }));
     });
     describe("with custom callbacks", () => {
-      beforeEach((_t, done) => {
+      beforeEach(() => {
         c = new noflo.Component({
           inPorts: {
             foo: { datatype: "string" },
@@ -2737,7 +2736,6 @@ describe("Component", () => {
         c.inPorts.bar.attach(sin2);
         c.outPorts.baz.attach(sout1);
         c.outPorts.err.attach(sout2);
-        done();
       });
       it("should fail on wrong input", (_t, done) => {
         sout1.once("ip", () => {
@@ -3133,7 +3131,7 @@ describe("Component", () => {
     let sin3 = null;
     let sout1 = null;
     let sout2 = null;
-    before((_t, done) => {
+    before(() => {
       c = new noflo.Component({
         inPorts: {
           interval: {
@@ -3188,7 +3186,6 @@ describe("Component", () => {
       c.inPorts.stop.attach(sin3);
       c.outPorts.out.attach(sout1);
       c.outPorts.err.attach(sout2);
-      done();
     });
 
     it("should emit start event when started", (_t, done) => {

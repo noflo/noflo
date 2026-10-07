@@ -5,12 +5,35 @@ import { promisify } from "node:util";
 
 const run = promisify(execFile);
 
+// The compiled suites register themselves through the node:test describe
+// API, which only works inside a real test runner. Bun's node:test shim
+// rejects describe calls in ordinary processes, so the CLI spawn tests
+// are meaningful on Node (and Deno, which has no such restriction).
+const isBun = /bun(\.exe)?$/.test(process.execPath);
+
+/**
+ * Arguments for spawning the CLI with the current runtime. Under Deno
+ * the spawn gets --no-check: type-checking the workspace graph trips
+ * over the emitted .d.ts relative specifiers, and the Deno suite runs
+ * without type-checking everywhere else.
+ *
+ * @returns {string[]}
+ */
+function cliRunnerArgs() {
+  const deno = process.execPath.endsWith("deno");
+  return deno
+    ? ["run", "--allow-all", "--no-check", "src/cli.js"]
+    : ["src/cli.js"];
+}
+
 describe("fbp-spec-runner CLI", () => {
-  it("runs passing fixture suites and exits zero", async () => {
+  it("runs passing fixture suites and exits zero", {
+    skip: isBun,
+  }, async () => {
     const { stdout } = await run(
       process.execPath,
       [
-        "src/cli.js",
+        ...cliRunnerArgs(),
         "--base-dir",
         "spec/fixtures/project",
         "spec/fixtures/repeat.yaml",
@@ -25,12 +48,12 @@ describe("fbp-spec-runner CLI", () => {
     assert.doesNotMatch(stdout, /✖/);
   });
 
-  it("exits non-zero when a fixture suite fails", async () => {
+  it("exits non-zero when a fixture suite fails", { skip: isBun }, async () => {
     await assert.rejects(
       run(
         process.execPath,
         [
-          "src/cli.js",
+          ...cliRunnerArgs(),
           "--base-dir",
           "spec/fixtures/project",
           "spec/fixtures/failing.yaml",
@@ -46,10 +69,13 @@ describe("fbp-spec-runner CLI", () => {
   });
 
   it("shows help and rejects unknown options", async () => {
-    const { stdout } = await run(process.execPath, ["src/cli.js", "--help"]);
+    const { stdout } = await run(process.execPath, [
+      ...cliRunnerArgs(),
+      "--help",
+    ]);
     assert.match(stdout, /Usage: fbp-spec-runner/);
     await assert.rejects(
-      run(process.execPath, ["src/cli.js", "--frob"]),
+      run(process.execPath, [...cliRunnerArgs(), "--frob"]),
       /Unknown option/,
     );
   });

@@ -18,28 +18,52 @@ import * as utils from "./utils.js";
 const writeFile = promisify(fs.writeFile);
 const readFile = promisify(fs.readFile);
 
-// Try loading TypeScript compiler. When available, TypeScript component
-// sources are transpiled for setSource and for discovered .ts components.
-/** @type {any} */
+// Try loading the TypeScript compiler. When available, TypeScript
+// component sources are transpiled for setSource and for discovered .ts
+// components. Loading is lazy and awaited, so runtimes with different
+// module-resolution timing (Deno, Bun) behave like Node.
+/** @type {Promise<any>|undefined} */
+let typescriptPromise;
+/** @type {any} Resolved compiler, set once the load settles */
 let typescript;
-// eslint-disable-next-line import/no-unresolved,import/no-extraneous-dependencies
-import("typescript")
-  .then((compiler) => {
-    typescript = /** @type {any} */ (compiler).default;
-  })
-  .catch((_e) => {
-    // If there is no TypeScript compiler installed, we simply don't support compiling
-  });
+
+/**
+ * @returns {Promise<any>} The TypeScript compiler, or undefined when no
+ *   compiler is installed
+ */
+function loadTypescript() {
+  if (!typescriptPromise) {
+    typescriptPromise = import("typescript")
+      .then((compiler) => {
+        // CJS interop shapes vary across runtimes: Node exposes the
+        // compiler as the default export, Bun may expose named members
+        // directly
+        const mod = /** @type {any} */ (compiler);
+        typescript = mod.default?.transpile ? mod.default : mod;
+        return typescript;
+      })
+      .catch((_e) => {
+        // If there is no TypeScript compiler installed, we simply don't support compiling
+        return undefined;
+      });
+  }
+  return typescriptPromise;
+}
 
 /**
  * @typedef {import("@noflo/noflo").Component} Component
+ */
+/**
+ * A factory function creating a component instance from node metadata.
+ *
+ * @typedef {(metadata?: Object<string, any>) => Component} ComponentFactory
  */
 /**
  * Component definition values stored in the registry. Platform-neutral:
  * factory functions, ESM module objects with `getComponent`, or live
  * `GraphModel` instances.
  *
- * @typedef {import("@noflo/noflo").ComponentFactory | { getComponent: import("@noflo/noflo").ComponentFactory } | GraphModel | Function | { getComponent: Function }} ComponentImplementation
+ * @typedef {ComponentFactory | { getComponent: ComponentFactory } | GraphModel} ComponentImplementation
  */
 /**
  * @typedef {Object} ComponentSources
@@ -65,43 +89,36 @@ import("typescript")
  * @param {string} language
  * @returns {Promise<string>}
  */
-function transpileSource(packageId, name, source, language) {
-  let src;
+async function transpileSource(packageId, name, source, language) {
   switch (language) {
     case "typescript": {
+      const typescript = await loadTypescript();
       if (!typescript) {
-        return Promise.reject(
-          new Error(
-            `Unsupported component source language ${language} for ${packageId}/${name}: no TypeScript compiler installed`,
-          ),
+        throw new Error(
+          `Unsupported component source language ${language} for ${packageId}/${name}: no TypeScript compiler installed`,
         );
       }
       try {
-        src = typescript.transpile(source, {
+        return typescript.transpile(source, {
           module: typescript.ModuleKind.CommonJS,
           target: typescript.ScriptTarget.ES2020,
         });
       } catch (err) {
-        return Promise.reject(err);
+        throw err instanceof Error ? err : new Error(String(err));
       }
-      break;
     }
     case "es6":
     case "es2015":
     case "js":
     case "javascript": {
-      src = source;
-      break;
+      return source;
     }
     default: {
-      return Promise.reject(
-        new Error(
-          `Unsupported component source language ${language} for ${packageId}/${name}`,
-        ),
+      throw new Error(
+        `Unsupported component source language ${language} for ${packageId}/${name}`,
       );
     }
   }
-  return Promise.resolve(src);
 }
 
 /**
@@ -114,33 +131,48 @@ function transpileSource(packageId, name, source, language) {
  * @param {string} source
  * @returns {Promise<Object|Function>}
  */
-function evaluateModule(baseDir, packageId, name, source) {
-  return import("node:module").then(({ Module }) => {
-    // Use the Node.js module API to evaluate in the correct directory context
-    const extension = source.indexOf("require(") !== -1 ? ".cjs" : ".js";
-    const modulePath = path.resolve(
-      baseDir,
-      `./components/${name}${extension}`,
-    );
+async function evaluateModule(baseDir, packageId, name, source) {
+  const { Module } = await import("node:module");
+  const { mkdirSync, rmSync, writeFileSync } = await import("node:fs");
+  // Use the Node.js module API to evaluate in the correct directory context
+  const extension = source.indexOf("require(") !== -1 ? ".cjs" : ".js";
+  const modulePath = path.resolve(baseDir, `./components/${name}${extension}`);
+  // Materialize the source before evaluation: Node compiles the string
+  // argument, the Deno compat layer imports the file for ESM sources,
+  // and Bun resolves require(esm) against the file path, so the file
+  // must exist at the module path
+  mkdirSync(path.dirname(modulePath), { recursive: true });
+  writeFileSync(modulePath, source, "utf-8");
+
+  /** @type {any} */
+  let implementation;
+  // @ts-expect-error — Bun global only exists under the Bun runtime
+  if (typeof Bun !== "undefined") {
+    // Bun: Module._compile evaluates ESM lazily; require(esm) is eager
+    // and native
+    const { createRequire } = await import("node:module");
+    implementation = createRequire(modulePath)(modulePath);
+  } else {
     const moduleImpl = new Module(modulePath);
     // @ts-expect-error
     moduleImpl.paths = Module._nodeModulePaths(path.dirname(modulePath));
     moduleImpl.filename = modulePath;
     // @ts-expect-error
     moduleImpl._compile(source, modulePath);
-    const implementation = moduleImpl.exports;
-    if (
-      typeof implementation !== "function" &&
-      typeof implementation.getComponent !== "function"
-    ) {
-      return Promise.reject(
-        new Error(
-          `Provided source for ${packageId}/${name} failed to create a runnable component`,
-        ),
-      );
-    }
-    return Promise.resolve(implementation);
-  });
+    implementation = moduleImpl.exports;
+  }
+  // The evaluation has happened; remove the materialized file so source
+  // storage leaves no residue in the project's components directory
+  rmSync(modulePath, { force: true });
+  if (
+    typeof implementation !== "function" &&
+    typeof implementation.getComponent !== "function"
+  ) {
+    throw new Error(
+      `Provided source for ${packageId}/${name} failed to create a runnable component`,
+    );
+  }
+  return implementation;
 }
 
 /**
@@ -227,6 +259,9 @@ export class NodeModulesRegistry extends EventTarget {
    * @returns {Promise<void>}
    */
   async discover() {
+    // Settle the TypeScript compiler load before discovery so
+    // getLanguages() is accurate and .ts components transpile
+    await loadTypescript();
     const manifestOptions = this.prepareManifestOptions();
     /** @type {Array<any>} */
     let modules;

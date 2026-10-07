@@ -6,7 +6,7 @@
  *   Find out more about using NoFlo from <http://noflojs.org/documentation/>
  */
 
-/* @ts-self-types="../../types/src/lib/NoFlo.d.ts" */
+/* @ts-self-types="./NoFlo.d.ts" */
 
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2013-2018 Flowhub UG

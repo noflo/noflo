@@ -18,7 +18,10 @@
  */
 function getPattern() {
   if (typeof localStorage !== "undefined") {
-    return localStorage.getItem("debug");
+    const stored = localStorage.getItem("debug");
+    if (stored) {
+      return stored;
+    }
   }
   if (typeof process !== "undefined" && process.env) {
     return process.env.DEBUG || null;

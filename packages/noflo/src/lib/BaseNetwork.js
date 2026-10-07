@@ -346,7 +346,7 @@ export class BaseNetwork extends LegacyEventBase {
    */
   /**
    * @param {string} component
-   * @param {import("@noflo/graph").GraphNodeMetadata} metadata
+   * @param {Object<string, any>} metadata
    * @param {ComponentLoadCallback} [callback]
    * @returns {Promise<import("./Component.js").Component>}
    */

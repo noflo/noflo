@@ -49,6 +49,20 @@ const VENDORED = [
 const withNocheck = (source) =>
   `// @ts-nocheck — vendored bundle, not type-checked\n${source}`;
 
+/**
+ * Rewrite JSDoc `@import` specifiers that reference the package's own
+ * upstream entry file (for example `./jsonpath.js`) so they point at
+ * the vendored filename instead — the vendored file is renamed, and
+ * Deno's checker resolves `@import` specifiers statically.
+ *
+ * @param {string} source
+ * @param {string} upstreamEntry
+ * @param {string} vendoredName
+ * @returns {string}
+ */
+const withSelfImports = (source, upstreamEntry, vendoredName) =>
+  source.split(upstreamEntry).join(vendoredName);
+
 const tmp = mkdtempSync(join(tmpdir(), "fbp-spec-runner-vendor-"));
 try {
   mkdirSync(join(PKG_ROOT, "vendor"), { recursive: true });
@@ -70,8 +84,12 @@ try {
     if (pkg.name === "jsonpath-plus") {
       writeFileSync(
         target,
-        withNocheck(
-          readFileSync(join(from, "dist/index-browser-esm.js"), "utf8"),
+        withSelfImports(
+          withNocheck(
+            readFileSync(join(from, "dist/index-browser-esm.js"), "utf8"),
+          ),
+          "./jsonpath.js",
+          `${pkg.name}-${pkg.version}.js`,
         ),
       );
     } else {

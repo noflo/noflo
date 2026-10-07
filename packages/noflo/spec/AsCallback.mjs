@@ -328,15 +328,9 @@ describe("asCallback interface", () => {
   describe("with a graph instead of component name", () => {
     let graph = null;
     let wrapped = null;
-    before((_t, done) => {
-      try {
-        const g = loadJsonGraphFixture("ascallback-stream");
-        graph = g;
-        wrapped = noflo.asCallback(graph, { loader });
-        done();
-      } catch (err) {
-        done(err);
-      }
+    before(async () => {
+      graph = loadJsonGraphFixture("ascallback-stream");
+      wrapped = noflo.asCallback(graph, { loader });
     });
     it("should execute network with input map and provide output map with streams as arrays", (_t, done) => {
       wrapped({ in: "hello world" }, (err, out) => {
@@ -368,15 +362,9 @@ describe("asCallback interface", () => {
   describe("with a graph containing a component supporting only certain values", () => {
     let graph = null;
     let wrapped = null;
-    before((_t, done) => {
-      try {
-        const g = loadJsonGraphFixture("ascallback-values");
-        graph = g;
-        wrapped = noflo.asCallback(graph, { loader });
-        done();
-      } catch (err) {
-        done(err);
-      }
+    before(async () => {
+      graph = loadJsonGraphFixture("ascallback-values");
+      wrapped = noflo.asCallback(graph, { loader });
     });
     it("should execute network with input map and provide output map", (_t, done) => {
       const expected = "blue";

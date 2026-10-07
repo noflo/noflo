@@ -11,8 +11,7 @@
       "README.md",
       "CHANGELOG.md",
       "package.json",
-      "jsr.json",
-      "types/"
+      "jsr.json"
     ]
   }
 }
