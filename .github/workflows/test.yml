@@ -17,3 +17,26 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+  deno:
+    name: Test with Deno
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: 'v2.x'
+          cache: true
+      - run: deno install
+      - run: deno run test:deno
+  bun:
+    name: Test with Bun
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:bun

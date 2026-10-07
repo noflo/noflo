@@ -43,7 +43,9 @@
   "scripts": {
     "lint": "npx @biomejs/biome lint src/ spec/*.mjs",
     "types": "tsc -p tsconfig.json",
-    "test": "node --test --test-force-exit --test-timeout 30000 spec/*.mjs"
+    "test": "node --test --test-force-exit --test-timeout 30000 spec/*.mjs",
+    "test:deno": "deno test --allow-read=spec,src --allow-env --no-check spec/*.mjs",
+    "test:bun": "bun test ./spec/*.mjs"
   },
   "docco_husky": {
     "output_dir": "docs",

@@ -9,6 +9,8 @@
     "test:scripts": "node --test scripts/*.test.mjs",
     "check:jsr": "node scripts/check-jsr-entrypoints.mjs",
     "lint": "npm run lint --workspaces --if-present",
-    "format": "npx @biomejs/biome check --use-editorconfig=true --write packages/*/src packages/*/spec packages/*/examples scripts"
+    "format": "npx @biomejs/biome check --use-editorconfig=true --write packages/*/src packages/*/spec packages/*/examples scripts",
+    "test:deno": "npm run test:deno --workspaces --if-present",
+    "test:bun": "npm run test:bun --workspaces --if-present"
   }
 }

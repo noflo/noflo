@@ -10,7 +10,9 @@
   "scripts": {
     "lint": "npx @biomejs/biome check --use-editorconfig=true src/ spec/",
     "test": "node --test --test-force-exit --test-timeout 30000 spec/*.mjs",
-    "types": "tsc --noEmit -p tsconfig.json"
+    "types": "tsc --noEmit -p tsconfig.json",
+    "test:deno": "deno test --allow-all --no-check spec/*.mjs",
+    "test:bun": "bun test ./spec/*.mjs"
   },
   "keywords": [
     "noflo",
