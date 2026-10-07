@@ -1,0 +1,49 @@
+{
+  "name": "@noflo/loader-node",
+  "version": "2.0.0-alpha.0",
+  "description": "Node.js component discovery and source storage for NoFlo, as a ComponentRegistry implementation",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./graphFile": "./src/graphFile.js"
+  },
+  "bin": {
+    "noflo-cache-preheat": "bin/noflo-cache-preheat.js"
+  },
+  "scripts": {
+    "test": "node --test --test-force-exit --test-timeout 30000 spec/*.mjs",
+    "types": "tsc --noEmit -p tsconfig.json"
+  },
+  "keywords": [
+    "noflo",
+    "flow-based programming",
+    "fbp",
+    "component loader"
+  ],
+  "author": "Henri Bergius <henri.bergius@iki.fi>",
+  "license": "EUPL-1.2",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noflo/noflo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/noflo/noflo/issues"
+  },
+  "peerDependencies": {
+    "noflo": "^2.0.0-alpha"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@noflo/fbp": "^0.1.0",
+    "@noflo/graph": "^0.1.0",
+    "fbp-manifest": "^0.3.1"
+  },
+  "devDependencies": {
+    "noflo": "*"
+  }
+}

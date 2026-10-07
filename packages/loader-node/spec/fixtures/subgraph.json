@@ -1,0 +1,36 @@
+{
+  "inports": {
+    "in": {
+      "process": "Merge",
+      "port": "in"
+    }
+  },
+  "outports": {
+    "out": {
+      "process": "Split",
+      "port": "out"
+    }
+  },
+  "groups": [],
+  "processes": {
+    "Merge": {
+      "component": "Merge"
+    },
+    "Split": {
+      "component": "Split"
+    }
+  },
+  "connections": [
+    {
+      "src": {
+        "process": "Merge",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "Split",
+        "port": "in"
+      }
+    }
+  ],
+  "caseSensitive": false
+}
