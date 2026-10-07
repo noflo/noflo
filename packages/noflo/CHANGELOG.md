@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - FBP JSON interchange is available through `noflo.importFbpJson`/`noflo.exportFbpJson`, including legacy NoFlo JSON documents (`processes`/`connections` shape) on import
 - **Removed fbp-graph as the core data model**: networks are instantiated from native graph models only; the `Graph`, `graph`, `Journal`, and `journal` fbp-graph re-exports are gone
 ### Removed
+- `noflo.asComponent` and the `get-function-params` dependency: function-to-component wrapping moved to the standalone `@noflo/as-component` package (work document #16). NoFlo core does not import it back; applications `npm install @noflo/as-component` and call it directly
 - `LegacyNetwork` and the `subscribeGraph` option: live graph subscription was the deprecated EventEmitter-based network variant; mutate networks via the network methods instead. Flowtrace recording now embeds FBP JSON graph definitions
 - `noflo.loadFile` and `noflo.saveFile`: filesystem graph loading will move to a platform-specific package (`@noflo/nodejs`)
 ### Changed

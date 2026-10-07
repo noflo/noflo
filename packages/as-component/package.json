@@ -1,0 +1,37 @@
+{
+  "name": "@noflo/as-component",
+  "version": "2.0.0-alpha.0",
+  "description": "Generate NoFlo components from JavaScript functions",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "node --test --test-force-exit --test-timeout 30000 spec/*.mjs",
+    "types": "tsc --noEmit -p tsconfig.json"
+  },
+  "keywords": [
+    "noflo",
+    "flow-based programming",
+    "fbp"
+  ],
+  "author": "Henri Bergius <henri.bergius@iki.fi>",
+  "license": "EUPL-1.2",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noflo/noflo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/noflo/noflo/issues"
+  },
+  "peerDependencies": {
+    "noflo": "^2.0.0-alpha"
+  },
+  "dependencies": {
+    "get-function-params": "^2.0.6"
+  },
+  "devDependencies": {
+    "noflo": "*"
+  }
+}

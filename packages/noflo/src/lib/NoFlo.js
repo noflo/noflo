@@ -184,22 +184,6 @@ export { asCallback, asPromise } from "./AsCallback.js";
 
 import { asCallback, asPromise } from "./AsCallback.js";
 
-// ## Generating components from JavaScript functions
-//
-// The `asComponent` helper makes it easy to expose a JavaScript function as a
-// NoFlo component. All input arguments become input ports, and the function's
-// result will be sent to either `out` or `error` port.
-//
-//     exports.getComponent = function () {
-//       return noflo.asComponent(Math.random, {
-//         description: 'Generate a random number',
-//       });
-//     };
-//
-export { asComponent } from "./AsComponent.js";
-
-import { asComponent } from "./AsComponent.js";
-
 export default {
   isBrowser,
   GraphModel,
@@ -216,5 +200,4 @@ export default {
   createNetwork,
   asCallback,
   asPromise,
-  asComponent,
 };

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, it } from "node:test";
-import * as noflo from "../src/lib/NoFlo.js";
+import * as noflo from "noflo";
+import { asComponent } from "../src/index.js";
 
 let isBrowser;
 if (
@@ -15,14 +16,14 @@ if (
 describe("asComponent interface", () => {
   let loader = null;
   before(() => {
-    loader = new noflo.ComponentLoader(process.cwd());
+    loader = new noflo.ComponentLoader({});
     return loader.listComponents();
   });
   describe("with a synchronous function taking a single parameter", () => {
     describe("with returned value", () => {
       const func = (hello) => `Hello ${hello}`;
       it("should be possible to componentize", (_t, done) => {
-        const component = () => noflo.asComponent(func);
+        const component = () => asComponent(func);
         loader.registerComponent("ascomponent", "sync-one", component, done);
       });
       it("should be loadable", () => {
@@ -88,7 +89,7 @@ describe("asComponent interface", () => {
     describe("with returned NULL", () => {
       const func = () => null;
       it("should be possible to componentize", (_t, done) => {
-        const component = () => noflo.asComponent(func);
+        const component = () => asComponent(func);
         loader.registerComponent("ascomponent", "sync-null", component, done);
       });
       it("should send to OUT port", (_t, done) => {
@@ -108,7 +109,7 @@ describe("asComponent interface", () => {
         throw new Error(`Hello ${hello}`);
       };
       it("should be possible to componentize", (_t, done) => {
-        const component = () => noflo.asComponent(func);
+        const component = () => asComponent(func);
         loader.registerComponent("ascomponent", "sync-throw", component, done);
       });
       it("should send to ERROR port", (_t, done) => {
@@ -125,7 +126,7 @@ describe("asComponent interface", () => {
     describe("with returned value", () => {
       const func = (greeting, name) => `${greeting} ${name}`;
       it("should be possible to componentize", (_t, done) => {
-        const component = () => noflo.asComponent(func);
+        const component = () => asComponent(func);
         loader.registerComponent("ascomponent", "sync-two", component, done);
       });
       it("should be loadable", (_t, done) => {
@@ -174,7 +175,7 @@ describe("asComponent interface", () => {
       }); // Browser runs with ES5 which didn't have defaults
       it("should be possible to componentize", (_t, done) => {
         const component = () =>
-          noflo.asComponent(
+          asComponent(
             (name, greeting = "Hello") => `${greeting} ${name}`,
           );
         loader.registerComponent(
@@ -237,7 +238,7 @@ describe("asComponent interface", () => {
           }, 5);
         });
       it("should be possible to componentize", (_t, done) => {
-        const component = () => noflo.asComponent(func);
+        const component = () => asComponent(func);
         loader.registerComponent("ascomponent", "promise-one", component, done);
       });
       it("should send to OUT port", (_t, done) => {
@@ -265,7 +266,7 @@ describe("asComponent interface", () => {
           }, 5);
         });
       it("should be possible to componentize", (_t, done) => {
-        const component = () => noflo.asComponent(func);
+        const component = () => asComponent(func);
         loader.registerComponent("ascomponent", "sync-throw", component, done);
       });
       it("should send to ERROR port", (_t, done) => {
@@ -282,7 +283,7 @@ describe("asComponent interface", () => {
     describe("with returned value", () => {
       const func = () => "Hello there";
       it("should be possible to componentize", (_t, done) => {
-        const component = () => noflo.asComponent(func);
+        const component = () => asComponent(func);
         loader.registerComponent("ascomponent", "sync-zero", component, done);
       });
       it("should contain correct ports", (_t, done) => {
@@ -313,7 +314,7 @@ describe("asComponent interface", () => {
     });
     describe("with a built-in function", () => {
       it("should be possible to componentize", (_t, done) => {
-        const component = () => noflo.asComponent(Math.random);
+        const component = () => asComponent(Math.random);
         loader.registerComponent("ascomponent", "sync-zero", component, done);
       });
       it("should contain correct ports", (_t, done) => {
@@ -349,7 +350,7 @@ describe("asComponent interface", () => {
         setTimeout(() => callback(null, `Hello ${hello}`), 5);
       };
       it("should be possible to componentize", (_t, done) => {
-        const component = () => noflo.asComponent(func);
+        const component = () => asComponent(func);
         loader.registerComponent("ascomponent", "async-one", component, done);
       });
       it("should be loadable", (_t, done) => {
@@ -386,7 +387,7 @@ describe("asComponent interface", () => {
         setTimeout(() => callback(new Error(`Hello ${hello}`)), 5);
       };
       it("should be possible to componentize", (_t, done) => {
-        const component = () => noflo.asComponent(func);
+        const component = () => asComponent(func);
         loader.registerComponent("ascomponent", "async-throw", component, done);
       });
       it("should send to ERROR port", (_t, done) => {

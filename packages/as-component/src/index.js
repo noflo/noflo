@@ -1,11 +1,11 @@
-//     NoFlo - Flow-Based Programming for JavaScript
+//     @noflo/as-component - Generate NoFlo components from JavaScript functions
 //     (c) 2018 Flowhub UG
-//     NoFlo may be freely distributed under the MIT license
+//     SPDX-License-Identifier: EUPL-1.2
 /* eslint-disable
     import/prefer-default-export,
 */
 import getParams from "get-function-params";
-import { Component } from "./Component.js";
+import { Component } from "noflo";
 
 /**
  * @typedef FuncParam
@@ -21,6 +21,13 @@ import { Component } from "./Component.js";
  * @property {boolean} [required=false]
  * @property {boolean} [scoped=true]
  * @property {any} [default]
+ */
+/**
+ * @typedef AsComponentOptions
+ * @property {string} [description]
+ * @property {string} [icon]
+ * @property {Object<string, PortOptions>} [inPorts]
+ * @property {Object<string, PortOptions>} [outPorts]
  */
 
 // ## asComponent generator API
@@ -76,8 +83,12 @@ import { Component } from "./Component.js";
 // In these cases the port with a default won't be visible. It is
 // recommended to use default values only with components that don't need to run in legacy browsers.
 /**
+ * Turn a JavaScript function into a NoFlo component factory. Each
+ * argument of the function becomes an inport, and the function's
+ * result is sent to `out` (or `error` on failure).
+ *
  * @param {Function} func
- * @param {Object} options
+ * @param {AsComponentOptions} [options]
  * @returns {Component}
  */
 export function asComponent(func, options) {
