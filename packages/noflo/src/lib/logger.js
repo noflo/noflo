@@ -39,8 +39,8 @@ let cachedMatchers = null;
 
 /**
  * Parse a comma-separated debug pattern string into matchers. Results
- * are memoized per pattern string so steady-state logging costs one
- * string comparison per call.
+ * are memoized per pattern string, so repeated calls skip re-parsing
+ * unless the pattern changes.
  *
  * @param {string|null} patternString
  * @returns {PatternMatcher[]}

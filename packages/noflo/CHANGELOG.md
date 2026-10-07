@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `loader.setSource`/`loader.getSource`/`loader.getLanguages`: source storage and language reporting are registry API only; runtimes call the registry they passed in, staying current through `change` events
 - `loader.dynamicLoad` and path-string component definitions: definitions in core are platform-neutral values (factories, ESM module objects, live `GraphModel`s); discovered graph files register as pre-parsed models via the loader package
 - The `Graph` loader catalog entry: the subgraph wrapper (`Subgraph`, renamed from `Graph`) is core machinery instantiated directly for graph definitions. The runtime `graph` inport on directly-instantiated subgraphs is deprecated; loader-loaded subgraphs never see it
-- `fbp-manifest`, `@noflo/fbp`, and `get-function-params` dependencies: core runs on `@noflo/graph` and `debug` alone
+- `fbp-manifest`, `@noflo/fbp`, and `get-function-params` dependencies: core runs on `@noflo/graph` alone
 - `noflo.asComponent` and the `get-function-params` dependency: function-to-component wrapping moved to the standalone `@noflo/as-component` package (work document #16). NoFlo core does not import it back; applications `npm install @noflo/as-component` and call it directly
 - `LegacyNetwork` and the `subscribeGraph` option: live graph subscription was the deprecated EventEmitter-based network variant; mutate networks via the network methods instead. Flowtrace recording now embeds FBP JSON graph definitions
 - `noflo.loadFile` and `noflo.saveFile`: filesystem graph loading will move to a platform-specific package (`@noflo/nodejs`)
