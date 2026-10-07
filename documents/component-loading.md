@@ -73,3 +73,5 @@ The factory discovers components and graph files (registering graphs as pre-pars
 - `noflo.createNetwork(graph, { registry })` and `noflo.asCallback(component, { registry })` construct one when no loader is given
 - Subgraph child networks inherit the parent loader, so the registry applies to the whole network tree
 - Runtimes that edit component sources keep their own reference to the registry and call `setSource` on it directly; the loader stays current through `change` events
+
+For migrating an existing 1.x component library to this architecture (layout, discovery rules, Process API, testing), see [component-library-migration.md](./component-library-migration.md).

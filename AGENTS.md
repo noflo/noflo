@@ -10,6 +10,10 @@ Fix formatting with `npm run format` after any changes to source files or tests.
 
 All packages in this monorepo must stay mutually compatible at every commit. When a change breaks another package's API surface, update that dependent package in the same change set (or in a stacked commit within the same review) so that `npm test` stays green across all workspaces. Do not leave a workspace depending on an API that no longer exists.
 
+## 2.x migration
+
+At this point we're working on NoFlo 2.x roadmap. Keep the migration guides and other docs in `documentation/` up-to-date.
+
 ## Licensing
 
 NoFlo core (`packages/noflo`) remains MIT-licensed. If we migrate other pre-existing NoFlo libraries into this monorepo, they also keep their MIT license _if_ they have 3rd party contributions in the codebase that remains. Otherwise they get EUPL-1.2. In case of uncertainty, ask user.
