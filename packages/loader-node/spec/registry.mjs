@@ -32,7 +32,7 @@ function instantiate(definition) {
  * by the noflo core spec for manifest discovery. It is a workspace
  * package: node_modules/example resolves through the monorepo.
  */
-before(function () {
+before(() => {
   if (!fs.existsSync(baseDir)) {
     throw new Error(`Missing fixture project at ${baseDir}`);
   }
@@ -107,14 +107,12 @@ describe("createNodeModulesRegistry with a fixture project", () => {
 describe("setSource and getSource", () => {
   /** @type {import("../src/index.js").NodeModulesRegistry} */
   let registry = null;
-  let changeEvents = [];
+  const changeEvents = [];
 
   before(async () => {
     registry = await createNodeModulesRegistry(baseDir, {});
     registry.addEventListener("change", (event) => {
-      changeEvents.push(
-        /** @type {CustomEvent} */ (event).detail,
-      );
+      changeEvents.push(/** @type {CustomEvent} */ (event).detail);
     });
   });
 
@@ -131,7 +129,12 @@ export function getComponent() {
   return c;
 }
 `;
-    await registry.setSource("componentloader", "RepeatData", source, "javascript");
+    await registry.setSource(
+      "componentloader",
+      "RepeatData",
+      source,
+      "javascript",
+    );
     const definition = await registry.get("componentloader/RepeatData");
     assert.ok(definition);
     assert.ok(instantiate(definition).inPorts.ports.in);
@@ -313,10 +316,7 @@ describe("manifest cache", () => {
 });
 
 describe("graph file helpers", () => {
-  const graphPath = path.resolve(
-    import.meta.dirname,
-    "fixtures/subgraph.json",
-  );
+  const graphPath = path.resolve(import.meta.dirname, "fixtures/subgraph.json");
 
   it("loads FBP JSON graph files", async () => {
     const model = await loadGraphFile(graphPath);
@@ -330,10 +330,7 @@ describe("graph file helpers", () => {
 
   it("saves graph models as FBP JSON files", async () => {
     const model = await loadGraphFile(graphPath);
-    const outPath = path.resolve(
-      import.meta.dirname,
-      "../.tmp-graph-out.json",
-    );
+    const outPath = path.resolve(import.meta.dirname, "../.tmp-graph-out.json");
     try {
       await saveGraphFile(model, outPath);
       const contents = JSON.parse(fs.readFileSync(outPath, "utf-8"));

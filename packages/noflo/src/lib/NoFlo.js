@@ -44,9 +44,10 @@ import { exportFbpJson, GraphModel, importFbpJson } from "@noflo/graph";
 //
 // It is possible to pass some options to control the behavior of network creation:
 //
-// * `baseDir`: (default: cwd) Project base directory used for component loading
 // * `componentLoader`: (default: NULL) NoFlo ComponentLoader instance to use for the
-//   network. New one will be instantiated for the baseDir if this is not given.
+//   network. New one will be instantiated from the `registry` option if this is not given.
+// * `registry`: (default: NULL) Application-supplied component registry used for
+//   component loading, when no componentLoader is given.
 // * `delay`: (default: FALSE) Whether the network should be started later. Defaults to
 //   immediate execution
 // * `flowtrace`: (default: NULL) Flowtrace instance to create a retroactive debugging
@@ -70,10 +71,10 @@ import { deprecated, isBrowser } from "./Platform.js";
 export { exportFbpJson, GraphModel, importFbpJson } from "@noflo/graph";
 // ### Component Loader
 //
-// The [ComponentLoader](../ComponentLoader/) is responsible for finding and loading
-// NoFlo components. Component Loader uses [fbp-manifest](https://github.com/flowbased/fbp-manifest)
-// to find components and graphs by traversing the NPM dependency tree from a given root
-// directory on the file system.
+// The [ComponentLoader](../ComponentLoader/) is responsible for instantiating
+// NoFlo components. It consumes an application-supplied component registry;
+// platform-specific discovery is provided by registry implementations like
+// [@noflo/loader-node](https://jsr.io/@noflo/loader-node).
 export { ComponentLoader } from "./ComponentLoader.js";
 // ### Platform detection
 //

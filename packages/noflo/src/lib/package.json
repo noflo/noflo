@@ -34,7 +34,8 @@
   },
   "types": "./lib/NoFlo.d.ts",
   "bin": {
-    "noflo": "./bin/noflo"
+    "noflo": "./bin/noflo",
+    "noflo-cache-preheat": "./bin/noflo-cache-preheat"
   },
   "homepage": "http://noflojs.org/",
   "repository": {
@@ -44,7 +45,9 @@
   "rngit": "rns://3ea5aad068a337670f5bb8073226adb4/public/noflo",
   "scripts": {
     "lint": "npx @biomejs/biome lint src/ spec/*.mjs",
+    "prebuild:node": "replace 'import.meta.dirname' '__dirname' src/lib/loader/NodeJs.js && replace 'import getParams from' 'import * as getParams from' src/lib/AsComponent.js && replace 'import\\(cacheBusted\\)' 'Promise.resolve().then(() => require(cPath))' src/lib/loader/NodeJs.js",
     "build:node": "tsc",
+    "postbuild:node": "replace '__dirname' 'import.meta.dirname' src/lib/loader/NodeJs.js && replace 'import \\* as getParams from' 'import getParams from' src/lib/AsComponent.js && replace 'Promise.resolve\\(\\).then\\(\\(\\) => require\\(cPath\\)\\)' 'import(cacheBusted)' src/lib/loader/NodeJs.js",
     "build": "npm run build:node",
     "types": "tsc --noEmit --project tsconfig.types.json",
     "postbuild": "replace 'node/events' 'events' lib -r",

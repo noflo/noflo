@@ -9,10 +9,10 @@
     import/prefer-default-export,
 */
 
-import { GraphModel } from "@noflo/graph";
+import { GraphModel, importFbpJson } from "@noflo/graph";
 import { Component } from "../lib/Component.js";
-import { loadGraphFile, loadGraphJson } from "../lib/graphFile.js";
 import { Network } from "../lib/Network.js";
+import { deprecated } from "../lib/Platform.js";
 import { InPorts, OutPorts } from "../lib/Ports.js";
 
 // The Subgraph component is used to wrap NoFlo Networks into components
@@ -29,8 +29,6 @@ export class Subgraph extends Component {
     this.ready = true;
     this.started = false;
     this.starting = false;
-    /** @type {string|null} */
-    this.baseDir = null;
     /** @type {import("../lib/ComponentLoader").ComponentLoader|null} */
     this.loader = null;
     this.load = 0;
@@ -50,14 +48,17 @@ export class Subgraph extends Component {
       if (packet.type !== "data") {
         return;
       }
+      deprecated(
+        "Sending graph packets into a subgraph at runtime is deprecated; register pre-parsed graph models with the component loader or construct networks directly",
+      );
       // TODO: Port this part to Process API and use output.error method instead
       this.setGraph(packet.data).catch(this.error);
     });
   }
 
   /**
-   * @param {import("@noflo/graph").GraphModel|Object<string, any>|string} graph
-   *   A live graph model, an FBP JSON definition, or a path to a graph file
+   * @param {import("@noflo/graph").GraphModel|Object<string, any>} graph
+   *   A live graph model or an FBP JSON definition
    * @returns {Promise<void>}
    */
   setGraph(graph) {
@@ -66,21 +67,8 @@ export class Subgraph extends Component {
       // Existing graph model
       return this.createNetwork(graph);
     }
-    if (typeof graph === "object") {
-      // JSON definition of a graph
-      return this.createNetwork(loadGraphJson(graph));
-    }
-    let graphName = graph;
-    if (
-      graphName.substr(0, 1) !== "/" &&
-      graphName.substr(1, 1) !== ":" &&
-      process?.cwd
-    ) {
-      graphName = `${process.cwd()}/${graphName}`;
-    }
-    return loadGraphFile(graphName).then((instance) =>
-      this.createNetwork(instance),
-    );
+    // JSON definition of a graph
+    return this.createNetwork(importFbpJson(graph));
   }
 
   /**
@@ -99,7 +87,6 @@ export class Subgraph extends Component {
 
     const network = new Network(graphObj, {
       componentLoader: this.loader || undefined,
-      baseDir: this.baseDir || undefined,
     });
 
     return network.loader

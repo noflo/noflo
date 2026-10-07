@@ -7,7 +7,7 @@ describe("in-process test case execution", () => {
   let loader = null;
 
   before(async () => {
-    loader = new noflo.ComponentLoader(process.cwd());
+    loader = new noflo.ComponentLoader({});
     await loader.listComponents();
     const repeat = () => {
       const c = new noflo.Component();

@@ -175,9 +175,7 @@ describe("asComponent interface", () => {
       }); // Browser runs with ES5 which didn't have defaults
       it("should be possible to componentize", (_t, done) => {
         const component = () =>
-          asComponent(
-            (name, greeting = "Hello") => `${greeting} ${name}`,
-          );
+          asComponent((name, greeting = "Hello") => `${greeting} ${name}`);
         loader.registerComponent(
           "ascomponent",
           "sync-default",

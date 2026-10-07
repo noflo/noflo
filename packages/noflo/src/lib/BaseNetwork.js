@@ -15,7 +15,7 @@ import { resolveHighWaterMark } from "./Edge.js";
 import * as internalSocket from "./InternalSocket.js";
 import IP from "./IP.js";
 import { LegacyEventBase } from "./LegacyEvents.js";
-import { deprecated, isBrowser, makeAsync } from "./Platform.js";
+import { deprecated, makeAsync } from "./Platform.js";
 import { debounce } from "./Utils.js";
 
 /**
@@ -92,8 +92,8 @@ function connectPort(socket, process, port, index, inbound) {
 
 /**
  * @typedef NetworkOwnOptions
- * @property {string} [baseDir] - Project base directory for component loading
  * @property {ComponentLoader} [componentLoader] - Component loader instance to use, if any
+ * @property {import("./ComponentLoader").ComponentRegistry} [registry] - Application-supplied component registry, used to construct a loader when no loader is given
  * @property {Object} [flowtrace] - Flowtrace instance to use for tracing this network run
  * @property {boolean} [asyncDelivery] - Make Information Packet delivery asynchronous
  * @property {number|null} [highWaterMark] - Default backpressure buffer size for all edges in this network; null = unbounded
@@ -149,31 +149,16 @@ export class BaseNetwork extends LegacyEventBase {
     /** @type {Array<NetworkEvent>} */
     this.eventBuffer = [];
 
-    // On Node.js we default the baseDir for component loading to
-    // the current working directory
-    if (this.graph.graphMetadata().baseDir && !options.baseDir) {
-      deprecated(
-        "Passing baseDir via Graph properties is deprecated, pass via Network options instead",
-      );
-    }
-    this.baseDir = null;
-    if (!isBrowser()) {
-      this.baseDir =
-        options.baseDir || this.graph.graphMetadata().baseDir || process.cwd();
-      // On browser we default the baseDir to the Component loading
-      // root
-    } else {
-      this.baseDir =
-        options.baseDir || this.graph.graphMetadata().baseDir || "/";
-    }
-
     // As most NoFlo networks are long-running processes, the
     // network coordinator marks down the start-up time. This
     // way we can calculate the uptime of the network.
     /** @type {Date | null} */
     this.startupDate = null;
 
-    // Initialize a Component Loader for the network
+    // Initialize a Component Loader for the network. Applications pass
+    // either a ready loader or an application-supplied component
+    // registry (work document #16); there is no baseDir-based default
+    // discovery in core.
     if (options.componentLoader) {
       /** @type {ComponentLoader} */
       this.loader = options.componentLoader;
@@ -185,7 +170,9 @@ export class BaseNetwork extends LegacyEventBase {
       this.loader = this.graph.graphMetadata().componentLoader;
     } else {
       /** @type {ComponentLoader} */
-      this.loader = new ComponentLoader(this.baseDir, this.options);
+      this.loader = new ComponentLoader({
+        registry: options.registry,
+      });
     }
 
     // Enable Flowtrace for this network, when available

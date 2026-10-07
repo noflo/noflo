@@ -39,13 +39,19 @@ export function compileSuite(suite, context) {
 }
 
 /**
- * Compile suites loaded from files, sharing one ComponentLoader.
+ * Compile suites loaded from files, sharing one ComponentLoader. The
+ * loader consumes a Node.js component registry discovering the project
+ * under test (work document #16).
  *
  * @param {string[]} files - Spec file paths
  * @param {{ baseDir?: string }} [options]
  */
 export async function compileSpecFiles(files, options = {}) {
-  const loader = new noflo.ComponentLoader(options.baseDir ?? process.cwd());
+  const { createNodeModulesRegistry } = await import("@noflo/loader-node");
+  const registry = await createNodeModulesRegistry(
+    options.baseDir ?? process.cwd(),
+  );
+  const loader = new noflo.ComponentLoader({ registry });
   for (const file of files) {
     const suites = await loadSuitesFromFile(file);
     for (const suite of suites) {

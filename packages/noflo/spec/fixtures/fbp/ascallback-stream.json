@@ -1,0 +1,36 @@
+{
+  "inports": {
+    "in": {
+      "process": "Async",
+      "port": "in"
+    }
+  },
+  "outports": {
+    "out": {
+      "process": "Stream",
+      "port": "out"
+    }
+  },
+  "groups": [],
+  "processes": {
+    "Async": {
+      "component": "process/Async"
+    },
+    "Stream": {
+      "component": "process/Streamify"
+    }
+  },
+  "connections": [
+    {
+      "src": {
+        "process": "Async",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "Stream",
+        "port": "in"
+      }
+    }
+  ],
+  "caseSensitive": false
+}

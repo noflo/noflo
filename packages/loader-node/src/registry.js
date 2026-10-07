@@ -125,7 +125,10 @@ function evaluateModule(baseDir, packageId, name, source) {
       );
       extension = ".cjs";
     }
-    const modulePath = path.resolve(baseDir, `./components/${name}${extension}`);
+    const modulePath = path.resolve(
+      baseDir,
+      `./components/${name}${extension}`,
+    );
     const moduleImpl = new Module(modulePath);
     // @ts-expect-error
     moduleImpl.paths = Module._nodeModulePaths(path.dirname(modulePath));
@@ -516,7 +519,10 @@ export class NodeModulesRegistry extends EventTarget {
         return src;
       }
       try {
-        const specs = await readFile(path.resolve(this.baseDir, specPath), "utf-8");
+        const specs = await readFile(
+          path.resolve(this.baseDir, specPath),
+          "utf-8",
+        );
         return {
           ...src,
           tests: specs,

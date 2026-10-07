@@ -273,7 +273,7 @@ describe("InternalSocket delegating transport to Edge", () => {
 describe("hierarchical high-water mark wiring through networks", () => {
   let loader;
   before(async () => {
-    loader = new noflo.ComponentLoader(process.cwd());
+    loader = new noflo.ComponentLoader({});
     await loader.listComponents();
     const bounded = () => {
       const c = new noflo.Component();
@@ -358,7 +358,7 @@ describe("hierarchical high-water mark wiring through networks", () => {
 describe("network-level edge observation", () => {
   let observeLoader;
   before(async () => {
-    observeLoader = new noflo.ComponentLoader(process.cwd());
+    observeLoader = new noflo.ComponentLoader({});
     await observeLoader.listComponents();
     const repeat = () => {
       const c = new noflo.Component();

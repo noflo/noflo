@@ -57,7 +57,6 @@ describe("NoFlo Network", () => {
         .createNetwork(g, {
           asyncDelivery: true,
           delay: true,
-          baseDir: process.cwd(),
         })
         .then((network) => {
           n = network;
@@ -82,14 +81,8 @@ describe("NoFlo Network", () => {
     it("should have reference to the graph", () => {
       assert.strictEqual(n.graph, g);
     });
-    it("should know its baseDir", () => {
-      assert.strictEqual(n.baseDir, process.cwd());
-    });
     it("should have a ComponentLoader", () => {
       assert.strictEqual(typeof n.loader, "object");
-    });
-    it("should have transmitted the baseDir to the Component Loader", () => {
-      assert.strictEqual(n.loader.baseDir, process.cwd());
     });
     it("should be able to list components", () =>
       n.loader.listComponents().then((components) => {
@@ -99,10 +92,24 @@ describe("NoFlo Network", () => {
       assert.ok(n.uptime() >= 0);
     });
     describe("with new node", () => {
+      before(() =>
+        n.loader.registerComponent("test", "Dummy", {
+          getComponent: (metadata) => {
+            const c = new noflo.Component();
+            c.inPorts.add("in");
+            c.outPorts.add("out");
+            c.process((_input, output) => output.done());
+            // The factory receives node metadata and decides what to
+            // keep; this dummy mirrors the Subgraph wrapper behavior
+            c.metadata = metadata;
+            return c;
+          },
+        }),
+      );
       it("should contain the node", () =>
         n.addNode({
           entity_id: "Graph",
-          component: "Subgraph",
+          component: "test/Dummy",
           metadata: {
             foo: "Bar",
           },
@@ -110,7 +117,7 @@ describe("NoFlo Network", () => {
       it("should have registered the node with the graph", () => {
         const node = g.node("Graph");
         assert.strictEqual(typeof node, "object");
-        assert.strictEqual(node.component, "Subgraph");
+        assert.strictEqual(node.component, "test/Dummy");
       });
       it("should have transmitted the node metadata to the process", () => {
         assert.ok(n.processes.Graph.component.metadata);
@@ -268,7 +275,6 @@ describe("NoFlo Network", () => {
         .createNetwork(g, {
           asyncDelivery: true,
           delay: true,
-          baseDir: process.cwd(),
         })
         .then((nw) => {
           nw.loader.components.Split = Split;
@@ -499,7 +505,6 @@ describe("NoFlo Network", () => {
         .createNetwork(g, {
           asyncDelivery: true,
           delay: true,
-          baseDir: process.cwd(),
         })
         .then((nw) => {
           nw.loader.components.Def = () => c;
@@ -521,7 +526,6 @@ describe("NoFlo Network", () => {
         .createNetwork(g, {
           asyncDelivery: true,
           delay: true,
-          baseDir: process.cwd(),
         })
         .then((nw) => {
           nw.loader.components.Def = () => c;
@@ -542,7 +546,6 @@ describe("NoFlo Network", () => {
         .createNetwork(g, {
           asyncDelivery: true,
           delay: true,
-          baseDir: process.cwd(),
         })
         .then((nw) => {
           nw.loader.components.Def = () => c;
@@ -575,7 +578,6 @@ describe("NoFlo Network", () => {
           .createNetwork(g, {
             delay: true,
             asyncDelivery: true,
-            baseDir: process.cwd(),
           })
           .then((nw) => {
             nw.loader.components.Split = Split;
@@ -700,7 +702,6 @@ describe("NoFlo Network", () => {
           .createNetwork(g, {
             delay: true,
             asyncDelivery: true,
-            baseDir: process.cwd(),
           })
           .then((nw) => {
             nw.loader.components.Split = Split;
@@ -719,7 +720,7 @@ describe("NoFlo Network", () => {
   describe("with a faulty graph", () => {
     let loader = null;
     before(() => {
-      loader = new noflo.ComponentLoader(process.cwd());
+      loader = new noflo.ComponentLoader({});
       return loader.listComponents().then(() => {
         loader.components.Split = Split;
       });
@@ -896,45 +897,33 @@ describe("NoFlo Network", () => {
         );
     });
   });
-  describe("baseDir setting", () => {
-    it("should set baseDir based on given graph (deprecated)", () => {
+  describe("component registry passing", () => {
+    it("should accept an application-supplied registry", () => {
       const g = nativeGraph();
-      g.setGraphMetadata("baseDir", process.cwd());
+      const registry = {
+        list: () => ({}),
+      };
       return noflo
         .createNetwork(g, {
           delay: true,
           asyncDelivery: true,
+          registry,
         })
         .then((nw) => {
-          assert.strictEqual(nw.baseDir, process.cwd());
+          assert.strictEqual(nw.loader.registry, registry);
         });
     });
-    it("should fall back to CWD if graph has no baseDir", function () {
-      if (noflo.isBrowser()) {
-        this.skip();
-        return;
-      }
+    it("should accept a component loader directly", () => {
       const g = nativeGraph();
+      const loader = new noflo.ComponentLoader({});
       return noflo
         .createNetwork(g, {
           delay: true,
           asyncDelivery: true,
+          componentLoader: loader,
         })
         .then((nw) => {
-          assert.strictEqual(nw.baseDir, process.cwd());
-        });
-    });
-    it("should set the baseDir for the component loader", () => {
-      const g = nativeGraph();
-      return noflo
-        .createNetwork(g, {
-          delay: true,
-          asyncDelivery: true,
-          baseDir: process.cwd(),
-        })
-        .then((nw) => {
-          assert.strictEqual(nw.baseDir, process.cwd());
-          assert.strictEqual(nw.loader.baseDir, process.cwd());
+          assert.strictEqual(nw.loader, loader);
         });
     });
   });
@@ -947,7 +936,6 @@ describe("NoFlo Network", () => {
         .createNetwork(g, {
           asyncDelivery: true,
           delay: true,
-          baseDir: process.cwd(),
         })
         .then((network) => {
           n = network;

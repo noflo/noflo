@@ -1,34 +1,22 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { before, beforeEach, describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 import flowtrace from "flowtrace";
+import { Subgraph } from "../src/components/Subgraph.js";
 import * as noflo from "../src/lib/NoFlo.js";
 import { nativeGraph } from "./utils/nativeGraph.mjs";
 
-let loadingPrefix;
-if (
-  typeof process !== "undefined" &&
-  process.execPath &&
-  process.execPath.match(/node|iojs/)
-) {
-  loadingPrefix = "./";
-} else {
-  loadingPrefix = "/base/";
-}
 describe("NoFlo Subgraph component", () => {
   let c = null;
   let g = null;
-  let loader = null;
-  before(() => {
-    loader = new noflo.ComponentLoader(process.cwd());
-    return loader.listComponents();
+  beforeEach(() => {
+    // The subgraph wrapper is core machinery; directly-instantiated
+    // instances keep the deprecated runtime `graph` inport
+    c = new Subgraph();
+    g = noflo.internalSocket.createSocket();
+    c.inPorts.graph.attach(g);
   });
-  beforeEach(() =>
-    loader.load("Subgraph").then((instance) => {
-      c = instance;
-      g = noflo.internalSocket.createSocket();
-      c.inPorts.graph.attach(g);
-    }),
-  );
 
   const Split = () => {
     const inst = new noflo.Component();
@@ -64,9 +52,6 @@ describe("NoFlo Subgraph component", () => {
     it("should not contain a network", () => {
       assert.strictEqual(c.network, null);
     });
-    it("should have a baseDir", () => {
-      assert.strictEqual(c.baseDir, process.cwd());
-    });
     it("should only have the graph inport", () => {
       assert.deepEqual(Object.keys(c.inPorts.ports), ["graph"]);
       assert.deepEqual(Object.keys(c.outPorts.ports), []);
@@ -74,7 +59,6 @@ describe("NoFlo Subgraph component", () => {
   });
   describe("with JSON graph definition", () => {
     it("should emit a ready event after network has been loaded", (_t, done) => {
-      c.baseDir = process.cwd();
       c.once("ready", () => {
         assert.notEqual(c.network, null);
         assert.strictEqual(c.ready, true);
@@ -103,7 +87,6 @@ describe("NoFlo Subgraph component", () => {
       });
     });
     it("should expose available ports", (_t, done) => {
-      c.baseDir = process.cwd();
       c.once("ready", () => {
         assert.deepEqual(Object.keys(c.inPorts.ports), ["graph"]);
         assert.deepEqual(Object.keys(c.outPorts.ports), []);
@@ -144,7 +127,6 @@ describe("NoFlo Subgraph component", () => {
       });
     });
     it("should update description from the graph", (_t, done) => {
-      c.baseDir = process.cwd();
       c.once("ready", () => {
         assert.notEqual(c.network, null);
         assert.strictEqual(c.ready, true);
@@ -174,7 +156,6 @@ describe("NoFlo Subgraph component", () => {
       });
     });
     it("should expose only exported ports when they exist", (_t, done) => {
-      c.baseDir = process.cwd();
       c.once("ready", () => {
         assert.deepEqual(Object.keys(c.inPorts.ports), ["graph"]);
         assert.deepEqual(Object.keys(c.outPorts.ports), ["out"]);
@@ -221,7 +202,6 @@ describe("NoFlo Subgraph component", () => {
       });
     });
     it("should be able to run the graph", (_t, done) => {
-      c.baseDir = process.cwd();
       c.once("ready", () => {
         const ins = noflo.internalSocket.createSocket();
         const out = noflo.internalSocket.createSocket();
@@ -284,7 +264,6 @@ describe("NoFlo Subgraph component", () => {
     let gr = null;
     before(() => {
       gr = nativeGraph("Hello, world");
-      gr.baseDir = process.cwd();
       gr.addNode("Split", "Split");
       gr.addNode("Merge", "Merge");
       gr.addEdge("Merge", "out", "Split", "in");
@@ -292,7 +271,6 @@ describe("NoFlo Subgraph component", () => {
       gr.addOutport("out", "Split", "out");
     });
     it("should emit a ready event after network has been loaded", (_t, done) => {
-      c.baseDir = process.cwd();
       c.once("ready", () => {
         assert.notEqual(c.network, null);
         assert.strictEqual(c.ready, true);
@@ -313,7 +291,6 @@ describe("NoFlo Subgraph component", () => {
       assert.strictEqual(c.ready, false);
     });
     it("should expose available ports", (_t, done) => {
-      c.baseDir = process.cwd();
       c.once("ready", () => {
         assert.deepEqual(Object.keys(c.inPorts.ports), ["graph", "in"]);
         assert.deepEqual(Object.keys(c.outPorts.ports), ["out"]);
@@ -333,7 +310,6 @@ describe("NoFlo Subgraph component", () => {
       g.send(gr);
     });
     it("should be able to run the graph", (_t, done) => {
-      c.baseDir = process.cwd();
       let doned = false;
       c.once("ready", () => {
         const ins = noflo.internalSocket.createSocket();
@@ -364,10 +340,14 @@ describe("NoFlo Subgraph component", () => {
       g.send(gr);
     });
   });
-  describe("with a FBP file with INPORTs and OUTPORTs", () => {
-    const file = `${loadingPrefix}spec/fixtures/subgraph.fbp`;
+  describe("with an FBP JSON fixture with INPORTs and OUTPORTs", () => {
+    const fbpJson = JSON.parse(
+      readFileSync(
+        fileURLToPath(new URL("./fixtures/subgraph.json", import.meta.url)),
+        "utf-8",
+      ),
+    );
     it("should emit a ready event after network has been loaded", (_t, done) => {
-      c.baseDir = process.cwd();
       c.once("ready", () => {
         assert.notEqual(c.network, null);
         assert.strictEqual(c.ready, true);
@@ -384,11 +364,10 @@ describe("NoFlo Subgraph component", () => {
           }
         });
       });
-      g.send(file);
+      g.send(fbpJson);
       assert.strictEqual(c.ready, false);
     });
     it("should expose available ports", (_t, done) => {
-      c.baseDir = process.cwd();
       c.once("ready", () => {
         assert.deepEqual(Object.keys(c.inPorts.ports), ["graph", "in"]);
         assert.deepEqual(Object.keys(c.outPorts.ports), ["out"]);
@@ -405,10 +384,9 @@ describe("NoFlo Subgraph component", () => {
           }
         });
       });
-      g.send(file);
+      g.send(fbpJson);
     });
     it("should be able to run the graph", (_t, done) => {
-      c.baseDir = process.cwd();
       c.once("ready", () => {
         const ins = noflo.internalSocket.createSocket();
         const out = noflo.internalSocket.createSocket();
@@ -438,7 +416,7 @@ describe("NoFlo Subgraph component", () => {
           }
         });
       });
-      g.send(file);
+      g.send(fbpJson);
     });
   });
   describe("when a subgraph is used as a component", () => {
@@ -474,7 +452,7 @@ describe("NoFlo Subgraph component", () => {
 
     let cl = null;
     before(() => {
-      cl = new noflo.ComponentLoader(process.cwd());
+      cl = new noflo.ComponentLoader({});
       return cl.listComponents().then(() => {
         cl.components.Split = createSplit;
         cl.components.Defaults = grDefaults;
@@ -671,7 +649,6 @@ describe("NoFlo Subgraph component", () => {
       let network = null;
       before((_t, done) => {
         graph = nativeGraph("main");
-        graph.baseDir = process.cwd();
         noflo.createNetwork(
           graph,
           {
@@ -795,7 +772,6 @@ describe("NoFlo Subgraph component", () => {
       const trace = new flowtrace.Flowtrace();
       before((_t, done) => {
         graph = nativeGraph("main");
-        graph.baseDir = process.cwd();
         noflo.createNetwork(
           graph,
           {

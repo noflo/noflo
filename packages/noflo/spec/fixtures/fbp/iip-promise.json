@@ -1,0 +1,25 @@
+{
+  "inports": {},
+  "outports": {
+    "out": {
+      "process": "Pc",
+      "port": "out"
+    }
+  },
+  "groups": [],
+  "processes": {
+    "Pc": {
+      "component": "process/Promise"
+    }
+  },
+  "connections": [
+    {
+      "data": "hello",
+      "tgt": {
+        "process": "Pc",
+        "port": "in"
+      }
+    }
+  ],
+  "caseSensitive": false
+}

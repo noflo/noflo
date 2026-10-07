@@ -1,0 +1,36 @@
+{
+  "inports": {
+    "in": {
+      "process": "Async",
+      "port": "in"
+    }
+  },
+  "outports": {
+    "out": {
+      "process": "Values",
+      "port": "out"
+    }
+  },
+  "groups": [],
+  "processes": {
+    "Async": {
+      "component": "process/Async"
+    },
+    "Values": {
+      "component": "process/Values"
+    }
+  },
+  "connections": [
+    {
+      "src": {
+        "process": "Async",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "Values",
+        "port": "in"
+      }
+    }
+  ],
+  "caseSensitive": false
+}

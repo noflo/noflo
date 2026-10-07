@@ -17,11 +17,11 @@
  */
 
 export {
-  NodeModulesRegistry,
-  createNodeModulesRegistry,
-} from "./registry.js";
-export {
   loadGraphFile,
   loadGraphJson,
   saveGraphFile,
 } from "./graphFile.js";
+export {
+  createNodeModulesRegistry,
+  NodeModulesRegistry,
+} from "./registry.js";
