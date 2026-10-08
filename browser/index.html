@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>NoFlo no-build browser fixture</title>
+    <!--
+      No-build browser verification for work document #18: the workspace
+      packages are consumed as plain ES modules from static files, resolved
+      through a native import map — no bundler, no transpiler, no build
+      step. The page runs the static-registry flow (#16/#6): graph
+      construction, network start, packet flow, live component registration
+      via registry change events, and network stop.
+    -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@noflo/noflo": "/packages/noflo/src/lib/NoFlo.js",
+          "@noflo/graph": "/packages/graph/src/index.js",
+          "@noflo/fbp": "/packages/fbp/src/index.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <h1>NoFlo no-build browser fixture</h1>
+    <pre id="status">running</pre>
+    <script type="module" src="/browser/main.js"></script>
+  </body>
+</html>
