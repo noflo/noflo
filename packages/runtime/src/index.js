@@ -10,3 +10,7 @@
  *   application supplies its own `Reticulum` instance with whichever
  *   network interfaces suit the platform.
  */
+
+/* @ts-self-types="./index.d.ts" */
+
+export { capabilitiesMask, RuntimeServer } from "./runtime-server.js";
