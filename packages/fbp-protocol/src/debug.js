@@ -17,6 +17,7 @@ import { MsgPack } from "@reticulum/core";
 import {
   CMD_BREAKPOINT_CLEAR,
   CMD_BREAKPOINT_SET,
+  CMD_HWM_SET,
   CMD_PROCESS_CTRL,
   CMD_PROCESS_LIST,
   CMD_PROCESS_LIST_REQ,
@@ -248,6 +249,36 @@ export function decodeProcessList(bytes) {
 }
 
 /**
+ * Encode a `0x46 CMD_HWM_SET`: `[0x46, high_water_mark]` — the
+ * runtime-global high-water mark, the global default in the backpressure
+ * hierarchy (edge metadata overrides it, port defaults sit between). `0`
+ * is synchronous, `n` admits up to `n` in-flight packets, nil is unbounded.
+ * Runtime configuration, not graph state; there is no ack frame — clients
+ * observe the effective per-edge outcome through `0x0a EDGE_CAPACITY`
+ * samples.
+ *
+ * @param {number|null} highWaterMark Non-negative integer or null (unbounded).
+ * @returns {Uint8Array}
+ */
+export function encodeHwmSet(highWaterMark) {
+  assertHighWaterMark(highWaterMark, CMD_HWM_SET);
+  return MsgPack.encode([CMD_HWM_SET, highWaterMark]);
+}
+
+/**
+ * Decode a `0x46 CMD_HWM_SET`.
+ *
+ * @param {Uint8Array} bytes
+ * @returns {{ cmd: number, highWaterMark: number|null }}
+ */
+export function decodeHwmSet(bytes) {
+  const frame = MsgPack.decode(bytes);
+  expectFrame(frame, CMD_HWM_SET, 2);
+  assertHighWaterMark(frame[1], CMD_HWM_SET);
+  return { cmd: CMD_HWM_SET, highWaterMark: frame[1] };
+}
+
+/**
  * @param {any} frame
  * @param {number} opcode
  * @param {number} arity
@@ -305,6 +336,28 @@ function assertId(id, opcode, field) {
   if (!valid) {
     throw new ProtocolError(
       `${field} must be a non-empty string or a non-negative integer`,
+      opcode,
+    );
+  }
+}
+
+/**
+ * A high-water mark: non-negative integer (0 synchronous, n admitted
+ * in-flight) or null (unbounded).
+ *
+ * @param {any} highWaterMark
+ * @param {number} opcode
+ * @returns {void}
+ */
+function assertHighWaterMark(highWaterMark, opcode) {
+  if (
+    highWaterMark !== null &&
+    (typeof highWaterMark !== "number" ||
+      !Number.isInteger(highWaterMark) ||
+      highWaterMark < 0)
+  ) {
+    throw new ProtocolError(
+      "high_water_mark must be a non-negative integer or null (unbounded)",
       opcode,
     );
   }

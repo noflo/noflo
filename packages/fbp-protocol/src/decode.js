@@ -26,6 +26,7 @@ import {
   CMD_CRDT_UP_TO_DATE,
   CMD_CRDT_UPDATE,
   CMD_FLOWTRACE_CHUNK,
+  CMD_HWM_SET,
   CMD_PROCESS_CTRL,
   CMD_PROCESS_LIST,
   CMD_PROCESS_LIST_REQ,
@@ -35,6 +36,7 @@ import {
 import {
   decodeBreakpointClear,
   decodeBreakpointSet,
+  decodeHwmSet,
   decodeProcessCtrl,
   decodeProcessList,
   decodeProcessListReq,
@@ -69,7 +71,7 @@ import { decodeAuthResponse } from "./transport.js";
  *   typeof decodeCompWrite | typeof decodeCompInstallReq | typeof decodePubsubSub |
  *   typeof decodeFlowtraceChunk | typeof decodeRunCtrl | typeof decodeBreakpointSet |
  *   typeof decodeBreakpointClear | typeof decodeProcessCtrl | typeof decodeProcessListReq |
- *   typeof decodeProcessList
+ *   typeof decodeProcessList | typeof decodeHwmSet
  * >} DecodedFrame
  */
 
@@ -122,6 +124,8 @@ export function decodeFrame(bytes) {
       return decodeProcessListReq(bytes);
     case CMD_PROCESS_LIST:
       return decodeProcessList(bytes);
+    case CMD_HWM_SET:
+      return decodeHwmSet(bytes);
     default:
       throw new ProtocolError(
         opcode === undefined

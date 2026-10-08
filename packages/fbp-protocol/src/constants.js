@@ -387,6 +387,20 @@ export const EXECUTION_STATE = {
   DISABLED: 0x02,
 };
 
+/**
+ * Set the runtime-global high-water mark:
+ * `[0x46, high_water_mark]` (work document #4 §8, update #9). The value is
+ * a non-negative integer — `0` synchronous, `n` up to `n` admitted
+ * in-flight packets — or nil (unbounded). It is the global default in the
+ * backpressure hierarchy: edge metadata overrides it, port defaults sit
+ * between. Runtime configuration, not graph state — it does not travel the
+ * CRDT op log; clients observe the effective per-edge outcome through
+ * `0x0a EDGE_CAPACITY` samples.
+ *
+ * @type {number}
+ */
+export const CMD_HWM_SET = 0x46;
+
 // --- Streamable trace file format ---
 
 /**

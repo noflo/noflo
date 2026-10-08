@@ -16,6 +16,7 @@ import { MsgPack } from "@reticulum/core";
 import {
   CMD_BREAKPOINT_CLEAR,
   CMD_BREAKPOINT_SET,
+  CMD_HWM_SET,
   CMD_PROCESS_CTRL,
   CMD_PROCESS_LIST,
   CMD_PROCESS_LIST_REQ,
@@ -23,6 +24,7 @@ import {
   COMPONENT_TYPE,
   decodeBreakpointClear,
   decodeBreakpointSet,
+  decodeHwmSet,
   decodeProcessCtrl,
   decodeProcessList,
   decodeProcessListReq,
@@ -31,6 +33,7 @@ import {
   EXECUTION_STATE,
   encodeBreakpointClear,
   encodeBreakpointSet,
+  encodeHwmSet,
   encodeProcessCtrl,
   encodeProcessList,
   encodeProcessListReq,
@@ -230,6 +233,24 @@ describe("0x44/0x45 process listing", () => {
     // with a malformed tuple must not.
     const bad = MsgPack.encode([CMD_PROCESS_LIST, 1, { "node-1": "math/Add" }]);
     assert.throws(() => decodeProcessList(bad), ProtocolError);
+  });
+});
+
+describe("0x46 CMD_HWM_SET", () => {
+  it("round-trips bounded, synchronous, and unbounded marks", () => {
+    for (const highWaterMark of [16, 0, null]) {
+      const decoded = decodeHwmSet(encodeHwmSet(highWaterMark));
+      assert.equal(decoded.cmd, CMD_HWM_SET);
+      assert.equal(decoded.highWaterMark, highWaterMark);
+    }
+  });
+
+  it("rejects negative and non-integer marks", () => {
+    assert.throws(() => encodeHwmSet(-1), ProtocolError);
+    assert.throws(() => encodeHwmSet(1.5), ProtocolError);
+    assert.throws(() => encodeHwmSet("16"), ProtocolError);
+    const frame = MsgPack.encode([CMD_HWM_SET, -1]);
+    assert.throws(() => decodeHwmSet(frame), ProtocolError);
   });
 });
 

@@ -32,6 +32,7 @@ import {
   CMD_CRDT_UP_TO_DATE,
   CMD_CRDT_UPDATE,
   CMD_FLOWTRACE_CHUNK,
+  CMD_HWM_SET,
   CMD_PROCESS_CTRL,
   CMD_PROCESS_LIST,
   CMD_PROCESS_LIST_REQ,
@@ -55,6 +56,7 @@ import {
   encodeCrdtUpdate,
   encodeCrdtUpToDate,
   encodeFlowtraceChunk,
+  encodeHwmSet,
   encodeLxmTelemetry,
   encodeProcessCtrl,
   encodeProcessList,
@@ -113,6 +115,7 @@ const frameEncoders = {
   [CMD_PROCESS_LIST_REQ]: () => encodeProcessListReq(),
   [CMD_PROCESS_LIST]: (decoded) =>
     encodeProcessList(decoded.epochId, decoded.entries),
+  [CMD_HWM_SET]: (decoded) => encodeHwmSet(decoded.highWaterMark),
 };
 
 /**

@@ -177,9 +177,13 @@ release gate. Positional/UI metadata is droppable by constrained nodes,
 corresponding to the changeset engine's `positional` class that
 auto-resolves and never blocks merges.
 
-**Open** (before freeze): edge-level high-water-mark edits are a concrete
-consumer of modify ops on edges; runtime-global high-water marks need a
-network-config command or a lifecycle-block slot (WD #4 update #9).
+Edge-level high-water marks travel as edge metadata inside the `0x14`
+payload (the `highWaterMark` field of the native graph model's edge
+metadata), so inserts carry them and a change projects to tombstone +
+insert per the mapping above — modify stays a wire-level encoding detail,
+never the semantic unit (WD #4 update #8). The runtime-global high-water
+mark is runtime configuration, not graph state, and is set with `0x46
+CMD_HWM_SET` (§8).
 
 ## 6. Component registry & code management (0x20 – 0x2F)
 
@@ -406,6 +410,16 @@ The `epoch_id` is the graph epoch the listing reflects, correlating with the
 CRDT sync handshake (§5). The listing requires `GRAPH_READ`, not
 `LIFECYCLE_CTRL`: it is introspection, and the state it reports is exactly
 what `0x43` controls.
+
+**`0x46` CMD_HWM_SET** — set the runtime-global high-water mark:
+`[0x46, high_water_mark]`. The value is a non-negative integer (`0`
+synchronous, `n` up to `n` admitted in-flight packets) or nil (unbounded).
+It is the global default in the backpressure hierarchy — edge metadata
+overrides it, port defaults sit between. The change takes effect on the
+live network; there is no ack frame, and clients observe the effective
+per-edge outcome through `0x0a EDGE_CAPACITY` samples (§7), which reflect
+the hierarchy's resolution. Runtime configuration, not graph state: it does
+not travel the CRDT op log.
 
 ## 9. Offline LXMF store & forward
 

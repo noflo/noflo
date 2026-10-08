@@ -218,6 +218,16 @@
       },
       "x-capability": "GRAPH_READ (0x01) — introspection, not control"
     },
+    "cmd/0x46": {
+      "description": "Client → runtime: set the runtime-global high-water mark. The value is a non-negative integer (0 synchronous, n up to n admitted in-flight packets) or nil (unbounded); it is the global default in the backpressure hierarchy — edge metadata overrides it, port defaults sit between. Runtime configuration, not graph state: it does not travel the CRDT op log. No ack frame — clients observe the effective per-edge outcome through `0x0a EDGE_CAPACITY` samples.",
+      "subscribe": {
+        "operationId": "hwmSet",
+        "message": {
+          "$ref": "#/components/messages/hwmSet"
+        }
+      },
+      "x-capability": "LIFECYCLE_CTRL (0x40)"
+    },
     "lxmf/fbp.telemetry": {
       "description": "Runtime → mesh, over LXMF store-and-forward (not a link channel): asynchronous telemetry drops, event-driven or scheduled opportunistically with randomized jitter to respect Proof-of-Work limits. LXMF app name: `fbp.telemetry`.",
       "publish": {
@@ -1271,6 +1281,47 @@
           }
         ],
         "x-msgpack-hex": "93450782a66e6f64652d3193a86d6174682f416464aa656c656d656e7461727901a66e6f64652d3393ab6d6174682f446976696465a47374756202",
+        "x-verify": "frame"
+      },
+      "hwmSet": {
+        "name": "hwmSet",
+        "title": "0x46 CMD_HWM_SET",
+        "summary": "Set the runtime-global high-water mark (backpressure default).",
+        "payload": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": [
+            {
+              "type": "integer",
+              "const": 70,
+              "description": "CMD_HWM_SET"
+            },
+            {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "high_water_mark — 0 synchronous, n up to n admitted in-flight packets"
+                },
+                {
+                  "type": "null",
+                  "description": "unbounded"
+                }
+              ]
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              70,
+              16
+            ]
+          }
+        ],
+        "x-msgpack-hex": "924610",
         "x-verify": "frame"
       },
       "lxmTelemetry": {

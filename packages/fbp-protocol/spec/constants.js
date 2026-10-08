@@ -26,6 +26,7 @@ import {
   CMD_CRDT_UP_TO_DATE,
   CMD_CRDT_UPDATE,
   CMD_FLOWTRACE_CHUNK,
+  CMD_HWM_SET,
   CMD_PROCESS_CTRL,
   CMD_PROCESS_LIST,
   CMD_PROCESS_LIST_REQ,
@@ -76,6 +77,7 @@ describe("command codes", () => {
     assert.equal(CMD_PROCESS_CTRL, 0x43);
     assert.equal(CMD_PROCESS_LIST_REQ, 0x44);
     assert.equal(CMD_PROCESS_LIST, 0x45);
+    assert.equal(CMD_HWM_SET, 0x46);
     // Streamable trace file format
     assert.equal(TRACE_SNAPSHOT, 0xf0);
   });
@@ -104,6 +106,7 @@ describe("command codes", () => {
       CMD_PROCESS_CTRL,
       CMD_PROCESS_LIST_REQ,
       CMD_PROCESS_LIST,
+      CMD_HWM_SET,
     ];
     for (const code of transportBlock) {
       assert.ok(code >= 0x00 && code <= 0x0f);
@@ -140,6 +143,7 @@ describe("command codes", () => {
       CMD_PROCESS_CTRL,
       CMD_PROCESS_LIST_REQ,
       CMD_PROCESS_LIST,
+      CMD_HWM_SET,
       TRACE_SNAPSHOT,
     ];
     assert.equal(new Set(codes).size, codes.length);
