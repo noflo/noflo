@@ -1,8 +1,9 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2021-2026 Henri Bergius
-//     (c) 2021-2026 Henri Bergius
 //     NoFlo may be freely distributed under the MIT license
 /* @ts-self-types="./logger.d.ts" */
+
+import { isBrowser } from "./Platform.js";
 
 /**
  * @file logger module
@@ -14,21 +15,22 @@
 
 /**
  * Read the active debug pattern: `localStorage.debug` on the web, the
- * `DEBUG` environment variable on Node.js.
+ * `DEBUG` environment variable on server-side runtimes.
+ *
+ * Server runtimes are checked first and the `localStorage` probe only runs
+ * when `isBrowser()` says so: merely touching the `localStorage` global in
+ * Node.js 22+ triggers an ExperimentalWarning, which would spam every
+ * library consumer that enables a debug namespace.
  *
  * @returns {string|null}
  */
 function getPattern() {
-  if (typeof localStorage !== "undefined") {
-    const stored = localStorage.getItem("debug");
-    if (stored) {
-      return stored;
-    }
-  }
-  if (typeof process !== "undefined" && process.env) {
+  if (!isBrowser()) {
+    if (typeof process === "undefined" || !process.env) return null;
     return process.env.DEBUG || null;
   }
-  return null;
+  const stored = globalThis.localStorage?.getItem("debug");
+  return stored || null;
 }
 
 /**
