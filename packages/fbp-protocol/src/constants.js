@@ -100,7 +100,23 @@ export const CMD_CRDT_UPDATE = 0x14;
  * `0x14` op types. Per update #8 this block is an explicitly-mapped
  * projection of the changeset reference model owned by noflo-ui #43; modify
  * is encoded as tombstone + insert at the wire level, never as the semantic
- * unit. `UI_METADATA` operations are dropped by constrained nodes.
+ * unit. `UI_METADATA` operations are dropped by constrained nodes. The
+ * insert vocabulary covers every structural entity kind of the graph
+ * model — node `0x01`, edge `0x02`, IIP `0x03`, export `0x06`, group `0x07`
+ * — so the projection table is total: every changeset op maps to a wire op.
+ *
+ * The `0x14` payload is the entity definition without its id — `entity_id`
+ * carries it:
+ *
+ * - `INSERT_NODE`: `{ component, metadata? }`
+ * - `INSERT_EDGE`: `{ from: { node, port, index? }, to: { node, port, index? }, metadata? }`
+ * - `INSERT_IIP`: `{ to: { node, port, index? }, data, metadata? }`
+ * - `INSERT_EXPORT`: `{ direction, public, internal: { node, port, index? }, metadata? }`
+ * - `INSERT_GROUP`: `{ name, nodes: [nodeId...], metadata? }`
+ * - `TOMBSTONE`: nil — the entity kind is resolved from the entity's
+ *   registration at the receiver
+ * - `UI_METADATA`: the metadata map; a nil `entity_id` addresses graph-level
+ *   metadata
  *
  * @type {Record<string, number>}
  */
@@ -110,6 +126,8 @@ export const OP_TYPE = {
   INSERT_IIP: 0x03,
   TOMBSTONE: 0x04,
   UI_METADATA: 0x05,
+  INSERT_EXPORT: 0x06,
+  INSERT_GROUP: 0x07,
 };
 
 // --- Component registry & code management (0x20 - 0x2F) ---

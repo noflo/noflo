@@ -156,26 +156,35 @@ snapshot via the Reticulum Resource API:
 **`0x14` CMD_CRDT_UPDATE** — positional graph operation:
 `[0x14, client_id, logical_clock, op_type, entity_id, payload]`.
 
-Op types (`op_type`):
+Op types (`op_type`) — the mapped projection of the changeset reference
+model is total: every structural entity kind of the graph model has an
+insert op, removals share the tombstone, and modify projects to
+tombstone + insert:
 
-| Code   | Operation                                            |
-| ------ | ---------------------------------------------------- |
-| `0x01` | Insert node                                           |
-| `0x02` | Insert edge                                           |
-| `0x03` | Insert IIP                                            |
-| `0x04` | Tombstone                                             |
-| `0x05` | UI metadata (dropped by constrained nodes)           |
+| Code   | Operation                                          | Payload                                                |
+| ------ | -------------------------------------------------- | ------------------------------------------------------ |
+| `0x01` | Insert node                                         | `{ component, metadata? }`                              |
+| `0x02` | Insert edge                                         | `{ from, to, metadata? }` — port refs `{ node, port, index? }` |
+| `0x03` | Insert IIP                                          | `{ to, data, metadata? }`                               |
+| `0x04` | Tombstone                                           | nil — kind resolved from the entity's registration      |
+| `0x05` | UI metadata (dropped by constrained nodes)          | the metadata map; nil `entity_id` = graph-level         |
+| `0x06` | Insert export                                       | `{ direction, public, internal, metadata? }`            |
+| `0x07` | Insert group                                        | `{ name, nodes, metadata? }`                            |
 
-The op taxonomy is an explicitly-mapped projection of the changeset reference
-model owned by the noflo-ui materialization work (board
+The payload is the entity definition without its id — `entity_id` carries
+it. The op taxonomy is an explicitly-mapped projection of the changeset
+reference model owned by the noflo-ui materialization work (board
 `rns://3ea5aad068a337670f5bb8073226adb4/public/noflo-ui`, WD #43): node,
-edge, IIP, group and export add/remove/modify ops with per-op change classes
-`structural`/`semantic`/`positional`. Modify is encoded as tombstone + insert
-at the wire level — a wire-level encoding detail, never the semantic unit;
-consumers reason in changeset ops. The mapping table is part of the AsyncAPI
-release gate. Positional/UI metadata is droppable by constrained nodes,
-corresponding to the changeset engine's `positional` class that
-auto-resolves and never blocks merges.
+edge, IIP, group and export add/remove/modify ops with per-op change
+classes `structural`/`semantic`/`positional`. Modify is encoded as
+tombstone + insert at the wire level — a wire-level encoding detail, never
+the semantic unit; consumers reason in changeset ops. Node renames
+likewise project at the changeset→protocol boundary: the wire carries
+tombstone + insert of the renamed entity and its rewritten references, not
+a rename op. The mapping table is part of the AsyncAPI release gate.
+Positional/UI metadata is droppable by constrained nodes, corresponding to
+the changeset engine's `positional` class that auto-resolves and never
+blocks merges.
 
 Edge-level high-water marks travel as edge metadata inside the `0x14`
 payload (the `highWaterMark` field of the native graph model's edge

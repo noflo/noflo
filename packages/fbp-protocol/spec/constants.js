@@ -184,6 +184,8 @@ describe("graph op types", () => {
     assert.equal(OP_TYPE.INSERT_IIP, 0x03);
     assert.equal(OP_TYPE.TOMBSTONE, 0x04);
     assert.equal(OP_TYPE.UI_METADATA, 0x05);
+    assert.equal(OP_TYPE.INSERT_EXPORT, 0x06);
+    assert.equal(OP_TYPE.INSERT_GROUP, 0x07);
   });
 });
 

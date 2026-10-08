@@ -549,9 +549,11 @@
                 2,
                 3,
                 4,
-                5
+                5,
+                6,
+                7
               ],
-              "description": "op_type — 0x01 insert node, 0x02 insert edge, 0x03 insert IIP, 0x04 tombstone, 0x05 UI metadata"
+              "description": "op_type — 0x01 insert node, 0x02 insert edge, 0x03 insert IIP, 0x04 tombstone, 0x05 UI metadata, 0x06 insert export, 0x07 insert group; the payload is the entity definition without its id (entity_id carries it): nodes `{component, metadata?}`, edges `{from, to, metadata?}` with port refs `{node, port, index?}`, IIPs `{to, data, metadata?}`, exports `{direction, public, internal, metadata?}`, groups `{name, nodes, metadata?}`; tombstone payloads are nil and UI-metadata payloads are the metadata map (nil entity_id addresses graph-level metadata)"
             },
             {
               "type": "string",
@@ -572,13 +574,12 @@
               1,
               "node-1",
               {
-                "id": "node-1",
                 "component": "math/Add"
               }
             ]
           }
         ],
-        "x-msgpack-hex": "9614a8636c69656e742d610f01a66e6f64652d3182a26964a66e6f64652d31a9636f6d706f6e656e74a86d6174682f416464",
+        "x-msgpack-hex": "9614a8636c69656e742d610f01a66e6f64652d3181a9636f6d706f6e656e74a86d6174682f416464",
         "x-verify": "frame"
       },
       "compSyncReq": {
