@@ -64,6 +64,13 @@ export {
   sigHash,
 } from "./registry.js";
 export {
+  decodeFlowtraceChunk,
+  decodePubsubSub,
+  encodeFlowtraceChunk,
+  encodeFlowtraceChunkFromTimestamps,
+  encodePubsubSub,
+} from "./telemetry.js";
+export {
   decodeAnnounceAppData,
   decodeAuthResponse,
   encodeAnnounceAppData,
