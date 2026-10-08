@@ -329,10 +329,16 @@ Visual-state format types:
 | `0x02` | P4 Netpbm 84x84 monochrome      |
 | `0x03` | P6 Netpbm 18x18 RGB             |
 
-**Open** (before freeze): per-edge capacity observation (`desiredSize()` /
-in-flight count) as a `0x32` flowtrace event or pub/sub metric — one int per
-edge per flush. Backpressure is normal operation, not a fault; the encoding
-must not look like an error channel (WD #4 update #9).
+**Edge capacity observation** — `0x0a EDGE_CAPACITY` events sample the
+backpressure state: one event per edge per flush, payload
+`[edge_id, in_flight, desired_size]`, where `in_flight` is the number of
+admitted in-flight packets and `desired_size` is the live remaining capacity
+(`desiredSize()`), nil when the edge is unbounded. Sampling rides the
+subscription's flush cadence — the runtime's physical-policy decision — and
+the sample's delta places it at flush time. Backpressure is normal
+operation, not a fault: the event lives on the data channel, never an error
+channel (WD #4 update #9). The consumer is the noflo-ui high-water-mark
+visual vocabulary (route color/age).
 
 ## 8. Execution control & debugging (0x40 – 0x4F)
 

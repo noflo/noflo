@@ -154,6 +154,31 @@ describe("0x32 CMD_FLOWTRACE_CHUNK", () => {
     );
   });
 
+  it("samples edge capacity per flush, bounded and unbounded (update #9)", () => {
+    // One event per edge per flush; desired_size nil means the edge is
+    // unbounded. Backpressure is normal operation — a data-channel
+    // observation, never an error.
+    const bytes = encodeFlowtraceChunk({
+      subId: "sub-1",
+      baseTimestampMs: 3000,
+      events: [
+        {
+          timeDeltaMs: 0,
+          eventType: EVENT_TYPE.EDGE_CAPACITY,
+          payload: ["edge-1", 3, 60],
+        },
+        {
+          timeDeltaMs: 0,
+          eventType: EVENT_TYPE.EDGE_CAPACITY,
+          payload: ["edge-2", 1, null],
+        },
+      ],
+    });
+    const decoded = decodeFlowtraceChunk(bytes);
+    assert.deepEqual(decoded.events[0].payload, ["edge-1", 3, 60]);
+    assert.deepEqual(decoded.events[1].payload, ["edge-2", 1, null]);
+  });
+
   it("classifies stub-raised errors as unimplemented by event type (update #9)", () => {
     // The payload is the exception string, exactly as in ERROR; the event
     // type itself is the classification — no string-parsing convention.

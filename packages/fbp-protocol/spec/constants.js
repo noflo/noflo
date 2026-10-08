@@ -190,6 +190,7 @@ describe("flowtrace event types", () => {
     assert.equal(EVENT_TYPE.VISUAL_STATE, 0x07);
     assert.equal(EVENT_TYPE.BREAKPOINT_HIT, 0x08);
     assert.equal(EVENT_TYPE.STUB_ERROR, 0x09);
+    assert.equal(EVENT_TYPE.EDGE_CAPACITY, 0x0a);
   });
 });
 

@@ -240,6 +240,17 @@ export const EVENT_TYPE = {
    * convention.
    */
   STUB_ERROR: 0x09,
+  /**
+   * A backpressure sample: one event per edge per flush, the payload the
+   * positional tuple `[edge_id, in_flight, desired_size]` — the number of
+   * admitted in-flight packets and the live remaining capacity
+   * (`desiredSize()`), nil when the edge is unbounded. Sampling rides the
+   * subscription's flush cadence (the runtime's physical-policy decision)
+   * and the sample's delta places it at flush time. Backpressure is normal
+   * operation, not a fault: this is a data-channel observation, never an
+   * error (work document #4 update #9).
+   */
+  EDGE_CAPACITY: 0x0a,
 };
 
 /**
