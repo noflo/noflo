@@ -47,6 +47,10 @@ export {
   encodeCrdtUpToDate,
 } from "./graph.js";
 export {
+  decodeLxmTelemetry,
+  encodeLxmTelemetry,
+} from "./lxmf.js";
+export {
   canonicalSignature,
   decodeCompDetailReq,
   decodeCompDetailRes,
