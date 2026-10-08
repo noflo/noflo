@@ -1,0 +1,46 @@
+{
+  "name": "@noflo/runtime",
+  "version": "2.0.0-alpha.1",
+  "description": "FBP Protocol 2.0 runtime for NoFlo over Reticulum: wire the 2.x engine to the mesh, on servers and in browsers",
+  "keywords": [
+    "fbp",
+    "noflo",
+    "reticulum",
+    "runtime",
+    "protocol"
+  ],
+  "author": "Henri Bergius <henri.bergius@iki.fi>",
+  "license": "EUPL-1.2",
+  "type": "module",
+  "engines": {
+    "node": ">= 22"
+  },
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "CHANGELOG.md",
+    "SPEC.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/noflo/noflo.git"
+  },
+  "scripts": {
+    "test": "node --test spec/*.js",
+    "lint": "npx @biomejs/biome check --use-editorconfig=true src/ spec/",
+    "types": "find src -name '*.d.ts' -delete && tsc -p tsconfig.json",
+    "test:deno": "deno test --allow-all --no-check spec/*.js",
+    "test:bun": "bun test ./spec/*.js"
+  },
+  "dependencies": {
+    "@noflo/fbp-protocol": "^2.0.0-alpha.1",
+    "@noflo/graph": "^2.0.0-alpha.1",
+    "@noflo/noflo": "^2.0.0-alpha.1",
+    "@reticulum/core": "^0.9.7",
+    "@reticulum/lxmf": "^0.9.7"
+  }
+}

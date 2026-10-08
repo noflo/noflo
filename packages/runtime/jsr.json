@@ -1,0 +1,16 @@
+{
+  "name": "@noflo/runtime",
+  "version": "2.0.0-alpha.1",
+  "license": "EUPL-1.2",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "publish": {
+    "include": [
+      "src/",
+      "package.json",
+      "jsr.json",
+      "CHANGELOG.md"
+    ]
+  }
+}
