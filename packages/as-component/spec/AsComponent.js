@@ -26,7 +26,7 @@ describe("asComponent interface", () => {
       it("should be possible to componentize", async () => {
         const component = () => asComponent(func);
         await loader.registerComponent("ascomponent", "sync-one", component);
-        });
+      });
       it("should be loadable", () => {
         return loader.load("ascomponent/sync-one");
       });
@@ -88,7 +88,7 @@ describe("asComponent interface", () => {
       it("should be possible to componentize", async () => {
         const component = () => asComponent(func);
         await loader.registerComponent("ascomponent", "sync-null", component);
-        });
+      });
       it("should send to OUT port", (_t, done) => {
         const wrapped = noflo.asCallback("ascomponent/sync-null", { loader });
         wrapped("World", (err, res) => {
@@ -108,7 +108,7 @@ describe("asComponent interface", () => {
       it("should be possible to componentize", async () => {
         const component = () => asComponent(func);
         await loader.registerComponent("ascomponent", "sync-throw", component);
-        });
+      });
       it("should send to ERROR port", (_t, done) => {
         const wrapped = noflo.asCallback("ascomponent/sync-throw", { loader });
         wrapped("Error", (err) => {
@@ -125,7 +125,7 @@ describe("asComponent interface", () => {
       it("should be possible to componentize", async () => {
         const component = () => asComponent(func);
         await loader.registerComponent("ascomponent", "sync-two", component);
-        });
+      });
       it("should be loadable", () => loader.load("ascomponent/sync-two"));
       it("should contain correct ports", (_t, done) => {
         loader.load("ascomponent/sync-two").then((instance) => {
@@ -222,7 +222,7 @@ describe("asComponent interface", () => {
       it("should be possible to componentize", async () => {
         const component = () => asComponent(func);
         await loader.registerComponent("ascomponent", "promise-one", component);
-        });
+      });
       it("should send to OUT port", (_t, done) => {
         const wrapped = noflo.asCallback("ascomponent/promise-one", { loader });
         wrapped("World", (err, res) => {
@@ -250,7 +250,7 @@ describe("asComponent interface", () => {
       it("should be possible to componentize", async () => {
         const component = () => asComponent(func);
         await loader.registerComponent("ascomponent", "sync-throw", component);
-        });
+      });
       it("should send to ERROR port", (_t, done) => {
         const wrapped = noflo.asCallback("ascomponent/sync-throw", { loader });
         wrapped("Error", (err) => {
@@ -267,7 +267,7 @@ describe("asComponent interface", () => {
       it("should be possible to componentize", async () => {
         const component = () => asComponent(func);
         await loader.registerComponent("ascomponent", "sync-zero", component);
-        });
+      });
       it("should contain correct ports", (_t, done) => {
         loader.load("ascomponent/sync-zero").then((instance) => {
           assert.deepEqual(Object.keys(instance.inPorts.ports), ["in"]);
@@ -326,7 +326,7 @@ describe("asComponent interface", () => {
       it("should be possible to componentize", async () => {
         const component = () => asComponent(func);
         await loader.registerComponent("ascomponent", "async-one", component);
-        });
+      });
       it("should be loadable", () => loader.load("ascomponent/async-one"));
       it("should contain correct ports", (_t, done) => {
         loader.load("ascomponent/async-one").then((instance) => {
@@ -357,7 +357,7 @@ describe("asComponent interface", () => {
       it("should be possible to componentize", async () => {
         const component = () => asComponent(func);
         await loader.registerComponent("ascomponent", "async-throw", component);
-        });
+      });
       it("should send to ERROR port", (_t, done) => {
         const wrapped = noflo.asCallback("ascomponent/async-throw", { loader });
         wrapped("Error", (err) => {

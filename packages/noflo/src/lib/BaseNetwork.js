@@ -740,10 +740,10 @@ export class BaseNetwork extends LegacyEventBase {
 
   /**
    * @param {import("@noflo/graph").GraphEdge} edge
-   * @param {Object} [options]
+   * @param {Object} [_options]
    * @returns {Promise<internalSocket.InternalSocket>}
    */
-  addEdge(edge, options = {}) {
+  addEdge(edge, _options = {}) {
     const promise = this.ensureNode(edge.from.node, "outbound").then((from) => {
       // Hierarchical high-water mark resolution: edge metadata wins over
       // the source port's component default, which wins over the network
@@ -854,10 +854,10 @@ export class BaseNetwork extends LegacyEventBase {
 
   /**
    * @param {import("@noflo/graph").GraphIIP} initializer
-   * @param {Object} [options]
+   * @param {Object} [_options]
    * @returns {Promise<internalSocket.InternalSocket>}
    */
-  addInitial(initializer, options = {}) {
+  addInitial(initializer, _options = {}) {
     const promise = this.ensureNode(initializer.to.node, "inbound")
       .then((to) => {
         const socket = internalSocket.createSocket(initializer.metadata, {

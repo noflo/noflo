@@ -15,7 +15,6 @@ import IP from "./IP.js"; // eslint-disable-line no-unused-vars
 import { LegacyEventBase } from "./LegacyEvents.js";
 import { createDebug } from "./logger.js";
 import OutPort from "./OutPort.js"; // eslint-disable-line no-unused-vars
-import { deprecated } from "./Platform.js";
 import { InPorts, normalizePortName, OutPorts } from "./Ports.js";
 import ProcessContext from "./ProcessContext.js";
 import ProcessInput from "./ProcessInput.js";
