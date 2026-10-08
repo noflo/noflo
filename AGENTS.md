@@ -16,7 +16,7 @@ At this point we're working on NoFlo 2.x roadmap. Keep the migration guides and 
 
 ## Browser tests
 
-Browser verification (`npm run test:browser`, work document #18) is opt-in: Playwright browsers are not installed in every development environment (Termux/Android cannot host them). The tests always run in the CI `browser` job; locally the launcher skips with a notice when no Playwright browser cache is present.
+Browser verification (`npm run test:browser`, work document #18) is opt-in: Playwright browsers are not installed in every development environment (Termux/Android cannot host them). The test always runs in the CI "Test with Firefox" job; locally the launcher skips with a notice when no Playwright browser cache is present.
 
 ## Licensing
 

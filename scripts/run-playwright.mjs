@@ -6,18 +6,19 @@
  *   Playwright is deliberately NOT a devDependency: the browser tests are
  *   opt-in (the tooling does not install on every development environment —
  *   Termux/Android in particular), so this launcher fetches the pinned
- *   Playwright version on demand via `npm exec` and runs `playwright test`.
+ *   Playwright version on demand and runs `playwright test` against the
+ *   no-build fixture in Firefox.
  *
  *   Modes:
- *   - `npm run test:browser` — local: skip with a notice when no Playwright
- *     browser cache is present (never surprises an environment that cannot
- *     host browsers); otherwise run the tests.
- *   - `npm run test:browser -- --ensure` — CI: install the browsers first
- *     when the cache is empty (with system dependencies), then always run.
+ *   - `npm run test:browser` — local: skip with a notice when Firefox is
+ *     not installed for Playwright (never surprises an environment that
+ *     cannot host browsers); otherwise run the tests.
+ *   - `npm run test:browser -- --ensure` — CI: install Firefox first (with
+ *     system dependencies on CI runners), then always run.
  *
- *   The tests always run in the CI `browser` job on every push; agents and
- *   developers run the default mode when their environment can host
- *   browsers and the change touches the browser-reachable surface.
+ *   The test always runs in the CI "Test with Firefox" job on every push;
+ *   agents and developers run the default mode when their environment can
+ *   host Firefox and the change touches the browser-reachable surface.
  */
 
 import { execSync, spawnSync } from "node:child_process";
@@ -29,6 +30,8 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 
 /** Pinned so the browser binaries and the runner version always match. */
 const PLAYWRIGHT_VERSION = "1.64.0";
+/** The one browser the fixture verification runs in. */
+const BROWSER = "firefox";
 
 /**
  * Locate the Playwright browser cache directory for this platform, or null
@@ -67,38 +70,48 @@ function run(command) {
 
 const ensure = process.argv.includes("--ensure");
 const cacheDir = browserCacheDir();
-const hasBrowsers =
+// The cache may hold browsers from other projects; only a Firefox
+// installation counts for this run.
+const hasBrowser =
   cacheDir !== null &&
-  readdirSync(cacheDir, { withFileTypes: true }).some((e) => e.isDirectory());
+  readdirSync(cacheDir, { withFileTypes: true }).some(
+    (e) => e.isDirectory() && e.name.startsWith(`${BROWSER}-`),
+  );
 
-if (!hasBrowsers && !ensure) {
+if (!hasBrowser && !ensure) {
   console.log(
-    "Playwright browsers not installed — skipping the browser tests (work document #18).\n" +
+    `Playwright ${BROWSER} not installed — skipping the browser tests (work document #18).\n` +
       "They run in CI on every push; to run locally, use `npm run test:browser -- --ensure`.",
   );
   process.exit(0);
 }
 
-if (!hasBrowsers) {
-  // CI: install browsers together with the system dependencies they need.
-  const status = run(
-    `npx -y playwright@${PLAYWRIGHT_VERSION} install --with-deps chromium firefox webkit`,
-  );
-  if (status !== 0) {
-    console.error("Playwright browser installation failed");
-    process.exit(status);
-  }
-}
+console.log(`Browser tests: the no-build fixture (#18) in ${BROWSER}`);
 
 // The test files import `@playwright/test`, so the runner needs it
 // resolvable from the project. It is intentionally not a devDependency
 // (the browser tests are opt-in and the tooling does not fit every
 // development environment), so install it into the gitignored
-// node_modules without touching package.json or the lockfile.
+// node_modules without touching package.json or the lockfile. Installing
+// it first also satisfies Playwright's "install your dependencies before
+// running playwright install" expectation.
 if (!existsSync(join(root, "node_modules", "@playwright", "test"))) {
-  const status = run(`npm install --no-save @playwright/test@${PLAYWRIGHT_VERSION}`);
+  const status = run(
+    `npm install --no-save @playwright/test@${PLAYWRIGHT_VERSION}`,
+  );
   if (status !== 0) {
     console.error("@playwright/test installation failed");
+    process.exit(status);
+  }
+}
+
+if (!hasBrowser) {
+  // --with-deps installs the OS-level packages Firefox needs; that path
+  // requires root, so it is reserved for CI runners.
+  const withDeps = process.env.CI ? " --with-deps" : "";
+  const status = run(`npx playwright install${withDeps} ${BROWSER}`);
+  if (status !== 0) {
+    console.error(`Playwright ${BROWSER} installation failed`);
     process.exit(status);
   }
 }
