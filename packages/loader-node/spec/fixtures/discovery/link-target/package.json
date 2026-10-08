@@ -2,5 +2,6 @@
   "name": "linkpkg",
   "noflo": {
     "icon": "bolt"
-  }
+  },
+  "type": "commonjs"
 }
