@@ -92,9 +92,6 @@ export default class InPort extends BasePort {
    * @param {number|null} [index]
    */
   handleIP(packet, index = null) {
-    if (this.options.control && packet.type !== "data") {
-      return;
-    }
     const ip = packet;
     ip.owner = this.nodeInstance;
     if (this.isAddressable()) {
@@ -110,11 +107,21 @@ export default class InPort extends BasePort {
     }
 
     const buf = this.prepareBufferForIP(ip);
-    buf.push(ip);
-    if (this.options.control && buf.length > 1) {
-      buf.shift();
+    // Control ports buffer the latest stream: brackets are kept, an
+    // unbracketed data IP is its own stream, and a new openBracket
+    // discards any previously buffered stream
+    if (this.options.control) {
+      if (packet.type === "openBracket" && buf.length > 0) {
+        buf.length = 0;
+      }
+      if (
+        packet.type === "data" &&
+        !buf.some((buffered) => buffered.type === "openBracket")
+      ) {
+        buf.length = 0;
+      }
     }
-
+    buf.push(ip);
     this.dispatchLifecycleEvent("ip", ip);
   }
 
@@ -262,7 +269,14 @@ export default class InPort extends BasePort {
       return undefined;
     }
     if (this.options.control) {
-      return buf[buf.length - 1];
+      // Non-consuming: return the latest data IP within the buffered
+      // stream, skipping over its brackets
+      for (let i = buf.length - 1; i >= 0; i -= 1) {
+        if (buf[i].type === "data") {
+          return buf[i];
+        }
+      }
+      return undefined;
     }
     return buf.shift();
   }
@@ -324,6 +338,12 @@ export default class InPort extends BasePort {
       idx = null;
     } else {
       idx = index;
+    }
+    // On control ports, has() reports whether a data IP is present in
+    // the buffered stream — buffered brackets alone do not satisfy it
+    if (this.options.control) {
+      const original = valid;
+      valid = (ip) => ip.type === "data" && original(ip);
     }
     if (this.hasIPinBuffer(scope, idx, valid)) {
       return true;

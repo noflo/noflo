@@ -3345,3 +3345,131 @@ describe("control port firing (#607)", () => {
     assert.deepEqual(received, [42]);
   });
 });
+
+describe('control port streams', () => {
+  let c = null;
+  let sin = null;
+  let scontrol = null;
+  const outReceived = [];
+  let sout = null;
+
+  const build = () => {
+    c = new noflo.Component({
+      inPorts: {
+        in: { datatype: 'object', required: true },
+        key: { datatype: 'string', control: true, required: true },
+      },
+      outPorts: { out: { datatype: 'all' } },
+    });
+    c.process((input, output) => {
+      if (!input.hasData('in')) {
+        return;
+      }
+      if (!input.hasStream('key')) {
+        return;
+      }
+      const keys = input
+        .getStream('key')
+        .filter((ip) => ip.type === 'data')
+        .map((ip) => ip.data);
+      const data = input.getData('in');
+      output.sendDone({ out: keys.map((key) => data[key]) });
+    });
+    sin = new noflo.internalSocket.InternalSocket();
+    scontrol = new noflo.internalSocket.InternalSocket();
+    sout = new noflo.internalSocket.InternalSocket();
+    c.inPorts.in.attach(sin);
+    c.inPorts.key.attach(scontrol);
+    c.outPorts.out.attach(sout);
+    outReceived.length = 0;
+    listen(sout, 'ip', (ip) => {
+      if (ip.type === 'data') {
+        outReceived.push(ip.data);
+      }
+    });
+  };
+
+  const postKeyStream = (values) => {
+    scontrol.post(new noflo.IP('openBracket', 'keys'));
+    for (const value of values) {
+      scontrol.post(new noflo.IP('data', value));
+    }
+    scontrol.post(new noflo.IP('closeBracket', 'keys'));
+  };
+
+  it('should expose a grouped stream via getStream on a control port', (_t, done) => {
+    build();
+    postKeyStream(['a', 'b']);
+    setTimeout(() => {
+      sin.post(new noflo.IP('data', { a: 1, b: 2 }));
+    }, 10);
+    setTimeout(() => {
+      assert.deepStrictEqual(outReceived, [[1, 2]]);
+      done();
+    }, 50);
+  });
+
+  it('should keep only the latest stream on a control port', (_t, done) => {
+    build();
+    postKeyStream(['a', 'b']);
+    setTimeout(() => {
+      postKeyStream(['c']);
+    }, 10);
+    setTimeout(() => {
+      sin.post(new noflo.IP('data', { c: 3 }));
+    }, 30);
+    setTimeout(() => {
+      assert.deepStrictEqual(outReceived, [[3]]);
+      done();
+    }, 80);
+  });
+});
+
+describe('control port has() consistency', () => {
+  it('should not satisfy bare has() with buffered brackets alone, and keep later reads working', (_t, done) => {
+    const c = new noflo.Component({
+      inPorts: {
+        foo: { datatype: 'string' },
+        bar: { datatype: 'string', control: true },
+      },
+      outPorts: { baz: { datatype: 'object' } },
+      process(input, output) {
+        if (!input.has('foo', 'bar')) {
+          return;
+        }
+        const [foo, bar] = input.getData('foo', 'bar');
+        output.sendDone({ baz: { foo, bar } });
+      },
+    });
+    const sin1 = new noflo.internalSocket.InternalSocket();
+    const sin2 = new noflo.internalSocket.InternalSocket();
+    const sout = new noflo.internalSocket.InternalSocket();
+    c.inPorts.foo.attach(sin1);
+    c.inPorts.bar.attach(sin2);
+    c.outPorts.baz.attach(sout);
+    const received = [];
+    listen(sout, 'ip', (ip) => {
+      if (ip.type === 'data') {
+        received.push(ip.data);
+      }
+    });
+
+    sin1.post(new noflo.IP('data', 'foo'));
+    // Brackets alone on the control port must not complete the
+    // preconditions, and must not break the later data read
+    sin2.post(new noflo.IP('openBracket'));
+    sin2.post(new noflo.IP('data', 'bar'));
+    sin2.post(new noflo.IP('closeBracket'));
+    sin1.post(new noflo.IP('data', 'boo'));
+
+    setTimeout(() => {
+      assert.deepStrictEqual(received, [
+        { foo: 'foo', bar: 'bar' },
+        // The control IP stays buffered (non-consuming), so the second
+        // foo packet pairs with it again
+        { foo: 'boo', bar: 'bar' },
+      ]);
+      done();
+    }, 50);
+  });
+});
