@@ -91,10 +91,16 @@ jobs:
               *) dist_tag=() ;;
             esac
             echo "::group::npm publish $name"
-            if npm publish "$dir" --access public "${dist_tag[@]}"; then
+            # Publishing a tag whose versions already went out manually
+            # (first release of a package, where OIDC trusted publishing
+            # cannot create it) is a no-op, not a failure.
+            if out=$(npm publish "$dir" --access public "${dist_tag[@]}" 2>&1); then
               echo "published $name"
+            elif grep -q "previously published" <<<"$out"; then
+              echo "$name already published — skipping"
             else
               echo "::error::$name failed to publish"
+              printf '%s\n' "$out"
               real_failures=$((real_failures+1))
             fi
             echo "::endgroup::"
