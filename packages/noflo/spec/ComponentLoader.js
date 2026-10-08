@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { importFbpJson } from "@noflo/graph";
 import { Subgraph } from "../src/components/Subgraph.js";
 import * as noflo from "../src/lib/NoFlo.js";
+import { listen, listenOnce } from "./utils/events.js";
 import { nativeGraph } from "./utils/nativeGraph.js";
 
 /* eslint-disable
@@ -397,7 +398,7 @@ describe("ComponentLoader", () => {
                   c.inPorts.add("in", { datatype: "string" });
                   c.outPorts.add("out", { datatype: "string" });
                   // Legacy components use the pre-Process-API handle-style
-                  c.inPorts.in.on("data", () => {});
+                  listen(c.inPorts.in, "data", () => {});
                   return c;
                 },
               },
@@ -449,7 +450,7 @@ describe("ComponentLoader", () => {
         await loader.load("registry/ExampleSubgraph")
       );
       await new Promise((resolve) => {
-        instance.once("ready", resolve);
+        listenOnce(instance, "ready", resolve);
       });
       assert.ok(instance.inPorts.ports.in);
       assert.ok(instance.outPorts.ports.out);
@@ -458,7 +459,7 @@ describe("ComponentLoader", () => {
     it("does not automatically start the subgraph", async () => {
       const instance = await loader.load("registry/ExampleSubgraph");
       await new Promise((resolve) => {
-        instance.once("ready", resolve);
+        listenOnce(instance, "ready", resolve);
       });
       assert.strictEqual(instance.started, false);
     });
@@ -487,7 +488,7 @@ describe("ComponentLoader", () => {
         await loader.load("registry/ExampleSubgraph")
       );
       await new Promise((resolve) => {
-        instance.once("ready", resolve);
+        listenOnce(instance, "ready", resolve);
       });
       assert.strictEqual(instance.network.loader, loader);
     });

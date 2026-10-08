@@ -6,6 +6,7 @@ import { Edge, resolveHighWaterMark } from "../src/lib/Edge.js";
 import * as internalSocket from "../src/lib/InternalSocket.js";
 import IP from "../src/lib/IP.js";
 import * as noflo from "../src/lib/NoFlo.js";
+import { listen } from "./utils/events.js";
 import { nativeGraph } from "./utils/nativeGraph.js";
 
 /** Await a couple of microtask/macrotask turns so stream machinery settles. */
@@ -214,7 +215,7 @@ describe("InternalSocket delegating transport to Edge", () => {
   it("delivers posted IPs synchronously by default (1.x semantics)", () => {
     const socket = internalSocket.createSocket();
     const received = [];
-    socket.on("ip", (ip) => {
+    listen(socket, "ip", (ip) => {
       received.push(ip);
     });
     socket.post(new IP("data", "first"));
@@ -229,13 +230,13 @@ describe("InternalSocket delegating transport to Edge", () => {
   it("emits derived legacy events alongside ip events", () => {
     const socket = internalSocket.createSocket();
     const events = [];
-    socket.on("ip", (ip) => {
+    listen(socket, "ip", (ip) => {
       events.push(`ip:${ip.type}`);
     });
-    socket.on("data", (data) => {
+    listen(socket, "data", (data) => {
       events.push(`data:${data}`);
     });
-    socket.on("begingroup", (group) => {
+    listen(socket, "begingroup", (group) => {
       events.push(`begingroup:${group}`);
     });
     socket.post(new IP("openBracket", "g"));
@@ -254,7 +255,7 @@ describe("InternalSocket delegating transport to Edge", () => {
     const socket = internalSocket.createSocket({ highWaterMark: 1 });
     assert.equal(socket.edge.highWaterMark, 1);
     const received = [];
-    socket.on("ip", (ip) => {
+    listen(socket, "ip", (ip) => {
       received.push(ip);
     });
     socket.post(new IP("data", 1));

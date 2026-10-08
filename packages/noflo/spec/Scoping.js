@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, before, beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
+import { listen, listenOnce } from "./utils/events.js";
 import { loadJsonGraphFixture } from "./utils/loadJsonGraph.js";
 
 describe("Scope isolation", () => {
@@ -156,19 +157,19 @@ describe("Scope isolation", () => {
       ];
       const received = [];
 
-      out.on("connect", () => {
+      listen(out, "connect", () => {
         received.push("CONN");
       });
-      out.on("begingroup", (group) => {
+      listen(out, "begingroup", (group) => {
         received.push(`< ${group}`);
       });
-      out.on("data", (data) => {
+      listen(out, "data", (data) => {
         received.push(`DATA ${data}`);
       });
-      out.on("endgroup", () => {
+      listen(out, "endgroup", () => {
         received.push(">");
       });
-      out.on("disconnect", () => {
+      listen(out, "disconnect", () => {
         received.push("DISC");
         assert.deepStrictEqual(received, expected);
         done();
@@ -197,19 +198,19 @@ describe("Scope isolation", () => {
       ];
       const received = [];
 
-      out.on("connect", () => {
+      listen(out, "connect", () => {
         received.push("CONN");
       });
-      out.on("begingroup", (group) => {
+      listen(out, "begingroup", (group) => {
         received.push(`< ${group}`);
       });
-      out.on("data", (data) => {
+      listen(out, "data", (data) => {
         received.push(`DATA ${data}`);
       });
-      out.on("endgroup", () => {
+      listen(out, "endgroup", () => {
         received.push(">");
       });
-      out.on("disconnect", () => {
+      listen(out, "disconnect", () => {
         received.push("DISC");
         assert.deepStrictEqual(received, expected);
         done();
@@ -231,7 +232,7 @@ describe("Scope isolation", () => {
       const received = [];
       const brackets = [];
 
-      out.on("ip", (ip) => {
+      listen(out, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`${ip.scope} < ${ip.data}`);
@@ -258,10 +259,10 @@ describe("Scope isolation", () => {
       in1.post(new noflo.IP("closeBracket", 1, { scope: "x" }));
     });
     it("should not forward when scopes don't match", (_t, done) => {
-      out.on("ip", (ip) => {
+      listen(out, "ip", (ip) => {
         throw new Error(`Received unexpected ${ip.type} packet`);
       });
-      c.network.once("end", () => {
+      listenOnce(c.network, "end", () => {
         done();
       });
       in2.post(new noflo.IP("data", "two", { scope: 2 }));
@@ -300,7 +301,7 @@ describe("Scope isolation", () => {
       const received = [];
       const brackets = [];
 
-      out.on("ip", (ip) => {
+      listen(out, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`${ip.scope} < ${ip.data}`);
@@ -359,7 +360,7 @@ describe("Scope isolation", () => {
       const received = [];
       const brackets = [];
 
-      out.on("ip", (ip) => {
+      listen(out, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`${ip.scope} < ${ip.data}`);
@@ -396,7 +397,7 @@ describe("Scope isolation", () => {
       const received = [];
       const brackets = [];
 
-      out.on("ip", (ip) => {
+      listen(out, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`${ip.scope} < ${ip.data}`);
@@ -428,7 +429,7 @@ describe("Scope isolation", () => {
       const received = [];
       const brackets = [];
 
-      out.on("ip", (ip) => {
+      listen(out, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`${ip.scope} < ${ip.data}`);
@@ -493,7 +494,7 @@ describe("Scope isolation", () => {
       const received = [];
       const brackets = [];
 
-      out.on("ip", (ip) => {
+      listen(out, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`${ip.scope} < ${ip.data}`);
@@ -530,7 +531,7 @@ describe("Scope isolation", () => {
       const received = [];
       const brackets = [];
 
-      out.on("ip", (ip) => {
+      listen(out, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`${ip.scope} < ${ip.data}`);
@@ -566,7 +567,7 @@ describe("Scope isolation", () => {
       const received = [];
       const brackets = [];
 
-      out.on("ip", (ip) => {
+      listen(out, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`${ip.scope} < ${ip.data}`);
@@ -628,7 +629,7 @@ describe("Scope isolation", () => {
       const received = [];
       const brackets = [];
 
-      out.on("ip", (ip) => {
+      listen(out, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`${ip.scope} < ${ip.data}`);

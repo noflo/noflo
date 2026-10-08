@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import flowtrace from "flowtrace";
 import { Subgraph } from "../src/components/Subgraph.js";
 import * as noflo from "../src/lib/NoFlo.js";
+import { listen, listenOnce } from "./utils/events.js";
 import { nativeGraph } from "./utils/nativeGraph.js";
 
 describe("NoFlo Subgraph component", () => {
@@ -59,12 +60,12 @@ describe("NoFlo Subgraph component", () => {
   });
   describe("with JSON graph definition", () => {
     it("should emit a ready event after network has been loaded", (_t, done) => {
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         assert.notEqual(c.network, null);
         assert.strictEqual(c.ready, true);
         done();
       });
-      c.once("network", (network) => {
+      listenOnce(c, "network", (network) => {
         network.loader.components.Split = Split;
         network.loader.registerComponent("", "Merge", SubgraphMerge);
         assert.strictEqual(c.ready, false);
@@ -83,12 +84,12 @@ describe("NoFlo Subgraph component", () => {
       });
     });
     it("should expose available ports", (_t, done) => {
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         assert.deepEqual(Object.keys(c.inPorts.ports), ["graph"]);
         assert.deepEqual(Object.keys(c.outPorts.ports), []);
         done();
       });
-      c.once("network", () => {
+      listenOnce(c, "network", () => {
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
         c.network.loader.components.Split = Split;
@@ -119,13 +120,13 @@ describe("NoFlo Subgraph component", () => {
       });
     });
     it("should update description from the graph", (_t, done) => {
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         assert.notEqual(c.network, null);
         assert.strictEqual(c.ready, true);
         assert.strictEqual(c.description, "Hello, World!");
         done();
       });
-      c.once("network", (network) => {
+      listenOnce(c, "network", (network) => {
         network.loader.components.Split = Split;
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
@@ -144,12 +145,12 @@ describe("NoFlo Subgraph component", () => {
       });
     });
     it("should expose only exported ports when they exist", (_t, done) => {
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         assert.deepEqual(Object.keys(c.inPorts.ports), ["graph"]);
         assert.deepEqual(Object.keys(c.outPorts.ports), ["out"]);
         done();
       });
-      c.once("network", () => {
+      listenOnce(c, "network", () => {
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
         c.network.loader.components.Split = Split;
@@ -186,18 +187,18 @@ describe("NoFlo Subgraph component", () => {
       });
     });
     it("should be able to run the graph", (_t, done) => {
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         const ins = noflo.internalSocket.createSocket();
         const out = noflo.internalSocket.createSocket();
         c.inPorts.in.attach(ins);
         c.outPorts.out.attach(out);
-        out.on("data", (data) => {
+        listen(out, "data", (data) => {
           assert.strictEqual(data, "Foo");
           done();
         });
         ins.send("Foo");
       });
-      c.once("network", () => {
+      listenOnce(c, "network", () => {
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
         c.network.loader.components.Split = Split;
@@ -251,12 +252,12 @@ describe("NoFlo Subgraph component", () => {
       gr.addOutport("out", "Split", "out");
     });
     it("should emit a ready event after network has been loaded", (_t, done) => {
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         assert.notEqual(c.network, null);
         assert.strictEqual(c.ready, true);
         done();
       });
-      c.once("network", () => {
+      listenOnce(c, "network", () => {
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
         c.network.loader.components.Split = Split;
@@ -267,12 +268,12 @@ describe("NoFlo Subgraph component", () => {
       assert.strictEqual(c.ready, false);
     });
     it("should expose available ports", (_t, done) => {
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         assert.deepEqual(Object.keys(c.inPorts.ports), ["graph", "in"]);
         assert.deepEqual(Object.keys(c.outPorts.ports), ["out"]);
         done();
       });
-      c.once("network", () => {
+      listenOnce(c, "network", () => {
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
         c.network.loader.components.Split = Split;
@@ -283,12 +284,12 @@ describe("NoFlo Subgraph component", () => {
     });
     it("should be able to run the graph", (_t, done) => {
       let doned = false;
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         const ins = noflo.internalSocket.createSocket();
         const out = noflo.internalSocket.createSocket();
         c.inPorts.in.attach(ins);
         c.outPorts.out.attach(out);
-        out.on("data", (data) => {
+        listen(out, "data", (data) => {
           assert.strictEqual(data, "Baz");
           if (doned) {
             process.exit(1);
@@ -298,7 +299,7 @@ describe("NoFlo Subgraph component", () => {
         });
         ins.send("Baz");
       });
-      c.once("network", () => {
+      listenOnce(c, "network", () => {
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
         c.network.loader.components.Split = Split;
@@ -316,12 +317,12 @@ describe("NoFlo Subgraph component", () => {
       ),
     );
     it("should emit a ready event after network has been loaded", (_t, done) => {
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         assert.notEqual(c.network, null);
         assert.strictEqual(c.ready, true);
         done();
       });
-      c.once("network", () => {
+      listenOnce(c, "network", () => {
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
         c.network.loader.components.Split = Split;
@@ -332,12 +333,12 @@ describe("NoFlo Subgraph component", () => {
       assert.strictEqual(c.ready, false);
     });
     it("should expose available ports", (_t, done) => {
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         assert.deepEqual(Object.keys(c.inPorts.ports), ["graph", "in"]);
         assert.deepEqual(Object.keys(c.outPorts.ports), ["out"]);
         done();
       });
-      c.once("network", () => {
+      listenOnce(c, "network", () => {
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
         c.network.loader.components.Split = Split;
@@ -347,17 +348,17 @@ describe("NoFlo Subgraph component", () => {
       g.send(fbpJson);
     });
     it("should be able to run the graph", (_t, done) => {
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         const ins = noflo.internalSocket.createSocket();
         const out = noflo.internalSocket.createSocket();
         c.inPorts.in.attach(ins);
         c.outPorts.out.attach(out);
         let received = false;
-        out.on("data", (data) => {
+        listen(out, "data", (data) => {
           assert.strictEqual(data, "Foo");
           received = true;
         });
-        out.on("disconnect", () => {
+        listen(out, "disconnect", () => {
           assert.strictEqual(received, true, "should have transmitted data");
           done();
         });
@@ -365,7 +366,7 @@ describe("NoFlo Subgraph component", () => {
         ins.send("Foo");
         ins.disconnect();
       });
-      c.once("network", () => {
+      listenOnce(c, "network", () => {
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
         c.network.loader.components.Split = Split;
@@ -421,7 +422,7 @@ describe("NoFlo Subgraph component", () => {
       const o = noflo.internalSocket.createSocket();
       inst.outPorts.out.attach(o);
       const data = new Promise((resolve) => {
-        o.once("data", (data) => {
+        listenOnce(o, "data", (data) => {
           assert.strictEqual(data, "default-value");
           resolve();
         });
@@ -435,7 +436,7 @@ describe("NoFlo Subgraph component", () => {
       const o = noflo.internalSocket.createSocket();
       inst.outPorts.out.attach(o);
       const data = new Promise((resolve) => {
-        o.once("data", (data) => {
+        listenOnce(o, "data", (data) => {
           assert.strictEqual(data, "initial-value");
           resolve();
         });
@@ -451,7 +452,7 @@ describe("NoFlo Subgraph component", () => {
       inst.inPorts.in.attach(i);
       inst.outPorts.out.attach(o);
       const data = new Promise((resolve) => {
-        o.once("data", (data) => {
+        listenOnce(o, "data", (data) => {
           assert.strictEqual(data, "Foo");
           resolve();
         });
@@ -470,13 +471,13 @@ describe("NoFlo Subgraph component", () => {
       const expected = ["ACTIVATE 1", "data Foo", "DEACTIVATE 0"];
       const received = [];
       const done = new Promise((resolve) => {
-        o.on("ip", (ip) => {
+        listen(o, "ip", (ip) => {
           received.push(`${ip.type} ${ip.data}`);
         });
-        inst.on("activate", (load) => {
+        listen(inst, "activate", (load) => {
           received.push(`ACTIVATE ${load}`);
         });
-        inst.on("deactivate", (load) => {
+        listen(inst, "deactivate", (load) => {
           received.push(`DEACTIVATE ${load}`);
           if (received.length !== expected.length) {
             return;
@@ -499,9 +500,9 @@ describe("NoFlo Subgraph component", () => {
       const expected = ["ACTIVATE 1", "data Foo", "DEACTIVATE 0"];
       const received = [];
       const done = new Promise((resolve) => {
-        o.on("ip", (ip) => received.push(`${ip.type} ${ip.data}`));
-        inst.on("activate", (load) => received.push(`ACTIVATE ${load}`));
-        inst.on("deactivate", (load) => {
+        listen(o, "ip", (ip) => received.push(`${ip.type} ${ip.data}`));
+        listen(inst, "activate", (load) => received.push(`ACTIVATE ${load}`));
+        listen(inst, "deactivate", (load) => {
           received.push(`DEACTIVATE ${load}`);
           if (received.length !== expected.length) {
             return;
@@ -545,13 +546,13 @@ describe("NoFlo Subgraph component", () => {
         }
       };
       const done = new Promise((resolve) => {
-        o.on("ip", (ip) => {
+        listen(o, "ip", (ip) => {
           received.push(`${ip.type} ${ip.data}`);
         });
-        inst.on("activate", (load) => {
+        listen(inst, "activate", (load) => {
           received.push(`ACTIVATE ${load}`);
         });
-        inst.on("deactivate", (load) => {
+        listen(inst, "deactivate", (load) => {
           received.push(`DEACTIVATE ${load}`);
           sendNext();
           if (received.length !== expected.length) {
@@ -621,7 +622,7 @@ describe("NoFlo Subgraph component", () => {
         const done = new Promise((resolve) => {
           const listenNext = () => {
             const expected = expectedIps[index];
-            network.once("ip", (ip) => {
+            listenOnce(network, "ip", (ip) => {
               assert.strictEqual(ip.id, expected.id);
               assert.strictEqual(ip.type, "data");
               assert.strictEqual(ip.data, "foo");
@@ -712,7 +713,7 @@ describe("NoFlo Subgraph component", () => {
         const done = new Promise((resolve) => {
           const listenNext = () => {
             const expected = expectedIps[index];
-            network.once("ip", (ip) => {
+            listenOnce(network, "ip", (ip) => {
               assert.strictEqual(ip.id, expected.id);
               assert.strictEqual(ip.type, "data");
               assert.strictEqual(ip.data, "foo");
@@ -740,7 +741,7 @@ describe("NoFlo Subgraph component", () => {
       });
       it("should finish", async () => {
         await new Promise((resolve) => {
-          network.once("end", () => {
+          listenOnce(network, "end", () => {
             resolve();
           });
         });

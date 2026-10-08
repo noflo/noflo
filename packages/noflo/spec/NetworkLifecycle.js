@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, before, beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
+import { listen, listenOnce } from "./utils/events.js";
 import { loadJsonGraphFixture } from "./utils/loadJsonGraph.js";
 import { nativeGraph } from "./utils/nativeGraph.js";
 
@@ -8,19 +9,19 @@ const legacyBasic = () => {
   const c = new noflo.Component();
   c.inPorts.add("in", { datatype: "string" });
   c.outPorts.add("out", { datatype: "string" });
-  c.inPorts.in.on("connect", () => {
+  listen(c.inPorts.in, "connect", () => {
     c.outPorts.out.connect();
   });
-  c.inPorts.in.on("begingroup", (group) => {
+  listen(c.inPorts.in, "begingroup", (group) => {
     c.outPorts.out.beginGroup(group);
   });
-  c.inPorts.in.on("data", (data) => {
+  listen(c.inPorts.in, "data", (data) => {
     c.outPorts.out.data(data + c.nodeId);
   });
-  c.inPorts.in.on("endgroup", () => {
+  listen(c.inPorts.in, "endgroup", () => {
     c.outPorts.out.endGroup();
   });
-  c.inPorts.in.on("disconnect", () => {
+  listen(c.inPorts.in, "disconnect", () => {
     c.outPorts.out.disconnect();
   });
   return c;
@@ -230,7 +231,7 @@ describe("Network Lifecycle", () => {
     it("should execute and finish", (_t, done) => {
       const expected = ["DATA helloPc"];
       const received = [];
-      out.on("ip", (ip) => {
+      listen(out, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`< ${ip.data}`);
@@ -253,14 +254,14 @@ describe("Network Lifecycle", () => {
         assert.strictEqual(wasStarted, true);
         done();
       };
-      c.network.once("start", checkStart);
-      c.network.once("end", checkEnd);
+      listenOnce(c.network, "start", checkStart);
+      listenOnce(c.network, "end", checkEnd);
       c.start().catch(done);
     });
     it("should execute twice if IIP changes", (_t, done) => {
       const expected = ["DATA helloPc", "DATA worldPc"];
       const received = [];
-      out.on("ip", (ip) => {
+      listen(out, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`< ${ip.data}`);
@@ -282,8 +283,8 @@ describe("Network Lifecycle", () => {
         assert.strictEqual(wasStarted, true);
         if (received.length < expected.length) {
           wasStarted = false;
-          c.network.once("start", checkStart);
-          c.network.once("end", checkEnd);
+          listenOnce(c.network, "start", checkStart);
+          listenOnce(c.network, "end", checkEnd);
           c.network
             .addInitial({
               from: {
@@ -300,14 +301,14 @@ describe("Network Lifecycle", () => {
         assert.deepStrictEqual(received, expected);
         done();
       };
-      c.network.once("start", checkStart);
-      c.network.once("end", checkEnd);
+      listenOnce(c.network, "start", checkStart);
+      listenOnce(c.network, "end", checkEnd);
       c.start().catch(done);
     });
     it("should not send new IIP if network was stopped", (_t, done) => {
       const expected = ["DATA helloPc"];
       const received = [];
-      out.on("ip", (ip) => {
+      listen(out, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`< ${ip.data}`);
@@ -329,10 +330,10 @@ describe("Network Lifecycle", () => {
         assert.strictEqual(wasStarted, true);
         c.network.stop().then(() => {
           assert.equal(c.network.isStopped(), true);
-          c.network.once("start", () => {
+          listenOnce(c.network, "start", () => {
             throw new Error("Unexpected network start");
           });
-          c.network.once("end", () => {
+          listenOnce(c.network, "end", () => {
             throw new Error("Unexpected network end");
           });
           c.network.addInitial(
@@ -357,8 +358,8 @@ describe("Network Lifecycle", () => {
           }, 1000);
         }, done);
       };
-      c.network.once("start", checkStart);
-      c.network.once("end", checkEnd);
+      listenOnce(c.network, "start", checkStart);
+      listenOnce(c.network, "end", checkEnd);
       c.start().catch(done);
     });
   });
@@ -385,7 +386,7 @@ describe("Network Lifecycle", () => {
     it("should execute and finish", (_t, done) => {
       const expected = ["DATA helloPc"];
       const received = [];
-      out.on("ip", (ip) => {
+      listen(out, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`< ${ip.data}`);
@@ -408,8 +409,8 @@ describe("Network Lifecycle", () => {
         assert.strictEqual(wasStarted, true);
         done();
       };
-      c.network.once("start", checkStart);
-      c.network.once("end", checkEnd);
+      listenOnce(c.network, "start", checkStart);
+      listenOnce(c.network, "end", checkEnd);
       c.start().catch(done);
     });
   });
@@ -436,7 +437,7 @@ describe("Network Lifecycle", () => {
     it("should execute and finish", (_t, done) => {
       const expected = ["DATA helloNonSendingSync"];
       const received = [];
-      out.on("ip", (ip) => {
+      listen(out, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`< ${ip.data}`);
@@ -461,8 +462,8 @@ describe("Network Lifecycle", () => {
           done();
         }, 100);
       };
-      c.network.once("start", checkStart);
-      c.network.once("end", checkEnd);
+      listenOnce(c.network, "start", checkStart);
+      listenOnce(c.network, "end", checkEnd);
       c.start().catch(done);
     });
   });
@@ -506,19 +507,19 @@ describe("Network Lifecycle", () => {
       ];
       const received = [];
 
-      out.on("connect", () => {
+      listen(out, "connect", () => {
         received.push("CONN");
       });
-      out.on("begingroup", (group) => {
+      listen(out, "begingroup", (group) => {
         received.push(`< ${group}`);
       });
-      out.on("data", (data) => {
+      listen(out, "data", (data) => {
         received.push(`DATA ${data}`);
       });
-      out.on("endgroup", () => {
+      listen(out, "endgroup", () => {
         received.push(">");
       });
-      out.on("disconnect", () => {
+      listen(out, "disconnect", () => {
         received.push("DISC");
       });
 
@@ -532,8 +533,8 @@ describe("Network Lifecycle", () => {
         assert.strictEqual(wasStarted, true);
         done();
       };
-      c.network.once("start", checkStart);
-      c.network.once("end", checkEnd);
+      listenOnce(c.network, "start", checkStart);
+      listenOnce(c.network, "end", checkEnd);
 
       c.start().then(() => {
         in2.connect();
@@ -560,19 +561,19 @@ describe("Network Lifecycle", () => {
       ];
       const received = [];
 
-      out.on("connect", () => {
+      listen(out, "connect", () => {
         received.push("CONN");
       });
-      out.on("begingroup", (group) => {
+      listen(out, "begingroup", (group) => {
         received.push(`< ${group}`);
       });
-      out.on("data", (data) => {
+      listen(out, "data", (data) => {
         received.push(`DATA ${data}`);
       });
-      out.on("endgroup", () => {
+      listen(out, "endgroup", () => {
         received.push(">");
       });
-      out.on("disconnect", () => {
+      listen(out, "disconnect", () => {
         received.push("DISC");
       });
 
@@ -586,8 +587,8 @@ describe("Network Lifecycle", () => {
         assert.strictEqual(wasStarted, true);
         done();
       };
-      c.network.once("start", checkStart);
-      c.network.once("end", checkEnd);
+      listenOnce(c.network, "start", checkStart);
+      listenOnce(c.network, "end", checkEnd);
 
       c.start().then(() => {
         in1.connect();
@@ -607,7 +608,7 @@ describe("Network Lifecycle", () => {
       const received = [];
       const brackets = [];
 
-      out.on("ip", (ip) => {
+      listen(out, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`${ip.scope} < ${ip.data}`);
@@ -632,8 +633,8 @@ describe("Network Lifecycle", () => {
         assert.strictEqual(wasStarted, true);
         done();
       };
-      c.network.once("start", checkStart);
-      c.network.once("end", checkEnd);
+      listenOnce(c.network, "start", checkStart);
+      listenOnce(c.network, "end", checkEnd);
 
       c.start().then(() => {
         in2.post(new noflo.IP("data", "two", { scope: "x" }));
@@ -683,19 +684,19 @@ describe("Network Lifecycle", () => {
       ];
       const received = [];
 
-      out.on("connect", () => {
+      listen(out, "connect", () => {
         received.push("CONN");
       });
-      out.on("begingroup", (group) => {
+      listen(out, "begingroup", (group) => {
         received.push(`< ${group}`);
       });
-      out.on("data", (data) => {
+      listen(out, "data", (data) => {
         received.push(`DATA ${data}`);
       });
-      out.on("endgroup", () => {
+      listen(out, "endgroup", () => {
         received.push(">");
       });
-      out.on("disconnect", () => {
+      listen(out, "disconnect", () => {
         received.push("DISC");
       });
 
@@ -709,8 +710,8 @@ describe("Network Lifecycle", () => {
         assert.strictEqual(wasStarted, true);
         done();
       };
-      c.network.once("start", checkStart);
-      c.network.once("end", checkEnd);
+      listenOnce(c.network, "start", checkStart);
+      listenOnce(c.network, "end", checkEnd);
 
       c.start().then(() => {
         in2.connect();
@@ -737,19 +738,19 @@ describe("Network Lifecycle", () => {
       ];
       const received = [];
 
-      out.on("connect", () => {
+      listen(out, "connect", () => {
         received.push("CONN");
       });
-      out.on("begingroup", (group) => {
+      listen(out, "begingroup", (group) => {
         received.push(`< ${group}`);
       });
-      out.on("data", (data) => {
+      listen(out, "data", (data) => {
         received.push(`DATA ${data}`);
       });
-      out.on("endgroup", () => {
+      listen(out, "endgroup", () => {
         received.push(">");
       });
-      out.on("disconnect", () => {
+      listen(out, "disconnect", () => {
         received.push("DISC");
       });
 
@@ -763,8 +764,8 @@ describe("Network Lifecycle", () => {
         assert.strictEqual(wasStarted, true);
         done();
       };
-      c.network.once("start", checkStart);
-      c.network.once("end", checkEnd);
+      listenOnce(c.network, "start", checkStart);
+      listenOnce(c.network, "end", checkEnd);
 
       c.start().then(() => {
         in1.connect();
@@ -793,7 +794,7 @@ describe("Network Lifecycle", () => {
         })
         .then((instance) => {
           return new Promise((resolve) => {
-            instance.once("ready", () => {
+            listenOnce(instance, "ready", () => {
               c = instance;
               start = noflo.internalSocket.createSocket();
               c.inPorts.start.attach(start);
@@ -822,7 +823,7 @@ describe("Network Lifecycle", () => {
       }));
     it("should start generating when receiving a start packet", (_t, done) => {
       c.start().then(() => {
-        out.once("data", () => {
+        listenOnce(out, "data", () => {
           assert.equal(c.network.isRunning(), true);
           done();
         });
@@ -831,7 +832,7 @@ describe("Network Lifecycle", () => {
     });
     it("should stop generating when receiving a stop packet", (_t, done) => {
       c.start().then(() => {
-        out.once("data", () => {
+        listenOnce(out, "data", () => {
           assert.equal(c.network.isRunning(), true);
           stop.send(true);
           setTimeout(() => {

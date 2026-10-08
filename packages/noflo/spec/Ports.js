@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
+import { listen, listenOnce } from "./utils/events.js";
 
 describe("Ports collection", () => {
   describe("InPorts", () => {
@@ -31,18 +32,17 @@ describe("Ports collection", () => {
       assert.throws(() => p.remove("bar"));
     });
     it("should throw if trying to subscribe to a port that doesn't exist", () => {
-      assert.throws(() => p.once("bar", "ip", () => {}));
-      assert.throws(() => p.on("bar", "ip", () => {}));
+      assert.throws(() => p.ports.bar.addEventListener("ip", () => {}));
     });
     it("should allow subscribing to an existing port", (_t, done) => {
       let received = 0;
-      p.ports.foo.once("ip", () => {
+      listenOnce(p.ports.foo, "ip", () => {
         received++;
         if (received === 2) {
           done();
         }
       });
-      p.ports.foo.on("ip", () => {
+      listen(p.ports.foo, "ip", () => {
         received++;
         if (received === 2) {
           done();
