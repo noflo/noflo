@@ -54,4 +54,4 @@ jobs:
       # document #18): the fixture page runs the static-registry NoFlo flow
       # as plain ES modules in Chromium, Firefox, and WebKit.
       - run: npx playwright install --with-deps chromium firefox webkit
-      - run: npx playwright test
+      - run: npm run test:browser
