@@ -287,6 +287,7 @@ Unified event types:
 | `0x06` | `LIFECYCLE`   | transition code (uint8)                    |
 | `0x07` | `VISUAL_STATE`| `[format_type, binary_pixels]`             |
 | `0x08` | `BREAKPOINT_HIT` | `[breakpoint_id, node_id, port]`        |
+| `0x09` | `STUB_ERROR`  | exception string                           |
 
 Lifecycle transition codes (`0x06 LIFECYCLE` payloads):
 
@@ -308,7 +309,17 @@ frugalized per local policy.
 `0x05 PAUSED` and `0x06 RESUMED` announce run-state changes of the execution
 control block (§8) — client-requested run control and breakpoint hits alike
 — so every telemetry subscriber learns the state change, not only the client
-that caused it. `0x08 BREAKPOINT_HIT` events carry the breakpoint cause:
+that caused it. `0x08 BREAKPOINT_HIT` events carry the breakpoint cause as
+the positional `[breakpoint_id, node_id, port]` tuple; the packet itself
+travels as its own `0x01 DATA` event.
+
+A `STUB_ERROR` event is the canonical classification for errors raised by
+stub components — the `StubNotImplementedError` of the StubComponent
+contract (WD #19): the payload is the exception string, exactly as in
+`ERROR`, but the event type itself marks the error as *unimplemented*
+rather than a genuine component failure, with no string-parsing convention
+(WD #4 update #9). Runtimes MAY additionally record it in the LXMF
+`[errors]` snapshot field (§9).
 
 Visual-state format types:
 
@@ -347,7 +358,6 @@ depth is physics, not protocol.
 
 Stepping while paused processes one queued event and leaves the runtime
 paused; the step's own flowtrace events show what ran.
-
 **`0x41` CMD_BREAKPOINT_SET** — set a data breakpoint:
 `[0x41, breakpoint_id, node_id, port]`. The runtime pauses when a packet
 arrives at the node — at any triggering inport when `port` is nil,

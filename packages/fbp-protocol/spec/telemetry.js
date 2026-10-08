@@ -154,6 +154,33 @@ describe("0x32 CMD_FLOWTRACE_CHUNK", () => {
     );
   });
 
+  it("classifies stub-raised errors as unimplemented by event type (update #9)", () => {
+    // The payload is the exception string, exactly as in ERROR; the event
+    // type itself is the classification — no string-parsing convention.
+    const bytes = encodeFlowtraceChunk({
+      subId: "sub-1",
+      baseTimestampMs: 2000,
+      events: [
+        {
+          timeDeltaMs: 0,
+          eventType: EVENT_TYPE.DATA,
+          payload: 21,
+        },
+        {
+          timeDeltaMs: 3,
+          eventType: EVENT_TYPE.STUB_ERROR,
+          payload: "math/Divide is not implemented yet",
+        },
+      ],
+    });
+    const decoded = decodeFlowtraceChunk(bytes);
+    assert.equal(decoded.events[1].eventType, EVENT_TYPE.STUB_ERROR);
+    assert.equal(
+      decoded.events[1].payload,
+      "math/Divide is not implemented yet",
+    );
+  });
+
   it("carries a failed transition with its accompanying error detail (update #1)", () => {
     // A rejected start() leaves the runtime an honest message to send: the
     // 0x06 LIFECYCLE code renders the transition as errored without parsing

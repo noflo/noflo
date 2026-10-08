@@ -230,6 +230,16 @@ export const EVENT_TYPE = {
    * itself travels as its own `0x01 DATA` event.
    */
   BREAKPOINT_HIT: 0x08,
+  /**
+   * An error raised by a stub component — the `StubNotImplementedError` of
+   * the StubComponent contract (work document #19) — when a data packet
+   * reaches a component with no implementation. The payload is the
+   * exception string, exactly as in `0x04 ERROR`; the event type itself
+   * classifies the error as *unimplemented* rather than a genuine component
+   * failure (work document #4 update #9), with no string-parsing
+   * convention.
+   */
+  STUB_ERROR: 0x09,
 };
 
 /**
