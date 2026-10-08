@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import flowtrace from "flowtrace";
 import { Subgraph } from "../src/components/Subgraph.js";
 import * as noflo from "../src/lib/NoFlo.js";
-import { nativeGraph } from "./utils/nativeGraph.mjs";
+import { nativeGraph } from "./utils/nativeGraph.js";
 
 describe("NoFlo Subgraph component", () => {
   let c = null;
@@ -647,36 +647,21 @@ describe("NoFlo Subgraph component", () => {
     describe("with a single level subgraph", () => {
       let graph = null;
       let network = null;
-      before((_t, done) => {
+      before(async () => {
         graph = nativeGraph("main");
-        noflo.createNetwork(
-          graph,
-          {
-            delay: true,
-          },
-          (err, nw) => {
-            if (err) {
-              done(err);
-              return;
-            }
-            network = nw;
-            network.loader.components.Split = Split;
-            network.loader.components.Merge = SubgraphMerge;
-            const sg = nativeGraph("Subgraph");
-            sg.addNode("A", "Split");
-            sg.addNode("B", "Merge");
-            sg.addEdge("A", "out", "B", "in");
-            sg.addInport("in", "A", "in");
-            sg.addOutport("out", "B", "out");
-            network.loader.registerGraph("foo", "AB", sg, (err) => {
-              if (err) {
-                done(err);
-                return;
-              }
-              network.connect(done);
-            });
-          },
-        );
+        network = await noflo.createNetwork(graph, {
+          delay: true,
+        });
+        network.loader.components.Split = Split;
+        network.loader.components.Merge = SubgraphMerge;
+        const sg = nativeGraph("Subgraph");
+        sg.addNode("A", "Split");
+        sg.addNode("B", "Merge");
+        sg.addEdge("A", "out", "B", "in");
+        sg.addInport("in", "A", "in");
+        sg.addOutport("out", "B", "out");
+        await network.loader.registerGraph("foo", "AB", sg);
+        await network.connect();
       });
       it("should instantiate the subgraph when node is added", (_t, done) => {
         network.addNode(
@@ -770,49 +755,29 @@ describe("NoFlo Subgraph component", () => {
       let graph = null;
       let network = null;
       const trace = new flowtrace.Flowtrace();
-      before((_t, done) => {
+      before(async () => {
         graph = nativeGraph("main");
-        noflo.createNetwork(
-          graph,
-          {
-            delay: true,
-            flowtrace: trace,
-          },
-          (err, net) => {
-            if (err) {
-              done(err);
-              return;
-            }
-            network = net;
-            network.loader.components.Split = Split;
-            network.loader.components.Merge = SubgraphMerge;
-            const sg = nativeGraph("Subgraph");
-            sg.addNode("A", "Split");
-            sg.addNode("B", "Merge");
-            sg.addEdge("A", "out", "B", "in");
-            sg.addInport("in", "A", "in");
-            sg.addOutport("out", "B", "out");
-            const sg2 = nativeGraph("Subgraph");
-            sg2.addNode("A", "foo/AB");
-            sg2.addNode("B", "Merge");
-            sg2.addEdge("A", "out", "B", "in");
-            sg2.addInport("in", "A", "in");
-            sg2.addOutport("out", "B", "out");
-            network.loader.registerGraph("foo", "AB", sg, (err) => {
-              if (err) {
-                done(err);
-                return;
-              }
-              network.loader.registerGraph("foo", "AB2", sg2, (err) => {
-                if (err) {
-                  done(err);
-                  return;
-                }
-                network.connect(done);
-              });
-            });
-          },
-        );
+        network = await noflo.createNetwork(graph, {
+          delay: true,
+          flowtrace: trace,
+        });
+        network.loader.components.Split = Split;
+        network.loader.components.Merge = SubgraphMerge;
+        const sg = nativeGraph("Subgraph");
+        sg.addNode("A", "Split");
+        sg.addNode("B", "Merge");
+        sg.addEdge("A", "out", "B", "in");
+        sg.addInport("in", "A", "in");
+        sg.addOutport("out", "B", "out");
+        const sg2 = nativeGraph("Subgraph");
+        sg2.addNode("A", "foo/AB");
+        sg2.addNode("B", "Merge");
+        sg2.addEdge("A", "out", "B", "in");
+        sg2.addInport("in", "A", "in");
+        sg2.addOutport("out", "B", "out");
+        await network.loader.registerGraph("foo", "AB", sg);
+        await network.loader.registerGraph("foo", "AB2", sg2);
+        await network.connect();
       });
       it("should instantiate the subgraphs when node is added", (_t, done) => {
         network.addNode(

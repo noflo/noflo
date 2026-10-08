@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * @file scripts/release.mjs
+ * @file scripts/release.js
  * @description Cut a lockstep release across the noflo monorepo.
  *
  *   This is the one command a maintainer runs to ship a new version. It does
@@ -38,7 +38,7 @@
  *   tarball's contents via `npm pack --dry-run`.
  *
  * Usage:
- *   node scripts/release.mjs <version> [--date YYYY-MM-DD] [--skip-checks]
+ *   node scripts/release.js <version> [--date YYYY-MM-DD] [--skip-checks]
  *                                    [--repo <rns-url>] [--dry-run] [--root <dir>]
  */
 
@@ -54,7 +54,7 @@ import {
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { compileChangelog } from "./compile-changelog.mjs";
+import { compileChangelog } from "./compile-changelog.js";
 
 const DEFAULT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -300,7 +300,7 @@ export function runRelease({
       // tag is cut. Tiny packages (one or two symbols) are reported but not
       // gated — their % is structurally volatile.
       console.log(`  $ jsr-doc-coverage --min 80`);
-      run(`node "${join(root, "scripts", "jsr-doc-coverage.mjs")}" --min 80`, {
+      run(`node "${join(root, "scripts", "jsr-doc-coverage.js")}" --min 80`, {
         cwd: root,
         stdio: "inherit",
       });
@@ -472,7 +472,7 @@ export function runRelease({
 
 function printHelp() {
   console.log(
-    `Usage: node scripts/release.mjs <version> [options]
+    `Usage: node scripts/release.js <version> [options]
 
   <version>           semver to release, e.g. 1.6.0
   --date YYYY-MM-DD   override release date (default: today)

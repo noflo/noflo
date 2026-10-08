@@ -118,7 +118,7 @@ describe("setSource and getSource", () => {
 
   it("supports JavaScript ESM source", async () => {
     const source = `\
-import { Component } from 'noflo';
+import { Component } from '@noflo/noflo';
 export function getComponent() {
   const c = new Component();
   c.inPorts.add('in');
@@ -149,7 +149,7 @@ export function getComponent() {
 
   it("evaluates CommonJS source", async () => {
     const source = `\
-const { Component } = require('noflo');
+const { Component } = require('@noflo/noflo');
 exports.getComponent = () => {
   const c = new Component();
   c.inPorts.add('in');
@@ -163,12 +163,13 @@ exports.getComponent = () => {
     assert.ok(instantiate(definition));
   });
 
-  it("supports TypeScript source with a transpiler", async function () {
+  it("supports TypeScript source with a transpiler", async (t) => {
     if (!registry.getLanguages().includes("typescript")) {
-      this.skip();
+      t.skip();
+      return;
     }
     const source = `\
-import { Component } from 'noflo';
+import { Component } from '@noflo/noflo';
 export function getComponent(): any {
   const c = new Component();
   c.inPorts.add('in');

@@ -2,6 +2,7 @@
 //     (c) 2013-2018 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
+/* @ts-self-types="./BaseNetwork.d.ts" */
 
 /* eslint-disable
     no-param-reassign,
@@ -22,7 +23,7 @@ import { debounce } from "./Utils.js";
  * @typedef NetworkProcess
  * @property {string} id
  * @property {string} [componentName]
- * @property {import("./Component").Component} [component]
+ * @property {import("./Component.js").Component} [component]
  */
 
 /**
@@ -93,14 +94,14 @@ function connectPort(socket, process, port, index, inbound) {
 /**
  * @typedef NetworkOwnOptions
  * @property {ComponentLoader} [componentLoader] - Component loader instance to use, if any
- * @property {import("./ComponentLoader").ComponentRegistry} [registry] - Application-supplied component registry, used to construct a loader when no loader is given
+ * @property {import("./ComponentLoader.js").ComponentRegistry} [registry] - Application-supplied component registry, used to construct a loader when no loader is given
  * @property {Object} [flowtrace] - Flowtrace instance to use for tracing this network run
  * @property {boolean} [asyncDelivery] - Make Information Packet delivery asynchronous
  * @property {number|null} [highWaterMark] - Default backpressure buffer size for all edges in this network; null = unbounded
  */
 
 /**
- * @typedef { NetworkOwnOptions & import("./ComponentLoader").ComponentLoaderOptions} NetworkOptions
+ * @typedef { NetworkOwnOptions & import("./ComponentLoader.js").ComponentLoaderOptions} NetworkOptions
  */
 
 // ## The NoFlo network coordinator
@@ -138,7 +139,7 @@ export class BaseNetwork extends LegacyEventBase {
     /** @type {Array<NetworkIIP>} */
     this.nextInitials = [];
     // Container to hold sockets that will be sending default data.
-    /** @type {Array<import("./InternalSocket").InternalSocket>} */
+    /** @type {Array<import("./InternalSocket.js").InternalSocket>} */
     this.defaults = [];
     // The native `@noflo/graph` model this network is instantiated with
     this.graph = graph;
@@ -341,14 +342,14 @@ export class BaseNetwork extends LegacyEventBase {
   /**
    * @callback ComponentLoadCallback
    * @param {Error|null} err
-   * @param {import("./Component").Component} [component]
+   * @param {import("./Component.js").Component} [component]
    * @returns {void}
    */
   /**
    * @param {string} component
-   * @param {import("@noflo/graph").GraphNodeMetadata} metadata
+   * @param {Object<string, any>} metadata
    * @param {ComponentLoadCallback} [callback]
-   * @returns {Promise<import("./Component").Component>}
+   * @returns {Promise<import("./Component.js").Component>}
    */
   load(component, metadata, callback) {
     const promise = this.loader.load(component, metadata);
@@ -592,9 +593,10 @@ export class BaseNetwork extends LegacyEventBase {
       return;
     }
 
-    const instance = /** @type {import("../components/Subgraph").Subgraph} */ (
-      node.component
-    );
+    const instance =
+      /** @type {import("../components/Subgraph.js").Subgraph} */ (
+        node.component
+      );
     if (!instance.network) {
       return;
     }
@@ -696,7 +698,7 @@ export class BaseNetwork extends LegacyEventBase {
     if (!source?.component?.isLegacy()) {
       return;
     }
-    const comp = /** @type {import("./Component").Component} */ (
+    const comp = /** @type {import("./Component.js").Component} */ (
       source.component
     );
     // Handle activation for legacy components via connects/disconnects
@@ -724,7 +726,7 @@ export class BaseNetwork extends LegacyEventBase {
     if (!node.component) {
       return;
     }
-    const instance = /** @type {import("./Component").Component} */ (
+    const instance = /** @type {import("./Component.js").Component} */ (
       node.component
     );
     instance.addEventListener("activate", () => {
@@ -770,7 +772,7 @@ export class BaseNetwork extends LegacyEventBase {
         new Error(`No component defined for ${direction} node ${node}`),
       );
     }
-    const comp = /** @type {import("./Component").Component} */ (
+    const comp = /** @type {import("./Component.js").Component} */ (
       instance.component
     );
     if (!comp.isReady()) {
@@ -1206,7 +1208,7 @@ export class BaseNetwork extends LegacyEventBase {
               return Promise.resolve();
             }
             // eslint-disable-next-line max-len
-            const comp = /** @type {import("./Component").Component} */ (
+            const comp = /** @type {import("./Component.js").Component} */ (
               this.processes[id].component
             );
             return comp.shutdown();
@@ -1300,9 +1302,10 @@ export class BaseNetwork extends LegacyEventBase {
       }
       const instance = process.component;
       if (instance.isSubgraph()) {
-        const inst = /** @type {import("../components/Subgraph").Subgraph} */ (
-          instance
-        );
+        const inst =
+          /** @type {import("../components/Subgraph.js").Subgraph} */ (
+            instance
+          );
         inst.network.setDebug(active);
       }
     });
@@ -1327,9 +1330,10 @@ export class BaseNetwork extends LegacyEventBase {
       }
       const instance = process.component;
       if (instance.isSubgraph()) {
-        const inst = /** @type {import("../components/Subgraph").Subgraph} */ (
-          instance
-        );
+        const inst =
+          /** @type {import("../components/Subgraph.js").Subgraph} */ (
+            instance
+          );
         inst.network.setAsyncDelivery(active);
       }
     });
@@ -1360,7 +1364,7 @@ export class BaseNetwork extends LegacyEventBase {
     Object.keys(this.processes).forEach((nodeId) => {
       // Register existing subgraphs
       const node = this.processes[nodeId];
-      const inst = /** @type {import("../components/Subgraph").Subgraph} */ (
+      const inst = /** @type {import("../components/Subgraph.js").Subgraph} */ (
         node.component
       );
       if (!inst.isSubgraph() || !inst.network) {

@@ -16,7 +16,7 @@ import {
   parseCategories,
   parseDoc,
   stampPackage,
-} from "./compile-changelog.mjs";
+} from "./compile-changelog.js";
 
 const DATE = "2026-07-30";
 const VER = "1.6.0";

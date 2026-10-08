@@ -22,7 +22,7 @@ describe("MergeObjects component", () => {
       t.skip();
       return;
     }
-    return import("./components/MergeObjects.mjs").then((MergeObjects) => {
+    return import("./components/MergeObjects.js").then((MergeObjects) => {
       console.log(MergeObjects);
       c = MergeObjects.getComponent();
       sin1 = new noflo.internalSocket.InternalSocket();
@@ -70,6 +70,11 @@ describe("MergeObjects component", () => {
       done(ip);
     });
 
+    // The obj1/obj2 packets buffered by the previous test are still in
+    // place; posting them again keeps this test self-sufficient under
+    // runtimes with different socket flush timing
+    sin1.post(new noflo.IP("data", obj1));
+    sin2.post(new noflo.IP("data", obj2));
     sin3.post(new noflo.IP("data", false));
   });
 

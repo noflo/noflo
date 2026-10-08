@@ -15,7 +15,7 @@ import {
   discoverInternalPackages,
   gitOriginUrl,
   packageMetas,
-} from "./release.mjs";
+} from "./release.js";
 
 test("applyVersionBump bumps version and rewrites internal dep refs", () => {
   const before = {

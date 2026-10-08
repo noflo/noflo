@@ -2,6 +2,7 @@
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
 //
+/* @ts-self-types="./Platform.d.ts" */
 
 /* eslint-disable
     no-console,
@@ -15,8 +16,8 @@
 export function isBrowser() {
   if (
     typeof process !== "undefined" &&
-    process.execPath &&
-    process.execPath.match(/node|iojs/)
+    process.versions &&
+    (process.versions.node || process.versions.deno || process.versions.bun)
   ) {
     return false;
   }

@@ -1,6 +1,7 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2026 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
+/* @ts-self-types="./logger.d.ts" */
 
 /**
  * @file logger module
@@ -18,7 +19,10 @@
  */
 function getPattern() {
   if (typeof localStorage !== "undefined") {
-    return localStorage.getItem("debug");
+    const stored = localStorage.getItem("debug");
+    if (stored) {
+      return stored;
+    }
   }
   if (typeof process !== "undefined" && process.env) {
     return process.env.DEBUG || null;

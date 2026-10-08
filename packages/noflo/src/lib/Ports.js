@@ -2,13 +2,14 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
+/* @ts-self-types="./Ports.d.ts" */
 
 import InPort from "./InPort.js";
 import { LegacyEventBase } from "./LegacyEvents.js";
 import OutPort from "./OutPort.js";
 
 /**
- * @typedef {import("./BasePort").BaseOptions} PortOptions
+ * @typedef {import("./BasePort.js").BaseOptions} PortOptions
  */
 
 // NoFlo ports collections
@@ -17,13 +18,13 @@ import OutPort from "./OutPort.js";
 // used to hold a set of input or output ports of a component.
 class Ports extends LegacyEventBase {
   /**
-   * @param {Object<string, import("./BasePort").default|PortOptions>} ports
-   * @param {typeof import("./BasePort").default} model
+   * @param {Object<string, import("./BasePort.js").default|PortOptions>} ports
+   * @param {typeof import("./BasePort.js").default} model
    */
   constructor(ports, model) {
     super();
     this.model = model;
-    /** @type {Object<string, import("./BasePort").default>} */
+    /** @type {Object<string, import("./BasePort.js").default>} */
     this.ports = {};
     if (!ports) {
       return;
@@ -36,7 +37,7 @@ class Ports extends LegacyEventBase {
 
   /**
    * @param {string} name
-   * @param {Object|import("./BasePort").default|PortOptions} [options]
+   * @param {Object|import("./BasePort.js").default|PortOptions} [options]
    */
   add(name, options = {}) {
     if (name === "add" || name === "remove") {
@@ -55,7 +56,7 @@ class Ports extends LegacyEventBase {
       this.remove(name);
     }
 
-    const maybePort = /** @type {import("./BasePort").default} */ (options);
+    const maybePort = /** @type {import("./BasePort.js").default} */ (options);
     if (typeof maybePort === "object" && maybePort.canAttach) {
       this.ports[name] = maybePort;
     } else {
@@ -86,7 +87,7 @@ class Ports extends LegacyEventBase {
 }
 
 /**
- * @typedef {{ [key: string]: InPort|import("./InPort").PortOptions }} InPortsOptions
+ * @typedef {{ [key: string]: InPort|import("./InPort.js").PortOptions }} InPortsOptions
  */
 export class InPorts extends Ports {
   /**
@@ -100,7 +101,7 @@ export class InPorts extends Ports {
 }
 
 /**
- * @typedef {{ [key: string]: OutPort|import("./OutPort").PortOptions }} OutPortsOptions
+ * @typedef {{ [key: string]: OutPort|import("./OutPort.js").PortOptions }} OutPortsOptions
  */
 export class OutPorts extends Ports {
   /**

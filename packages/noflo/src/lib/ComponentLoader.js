@@ -2,6 +2,7 @@
 //     (c) 2013-2017 Flowhub UG
 //     (c) 2013 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
+/* @ts-self-types="./ComponentLoader.d.ts" */
 
 /* eslint-disable
     class-methods-use-this,
@@ -16,7 +17,7 @@ import { deprecated } from "./Platform.js";
 /**
  * @callback ComponentFactory
  * @param {Object<string, any>} [metadata]
- * @returns {import("./Component").Component}
+ * @returns {import("./Component.js").Component}
  */
 
 /**
@@ -203,7 +204,7 @@ export class ComponentLoader {
    * @param {string} name - Component name
    * @param {Object<string, any>} [meta] - Node metadata
    * @param {any} [cb] - Legacy callback
-   * @returns {Promise<import("./Component").Component>}
+   * @returns {Promise<import("./Component.js").Component>}
    */
   load(name, meta, cb) {
     let metadata = meta;
@@ -257,7 +258,7 @@ export class ComponentLoader {
       if (this.isGraph(component)) {
         // Subgraph extends Component; the cast keeps the union return of
         // this chain assignable to Promise<Component>
-        return /** @type {Promise<import("./Component").Component>} */ (
+        return /** @type {Promise<import("./Component.js").Component>} */ (
           this.loadGraph(name, component, metadata)
         );
       }
@@ -301,7 +302,7 @@ export class ComponentLoader {
    * @param {string} name
    * @param {ComponentDefinition} component
    * @param {Object<string, any>} [metadata]
-   * @returns {Promise<import("./Component").Component>}
+   * @returns {Promise<import("./Component.js").Component>}
    */
   createComponent(name, component, metadata) {
     const implementation = component;
@@ -390,7 +391,7 @@ export class ComponentLoader {
   // and elementary components.
   /**
    * @param {string} name - Icon to set
-   * @param {import("./Component").Component} instance
+   * @param {import("./Component.js").Component} instance
    */
   setIcon(name, instance) {
     // See if component has an icon

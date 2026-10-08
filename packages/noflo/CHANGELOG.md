@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- The package is renamed to `@noflo/noflo` (work document #13): install with `npm install @noflo/noflo` or `jsr add @noflo/noflo`. Graph component identifiers are unaffected — component names using the unscoped `noflo/` prefix (for example `noflo/Split`) keep resolving, and the unscoped `noflo` npm package will receive a deprecation notice pointing at the scoped name
 - Native-API debug logger (work document #17): `createDebug(namespace)` replaces the `debug` npm module with dependency-free code — namespace toggling via `localStorage` (browsers) or `DEBUG` (Node), wildcard and negation patterns with last-match-wins semantics, lazy per-call evaluation so patterns can change at runtime, stable per-namespace colors. Enabled namespaces log to `console.debug` (web) or `console.error` (Node, matching the `debug` module's stderr stream)
 - The engine now runs the native `@noflo/graph` model as its core graph (work document #10): `noflo.createNetwork` and `Network`/`BaseNetwork` consume `GraphModel` instances directly, and the live-edit network methods (`addNode`/`removeNode`/`renameNode`/`addEdge`/`removeEdge`/`addInitial`/`removeInitial`) mirror their mutations back into the model. `GraphModel`, `importFbpJson`, and `exportFbpJson` are re-exported from NoFlo
 - FBP JSON interchange is available through `noflo.importFbpJson`/`noflo.exportFbpJson`, including legacy NoFlo JSON documents (`processes`/`connections` shape) on import
@@ -61,6 +62,7 @@ export function getComponent() {
 
 ### Fixed
 - Fixed loading components in CommonJS context
+- Platform detection (`noflo.isBrowser()`) now recognizes Deno and Bun as server-side runtimes instead of misclassifying them as browsers: their `process.execPath` does not contain `node`. Affects asynchronous socket timing (`setImmediate` instead of `setTimeout`) and the `Subgraph` component's readiness scheduling, and stops the test suites from skipping non-browser suites on these runtimes
 
 ### Changed
 - Project's unit tests are now executed using the Node.js built-in test runner

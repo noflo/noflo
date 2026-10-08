@@ -7,7 +7,7 @@
  * as a `ComponentRegistry` (work document #16).
  *
  * @example
- * import noflo from "noflo";
+ * import noflo from "@noflo/noflo";
  * import { createNodeModulesRegistry } from "@noflo/loader-node";
  *
  * const registry = await createNodeModulesRegistry(process.cwd());

@@ -106,17 +106,23 @@ describe("native debug logger", () => {
 
   it("reads the pattern from localStorage when available", () => {
     const originalLocalStorage = globalThis.localStorage;
-    globalThis.localStorage = {
-      /** @param {string} key */
-      getItem: (key) => (key === "debug" ? "from-storage" : null),
-    };
+    Object.defineProperty(globalThis, "localStorage", {
+      value: {
+        /** @param {string} key */
+        getItem: (key) => (key === "debug" ? "from-storage" : null),
+      },
+      configurable: true,
+    });
     try {
       delete process.env.DEBUG;
       const log = createDebug("from-storage");
       log("hello");
       assert.equal(output.length, 1);
     } finally {
-      globalThis.localStorage = originalLocalStorage;
+      Object.defineProperty(globalThis, "localStorage", {
+        value: originalLocalStorage,
+        configurable: true,
+      });
     }
   });
 });

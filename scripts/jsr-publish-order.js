@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * @file jsr-publish-order.mjs
+ * @file jsr-publish-order.js
  * @description Compute the JSR publish order for the monorepo's packages.
  *
  * `deno publish` resolves a package's `jsr:` dependencies against the JSR
@@ -19,7 +19,7 @@
  * deterministic. Used by the JSR publish loop in `.github/workflows/
  * publish.yml`.
  *
- * Usage: node scripts/jsr-publish-order.mjs [<repo root>]
+ * Usage: node scripts/jsr-publish-order.js [<repo root>]
  *   Prints one `packages/<dir>` line per JSR package, dependencies first.
  *   (Empty output while no package ships a jsr.json yet.)
  */

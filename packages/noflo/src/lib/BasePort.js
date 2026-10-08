@@ -1,6 +1,7 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
+/* @ts-self-types="./BasePort.d.ts" */
 import { LegacyEventBase } from "./LegacyEvents.js";
 
 // ## NoFlo Port Base class
@@ -96,12 +97,12 @@ export default class BasePort extends LegacyEventBase {
     this.options = handleOptions(options);
     // Sockets list contains all currently attached
     // connections to the port
-    /** @type {Array<import("./InternalSocket").InternalSocket|void>} */
+    /** @type {Array<import("./InternalSocket.js").InternalSocket|void>} */
     this.sockets = [];
     // Name of the graph node this port is in
     /** @type {string|null} */
     this.node = null;
-    /** @type {import("./Component").Component|null} */
+    /** @type {import("./Component.js").Component|null} */
     this.nodeInstance = null;
     // Name of the port
     /** @type {string|null} */
@@ -131,7 +132,7 @@ export default class BasePort extends LegacyEventBase {
   }
 
   /**
-   * @param {import("./InternalSocket").InternalSocket} socket
+   * @param {import("./InternalSocket.js").InternalSocket} socket
    * @param {number|null} [index]
    */
   attach(socket, index = null) {
@@ -149,14 +150,14 @@ export default class BasePort extends LegacyEventBase {
   }
 
   /**
-   * @param {import("./InternalSocket").InternalSocket} socket
+   * @param {import("./InternalSocket.js").InternalSocket} socket
    * @param {number|null} [index]
    */
   // biome-ignore lint/correctness/noUnusedFunctionParameters: Overridden in implementation class
   attachSocket(socket, index = null) {}
 
   /**
-   * @param {import("./InternalSocket").InternalSocket} socket
+   * @param {import("./InternalSocket.js").InternalSocket} socket
    */
   detach(socket) {
     const index = this.sockets.indexOf(socket);
@@ -233,9 +234,10 @@ export default class BasePort extends LegacyEventBase {
         throw new Error(`${this.getId()}: Socket ${socketId} not available`);
       }
       // eslint-disable-next-line max-len
-      const socket = /** @type {import("./InternalSocket").InternalSocket} */ (
-        this.sockets[socketId]
-      );
+      const socket =
+        /** @type {import("./InternalSocket.js").InternalSocket} */ (
+          this.sockets[socketId]
+        );
       return socket.isConnected();
     }
 

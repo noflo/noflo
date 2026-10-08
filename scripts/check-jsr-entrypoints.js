@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * @file scripts/check-jsr-entrypoints.mjs
+ * @file scripts/check-jsr-entrypoints.js
  * @description Guard against the two JSR-score regressions the reticulum-js
  *   monorepo repeatedly hit when adding a new `jsr.json` export:
  *
@@ -26,7 +26,7 @@
  *   (green) while no package ships a `jsr.json` yet.
  *
  * Usage:
- *   node scripts/check-jsr-entrypoints.mjs [root]
+ *   node scripts/check-jsr-entrypoints.js [root]
  */
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";

@@ -21,3 +21,5 @@ npm-debug.log
 *.tgz
 RELEASE_NOTES.md
 packages/*/~/
+packages/*/types/
+packages/noflo/src/**/*.d.ts

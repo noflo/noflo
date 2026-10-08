@@ -2,6 +2,7 @@
 //     (c) 2013-2017 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
+/* @ts-self-types="./Component.d.ts" */
 
 import InPort from "./InPort.js"; // eslint-disable-line no-unused-vars
 import IP from "./IP.js"; // eslint-disable-line no-unused-vars
@@ -33,8 +34,8 @@ const debugSend = createDebug("noflo:component:send");
 
 /**
  * @typedef ComponentOptions
- * @property {import("./Ports").InPortsOptions | InPorts} [inPorts] - Inports for the component
- * @property {import("./Ports").OutPortsOptions | OutPorts} [outPorts] - Outports for the component
+ * @property {import("./Ports.js").InPortsOptions | InPorts} [inPorts] - Inports for the component
+ * @property {import("./Ports.js").OutPortsOptions | OutPorts} [outPorts] - Outports for the component
  * @property {string} [icon]
  * @property {string} [description]
  * @property {ProcessingFunction} [options.process] - Component processsing function

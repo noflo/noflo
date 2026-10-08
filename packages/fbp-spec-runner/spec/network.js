@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { before, describe, it } from "node:test";
-import * as noflo from "noflo";
+import * as noflo from "@noflo/noflo";
 import { executeTestCase } from "../src/network.js";
 
 describe("in-process test case execution", () => {

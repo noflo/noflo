@@ -2,12 +2,13 @@
 //     (c) 2013-2020 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
+/* @ts-self-types="./ProcessContext.d.ts" */
 
 export default class ProcessContext {
   /**
-   * @param {import("./IP").default} ip - IP for this processing context
-   * @param {import("./Component").Component} nodeInstance - Component being run
-   * @param {import("./InPort").default} port - InPort that triggered this context
+   * @param {import("./IP.js").default} ip - IP for this processing context
+   * @param {import("./Component.js").Component} nodeInstance - Component being run
+   * @param {import("./InPort.js").default} port - InPort that triggered this context
    * @param {Object<string, any>} result
    */
   constructor(ip, nodeInstance, port, result) {

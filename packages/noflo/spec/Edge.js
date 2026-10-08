@@ -4,7 +4,7 @@ import { Edge, resolveHighWaterMark } from "../src/lib/Edge.js";
 import * as internalSocket from "../src/lib/InternalSocket.js";
 import IP from "../src/lib/IP.js";
 import * as noflo from "../src/lib/NoFlo.js";
-import { nativeGraph } from "./utils/nativeGraph.mjs";
+import { nativeGraph } from "./utils/nativeGraph.js";
 
 /** Await a couple of microtask/macrotask turns so stream machinery settles. */
 const settle = (turns = 5) =>

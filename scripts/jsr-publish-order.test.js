@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { computePublishOrder } from "./jsr-publish-order.mjs";
+import { computePublishOrder } from "./jsr-publish-order.js";
 
 /**
  * Creates a fixture packages tree.

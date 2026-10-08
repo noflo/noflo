@@ -1,6 +1,7 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2017-2018 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
+/* @ts-self-types="./AsCallback.d.ts" */
 
 /* eslint-disable
     no-param-reassign,
@@ -42,7 +43,7 @@ import { Network } from "./Network.js";
  * @typedef {Object} AsCallbackOptions
  * @property {string} [name] - Name for the wrapped network
  * @property {ComponentLoader} [loader] - Component loader instance to use, if any
- * @property {import("./ComponentLoader").ComponentRegistry} [registry] - Component registry, used to construct a loader when no loader is given
+ * @property {import("./ComponentLoader.js").ComponentRegistry} [registry] - Component registry, used to construct a loader when no loader is given
  * @property {Object} [flowtrace] - Flowtrace instance to use for tracing this network run
  * @property {NetworkCallback} [networkCallback] - Access to Network instance
  * @property {boolean} [raw] - Whether the callback should operate on raw noflo.IP objects
@@ -160,7 +161,7 @@ function prepareNetwork(component, options) {
 function runNetwork(network, inputs) {
   return new Promise((resolve, reject) => {
     // Prepare inports
-    /** @type {Object<string, import("./InternalSocket").InternalSocket>} */
+    /** @type {Object<string, import("./InternalSocket.js").InternalSocket>} */
     let inSockets = {};
     // Subscribe outports
     /** @type {Array<Object<string, IP>>} */
@@ -168,7 +169,7 @@ function runNetwork(network, inputs) {
     const outPorts = network.graph
       .exports()
       .filter((exp) => exp.direction === "outport");
-    /** @type {Object<string, import("./InternalSocket").InternalSocket>} */
+    /** @type {Object<string, import("./InternalSocket.js").InternalSocket>} */
     let outSockets = {};
     outPorts.forEach((portDef) => {
       const process = network.getNode(portDef.internal.node);
@@ -207,12 +208,12 @@ function runNetwork(network, inputs) {
      */
     /**
      * @callback ErrorListener
-     * @param {import("./InternalSocket").SocketError} err
+     * @param {import("./InternalSocket.js").SocketError} err
      * @returns {void}
      */
     /** @type {EndListener} */
     let onEnd;
-    /** @type {(event: Event & { detail: import("./InternalSocket").SocketError }) => void} */
+    /** @type {(event: Event & { detail: import("./InternalSocket.js").SocketError }) => void} */
     const onError = (event) => {
       network.removeEventListener("process-error", onError);
       const err = event.detail;
@@ -504,7 +505,7 @@ function sendOutputMap(outputs, resultType, options) {
  * @param {Object} options
  * @param {string} [options.name] - Name for the wrapped network
  * @param {ComponentLoader} [options.loader] - Component loader instance to use, if any
- * @param {import("./ComponentLoader").ComponentRegistry} [options.registry] - Component registry, used to construct a loader when no loader is given
+ * @param {import("./ComponentLoader.js").ComponentRegistry} [options.registry] - Component registry, used to construct a loader when no loader is given
  * @param {Object} [options.flowtrace] - Flowtrace instance to use for tracing this network run
  * @param {NetworkCallback} [options.networkCallback] - Access to Network instance
  * @param {boolean} [options.raw] - Whether the callback should operate on raw noflo.IP objects

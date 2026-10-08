@@ -1,6 +1,7 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2016-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
+/* @ts-self-types="./IP.d.ts" */
 
 // ## Information Packets
 //
@@ -54,7 +55,7 @@ export default class IP {
     this.isIP = true;
     /** @type {string|null} */
     this.scope = null; // sync scope id
-    /** @type {import("./Component").Component|null} */
+    /** @type {import("./Component.js").Component|null} */
     this.owner = null; // packet owner process
     this.clonable = false; // cloning safety flag
     /** @type {number|null} */
@@ -94,7 +95,7 @@ export default class IP {
 
   // Moves an IP to a different owner
   /**
-   * @param {import("./Component").Component|null} owner
+   * @param {import("./Component.js").Component|null} owner
    */
   move(owner) {
     // no-op

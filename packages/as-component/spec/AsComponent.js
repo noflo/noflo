@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { before, describe, it } from "node:test";
-import * as noflo from "noflo";
+import * as noflo from "@noflo/noflo";
 import { asComponent } from "../src/index.js";
 
 let isBrowser;
 if (
   typeof process !== "undefined" &&
-  process.execPath &&
-  process.execPath.match(/node|iojs/)
+  process.versions &&
+  (process.versions.node || process.versions.deno || process.versions.bun)
 ) {
   isBrowser = false;
 } else {
@@ -225,7 +225,7 @@ describe("asComponent interface", () => {
   describe("with a function returning a Promise", () => {
     describe("with a resolved promise", () => {
       before(function () {
-        if (isBrowser && typeof window.Promise === "undefined") {
+        if (isBrowser && typeof globalThis.Promise === "undefined") {
           return this.skip();
         }
       });
@@ -253,7 +253,7 @@ describe("asComponent interface", () => {
     });
     describe("with a rejected promise", () => {
       before(function () {
-        if (isBrowser && typeof window.Promise === "undefined") {
+        if (isBrowser && typeof globalThis.Promise === "undefined") {
           this.skip();
         }
       });

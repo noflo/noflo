@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { checkAll, checkPackage } from "./check-jsr-entrypoints.mjs";
+import { checkAll, checkPackage } from "./check-jsr-entrypoints.js";
 
 /** Minimal valid entrypoint module: leading doc + a self-types pointer.
  * The fixture writes this as `src/index.js`, so the pointer is one level up. */

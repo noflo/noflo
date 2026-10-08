@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed a deadlock in Deno where concurrent component evaluation (a synchronous `require()` of an ESM module overlapping with dynamic imports) could hang component discovery. Module evaluation is now serialized
 - Initial 2.x line: Node.js component discovery and source storage extracted from NoFlo core
 - Implements the `ComponentRegistry` contract (`list`/`get`/`setSource`/`getSource`) with `change`/`invalidate` EventTarget events
 - `createNodeModulesRegistry(baseDir, options)` factory performs discovery and resolves to a ready registry

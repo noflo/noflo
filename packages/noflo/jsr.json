@@ -1,0 +1,17 @@
+{
+  "name": "@noflo/noflo",
+  "version": "1.5.2",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/lib/NoFlo.js"
+  },
+  "publish": {
+    "include": [
+      "src/",
+      "README.md",
+      "CHANGELOG.md",
+      "package.json",
+      "jsr.json"
+    ]
+  }
+}

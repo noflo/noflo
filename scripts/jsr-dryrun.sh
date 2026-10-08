@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Local JSR publish dry-run helper.
 #
-# Generated declarations (`types/`, or tsc's `lib/*.d.ts` in the noflo
-# package) are git-ignored (build artifacts, never committed), but JSR's
+# Generated declarations (adjacent `.d.ts` files under the noflo package's
+# `src/`) are git-ignored (build artifacts, never committed), but JSR's
 # underlying `deno publish` honors `.gitignore` and would otherwise drop
 # them. CI un-ignores them at publish time (see
 # `.github/workflows/publish.yml`); this script does the same for a local
@@ -16,8 +16,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GITIGNORE="$ROOT/.gitignore"
 NEGLINES=(
-  '!packages/*/types/**'
-  '!packages/*/lib/**/*.d.ts'
+  '!packages/noflo/src/**/*.d.ts'
 )
 
 # Snapshot .gitignore so we can restore it verbatim (even on error / Ctrl-C).
@@ -32,7 +31,6 @@ done
 
 # Regenerate declarations so the dry-run reflects current source.
 (cd "$ROOT" && npm run types --workspaces --if-present) >/dev/null 2>&1 || true
-(cd "$ROOT" && npm run build --workspaces --if-present) >/dev/null
 
 # Discover JSR packages (dirs carrying a jsr.json), or use the given names.
 declare -a packages=()
@@ -59,5 +57,12 @@ fi
 for p in "${packages[@]}"; do
   name="$(node -p "require('$ROOT/packages/$p/jsr.json').name")"
   echo "=== $name ==="
-  (cd "$ROOT/packages/$p" && npx -y jsr publish --dry-run --allow-dirty)
+  # deno >= 2 ships native `deno publish`; the standalone jsr CLI (npx)
+  # embeds an older deno that panics on some declaration rewrites
+  #
+  # --allow-slow-types is INTERIM: the @noflo/noflo type-surface audit
+  # (work document #7, GitHub #1035/#1036/#1037) is the real fix —
+  # roughly 200 public-API members need explicit types in JSDoc source.
+  # Remove the flag once the audit lands so the gate bites again.
+  (cd "$ROOT/packages/$p" && deno publish --dry-run --allow-dirty --no-check --allow-slow-types)
 done

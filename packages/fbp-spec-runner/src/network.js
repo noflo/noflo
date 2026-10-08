@@ -13,7 +13,7 @@
  *   stateful components possible.
  */
 
-import * as noflo from "noflo";
+import * as noflo from "@noflo/noflo";
 import { evaluateExpectStep } from "./assertions.js";
 
 /**
@@ -52,7 +52,7 @@ function waitFor(condition, timeoutMs, description) {
 /**
  * Execute one test case against a component.
  *
- * @param {import("noflo").ComponentLoader} loader - ComponentLoader to load the topic from
+ * @param {import("@noflo/noflo").ComponentLoader} loader - ComponentLoader to load the topic from
  * @param {string} topic - Component name under test
  * @param {Record<string, any>} testCase - The fbp-spec testcase
  * @param {number} [defaultTimeout=2000] - Suite-level default timeout in ms
@@ -79,7 +79,7 @@ export async function executeTestCase(
    * Attach an internal socket to an output port, recording data IPs.
    *
    * @param {string} portName
-   * @returns {import("noflo").internalSocket.InternalSocket}
+   * @returns {import("@noflo/noflo").internalSocket.InternalSocket}
    */
   const attachOut = (portName) => {
     const socket = noflo.internalSocket.createSocket();

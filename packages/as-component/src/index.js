@@ -4,8 +4,9 @@
 /* eslint-disable
     import/prefer-default-export,
 */
+
+import { Component } from "@noflo/noflo";
 import getParams from "get-function-params";
-import { Component } from "noflo";
 
 /**
  * @typedef FuncParam

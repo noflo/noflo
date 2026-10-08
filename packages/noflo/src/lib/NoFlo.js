@@ -1,12 +1,17 @@
+/**
+ * @module @noflo/noflo
+ * @description NoFlo is a Flow-Based Programming environment for JavaScript. This
+ *   module provides the main entry point to the NoFlo network.
+ *
+ *   Find out more about using NoFlo from <http://noflojs.org/documentation/>
+ */
+
+/* @ts-self-types="./NoFlo.d.ts" */
+
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2013-2018 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
-//
-// NoFlo is a Flow-Based Programming environment for JavaScript. This file provides the
-// main entry point to the NoFlo network.
-//
-// Find out more about using NoFlo from <http://noflojs.org/documentation/>
 
 /* eslint-disable
     no-param-reassign,
@@ -131,7 +136,7 @@ import IP from "./IP.js";
  */
 
 /**
- * @typedef { CreateNetworkOptions & import("./BaseNetwork").NetworkOptions} NetworkOptions
+ * @typedef { CreateNetworkOptions & import("./BaseNetwork.js").NetworkOptions} NetworkOptions
  */
 
 /**

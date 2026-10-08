@@ -1,22 +1,27 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "allowJs": true,
+    "module": "nodenext",
+    "target": "esnext",
+    "types": [
+      "node"
+    ],
     "checkJs": true,
-    "outDir": ".",
-    "declaration": true,
-    "strict": false,
     "skipLibCheck": true,
-    "rootDir": "src"
+    "allowJs": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "noEmit": false,
+    "rootDir": "src",
+    "outDir": "src",
+    "strict": false
   },
   "include": [
-    "src/*.ts",
-    "src/**/*.js",
-    "src/lib/**/*.js"
+    "src/*.js",
+    "src/**/*.js"
   ],
   "exclude": [
-    "lib/*.js",
-    "components/*.js"
+    "node_modules",
+    "spec",
+    "src/**/*.d.ts"
   ]
 }

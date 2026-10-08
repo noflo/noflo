@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
-import { nativeGraph } from "./utils/nativeGraph.mjs";
+import { nativeGraph } from "./utils/nativeGraph.js";
 
 describe("NoFlo Network", () => {
   const Split = () =>

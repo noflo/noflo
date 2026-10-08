@@ -1,6 +1,7 @@
 //     NoFlo - Flow-Based Programming for JavaScript
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
+/* @ts-self-types="./InPort.d.ts" */
 import BasePort from "./BasePort.js";
 
 // ## NoFlo inport
@@ -16,11 +17,11 @@ import BasePort from "./BasePort.js";
  */
 /**
  * @callback HasValidationCallback
- * @param {import("./IP").default} ip
+ * @param {import("./IP.js").default} ip
  * @returns {boolean}
  */
 /**
- * @typedef {import("./BasePort").BaseOptions & InPortOptions} PortOptions
+ * @typedef {import("./BasePort.js").BaseOptions & InPortOptions} PortOptions
  */
 
 export default class InPort extends BasePort {
@@ -44,7 +45,7 @@ export default class InPort extends BasePort {
     const baseOptions = this.options;
     this.options = /** @type {PortOptions} */ (baseOptions);
 
-    /** @type {import("./Component").Component|null} */
+    /** @type {import("./Component.js").Component|null} */
     this.nodeInstance = null;
 
     this.prepareBuffer();
@@ -53,7 +54,7 @@ export default class InPort extends BasePort {
   /**
    * Assign a delegate for retrieving data should this inPort
    *
-   * @param {import("./InternalSocket").InternalSocket} socket
+   * @param {import("./InternalSocket.js").InternalSocket} socket
    * @param {number|null} [localId]
    */
   attachSocket(socket, localId = null) {
@@ -86,7 +87,7 @@ export default class InPort extends BasePort {
   }
 
   /**
-   * @param {import("./IP").default} packet
+   * @param {import("./IP.js").default} packet
    * @param {number|null} [index]
    */
   handleIP(packet, index = null) {
@@ -137,28 +138,28 @@ export default class InPort extends BasePort {
   prepareBuffer() {
     if (this.isAddressable()) {
       if (this.options.scoped) {
-        /** @type {Object<string,Object<number,Array<import("./IP").default>>>} */
+        /** @type {Object<string,Object<number,Array<import("./IP.js").default>>>} */
         this.indexedScopedBuffer = {};
       }
-      /** @type {Object<number,Array<import("./IP").default>>} */
+      /** @type {Object<number,Array<import("./IP.js").default>>} */
       this.indexedIipBuffer = {};
-      /** @type {Object<number,Array<import("./IP").default>>} */
+      /** @type {Object<number,Array<import("./IP.js").default>>} */
       this.indexedBuffer = {};
       return;
     }
     if (this.options.scoped) {
-      /** @type {Object<string,Array<import("./IP").default>>} */
+      /** @type {Object<string,Array<import("./IP.js").default>>} */
       this.scopedBuffer = {};
     }
-    /** @type {Array<import("./IP").default>} */
+    /** @type {Array<import("./IP.js").default>} */
     this.iipBuffer = [];
-    /** @type {Array<import("./IP").default>} */
+    /** @type {Array<import("./IP.js").default>} */
     this.buffer = [];
   }
 
   /**
-   * @param {import("./IP").default} ip
-   * @returns {Array<import("./IP").default>}
+   * @param {import("./IP.js").default} ip
+   * @returns {Array<import("./IP.js").default>}
    */
   prepareBufferForIP(ip) {
     if (this.isAddressable()) {
@@ -212,7 +213,7 @@ export default class InPort extends BasePort {
    * @param {string|null} scope
    * @param {number|null} index
    * @param {boolean} [initial]
-   * @returns {Array<import("./IP").default>}
+   * @returns {Array<import("./IP.js").default>}
    */
   getBuffer(scope, index, initial = false) {
     if (this.isAddressable()) {
@@ -252,7 +253,7 @@ export default class InPort extends BasePort {
    * @param {string|null} scope
    * @param {number|null} index
    * @param {boolean} [initial]
-   * @returns {import("./IP").default|void}
+   * @returns {import("./IP.js").default|void}
    */
   getFromBuffer(scope, index, initial = false) {
     const buf = this.getBuffer(scope, index, initial);

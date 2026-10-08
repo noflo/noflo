@@ -2,6 +2,7 @@
 //     (c) 2013-2017 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
+/* @ts-self-types="./Subgraph.d.ts" */
 
 /* eslint-disable
     class-methods-use-this,
@@ -12,7 +13,7 @@
 import { GraphModel, importFbpJson } from "@noflo/graph";
 import { Component } from "../lib/Component.js";
 import { Network } from "../lib/Network.js";
-import { deprecated } from "../lib/Platform.js";
+import { deprecated, isBrowser } from "../lib/Platform.js";
 import { InPorts, OutPorts } from "../lib/Ports.js";
 
 // The Subgraph component is used to wrap NoFlo Networks into components
@@ -24,12 +25,12 @@ export class Subgraph extends Component {
   constructor(metadata) {
     super();
     this.metadata = metadata;
-    /** @type {import("../lib/Network").Network|null} */
+    /** @type {import("../lib/Network.js").Network|null} */
     this.network = null;
     this.ready = true;
     this.started = false;
     this.starting = false;
-    /** @type {import("../lib/ComponentLoader").ComponentLoader|null} */
+    /** @type {import("../lib/ComponentLoader.js").ComponentLoader|null} */
     this.loader = null;
     this.load = 0;
 
@@ -117,7 +118,7 @@ export class Subgraph extends Component {
    */
 
   /**
-   * @param {import("../lib/Network").Network} network
+   * @param {import("../lib/Network.js").Network} network
    */
   subscribeNetwork(network) {
     /**
@@ -143,7 +144,7 @@ export class Subgraph extends Component {
   }
 
   /**
-   * @param {import("../lib/InPort").default} _port
+   * @param {import("../lib/InPort.js").default} _port
    * @param {string} nodeName
    * @param {string} portName
    * @returns {boolean|string}
@@ -169,7 +170,7 @@ export class Subgraph extends Component {
   }
 
   /**
-   * @param {import("../lib/OutPort").default} _port
+   * @param {import("../lib/OutPort.js").default} _port
    * @param {string} nodeName
    * @param {string} portName
    * @returns {boolean|string}
@@ -195,11 +196,7 @@ export class Subgraph extends Component {
   }
 
   setToReady() {
-    if (
-      typeof process !== "undefined" &&
-      process.execPath &&
-      process.execPath.indexOf("node") !== -1
-    ) {
+    if (!isBrowser()) {
       process.nextTick(() => {
         this.ready = true;
         return this.dispatchLifecycleEvent("ready");
@@ -214,7 +211,7 @@ export class Subgraph extends Component {
 
   /**
    * @param {string} name
-   * @param {import("../lib/BaseNetwork").NetworkProcess} process
+   * @param {import("../lib/BaseNetwork.js").NetworkProcess} process
    * @returns {boolean}
    */
   findEdgePorts(name, process) {

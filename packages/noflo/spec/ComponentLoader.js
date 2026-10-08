@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { importFbpJson } from "@noflo/graph";
 import { Subgraph } from "../src/components/Subgraph.js";
 import * as noflo from "../src/lib/NoFlo.js";
-import { nativeGraph } from "./utils/nativeGraph.mjs";
+import { nativeGraph } from "./utils/nativeGraph.js";
 
 /* eslint-disable
   max-classes-per-file
@@ -224,6 +224,9 @@ describe("ComponentLoader", () => {
         l.getModulePrefix("@foo/noflo-my-project"),
         "my-project",
       );
+    });
+    it("maps the scoped core package to the noflo namespace (#13)", () => {
+      assert.strictEqual(l.getModulePrefix("@noflo/noflo"), "noflo");
     });
     it("should normalize full component names", () => {
       assert.strictEqual(

@@ -2,6 +2,7 @@
 //     (c) 2013-2020 Flowhub UG
 //     (c) 2011-2012 Henri Bergius, Nemein
 //     NoFlo may be freely distributed under the MIT license
+/* @ts-self-types="./ProcessOutput.d.ts" */
 
 import IP from "./IP.js";
 /* eslint-disable no-underscore-dangle */
@@ -23,8 +24,8 @@ function isError(err) {
 
 export default class ProcessOutput {
   /**
-   * @param {import("./Ports").OutPorts} ports - Component outports
-   * @param {import("./ProcessContext").default} context - Processing context
+   * @param {import("./Ports.js").OutPorts} ports - Component outports
+   * @param {import("./ProcessContext.js").default} context - Processing context
    */
   constructor(ports, context) {
     this.ports = ports;
@@ -84,7 +85,7 @@ export default class ProcessOutput {
     }
 
     // eslint-disable-next-line max-len
-    const portImpl = /** @type {import("./OutPort").default} */ (
+    const portImpl = /** @type {import("./OutPort.js").default} */ (
       this.nodeInstance.outPorts.ports[port]
     );
 
@@ -249,7 +250,7 @@ export default class ProcessOutput {
         }
         const context = nodeContext[nodeContext.length - 1];
         // eslint-disable-next-line max-len
-        const inPorts = /** @type {import("./InPort").default} */ (
+        const inPorts = /** @type {import("./InPort.js").default} */ (
           this.nodeInstance.inPorts.ports[context.source]
         );
         const buf = inPorts.getBuffer(context.ip.scope, context.ip.index);
