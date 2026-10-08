@@ -12,20 +12,28 @@
 
 import assert from "node:assert";
 import { describe, it } from "node:test";
-
+import { MsgPack } from "@reticulum/core";
 import {
   CMD_BREAKPOINT_CLEAR,
   CMD_BREAKPOINT_SET,
   CMD_PROCESS_CTRL,
+  CMD_PROCESS_LIST,
+  CMD_PROCESS_LIST_REQ,
   CMD_RUN_CTRL,
+  COMPONENT_TYPE,
   decodeBreakpointClear,
   decodeBreakpointSet,
   decodeProcessCtrl,
+  decodeProcessList,
+  decodeProcessListReq,
   decodeRunCtrl,
   EVENT_TYPE,
+  EXECUTION_STATE,
   encodeBreakpointClear,
   encodeBreakpointSet,
   encodeProcessCtrl,
+  encodeProcessList,
+  encodeProcessListReq,
   encodeRunCtrl,
   LIFECYCLE_CODE,
   PROCESS_ACTION,
@@ -143,6 +151,85 @@ describe("0x43 CMD_PROCESS_CTRL", () => {
       () => encodeProcessCtrl({ nodeId: "", action: PROCESS_ACTION.DISABLE }),
       ProtocolError,
     );
+  });
+});
+
+describe("0x44/0x45 process listing", () => {
+  it("round-trips a bare request", () => {
+    const decoded = decodeProcessListReq(encodeProcessListReq());
+    assert.equal(decoded.cmd, CMD_PROCESS_LIST_REQ);
+    assert.deepEqual([...encodeProcessListReq()], [0x91, 0x44]);
+  });
+
+  it("round-trips the authoritative live view with declared kinds and execution states", () => {
+    const decoded = decodeProcessList(
+      encodeProcessList(7, {
+        "node-1": {
+          component: "math/Add",
+          type: COMPONENT_TYPE.ELEMENTARY,
+          state: EXECUTION_STATE.ENABLED,
+        },
+        "node-2": {
+          component: "graphs/Pipeline",
+          type: COMPONENT_TYPE.SUBGRAPH,
+          state: EXECUTION_STATE.ENABLED,
+        },
+        "node-3": {
+          component: "math/Divide",
+          type: COMPONENT_TYPE.STUB,
+          state: EXECUTION_STATE.DISABLED,
+        },
+      }),
+    );
+    assert.equal(decoded.cmd, CMD_PROCESS_LIST);
+    assert.equal(decoded.epochId, 7);
+    assert.deepEqual(decoded.entries["node-3"], {
+      component: "math/Divide",
+      type: COMPONENT_TYPE.STUB,
+      state: EXECUTION_STATE.DISABLED,
+    });
+  });
+
+  it("encodes entries as [component, kind, state] tuples on the wire", () => {
+    const frame = MsgPack.decode(
+      encodeProcessList(1, {
+        "node-1": {
+          component: "math/Add",
+          type: COMPONENT_TYPE.ELEMENTARY,
+          state: EXECUTION_STATE.ENABLED,
+        },
+      }),
+    );
+    assert.deepEqual(frame[2]["node-1"], ["math/Add", "elementary", 0x01]);
+  });
+
+  it("rejects undeclared kinds, unknown states, and malformed wire entries", () => {
+    assert.throws(
+      () =>
+        encodeProcessList(1, {
+          "node-1": {
+            component: "x/Y",
+            type: "inferred",
+            state: EXECUTION_STATE.ENABLED,
+          },
+        }),
+      ProtocolError,
+    );
+    assert.throws(
+      () =>
+        encodeProcessList(1, {
+          "node-1": {
+            component: "x/Y",
+            type: COMPONENT_TYPE.ELEMENTARY,
+            state: 0x03,
+          },
+        }),
+      ProtocolError,
+    );
+    // fixarray(3) with an empty map for entries decodes fine, but a map
+    // with a malformed tuple must not.
+    const bad = MsgPack.encode([CMD_PROCESS_LIST, 1, { "node-1": "math/Add" }]);
+    assert.throws(() => decodeProcessList(bad), ProtocolError);
   });
 });
 

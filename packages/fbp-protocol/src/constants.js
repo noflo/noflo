@@ -332,6 +332,40 @@ export const PROCESS_ACTION = {
   ENABLE: 0x02,
 };
 
+/**
+ * Request the live process listing: `[0x44]` (work document #4 §8, update
+ * #9). The runtime answers with the authoritative view of its current graph
+ * epoch — clients never infer stub-ness by joining component names against
+ * their own registries.
+ *
+ * @type {number}
+ */
+export const CMD_PROCESS_LIST_REQ = 0x44;
+
+/**
+ * The live process listing:
+ * `[0x45, epoch_id, { "node-1": ["math/Add", "elementary", 0x01], ... }]`.
+ * Each node carries the component it resolves to, that component's declared
+ * kind (the shared vocabulary of {@link COMPONENT_TYPE}), and its execution
+ * state ({@link EXECUTION_STATE}). The epoch correlates with the CRDT sync
+ * handshake (`0x10`).
+ *
+ * @type {number}
+ */
+export const CMD_PROCESS_LIST = 0x45;
+
+/**
+ * Execution states of `0x45` process-list entries, mirroring the
+ * `0x43 CMD_PROCESS_CTRL` actions: a disabled node stops activating while
+ * its queued packets are kept.
+ *
+ * @type {Record<string, number>}
+ */
+export const EXECUTION_STATE = {
+  ENABLED: 0x01,
+  DISABLED: 0x02,
+};
+
 // --- Streamable trace file format ---
 
 /**

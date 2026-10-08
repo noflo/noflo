@@ -4,12 +4,13 @@
  * @module debug
  * @description Execution control and debugging codecs (work document #4 §8):
  *   the `0x40` block. Run control — pause, resume, step (noflo/noflo-ui
- *   #243), data breakpoints (#245), and per-process execution control (#317)
- *   — replaces the debugging surface 1.x never had. All commands require the
- *   `LIFECYCLE_CTRL` capability. Notifications ride the existing telemetry
- *   stream as `0x06 LIFECYCLE` events (`0x05 PAUSED`, `0x06 RESUMED`) and
- *   `0x08 BREAKPOINT_HIT` flowtrace events; there are no dedicated ack
- *   frames, consistent with the rest of the protocol.
+ *   #243), data breakpoints (#245), per-process execution control (#317),
+ *   and the live process listing (work document #4 update #9). All commands
+ *   except the read-only listing require the `LIFECYCLE_CTRL` capability;
+ *   notifications ride the existing telemetry stream as `0x06 LIFECYCLE`
+ *   events (`0x05 PAUSED`, `0x06 RESUMED`) and `0x08 BREAKPOINT_HIT`
+ *   flowtrace events; there are no dedicated ack frames, consistent with
+ *   the rest of the protocol.
  */
 
 import { MsgPack } from "@reticulum/core";
@@ -17,7 +18,11 @@ import {
   CMD_BREAKPOINT_CLEAR,
   CMD_BREAKPOINT_SET,
   CMD_PROCESS_CTRL,
+  CMD_PROCESS_LIST,
+  CMD_PROCESS_LIST_REQ,
   CMD_RUN_CTRL,
+  COMPONENT_TYPE,
+  EXECUTION_STATE,
   PROCESS_ACTION,
   RUN_ACTION,
 } from "./constants.js";
@@ -163,6 +168,86 @@ export function decodeProcessCtrl(bytes) {
 }
 
 /**
+ * A process in the runtime's live graph: the component it resolves to, that
+ * component's declared kind, and its execution state. The kind is declared
+ * data — clients never infer stub-ness by joining component names against
+ * their own registries (work document #4 update #9).
+ *
+ * @typedef {object} ProcessEntry
+ * @property {string} component Library-namespaced component name.
+ * @property {string} type One of {@link COMPONENT_TYPE}.
+ * @property {number} state One of {@link EXECUTION_STATE}.
+ */
+
+/**
+ * Process entries keyed by node id.
+ *
+ * @typedef {Record<string, ProcessEntry>} ProcessEntries
+ */
+
+/**
+ * Encode a `0x44 CMD_PROCESS_LIST_REQ`: `[0x44]` — request the live process
+ * listing of the runtime's current graph epoch.
+ *
+ * @returns {Uint8Array}
+ */
+export function encodeProcessListReq() {
+  return MsgPack.encode([CMD_PROCESS_LIST_REQ]);
+}
+
+/**
+ * Decode a `0x44 CMD_PROCESS_LIST_REQ`.
+ *
+ * @param {Uint8Array} bytes
+ * @returns {{ cmd: number }}
+ */
+export function decodeProcessListReq(bytes) {
+  const frame = MsgPack.decode(bytes);
+  expectFrame(frame, CMD_PROCESS_LIST_REQ, 1);
+  return { cmd: CMD_PROCESS_LIST_REQ };
+}
+
+/**
+ * Encode a `0x45 CMD_PROCESS_LIST`: `[0x45, epoch_id, entries]` where each
+ * entry is the positional `[component, kind, state]` tuple. The listing is
+ * the authoritative runtime view — the kind travels as declared data.
+ *
+ * @param {number|string} epochId The graph epoch the listing reflects.
+ * @param {ProcessEntries} entries Node id to {@link ProcessEntry}.
+ * @returns {Uint8Array}
+ */
+export function encodeProcessList(epochId, entries) {
+  assertEntries(entries);
+  /** @type {Record<string, [string, string, number]>} */
+  const wire = {};
+  for (const [nodeId, entry] of Object.entries(entries)) {
+    wire[nodeId] = [entry.component, entry.type, entry.state];
+  }
+  return MsgPack.encode([CMD_PROCESS_LIST, epochId, wire]);
+}
+
+/**
+ * Decode a `0x45 CMD_PROCESS_LIST`.
+ *
+ * @param {Uint8Array} bytes
+ * @returns {{ cmd: number, epochId: number|string, entries: ProcessEntries }}
+ */
+export function decodeProcessList(bytes) {
+  const frame = MsgPack.decode(bytes);
+  expectFrame(frame, CMD_PROCESS_LIST, 3);
+  const [cmd, epochId, wireEntries] = frame;
+  assertWireEntries(wireEntries, cmd);
+  /** @type {ProcessEntries} */
+  const entries = {};
+  for (const [nodeId, [component, type, state]] of Object.entries(
+    wireEntries,
+  )) {
+    entries[nodeId] = { component, type, state };
+  }
+  return { cmd, epochId, entries };
+}
+
+/**
  * @param {any} frame
  * @param {number} opcode
  * @param {number} arity
@@ -234,5 +319,87 @@ function assertId(id, opcode, field) {
 function assertName(name, opcode, field) {
   if (typeof name !== "string" || name.length === 0) {
     throw new ProtocolError(`${field} must be a non-empty string`, opcode);
+  }
+}
+
+/**
+ * @param {ProcessEntries} entries
+ * @returns {void}
+ */
+function assertEntries(entries) {
+  if (
+    entries === null ||
+    typeof entries !== "object" ||
+    Array.isArray(entries)
+  ) {
+    throw new ProtocolError(
+      "process entries must be a map of node id to process entry",
+      CMD_PROCESS_LIST,
+    );
+  }
+  for (const [nodeId, entry] of Object.entries(entries)) {
+    assertName(nodeId, CMD_PROCESS_LIST, "node id");
+    assertEntry(entry, nodeId);
+  }
+}
+
+/**
+ * @param {Record<string, any>} entries Raw wire entries: node id → [component, kind, state].
+ * @param {number} opcode
+ * @returns {void}
+ */
+function assertWireEntries(entries, opcode) {
+  if (
+    entries === null ||
+    typeof entries !== "object" ||
+    Array.isArray(entries)
+  ) {
+    throw new ProtocolError(
+      "process entries must be a map of node id to [component, kind, state] tuple",
+      opcode,
+    );
+  }
+  for (const [nodeId, tuple] of Object.entries(entries)) {
+    assertName(nodeId, opcode, "node id");
+    if (
+      !Array.isArray(tuple) ||
+      tuple.length !== 3 ||
+      typeof tuple[0] !== "string" ||
+      tuple[0].length === 0 ||
+      !Object.values(COMPONENT_TYPE).includes(tuple[1]) ||
+      !Object.values(EXECUTION_STATE).includes(tuple[2])
+    ) {
+      throw new ProtocolError(
+        `process entry for ${nodeId} must be a [component, kind, state] tuple carrying a declared component kind and execution state`,
+        opcode,
+      );
+    }
+  }
+}
+
+/**
+ * @param {ProcessEntry} entry
+ * @param {string} nodeId
+ * @returns {void}
+ */
+function assertEntry(entry, nodeId) {
+  if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
+    throw new ProtocolError(
+      `process entry for ${nodeId} must be a map with component, type, and state`,
+      CMD_PROCESS_LIST,
+    );
+  }
+  assertName(entry.component, CMD_PROCESS_LIST, "component");
+  if (!Object.values(COMPONENT_TYPE).includes(entry.type)) {
+    throw new ProtocolError(
+      `process entry for ${nodeId} must declare a component kind from the shared vocabulary`,
+      CMD_PROCESS_LIST,
+    );
+  }
+  if (!Object.values(EXECUTION_STATE).includes(entry.state)) {
+    throw new ProtocolError(
+      `process entry for ${nodeId} must carry an execution state`,
+      CMD_PROCESS_LIST,
+    );
   }
 }

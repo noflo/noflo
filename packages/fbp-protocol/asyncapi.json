@@ -198,6 +198,26 @@
       },
       "x-capability": "LIFECYCLE_CTRL (0x40)"
     },
+    "cmd/0x44": {
+      "description": "Client → runtime: request the live process listing of the current graph epoch.",
+      "subscribe": {
+        "operationId": "processListReq",
+        "message": {
+          "$ref": "#/components/messages/processListReq"
+        }
+      },
+      "x-capability": "GRAPH_READ (0x01) — introspection, not control"
+    },
+    "cmd/0x45": {
+      "description": "Runtime → client: the authoritative live view. Each entry is the positional `[component, kind, state]` tuple; the kind is declared data — clients never infer stub-ness by joining component names against their own registries (work document #4 update #9). The epoch correlates with the CRDT sync handshake.",
+      "publish": {
+        "operationId": "processList",
+        "message": {
+          "$ref": "#/components/messages/processList"
+        }
+      },
+      "x-capability": "GRAPH_READ (0x01) — introspection, not control"
+    },
     "lxmf/fbp.telemetry": {
       "description": "Runtime → mesh, over LXMF store-and-forward (not a link channel): asynchronous telemetry drops, event-driven or scheduled opportunistically with randomized jitter to respect Proof-of-Work limits. LXMF app name: `fbp.telemetry`.",
       "publish": {
@@ -1121,6 +1141,106 @@
           }
         ],
         "x-msgpack-hex": "9343a66e6f64652d3101",
+        "x-verify": "frame"
+      },
+      "processListReq": {
+        "name": "processListReq",
+        "title": "0x44 CMD_PROCESS_LIST_REQ",
+        "summary": "Request the live process listing.",
+        "payload": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": [
+            {
+              "type": "integer",
+              "const": 68,
+              "description": "CMD_PROCESS_LIST_REQ"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              68
+            ]
+          }
+        ],
+        "x-msgpack-hex": "9144",
+        "x-verify": "frame"
+      },
+      "processList": {
+        "name": "processList",
+        "title": "0x45 CMD_PROCESS_LIST",
+        "summary": "The authoritative live view: component, declared kind, and execution state per node.",
+        "payload": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": [
+            {
+              "type": "integer",
+              "const": 69,
+              "description": "CMD_PROCESS_LIST"
+            },
+            {
+              "type": [
+                "integer",
+                "string"
+              ],
+              "description": "epoch_id — the graph epoch the listing reflects"
+            },
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 3,
+                "items": [
+                  {
+                    "type": "string",
+                    "description": "component — library-namespaced component name the node resolves to"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ComponentKind"
+                  },
+                  {
+                    "type": "integer",
+                    "enum": [
+                      1,
+                      2
+                    ],
+                    "description": "state — 0x01 enabled, 0x02 disabled (mirrors 0x43 CMD_PROCESS_CTRL)"
+                  }
+                ]
+              },
+              "description": "entries — node id to [component, kind, state]"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              69,
+              7,
+              {
+                "node-1": [
+                  "math/Add",
+                  "elementary",
+                  1
+                ],
+                "node-3": [
+                  "math/Divide",
+                  "stub",
+                  2
+                ]
+              }
+            ]
+          }
+        ],
+        "x-msgpack-hex": "93450782a66e6f64652d3193a86d6174682f416464aa656c656d656e7461727901a66e6f64652d3393ab6d6174682f446976696465a47374756202",
         "x-verify": "frame"
       },
       "lxmTelemetry": {

@@ -27,10 +27,13 @@ import {
   CMD_CRDT_UPDATE,
   CMD_FLOWTRACE_CHUNK,
   CMD_PROCESS_CTRL,
+  CMD_PROCESS_LIST,
+  CMD_PROCESS_LIST_REQ,
   CMD_PUBSUB_SUB,
   CMD_RUN_CTRL,
   COMPONENT_TYPE,
   EVENT_TYPE,
+  EXECUTION_STATE,
   LIFECYCLE_CODE,
   LIMITATION,
   OP_TYPE,
@@ -71,6 +74,8 @@ describe("command codes", () => {
     assert.equal(CMD_BREAKPOINT_SET, 0x41);
     assert.equal(CMD_BREAKPOINT_CLEAR, 0x42);
     assert.equal(CMD_PROCESS_CTRL, 0x43);
+    assert.equal(CMD_PROCESS_LIST_REQ, 0x44);
+    assert.equal(CMD_PROCESS_LIST, 0x45);
     // Streamable trace file format
     assert.equal(TRACE_SNAPSHOT, 0xf0);
   });
@@ -97,6 +102,8 @@ describe("command codes", () => {
       CMD_BREAKPOINT_SET,
       CMD_BREAKPOINT_CLEAR,
       CMD_PROCESS_CTRL,
+      CMD_PROCESS_LIST_REQ,
+      CMD_PROCESS_LIST,
     ];
     for (const code of transportBlock) {
       assert.ok(code >= 0x00 && code <= 0x0f);
@@ -131,6 +138,8 @@ describe("command codes", () => {
       CMD_BREAKPOINT_SET,
       CMD_BREAKPOINT_CLEAR,
       CMD_PROCESS_CTRL,
+      CMD_PROCESS_LIST_REQ,
+      CMD_PROCESS_LIST,
       TRACE_SNAPSHOT,
     ];
     assert.equal(new Set(codes).size, codes.length);
@@ -198,6 +207,11 @@ describe("execution control actions", () => {
     assert.equal(RUN_ACTION.STEP, 0x03);
     assert.equal(PROCESS_ACTION.DISABLE, 0x01);
     assert.equal(PROCESS_ACTION.ENABLE, 0x02);
+  });
+
+  it("pin the process listing execution states", () => {
+    assert.equal(EXECUTION_STATE.ENABLED, 0x01);
+    assert.equal(EXECUTION_STATE.DISABLED, 0x02);
   });
 });
 

@@ -33,6 +33,8 @@ import {
   CMD_CRDT_UPDATE,
   CMD_FLOWTRACE_CHUNK,
   CMD_PROCESS_CTRL,
+  CMD_PROCESS_LIST,
+  CMD_PROCESS_LIST_REQ,
   CMD_PUBSUB_SUB,
   CMD_RUN_CTRL,
   decodeAnnounceAppData,
@@ -55,6 +57,8 @@ import {
   encodeFlowtraceChunk,
   encodeLxmTelemetry,
   encodeProcessCtrl,
+  encodeProcessList,
+  encodeProcessListReq,
   encodePubsubSub,
   encodeRunCtrl,
   readTraceFile,
@@ -106,6 +110,9 @@ const frameEncoders = {
     encodeBreakpointClear(decoded.breakpointId),
   [CMD_PROCESS_CTRL]: (decoded) =>
     encodeProcessCtrl({ nodeId: decoded.nodeId, action: decoded.action }),
+  [CMD_PROCESS_LIST_REQ]: () => encodeProcessListReq(),
+  [CMD_PROCESS_LIST]: (decoded) =>
+    encodeProcessList(decoded.epochId, decoded.entries),
 };
 
 /**

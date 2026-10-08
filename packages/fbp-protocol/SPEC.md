@@ -327,8 +327,9 @@ must not look like an error channel (WD #4 update #9).
 
 The debugging surface replaces the pause/step support 1.x never had
 (noflo/noflo-ui #243/#245) and adds the per-process execution control #317
-asked for. All commands require the `LIFECYCLE_CTRL` capability.
-Run-state changes are announced on the telemetry stream as `0x06 LIFECYCLE`
+asked for. The control commands require the `LIFECYCLE_CTRL` capability; the
+read-only process listing requires `GRAPH_READ`. Run-state changes are
+announced on the telemetry stream as `0x06 LIFECYCLE`
 events (`0x05 PAUSED`, `0x06 RESUMED`); breakpoint hits carry their cause
 as `0x08 BREAKPOINT_HIT` flowtrace events. There are no dedicated ack
 frames, consistent with the rest of the protocol. Pausing stops the
@@ -368,10 +369,27 @@ integer) and scoped to the link. The packet itself travels as its own
 
 Disabled state is runtime-side execution state, not graph state: it does
 not travel the CRDT op log, and it is deliberately not `0x05` UI metadata,
-which constrained nodes drop. Clients observe disabled nodes through their
-effect on the trace stream; a process listing with per-node execution
-state and implementation kind remains a separate open surface (WD #4
-update #9).
+which constrained nodes drop. Clients observe disabled nodes through the
+process listing below.
+
+**`0x44` CMD_PROCESS_LIST_REQ** — request the live process listing: `[0x44]`.
+
+**`0x45` CMD_PROCESS_LIST** — the authoritative live view:
+`[0x45, epoch_id, { "node-1": ["math/Add", "elementary", 0x01], ... }]`.
+Each entry is the positional `[component, kind, state]` tuple: the component
+the node resolves to, that component's declared kind — the shared vocabulary
+of §6, so clients never infer stub-ness by joining component names against
+their own registries (WD #4 update #9) — and the node's execution state:
+
+| Code   | State     |
+| ------ | --------- |
+| `0x01` | Enabled   |
+| `0x02` | Disabled  |
+
+The `epoch_id` is the graph epoch the listing reflects, correlating with the
+CRDT sync handshake (§5). The listing requires `GRAPH_READ`, not
+`LIFECYCLE_CTRL`: it is introspection, and the state it reports is exactly
+what `0x43` controls.
 
 ## 9. Offline LXMF store & forward
 
