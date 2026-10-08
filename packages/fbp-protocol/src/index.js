@@ -38,6 +38,16 @@ export {
 
 export { ProtocolError } from "./errors.js";
 export {
+  decodeCrdtStaleEpoch,
+  decodeCrdtSyncReq,
+  decodeCrdtUpdate,
+  decodeCrdtUpToDate,
+  encodeCrdtStaleEpoch,
+  encodeCrdtSyncReq,
+  encodeCrdtUpdate,
+  encodeCrdtUpToDate,
+} from "./graph.js";
+export {
   decodeAnnounceAppData,
   decodeAuthResponse,
   encodeAnnounceAppData,
