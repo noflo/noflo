@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { before, beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
+import { listen, listenOnce } from "./utils/events.js";
 
 describe("Component", () => {
   describe("with required ports", () => {
@@ -173,10 +174,10 @@ describe("Component", () => {
       const s1 = new noflo.internalSocket.InternalSocket();
       const s2 = new noflo.internalSocket.InternalSocket();
       const groups = ["foo", "bar"];
-      s2.on("begingroup", (grp) => {
+      listen(s2, "begingroup", (grp) => {
         assert.strictEqual(grp, groups.shift());
       });
-      s2.on("data", (err) => {
+      listen(s2, "data", (err) => {
         assert.equal(Error.isError(err), true);
         assert.strictEqual(groups.length, 0);
         done();
@@ -334,7 +335,7 @@ describe("Component", () => {
     });
   });
   describe("shutting down a component", () => {
-    it("should flag the component as not started", (_t, done) => {
+    it("should flag the component as not started", async () => {
       const c = new noflo.Component({
         inPorts: {
           in: {
@@ -345,22 +346,11 @@ describe("Component", () => {
       });
       const i = new noflo.internalSocket.InternalSocket();
       c.inPorts.in.attach(i);
-      c.start((err) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.equal(c.isStarted(), true);
-        c.shutdown((err) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          assert.strictEqual(c.started, false);
-          assert.equal(c.isStarted(), false);
-          done();
-        });
-      });
+      await c.start();
+      assert.equal(c.isStarted(), true);
+      await c.shutdown();
+      assert.strictEqual(c.started, false);
+      assert.equal(c.isStarted(), false);
     });
   });
   describe("with object-based IPs", () => {
@@ -384,7 +374,7 @@ describe("Component", () => {
       const s1 = new noflo.internalSocket.InternalSocket();
       const s2 = new noflo.internalSocket.InternalSocket();
 
-      s2.on("ip", (ip) => {
+      listen(s2, "ip", (ip) => {
         console.log(ip);
         assert.strictEqual(typeof ip, "object");
         assert.strictEqual(ip.type, "data");
@@ -472,7 +462,7 @@ describe("Component", () => {
       const s2 = new noflo.internalSocket.InternalSocket();
       const s3 = new noflo.internalSocket.InternalSocket();
 
-      s3.on("ip", (ip) => {
+      listen(s3, "ip", (ip) => {
         assert.strictEqual(typeof ip, "object");
         assert.strictEqual(ip.type, "data");
         assert.strictEqual(
@@ -533,7 +523,7 @@ describe("Component", () => {
       c.outPorts.baz.attach(sout1);
 
       let count = 0;
-      sout1.on("ip", () => {
+      listen(sout1, "ip", () => {
         count++;
         if (count === 1) {
           assert.deepStrictEqual(hadIPs, ["foo"]);
@@ -585,7 +575,7 @@ describe("Component", () => {
       c.outPorts.baz.attach(sout1);
 
       let count = 0;
-      sout1.on("ip", () => {
+      listen(sout1, "ip", () => {
         count++;
         if (count === 1) {
           assert.deepStrictEqual(receivedIndexes, [
@@ -650,7 +640,7 @@ describe("Component", () => {
       c.outPorts.baz.attach(sout1, 1);
       c.outPorts.baz.attach(sout2, 0);
 
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         const exp = expected.shift();
         const received = {
           data: ip.data,
@@ -661,7 +651,7 @@ describe("Component", () => {
           done();
         }
       });
-      sout2.on("ip", (ip) => {
+      listen(sout2, "ip", (ip) => {
         const exp = expected.shift();
         const received = {
           data: ip.data,
@@ -703,8 +693,8 @@ describe("Component", () => {
       c.outPorts.baz.attach(sout1, 1);
       c.outPorts.baz.attach(sout2, 0);
 
-      sout1.on("ip", () => {});
-      sout2.on("ip", () => {});
+      listen(sout1, "ip", () => {});
+      listen(sout2, "ip", () => {});
 
       sin1.post(new noflo.IP("data", "first"));
     });
@@ -749,7 +739,7 @@ describe("Component", () => {
       c.outPorts.out1.attach(sout1, 1);
       c.outPorts.out2.attach(sout2, 0);
 
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         const exp = expected.shift();
         const received = {
           port: "out1",
@@ -760,7 +750,7 @@ describe("Component", () => {
           done();
         }
       });
-      sout2.on("ip", (ip) => {
+      listen(sout2, "ip", (ip) => {
         const exp = expected.shift();
         const received = {
           port: "out2",
@@ -797,7 +787,7 @@ describe("Component", () => {
       c.outPorts.baz.attach(sout1);
 
       let count = 0;
-      sout1.on("ip", () => {
+      listen(sout1, "ip", () => {
         count++;
         if (count === 1) {
           assert.deepStrictEqual(triggered, ["bar"]);
@@ -883,7 +873,7 @@ describe("Component", () => {
       c.inPorts.bar.attach(sin2);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once("ip", (ip) => {
+      listenOnce(sout1, "ip", (ip) => {
         assert.strictEqual(typeof ip, "object");
         assert.strictEqual(ip.type, "data");
         assert.strictEqual(ip.data.foo, "foo");
@@ -917,7 +907,7 @@ describe("Component", () => {
       c.inPorts.foo.attach(sin1);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once("ip", (ip) => {
+      listenOnce(sout1, "ip", (ip) => {
         assert.strictEqual(typeof ip, "object");
         assert.strictEqual(ip.type, "data");
         assert.strictEqual(ip.data, "foo");
@@ -947,7 +937,7 @@ describe("Component", () => {
       c.inPorts.foo.attach(sin1);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once("ip", (ip) => {
+      listenOnce(sout1, "ip", (ip) => {
         assert.strictEqual(typeof ip, "object");
         assert.strictEqual(ip.type, "data");
         assert.strictEqual(ip.data, "foo");
@@ -980,7 +970,7 @@ describe("Component", () => {
       c.inPorts.foo.attach(sin1);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once("ip", (ip) => {
+      listenOnce(sout1, "ip", (ip) => {
         assert.strictEqual(typeof ip, "object");
         assert.strictEqual(ip.type, "data");
         assert.strictEqual(ip.data, "foo");
@@ -1014,7 +1004,7 @@ describe("Component", () => {
       c.inPorts.foo.attach(sin1);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once("ip", (ip) => {
+      listenOnce(sout1, "ip", (ip) => {
         assert.strictEqual(typeof ip, "object");
         assert.strictEqual(ip.type, "data");
         assert.strictEqual(ip.data, "foo");
@@ -1051,7 +1041,7 @@ describe("Component", () => {
       c.inPorts.bar.attach(sin2);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once("ip", (ip) => {
+      listenOnce(sout1, "ip", (ip) => {
         assert.strictEqual(typeof ip, "object");
         assert.strictEqual(ip.type, "data");
         assert.strictEqual(ip.data.foo, "foo");
@@ -1095,7 +1085,7 @@ describe("Component", () => {
 
       let shouldHaveSent = false;
 
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         assert.strictEqual(
           shouldHaveSent,
           true,
@@ -1148,12 +1138,12 @@ describe("Component", () => {
       c.inPorts.bar.attach(sin2);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once("ip", (ip) => {
+      listenOnce(sout1, "ip", (ip) => {
         assert.strictEqual(typeof ip, "object");
         assert.strictEqual(ip.type, "data");
         assert.strictEqual(ip.data.foo, "foo");
         assert.strictEqual(ip.data.bar, "bar");
-        sout1.once("ip", (ip) => {
+        listenOnce(sout1, "ip", (ip) => {
           assert.strictEqual(typeof ip, "object");
           assert.strictEqual(ip.type, "data");
           assert.strictEqual(ip.data.foo, "boo");
@@ -1195,12 +1185,12 @@ describe("Component", () => {
       c.inPorts.bar.attach(sin2);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once("ip", (ip) => {
+      listenOnce(sout1, "ip", (ip) => {
         assert.strictEqual(typeof ip, "object");
         assert.strictEqual(ip.type, "data");
         assert.strictEqual(ip.data.foo, "foo");
         assert.strictEqual(ip.data.bar, "bar");
-        sout1.once("ip", (ip) => {
+        listenOnce(sout1, "ip", (ip) => {
           assert.strictEqual(typeof ip, "object");
           assert.strictEqual(ip.type, "data");
           assert.strictEqual(ip.data.foo, "boo");
@@ -1237,12 +1227,12 @@ describe("Component", () => {
       c.inPorts.bar.attach(sin2);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once("ip", (ip) => {
+      listenOnce(sout1, "ip", (ip) => {
         assert.strictEqual(typeof ip, "object");
         assert.strictEqual(ip.type, "data");
         assert.strictEqual(ip.scope, "1");
         assert.strictEqual(ip.data, "Josh and Laura");
-        sout1.once("ip", (ip) => {
+        listenOnce(sout1, "ip", (ip) => {
           assert.strictEqual(typeof ip, "object");
           assert.strictEqual(ip.type, "data");
           assert.strictEqual(ip.scope, "2");
@@ -1273,7 +1263,7 @@ describe("Component", () => {
       c.inPorts.foo.attach(sin1);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once("ip", (ip) => {
+      listenOnce(sout1, "ip", (ip) => {
         assert.strictEqual(typeof ip, "object");
         assert.strictEqual(ip.type, "data");
         assert.strictEqual(ip.scope, "baz");
@@ -1305,17 +1295,17 @@ describe("Component", () => {
       c.inPorts.bar.attach(sin2);
       c.outPorts.baz.attach(sout1);
 
-      sout1.once("ip", (ip) => {
+      listenOnce(sout1, "ip", (ip) => {
         assert.strictEqual(typeof ip, "object");
         assert.strictEqual(ip.type, "data");
         assert.strictEqual(ip.scope, 1);
         assert.strictEqual(ip.data, "Josh and Laura");
-        sout1.once("ip", (ip) => {
+        listenOnce(sout1, "ip", (ip) => {
           assert.strictEqual(typeof ip, "object");
           assert.strictEqual(ip.type, "data");
           assert.strictEqual(ip.scope, 0);
           assert.strictEqual(ip.data, "Jane and Luke");
-          sout1.once("ip", (ip) => {
+          listenOnce(sout1, "ip", (ip) => {
             assert.strictEqual(typeof ip, "object");
             assert.strictEqual(ip.type, "data");
             assert.strictEqual(ip.scope, null);
@@ -1362,7 +1352,7 @@ describe("Component", () => {
         { delay: 10, msg: "four" },
       ];
 
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         assert.deepStrictEqual(ip.data, sample.shift());
         if (sample.length === 0) {
           done();
@@ -1405,7 +1395,7 @@ describe("Component", () => {
       ];
 
       let count = 0;
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         let src;
         count++;
         switch (count) {
@@ -1523,7 +1513,7 @@ describe("Component", () => {
         },
       });
 
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         assert.strictEqual(typeof ip, "object");
         assert.strictEqual(ip.data, "some data");
         done();
@@ -1556,7 +1546,7 @@ describe("Component", () => {
         },
       });
 
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         assert.strictEqual(typeof ip, "object");
         assert.deepStrictEqual(ip.data, { some: "data" });
         done();
@@ -1616,7 +1606,7 @@ describe("Component", () => {
         },
       });
 
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         assert.strictEqual(typeof ip, "object");
         assert.ok(Error.isError(ip.data));
         assert.strictEqual(ip.scope, "some-scope");
@@ -1660,7 +1650,7 @@ describe("Component", () => {
       const actual = [];
       let count = 0;
 
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         count++;
         assert.strictEqual(typeof ip, "object");
         assert.strictEqual(ip.scope, "some-scope");
@@ -1716,7 +1706,7 @@ describe("Component", () => {
       const source = ["<", "foo", "bar", ">"];
       let count = 0;
 
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         const data = (() => {
           switch (ip.type) {
             case "openBracket":
@@ -1734,7 +1724,7 @@ describe("Component", () => {
         }
       });
 
-      sout2.on("ip", (ip) => {
+      listen(sout2, "ip", (ip) => {
         if (ip.type !== "data") {
           return;
         }
@@ -1797,7 +1787,7 @@ describe("Component", () => {
         "1 > a",
       ];
       const received = [];
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`1 < ${ip.data}`);
@@ -1815,7 +1805,7 @@ describe("Component", () => {
         assert.deepStrictEqual(received, expected);
         done();
       });
-      sout2.on("ip", (ip) => {
+      listen(sout2, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`0 < ${ip.data}`);
@@ -1888,7 +1878,7 @@ describe("Component", () => {
         "1 > a",
       ];
       const received = [];
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`1 < ${ip.data}`);
@@ -1906,7 +1896,7 @@ describe("Component", () => {
         assert.deepStrictEqual(received, expected);
         done();
       });
-      sout2.on("ip", (ip) => {
+      listen(sout2, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`0 < ${ip.data}`);
@@ -1982,7 +1972,7 @@ describe("Component", () => {
         "1 > a",
       ];
       const received = [];
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`1 < ${ip.data}`);
@@ -2000,7 +1990,7 @@ describe("Component", () => {
         assert.deepStrictEqual(received, expected);
         done();
       });
-      sout2.on("ip", (ip) => {
+      listen(sout2, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`0 < ${ip.data}`);
@@ -2080,7 +2070,7 @@ describe("Component", () => {
         "1 > a",
       ];
       const received = [];
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`1 < ${ip.data}`);
@@ -2098,7 +2088,7 @@ describe("Component", () => {
         assert.deepStrictEqual(received, expected);
         done();
       });
-      sout2.on("ip", (ip) => {
+      listen(sout2, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`0 < ${ip.data}`);
@@ -2157,11 +2147,11 @@ describe("Component", () => {
       c.outPorts.out.attach(sout1);
       c.outPorts.error.attach(sout2);
 
-      sout1.on("ip", () => {});
+      listen(sout1, "ip", () => {});
       // done new Error "Unexpected IP: #{ip.type} #{ip.data}"
 
       let count = 0;
-      sout2.on("ip", (ip) => {
+      listen(sout2, "ip", (ip) => {
         count++;
         switch (count) {
           case 1:
@@ -2217,13 +2207,13 @@ describe("Component", () => {
       c.outPorts.out.attach(sout1);
       // c.outPorts.error.attach sout2
 
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         if (ip.type === "closeBracket") {
           done();
         }
       });
 
-      sout2.on("ip", (ip) => {
+      listen(sout2, "ip", (ip) => {
         done(new Error(`Unexpected error IP: ${ip.type} ${ip.data}`));
       });
 
@@ -2285,7 +2275,7 @@ describe("Component", () => {
 
       let count = 0;
       let errCount = 0;
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         let src = null;
         switch (count) {
           case 0:
@@ -2306,7 +2296,7 @@ describe("Component", () => {
         // done() if count is 6
       });
 
-      sout2.on("ip", (ip) => {
+      listen(sout2, "ip", (ip) => {
         switch (errCount) {
           case 0:
             assert.strictEqual(ip.type, "openBracket");
@@ -2383,7 +2373,7 @@ describe("Component", () => {
       c.outPorts.error.attach(sout2);
 
       // Fail early on errors
-      sout2.on("ip", (ip) => {
+      listen(sout2, "ip", (ip) => {
         if (ip.type !== "data") {
           return;
         }
@@ -2403,7 +2393,7 @@ describe("Component", () => {
       ];
       const received = [];
 
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`< ${ip.data}`);
@@ -2476,7 +2466,7 @@ describe("Component", () => {
       c.outPorts.error.attach(sout2);
 
       // Fail early on errors
-      sout2.on("ip", (ip) => {
+      listen(sout2, "ip", (ip) => {
         if (ip.type !== "data") {
           return;
         }
@@ -2496,7 +2486,7 @@ describe("Component", () => {
       ];
       const received = [];
 
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         switch (ip.type) {
           case "openBracket":
             received.push(`< ${ip.data}`);
@@ -2568,7 +2558,7 @@ describe("Component", () => {
       ];
 
       let count = 0;
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         let src;
         count++;
         switch (count) {
@@ -2633,7 +2623,7 @@ describe("Component", () => {
 
       const source = ["foo", "bar", "baz"];
       let count = 0;
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         assert.strictEqual(ip.type, "data");
         assert.strictEqual(typeof ip.count, "number");
         assert.strictEqual(typeof ip.length, "number");
@@ -2645,7 +2635,7 @@ describe("Component", () => {
         }
       });
 
-      sout2.on("ip", (ip) => {
+      listen(sout2, "ip", (ip) => {
         console.log("Unexpected error", ip);
         done(ip.data);
       });
@@ -2687,7 +2677,7 @@ describe("Component", () => {
       c.outPorts.out.attach(sout1);
       c.outPorts.error.attach(sout2);
 
-      sout1.on("ip", (ip) => {
+      listen(sout1, "ip", (ip) => {
         done(ip);
       });
 
@@ -2738,10 +2728,10 @@ describe("Component", () => {
         c.outPorts.err.attach(sout2);
       });
       it("should fail on wrong input", (_t, done) => {
-        sout1.once("ip", () => {
+        listenOnce(sout1, "ip", () => {
           done(new Error("Unexpected baz"));
         });
-        sout2.once("ip", (ip) => {
+        listenOnce(sout2, "ip", (ip) => {
           assert.strictEqual(typeof ip, "object");
           assert.strictEqual(Error.isError(ip.data), true);
           assert.ok(ip.data.message.includes("Bar"));
@@ -2759,7 +2749,7 @@ describe("Component", () => {
         const expected = ["<", "one", ">", "<", "two", ">"];
         const actual = [];
         let count = 0;
-        sout1.on("ip", (ip) => {
+        listen(sout1, "ip", (ip) => {
           count++;
           switch (ip.type) {
             case "openBracket":
@@ -2776,7 +2766,7 @@ describe("Component", () => {
             done();
           }
         });
-        sout2.once("ip", (ip) => {
+        listenOnce(sout2, "ip", (ip) => {
           done(ip.data);
         });
 
@@ -2979,7 +2969,7 @@ describe("Component", () => {
           ["closeBracket", null],
         ];
         const received = [];
-        sout1.on("ip", (ip) => {
+        listen(sout1, "ip", (ip) => {
           received.push([ip.type, ip.data]);
           if (received.length !== expected.length) {
             return;
@@ -3022,7 +3012,7 @@ describe("Component", () => {
         c.inPorts.in.attach(sin1);
         c.outPorts.out.attach(sout1);
 
-        sout1.on("ip", (ip) => {
+        listen(sout1, "ip", (ip) => {
           if (ip.type === "openBracket") {
             if (!ip.data) {
               return;
@@ -3039,7 +3029,7 @@ describe("Component", () => {
           }
           received.push(ip.data);
         });
-        sout1.on("disconnect", () => {
+        listen(sout1, "disconnect", () => {
           assert.deepStrictEqual(received, [
             "< 1",
             "< 2",
@@ -3084,7 +3074,7 @@ describe("Component", () => {
         c.inPorts.in.attach(sin1);
         c.outPorts.out.attach(sout1);
 
-        sout1.on("ip", (ip) => {
+        listen(sout1, "ip", (ip) => {
           if (ip.type === "openBracket") {
             if (!ip.data) {
               return;
@@ -3101,7 +3091,7 @@ describe("Component", () => {
           }
           received.push(ip.data);
         });
-        sout1.on("disconnect", () => {
+        listen(sout1, "disconnect", () => {
           assert.deepStrictEqual(received, [
             "< 1",
             "< 2",
@@ -3189,23 +3179,19 @@ describe("Component", () => {
     });
 
     it("should emit start event when started", (_t, done) => {
-      c.on("start", () => {
+      listen(c, "start", () => {
         assert.strictEqual(c.started, true);
         done();
       });
-      c.start((err) => {
-        if (err) {
-          done(err);
-        }
-      });
+      c.start().catch(done);
     });
     it("should emit activate/deactivate event on every tick", (_t, done) => {
       let count = 0;
       let dcount = 0;
-      c.on("activate", () => {
+      listen(c, "activate", () => {
         count++;
       });
-      c.on("deactivate", () => {
+      listen(c, "deactivate", () => {
         dcount++;
         // Stop when the stack of processes grows
         if (count === 3 && dcount === 3) {
@@ -3217,20 +3203,16 @@ describe("Component", () => {
       sin2.post(new noflo.IP("data", true));
     });
     it("should emit end event when stopped and no activate after it", (_t, done) => {
-      c.on("end", () => {
+      listen(c, "end", () => {
         assert.strictEqual(c.started, false);
         done();
       });
-      c.on("activate", () => {
+      listen(c, "activate", () => {
         if (!c.started) {
           done(new Error("Unexpected activate after end"));
         }
       });
-      c.shutdown((err) => {
-        if (err) {
-          done(err);
-        }
-      });
+      c.shutdown().catch(done);
     });
   });
 });
@@ -3255,7 +3237,7 @@ describe("Process API backpressure via awaitable output.send()", () => {
     c.outPorts.out.attach(sout);
     const received = [];
     // The legacy on() API delivers the payload directly (unwrapped)
-    sout.on("ip", (ip) => {
+    listen(sout, "ip", (ip) => {
       if (ip.type === "data") {
         received.push(ip.data);
       }
@@ -3303,7 +3285,7 @@ describe("control port firing (#607)", () => {
     c.inPorts.in.attach(sin);
     c.inPorts.control.attach(scontrol);
     c.outPorts.out.attach(sout);
-    sout.on("ip", (ip) => {
+    listen(sout, "ip", (ip) => {
       if (ip.type === "data") {
         received.push(ip.data);
       }

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
+import { listenOnce } from "./utils/events.js";
 import { nativeGraph } from "./utils/nativeGraph.js";
 
 describe("NoFlo Network", () => {
@@ -366,7 +367,7 @@ describe("NoFlo Network", () => {
         .then(
           () =>
             new Promise((resolve, reject) => {
-              n.once("process-error", (err) => {
+              listenOnce(n, "process-error", (err) => {
                 assert.strictEqual(typeof err, "object");
                 assert.strictEqual(err.id, "Callback");
                 assert.strictEqual(typeof err.metadata, "object");
@@ -421,7 +422,7 @@ describe("NoFlo Network", () => {
     });
     describe("with process icon change", () => {
       it("should emit an icon event", (_t, done) => {
-        n.once("icon", (data) => {
+        listenOnce(n, "icon", (data) => {
           assert.strictEqual(typeof data, "object");
           assert.strictEqual(data.id, "Func");
           assert.strictEqual(data.icon, "flask");
@@ -654,7 +655,7 @@ describe("NoFlo Network", () => {
           return;
         }
         // Ensure we have a connection open
-        n.once("end", (endTimes) => {
+        listenOnce(n, "end", (endTimes) => {
           assert.strictEqual(typeof endTimes, "object");
           done();
         });
@@ -706,7 +707,7 @@ describe("NoFlo Network", () => {
           .then((nw) => {
             nw.loader.components.Split = Split;
             nw.loader.components.Callback = Callback;
-            nw.once("end", () => {
+            listenOnce(nw, "end", () => {
               assert.strictEqual(called, 10001);
               done();
             });

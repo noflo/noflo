@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, before, describe, it } from "node:test";
 import flowtrace from "flowtrace";
 import * as noflo from "../src/lib/NoFlo.js";
+import { listen } from "./utils/events.js";
 import { loadJsonGraphFixture } from "./utils/loadJsonGraph.js";
 
 describe("asPromise interface", () => {
@@ -431,7 +432,7 @@ describe("asPromise interface", () => {
       wrapped = noflo.asPromise("process/Async", {
         loader,
         networkCallback: (network) => {
-          network.on("start", () => {
+          listen(network, "start", () => {
             started++;
           });
           called++;

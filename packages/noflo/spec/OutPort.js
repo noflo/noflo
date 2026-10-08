@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
+import { listen, listenOnce } from "./utils/events.js";
 
 describe("Outport Port", () => {
   describe("with addressable ports", () => {
@@ -18,13 +19,13 @@ describe("Outport Port", () => {
       p.attach(s2);
       p.attach(s3);
       assert.deepEqual(p.listAttached(), [0, 1, 2]);
-      s1.on("data", () => {
+      listen(s1, "data", () => {
         assert.strictEqual(true, false);
       });
-      s2.on("data", (data) => {
+      listen(s2, "data", (data) => {
         assert.strictEqual(data, "some-data");
       });
-      s3.on("data", () => {
+      listen(s3, "data", () => {
         assert.strictEqual(true, false);
       });
       p.send("some-data", 1);
@@ -32,7 +33,7 @@ describe("Outport Port", () => {
     it("should be able to send to index 0", (_t, done) => {
       const p = new noflo.OutPort({ addressable: true });
       p.attach(s1);
-      s1.on("data", (data) => {
+      listen(s1, "data", (data) => {
         assert.strictEqual(data, "my-data");
         done();
       });
@@ -56,7 +57,7 @@ describe("Outport Port", () => {
       const expectedSockets = [s2, s3];
       const expected = [1, 5];
       const expectedAttached = [[3, 5], [3]];
-      p.on("detach", ([socket, index]) => {
+      listen(p, "detach", ([socket, index]) => {
         assert.strictEqual(socket, expectedSockets.shift());
         assert.strictEqual(index, expected.shift());
         assert.equal(p.isAttached(index), false);
@@ -85,13 +86,13 @@ describe("Outport Port", () => {
     it("should repeat the previously sent value on attach event", (_t, done) => {
       const p = new noflo.OutPort({ caching: true });
 
-      s1.once("data", (data) => {
+      listenOnce(s1, "data", (data) => {
         assert.strictEqual(data, "foo");
       });
-      s2.once("data", (data) => {
+      listenOnce(s2, "data", (data) => {
         assert.strictEqual(data, "foo");
         // Next value should be different
-        s2.once("data", (data) => {
+        listenOnce(s2, "data", (data) => {
           assert.strictEqual(data, "bar");
           done();
         });
@@ -114,13 +115,13 @@ describe("Outport Port", () => {
       p.attach(s1);
       p.attach(s2);
 
-      s1.on("data", () => {
+      listen(s1, "data", () => {
         assert.strictEqual(true, false);
       });
-      s2.on("data", (data) => {
+      listen(s2, "data", (data) => {
         assert.strictEqual(data, "some-data");
       });
-      s3.on("data", (data) => {
+      listen(s3, "data", (data) => {
         assert.strictEqual(data, "some-data");
         done();
       });
@@ -145,7 +146,7 @@ describe("Outport Port", () => {
       p.attach(s1);
       const expectedEvents = ["data", "openBracket", "data", "closeBracket"];
       let count = 0;
-      s1.on("ip", (data) => {
+      listen(s1, "ip", (data) => {
         count++;
         assert.strictEqual(typeof data, "object");
         assert.strictEqual(data.type, expectedEvents.shift());
@@ -176,15 +177,15 @@ describe("Outport Port", () => {
         },
       };
 
-      s1.on("ip", (data) => {
+      listen(s1, "ip", (data) => {
         assert.strictEqual(typeof data, "object");
         assert.strictEqual(data.data, obj);
         assert.strictEqual(typeof data.data.func, "function");
-        s2.on("ip", (data) => {
+        listen(s2, "ip", (data) => {
           assert.strictEqual(typeof data, "object");
           assert.strictEqual(data.data, obj);
           assert.strictEqual(typeof data.data.func, "function");
-          s3.on("ip", (data) => {
+          listen(s3, "ip", (data) => {
             assert.strictEqual(typeof data, "object");
             assert.strictEqual(data.data, obj);
             assert.strictEqual(typeof data.data.func, "function");
@@ -211,18 +212,18 @@ describe("Outport Port", () => {
         },
       };
 
-      s1.on("ip", (data) => {
+      listen(s1, "ip", (data) => {
         assert.strictEqual(typeof data, "object");
         // First send is non-cloning
         assert.strictEqual(data.data, obj);
         assert.strictEqual(typeof data.data.func, "function");
-        s2.on("ip", (data) => {
+        listen(s2, "ip", (data) => {
           assert.strictEqual(typeof data, "object");
           assert.notEqual(data.data, obj);
           assert.strictEqual(data.data.foo, obj.foo);
           assert.deepStrictEqual(data.data.bar, obj.bar);
           assert.strictEqual(data.data.func, undefined);
-          s3.on("ip", (data) => {
+          listen(s3, "ip", (data) => {
             assert.strictEqual(typeof data, "object");
             assert.notEqual(data.data, obj);
             assert.strictEqual(data.data.foo, obj.foo);
@@ -238,7 +239,7 @@ describe("Outport Port", () => {
     it("should stamp an IP object with the port's datatype", (_t, done) => {
       const p = new noflo.OutPort({ datatype: "string" });
       p.attach(s1);
-      s1.on("ip", (data) => {
+      listen(s1, "ip", (data) => {
         assert.strictEqual(typeof data, "object");
         assert.strictEqual(data.type, "data");
         assert.strictEqual(data.data, "Hello");
@@ -250,7 +251,7 @@ describe("Outport Port", () => {
     it("should keep an IP object's datatype as-is if already set", (_t, done) => {
       const p = new noflo.OutPort({ datatype: "string" });
       p.attach(s1);
-      s1.on("ip", (data) => {
+      listen(s1, "ip", (data) => {
         assert.strictEqual(typeof data, "object");
         assert.strictEqual(data.type, "data");
         assert.strictEqual(data.data, 123);
@@ -265,7 +266,7 @@ describe("Outport Port", () => {
         schema: "text/markdown",
       });
       p.attach(s1);
-      s1.on("ip", (data) => {
+      listen(s1, "ip", (data) => {
         assert.strictEqual(typeof data, "object");
         assert.strictEqual(data.type, "data");
         assert.strictEqual(data.data, "Hello");
@@ -281,7 +282,7 @@ describe("Outport Port", () => {
         schema: "text/markdown",
       });
       p.attach(s1);
-      s1.on("ip", (data) => {
+      listen(s1, "ip", (data) => {
         assert.strictEqual(typeof data, "object");
         assert.strictEqual(data.type, "data");
         assert.strictEqual(data.data, "Hello");

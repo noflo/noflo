@@ -15,7 +15,6 @@ import IP from "./IP.js"; // eslint-disable-line no-unused-vars
 import { LegacyEventBase } from "./LegacyEvents.js";
 import { createDebug } from "./logger.js";
 import OutPort from "./OutPort.js"; // eslint-disable-line no-unused-vars
-import { deprecated } from "./Platform.js";
 import { InPorts, normalizePortName, OutPorts } from "./Ports.js";
 import ProcessContext from "./ProcessContext.js";
 import ProcessInput from "./ProcessInput.js";
@@ -215,13 +214,9 @@ export class Component extends LegacyEventBase {
   // Override in component implementation to do component-specific
   // setup work.
   /**
-   * @param {ErrorableCallback} callback - Callback for when teardown is ready
    * @returns {Promise<void>}
    */
-  setUp(callback) {
-    if (callback) {
-      callback(null);
-    }
+  setUp() {
     return Promise.resolve();
   }
 
@@ -233,13 +228,9 @@ export class Component extends LegacyEventBase {
   // Override in component implementation to do component-specific
   // cleanup work, like clearing any accumulated state.
   /**
-   * @param {ErrorableCallback} callback - Callback for when teardown is ready
    * @returns {Promise<void>}
    */
-  tearDown(callback) {
-    if (callback) {
-      callback(null);
-    }
+  tearDown() {
     return Promise.resolve();
   }
 
@@ -248,41 +239,18 @@ export class Component extends LegacyEventBase {
   // Called when network starts. This sets calls the setUp
   // method and sets the component to a started state.
   /**
-   * @param {ErrorableCallback} [callback] - Callback for when shutdown is ready
    * @returns {Promise<void>}
    */
-  start(callback) {
-    let promise;
+  start() {
     if (this.isStarted()) {
-      promise = Promise.resolve();
-    } else {
-      promise = new Promise((resolve, reject) => {
-        const res = this.setUp((err) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve();
-        });
-        if (res?.then) {
-          // setUp returned a Promise
-          res.then(resolve, reject);
-        }
-      }).then(() => {
+      return Promise.resolve();
+    }
+    return Promise.resolve()
+      .then(() => this.setUp())
+      .then(() => {
         this.started = true;
         this.dispatchLifecycleEvent("start");
-        return Promise.resolve();
       });
-    }
-    if (callback) {
-      deprecated(
-        "Providing a callback to Component.start is deprecated, use Promises",
-      );
-      promise.then(() => {
-        callback(null);
-      }, callback);
-    }
-    return promise;
   }
 
   // ### Shutdown
@@ -291,27 +259,14 @@ export class Component extends LegacyEventBase {
   // tearDown method and sets the component back to a
   // non-started state.
   //
-  // The callback is called when tearDown finishes and
+  // The returned Promise settles when tearDown finishes and
   // all active processing contexts have ended.
   /**
-   * @param {ErrorableCallback} [callback] - Callback for when shutdown is ready
    * @returns {Promise<void>}
    */
-  shutdown(callback) {
-    const promise = new Promise((resolve, reject) => {
-      // Tell the component that it is time to shut down
-      const res = this.tearDown((err) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve();
-      });
-      if (res?.then) {
-        // Teardown returned a Promise
-        res.then(resolve, reject);
-      }
-    })
+  shutdown() {
+    return Promise.resolve()
+      .then(() => this.tearDown())
       .then(
         () =>
           new Promise((resolve) => {
@@ -355,15 +310,6 @@ export class Component extends LegacyEventBase {
         this.dispatchLifecycleEvent("end");
         return Promise.resolve();
       });
-    if (callback) {
-      deprecated(
-        "Providing a callback to Component.shutdown is deprecated, use Promises",
-      );
-      promise.then(() => {
-        callback(null);
-      }, callback);
-    }
-    return promise;
   }
 
   isStarted() {

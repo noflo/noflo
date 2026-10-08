@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import flowtrace from "flowtrace";
 import { Subgraph } from "../src/components/Subgraph.js";
 import * as noflo from "../src/lib/NoFlo.js";
+import { listen, listenOnce } from "./utils/events.js";
 import { nativeGraph } from "./utils/nativeGraph.js";
 
 describe("NoFlo Subgraph component", () => {
@@ -59,21 +60,17 @@ describe("NoFlo Subgraph component", () => {
   });
   describe("with JSON graph definition", () => {
     it("should emit a ready event after network has been loaded", (_t, done) => {
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         assert.notEqual(c.network, null);
         assert.strictEqual(c.ready, true);
         done();
       });
-      c.once("network", (network) => {
+      listenOnce(c, "network", (network) => {
         network.loader.components.Split = Split;
         network.loader.registerComponent("", "Merge", SubgraphMerge);
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
-        c.start((err) => {
-          if (err) {
-            done(err);
-          }
-        });
+        c.start().catch(done);
       });
       g.send({
         processes: {
@@ -87,21 +84,17 @@ describe("NoFlo Subgraph component", () => {
       });
     });
     it("should expose available ports", (_t, done) => {
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         assert.deepEqual(Object.keys(c.inPorts.ports), ["graph"]);
         assert.deepEqual(Object.keys(c.outPorts.ports), []);
         done();
       });
-      c.once("network", () => {
+      listenOnce(c, "network", () => {
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
         c.network.loader.components.Split = Split;
         c.network.loader.components.Merge = SubgraphMerge;
-        c.start((err) => {
-          if (err) {
-            done(err);
-          }
-        });
+        c.start().catch(done);
       });
       g.send({
         processes: {
@@ -127,22 +120,18 @@ describe("NoFlo Subgraph component", () => {
       });
     });
     it("should update description from the graph", (_t, done) => {
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         assert.notEqual(c.network, null);
         assert.strictEqual(c.ready, true);
         assert.strictEqual(c.description, "Hello, World!");
         done();
       });
-      c.once("network", (network) => {
+      listenOnce(c, "network", (network) => {
         network.loader.components.Split = Split;
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
         assert.strictEqual(c.description, "Hello, World!");
-        c.start((err) => {
-          if (err) {
-            done(err);
-          }
-        });
+        c.start().catch(done);
       });
       g.send({
         properties: {
@@ -156,21 +145,17 @@ describe("NoFlo Subgraph component", () => {
       });
     });
     it("should expose only exported ports when they exist", (_t, done) => {
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         assert.deepEqual(Object.keys(c.inPorts.ports), ["graph"]);
         assert.deepEqual(Object.keys(c.outPorts.ports), ["out"]);
         done();
       });
-      c.once("network", () => {
+      listenOnce(c, "network", () => {
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
         c.network.loader.components.Split = Split;
         c.network.loader.components.Merge = SubgraphMerge;
-        c.start((err) => {
-          if (err) {
-            done(err);
-          }
-        });
+        c.start().catch(done);
       });
       g.send({
         outports: {
@@ -202,27 +187,23 @@ describe("NoFlo Subgraph component", () => {
       });
     });
     it("should be able to run the graph", (_t, done) => {
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         const ins = noflo.internalSocket.createSocket();
         const out = noflo.internalSocket.createSocket();
         c.inPorts.in.attach(ins);
         c.outPorts.out.attach(out);
-        out.on("data", (data) => {
+        listen(out, "data", (data) => {
           assert.strictEqual(data, "Foo");
           done();
         });
         ins.send("Foo");
       });
-      c.once("network", () => {
+      listenOnce(c, "network", () => {
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
         c.network.loader.components.Split = Split;
         c.network.loader.components.Merge = SubgraphMerge;
-        c.start((err) => {
-          if (err) {
-            done(err);
-          }
-        });
+        c.start().catch(done);
       });
       g.send({
         inports: {
@@ -271,52 +252,44 @@ describe("NoFlo Subgraph component", () => {
       gr.addOutport("out", "Split", "out");
     });
     it("should emit a ready event after network has been loaded", (_t, done) => {
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         assert.notEqual(c.network, null);
         assert.strictEqual(c.ready, true);
         done();
       });
-      c.once("network", () => {
+      listenOnce(c, "network", () => {
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
         c.network.loader.components.Split = Split;
         c.network.loader.components.Merge = SubgraphMerge;
-        c.start((err) => {
-          if (err) {
-            done(err);
-          }
-        });
+        c.start().catch(done);
       });
       g.send(gr);
       assert.strictEqual(c.ready, false);
     });
     it("should expose available ports", (_t, done) => {
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         assert.deepEqual(Object.keys(c.inPorts.ports), ["graph", "in"]);
         assert.deepEqual(Object.keys(c.outPorts.ports), ["out"]);
         done();
       });
-      c.once("network", () => {
+      listenOnce(c, "network", () => {
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
         c.network.loader.components.Split = Split;
         c.network.loader.components.Merge = SubgraphMerge;
-        c.start((err) => {
-          if (err) {
-            done(err);
-          }
-        });
+        c.start().catch(done);
       });
       g.send(gr);
     });
     it("should be able to run the graph", (_t, done) => {
       let doned = false;
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         const ins = noflo.internalSocket.createSocket();
         const out = noflo.internalSocket.createSocket();
         c.inPorts.in.attach(ins);
         c.outPorts.out.attach(out);
-        out.on("data", (data) => {
+        listen(out, "data", (data) => {
           assert.strictEqual(data, "Baz");
           if (doned) {
             process.exit(1);
@@ -326,16 +299,12 @@ describe("NoFlo Subgraph component", () => {
         });
         ins.send("Baz");
       });
-      c.once("network", () => {
+      listenOnce(c, "network", () => {
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
         c.network.loader.components.Split = Split;
         c.network.loader.components.Merge = SubgraphMerge;
-        c.start((err) => {
-          if (err) {
-            done(err);
-          }
-        });
+        c.start().catch(done);
       });
       g.send(gr);
     });
@@ -348,56 +317,48 @@ describe("NoFlo Subgraph component", () => {
       ),
     );
     it("should emit a ready event after network has been loaded", (_t, done) => {
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         assert.notEqual(c.network, null);
         assert.strictEqual(c.ready, true);
         done();
       });
-      c.once("network", () => {
+      listenOnce(c, "network", () => {
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
         c.network.loader.components.Split = Split;
         c.network.loader.components.Merge = SubgraphMerge;
-        c.start((err) => {
-          if (err) {
-            done(err);
-          }
-        });
+        c.start().catch(done);
       });
       g.send(fbpJson);
       assert.strictEqual(c.ready, false);
     });
     it("should expose available ports", (_t, done) => {
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         assert.deepEqual(Object.keys(c.inPorts.ports), ["graph", "in"]);
         assert.deepEqual(Object.keys(c.outPorts.ports), ["out"]);
         done();
       });
-      c.once("network", () => {
+      listenOnce(c, "network", () => {
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
         c.network.loader.components.Split = Split;
         c.network.loader.components.Merge = SubgraphMerge;
-        c.start((err) => {
-          if (err) {
-            done(err);
-          }
-        });
+        c.start().catch(done);
       });
       g.send(fbpJson);
     });
     it("should be able to run the graph", (_t, done) => {
-      c.once("ready", () => {
+      listenOnce(c, "ready", () => {
         const ins = noflo.internalSocket.createSocket();
         const out = noflo.internalSocket.createSocket();
         c.inPorts.in.attach(ins);
         c.outPorts.out.attach(out);
         let received = false;
-        out.on("data", (data) => {
+        listen(out, "data", (data) => {
           assert.strictEqual(data, "Foo");
           received = true;
         });
-        out.on("disconnect", () => {
+        listen(out, "disconnect", () => {
           assert.strictEqual(received, true, "should have transmitted data");
           done();
         });
@@ -405,16 +366,12 @@ describe("NoFlo Subgraph component", () => {
         ins.send("Foo");
         ins.disconnect();
       });
-      c.once("network", () => {
+      listenOnce(c, "network", () => {
         assert.strictEqual(c.ready, false);
         assert.notEqual(c.network, null);
         c.network.loader.components.Split = Split;
         c.network.loader.components.Merge = SubgraphMerge;
-        c.start((err) => {
-          if (err) {
-            done(err);
-          }
-        });
+        c.start().catch(done);
       });
       g.send(fbpJson);
     });
@@ -460,187 +417,154 @@ describe("NoFlo Subgraph component", () => {
       });
     });
 
-    it("should send defaults", (_t, done) => {
-      cl.load("Defaults", (err, inst) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        const o = noflo.internalSocket.createSocket();
-        inst.outPorts.out.attach(o);
-        o.once("data", (data) => {
+    it("should send defaults", async () => {
+      const inst = await cl.load("Defaults");
+      const o = noflo.internalSocket.createSocket();
+      inst.outPorts.out.attach(o);
+      const data = new Promise((resolve) => {
+        listenOnce(o, "data", (data) => {
           assert.strictEqual(data, "default-value");
-          done();
-        });
-        inst.start((err) => {
-          if (err) {
-            done(err);
-          }
+          resolve();
         });
       });
+      await inst.start();
+      await data;
     });
 
-    it("should send initials", (_t, done) => {
-      cl.load("Initials", (err, inst) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        const o = noflo.internalSocket.createSocket();
-        inst.outPorts.out.attach(o);
-        o.once("data", (data) => {
+    it("should send initials", async () => {
+      const inst = await cl.load("Initials");
+      const o = noflo.internalSocket.createSocket();
+      inst.outPorts.out.attach(o);
+      const data = new Promise((resolve) => {
+        listenOnce(o, "data", (data) => {
           assert.strictEqual(data, "initial-value");
-          done();
-        });
-        inst.start((err) => {
-          if (err) {
-            done(err);
-          }
+          resolve();
         });
       });
+      await inst.start();
+      await data;
     });
 
-    it("should not send defaults when an inport is attached externally", (_t, done) => {
-      cl.load("Defaults", (err, inst) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        const i = noflo.internalSocket.createSocket();
-        const o = noflo.internalSocket.createSocket();
-        inst.inPorts.in.attach(i);
-        inst.outPorts.out.attach(o);
-        o.once("data", (data) => {
+    it("should not send defaults when an inport is attached externally", async () => {
+      const inst = await cl.load("Defaults");
+      const i = noflo.internalSocket.createSocket();
+      const o = noflo.internalSocket.createSocket();
+      inst.inPorts.in.attach(i);
+      inst.outPorts.out.attach(o);
+      const data = new Promise((resolve) => {
+        listenOnce(o, "data", (data) => {
           assert.strictEqual(data, "Foo");
-          done();
+          resolve();
         });
-        inst.start((err) => {
-          if (err) {
-            done(err);
-          }
-        });
-        i.send("Foo");
       });
+      await inst.start();
+      i.send("Foo");
+      await data;
     });
 
-    it("should deactivate after processing is complete", (_t, done) => {
-      cl.load("Defaults", (err, inst) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        const i = noflo.internalSocket.createSocket();
-        const o = noflo.internalSocket.createSocket();
-        inst.inPorts.in.attach(i);
-        inst.outPorts.out.attach(o);
-        const expected = ["ACTIVATE 1", "data Foo", "DEACTIVATE 0"];
-        const received = [];
-        o.on("ip", (ip) => {
+    it("should deactivate after processing is complete", async () => {
+      const inst = await cl.load("Defaults");
+      const i = noflo.internalSocket.createSocket();
+      const o = noflo.internalSocket.createSocket();
+      inst.inPorts.in.attach(i);
+      inst.outPorts.out.attach(o);
+      const expected = ["ACTIVATE 1", "data Foo", "DEACTIVATE 0"];
+      const received = [];
+      const done = new Promise((resolve) => {
+        listen(o, "ip", (ip) => {
           received.push(`${ip.type} ${ip.data}`);
         });
-        inst.on("activate", (load) => {
+        listen(inst, "activate", (load) => {
           received.push(`ACTIVATE ${load}`);
         });
-        inst.on("deactivate", (load) => {
+        listen(inst, "deactivate", (load) => {
           received.push(`DEACTIVATE ${load}`);
           if (received.length !== expected.length) {
             return;
           }
-          assert.deepStrictEqual(received, expected);
-          done();
-        });
-        inst.start((err) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          i.send("Foo");
+          resolve();
         });
       });
+      await inst.start();
+      i.send("Foo");
+      await done;
+      assert.deepStrictEqual(received, expected);
     });
 
-    it.skip("should activate automatically when receiving data", (_t, done) => {
-      cl.load("Defaults", (err, inst) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        const i = noflo.internalSocket.createSocket();
-        const o = noflo.internalSocket.createSocket();
-        inst.inPorts.in.attach(i);
-        inst.outPorts.out.attach(o);
-        const expected = ["ACTIVATE 1", "data Foo", "DEACTIVATE 0"];
-        const received = [];
-        o.on("ip", (ip) => received.push(`${ip.type} ${ip.data}`));
-        inst.on("activate", (load) => received.push(`ACTIVATE ${load}`));
-        inst.on("deactivate", (load) => {
+    it.skip("should activate automatically when receiving data", async () => {
+      const inst = await cl.load("Defaults");
+      const i = noflo.internalSocket.createSocket();
+      const o = noflo.internalSocket.createSocket();
+      inst.inPorts.in.attach(i);
+      inst.outPorts.out.attach(o);
+      const expected = ["ACTIVATE 1", "data Foo", "DEACTIVATE 0"];
+      const received = [];
+      const done = new Promise((resolve) => {
+        listen(o, "ip", (ip) => received.push(`${ip.type} ${ip.data}`));
+        listen(inst, "activate", (load) => received.push(`ACTIVATE ${load}`));
+        listen(inst, "deactivate", (load) => {
           received.push(`DEACTIVATE ${load}`);
           if (received.length !== expected.length) {
             return;
           }
-          assert.deepStrictEqual(received, expected);
-          done();
+          resolve();
         });
-        i.send("Foo");
       });
+      await inst.start();
+      i.send("Foo");
+      await done;
+      assert.deepStrictEqual(received, expected);
     });
 
-    it("should reactivate when receiving new data packets", (_t, done) => {
-      cl.load("Defaults", (err, inst) => {
-        if (err) {
-          done(err);
+    it("should reactivate when receiving new data packets", async () => {
+      const inst = await cl.load("Defaults");
+      const i = noflo.internalSocket.createSocket();
+      const o = noflo.internalSocket.createSocket();
+      inst.inPorts.in.attach(i);
+      inst.outPorts.out.attach(o);
+      const expected = [
+        "ACTIVATE 1",
+        "data Foo",
+        "DEACTIVATE 0",
+        "ACTIVATE 1",
+        "data Bar",
+        "data Baz",
+        "DEACTIVATE 0",
+        "ACTIVATE 1",
+        "data Foobar",
+        "DEACTIVATE 0",
+      ];
+      const received = [];
+      const send = [["Foo"], ["Bar", "Baz"], ["Foobar"]];
+      const sendNext = () => {
+        if (!send.length) {
           return;
         }
-        const i = noflo.internalSocket.createSocket();
-        const o = noflo.internalSocket.createSocket();
-        inst.inPorts.in.attach(i);
-        inst.outPorts.out.attach(o);
-        const expected = [
-          "ACTIVATE 1",
-          "data Foo",
-          "DEACTIVATE 0",
-          "ACTIVATE 1",
-          "data Bar",
-          "data Baz",
-          "DEACTIVATE 0",
-          "ACTIVATE 1",
-          "data Foobar",
-          "DEACTIVATE 0",
-        ];
-        const received = [];
-        const send = [["Foo"], ["Bar", "Baz"], ["Foobar"]];
-        const sendNext = () => {
-          if (!send.length) {
-            return;
-          }
-          const sends = send.shift();
-          for (const d of sends) {
-            i.post(new noflo.IP("data", d));
-          }
-        };
-        o.on("ip", (ip) => {
+        const sends = send.shift();
+        for (const d of sends) {
+          i.post(new noflo.IP("data", d));
+        }
+      };
+      const done = new Promise((resolve) => {
+        listen(o, "ip", (ip) => {
           received.push(`${ip.type} ${ip.data}`);
         });
-        inst.on("activate", (load) => {
+        listen(inst, "activate", (load) => {
           received.push(`ACTIVATE ${load}`);
         });
-        inst.on("deactivate", (load) => {
+        listen(inst, "deactivate", (load) => {
           received.push(`DEACTIVATE ${load}`);
           sendNext();
           if (received.length !== expected.length) {
             return;
           }
-          assert.deepStrictEqual(received, expected);
-          done();
-        });
-        inst.start((err) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          sendNext();
+          resolve();
         });
       });
+      await inst.start();
+      sendNext();
+      await done;
+      assert.deepStrictEqual(received, expected);
     });
   });
   describe("event forwarding on parent network", () => {
@@ -663,92 +587,66 @@ describe("NoFlo Subgraph component", () => {
         await network.loader.registerGraph("foo", "AB", sg);
         await network.connect();
       });
-      it("should instantiate the subgraph when node is added", (_t, done) => {
-        network.addNode(
-          {
-            entity_id: "Sub",
-            component: "foo/AB",
+      it("should instantiate the subgraph when node is added", async () => {
+        await network.addNode({
+          entity_id: "Sub",
+          component: "foo/AB",
+        });
+        await network.addNode({
+          entity_id: "Split",
+          component: "Split",
+        });
+        await network.addEdge({
+          from: {
+            node: "Sub",
+            port: "out",
           },
-          (err) => {
-            if (err) {
-              done(err);
-              return;
-            }
-            network.addNode(
-              {
-                entity_id: "Split",
-                component: "Split",
-              },
-              (err) => {
-                if (err) {
-                  done(err);
-                  return;
-                }
-                network.addEdge(
-                  {
-                    from: {
-                      node: "Sub",
-                      port: "out",
-                    },
-                    to: {
-                      node: "Split",
-                      port: "in",
-                    },
-                  },
-                  (err) => {
-                    if (err) {
-                      done(err);
-                      return;
-                    }
-                    assert.ok(Object.keys(network.processes).length > 0);
-                    assert.ok(network.processes.Sub);
-                    done();
-                  },
-                );
-              },
-            );
+          to: {
+            node: "Split",
+            port: "in",
           },
-        );
+        });
+        assert.ok(Object.keys(network.processes).length > 0);
+        assert.ok(network.processes.Sub);
       });
-      it("should be possible to start the graph", (_t, done) => {
-        network.start(done);
+      it("should be possible to start the graph", async () => {
+        await network.start();
       });
-      it("should forward IP events", (_t, done) => {
-        network.once("ip", (ip) => {
-          assert.strictEqual(ip.id, "DATA -> IN Sub()");
-          assert.strictEqual(ip.type, "data");
-          assert.strictEqual(ip.data, "foo");
-          assert.strictEqual(ip.subgraph, undefined);
-          network.once("ip", (ip) => {
-            assert.strictEqual(ip.id, "A() OUT -> IN B()");
-            assert.strictEqual(ip.type, "data");
-            assert.strictEqual(ip.data, "foo");
-            assert.deepStrictEqual(ip.subgraph, ["Sub"]);
-            network.once("ip", (ip) => {
-              assert.strictEqual(ip.id, "Sub() OUT -> IN Split()");
+      it("should forward IP events", async () => {
+        const expectedIps = [
+          { id: "DATA -> IN Sub()", subgraph: undefined },
+          { id: "A() OUT -> IN B()", subgraph: ["Sub"] },
+          { id: "Sub() OUT -> IN Split()", subgraph: undefined },
+        ];
+        let index = 0;
+        const done = new Promise((resolve) => {
+          const listenNext = () => {
+            const expected = expectedIps[index];
+            listenOnce(network, "ip", (ip) => {
+              assert.strictEqual(ip.id, expected.id);
               assert.strictEqual(ip.type, "data");
               assert.strictEqual(ip.data, "foo");
-              assert.strictEqual(ip.subgraph, undefined);
-              done();
+              assert.deepStrictEqual(ip.subgraph, expected.subgraph);
+              index += 1;
+              if (index < expectedIps.length) {
+                listenNext();
+                return;
+              }
+              resolve();
             });
-          });
+          };
+          listenNext();
         });
-        network.addInitial(
-          {
-            from: {
-              data: "foo",
-            },
-            to: {
-              node: "Sub",
-              port: "in",
-            },
+        await network.addInitial({
+          from: {
+            data: "foo",
           },
-          (err) => {
-            if (err) {
-              done(err);
-            }
+          to: {
+            node: "Sub",
+            port: "in",
           },
-        );
+        });
+        await done;
       });
     });
     describe("with two levels of subgraphs", () => {
@@ -779,102 +677,73 @@ describe("NoFlo Subgraph component", () => {
         await network.loader.registerGraph("foo", "AB2", sg2);
         await network.connect();
       });
-      it("should instantiate the subgraphs when node is added", (_t, done) => {
-        network.addNode(
-          {
-            entity_id: "Sub",
-            component: "foo/AB2",
+      it("should instantiate the subgraphs when node is added", async () => {
+        await network.addNode({
+          entity_id: "Sub",
+          component: "foo/AB2",
+        });
+        await network.addNode({
+          entity_id: "Split",
+          component: "Split",
+        });
+        await network.addEdge({
+          from: {
+            node: "Sub",
+            port: "out",
           },
-          (err) => {
-            if (err) {
-              done(err);
-              return;
-            }
-            network.addNode(
-              {
-                entity_id: "Split",
-                component: "Split",
-              },
-              (err) => {
-                if (err) {
-                  done(err);
-                  return;
-                }
-                network.addEdge(
-                  {
-                    from: {
-                      node: "Sub",
-                      port: "out",
-                    },
-                    to: {
-                      node: "Split",
-                      port: "in",
-                    },
-                  },
-                  (err) => {
-                    if (err) {
-                      done(err);
-                      return;
-                    }
-                    assert.ok(Object.keys(network.processes).length > 0);
-                    assert.ok(network.processes.Sub);
-                    done();
-                  },
-                );
-              },
-            );
+          to: {
+            node: "Split",
+            port: "in",
           },
-        );
+        });
+        assert.ok(Object.keys(network.processes).length > 0);
+        assert.ok(network.processes.Sub);
       });
-      it("should be possible to start the graph", (_t, done) => {
-        network.start(done);
+      it("should be possible to start the graph", async () => {
+        await network.start();
       });
-      it("should forward IP events", (_t, done) => {
-        network.once("ip", (ip) => {
-          assert.strictEqual(ip.id, "DATA -> IN Sub()");
-          assert.strictEqual(ip.type, "data");
-          assert.strictEqual(ip.data, "foo");
-          assert.strictEqual(ip.subgraph, undefined);
-          network.once("ip", (ip) => {
-            assert.strictEqual(ip.id, "A() OUT -> IN B()");
-            assert.strictEqual(ip.type, "data");
-            assert.strictEqual(ip.data, "foo");
-            assert.deepStrictEqual(ip.subgraph, ["Sub", "A"]);
-            network.once("ip", (ip) => {
-              assert.strictEqual(ip.id, "A() OUT -> IN B()");
+      it("should forward IP events", async () => {
+        const expectedIps = [
+          { id: "DATA -> IN Sub()", subgraph: undefined },
+          { id: "A() OUT -> IN B()", subgraph: ["Sub", "A"] },
+          { id: "A() OUT -> IN B()", subgraph: ["Sub"] },
+          { id: "Sub() OUT -> IN Split()", subgraph: undefined },
+        ];
+        let index = 0;
+        const done = new Promise((resolve) => {
+          const listenNext = () => {
+            const expected = expectedIps[index];
+            listenOnce(network, "ip", (ip) => {
+              assert.strictEqual(ip.id, expected.id);
               assert.strictEqual(ip.type, "data");
               assert.strictEqual(ip.data, "foo");
-              assert.deepStrictEqual(ip.subgraph, ["Sub"]);
-              network.once("ip", (ip) => {
-                assert.strictEqual(ip.id, "Sub() OUT -> IN Split()");
-                assert.strictEqual(ip.type, "data");
-                assert.strictEqual(ip.data, "foo");
-                assert.strictEqual(ip.subgraph, undefined);
-                done();
-              });
+              assert.deepStrictEqual(ip.subgraph, expected.subgraph);
+              index += 1;
+              if (index < expectedIps.length) {
+                listenNext();
+                return;
+              }
+              resolve();
             });
-          });
+          };
+          listenNext();
         });
-        network.addInitial(
-          {
-            from: {
-              data: "foo",
-            },
-            to: {
-              node: "Sub",
-              port: "in",
-            },
+        await network.addInitial({
+          from: {
+            data: "foo",
           },
-          (err) => {
-            if (err) {
-              done(err);
-            }
+          to: {
+            node: "Sub",
+            port: "in",
           },
-        );
+        });
+        await done;
       });
-      it("should finish", (_t, done) => {
-        network.once("end", () => {
-          done();
+      it("should finish", async () => {
+        await new Promise((resolve) => {
+          listenOnce(network, "end", () => {
+            resolve();
+          });
         });
       });
       it("should produce a Flowtrace with both graphs included", () => {

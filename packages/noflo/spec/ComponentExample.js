@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { before, beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
+import { listenOnce } from "./utils/events.js";
 
 describe("MergeObjects component", () => {
   let c = null;
@@ -43,10 +44,10 @@ describe("MergeObjects component", () => {
   });
 
   it("should not trigger if input is not complete", (_t, done) => {
-    sout1.once("ip", () => {
+    listenOnce(sout1, "ip", () => {
       done(new Error("Premature result"));
     });
-    sout2.once("ip", () => {
+    listenOnce(sout2, "ip", () => {
       done(new Error("Premature error"));
     });
 
@@ -57,7 +58,7 @@ describe("MergeObjects component", () => {
   });
 
   it("should merge objects when input is complete", (_t, done) => {
-    sout1.once("ip", (ip) => {
+    listenOnce(sout1, "ip", (ip) => {
       assert.strictEqual(typeof ip, "object");
       assert.strictEqual(ip.type, "data");
       assert.strictEqual(typeof ip.data, "object");
@@ -66,7 +67,7 @@ describe("MergeObjects component", () => {
       assert.strictEqual(ip.data.age, obj1.age);
       done();
     });
-    sout2.once("ip", (ip) => {
+    listenOnce(sout2, "ip", (ip) => {
       done(ip);
     });
 
@@ -79,7 +80,7 @@ describe("MergeObjects component", () => {
   });
 
   it("should obey the overwrite control", (_t, done) => {
-    sout1.once("ip", (ip) => {
+    listenOnce(sout1, "ip", (ip) => {
       assert.strictEqual(typeof ip, "object");
       assert.strictEqual(ip.type, "data");
       assert.strictEqual(typeof ip.data, "object");
@@ -88,7 +89,7 @@ describe("MergeObjects component", () => {
       assert.strictEqual(ip.data.age, obj2.age);
       done();
     });
-    sout2.once("ip", (ip) => {
+    listenOnce(sout2, "ip", (ip) => {
       done(ip);
     });
 

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
+import { listen } from "./utils/events.js";
 
 describe("Inport Port", () => {
   describe("with default options", () => {
@@ -43,11 +44,10 @@ describe("Inport Port", () => {
     });
   });
   describe("with processing function called with port as context", () => {
-    it("should set context to port itself", (_t, done) => {
+    it("should deliver the packet to the listener", (_t, done) => {
       const s = new noflo.internalSocket.InternalSocket();
       const p = new noflo.InPort();
-      p.on("data", function (packet) {
-        assert.strictEqual(this, p);
+      listen(p, "data", (packet) => {
         assert.strictEqual(packet, "some-data");
         done();
       });
@@ -64,7 +64,7 @@ describe("Inport Port", () => {
       p.attach(s);
     });
     it("should send the default value as a packet, though on next tick after initialization", (_t, done) => {
-      p.on("data", (data) => {
+      listen(p, "data", (data) => {
         assert.strictEqual(data, "default-value");
         done();
       });
@@ -72,7 +72,7 @@ describe("Inport Port", () => {
     });
     it("should send the default value before IIP", (_t, done) => {
       const received = ["default-value", "some-iip"];
-      p.on("data", (data) => {
+      listen(p, "data", (data) => {
         assert.strictEqual(data, received.shift());
         if (received.length === 0) {
           done();
@@ -130,7 +130,7 @@ describe("Inport Port", () => {
       const p = new noflo.InPort({ values: "noflo is awesome".split(" ") });
       const s = new noflo.internalSocket.InternalSocket();
       p.attach(s);
-      p.on("data", (data) => {
+      listen(p, "data", (data) => {
         assert.strictEqual(data, "awesome");
         done();
       });
@@ -140,7 +140,7 @@ describe("Inport Port", () => {
       const p = new noflo.InPort({ values: "noflo is awesome".split(" ") });
       const s = new noflo.internalSocket.InternalSocket();
       p.attach(s);
-      p.on("data", () => {
+      listen(p, "data", () => {
         // Fail the test, we shouldn't have received anything
         assert.equal(true, false);
       });
@@ -158,7 +158,7 @@ describe("Inport Port", () => {
         datatype: "string",
         required: true,
       });
-      ps.inPorts.in.on("ip", (ip) => {
+      listen(ps.inPorts.in, "ip", (ip) => {
         if (ip.type !== "data") {
           return;
         }
@@ -182,13 +182,13 @@ describe("Inport Port", () => {
         datatype: "string",
         required: true,
       });
-      ps.inPorts.in.on("connect", () => {
+      listen(ps.inPorts.in, "connect", () => {
         receivedEvents.push("connect");
       });
-      ps.inPorts.in.on("data", () => {
+      listen(ps.inPorts.in, "data", () => {
         receivedEvents.push("data");
       });
-      ps.inPorts.in.on("disconnect", () => {
+      listen(ps.inPorts.in, "disconnect", () => {
         receivedEvents.push("disconnect");
         assert.deepStrictEqual(receivedEvents, expectedEvents);
         done();
@@ -199,7 +199,7 @@ describe("Inport Port", () => {
     });
     it("should stamp an IP object with the port's datatype", (_t, done) => {
       const p = new noflo.InPort({ datatype: "string" });
-      p.on("ip", (data) => {
+      listen(p, "ip", (data) => {
         assert.strictEqual(typeof data, "object");
         assert.strictEqual(data.type, "data");
         assert.strictEqual(data.data, "Hello");
@@ -210,7 +210,7 @@ describe("Inport Port", () => {
     });
     it("should keep an IP object's datatype as-is if already set", (_t, done) => {
       const p = new noflo.InPort({ datatype: "string" });
-      p.on("ip", (data) => {
+      listen(p, "ip", (data) => {
         assert.strictEqual(typeof data, "object");
         assert.strictEqual(data.type, "data");
         assert.strictEqual(data.data, 123);
@@ -224,7 +224,7 @@ describe("Inport Port", () => {
         datatype: "string",
         schema: "text/markdown",
       });
-      p.on("ip", (data) => {
+      listen(p, "ip", (data) => {
         assert.strictEqual(typeof data, "object");
         assert.strictEqual(data.type, "data");
         assert.strictEqual(data.data, "Hello");
@@ -239,7 +239,7 @@ describe("Inport Port", () => {
         datatype: "string",
         schema: "text/markdown",
       });
-      p.on("ip", (data) => {
+      listen(p, "ip", (data) => {
         assert.strictEqual(typeof data, "object");
         assert.strictEqual(data.type, "data");
         assert.strictEqual(data.data, "Hello");

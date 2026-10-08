@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { importFbpJson } from "@noflo/graph";
 import { Subgraph } from "../src/components/Subgraph.js";
 import * as noflo from "../src/lib/NoFlo.js";
+import { listen, listenOnce } from "./utils/events.js";
 import { nativeGraph } from "./utils/nativeGraph.js";
 
 /* eslint-disable
@@ -397,7 +398,7 @@ describe("ComponentLoader", () => {
                   c.inPorts.add("in", { datatype: "string" });
                   c.outPorts.add("out", { datatype: "string" });
                   // Legacy components use the pre-Process-API handle-style
-                  c.inPorts.in.on("data", () => {});
+                  listen(c.inPorts.in, "data", () => {});
                   return c;
                 },
               },
@@ -449,7 +450,7 @@ describe("ComponentLoader", () => {
         await loader.load("registry/ExampleSubgraph")
       );
       await new Promise((resolve) => {
-        instance.once("ready", resolve);
+        listenOnce(instance, "ready", resolve);
       });
       assert.ok(instance.inPorts.ports.in);
       assert.ok(instance.outPorts.ports.out);
@@ -458,7 +459,7 @@ describe("ComponentLoader", () => {
     it("does not automatically start the subgraph", async () => {
       const instance = await loader.load("registry/ExampleSubgraph");
       await new Promise((resolve) => {
-        instance.once("ready", resolve);
+        listenOnce(instance, "ready", resolve);
       });
       assert.strictEqual(instance.started, false);
     });
@@ -487,7 +488,7 @@ describe("ComponentLoader", () => {
         await loader.load("registry/ExampleSubgraph")
       );
       await new Promise((resolve) => {
-        instance.once("ready", resolve);
+        listenOnce(instance, "ready", resolve);
       });
       assert.strictEqual(instance.network.loader, loader);
     });
@@ -544,14 +545,9 @@ describe("ComponentLoader", () => {
     });
   });
 
-  describe("deprecation warnings on callback-style methods", () => {
-    let warnings = [];
-    let originalWarn;
+  describe("Promise-only API (work document #8)", () => {
     let l = null;
     beforeEach(() => {
-      warnings = [];
-      originalWarn = console.warn;
-      console.warn = (message) => warnings.push(message);
       l = new noflo.ComponentLoader({
         registry: {
           list: () => ({}),
@@ -559,89 +555,49 @@ describe("ComponentLoader", () => {
       });
     });
 
-    it("listComponents with callback warns", async () => {
-      await new Promise((resolve, reject) => {
-        l.listComponents((err, components) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve(components);
-        });
-      });
-      console.warn = originalWarn;
-      assert.ok(
-        warnings.some((w) => w.includes("listComponents")),
-        "expected listComponents deprecation warning",
-      );
+    it("listComponents resolves with the catalog", async () => {
+      const components = await l.listComponents();
+      assert.deepEqual(components, {});
     });
 
-    it("load with callback warns", async () => {
+    it("load resolves with the instance", async () => {
       l.registerComponent("my-project", "Split", splitModule());
-      await new Promise((resolve, reject) => {
-        l.load("my-project/Split", (err, instance) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve(instance);
-        });
-      });
-      console.warn = originalWarn;
-      assert.ok(
-        warnings.some((w) => w.includes("load is deprecated")),
-        "expected load deprecation warning",
-      );
+      const instance = await l.load("my-project/Split");
+      assert.ok(instance);
     });
 
-    it("registerComponent with callback warns", async () => {
-      await new Promise((resolve) => {
-        l.registerComponent("my-project", "Split2", splitModule(), () => {
-          resolve();
-        });
-      });
-      console.warn = originalWarn;
-      assert.ok(
-        warnings.some((w) => w.includes("registerComponent")),
-        "expected registerComponent deprecation warning",
+    it("registerComponent and registerGraph resolve", async () => {
+      await l.registerComponent("my-project", "Split2", splitModule());
+      await l.registerGraph(
+        "my-project",
+        "Sub2",
+        importFbpJson(readGraphJson("subgraph")),
       );
+      const components = await l.listComponents();
+      assert.ok(components["my-project/Split2"]);
+      assert.ok(components["my-project/Sub2"]);
     });
 
-    it("registerGraph with callback warns", async () => {
-      await new Promise((resolve) => {
-        l.registerGraph(
-          "my-project",
-          "Sub2",
-          importFbpJson(readGraphJson("subgraph")),
-          () => {
-            resolve();
-          },
-        );
+    it("registerLoader settles with the plugin completion", async () => {
+      await l.registerLoader((_loader, callback) => {
+        callback(null);
       });
-      console.warn = originalWarn;
-      assert.ok(
-        warnings.some(
-          (w) => w.includes("registerGraph") || w.includes("registerComponent"),
-        ),
-        "expected registerGraph deprecation warning",
-      );
     });
 
-    it("registerLoader with callback warns", async () => {
-      await new Promise((resolve, _reject) => {
-        l.registerLoader(
-          (_loader, callback) => {
-            callback(null);
-          },
-          () => {
-            resolve();
-          },
-        );
-      });
-      console.warn = originalWarn;
-      assert.ok(
-        warnings.some((w) => w.includes("registerLoader")),
-        "expected registerLoader deprecation warning",
+    it("Promise usage emits no deprecation warnings", async () => {
+      const warnings = [];
+      const originalWarn = console.warn;
+      console.warn = (message) => warnings.push(message);
+      try {
+        l.registerComponent("my-project", "Split3", splitModule());
+        await l.load("my-project/Split3");
+        await l.listComponents();
+      } finally {
+        console.warn = originalWarn;
+      }
+      assert.deepEqual(
+        warnings.filter((w) => w.includes("deprecated")),
+        [],
       );
     });
   });

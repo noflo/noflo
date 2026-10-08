@@ -181,20 +181,10 @@ export class ComponentLoader {
   // accessor per work document #8; the catalog is already populated
   // at construction.
   /**
-   * @param {any} [callback] - Legacy callback
-   * @returning {Promise<ComponentList>} Promise resolving to list of loaded components
+   * @returns {Promise<ComponentList>} Promise resolving to list of loaded components
    */
-  listComponents(callback) {
-    const promise = Promise.resolve(this.components);
-    if (callback) {
-      deprecated(
-        "Providing a callback to ComponentLoader.listComponents is deprecated, use Promises",
-      );
-      promise.then((components) => {
-        callback(null, components);
-      }, callback);
-    }
-    return promise;
+  listComponents() {
+    return Promise.resolve(this.components);
   }
 
   // Load an instance of a specific component. If the
@@ -204,16 +194,10 @@ export class ComponentLoader {
   /**
    * @param {string} name - Component name
    * @param {Object<string, any>} [meta] - Node metadata
-   * @param {any} [cb] - Legacy callback
    * @returns {Promise<import("./Component.js").Component>}
    */
-  load(name, meta, cb) {
-    let metadata = meta;
-    let callback = cb;
-    if (typeof meta === "function") {
-      callback = meta;
-      metadata = undefined;
-    }
+  load(name, meta) {
+    const metadata = meta;
 
     const promise = new Promise((resolve, reject) => {
       if (!this.components) {
@@ -287,14 +271,6 @@ export class ComponentLoader {
         },
       );
     });
-    if (callback) {
-      deprecated(
-        "Providing a callback to ComponentLoader.load is deprecated, use Promises",
-      );
-      promise.then((instance) => {
-        callback(null, instance);
-      }, callback);
-    }
     return promise;
   }
 
@@ -467,22 +443,12 @@ export class ComponentLoader {
    * @param {string} packageId
    * @param {string} name
    * @param {ComponentDefinition} cPath
-   * @param {ErrorableCallback} [callback]
    * @returns {Promise<void>}
    */
-  registerComponent(packageId, name, cPath, callback) {
+  registerComponent(packageId, name, cPath) {
     const fullName = this.normalizeName(packageId, name);
     this.components[fullName] = cPath;
-    const promise = Promise.resolve();
-    if (callback) {
-      deprecated(
-        "Providing a callback to ComponentLoader.registerComponent is deprecated, use Promises",
-      );
-      promise.then(() => {
-        callback(null);
-      }, callback);
-    }
-    return promise;
+    return Promise.resolve();
   }
 
   // With the `registerGraph` method you can register new
@@ -491,11 +457,10 @@ export class ComponentLoader {
    * @param {string} packageId
    * @param {string} name
    * @param {import("@noflo/graph").GraphModel} gPath
-   * @param {ErrorableCallback} [callback]
    * @returns {Promise<void>}
    */
-  registerGraph(packageId, name, gPath, callback) {
-    return this.registerComponent(packageId, name, gPath, callback);
+  registerGraph(packageId, name, gPath) {
+    return this.registerComponent(packageId, name, gPath);
   }
 
   // With `registerLoader` you can register custom component
@@ -512,10 +477,9 @@ export class ComponentLoader {
    */
   /**
    * @param {CustomLoader} loader
-   * @param {ErrorableCallback} [callback]
    * @returns {Promise<void>}
    */
-  registerLoader(loader, callback) {
+  registerLoader(loader) {
     const promise = new Promise((resolve, reject) => {
       loader(this, (err) => {
         if (err) {
@@ -525,14 +489,6 @@ export class ComponentLoader {
         resolve();
       });
     });
-    if (callback) {
-      deprecated(
-        "Providing a callback to ComponentLoader.registerLoader is deprecated, use Promises",
-      );
-      promise.then(() => {
-        callback(null);
-      }, callback);
-    }
     return promise;
   }
 
