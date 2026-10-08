@@ -54,9 +54,21 @@ import { ProtocolError } from "./errors.js";
  */
 
 /**
- * Registry manifest entries: component name → `sig_hash`.
+ * A manifest entry for one component: the `sig_hash` of its canonical
+ * signature plus the declared component kind (work document #4 updates #9
+ * and #11). On the wire the entry is the positional tuple
+ * `[sig_hash, kind]`; the kind is the shared vocabulary of
+ * {@link COMPONENT_TYPE} — declared data, never inferred.
  *
- * @typedef {Record<string, string>} ManifestEntries
+ * @typedef {object} ManifestEntry
+ * @property {string} sigHash SHA-256 hex digest of the canonical signature.
+ * @property {string} type One of {@link COMPONENT_TYPE}.
+ */
+
+/**
+ * Registry manifest entries: component name → {@link ManifestEntry}.
+ *
+ * @typedef {Record<string, ManifestEntry>} ManifestEntries
  */
 
 /**
@@ -91,18 +103,25 @@ export function decodeCompSyncReq(bytes) {
 
 /**
  * Encode a `0x22 CMD_COMP_MANIFEST`:
- * `[0x22, new_registry_hash, entries]`. Entries are valid with a signature
- * and no source; the component kind travels with the entries per work
- * document #4 update #9 (see {@link encodeManifestEntry}).
+ * `[0x22, new_registry_hash, { "math/Add": ["sig_hash_1", "elementary"], ... }]`.
+ * Entries are valid with a signature and no source; each entry travels as
+ * the positional `[sig_hash, kind]` tuple so the declared component kind
+ * reaches clients without a details round-trip (work document #4 updates
+ * #9 and #11).
  *
  * @param {string} newRegistryHash
- * @param {ManifestEntries} entries Component name → sig_hash.
+ * @param {ManifestEntries} entries Component name → {@link ManifestEntry}.
  * @returns {Uint8Array}
  */
 export function encodeCompManifest(newRegistryHash, entries) {
   assertHash(newRegistryHash, CMD_COMP_MANIFEST, "new_registry_hash");
   assertEntries(entries);
-  return MsgPack.encode([CMD_COMP_MANIFEST, newRegistryHash, entries]);
+  /** @type {Record<string, [string, string]>} */
+  const wire = {};
+  for (const [name, entry] of Object.entries(entries)) {
+    wire[name] = [entry.sigHash, entry.type];
+  }
+  return MsgPack.encode([CMD_COMP_MANIFEST, newRegistryHash, wire]);
 }
 
 /**
@@ -115,11 +134,16 @@ export function decodeCompManifest(bytes) {
   const frame = MsgPack.decode(bytes);
   expectFrame(frame, CMD_COMP_MANIFEST, 3);
   assertHash(frame[1], CMD_COMP_MANIFEST, "new_registry_hash");
-  assertEntries(frame[2]);
+  assertWireEntries(frame[2]);
+  /** @type {ManifestEntries} */
+  const entries = {};
+  for (const [name, [sigHash, type]] of Object.entries(frame[2])) {
+    entries[name] = { sigHash, type };
+  }
   return {
     cmd: CMD_COMP_MANIFEST,
     newRegistryHash: frame[1],
-    entries: { ...frame[2] },
+    entries,
   };
 }
 
@@ -388,13 +412,57 @@ function assertEntries(entries) {
     Array.isArray(entries)
   ) {
     throw new ProtocolError(
-      "manifest entries must be a map of component name to sig_hash",
+      "manifest entries must be a map of component name to manifest entry",
       CMD_COMP_MANIFEST,
     );
   }
-  for (const [name, hash] of Object.entries(entries)) {
+  for (const [name, entry] of Object.entries(entries)) {
     assertName(name, CMD_COMP_MANIFEST, "component name");
-    assertHash(hash, CMD_COMP_MANIFEST, "sig_hash");
+    if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new ProtocolError(
+        `manifest entry for ${name} must be a map with sigHash and type`,
+        CMD_COMP_MANIFEST,
+      );
+    }
+    assertHash(entry.sigHash, CMD_COMP_MANIFEST, "sig_hash");
+    if (!Object.values(COMPONENT_TYPE).includes(entry.type)) {
+      throw new ProtocolError(
+        `manifest entry for ${name} must declare a component kind from the shared vocabulary`,
+        CMD_COMP_MANIFEST,
+      );
+    }
+  }
+}
+
+/**
+ * @param {Record<string, any>} entries Raw wire entries: name → [sig_hash, kind].
+ * @returns {void}
+ */
+function assertWireEntries(entries) {
+  if (
+    entries === null ||
+    typeof entries !== "object" ||
+    Array.isArray(entries)
+  ) {
+    throw new ProtocolError(
+      "manifest entries must be a map of component name to [sig_hash, kind] tuple",
+      CMD_COMP_MANIFEST,
+    );
+  }
+  for (const [name, tuple] of Object.entries(entries)) {
+    assertName(name, CMD_COMP_MANIFEST, "component name");
+    if (
+      !Array.isArray(tuple) ||
+      tuple.length !== 2 ||
+      typeof tuple[0] !== "string" ||
+      tuple[0].length === 0 ||
+      !Object.values(COMPONENT_TYPE).includes(tuple[1])
+    ) {
+      throw new ProtocolError(
+        `manifest entry for ${name} must be a [sig_hash, kind] tuple carrying a declared component kind`,
+        CMD_COMP_MANIFEST,
+      );
+    }
   }
 }
 

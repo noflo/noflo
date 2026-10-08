@@ -11,7 +11,6 @@ import { describe, it } from "node:test";
 
 import {
   CMD_COMP_DETAIL_RES,
-  CMD_CRDT_UPDATE,
   CMD_FLOWTRACE_CHUNK,
   decodeFrame,
   encodeAnnounceAppData,
@@ -49,7 +48,12 @@ describe("decodeFrame", () => {
         cmd: 0x14,
       },
       { bytes: encodeCompSyncReq("h"), cmd: 0x20 },
-      { bytes: encodeCompManifest("h", { "math/Add": "s" }), cmd: 0x22 },
+      {
+        bytes: encodeCompManifest("h", {
+          "math/Add": { sigHash: "s", type: "elementary" },
+        }),
+        cmd: 0x22,
+      },
       {
         bytes: encodeCompDetailRes({
           "math/Add": { type: "elementary", in: [], out: [] },

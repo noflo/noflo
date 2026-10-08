@@ -123,9 +123,10 @@ export const CMD_COMP_SYNC_REQ = 0x20;
 
 /**
  * Registry manifest of the Two-Step Cache:
- * `[0x22, new_registry_hash, { "math/Add": "sig_hash_1", ... }]`. Entries
- * are valid with a signature and no source (work document #4 update #8) and
- * carry the component kind (#4 update #9).
+ * `[0x22, new_registry_hash, { "math/Add": ["sig_hash_1", "elementary"], ... }]`.
+ * Entries are valid with a signature and no source (work document #4 update
+ * #8) and travel as `[sig_hash, kind]` tuples so the declared component
+ * kind reaches clients without a details round-trip (#4 updates #9/#11).
  *
  * @type {number}
  */

@@ -10,8 +10,8 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
 
+import { MsgPack } from "@reticulum/core";
 import {
-  CMD_COMP_DETAIL_RES,
   CMD_COMP_MANIFEST,
   CMD_COMP_SYNC_REQ,
   COMPONENT_TYPE,
@@ -54,35 +54,93 @@ describe("0x20 CMD_COMP_SYNC_REQ", () => {
 });
 
 describe("0x22 CMD_COMP_MANIFEST", () => {
-  it("round-trips name to sig_hash entries", () => {
+  it("round-trips name to sig_hash and declared kind entries", () => {
     const decoded = decodeCompManifest(
       encodeCompManifest("reg-hash-2", {
-        "math/Add": "sig-hash-1",
-        "math/Sub": "sig-hash-2",
+        "math/Add": {
+          sigHash: "sig-hash-1",
+          type: COMPONENT_TYPE.ELEMENTARY,
+        },
+        "graphs/Pipeline": {
+          sigHash: "sig-hash-2",
+          type: COMPONENT_TYPE.SUBGRAPH,
+        },
+        "stub/Only": { sigHash: "sig-hash-3", type: COMPONENT_TYPE.STUB },
       }),
     );
     assert.equal(decoded.cmd, CMD_COMP_MANIFEST);
     assert.equal(decoded.newRegistryHash, "reg-hash-2");
     assert.deepEqual(decoded.entries, {
-      "math/Add": "sig-hash-1",
-      "math/Sub": "sig-hash-2",
+      "math/Add": {
+        sigHash: "sig-hash-1",
+        type: COMPONENT_TYPE.ELEMENTARY,
+      },
+      "graphs/Pipeline": {
+        sigHash: "sig-hash-2",
+        type: COMPONENT_TYPE.SUBGRAPH,
+      },
+      "stub/Only": { sigHash: "sig-hash-3", type: COMPONENT_TYPE.STUB },
     });
   });
 
-  it("tolerates entries as declared-signature state; the hash value is opaque", () => {
+  it("encodes entries as [sig_hash, kind] tuples on the wire", () => {
+    const frame = MsgPack.decode(
+      encodeCompManifest("h", {
+        "math/Add": {
+          sigHash: "sig-hash-1",
+          type: COMPONENT_TYPE.ELEMENTARY,
+        },
+      }),
+    );
+    assert.deepEqual(frame[2]["math/Add"], ["sig-hash-1", "elementary"]);
+  });
+
+  it("tolerates a stub entry as declared-signature state; the hash is opaque", () => {
     // Update #8: a sig_hash with no source is valid registry state. The
     // manifest frame itself carries no source, so this is structurally true.
     const decoded = decodeCompManifest(
-      encodeCompManifest("h", { "stub/Only": "sig-hash" }),
+      encodeCompManifest("h", {
+        "stub/Only": { sigHash: "sig-hash", type: COMPONENT_TYPE.STUB },
+      }),
     );
     assert.deepEqual(Object.keys(decoded.entries), ["stub/Only"]);
   });
 
   it("rejects non-string sig_hash values", () => {
     assert.throws(
-      () => encodeCompManifest("h", { "math/Add": 42 }),
+      () =>
+        encodeCompManifest("h", {
+          "math/Add": { sigHash: 42, type: COMPONENT_TYPE.ELEMENTARY },
+        }),
       ProtocolError,
     );
+  });
+
+  it("rejects an undeclared kind (kind is never inferred, update #11)", () => {
+    assert.throws(
+      () =>
+        encodeCompManifest("h", {
+          "math/Add": { sigHash: "sig-hash-1", type: "inferred" },
+        }),
+      ProtocolError,
+    );
+    assert.throws(
+      () =>
+        encodeCompManifest("h", {
+          "math/Add": { sigHash: "sig-hash-1", type: 0x01 },
+        }),
+      ProtocolError,
+    );
+  });
+
+  it("rejects malformed wire entries", () => {
+    // A legacy name → sig_hash string is not a [sig_hash, kind] tuple.
+    const frame = MsgPack.encode([
+      CMD_COMP_MANIFEST,
+      "h",
+      { "math/Add": "sig-hash-1" },
+    ]);
+    assert.throws(() => decodeCompManifest(frame), ProtocolError);
   });
 });
 

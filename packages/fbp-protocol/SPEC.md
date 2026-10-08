@@ -191,10 +191,13 @@ changeset→protocol boundary.)
 `[0x20, local_registry_hash]`.
 
 **`0x22` CMD_COMP_MANIFEST** — registry manifest:
-`[0x22, new_registry_hash, { "math/Add": "sig_hash_1", ... }]`. Manifest
-entries carry the component kind (see below) and are valid with a signature
-and no source: top-down design (#593) means a declared
-signature-without-implementation is valid state, not an error.
+`[0x22, new_registry_hash, { "math/Add": ["sig_hash_1", "elementary"], ... }]`.
+Each entry is the positional `[sig_hash, kind]` tuple: the manifest carries
+the declared component kind (see below) and is valid with a signature and no
+source — top-down design (#593) means a declared
+signature-without-implementation is valid state, not an error. Clients never
+infer kind from absence of source; an entry whose kind is not in the shared
+vocabulary is a malformed frame.
 
 **`0x23` CMD_COMP_DETAIL_REQ** — client requests only unknown definitions:
 `[0x23, ["math/Add"]]`.
