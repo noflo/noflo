@@ -287,13 +287,24 @@ Unified event types:
 | `0x06` | `LIFECYCLE`   | transition code (uint8)                    |
 | `0x07` | `VISUAL_STATE`| `[format_type, binary_pixels]`             |
 
-Lifecycle transition codes cover start, stop, and safe-mode. **Open**
-(before freeze): a `FAILED` code encoding a *failed* transition, with detail
-carried in an accompanying `0x04 ERROR` event — a rejected `start()` must
-leave the runtime an honest message to send (WD #4 update #1). **Open**:
-pause/step/breakpoint debugging commands (noflo/noflo-ui #243/#245/#317) —
-either `0x06 LIFECYCLE` extensions (a `PAUSED` code) or a small debugging
-sub-protocol.
+Lifecycle transition codes (`0x06 LIFECYCLE` payloads):
+
+| Code   | Transition        |
+| ------ | ----------------- |
+| `0x01` | Start              |
+| `0x02` | Stop               |
+| `0x03` | Safe-mode entered  |
+| `0x04` | Failed transition  |
+
+A `FAILED` code encodes a *failed* transition — a rejected `start()` leaves
+the runtime an honest message to send (WD #4 update #1). UIs render the
+transition as errored from the code itself, without parsing exception
+strings; the detail travels in an accompanying `0x04 ERROR` flowtrace event,
+frugalized per local policy.
+
+**Open** (before freeze): pause/step/breakpoint debugging commands
+(noflo/noflo-ui #243/#245/#317) — either `0x06 LIFECYCLE` extensions (a
+`PAUSED` code) or a small debugging sub-protocol.
 
 Visual-state format types:
 

@@ -812,7 +812,7 @@
         "name": "flowtraceChunk",
         "title": "0x32 CMD_FLOWTRACE_CHUNK",
         "summary": "Buffered, delta-encoded execution trace chunk.",
-        "description": "Event storms never hit the wire raw: events buffer into chunks, each event carrying a uint32 millisecond delta from the chunk's base timestamp. Event types: `0x01` DATA (raw value), `0x02` BEGIN_GROUP / `0x03` END_GROUP (group string), `0x04` ERROR (exception string), `0x05` CONSOLE (`[stream_id, log_string]`), `0x06` LIFECYCLE (transition code), `0x07` VISUAL_STATE (`[format_type, binary_pixels]`).",
+        "description": "Event storms never hit the wire raw: events buffer into chunks, each event carrying a uint32 millisecond delta from the chunk's base timestamp. Event types: `0x01` DATA (raw value), `0x02` BEGIN_GROUP / `0x03` END_GROUP (group string), `0x04` ERROR (exception string), `0x05` CONSOLE (`[stream_id, log_string]`), `0x06` LIFECYCLE (transition code: `0x01` start, `0x02` stop, `0x03` safe-mode, `0x04` failed transition — a rejected `start()` leaves the runtime an honest message to send, with the detail in an accompanying `0x04` ERROR event), `0x07` VISUAL_STATE (`[format_type, binary_pixels]`).",
         "payload": {
           "type": "array",
           "minItems": 4,
@@ -890,6 +890,16 @@
                 ],
                 [
                   9,
+                  6,
+                  4
+                ],
+                [
+                  14,
+                  4,
+                  "start rejected: component math/Add threw"
+                ],
+                [
+                  18,
                   3,
                   "math"
                 ]
@@ -897,7 +907,7 @@
             ]
           }
         ],
-        "x-msgpack-hex": "9432a57375622d31cf00000192cc09140093930002a46d6174689304012a930903a46d617468",
+        "x-msgpack-hex": "9432a57375622d31cf00000192cc09140095930002a46d6174689304012a93090604930e04d92873746172742072656a65637465643a20636f6d706f6e656e74206d6174682f416464207468726577931203a46d617468",
         "x-verify": "frame"
       },
       "lxmTelemetry": {

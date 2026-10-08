@@ -18,6 +18,7 @@ import {
   encodeFlowtraceChunk,
   encodeFlowtraceChunkFromTimestamps,
   encodePubsubSub,
+  LIFECYCLE_CODE,
   ProtocolError,
 } from "../src/index.js";
 
@@ -150,6 +151,36 @@ describe("0x32 CMD_FLOWTRACE_CHUNK", () => {
       () =>
         encodeFlowtraceChunk({ subId: "s", baseTimestampMs: -1, events: [] }),
       ProtocolError,
+    );
+  });
+
+  it("carries a failed transition with its accompanying error detail (update #1)", () => {
+    // A rejected start() leaves the runtime an honest message to send: the
+    // 0x06 LIFECYCLE code renders the transition as errored without parsing
+    // exception strings; the detail travels in an accompanying 0x04 ERROR.
+    const bytes = encodeFlowtraceChunk({
+      subId: "sub-1",
+      baseTimestampMs: 1000,
+      events: [
+        {
+          timeDeltaMs: 0,
+          eventType: EVENT_TYPE.LIFECYCLE,
+          payload: LIFECYCLE_CODE.FAILED,
+        },
+        {
+          timeDeltaMs: 5,
+          eventType: EVENT_TYPE.ERROR,
+          payload: "start rejected: component math/Add threw",
+        },
+      ],
+    });
+    const decoded = decodeFlowtraceChunk(bytes);
+    assert.equal(decoded.events[0].eventType, EVENT_TYPE.LIFECYCLE);
+    assert.equal(decoded.events[0].payload, LIFECYCLE_CODE.FAILED);
+    assert.equal(decoded.events[1].eventType, EVENT_TYPE.ERROR);
+    assert.equal(
+      decoded.events[1].payload,
+      "start rejected: component math/Add threw",
     );
   });
 });

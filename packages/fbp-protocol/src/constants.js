@@ -226,12 +226,12 @@ export const EVENT_TYPE = {
 };
 
 /**
- * Lifecycle transition codes for `0x06 LIFECYCLE` event payloads.
- *
- * PROVISIONAL numbering: the document pins the payload as a uint8 code for
- * start/stop/safe-mode but not the values, and update #1's `FAILED`
- * transition encoding is still an open decision before wire-format freeze.
- * These constants exist so codecs can be written; re-review them at freeze.
+ * Lifecycle transition codes for `0x06 LIFECYCLE` event payloads. Pinned
+ * per work document #4 §7 and update #1: a `FAILED` code encodes a failed
+ * transition — a rejected `start()` leaves the runtime an honest message to
+ * send. UIs render the transition as errored from the code itself, without
+ * parsing exception strings; the detail travels in an accompanying `0x04
+ * ERROR` flowtrace event, frugalized per local policy.
  *
  * @type {Record<string, number>}
  */
@@ -239,6 +239,7 @@ export const LIFECYCLE_CODE = {
   START: 0x01,
   STOP: 0x02,
   SAFE_MODE: 0x03,
+  FAILED: 0x04,
 };
 
 /**

@@ -178,10 +178,11 @@ describe("component types", () => {
 
 describe("lifecycle codes", () => {
   it("cover the documented transitions", () => {
-    // Provisional numbering pending update #1's FAILED decision — the test
-    // pins what the codec ships so any change is a deliberate one.
+    // Pinned per work document #4 §7 and update #1's FAILED decision — the
+    // test pins what the codec ships so any change is a deliberate one.
     assert.equal(LIFECYCLE_CODE.START, 0x01);
     assert.equal(LIFECYCLE_CODE.STOP, 0x02);
     assert.equal(LIFECYCLE_CODE.SAFE_MODE, 0x03);
+    assert.equal(LIFECYCLE_CODE.FAILED, 0x04);
   });
 });
