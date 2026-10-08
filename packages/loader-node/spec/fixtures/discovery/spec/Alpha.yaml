@@ -1,0 +1,6 @@
+tests:
+  test Alpha forwards data:
+    data:
+      in: hello
+    out:
+      out: hello
