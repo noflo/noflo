@@ -18,6 +18,30 @@ import * as utils from "./utils.js";
 const writeFile = promisify(fs.writeFile);
 const readFile = promisify(fs.readFile);
 
+// Serializes module evaluation (source compilation and dynamic imports)
+// across concurrent component registrations. Under Deno, a synchronous
+// require() of an ESM module happening while other dynamic imports are
+// still in flight can deadlock the module loader, so evaluations are
+// queued instead of run in parallel.
+let evaluationChain = Promise.resolve();
+
+/**
+ * Run an async module-evaluation task, serialized against other
+ * evaluations.
+ *
+ * @template T
+ * @param {() => Promise<T>} task
+ * @returns {Promise<T>}
+ */
+function serializeEvaluation(task) {
+  const run = evaluationChain.then(task, task);
+  evaluationChain = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
+
 // Try loading the TypeScript compiler. When available, TypeScript
 // component sources are transpiled for setSource and for discovered .ts
 // components. Loading is lazy and awaited, so runtimes with different
@@ -185,7 +209,7 @@ async function evaluateModule(baseDir, packageId, name, source) {
  * @returns {Promise<Object|Function>} Component definition
  */
 async function importDefinition(componentPath) {
-  const implementation = await import(componentPath);
+  const implementation = await serializeEvaluation(() => import(componentPath));
   let definition = implementation;
   if (
     typeof definition.getComponent !== "function" &&
@@ -408,7 +432,9 @@ export class NodeModulesRegistry extends EventTarget {
   async registerCustomLoaders(componentLoaders) {
     for (const componentLoader of componentLoaders) {
       // eslint-disable-next-line no-await-in-loop
-      const customLoader = await import(componentLoader);
+      const customLoader = await serializeEvaluation(
+        () => import(componentLoader),
+      );
       let loaderFunc = customLoader;
       if (typeof customLoader === "object" && customLoader.default) {
         // CommonJS loader
@@ -657,11 +683,8 @@ export class NodeModulesRegistry extends EventTarget {
    */
   async storeSource(packageId, name, source, language) {
     const src = await transpileSource(packageId, name, source, language);
-    const implementation = await evaluateModule(
-      this.baseDir,
-      packageId,
-      name,
-      src,
+    const implementation = await serializeEvaluation(() =>
+      evaluateModule(this.baseDir, packageId, name, src),
     );
     const componentName = `${packageId}/${name}`;
     this.sourcesForComponents[componentName] = {
