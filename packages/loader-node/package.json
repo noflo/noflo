@@ -37,7 +37,7 @@
     "url": "https://github.com/noflo/noflo/issues"
   },
   "peerDependencies": {
-    "@noflo/noflo": "^2.0.0-alpha"
+    "@noflo/noflo": "^2.0.0-alpha.1"
   },
   "peerDependenciesMeta": {
     "typescript": {
@@ -50,7 +50,7 @@
     "fbp-manifest": "^0.3.1"
   },
   "devDependencies": {
-    "@noflo/noflo": "*"
+    "@noflo/noflo": "^2.0.0-alpha.1"
   },
   "files": [
     "src",

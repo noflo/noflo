@@ -42,6 +42,25 @@ test("applyVersionBump leaves packages without the internal dep alone", () => {
   assert.equal(noflo.version, "1.5.2");
 });
 
+test("applyVersionBump rewrites internal refs in dev and peer sections too", () => {
+  const before = {
+    name: "@noflo/loader-node",
+    version: "2.0.0-alpha.1",
+    dependencies: { "@noflo/graph": "^2.0.0-alpha.1" },
+    peerDependencies: { "@noflo/noflo": "*" },
+    devDependencies: { "@noflo/noflo": "*", "@types/node": "^24.0.0" },
+  };
+  const after = applyVersionBump(before, "2.0.0-alpha.2", [
+    "@noflo/noflo",
+    "@noflo/graph",
+  ]);
+  assert.equal(after.peerDependencies["@noflo/noflo"], "^2.0.0-alpha.2");
+  assert.equal(after.devDependencies["@noflo/noflo"], "^2.0.0-alpha.2");
+  // external dev dep untouched
+  assert.equal(after.devDependencies["@types/node"], "^24.0.0");
+  assert.equal(after.dependencies["@noflo/graph"], "^2.0.0-alpha.2");
+});
+
 test("applyVersionBump bumps a jsr.json-shaped manifest (version only)", () => {
   const jsr = {
     name: "@noflo/noflo",
