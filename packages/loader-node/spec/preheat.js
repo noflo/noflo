@@ -20,7 +20,11 @@ const isDeno = typeof Deno !== "undefined";
  * @returns {string[]}
  */
 function binRunnerArgs() {
-  return isDeno ? ["run", "--allow-all", "--no-check", binPath] : [binPath];
+  // --no-prompt: a permission request must fast-fail, never wait on
+  // stdin (CI has no interactive terminal to answer it)
+  return isDeno
+    ? ["run", "--allow-all", "--no-check", "--no-prompt", binPath]
+    : [binPath];
 }
 
 describe("noflo-cache-preheat bin", () => {
