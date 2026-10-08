@@ -8,13 +8,13 @@
     "noflo"
   ],
   "author": "Henri Bergius <henri.bergius@iki.fi>",
-  "version": "2.0.0-alpha.0",
+  "version": "2.0.0-alpha.1",
   "license": "MIT",
   "engines": {
     "node": ">= 22"
   },
   "dependencies": {
-    "@noflo/graph": "^2.0.0-alpha.0"
+    "@noflo/graph": "^2.0.0-alpha.1"
   },
   "devDependencies": {
     "@types/debug": "^4.1.5",

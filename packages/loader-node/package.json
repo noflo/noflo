@@ -1,6 +1,6 @@
 {
   "name": "@noflo/loader-node",
-  "version": "2.0.0-alpha.0",
+  "version": "2.0.0-alpha.1",
   "description": "Node.js component discovery and source storage for NoFlo, as a ComponentRegistry implementation",
   "type": "module",
   "main": "./src/index.js",
@@ -45,8 +45,8 @@
     }
   },
   "dependencies": {
-    "@noflo/fbp": "^2.0.0-alpha.0",
-    "@noflo/graph": "^2.0.0-alpha.0",
+    "@noflo/fbp": "^2.0.0-alpha.1",
+    "@noflo/graph": "^2.0.0-alpha.1",
     "fbp-manifest": "^0.3.1"
   },
   "devDependencies": {

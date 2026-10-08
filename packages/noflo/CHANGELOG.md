@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.0.0-alpha.1] - 2026-10-08
 - The npm tarball now ships the generated TypeScript declarations (they were accidentally excluded by gitignore-based packaging) and the `types` field points at the real declaration path
 ### Added
 - The package is renamed to `@noflo/noflo` (work document #13): install with `npm install @noflo/noflo` or `jsr add @noflo/noflo`. Graph component identifiers are unaffected — component names using the unscoped `noflo/` prefix (for example `noflo/Split`) keep resolving, and the unscoped `noflo` npm package will receive a deprecation notice pointing at the scoped name
