@@ -12,8 +12,8 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { promisify } from "node:util";
 import { exportFbpJson, GraphModel } from "@noflo/graph";
-import * as manifest from "fbp-manifest";
 import { loadGraphFile } from "./graphFile.js";
+import { discoverModules } from "./manifest.js";
 import * as utils from "./utils.js";
 
 const writeFile = promisify(fs.writeFile);
@@ -102,8 +102,6 @@ function loadTypescript() {
  * @typedef {Object} NodeModulesRegistryOptions
  * @property {boolean} [cache] - Read component catalog from the `fbp.json` manifest cache, writing it when missing
  * @property {boolean} [discover] - Whether missing cache may trigger full node_modules discovery (default true)
- * @property {boolean} [recursive] - Whether to traverse dependencies recursively (default true)
- * @property {string[]} [runtimes] - Extra runtimes to discover beyond `noflo`
  * @property {string} [manifest] - Manifest file name (default `fbp.json`)
  */
 
@@ -287,55 +285,35 @@ export class NodeModulesRegistry extends EventTarget {
     // Settle the TypeScript compiler load before discovery so
     // getLanguages() is accurate and .ts components transpile
     await loadTypescript();
-    const manifestOptions = this.prepareManifestOptions();
     /** @type {Array<any>} */
     let modules;
     if (this.options.cache) {
-      modules = await this.listComponentsFromCache(manifestOptions);
+      modules = await this.listComponentsFromCache();
     } else {
-      modules = await this.listComponentsDynamic(manifestOptions);
+      modules = await discoverModules(this.baseDir);
     }
     await this.registerModules(modules);
-  }
-
-  /**
-   * @returns {Object<string, any>}
-   */
-  prepareManifestOptions() {
-    const options = {};
-    options.runtimes = this.options.runtimes || [];
-    if (options.runtimes.indexOf("noflo") === -1) {
-      options.runtimes.push("noflo");
-    }
-    options.recursive =
-      typeof this.options.recursive === "undefined"
-        ? true
-        : this.options.recursive;
-    options.manifest = this.options.manifest || "fbp.json";
-    return options;
   }
 
   /**
    * Load the component catalog from the `fbp.json` manifest cache,
    * discovering and writing it when missing.
    *
-   * @param {Object<string, any>} manifestOptions
    * @returns {Promise<Array<any>>}
    */
-  async listComponentsFromCache(manifestOptions) {
+  async listComponentsFromCache() {
+    const manifestName = this.options.manifest || "fbp.json";
     try {
-      // @ts-expect-error fbp-manifest does not type `discover: false` for load
-      const contents = await manifest.load.load(this.baseDir, {
-        ...manifestOptions,
-        discover: false,
-      });
-      return contents.modules;
+      const contents = await readFile(
+        path.resolve(this.baseDir, manifestName),
+        "utf-8",
+      );
+      return JSON.parse(contents).modules;
     } catch (err) {
       if (!this.options.discover) {
         throw err;
       }
-      const modules = await this.listComponentsDynamic(manifestOptions);
-      const manifestName = manifestOptions.manifest || "fbp.json";
+      const modules = await discoverModules(this.baseDir);
       const filePath = path.resolve(this.baseDir, manifestName);
       const manifestContents = {
         version: 1,
@@ -346,21 +324,6 @@ export class NodeModulesRegistry extends EventTarget {
       });
       return modules;
     }
-  }
-
-  /**
-   * Run full node_modules discovery via fbp-manifest.
-   *
-   * @param {Object<string, any>} manifestOptions
-   * @returns {Promise<Array<any>>}
-   */
-  async listComponentsDynamic(manifestOptions) {
-    // @ts-expect-error fbp-manifest option typing
-    const modules = await manifest.list.list(this.baseDir, {
-      ...manifestOptions,
-      discover: true,
-    });
-    return modules;
   }
 
   /**

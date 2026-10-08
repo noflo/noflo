@@ -111,8 +111,8 @@ describe("node_modules discovery contract", () => {
   });
 
   it("ignores components of other runtimes", () => {
-    // The msgflo-annotated component is discovered under the msgflo
-    // runtime, which the registry filters out of registration
+    // The msgflo-annotated component is dropped by discovery, which
+    // only recognizes the noflo family of runtimes (work document #24)
     const list = registry.list();
     assert.ok(!Object.keys(list).includes("discoveryroot/wrongruntime"));
   });
@@ -126,14 +126,11 @@ describe("node_modules discovery contract", () => {
     );
   });
 
-  it("derives package identity from the directory name when package.json is missing", async () => {
-    // Current fbp-manifest behavior: a dependency without package.json
-    // is faked under its directory name. Work document #24 changes
-    // this to skipping the entry; this pin flips with the swap.
+  it("skips dependencies without package.json", () => {
+    // Work document #24: a node_modules entry without package.json is
+    // not a package and is skipped, not faked from the directory name
     const list = registry.list();
-    assert.ok(Object.keys(list).includes("nopackage/Zeta"));
-    const definition = await registry.get("nopackage/Zeta");
-    assert.ok(instantiate(definition).inPorts.ports.in);
+    assert.ok(!Object.keys(list).includes("nopackage/Zeta"));
   });
 });
 
