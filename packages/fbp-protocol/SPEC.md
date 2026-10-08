@@ -67,7 +67,12 @@ described as fixed-arity positional arrays mirroring the MsgPack wire format,
 per-channel capability-mask requirements, and a transport section describing
 the RNS bootstrap (announce app_data schema and the `0x02` handshake), since
 AsyncAPI has no native RNS binding. No wire-format change lands without its
-AsyncAPI counterpart in the same change set.
+AsyncAPI counterpart in the same change set. The document lives at
+`asyncapi.json` next to the implementation, carries the same CC0-1.0
+dedication as this specification, and is machine-verified against the codecs:
+its test suite decodes every wire example through the real encoders and
+decoders, re-encodes byte-for-byte, and checks one-to-one parity between the
+channel table and the command constants.
 
 ## 3. Transport: announce app_data
 

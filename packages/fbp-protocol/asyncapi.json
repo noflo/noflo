@@ -1,0 +1,1037 @@
+{
+  "asyncapi": "2.6.0",
+  "id": "urn:noflo:fbp-protocol:2",
+  "info": {
+    "title": "FBP Protocol 2.0 over Reticulum",
+    "version": "2.0.0-alpha.1",
+    "description": "Machine-readable interface document for FBP Protocol 2.0, the decentralized runtime protocol for peer-to-peer visual programming (NoFlo, MicroFlo) over the Reticulum Network Stack. The normative human-readable reference is `SPEC.md` in the same package; the two documents are kept in lockstep and no wire-format change lands without its counterpart in both.\n\n**License.** This document is dedicated to the public domain under **CC0-1.0** (`SPDX-License-Identifier: CC0-1.0`): anyone may implement, copy, modify, publish, use, and distribute it freely, for any purpose, without conditions or attribution requirements. The reference *implementation* in this package is licensed separately under the EUPL-1.2 (see `LICENSE`). The split is deliberate: unencumbered specs grow ecosystems; the code keeps the project's greenfield license.\n\n**Perspective.** The *application* described by this document is the **runtime**. On every channel, `publish` means the runtime sends and `subscribe` means the runtime receives. Clients (visual programming UIs, monitors) read the document with the directions inverted.\n\n**Wire encoding.** All command frames are flat, positional MessagePack arrays; keyed dictionaries are banned for command framing to preserve radio airtime. The payload schemas below therefore describe fixed-arity arrays, with field types per position. MsgPack maps appear only as open *payload data* (logical clocks, manifest entries, component definitions, event payloads) where the frame shape is heterogeneous. Because AsyncAPI has no native MsgPack or RNS binding, each message carries its wire form as a hex-encoded MsgPack frame in `x-msgpack-hex` and its decoded form in `examples`; the package's test suite decodes every `x-msgpack-hex` example through the real codecs and re-encodes it byte-for-byte, so this document cannot drift from the implementation unnoticed.\n\n**Capability mask.** Reticulum handles authentication (`link.identify()`); the runtime maps the verified identity against its local DACAR capability store and announces the result in the `0x02` handshake. Bits: `0x01` GRAPH_READ, `0x02` GRAPH_EDIT, `0x04` METADATA_SYNC, `0x08` TELEMETRY_READ, `0x10` COMPONENT_READ, `0x20` COMPONENT_WRITE, `0x40` LIFECYCLE_CTRL, `0x80` ADMIN. Each channel declares its requirement in `x-capability`.\n\n**Protocol version.** A single generation integer, currently `2`, advertised in the announce app_data and repeated in the `0x02` handshake. Bumped only on breaking wire changes; additive evolution does not bump it.",
+    "license": {
+      "name": "CC0-1.0",
+      "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "servers": {
+    "rns": {
+      "url": "rns://",
+      "protocol": "rns",
+      "description": "Reticulum link transport. Connections are established over RNS Links to a runtime's single-purpose destination, normally discovered by scanning announces. Authentication is delegated entirely to Reticulum's `link.identify()`; no protocol payload carries secrets.\n\n**Announce discovery.** Runtimes announce under a stable destination aspect with app_data `msgpack([ protocol_version, destination_hash_raw16, node_name ])` — see the `announceAppData` message. A scanning client can reject an incompatible announce after decoding a single fixint. The aspect name is not versioned; app_data is the version advertisement.\n\nAfter `link_established` with a verified identity, the runtime unilaterally sends `0x02 CMD_AUTH_RESPONSE` (channel `cmd/0x02`) carrying the protocol version again, the capability mask, and a limitation code — the in-link truth for stale or cached announces.",
+      "security": [],
+      "x-announce-app-data": {
+        "$ref": "#/components/messages/announceAppData"
+      }
+    }
+  },
+  "channels": {
+    "cmd/0x02": {
+      "description": "Runtime → client, unilaterally after link establishment with a verified identity.",
+      "publish": {
+        "operationId": "authResponse",
+        "message": {
+          "$ref": "#/components/messages/authResponse"
+        }
+      },
+      "x-capability": "none — this message *is* the capability advertisement"
+    },
+    "cmd/0x10": {
+      "description": "Client → runtime: request graph state synchronization for an epoch.",
+      "subscribe": {
+        "operationId": "crdtSyncReq",
+        "message": {
+          "$ref": "#/components/messages/crdtSyncReq"
+        }
+      },
+      "x-capability": "GRAPH_READ (0x01)"
+    },
+    "cmd/0x11": {
+      "description": "Runtime → client: epochs match, no delta transfer needed.",
+      "publish": {
+        "operationId": "crdtUpToDate",
+        "message": {
+          "$ref": "#/components/messages/crdtUpToDate"
+        }
+      },
+      "x-capability": "GRAPH_READ (0x01)"
+    },
+    "cmd/0x12": {
+      "description": "Runtime → client: the client's epoch is stale; fetch the baseline snapshot via the Reticulum Resource API.",
+      "publish": {
+        "operationId": "crdtStaleEpoch",
+        "message": {
+          "$ref": "#/components/messages/crdtStaleEpoch"
+        }
+      },
+      "x-capability": "GRAPH_READ (0x01)"
+    },
+    "cmd/0x14": {
+      "description": "Bidirectional CRDT graph operation. Client → runtime: graph edits. Runtime → client: runtime-initiated graph changes converge to all connected clients via the op log.",
+      "publish": {
+        "operationId": "crdtUpdateFromRuntime",
+        "message": {
+          "$ref": "#/components/messages/crdtUpdate"
+        }
+      },
+      "subscribe": {
+        "operationId": "crdtUpdateFromClient",
+        "message": {
+          "$ref": "#/components/messages/crdtUpdate"
+        }
+      },
+      "x-capability": "GRAPH_EDIT (0x02) for client-sent mutations; runtime-initiated updates need no client capability"
+    },
+    "cmd/0x20": {
+      "description": "Client → runtime: registry sync request against the client's known registry hash (Two-Step Cache, step 1).",
+      "subscribe": {
+        "operationId": "compSyncReq",
+        "message": {
+          "$ref": "#/components/messages/compSyncReq"
+        }
+      },
+      "x-capability": "COMPONENT_READ (0x10)"
+    },
+    "cmd/0x22": {
+      "description": "Runtime → client: registry manifest (Two-Step Cache, step 1 response). Entries are valid with a signature and no source; each carries the declared component kind.",
+      "publish": {
+        "operationId": "compManifest",
+        "message": {
+          "$ref": "#/components/messages/compManifest"
+        }
+      },
+      "x-capability": "COMPONENT_READ (0x10)"
+    },
+    "cmd/0x23": {
+      "description": "Client → runtime: request details for unknown components only (Two-Step Cache, step 2).",
+      "subscribe": {
+        "operationId": "compDetailReq",
+        "message": {
+          "$ref": "#/components/messages/compDetailReq"
+        }
+      },
+      "x-capability": "COMPONENT_READ (0x10)"
+    },
+    "cmd/0x24": {
+      "description": "Runtime → client: component definitions. Succeeds for stubs, answering from the signature; the declared kind travels with every component.",
+      "publish": {
+        "operationId": "compDetailRes",
+        "message": {
+          "$ref": "#/components/messages/compDetailRes"
+        }
+      },
+      "x-capability": "COMPONENT_READ (0x10)"
+    },
+    "cmd/0x25": {
+      "description": "Client → runtime: atomic full-source component update. Sources over 500 bytes SHOULD travel as a Reticulum Resource hash instead of a raw string.",
+      "subscribe": {
+        "operationId": "compWrite",
+        "message": {
+          "$ref": "#/components/messages/compWrite"
+        }
+      },
+      "x-capability": "COMPONENT_WRITE (0x20)"
+    },
+    "cmd/0x27": {
+      "description": "Client → runtime: dynamic ES module install via HTTP, npm, or RNS. Third-party libraries MUST be EUPL-1.2-compatible. The URI resolves through the ecosystem catalog's npm/JSR/version/hash provenance fields.",
+      "subscribe": {
+        "operationId": "compInstallReq",
+        "message": {
+          "$ref": "#/components/messages/compInstallReq"
+        }
+      },
+      "x-capability": "COMPONENT_WRITE (0x20)"
+    },
+    "cmd/0x30": {
+      "description": "Client → runtime: subscribe to a telemetry stream. The flush interval is a request; the runtime's actual flush cadence is its physical-policy decision.",
+      "subscribe": {
+        "operationId": "pubsubSub",
+        "message": {
+          "$ref": "#/components/messages/pubsubSub"
+        }
+      },
+      "x-capability": "TELEMETRY_READ (0x08)"
+    },
+    "cmd/0x32": {
+      "description": "Runtime → client: buffered, delta-encoded flowtrace chunk for a subscription.",
+      "publish": {
+        "operationId": "flowtraceChunk",
+        "message": {
+          "$ref": "#/components/messages/flowtraceChunk"
+        }
+      },
+      "x-capability": "TELEMETRY_READ (0x08)"
+    },
+    "lxmf/fbp.telemetry": {
+      "description": "Runtime → mesh, over LXMF store-and-forward (not a link channel): asynchronous telemetry drops, event-driven or scheduled opportunistically with randomized jitter to respect Proof-of-Work limits. LXMF app name: `fbp.telemetry`.",
+      "publish": {
+        "operationId": "lxmTelemetry",
+        "message": {
+          "$ref": "#/components/messages/lxmTelemetry"
+        }
+      },
+      "x-capability": "none — authenticated by the LXMF transport itself"
+    }
+  },
+  "components": {
+    "schemas": {
+      "ComponentKind": {
+        "type": "string",
+        "enum": [
+          "elementary",
+          "subgraph",
+          "stub"
+        ],
+        "description": "The shared component-kind vocabulary: publish-time manifests, loader sidecars, manifest entries, and details all use this one enum. Declared data — never inferred from absence of source."
+      },
+      "Port": {
+        "type": "object",
+        "description": "One port of a component signature. Field names follow the FBP runtime convention; the publish-time manifest's `name` maps onto `id`. Absent optional fields are omitted from the wire to save airtime.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "Port datatype."
+          },
+          "addressable": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "control": {
+            "type": "boolean",
+            "description": "Control-port identification; inports only."
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ]
+      },
+      "ComponentDetail": {
+        "type": "object",
+        "description": "A component definition as carried by `0x24`. Valid with no implementation behind it (stubs).",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/ComponentKind"
+          },
+          "in": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Port"
+            }
+          },
+          "out": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Port"
+            }
+          }
+        },
+        "required": [
+          "type",
+          "in",
+          "out"
+        ]
+      }
+    },
+    "messages": {
+      "announceAppData": {
+        "name": "announceAppData",
+        "title": "RNS announce app_data",
+        "summary": "Version advertisement and connection coordinates carried in the runtime's RNS announce payload.",
+        "description": "Not a link frame: this is the app_data of the runtime's RNS announce under its stable destination aspect. `protocol_version` comes first so a scanner can reject an incompatible announce after decoding a single fixint; `destination_hash_raw16` is the raw 16-byte destination hash; `node_name` is a MsgPack string. The whole payload stays far under the 128-byte announce app_data limit.",
+        "payload": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "description": "protocol_version — the protocol generation"
+            },
+            {
+              "type": "string",
+              "format": "binary",
+              "description": "destination_hash_raw16 — the raw 16-byte destination hash"
+            },
+            {
+              "type": "string",
+              "description": "node_name — human-readable runtime node name"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              2,
+              "qqqqqqqqqqqqqqqqqqqqqg==",
+              "solar-runtime"
+            ]
+          }
+        ],
+        "x-msgpack-hex": "9302c410aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaad736f6c61722d72756e74696d65",
+        "x-verify": "announce"
+      },
+      "authResponse": {
+        "name": "authResponse",
+        "title": "0x02 CMD_AUTH_RESPONSE",
+        "summary": "Capability advertisement sent unilaterally after link establishment with a verified identity.",
+        "payload": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": [
+            {
+              "type": "integer",
+              "const": 2,
+              "description": "CMD_AUTH_RESPONSE"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255,
+              "description": "protocol_version — the in-link truth for stale or cached announces"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255,
+              "description": "capability_mask — bitwise CAPABILITY: 0x01 GRAPH_READ, 0x02 GRAPH_EDIT, 0x04 METADATA_SYNC, 0x08 TELEMETRY_READ, 0x10 COMPONENT_READ, 0x20 COMPONENT_WRITE, 0x40 LIFECYCLE_CTRL, 0x80 ADMIN"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255,
+              "description": "limitation_code — 0x00 full access, 0x01 hardware constrained, 0x02 permission denied, 0x03 link saturated, 0x04 concurrency lock"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              2,
+              2,
+              31,
+              0
+            ]
+          }
+        ],
+        "x-msgpack-hex": "9402021f00",
+        "x-verify": "frame"
+      },
+      "crdtSyncReq": {
+        "name": "crdtSyncReq",
+        "title": "0x10 CMD_CRDT_SYNC_REQ",
+        "summary": "Client requests graph state synchronization for an epoch.",
+        "payload": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": [
+            {
+              "type": "integer",
+              "const": 16,
+              "description": "CMD_CRDT_SYNC_REQ"
+            },
+            {
+              "type": [
+                "integer",
+                "string"
+              ],
+              "description": "epoch_id"
+            },
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "description": "client_clocks — map of client id to that client's logical clock"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              16,
+              7,
+              {
+                "client-a": 15
+              }
+            ]
+          }
+        ],
+        "x-msgpack-hex": "93100781a8636c69656e742d610f",
+        "x-verify": "frame"
+      },
+      "crdtUpToDate": {
+        "name": "crdtUpToDate",
+        "title": "0x11 CMD_CRDT_UP_TO_DATE",
+        "summary": "Epochs match; no delta transfer needed.",
+        "payload": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": [
+            {
+              "type": "integer",
+              "const": 17,
+              "description": "CMD_CRDT_UP_TO_DATE"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              17
+            ]
+          }
+        ],
+        "x-msgpack-hex": "9111",
+        "x-verify": "frame"
+      },
+      "crdtStaleEpoch": {
+        "name": "crdtStaleEpoch",
+        "title": "0x12 CMD_CRDT_STALE_EPOCH",
+        "summary": "The client's epoch is stale; fetch the baseline snapshot via the Reticulum Resource API.",
+        "payload": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": [
+            {
+              "type": "integer",
+              "const": 18,
+              "description": "CMD_CRDT_STALE_EPOCH"
+            },
+            {
+              "type": [
+                "integer",
+                "string"
+              ],
+              "description": "new_epoch_id"
+            },
+            {
+              "type": "string",
+              "description": "rns_resource_hash — where to fetch the baseline snapshot"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              18,
+              8,
+              "rns-resource-hash-9f"
+            ]
+          }
+        ],
+        "x-msgpack-hex": "931208b4726e732d7265736f757263652d686173682d3966",
+        "x-verify": "frame"
+      },
+      "crdtUpdate": {
+        "name": "crdtUpdate",
+        "title": "0x14 CMD_CRDT_UPDATE",
+        "summary": "Positional CRDT graph operation, flowing both directions.",
+        "description": "The op taxonomy is a mapped projection of the changeset reference model owned by the noflo-ui materialization work: insert node `0x01`, insert edge `0x02`, insert IIP `0x03`, tombstone `0x04`, UI metadata `0x05` (dropped by constrained nodes). Modify is encoded as tombstone + insert at the wire level — an encoding detail, never the semantic unit.",
+        "payload": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": [
+            {
+              "type": "integer",
+              "const": 20,
+              "description": "CMD_CRDT_UPDATE"
+            },
+            {
+              "type": "string",
+              "description": "client_id — origin of the operation"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "description": "logical_clock"
+            },
+            {
+              "type": "integer",
+              "enum": [
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "description": "op_type — 0x01 insert node, 0x02 insert edge, 0x03 insert IIP, 0x04 tombstone, 0x05 UI metadata"
+            },
+            {
+              "type": "string",
+              "description": "entity_id — the graph entity the operation addresses"
+            },
+            {
+              "description": "payload — entity definition for inserts, tombstoned entity reference for removals, metadata map for UI metadata ops"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              20,
+              "client-a",
+              15,
+              1,
+              "node-1",
+              {
+                "id": "node-1",
+                "component": "math/Add"
+              }
+            ]
+          }
+        ],
+        "x-msgpack-hex": "9614a8636c69656e742d610f01a66e6f64652d3182a26964a66e6f64652d31a9636f6d706f6e656e74a86d6174682f416464",
+        "x-verify": "frame"
+      },
+      "compSyncReq": {
+        "name": "compSyncReq",
+        "title": "0x20 CMD_COMP_SYNC_REQ",
+        "summary": "Client requests registry sync against its known registry hash.",
+        "payload": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": [
+            {
+              "type": "integer",
+              "const": 32,
+              "description": "CMD_COMP_SYNC_REQ"
+            },
+            {
+              "type": "string",
+              "description": "local_registry_hash"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              32,
+              "registry-hash-current"
+            ]
+          }
+        ],
+        "x-msgpack-hex": "9220b572656769737472792d686173682d63757272656e74",
+        "x-verify": "frame"
+      },
+      "compManifest": {
+        "name": "compManifest",
+        "title": "0x22 CMD_COMP_MANIFEST",
+        "summary": "Registry manifest of the Two-Step Cache, step 1 response.",
+        "description": "Each entry is the positional `[sig_hash, kind]` tuple: the manifest carries the declared component kind and is valid with a signature and no source. `sig_hash` is the SHA-256 hex digest of the canonical signature serialization (sorted-key JSON over the kind and the full port field set), so a client matching a hash skips the details round-trip.",
+        "payload": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": [
+            {
+              "type": "integer",
+              "const": 34,
+              "description": "CMD_COMP_MANIFEST"
+            },
+            {
+              "type": "string",
+              "description": "new_registry_hash"
+            },
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": [
+                  {
+                    "type": "string",
+                    "description": "sig_hash — SHA-256 hex digest of the canonical signature"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ComponentKind"
+                  }
+                ]
+              },
+              "description": "entries — component name to [sig_hash, kind]"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              34,
+              "registry-hash-new",
+              {
+                "math/Add": [
+                  "83bc2ef85be1a2e752bd00c23692dcff2484f99ccd212e99fa17da1bc7a37ffb",
+                  "elementary"
+                ],
+                "stub/Only": [
+                  "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "stub"
+                ]
+              }
+            ]
+          }
+        ],
+        "x-msgpack-hex": "9322b172656769737472792d686173682d6e657782a86d6174682f41646492d94038336263326566383562653161326537353262643030633233363932646366663234383466393963636432313265393966613137646131626337613337666662aa656c656d656e74617279a9737475622f4f6e6c7992d94062626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262a473747562",
+        "x-verify": "frame"
+      },
+      "compDetailReq": {
+        "name": "compDetailReq",
+        "title": "0x23 CMD_COMP_DETAIL_REQ",
+        "summary": "Client requests details for the components it does not already know.",
+        "payload": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": [
+            {
+              "type": "integer",
+              "const": 35,
+              "description": "CMD_COMP_DETAIL_REQ"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "names — library-namespaced component names"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              35,
+              [
+                "math/Add"
+              ]
+            ]
+          }
+        ],
+        "x-msgpack-hex": "922391a86d6174682f416464",
+        "x-verify": "frame"
+      },
+      "compDetailRes": {
+        "name": "compDetailRes",
+        "title": "0x24 CMD_COMP_DETAIL_RES",
+        "summary": "Component definitions with their declared kinds; succeeds for stubs.",
+        "payload": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": [
+            {
+              "type": "integer",
+              "const": 36,
+              "description": "CMD_COMP_DETAIL_RES"
+            },
+            {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/components/schemas/ComponentDetail"
+              },
+              "description": "components — component name to definition"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              36,
+              {
+                "math/Add": {
+                  "type": "elementary",
+                  "in": [
+                    {
+                      "id": "a",
+                      "type": "number"
+                    },
+                    {
+                      "id": "b",
+                      "type": "number",
+                      "required": true
+                    }
+                  ],
+                  "out": [
+                    {
+                      "id": "sum",
+                      "type": "number"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "x-msgpack-hex": "922481a86d6174682f41646483a474797065aa656c656d656e74617279a2696e9282a26964a161a474797065a66e756d62657283a26964a162a474797065a66e756d626572a87265717569726564c3a36f75749182a26964a373756da474797065a66e756d626572",
+        "x-verify": "frame"
+      },
+      "compWrite": {
+        "name": "compWrite",
+        "title": "0x25 CMD_COMP_WRITE",
+        "summary": "Atomic full-source component update.",
+        "description": "For sources over 500 bytes, clients SHOULD pass a Reticulum Resource hash instead of a raw string. A write to a previously stub-only entry implements it while the signature stays unchanged — source and signature are orthogonal.",
+        "payload": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": [
+            {
+              "type": "integer",
+              "const": 37,
+              "description": "CMD_COMP_WRITE"
+            },
+            {
+              "type": "string",
+              "description": "component_name"
+            },
+            {
+              "type": "string",
+              "description": "source — full source string or RNS resource hash"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              37,
+              "math/Add",
+              "export const getComponent = () => {};"
+            ]
+          }
+        ],
+        "x-msgpack-hex": "9325a86d6174682f416464d9256578706f727420636f6e737420676574436f6d706f6e656e74203d202829203d3e207b7d3b",
+        "x-verify": "frame"
+      },
+      "compInstallReq": {
+        "name": "compInstallReq",
+        "title": "0x27 CMD_COMP_INSTALL_REQ",
+        "summary": "Dynamic ES module install request.",
+        "payload": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": [
+            {
+              "type": "integer",
+              "const": 39,
+              "description": "CMD_COMP_INSTALL_REQ"
+            },
+            {
+              "type": "string",
+              "description": "package_uri — HTTP, npm, or RNS; resolves through the ecosystem catalog's provenance fields"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              39,
+              "npm:@noflo/strings@2.0.0"
+            ]
+          }
+        ],
+        "x-msgpack-hex": "9227b86e706d3a406e6f666c6f2f737472696e677340322e302e30",
+        "x-verify": "frame"
+      },
+      "pubsubSub": {
+        "name": "pubsubSub",
+        "title": "0x30 CMD_PUBSUB_SUB",
+        "summary": "Subscribe to a telemetry stream with a client-requested flush interval.",
+        "payload": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": [
+            {
+              "type": "integer",
+              "const": 48,
+              "description": "CMD_PUBSUB_SUB"
+            },
+            {
+              "type": [
+                "string",
+                "integer"
+              ],
+              "description": "sub_id — client-chosen subscription identifier"
+            },
+            {
+              "type": "string",
+              "description": "target_type — what is subscribed to (e.g. a graph or network)"
+            },
+            {
+              "type": "string",
+              "description": "target_id"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "description": "requested_flush_interval_ms — a request; the runtime's flush cadence is its physical-policy decision"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              48,
+              "sub-1",
+              "network",
+              "main",
+              250
+            ]
+          }
+        ],
+        "x-msgpack-hex": "9530a57375622d31a76e6574776f726ba46d61696eccfa",
+        "x-verify": "frame"
+      },
+      "flowtraceChunk": {
+        "name": "flowtraceChunk",
+        "title": "0x32 CMD_FLOWTRACE_CHUNK",
+        "summary": "Buffered, delta-encoded execution trace chunk.",
+        "description": "Event storms never hit the wire raw: events buffer into chunks, each event carrying a uint32 millisecond delta from the chunk's base timestamp. Event types: `0x01` DATA (raw value), `0x02` BEGIN_GROUP / `0x03` END_GROUP (group string), `0x04` ERROR (exception string), `0x05` CONSOLE (`[stream_id, log_string]`), `0x06` LIFECYCLE (transition code), `0x07` VISUAL_STATE (`[format_type, binary_pixels]`).",
+        "payload": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": [
+            {
+              "type": "integer",
+              "const": 50,
+              "description": "CMD_FLOWTRACE_CHUNK"
+            },
+            {
+              "type": [
+                "string",
+                "integer"
+              ],
+              "description": "sub_id"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "description": "base_timestamp_ms — epoch milliseconds of delta zero"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 3,
+                "items": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4294967295,
+                    "description": "time_delta_ms — uint32 offset from base_timestamp_ms"
+                  },
+                  {
+                    "type": "integer",
+                    "enum": [
+                      1,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                      7
+                    ],
+                    "description": "event_type"
+                  },
+                  {
+                    "description": "payload — event-type-specific value"
+                  }
+                ]
+              },
+              "description": "trace_events_array"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              50,
+              "sub-1",
+              1730000000000,
+              [
+                [
+                  0,
+                  2,
+                  "math"
+                ],
+                [
+                  4,
+                  1,
+                  42
+                ],
+                [
+                  9,
+                  3,
+                  "math"
+                ]
+              ]
+            ]
+          }
+        ],
+        "x-msgpack-hex": "9432a57375622d31cf00000192cc09140093930002a46d6174689304012a930903a46d617468",
+        "x-verify": "frame"
+      },
+      "lxmTelemetry": {
+        "name": "lxmTelemetry",
+        "title": "LXMF store-and-forward telemetry payload",
+        "summary": "Flat telemetry array dispatched to the mesh via LXMF app `fbp.telemetry`.",
+        "description": "Not a link frame: the payload of an LXMF drop for asynchronous monitoring. Drops are event-driven (e.g. fault conditions) or scheduled opportunistically during peak solar-generation hours with randomized jitter, to respect Proof-of-Work limits on microcontrollers.",
+        "payload": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "description": "timestamp — epoch milliseconds of the snapshot"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "description": "uptime — runtime uptime in milliseconds"
+            },
+            {
+              "type": "boolean",
+              "description": "is_safe_mode"
+            },
+            {
+              "type": "array",
+              "minItems": 4,
+              "maxItems": 4,
+              "items": [
+                {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "battery"
+                },
+                {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "solar"
+                },
+                {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "ram"
+                },
+                {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "cpu"
+                }
+              ],
+              "description": "device metrics; any value may be null when unmeasurable"
+            },
+            {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": [
+                {
+                  "type": "integer",
+                  "enum": [
+                    1,
+                    2,
+                    3
+                  ],
+                  "description": "visual_format — 0x01 FontAwesome, 0x02 P4 Netpbm 84x84 monochrome, 0x03 P6 Netpbm 18x18 RGB"
+                },
+                {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "format": "binary"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "visual_bitmap — binary pixels or null"
+                }
+              ],
+              "description": "visual state pair"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "errors — fault conditions recorded since the last drop"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              1730000000000,
+              3600000,
+              false,
+              [
+                87,
+                40,
+                52,
+                12
+              ],
+              [
+                2,
+                null
+              ],
+              [
+                "process error: math/Add"
+              ]
+            ]
+          }
+        ],
+        "x-msgpack-hex": "96cf00000192cc091400ce0036ee80c2945728340c9202c091b770726f63657373206572726f723a206d6174682f416464",
+        "x-verify": "lxmf"
+      },
+      "traceFile": {
+        "name": "traceFile",
+        "title": "Streamable trace file",
+        "summary": "Self-contained, append-only flowtrace recording for playback in UI Web Workers.",
+        "description": "Not a link frame: a file format. Frame 1 is the topology snapshot `[0xF0, format_ver, timestamp_ms, runtime_metadata, complete_graph_definition]` and must come first; frames 2..N are raw `0x32 CMD_FLOWTRACE_CHUNK` byte arrays appended sequentially as they flush from the engine. Frames are self-delimiting MsgPack values, so a recording can be parsed incrementally — including while it is still being written.",
+        "x-msgpack-hex": "95ccf001cf00000192cc09140083a86e6f64654e616d65ad736f6c61722d72756e74696d65a772756e74696d65a56e6f666c6fa776657273696f6ea5322e302e3082a970726f63657373657381a66e6f64655f3181a9636f6d706f6e656e74a86d6174682f416464ab636f6e6e656374696f6e73909432a57375622d31cf00000192cc091400919300012a",
+        "x-verify": "tracefile"
+      }
+    }
+  }
+}

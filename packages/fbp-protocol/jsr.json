@@ -10,6 +10,7 @@
       "src/",
       "package.json",
       "jsr.json",
+      "asyncapi.json",
       "CHANGELOG.md",
       "SPEC.md"
     ]
