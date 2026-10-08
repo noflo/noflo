@@ -48,6 +48,22 @@ export {
   encodeCrdtUpToDate,
 } from "./graph.js";
 export {
+  canonicalSignature,
+  decodeCompDetailReq,
+  decodeCompDetailRes,
+  decodeCompInstallReq,
+  decodeCompManifest,
+  decodeCompSyncReq,
+  decodeCompWrite,
+  encodeCompDetailReq,
+  encodeCompDetailRes,
+  encodeCompInstallReq,
+  encodeCompManifest,
+  encodeCompSyncReq,
+  encodeCompWrite,
+  sigHash,
+} from "./registry.js";
+export {
   decodeAnnounceAppData,
   decodeAuthResponse,
   encodeAnnounceAppData,

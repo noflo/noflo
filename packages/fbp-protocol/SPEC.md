@@ -200,13 +200,16 @@ signature-without-implementation is valid state, not an error.
 `[0x23, ["math/Add"]]`.
 
 **`0x24` CMD_COMP_DETAIL_RES** — component definitions:
-`[0x24, { "math/Add": { type, "in": [...], "out": [...] } }]`. Succeeds for
-stubs, answering from the signature. The port arrays carry the full
-publish-time manifest port field set (WD #25): `name`/`id`, datatype,
-`addressable`, `description`, `required`, and `control` (inports only) — a
-wire signature, a manifest signature, and a sidecar signature are the same
-data. The `type` field carries the component kind declared in the manifest;
-clients never infer kind from absence of source.
+`[0x24, { "math/Add": { "type": "elementary", "in": [...], "out": [...] } }]`.
+Succeeds for stubs, answering from the signature. Each component object
+carries its declared kind in `type` and its ports as MsgPack maps. A port map
+carries the full publish-time manifest port field set (WD #25): `id` (the
+manifest's `name`), `type` (datatype), plus the optional `addressable`,
+`description`, `required`, and `control` (inports only) — absent optional
+fields are omitted from the map to save airtime. A wire signature, a manifest
+signature, and a sidecar signature are the same data. The `type` field
+carries the component kind declared in the manifest; clients never infer
+kind from absence of source.
 
 **`0x25` CMD_COMP_WRITE** — atomic full-source update:
 `[0x25, component_name, source_string_or_rns_hash]`. For sources over 500
@@ -230,10 +233,13 @@ entries, `0x24` details, and process listings:
 - `stub` — a declared signature with no implementation
 
 `sig_hash` values (and `registry_hash`) are hashes of canonical signature
-bytes. The canonical serialization substrate is shared with the noflo-ui
-materialization work (WD #43 owns byte-stable canonical serialization;
-round-trip byte-identity is a hard test requirement there). A serialization
-change breaking byte-stability is protocol-visible.
+bytes. The canonical signature serialization is sorted-key JSON over the
+component's kind and full port field set (absent optional port fields
+omitted), UTF-8 encoded; the `sig_hash` is its SHA-256 hex digest. The
+canonical serialization substrate is shared with the noflo-ui materialization
+work (WD #43 owns byte-stable canonical serialization; round-trip
+byte-identity is a hard test requirement there). A serialization change
+breaking byte-stability is protocol-visible.
 
 **Open** (before freeze): the encoding for stub-raised
 `StubNotImplementedError` — classifiable as unimplemented rather than
