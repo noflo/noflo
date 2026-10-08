@@ -1,0 +1,10 @@
+{
+  "name": "discoveryroot",
+  "noflo": {
+    "icon": "cloud",
+    "components": {
+      "Ghost": "components/Ghost.js"
+    }
+  },
+  "type": "commonjs"
+}
