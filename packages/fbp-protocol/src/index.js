@@ -12,6 +12,13 @@
 
 /* @ts-self-types="./index.d.ts" */
 
+/**
+ * @typedef {import("./registry.js").ComponentDetail} ComponentDetail
+ * @typedef {import("./registry.js").ManifestEntry} ManifestEntry
+ * @typedef {import("./registry.js").ManifestEntries} ManifestEntries
+ * @typedef {import("./registry.js").PortInfo} PortInfo
+ */
+
 export {
   CAPABILITY,
   CMD_AUTH_RESPONSE,

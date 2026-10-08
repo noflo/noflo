@@ -13,4 +13,5 @@
 
 /* @ts-self-types="./index.d.ts" */
 
+export { RegistryProtocol } from "./registry-protocol.js";
 export { capabilitiesMask, RuntimeServer } from "./runtime-server.js";

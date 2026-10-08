@@ -116,7 +116,7 @@ export class RuntimeServer extends EventTarget {
     this.send = options.send ?? (() => {});
     /** @type {(bytes: Uint8Array) => void} */
     this.broadcast = options.broadcast ?? (() => {});
-    /** @type {Map<number, (decoded: any, context: any) => void>} */
+    /** @type {Map<number, (decoded: any, context: any) => any>} */
     this.handlers = new Map();
   }
 
@@ -126,7 +126,8 @@ export class RuntimeServer extends EventTarget {
    * frame arrived on.
    *
    * @param {number} opcode Command code from `@noflo/fbp-protocol`.
-   * @param {(decoded: any, context: any) => void} handler
+   * @param {(decoded: any, context: any) => any} handler Handlers may be
+   *   async; rejections surface as `error` events like synchronous throws.
    * @returns {void}
    */
   registerHandler(opcode, handler) {
@@ -197,7 +198,14 @@ export class RuntimeServer extends EventTarget {
       return;
     }
     try {
-      handler(decoded, context);
+      const result = handler(decoded, context);
+      if (result instanceof Promise) {
+        // Async handlers (WebCrypto hashing, registry I/O) must not let
+        // rejections escape the dispatch loop either.
+        result.catch((error) => {
+          this.#emit("error", { error, context, decoded });
+        });
+      }
     } catch (error) {
       this.#emit("error", { error, context, decoded });
     }
