@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 - The debug logger reads `DEBUG` before considering `localStorage`: server-side runtimes no longer touch the `localStorage` global, whose bare access triggers a Node.js 22+ ExperimentalWarning
+- The devDependencies `@types/debug`, `process`, `replace`, and `util`: all four were unused leftovers — the debug module was already replaced by the native logger, and `process`/`util` were browserify-era shims made obsolete by the no-build browser contract
 
 ## [2.0.0-alpha.1] - 2026-10-08
 - The npm tarball now ships the generated TypeScript declarations (they were accidentally excluded by gitignore-based packaging) and the `types` field points at the real declaration path
@@ -18,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The legacy callback parameters on the public API: Network/BaseNetwork (`load`, `addNode`, `removeNode`, `renameNode`, `connect`, `addEdge`, `removeEdge`, `addInitial`, `removeInitial`, `start`, `stop`), ComponentLoader (`listComponents`, `load`, `registerComponent`, `registerGraph`, `registerLoader`), Component (`start`, `shutdown`, `setUp`, `tearDown` hooks), and `noflo.createNetwork` are Promise-only (work document #8). The `setUp`/`tearDown` component hooks are Promise-only as well: return a Promise or throw instead of calling a callback
 
 ### Removed
-- The `debug` dependency: core runtime dependencies are now `@noflo/graph` alone
+- The `debug` dependency: core runtime dependencies are now `@noflo/graph` alone (the leftover `@types/debug` devDependency was dropped in the Unreleased segment above)
 - **Registry-only component loading (work document #16)**: the Node.js loader (`fbp-manifest` discovery, `fbp.json` caching, TypeScript transpilation, CommonJS evaluation, `noflo.loader` plugin discovery) left core for the `@noflo/loader-node` package. Core consumes an application-supplied `ComponentRegistry` (`list`/`get`, optionally `setSource`/`getSource`, optionally EventTarget-based `change`/`invalidate`) plus manual `registerComponent` calls. Node.js applications await `createNodeModulesRegistry(baseDir)` and pass the ready registry; browsers pass a static ESM-URL registry with no build step
 - `ComponentLoader(baseDir)`: the constructor is options/registry-only, readiness machinery is gone (registries are ready at handoff; the catalog is read synchronously at construction), and `baseDir` exits networks and `asCallback` — pass `componentLoader` or `registry` instead
 - `loader.setSource`/`loader.getSource`/`loader.getLanguages`: source storage and language reporting are registry API only; runtimes call the registry they passed in, staying current through `change` events
