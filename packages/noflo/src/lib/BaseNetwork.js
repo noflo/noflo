@@ -341,28 +341,12 @@ export class BaseNetwork extends LegacyEventBase {
   // * As direct, instantiated JavaScript objects
   // * As filenames
   /**
-   * @callback ComponentLoadCallback
-   * @param {Error|null} err
-   * @param {import("./Component.js").Component} [component]
-   * @returns {void}
-   */
-  /**
    * @param {string} component
    * @param {Object<string, any>} metadata
-   * @param {ComponentLoadCallback} [callback]
    * @returns {Promise<import("./Component.js").Component>}
    */
-  load(component, metadata, callback) {
-    const promise = this.loader.load(component, metadata);
-    if (callback) {
-      deprecated(
-        "Providing a callback to Network.load is deprecated, use Promises",
-      );
-      promise.then((instance) => {
-        callback(null, instance);
-      }, callback);
-    }
-    return promise;
+  load(component, metadata) {
+    return this.loader.load(component, metadata);
   }
 
   // ## Add a process to the network
@@ -435,94 +419,62 @@ export class BaseNetwork extends LegacyEventBase {
         });
       }
     }
-    if (callback) {
-      deprecated(
-        "Providing a callback to Network.addNode is deprecated, use Promises",
-      );
-      promise.then((process) => {
-        callback(null, process);
-      }, callback);
-    }
     return promise;
   }
 
   /**
    * @param {import("@noflo/graph").GraphNode} node
-   * @param {ErrorableCallback} [callback]
    * @returns {Promise<void>}
    */
-  removeNode(node, callback) {
-    let promise;
+  removeNode(node) {
     const process = this.getNode(node.entity_id);
     if (!process) {
-      promise = Promise.reject(new Error(`Node ${node.entity_id} not found`));
-    } else {
-      if (!process.component) {
-        delete this.processes[node.entity_id];
-        return Promise.resolve();
-      }
-      promise = process.component.shutdown().then(() => {
-        delete this.processes[node.entity_id];
-        return Promise.resolve();
-      });
+      return Promise.reject(new Error(`Node ${node.entity_id} not found`));
     }
-    if (callback) {
-      deprecated(
-        "Providing a callback to Network.removeNode is deprecated, use Promises",
-      );
-      promise.then(() => {
-        callback(null);
-      }, callback);
+    if (!process.component) {
+      delete this.processes[node.entity_id];
+      return Promise.resolve();
     }
-    return promise;
+    return process.component.shutdown().then(() => {
+      delete this.processes[node.entity_id];
+      return Promise.resolve();
+    });
   }
 
   /**
    * @param {string} oldId
    * @param {string} newId
-   * @param {ErrorableCallback} [callback]
    * @returns {Promise<void>}
    */
-  renameNode(oldId, newId, callback) {
+  renameNode(oldId, newId) {
     const process = this.getNode(oldId);
-    let promise;
     if (!process) {
-      promise = Promise.reject(new Error(`Process ${oldId} not found`));
-    } else {
-      // Inform the process of its ID
-      process.id = newId;
-      if (process.component) {
-        // Inform the ports of the node name
-        const inPorts = process.component.inPorts.ports;
-        const outPorts = process.component.outPorts.ports;
-        Object.keys(inPorts).forEach((name) => {
-          const port = inPorts[name];
-          if (!port) {
-            return;
-          }
-          port.node = newId;
-        });
-        Object.keys(outPorts).forEach((name) => {
-          const port = outPorts[name];
-          if (!port) {
-            return;
-          }
-          port.node = newId;
-        });
-      }
-      this.processes[newId] = process;
-      delete this.processes[oldId];
-      promise = Promise.resolve();
+      return Promise.reject(new Error(`Process ${oldId} not found`));
     }
-    if (callback) {
-      deprecated(
-        "Providing a callback to Network.renameNode is deprecated, use Promises",
-      );
-      promise.then(() => {
-        callback(null);
-      }, callback);
+    // Inform the process of its ID
+    process.id = newId;
+    if (process.component) {
+      // Inform the ports of the node name
+      const inPorts = process.component.inPorts.ports;
+      const outPorts = process.component.outPorts.ports;
+      Object.keys(inPorts).forEach((name) => {
+        const port = inPorts[name];
+        if (!port) {
+          return;
+        }
+        port.node = newId;
+      });
+      Object.keys(outPorts).forEach((name) => {
+        const port = outPorts[name];
+        if (!port) {
+          return;
+        }
+        port.node = newId;
+      });
     }
-    return promise;
+    this.processes[newId] = process;
+    delete this.processes[oldId];
+    return Promise.resolve();
   }
 
   // Get process by its ID.
@@ -535,15 +487,9 @@ export class BaseNetwork extends LegacyEventBase {
   }
 
   /**
-   * @callback ErrorableCallback
-   * @param {Error|null} [err]
-   * @returns {void}
-   */
-  /**
-   * @param {ErrorableCallback} [callback]
    * @returns {Promise<this>}
    */
-  connect(callback) {
+  connect() {
     /**
      * @param {any[]} entities
      * @param {string} method
@@ -566,14 +512,6 @@ export class BaseNetwork extends LegacyEventBase {
       .then(() => handleAll(this.graph.iips(), "addInitial"))
       .then(() => handleAll(this.graph.nodes(), "addDefaults"))
       .then(() => this);
-    if (callback) {
-      deprecated(
-        "Providing a callback to Network.connect is deprecated, use Promises",
-      );
-      promise.then(() => {
-        callback(null);
-      }, callback);
-    }
     return promise;
   }
 
@@ -805,22 +743,11 @@ export class BaseNetwork extends LegacyEventBase {
   }
 
   /**
-   * @callback AddEdgeCallback
-   * @param {Error|null} error
-   * @param {internalSocket.InternalSocket} [socket]
-   * @returns {void}
-   */
-  /**
    * @param {import("@noflo/graph").GraphEdge} edge
-   * @param {Object} options
-   * @param {AddEdgeCallback} [callback]
+   * @param {Object} [options]
    * @returns {Promise<internalSocket.InternalSocket>}
    */
-  addEdge(edge, options, callback) {
-    if (typeof options === "function") {
-      callback = /** @type {AddEdgeCallback} */ (options);
-      options = {};
-    }
+  addEdge(edge, options = {}) {
     const promise = this.ensureNode(edge.from.node, "outbound").then((from) => {
       // Hierarchical high-water mark resolution: edge metadata wins over
       // the source port's component default, which wins over the network
@@ -854,23 +781,14 @@ export class BaseNetwork extends LegacyEventBase {
           return socket;
         });
     });
-    if (callback) {
-      deprecated(
-        "Providing a callback to Network.addEdge is deprecated, use Promises",
-      );
-      promise.then((socket) => {
-        callback(null, socket);
-      }, callback);
-    }
     return promise;
   }
 
   /**
    * @param {import("@noflo/graph").GraphEdge} edge
-   * @param {ErrorableCallback} [callback]
    * @returns {Promise<void>}
    */
-  removeEdge(edge, callback) {
+  removeEdge(edge) {
     this.connections.forEach((connection) => {
       if (!connection) {
         return;
@@ -897,12 +815,6 @@ export class BaseNetwork extends LegacyEventBase {
       }
       this.connections.splice(this.connections.indexOf(connection), 1);
     });
-    if (callback) {
-      deprecated(
-        "Providing a callback to Network.removeEdge is deprecated, use Promises",
-      );
-      callback(null);
-    }
     return Promise.resolve();
   }
 
@@ -946,16 +858,10 @@ export class BaseNetwork extends LegacyEventBase {
 
   /**
    * @param {import("@noflo/graph").GraphIIP} initializer
-   * @param {Object} options
-   * @param {AddEdgeCallback} [callback]
+   * @param {Object} [options]
    * @returns {Promise<internalSocket.InternalSocket>}
    */
-  addInitial(initializer, options, callback) {
-    if (typeof options === "function") {
-      callback = /** @type {AddEdgeCallback} */ (options);
-      options = {};
-    }
-
+  addInitial(initializer, options = {}) {
     const promise = this.ensureNode(initializer.to.node, "inbound")
       .then((to) => {
         const socket = internalSocket.createSocket(initializer.metadata, {
@@ -993,23 +899,14 @@ export class BaseNetwork extends LegacyEventBase {
         }
         return socket;
       });
-    if (callback) {
-      deprecated(
-        "Providing a callback to Network.addInitial is deprecated, use Promises",
-      );
-      promise.then((socket) => {
-        callback(null, socket);
-      }, callback);
-    }
     return promise;
   }
 
   /**
    * @param {import("@noflo/graph").GraphIIP} initializer
-   * @param {ErrorableCallback} [callback]
    * @returns {Promise<void>}
    */
-  removeInitial(initializer, callback) {
+  removeInitial(initializer) {
     this.connections.forEach((connection) => {
       if (!connection) {
         return;
@@ -1047,12 +944,6 @@ export class BaseNetwork extends LegacyEventBase {
       }
     });
 
-    if (callback) {
-      deprecated(
-        "Providing a callback to Network.removeInitial is deprecated, use Promises",
-      );
-      callback(null);
-    }
     return Promise.resolve();
   }
 
@@ -1141,95 +1032,70 @@ export class BaseNetwork extends LegacyEventBase {
   }
 
   /**
-   * @param {ErrorableCallback} [callback]
    * @returns {Promise<this>}
    */
-  start(callback) {
+  start() {
     if (this.debouncedEnd) {
       this.abortDebounce = true;
     }
 
-    let promise;
     if (this.started) {
-      promise = this.stop().then(() => this.start());
-    } else {
-      this.initials = this.nextInitials.slice(0);
-      this.eventBuffer = [];
-      promise = this.startComponents()
-        .then(() => this.sendInitials())
-        .then(() => this.sendDefaults())
-        .then(() => {
-          this.setStarted(true);
-          return Promise.resolve(this);
-        });
+      return this.stop().then(() => this.start());
     }
-    if (callback) {
-      deprecated(
-        "Providing a callback to Network.start is deprecated, use Promises",
-      );
-      promise.then(() => {
-        callback(null);
-      }, callback);
-    }
-    return promise;
+    this.initials = this.nextInitials.slice(0);
+    this.eventBuffer = [];
+    return this.startComponents()
+      .then(() => this.sendInitials())
+      .then(() => this.sendDefaults())
+      .then(() => {
+        this.setStarted(true);
+        return Promise.resolve(this);
+      });
   }
 
   /**
-   * @param {ErrorableCallback} [callback]
    * @returns {Promise<this>}
    */
-  stop(callback) {
+  stop() {
     if (this.debouncedEnd) {
       this.abortDebounce = true;
     }
 
-    let promise;
     if (!this.started) {
       this.stopped = true;
-      promise = Promise.resolve(this);
-    } else {
-      // Disconnect all connections
-      this.connections.forEach((connection) => {
-        if (!connection.isConnected()) {
-          return;
-        }
-        connection.disconnect();
-      });
-
-      if (!this.processes || !Object.keys(this.processes).length) {
-        // No processes to stop
-        this.setStarted(false);
-        this.stopped = true;
-        promise = Promise.resolve(this);
-      } else {
-        // Emit stop event when all processes are stopped
-        promise = Promise.all(
-          Object.keys(this.processes).map((id) => {
-            if (!this.processes[id].component) {
-              return Promise.resolve();
-            }
-            // eslint-disable-next-line max-len
-            const comp = /** @type {import("./Component.js").Component} */ (
-              this.processes[id].component
-            );
-            return comp.shutdown();
-          }),
-        ).then(() => {
-          this.setStarted(false);
-          this.stopped = true;
-          return Promise.resolve(this);
-        });
+      return Promise.resolve(this);
+    }
+    // Disconnect all connections
+    this.connections.forEach((connection) => {
+      if (!connection.isConnected()) {
+        return;
       }
+      connection.disconnect();
+    });
+
+    if (!this.processes || !Object.keys(this.processes).length) {
+      // No processes to stop
+      this.setStarted(false);
+      this.stopped = true;
+      return Promise.resolve(this);
     }
-    if (callback) {
-      deprecated(
-        "Providing a callback to Network.stop is deprecated, use Promises",
-      );
-      promise.then(() => {
-        callback(null);
-      }, callback);
-    }
-    return promise;
+    // Emit stop event when all processes are stopped
+    return Promise.all(
+      Object.keys(this.processes).map((id) => {
+        if (!this.processes[id].component) {
+          return Promise.resolve();
+        }
+        // eslint-disable-next-line max-len
+        const comp = /** @type {import("./Component.js").Component} */ (
+          this.processes[id].component
+        );
+        return comp.shutdown();
+      }),
+    ).then(() => {
+      this.setStarted(false);
+      this.stopped = true;
+      return Promise.resolve(this);
+    });
   }
 
   /**

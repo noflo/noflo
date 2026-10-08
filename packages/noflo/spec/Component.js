@@ -334,7 +334,7 @@ describe("Component", () => {
     });
   });
   describe("shutting down a component", () => {
-    it("should flag the component as not started", (_t, done) => {
+    it("should flag the component as not started", async () => {
       const c = new noflo.Component({
         inPorts: {
           in: {
@@ -345,22 +345,11 @@ describe("Component", () => {
       });
       const i = new noflo.internalSocket.InternalSocket();
       c.inPorts.in.attach(i);
-      c.start((err) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.equal(c.isStarted(), true);
-        c.shutdown((err) => {
-          if (err) {
-            done(err);
-            return;
-          }
-          assert.strictEqual(c.started, false);
-          assert.equal(c.isStarted(), false);
-          done();
-        });
-      });
+      await c.start();
+      assert.equal(c.isStarted(), true);
+      await c.shutdown();
+      assert.strictEqual(c.started, false);
+      assert.equal(c.isStarted(), false);
     });
   });
   describe("with object-based IPs", () => {
@@ -3193,11 +3182,7 @@ describe("Component", () => {
         assert.strictEqual(c.started, true);
         done();
       });
-      c.start((err) => {
-        if (err) {
-          done(err);
-        }
-      });
+      c.start().catch(done);
     });
     it("should emit activate/deactivate event on every tick", (_t, done) => {
       let count = 0;
@@ -3226,11 +3211,7 @@ describe("Component", () => {
           done(new Error("Unexpected activate after end"));
         }
       });
-      c.shutdown((err) => {
-        if (err) {
-          done(err);
-        }
-      });
+      c.shutdown().catch(done);
     });
   });
 });

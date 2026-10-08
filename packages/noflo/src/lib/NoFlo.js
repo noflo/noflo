@@ -68,7 +68,7 @@ import { exportFbpJson, GraphModel, importFbpJson } from "@noflo/graph";
 // The options object can also be used for setting ComponentLoader options in this
 // network.
 import { Network } from "./Network.js";
-import { deprecated, isBrowser } from "./Platform.js";
+import { isBrowser } from "./Platform.js";
 
 // ### Native graph model
 //
@@ -126,12 +126,6 @@ export { internalSocket };
 import IP from "./IP.js";
 
 /**
- * @callback NetworkCallback
- * @param {Error | null} err
- * @param {Network} [network]
- */
-
-/**
  * @typedef CreateNetworkOptions
  * @property {boolean} [delay] - Whether the Network should be started later
  */
@@ -142,14 +136,10 @@ import IP from "./IP.js";
 
 /**
  * @param {import("@noflo/graph").GraphModel} graphInstance - Graph definition to build a Network for
- * @param {NetworkOptions} options - Network options
- * @param {NetworkCallback} [callback] - Legacy callback for the created Network
+ * @param {NetworkOptions} [options] - Network options
  * @returns {Promise<Network>}
  */
-export function createNetwork(graphInstance, options, callback) {
-  if (typeof options !== "object") {
-    options = {};
-  }
+export function createNetwork(graphInstance, options = {}) {
   const network = new Network(graphInstance, options);
 
   // Ensure components are loaded before continuing
@@ -161,14 +151,6 @@ export function createNetwork(graphInstance, options, callback) {
     const connected = /** @type {Promise<Network>} */ (network.connect());
     return connected.then(() => network.start());
   });
-  if (callback) {
-    deprecated(
-      "Providing a callback to NoFlo.createNetwork is deprecated, use Promises",
-    );
-    promise.then((nw) => {
-      callback(null, nw);
-    }, callback);
-  }
   return promise;
 }
 

@@ -94,9 +94,9 @@ const processBracketize = () => {
   c.inPorts.add("in", { datatype: "string" });
   c.outPorts.add("out", { datatype: "string" });
   c.counter = 0;
-  c.tearDown = (callback) => {
+  c.tearDown = () => {
     c.counter = 0;
-    callback();
+    return Promise.resolve();
   };
   c.process((input, output) => {
     const data = input.getData("in");
@@ -146,9 +146,9 @@ const processGenerator = () => {
     c.timer.deactivate();
     c.timer = null;
   };
-  c.tearDown = (callback) => {
+  c.tearDown = () => {
     cleanUp();
-    callback();
+    return Promise.resolve();
   };
 
   c.process((input, output, context) => {
