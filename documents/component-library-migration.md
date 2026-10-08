@@ -145,6 +145,8 @@ export function getComponent() {
 ### 3.3 Process function
 
 - Preconditions first: `if (!input.hasData("in")) return;` and, for multi-port components, batch the check: `if (!input.hasData("in", "options")) return;`.
+- **The Process API contract is: check preconditions with `has`, then activate and start processing with `get`.** Reading a port with `getData()`/`get()` while an activation is still waiting for more data is a footgun: that pending activation will never re-invoke — `load` never drains and `shutdown()` hangs (verified against 2.0.0-alpha.1). `has`/`hasData` are safe while waiting. So: check everything with `has` first; only once the firing pattern is confirmed, `get` the values and process to completion. Note the distinction matters for buffer introspection too — decide the component's mode (which branch to take) from `has`-level checks and raw buffer inspection *before* any `get`.
+- **The process function fires on data IPs only.** Brackets never fire it — 1.x components that read every IP with `input.get()` and handled bracket types manually (to forward groupings) translate to plain data-only processes plus `forwardBrackets`; the 2.x machinery forwards brackets around the data sends automatically. Consequence: a bracket-only stream (groups without any data packet) produces nothing on the outputs — forwarded brackets attach to actual sends (see below). 1.x advanced APIs still exist where genuinely needed: `input.get()` for raw buffered IPs, `output.sendIP()`, the `autoOrdering` component option, and `InPort.getBuffer(scope)`.
 - `getData` consumes the packet from the firing port; reads on control ports are non-consuming.
 - Streams: `hasStream`/`getStream` for bracketed groups; brackets arriving on an inport are forwarded by default to `out` and `error` (`forwardBrackets` defaults to `{ in: ["out", "error"] }`). With multiple data outports, declare `c.forwardBrackets` explicitly, listing every port that should carry the stream grouping through. Set `c.forwardBrackets = {}` for components where grouping is meaningless (generators, sinks). Forwarded brackets attach to actual sends: an outport listed in `forwardBrackets` that receives no send during the activation stays completely silent — e.g. on an error path only the `error` port receives the grouping, and data outports get nothing (not even empty groups).
 - Addressable ports (`addressable: true`): check availability with `input.hasData(["port", idx])` over `input.attached("port")`, and send with `new IP("data", value, { index: idx })`.
@@ -455,7 +457,8 @@ trim_trailing_whitespace = true
 
 ### 5.4 CI
 
-- Delete legacy automation (`.travis.yml`, old CircleCI config, `.github/dependabot.yml`).
+- Delete legacy automation (`.travis.yml`, `appveyor.yml`, old CircleCI config, `.github/dependabot.yml`).
+- **Deactivate the external CI services themselves**: deleting `.travis.yml` or `appveyor.yml` does not remove the project from Travis CI or AppVeyor — those services keep building on push and fail ( emailing maintainers) once the config file is gone. After each library migration, disable or remove the corresponding project in the service's settings. This is a maintainer account action, not a repository change; track it per library (the config file's presence in the old HEAD is the indicator that a service integration exists).
 - `.github/workflows/test.yml`: checkout + `setup-node`, run `npm ci` and `npm test` on the supported Node lines (22.x, 24.x).
 - Keep workflows minimal; no release steps in the test workflow.
 
@@ -508,11 +511,26 @@ jobs:
         run: npm test
 
       - name: Publish
-        run: npm publish
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          # Skip versions already on the registry (the first publish of each
+          # package is done manually before its tag exists)
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "Version $NAME@$VERSION already published, skipping"
+            exit 0
+          fi
+          # npm requires an explicit tag for prerelease versions
+          case "$VERSION" in
+            *-*) npm publish --tag next ;;
+            *) npm publish ;;
+          esac
 ```
 
 - The package must be configured for trusted publishing on npmjs.com (package settings → publishing access → GitHub Actions). Note this in the PR description if it has not been done.
 - Never reintroduce secret-token publishing.
+- Releases are cut with the per-repo `scripts/release.js` (mirroring the core monorepo's release flow, scaled down): version + changelog `[Unreleased]` stamp, one `Release v<version>` commit, tag, push. npm publishing is not part of the script — the first publish of each `@noflo/*` package is manual (OIDC trusted publishing cannot create packages), later versions publish from the `v*` tag, and the workflow skips versions already on the registry. Prerelease versions publish under the `next` dist-tag (npm requires an explicit tag for prereleases). Deprecating the legacy `noflo-*` names is deferred until 2.x stable.
+- JSR publishing for libraries (a `jsr.json` plus the doc-coverage gate, mirroring the core monorepo's JSR steps) is planned but not yet part of the per-repo template.
 
 ### 5.6 License and changelog
 
@@ -838,12 +856,15 @@ Run all of these; the migration is done when every line holds:
 - [ ] Dependency on `@noflo/noflo` ^2.0.0; devDependencies include `@noflo/fbp-spec-runner` and `@noflo/loader-node`; no unscoped `noflo` 1.x anywhere; no `noflo-nodejs` as a library dependency.
 - [ ] A quick smoke: `node -e "import('@noflo/loader-node').then(async (m) => { const r = await m.createNodeModulesRegistry(process.cwd()); await r.discover(); console.log(Object.keys(r.components)); })"` lists every expected component name.
 - [ ] `package.json`: `type: module`, engines >= 22, scripts, files, license per 5.6; `CHANGELOG.md` Unreleased updated; README current.
-- [ ] CI: `test.yml` on Node 22/24; `publish.yml` uses OIDC trusted publishing; no legacy CI files or auth tokens remain.
+- [ ] CI: `test.yml` on Node 22/24; `publish.yml` uses OIDC trusted publishing; no legacy CI files or auth tokens remain; Travis/AppVeyor projects deactivated in their service settings.
+- [ ] Fixture/data files are not lint targets: Biome parses everything matched by the lint globs, including e.g. HTML fixtures under `spec/fixtures/` — narrow the `lint`/`format` globs (e.g. `'spec/**/*.yaml'`) or exclude fixture paths.
 - [ ] Changes left uncommitted for review, with a summary of semantic changes and any dropped coverage called out explicitly.
 
 ## 8. Pitfall quick reference
 
+- **The Process API contract is: check preconditions with `has`, then activate and start processing with `get`.** Reading a port with `getData`/`get` while the activation is still waiting for more data means that pending activation never re-invokes: `load` never drains and `shutdown()` hangs. `has`/`hasData` are safe while waiting. Decide any branching (e.g. which processing mode to use) from `has`-level checks and raw buffer inspection before the first `get` (see 3.3).
 - **`.mjs` is not discovered** by `fbp-manifest`; use `.js` + `"type": "module"`.
+- **Leftover `.coffee` files in `components/` are fatal, not just dead weight**: 2.x discovery eagerly imports every discovered file with the native ESM loader, and an uncompiled CoffeeScript file crashes registry construction with `ERR_UNKNOWN_FILE_EXTENSION`. Delete each converted `.coffee` file in the same pass as the `.js` replacement — including components being dropped entirely (a deleted component's `.coffee` must still go).
 - **Component name ≠ export name**: discovery uses the file basename. A `@name Foo` comment overrides; don't rely on it.
 - **`process` must not be `async`**, and must not both return a Promise and call `send`/`done` — the Promise resolution becomes an implicit `sendDone`.
 - **Fan-out loops that ignore `await`** can overflow an edge's high-water mark silently; await `output.send` in the loop.
@@ -856,7 +877,7 @@ Run all of these; the migration is done when every line holds:
 - **Fan-out expectations assert the last packet**: the runner records the most recent data IP per port per step; intermediate packets of a fan-out cannot be asserted in fbp-spec v1.
 - **Error ports must be in `expect` to be observed**: an error IP sent to an unasserted error port vanishes and the case times out instead of failing fast. Assert with `path: $.message` + `contains`.
 - **Forwarded brackets attach to actual sends, not to ports**: a data outport listed in `forwardBrackets` that receives no send during an activation stays completely silent — on an error path, only the `error` port gets the grouping and data outports receive nothing, not even empty groups (see 3.3). Do not expect `forwardBrackets` ports to mirror brackets unconditionally.
-- **IPs of one activation arrive on an edge as a single synchronous burst**: when driving sockets directly in tests, wait for the terminating event (e.g. the closing bracket) and assert on the collected sequence; per-event listeners attached between events of the same activation miss packets.
+- **IPs of one activation arrive on an edge as a single synchronous burst, and an activation can complete synchronously inside the post that completes its preconditions**: when driving sockets directly in tests, attach all waiters and collectors *before* sending any IPs, wait for the terminating event (e.g. the closing bracket), and then assert on the collected sequence. Listeners attached after the sends — even synchronously after — miss packets.
 - **fbp-spec-runner CLI silently no-ops when invoked via the npm bin symlink** (its direct-invocation check compares the symlink path against the module real path). Invoke through `require.resolve` (see 4.1) until fixed; treat silent zero-output runs as failures.
 - **`node --test` arguments**: pass files via an unquoted shell glob (`node --test test/*.test.js`); the directory form fails on current Node and quoted globs need newer Node than the supported floor.
 - **Keep-alive connections stall `server.close()`**: a `node:http` server with open keep-alive sockets never fires its close callback. Call `closeAllConnections()` when shutting a server down, and deactivate the activation that started it (see 6.3) — otherwise `shutdown()` hangs.
