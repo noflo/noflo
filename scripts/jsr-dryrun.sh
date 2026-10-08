@@ -16,7 +16,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GITIGNORE="$ROOT/.gitignore"
 NEGLINES=(
-  '!packages/noflo/src/**/*.d.ts'
+  '!packages/*/src/**/*.d.ts'
 )
 
 # Snapshot .gitignore so we can restore it verbatim (even on error / Ctrl-C).

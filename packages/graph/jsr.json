@@ -1,0 +1,16 @@
+{
+  "name": "@noflo/graph",
+  "version": "0.1.0",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "publish": {
+    "include": [
+      "src/",
+      "package.json",
+      "jsr.json",
+      "CHANGELOG.md"
+    ]
+  }
+}

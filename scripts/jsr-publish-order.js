@@ -49,10 +49,18 @@ export function computePublishOrder(rootDir) {
     const jsr = JSON.parse(readFileSync(jsrPath, "utf8"));
     const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
     const deps = new Set(
-      Object.keys(pkg.dependencies ?? {}).filter((d) =>
-        d.startsWith("@noflo/"),
-      ),
+      [
+        Object.keys(pkg.dependencies ?? {}),
+        Object.keys(pkg.peerDependencies ?? {}),
+      ]
+        .flat()
+        .filter((d) => d.startsWith("@noflo/")),
     );
+    // jsr.json `dependencies` entries with `jsr:` ranges are intra-repo
+    // edges too (they take precedence over the npm resolution once used).
+    for (const [dep, range] of Object.entries(jsr.dependencies ?? {})) {
+      if (String(range).startsWith("jsr:")) deps.add(dep);
+    }
     byName.set(jsr.name, { dir, deps });
   }
 

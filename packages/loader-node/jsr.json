@@ -1,0 +1,18 @@
+{
+  "name": "@noflo/loader-node",
+  "version": "2.0.0-alpha.0",
+  "license": "EUPL-1.2",
+  "exports": {
+    ".": "./src/index.js",
+    "./graphFile": "./src/graphFile.js"
+  },
+  "publish": {
+    "include": [
+      "src/",
+      "package.json",
+      "jsr.json",
+      "CHANGELOG.md",
+      "README.md"
+    ]
+  }
+}

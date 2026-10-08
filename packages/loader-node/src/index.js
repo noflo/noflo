@@ -1,8 +1,8 @@
-//     @noflo/loader-node - Node.js component discovery for NoFlo
-//     (c) 2013-2026 Flowhub UG
-//     SPDX-License-Identifier: EUPL-1.2
-
 /**
+ * @noflo/loader-node - Node.js component discovery for NoFlo
+ * (c) 2013-2026 Flowhub UG
+ * SPDX-License-Identifier: EUPL-1.2
+ *
  * Node.js component discovery and source storage for NoFlo, implemented
  * as a `ComponentRegistry` (work document #16).
  *
@@ -15,6 +15,8 @@
  *
  * @module @noflo/loader-node
  */
+
+/* @ts-self-types="./index.d.ts" */
 
 export {
   loadGraphFile,

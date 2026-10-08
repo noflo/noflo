@@ -15,4 +15,6 @@
  * const graph = parse("'hello' -> IN Display(Output)");
  */
 
+/* @ts-self-types="./index.d.ts" */
+
 export { parse, SyntaxError } from "./parse.js";

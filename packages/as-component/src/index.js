@@ -1,6 +1,13 @@
-//     @noflo/as-component - Generate NoFlo components from JavaScript functions
-//     (c) 2018 Flowhub UG
-//     SPDX-License-Identifier: EUPL-1.2
+/**
+ * @noflo/as-component - Generate NoFlo components from JavaScript functions
+ * (c) 2018 Flowhub UG
+ * SPDX-License-Identifier: EUPL-1.2
+ *
+ * @module @noflo/as-component
+ */
+
+/* @ts-self-types="./index.d.ts" */
+
 /* eslint-disable
     import/prefer-default-export,
 */

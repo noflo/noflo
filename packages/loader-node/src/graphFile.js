@@ -1,14 +1,16 @@
-//     @noflo/loader-node - Node.js component discovery for NoFlo
-//     (c) 2013-2026 Flowhub UG
-//     SPDX-License-Identifier: EUPL-1.2
-
 /**
- * @file graphFile module
+ * @noflo/loader-node - Node.js component discovery for NoFlo
+ * (c) 2013-2026 Flowhub UG
+ * SPDX-License-Identifier: EUPL-1.2
+ *
+ * @module @noflo/loader-node/graphFile
  * @description Loading and saving native graph models from files and JSON
  *   documents (work document #10). `.json` files are FBP JSON; `.fbp` files
  *   are parsed with `@noflo/fbp` into FBP JSON and imported. FBP JSON is the
  *   interchange format.
  */
+
+/* @ts-self-types="./graphFile.d.ts" */
 
 import { parse } from "@noflo/fbp";
 import { exportFbpJson, importFbpJson } from "@noflo/graph";

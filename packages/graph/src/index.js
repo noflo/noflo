@@ -1,10 +1,12 @@
 /**
- * @file index module
+ * @module @noflo/graph
  * @description `@noflo/graph` — the native graph model for NoFlo 2.x
  *   (work document #10): nodes, edges, IIPs, exports, and groups over one
  *   entity model with plain and CRDT operation modes, plus FBP JSON as an
  *   interchange adapter.
  */
+
+/* @ts-self-types="./index.d.ts" */
 
 export { stableStringify } from "./graph/canonical.js";
 export {

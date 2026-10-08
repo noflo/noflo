@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- The npm tarball now ships generated TypeScript declarations (adjacent `.d.ts` files) and declares them via `types`; JSR publishing added (`jsr.json`)
 
 - Initial implementation of the `@noflo/fbp` parser for the `.fbp` flow definition language
 - Hand-written recursive-descent parser in zero-dependency modern ESM, targeting Node.js, Deno, Bun, and browsers

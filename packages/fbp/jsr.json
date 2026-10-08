@@ -1,0 +1,16 @@
+{
+  "name": "@noflo/fbp",
+  "version": "0.1.0",
+  "license": "EUPL-1.2",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "publish": {
+    "include": [
+      "src/",
+      "package.json",
+      "jsr.json",
+      "CHANGELOG.md"
+    ]
+  }
+}

@@ -55,15 +55,17 @@ jobs:
       - name: Build and test
         run: npm test
 
-      # Generated declarations (`types/`, `lib/*.d.ts`) are git-ignored (build
-      # artifacts, never committed). JSR's underlying `deno publish` honors
-      # `.gitignore`, so it would drop the declarations — un-ignore them here
-      # so the `jsr publish` steps below can ship them. Affects only the
-      # ephemeral CI checkout. See `scripts/jsr-dryrun.sh` for the equivalent
-      # local helper. No-ops while no package ships a jsr.json.
+      # Generated declarations (adjacent `.d.ts` files under each package's
+      # `src/`) are git-ignored (build artifacts, never committed). JSR's
+      # underlying `deno publish` honors `.gitignore`, so it would drop them —
+      # un-ignore them here so the `jsr publish` steps below can ship them.
+      # The per-package `.npmignore` files already cover npm pack, which only
+      # falls back to `.gitignore` when no `.npmignore` is present. Affects
+      # only the ephemeral CI checkout. See `scripts/jsr-dryrun.sh` for the
+      # equivalent local helper.
       - name: Expose generated declarations to JSR
         run: |
-          printf '\n!packages/*/types/**\n!packages/*/lib/**/*.d.ts\n' >> .gitignore
+          printf '\n!packages/*/src/**/*.d.ts\n' >> .gitignore
 
       # Publish every package independently: one failing package must not
       # block the rest — the loop below continues past failures and only
