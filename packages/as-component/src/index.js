@@ -1,5 +1,6 @@
 /**
  * @noflo/as-component - Generate NoFlo components from JavaScript functions
+ * (c) 2021-2026 Henri Bergius
  * (c) 2018 Flowhub UG
  * SPDX-License-Identifier: EUPL-1.2
  *

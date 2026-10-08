@@ -1,3 +1,5 @@
+//     (c) 2021-2026 Henri Bergius
+
 /**
  * @file loadJsonGraph module
  * @description Spec helper: load a committed FBP JSON fixture into a native

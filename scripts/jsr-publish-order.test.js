@@ -6,6 +6,7 @@ import { test } from "node:test";
 import { computePublishOrder } from "./jsr-publish-order.js";
 
 /**
+ * (c) 2021-2026 Henri Bergius
  * Creates a fixture packages tree.
  * @param {string} root
  * @param {Record<string, { deps?: string[], jsr?: boolean }>} pkgs - dir →

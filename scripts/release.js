@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /**
+ * (c) 2021-2026 Henri Bergius
  * @file scripts/release.js
  * @description Cut a lockstep release across the noflo monorepo.
  *

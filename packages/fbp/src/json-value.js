@@ -1,4 +1,6 @@
 /**
+ * (c) 2021-2026 Henri Bergius
+ * SPDX-License-Identifier: EUPL-1.2
  * Strict RFC 7159 JSON text scanner.
  *
  * Scans a JSON value out of a string at a given position, mirroring the JSON

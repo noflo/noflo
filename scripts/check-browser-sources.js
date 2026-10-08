@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /**
+ * (c) 2021-2026 Henri Bergius
  * @file scripts/check-browser-sources.js
  * @description Guard for the no-build browser compatibility contract
  *   (work document #18): the packages a browser imports directly —

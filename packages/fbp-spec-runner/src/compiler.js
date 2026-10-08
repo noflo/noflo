@@ -1,4 +1,6 @@
 /**
+ * (c) 2021-2026 Henri Bergius
+ * SPDX-License-Identifier: EUPL-1.2
  * @file compiler module
  * @description Compile fbp-spec suites into `node:test` describe/it blocks.
  */

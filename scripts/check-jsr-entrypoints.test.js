@@ -6,6 +6,7 @@ import { test } from "node:test";
 import { checkAll, checkPackage } from "./check-jsr-entrypoints.js";
 
 /** Minimal valid entrypoint module: leading doc + a self-types pointer.
+ * (c) 2021-2026 Henri Bergius
  * The fixture writes this as `src/index.js`, so the pointer is one level up. */
 const GOOD_SRC = `/**
  * @file index.js

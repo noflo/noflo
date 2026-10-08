@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 /**
+ * (c) 2021-2026 Henri Bergius
+ * SPDX-License-Identifier: EUPL-1.2
  * @file cli module
  * @description fbp-spec-runner command line interface.
  *

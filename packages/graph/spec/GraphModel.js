@@ -1,3 +1,5 @@
+//     (c) 2021-2026 Henri Bergius
+
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { stableStringify } from "../src/graph/canonical.js";

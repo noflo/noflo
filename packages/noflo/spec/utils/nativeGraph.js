@@ -1,3 +1,5 @@
+//     (c) 2021-2026 Henri Bergius
+
 /**
  * @file nativeGraph module
  * @description Spec helper over the native `@noflo/graph` model: the

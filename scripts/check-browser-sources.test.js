@@ -6,6 +6,7 @@ import { test } from "node:test";
 import { checkAll, checkPackage } from "./check-browser-sources.js";
 
 /**
+ * (c) 2021-2026 Henri Bergius
  * Build a fake package dir under `root` with one runtime source file.
  *
  * @param {string} pkgDir

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /**
+ * (c) 2021-2026 Henri Bergius
  * @file jsr-publish-order.js
  * @description Compute the JSR publish order for the monorepo's packages.
  *

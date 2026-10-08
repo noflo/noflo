@@ -1,3 +1,5 @@
+//     (c) 2021-2026 Henri Bergius
+
 /**
  * Conformance tests for the .fbp parser: known-good graphs, language
  * features, validation behavior, and error reporting.

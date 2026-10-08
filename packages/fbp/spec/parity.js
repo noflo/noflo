@@ -1,3 +1,5 @@
+//     (c) 2021-2026 Henri Bergius
+
 /**
  * Differential parity tests: `@noflo/fbp` must produce output deep-equal to
  * the reference `fbp` parser for the same input under the same explicitly-set

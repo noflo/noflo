@@ -1,3 +1,5 @@
+//     (c) 2021-2026 Henri Bergius
+
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";

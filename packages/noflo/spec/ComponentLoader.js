@@ -1,3 +1,5 @@
+//     (c) 2021-2026 Henri Bergius
+
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { before, beforeEach, describe, it } from "node:test";

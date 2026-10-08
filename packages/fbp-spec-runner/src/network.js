@@ -1,4 +1,6 @@
 /**
+ * (c) 2021-2026 Henri Bergius
+ * SPDX-License-Identifier: EUPL-1.2
  * @file network module
  * @description Deterministic in-process execution of fbp-spec test cases.
  *

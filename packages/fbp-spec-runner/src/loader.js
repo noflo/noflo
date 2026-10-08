@@ -1,4 +1,6 @@
 /**
+ * (c) 2021-2026 Henri Bergius
+ * SPDX-License-Identifier: EUPL-1.2
  * @file loader module
  * @description Load fbp-spec suites from YAML or JSON files.
  *

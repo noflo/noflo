@@ -1,4 +1,10 @@
 /**
+ * NoFlo - Flow-Based Programming for JavaScript
+ * (c) 2021-2026 Henri Bergius
+ * (c) 2013-2020 Flowhub UG
+ * (c) 2011-2012 Henri Bergius, Nemein
+ * NoFlo may be freely distributed under the MIT license
+ *
  * @file Edge module
  * @description The 2.x data-plane transport between two processes.
  *

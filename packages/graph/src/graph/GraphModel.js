@@ -1,4 +1,6 @@
 /**
+ * (c) 2021-2026 Henri Bergius
+ * SPDX-License-Identifier: MIT
  * @file GraphModel module
  * @description The plain-mode native graph model for NoFlo 2.x (work
  *   document #10), replacing `fbp-graph` as the engine's core data model.

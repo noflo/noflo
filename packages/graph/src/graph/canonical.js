@@ -1,4 +1,6 @@
 /**
+ * (c) 2021-2026 Henri Bergius
+ * SPDX-License-Identifier: MIT
  * @file canonical module
  * @description Deterministic serialization helpers for the graph model.
  *

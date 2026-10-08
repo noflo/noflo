@@ -1,4 +1,6 @@
 /**
+ * (c) 2021-2026 Henri Bergius
+ * SPDX-License-Identifier: MIT
  * @module @noflo/graph
  * @description `@noflo/graph` — the native graph model for NoFlo 2.x
  *   (work document #10): nodes, edges, IIPs, exports, and groups over one

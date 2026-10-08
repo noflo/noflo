@@ -1,4 +1,6 @@
 /**
+ * (c) 2021-2026 Henri Bergius
+ * SPDX-License-Identifier: EUPL-1.2
  * Structural validation for parsed FBP graphs.
  *
  * Mirrors the reference `fbp` parser's `validateContents` checks, including

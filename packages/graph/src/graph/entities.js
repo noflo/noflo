@@ -1,4 +1,6 @@
 /**
+ * (c) 2021-2026 Henri Bergius
+ * SPDX-License-Identifier: MIT
  * @file entities module
  * @description Entity shapes and validation for the NoFlo 2.x native graph
  *   model (work document #10).

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /**
+ * (c) 2021-2026 Henri Bergius
  * @file scripts/compile-changelog.js
  * @description Release-time CHANGELOG compiler for the noflo monorepo.
  *

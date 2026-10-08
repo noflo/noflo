@@ -1,4 +1,5 @@
 //     NoFlo - Flow-Based Programming for JavaScript
+//     (c) 2021-2026 Henri Bergius
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
 /* @ts-self-types="./InPort.d.ts" */

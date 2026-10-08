@@ -1,4 +1,6 @@
 /**
+ * (c) 2021-2026 Henri Bergius
+ * SPDX-License-Identifier: MIT
  * @file fbpJson module
  * @description FBP JSON interchange adapter for the native graph model
  *   (work document #10).

@@ -1,5 +1,6 @@
 //     @noflo/loader-node - Node.js component discovery for NoFlo
-//     (c) 2013-2026 Flowhub UG
+//     (c) 2021-2026 Henri Bergius
+//     (c) 2013-2020 Flowhub UG
 //     SPDX-License-Identifier: EUPL-1.2
 
 /* eslint-disable

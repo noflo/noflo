@@ -1,4 +1,6 @@
 /**
+ * (c) 2021-2026 Henri Bergius
+ * SPDX-License-Identifier: EUPL-1.2
  * Parser for the .fbp flow-based programming language.
  *
  * Hand-written recursive-descent parser producing the FBP graph JSON format.

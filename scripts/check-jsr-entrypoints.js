@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /**
+ * (c) 2021-2026 Henri Bergius
  * @file scripts/check-jsr-entrypoints.js
  * @description Guard against the two JSR-score regressions the reticulum-js
  *   monorepo repeatedly hit when adding a new `jsr.json` export:

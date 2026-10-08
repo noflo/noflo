@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /**
+ * (c) 2021-2026 Henri Bergius
  * @file scripts/jsr-doc-coverage.js
  * @description Enumerate a package's JSR public API and report which exported
  *   symbols (and class/interface members) lack a JSDoc *description*.

@@ -1,3 +1,5 @@
+//     (c) 2021-2026 Henri Bergius
+
 import assert from "node:assert/strict";
 import { before, describe, it } from "node:test";
 import { Edge, resolveHighWaterMark } from "../src/lib/Edge.js";

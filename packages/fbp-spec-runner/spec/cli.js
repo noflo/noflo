@@ -1,3 +1,5 @@
+//     (c) 2021-2026 Henri Bergius
+
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { describe, it } from "node:test";
