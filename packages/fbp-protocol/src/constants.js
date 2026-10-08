@@ -122,6 +122,17 @@ export const OP_TYPE = {
 export const CMD_COMP_SYNC_REQ = 0x20;
 
 /**
+ * Registry sync short-circuit: the client's `local_registry_hash` matches
+ * the runtime's; no manifest follows (work document #4 §6). Mirrors the
+ * graph block's `0x11`: the runtime always answers a `0x20` request —
+ * silence never carries semantics, so the request/response pairing stays
+ * unambiguous even on an otherwise-quiet link.
+ *
+ * @type {number}
+ */
+export const CMD_COMP_UP_TO_DATE = 0x21;
+
+/**
  * Registry manifest of the Two-Step Cache:
  * `[0x22, new_registry_hash, { "math/Add": ["sig_hash_1", "elementary"], ... }]`.
  * Entries are valid with a signature and no source (work document #4 update

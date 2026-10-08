@@ -14,6 +14,7 @@ import { MsgPack } from "@reticulum/core";
 import {
   CMD_COMP_MANIFEST,
   CMD_COMP_SYNC_REQ,
+  CMD_COMP_UP_TO_DATE,
   COMPONENT_TYPE,
   canonicalSignature,
   decodeCompDetailReq,
@@ -21,12 +22,14 @@ import {
   decodeCompInstallReq,
   decodeCompManifest,
   decodeCompSyncReq,
+  decodeCompUpToDate,
   decodeCompWrite,
   encodeCompDetailReq,
   encodeCompDetailRes,
   encodeCompInstallReq,
   encodeCompManifest,
   encodeCompSyncReq,
+  encodeCompUpToDate,
   encodeCompWrite,
   ProtocolError,
   sigHash,
@@ -141,6 +144,22 @@ describe("0x22 CMD_COMP_MANIFEST", () => {
       { "math/Add": "sig-hash-1" },
     ]);
     assert.throws(() => decodeCompManifest(frame), ProtocolError);
+  });
+});
+
+describe("0x21 CMD_COMP_UP_TO_DATE", () => {
+  it("encodes and decodes the bare match reply", () => {
+    const decoded = decodeCompUpToDate(encodeCompUpToDate());
+    assert.equal(decoded.cmd, CMD_COMP_UP_TO_DATE);
+  });
+
+  it("mirrors the graph block's 0x11 wire layout", () => {
+    assert.deepEqual([...encodeCompUpToDate()], [0x91, 0x21]);
+  });
+
+  it("rejects frames with a payload", () => {
+    const frame = MsgPack.encode([CMD_COMP_UP_TO_DATE, "extra"]);
+    assert.throws(() => decodeCompUpToDate(frame), ProtocolError);
   });
 });
 

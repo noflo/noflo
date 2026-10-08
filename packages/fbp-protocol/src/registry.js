@@ -22,6 +22,7 @@ import {
   CMD_COMP_INSTALL_REQ,
   CMD_COMP_MANIFEST,
   CMD_COMP_SYNC_REQ,
+  CMD_COMP_UP_TO_DATE,
   CMD_COMP_WRITE,
   COMPONENT_TYPE,
 } from "./constants.js";
@@ -145,6 +146,28 @@ export function decodeCompManifest(bytes) {
     newRegistryHash: frame[1],
     entries,
   };
+}
+
+/**
+ * Encode a `0x21 CMD_COMP_UP_TO_DATE`: `[0x21]` — the client's registry
+ * hash matches the runtime's; no manifest follows.
+ *
+ * @returns {Uint8Array}
+ */
+export function encodeCompUpToDate() {
+  return MsgPack.encode([CMD_COMP_UP_TO_DATE]);
+}
+
+/**
+ * Decode a `0x21 CMD_COMP_UP_TO_DATE`.
+ *
+ * @param {Uint8Array} bytes
+ * @returns {{ cmd: number }}
+ */
+export function decodeCompUpToDate(bytes) {
+  const frame = MsgPack.decode(bytes);
+  expectFrame(frame, CMD_COMP_UP_TO_DATE, 1);
+  return { cmd: CMD_COMP_UP_TO_DATE };
 }
 
 /**

@@ -88,6 +88,16 @@
       },
       "x-capability": "COMPONENT_READ (0x10)"
     },
+    "cmd/0x21": {
+      "description": "Runtime → client: the client's `local_registry_hash` matches the runtime's; no manifest follows. Mirrors the graph block's `0x11`: the runtime always answers a `0x20` request, with silence never carrying semantics.",
+      "publish": {
+        "operationId": "compUpToDate",
+        "message": {
+          "$ref": "#/components/messages/compUpToDate"
+        }
+      },
+      "x-capability": "COMPONENT_READ (0x10)"
+    },
     "cmd/0x22": {
       "description": "Runtime → client: registry manifest (Two-Step Cache, step 1 response). Entries are valid with a signature and no source; each carries the declared component kind.",
       "publish": {
@@ -601,6 +611,33 @@
           }
         ],
         "x-msgpack-hex": "9220b572656769737472792d686173682d63757272656e74",
+        "x-verify": "frame"
+      },
+      "compUpToDate": {
+        "name": "compUpToDate",
+        "title": "0x21 CMD_COMP_UP_TO_DATE",
+        "summary": "Registry sync short-circuit: the client's registry hash matches.",
+        "payload": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": [
+            {
+              "type": "integer",
+              "const": 33,
+              "description": "CMD_COMP_UP_TO_DATE"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              33
+            ]
+          }
+        ],
+        "x-msgpack-hex": "9121",
         "x-verify": "frame"
       },
       "compManifest": {

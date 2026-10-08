@@ -20,6 +20,7 @@ import {
   CMD_COMP_INSTALL_REQ,
   CMD_COMP_MANIFEST,
   CMD_COMP_SYNC_REQ,
+  CMD_COMP_UP_TO_DATE,
   CMD_COMP_WRITE,
   CMD_CRDT_STALE_EPOCH,
   CMD_CRDT_SYNC_REQ,
@@ -55,6 +56,7 @@ import {
   decodeCompInstallReq,
   decodeCompManifest,
   decodeCompSyncReq,
+  decodeCompUpToDate,
   decodeCompWrite,
 } from "./registry.js";
 import { decodeFlowtraceChunk, decodePubsubSub } from "./telemetry.js";
@@ -68,7 +70,7 @@ import { decodeAuthResponse } from "./transport.js";
  *   typeof decodeAuthResponse | typeof decodeCrdtSyncReq | typeof decodeCrdtUpToDate |
  *   typeof decodeCrdtStaleEpoch | typeof decodeCrdtUpdate | typeof decodeCompSyncReq |
  *   typeof decodeCompManifest | typeof decodeCompDetailReq | typeof decodeCompDetailRes |
- *   typeof decodeCompWrite | typeof decodeCompInstallReq | typeof decodePubsubSub |
+ *   typeof decodeCompWrite | typeof decodeCompInstallReq | typeof decodeCompUpToDate | typeof decodePubsubSub |
  *   typeof decodeFlowtraceChunk | typeof decodeRunCtrl | typeof decodeBreakpointSet |
  *   typeof decodeBreakpointClear | typeof decodeProcessCtrl | typeof decodeProcessListReq |
  *   typeof decodeProcessList | typeof decodeHwmSet
@@ -98,6 +100,8 @@ export function decodeFrame(bytes) {
       return decodeCrdtUpdate(bytes);
     case CMD_COMP_SYNC_REQ:
       return decodeCompSyncReq(bytes);
+    case CMD_COMP_UP_TO_DATE:
+      return decodeCompUpToDate(bytes);
     case CMD_COMP_MANIFEST:
       return decodeCompManifest(bytes);
     case CMD_COMP_DETAIL_REQ:

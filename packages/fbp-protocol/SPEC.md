@@ -199,6 +199,12 @@ changeset→protocol boundary.)
 **`0x20` CMD_COMP_SYNC_REQ** — client requests registry sync:
 `[0x20, local_registry_hash]`.
 
+**`0x21` CMD_COMP_UP_TO_DATE** — the client's `local_registry_hash` matches
+the runtime's; no manifest follows: `[0x21]`. Mirrors the graph block's
+`0x11`: the runtime always answers a `0x20` request, with silence never
+carrying semantics, so the request/response pairing stays unambiguous even
+on an otherwise-quiet link.
+
 **`0x22` CMD_COMP_MANIFEST** — registry manifest:
 `[0x22, new_registry_hash, { "math/Add": ["sig_hash_1", "elementary"], ... }]`.
 Each entry is the positional `[sig_hash, kind]` tuple: the manifest carries

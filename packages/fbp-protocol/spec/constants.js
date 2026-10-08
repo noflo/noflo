@@ -20,6 +20,7 @@ import {
   CMD_COMP_INSTALL_REQ,
   CMD_COMP_MANIFEST,
   CMD_COMP_SYNC_REQ,
+  CMD_COMP_UP_TO_DATE,
   CMD_COMP_WRITE,
   CMD_CRDT_STALE_EPOCH,
   CMD_CRDT_SYNC_REQ,
@@ -62,6 +63,7 @@ describe("command codes", () => {
     assert.equal(CMD_CRDT_UPDATE, 0x14);
     // Component registry & code management (0x20 block)
     assert.equal(CMD_COMP_SYNC_REQ, 0x20);
+    assert.equal(CMD_COMP_UP_TO_DATE, 0x21);
     assert.equal(CMD_COMP_MANIFEST, 0x22);
     assert.equal(CMD_COMP_DETAIL_REQ, 0x23);
     assert.equal(CMD_COMP_DETAIL_RES, 0x24);
@@ -92,6 +94,7 @@ describe("command codes", () => {
     ];
     const registryBlock = [
       CMD_COMP_SYNC_REQ,
+      CMD_COMP_UP_TO_DATE,
       CMD_COMP_MANIFEST,
       CMD_COMP_DETAIL_REQ,
       CMD_COMP_DETAIL_RES,
@@ -130,6 +133,7 @@ describe("command codes", () => {
       CMD_CRDT_STALE_EPOCH,
       CMD_CRDT_UPDATE,
       CMD_COMP_SYNC_REQ,
+      CMD_COMP_UP_TO_DATE,
       CMD_COMP_MANIFEST,
       CMD_COMP_DETAIL_REQ,
       CMD_COMP_DETAIL_RES,

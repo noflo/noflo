@@ -26,6 +26,7 @@ import {
   CMD_COMP_INSTALL_REQ,
   CMD_COMP_MANIFEST,
   CMD_COMP_SYNC_REQ,
+  CMD_COMP_UP_TO_DATE,
   CMD_COMP_WRITE,
   CMD_CRDT_STALE_EPOCH,
   CMD_CRDT_SYNC_REQ,
@@ -50,6 +51,7 @@ import {
   encodeCompInstallReq,
   encodeCompManifest,
   encodeCompSyncReq,
+  encodeCompUpToDate,
   encodeCompWrite,
   encodeCrdtStaleEpoch,
   encodeCrdtSyncReq,
@@ -87,6 +89,7 @@ const frameEncoders = {
   [CMD_CRDT_UPDATE]: (decoded) => encodeCrdtUpdate(decoded),
   [CMD_COMP_SYNC_REQ]: (decoded) =>
     encodeCompSyncReq(decoded.localRegistryHash),
+  [CMD_COMP_UP_TO_DATE]: () => encodeCompUpToDate(),
   [CMD_COMP_MANIFEST]: (decoded) =>
     encodeCompManifest(decoded.newRegistryHash, decoded.entries),
   [CMD_COMP_DETAIL_REQ]: (decoded) => encodeCompDetailReq(decoded.names),
