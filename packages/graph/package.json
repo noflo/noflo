@@ -12,7 +12,7 @@
   "license": "MIT",
   "type": "module",
   "engines": {
-    "node": ">= 20"
+    "node": ">= 22"
   },
   "main": "./src/index.js",
   "module": "./src/index.js",

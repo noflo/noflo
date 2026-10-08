@@ -11,7 +11,7 @@
   "version": "1.5.2",
   "license": "MIT",
   "engines": {
-    "node": ">= 20"
+    "node": ">= 22"
   },
   "dependencies": {
     "@noflo/graph": "^0.1.0"

@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `LegacyNetwork` and the `subscribeGraph` option: live graph subscription was the deprecated EventEmitter-based network variant; mutate networks via the network methods instead. Flowtrace recording now embeds FBP JSON graph definitions
 - `noflo.loadFile` and `noflo.saveFile`: filesystem graph loading will move to a platform-specific package (`@noflo/nodejs`)
 ### Changed
+- The supported Node.js version is now >= 22 (maintainer decision on the 2.0.0 engines floor), raised from the interim `>= 20` shipping on the packaging branch
 - Loading `.fbp` DSL files uses the `@noflo/fbp` parser package (work document #10). Files are parsed with legacy case-insensitive semantics — that is what the existing .fbp corpus means; the `@noflo/fbp` package default remains `caseSensitive: true` per the 2.x case-sensitivity policy for new code
 - Network entity arguments speak the native `@noflo/graph` shapes: nodes are `{ entity_id, component, metadata }` instead of fbp-graph's `{ id, ... }`
 - `Network.removeEdge` and `Network.removeInitial` throw when the graph holds no matching edge or IIP instead of silently ignoring the removal; when multiple IIPs target the same port, the first match is removed

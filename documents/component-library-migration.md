@@ -24,7 +24,7 @@ A library is 2.x-compatible when all of the following hold. Treat these as the d
 - The library is plain ESM (`"type": "module"` in `package.json`), zero build step: no Babel, Webpack, Grunt, Gulp, or CoffeeScript compiler in the pipeline.
 - Components are `.js` files (ESM because of the package `type`) in a `components/` directory at the package root.
 - It declares `"@noflo/noflo"` as a dependency (see the namespace mapping in section 5.2). It never depends on the unscoped `noflo` 1.x package.
-- Supported runtime is Node.js >= 20 (`"engines": { "node": ">=20" }`). Cross-runtime compatibility with Deno and Bun comes for free if the Web-standards rules in section 3.8 are followed.
+- Supported runtime is Node.js >= 22 (`"engines": { "node": ">=22" }`). Cross-runtime compatibility with Deno and Bun comes for free if the Web-standards rules in section 3.8 are followed.
 
 **Component contract:**
 
@@ -358,7 +358,7 @@ describe("Server component", () => {
   "name": "noflo-strings",
   "description": "...",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": { "node": ">=22" },
   "noflo": { "icon": "font" },
   "dependencies": {
     "@noflo/noflo": "^2.0.0"
@@ -827,7 +827,7 @@ Run all of these; the migration is done when every line holds:
 - [ ] Every component has at least one fbp-spec case; server/generator and error-path behavior covered in `test/`.
 - [ ] Dependency on `@noflo/noflo` ^2.0.0; devDependencies include `@noflo/fbp-spec-runner` and `@noflo/loader-node`; no unscoped `noflo` 1.x anywhere; no `noflo-nodejs` as a library dependency.
 - [ ] A quick smoke: `node -e "import('@noflo/loader-node').then(async (m) => { const r = await m.createNodeModulesRegistry(process.cwd()); await r.discover(); console.log(Object.keys(r.components)); })"` lists every expected component name.
-- [ ] `package.json`: `type: module`, engines >= 20, scripts, files, license per 5.6; `CHANGELOG.md` Unreleased updated; README current.
+- [ ] `package.json`: `type: module`, engines >= 22, scripts, files, license per 5.6; `CHANGELOG.md` Unreleased updated; README current.
 - [ ] CI: `test.yml` on Node 20/22/24; `publish.yml` uses OIDC trusted publishing; no legacy CI files or auth tokens remain.
 - [ ] Changes left uncommitted for review, with a summary of semantic changes and any dropped coverage called out explicitly.
 
