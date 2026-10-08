@@ -46,8 +46,7 @@
   },
   "dependencies": {
     "@noflo/fbp": "^2.0.0-alpha.1",
-    "@noflo/graph": "^2.0.0-alpha.1",
-    "fbp-manifest": "^0.3.1"
+    "@noflo/graph": "^2.0.0-alpha.1"
   },
   "devDependencies": {
     "@noflo/noflo": "^2.0.0-alpha.1"
