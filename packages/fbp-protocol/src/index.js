@@ -35,3 +35,11 @@ export {
   TRACE_SNAPSHOT,
   VISUAL_FORMAT,
 } from "./constants.js";
+
+export { ProtocolError } from "./errors.js";
+export {
+  decodeAnnounceAppData,
+  decodeAuthResponse,
+  encodeAnnounceAppData,
+  encodeAuthResponse,
+} from "./transport.js";

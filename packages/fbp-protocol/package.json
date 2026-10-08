@@ -35,5 +35,8 @@
     "types": "find src -name '*.d.ts' -delete && tsc -p tsconfig.json",
     "test:deno": "deno test --allow-all --no-check spec/*.js",
     "test:bun": "bun test ./spec/*.js"
+  },
+  "dependencies": {
+    "@reticulum/core": "^0.9.7"
   }
 }
