@@ -72,7 +72,7 @@ Before changing anything, produce a migration plan and store it in the working n
 - Every dependency: what it is used for, its `@noflo`-namespaced or native replacement.
 - Test setup: framework, what each existing test asserts (these become the fbp-spec cases; do not lose coverage in translation).
 - Build/CI artifacts: Grunt/Gulp/webpack configs, karma configs, `.travis.yml`, `.github/workflows/*`, `coffeelint`/`eslint` configs.
-- License situation: run `git shortlog -sne` and inspect the LICENSE file and `package.json`. If the project has external contributors, it keeps MIT. If there are no external contributions, update to EUPL-1.2 (see section 5.6).
+- License situation: run `git shortlog -sne` and inspect the LICENSE file and `package.json`. Existing component libraries keep their original license unchanged (see section 5.6); flag anything ambiguous to the user.
 - README claims and examples that will need updating.
 
 Deliverable: a checklist mapping each component and test to its migration action. Flag anything ambiguous (semantic changes, components that should be redesigned rather than translated) to the user before proceeding.
@@ -858,7 +858,7 @@ Run all of these; the migration is done when every line holds:
 - **Forwarded brackets attach to actual sends, not to ports**: a data outport listed in `forwardBrackets` that receives no send during an activation stays completely silent — on an error path, only the `error` port gets the grouping and data outports receive nothing, not even empty groups (see 3.3). Do not expect `forwardBrackets` ports to mirror brackets unconditionally.
 - **IPs of one activation arrive on an edge as a single synchronous burst**: when driving sockets directly in tests, wait for the terminating event (e.g. the closing bracket) and assert on the collected sequence; per-event listeners attached between events of the same activation miss packets.
 - **fbp-spec-runner CLI silently no-ops when invoked via the npm bin symlink** (its direct-invocation check compares the symlink path against the module real path). Invoke through `require.resolve` (see 4.1) until fixed; treat silent zero-output runs as failures.
-- **`node --test` arguments**: pass files via an unquoted shell glob (`node --test test/*.js`); the directory form fails on current Node and quoted globs need Node >= 21. The glob needs at least one file to exist.
+- **`node --test` arguments**: pass files via an unquoted shell glob (`node --test test/*.test.js`); the directory form fails on current Node and quoted globs need newer Node than the supported floor.
 - **Keep-alive connections stall `server.close()`**: a `node:http` server with open keep-alive sockets never fires its close callback. Call `closeAllConnections()` when shutting a server down, and deactivate the activation that started it (see 6.3) — otherwise `shutdown()` hangs.
 - **Port 0 (OS-assigned) tests need the assigned port echoed back**: have server components emit `server.address().port`, not the requested port.
 - **Type checking against a workspace checkout of `@noflo/noflo`**: declarations are build artifacts (`lib/NoFlo.d.ts`); npm-installed packages ship them, checkouts need their `npm run types` run first. Flag TS7016 on `@noflo/noflo` as an environment issue — do not disable `checkJs` to work around it.
