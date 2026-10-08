@@ -425,6 +425,29 @@ export default class ProcessInput {
         continue;
       }
       const portBrackets = [];
+      const portImpl = /** @type {import("./InPort.js").default} */ (
+        this.ports.ports[portname]
+      );
+      if (portImpl?.options?.control) {
+        // Control ports are read non-consumingly, so the consuming
+        // shift-loop below cannot be used. Scan the buffered latest
+        // stream instead, without consuming anything
+        const buffered = portImpl.getBuffer(this.scope, idx);
+        const scanned = [];
+        for (const ip of buffered) {
+          if (ip.type === "openBracket") {
+            portBrackets.push(ip.data);
+          }
+          if (ip.type === "closeBracket") {
+            portBrackets.pop();
+          }
+          if (ip.type === "data") {
+            scanned.push(ip);
+          }
+        }
+        datas.push(scanned);
+        continue;
+      }
       /** @type {Array<IP>} */
       let portPackets = [];
       let hasData = false;
