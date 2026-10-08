@@ -85,14 +85,15 @@ export async function executeTestCase(
    */
   const attachOut = (portName) => {
     const socket = noflo.internalSocket.createSocket();
-    socket.on("ip", (ip) => {
+    socket.addEventListener("ip", (event) => {
+      const ip = /** @type {any} */ (event).detail;
       if (ip.type === "data") {
         stepReceived[portName] = ip.data;
       }
     });
-    socket.on("error", (event) => {
-      pendingError =
-        /** @type {any} */ (event)?.error ?? /** @type {any} */ (event);
+    socket.addEventListener("error", (event) => {
+      const err = /** @type {any} */ (event).detail;
+      pendingError = err?.error ?? err;
     });
     /** @type {any} */ (component.outPorts.ports)[portName].attach(socket);
     return socket;
@@ -130,9 +131,9 @@ export async function executeTestCase(
       throw new Error(`Component '${topic}' has no inlet port '${portName}'`);
     }
     const socket = noflo.internalSocket.createSocket();
-    socket.on("error", (event) => {
-      pendingError =
-        /** @type {any} */ (event)?.error ?? /** @type {any} */ (event);
+    socket.addEventListener("error", (event) => {
+      const err = /** @type {any} */ (event).detail;
+      pendingError = err?.error ?? err;
     });
     /** @type {any} */ (component.inPorts.ports)[portName].attach(socket);
     inSockets[portName] = socket;
