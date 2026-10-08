@@ -276,10 +276,6 @@ export class BaseNetwork extends LegacyEventBase {
         this.flowtrace.addNetworkStopped(this.flowtraceName);
         break;
       }
-      case "error": {
-        this.flowtrace.addNetworkError(this.flowtraceName, payload);
-        break;
-      }
       default: {
         // No default handler
       }
@@ -295,7 +291,7 @@ export class BaseNetwork extends LegacyEventBase {
     // Add the event to Flowtrace immediately
     this.traceEvent(event, payload);
     // Errors get emitted immediately, like does network end
-    if (["icon", "error", "process-error", "end"].includes(event)) {
+    if (["icon", "process-error", "end"].includes(event)) {
       this.dispatchLifecycleEvent(event, payload);
       return;
     }
