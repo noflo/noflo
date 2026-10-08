@@ -13,7 +13,7 @@
 import { GraphModel, importFbpJson } from "@noflo/graph";
 import { Component } from "../lib/Component.js";
 import { Network } from "../lib/Network.js";
-import { deprecated } from "../lib/Platform.js";
+import { deprecated, isBrowser } from "../lib/Platform.js";
 import { InPorts, OutPorts } from "../lib/Ports.js";
 
 // The Subgraph component is used to wrap NoFlo Networks into components
@@ -196,11 +196,7 @@ export class Subgraph extends Component {
   }
 
   setToReady() {
-    if (
-      typeof process !== "undefined" &&
-      process.execPath &&
-      process.execPath.indexOf("node") !== -1
-    ) {
+    if (!isBrowser()) {
       process.nextTick(() => {
         this.ready = true;
         return this.dispatchLifecycleEvent("ready");

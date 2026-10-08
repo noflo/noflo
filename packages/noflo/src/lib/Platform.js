@@ -16,8 +16,8 @@
 export function isBrowser() {
   if (
     typeof process !== "undefined" &&
-    process.execPath &&
-    process.execPath.match(/node|iojs/)
+    process.versions &&
+    (process.versions.node || process.versions.deno || process.versions.bun)
   ) {
     return false;
   }

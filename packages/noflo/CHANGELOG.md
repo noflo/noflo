@@ -62,6 +62,7 @@ export function getComponent() {
 
 ### Fixed
 - Fixed loading components in CommonJS context
+- Platform detection (`noflo.isBrowser()`) now recognizes Deno and Bun as server-side runtimes instead of misclassifying them as browsers: their `process.execPath` does not contain `node`. Affects asynchronous socket timing (`setImmediate` instead of `setTimeout`) and the `Subgraph` component's readiness scheduling, and stops the test suites from skipping non-browser suites on these runtimes
 
 ### Changed
 - Project's unit tests are now executed using the Node.js built-in test runner

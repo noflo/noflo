@@ -5,8 +5,8 @@ import * as noflo from "../src/lib/NoFlo.js";
 let browser;
 if (
   typeof process !== "undefined" &&
-  process.execPath &&
-  process.execPath.match(/node|iojs/)
+  process.versions &&
+  (process.versions.node || process.versions.deno || process.versions.bun)
 ) {
   browser = false;
 } else {
