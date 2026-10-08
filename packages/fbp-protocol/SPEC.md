@@ -261,7 +261,7 @@ that crash radio links. FBP 2.0 solves this using **streaming flowtraces**:
 buffering execution events into chunked, delta-encoded arrays — a unified
 black-box flight recorder. Explicit start/stop/reset/dump commands of 1.x
 are replaced by pub/sub subscriptions with client-requested flush intervals;
-"dump" is the streamable trace file format (§9).
+"dump" is the streamable trace file format (§10).
 
 **`0x30` CMD_PUBSUB_SUB** — subscribe:
 `[0x30, sub_id, target_type, target_id, requested_flush_interval_ms]`. The
@@ -286,6 +286,7 @@ Unified event types:
 | `0x05` | `CONSOLE`     | `[stream_id, log_string]`                  |
 | `0x06` | `LIFECYCLE`   | transition code (uint8)                    |
 | `0x07` | `VISUAL_STATE`| `[format_type, binary_pixels]`             |
+| `0x08` | `BREAKPOINT_HIT` | `[breakpoint_id, node_id, port]`        |
 
 Lifecycle transition codes (`0x06 LIFECYCLE` payloads):
 
@@ -295,6 +296,8 @@ Lifecycle transition codes (`0x06 LIFECYCLE` payloads):
 | `0x02` | Stop               |
 | `0x03` | Safe-mode entered  |
 | `0x04` | Failed transition  |
+| `0x05` | Paused             |
+| `0x06` | Resumed            |
 
 A `FAILED` code encodes a *failed* transition — a rejected `start()` leaves
 the runtime an honest message to send (WD #4 update #1). UIs render the
@@ -302,9 +305,10 @@ transition as errored from the code itself, without parsing exception
 strings; the detail travels in an accompanying `0x04 ERROR` flowtrace event,
 frugalized per local policy.
 
-**Open** (before freeze): pause/step/breakpoint debugging commands
-(noflo/noflo-ui #243/#245/#317) — either `0x06 LIFECYCLE` extensions (a
-`PAUSED` code) or a small debugging sub-protocol.
+`0x05 PAUSED` and `0x06 RESUMED` announce run-state changes of the execution
+control block (§8) — client-requested run control and breakpoint hits alike
+— so every telemetry subscriber learns the state change, not only the client
+that caused it. `0x08 BREAKPOINT_HIT` events carry the breakpoint cause:
 
 Visual-state format types:
 
@@ -319,7 +323,57 @@ in-flight count) as a `0x32` flowtrace event or pub/sub metric — one int per
 edge per flush. Backpressure is normal operation, not a fault; the encoding
 must not look like an error channel (WD #4 update #9).
 
-## 8. Offline LXMF store & forward
+## 8. Execution control & debugging (0x40 – 0x4F)
+
+The debugging surface replaces the pause/step support 1.x never had
+(noflo/noflo-ui #243/#245) and adds the per-process execution control #317
+asked for. All commands require the `LIFECYCLE_CTRL` capability.
+Run-state changes are announced on the telemetry stream as `0x06 LIFECYCLE`
+events (`0x05 PAUSED`, `0x06 RESUMED`); breakpoint hits carry their cause
+as `0x08 BREAKPOINT_HIT` flowtrace events. There are no dedicated ack
+frames, consistent with the rest of the protocol. Pausing stops the
+processing of queued events — in-flight packets complete and further
+packets keep buffering under the runtime's backpressure policy; buffering
+depth is physics, not protocol.
+
+**`0x40` CMD_RUN_CTRL** — run control: `[0x40, action]`.
+
+| Code   | Action                                                  |
+| ------ | ------------------------------------------------------- |
+| `0x01` | Pause — stop processing queued events                   |
+| `0x02` | Resume                                                  |
+| `0x03` | Step — process exactly one queued event, remain paused  |
+
+Stepping while paused processes one queued event and leaves the runtime
+paused; the step's own flowtrace events show what ran.
+
+**`0x41` CMD_BREAKPOINT_SET** — set a data breakpoint:
+`[0x41, breakpoint_id, node_id, port]`. The runtime pauses when a packet
+arrives at the node — at any triggering inport when `port` is nil,
+otherwise the named one — and emits `PAUSED` plus a `0x08 BREAKPOINT_HIT`
+event. Breakpoint ids are client-chosen (non-empty string or non-negative
+integer) and scoped to the link. The packet itself travels as its own
+`0x01 DATA` event.
+
+**`0x42` CMD_BREAKPOINT_CLEAR** — clear breakpoints:
+`[0x42, breakpoint_id]`. A nil id clears every breakpoint.
+
+**`0x43` CMD_PROCESS_CTRL** — per-process execution control (#317):
+`[0x43, node_id, action]`.
+
+| Code   | Action                                                                    |
+| ------ | ------------------------------------------------------------------------- |
+| `0x01` | Disable — the node stops activating; queued packets are kept, not dropped |
+| `0x02` | Enable                                                                    |
+
+Disabled state is runtime-side execution state, not graph state: it does
+not travel the CRDT op log, and it is deliberately not `0x05` UI metadata,
+which constrained nodes drop. Clients observe disabled nodes through their
+effect on the trace stream; a process listing with per-node execution
+state and implementation kind remains a separate open surface (WD #4
+update #9).
+
+## 9. Offline LXMF store & forward
 
 For asynchronous monitoring, runtimes dispatch state to the mesh via LXMF
 (`app_name: fbp.telemetry`). To respect Proof-of-Work limits on
@@ -332,7 +386,7 @@ randomized jitter. The payload is a flat array:
   [ visual_format, visual_bitmap ], [ errors ] ]
 ```
 
-## 9. Streamable trace serialization (file format)
+## 10. Streamable trace serialization (file format)
 
 Flowtraces record to disk as fully self-contained, append-only recordings,
 enabling seamless playback in UI Web Workers (no external replay tool):
@@ -342,7 +396,7 @@ enabling seamless playback in UI Web Workers (no external replay tool):
 2. **Frames 2..N (execution stream)** — raw `0x32` CMD_FLOWTRACE_CHUNK byte
    arrays appended sequentially as they flush from the engine.
 
-## 10. Out-of-band observability
+## 11. Out-of-band observability
 
 For broader infrastructure monitoring, runtimes (like a Node.js daemon)
 SHOULD expose a separate endpoint emitting standard Influx line protocol

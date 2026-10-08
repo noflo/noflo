@@ -13,6 +13,8 @@ import { describe, it } from "node:test";
 import {
   CAPABILITY,
   CMD_AUTH_RESPONSE,
+  CMD_BREAKPOINT_CLEAR,
+  CMD_BREAKPOINT_SET,
   CMD_COMP_DETAIL_REQ,
   CMD_COMP_DETAIL_RES,
   CMD_COMP_INSTALL_REQ,
@@ -24,13 +26,17 @@ import {
   CMD_CRDT_UP_TO_DATE,
   CMD_CRDT_UPDATE,
   CMD_FLOWTRACE_CHUNK,
+  CMD_PROCESS_CTRL,
   CMD_PUBSUB_SUB,
+  CMD_RUN_CTRL,
   COMPONENT_TYPE,
   EVENT_TYPE,
   LIFECYCLE_CODE,
   LIMITATION,
   OP_TYPE,
+  PROCESS_ACTION,
   PROTOCOL_VERSION,
+  RUN_ACTION,
   TRACE_SNAPSHOT,
   VISUAL_FORMAT,
 } from "../src/index.js";
@@ -60,6 +66,11 @@ describe("command codes", () => {
     // Live streaming telemetry (0x30 block)
     assert.equal(CMD_PUBSUB_SUB, 0x30);
     assert.equal(CMD_FLOWTRACE_CHUNK, 0x32);
+    // Execution control & debugging (0x40 block)
+    assert.equal(CMD_RUN_CTRL, 0x40);
+    assert.equal(CMD_BREAKPOINT_SET, 0x41);
+    assert.equal(CMD_BREAKPOINT_CLEAR, 0x42);
+    assert.equal(CMD_PROCESS_CTRL, 0x43);
     // Streamable trace file format
     assert.equal(TRACE_SNAPSHOT, 0xf0);
   });
@@ -81,6 +92,12 @@ describe("command codes", () => {
       CMD_COMP_INSTALL_REQ,
     ];
     const telemetryBlock = [CMD_PUBSUB_SUB, CMD_FLOWTRACE_CHUNK];
+    const debugBlock = [
+      CMD_RUN_CTRL,
+      CMD_BREAKPOINT_SET,
+      CMD_BREAKPOINT_CLEAR,
+      CMD_PROCESS_CTRL,
+    ];
     for (const code of transportBlock) {
       assert.ok(code >= 0x00 && code <= 0x0f);
     }
@@ -89,6 +106,9 @@ describe("command codes", () => {
     }
     for (const code of telemetryBlock) {
       assert.ok(code >= 0x30 && code <= 0x3f);
+    }
+    for (const code of debugBlock) {
+      assert.ok(code >= 0x40 && code <= 0x4f);
     }
   });
 
@@ -107,6 +127,10 @@ describe("command codes", () => {
       CMD_COMP_INSTALL_REQ,
       CMD_PUBSUB_SUB,
       CMD_FLOWTRACE_CHUNK,
+      CMD_RUN_CTRL,
+      CMD_BREAKPOINT_SET,
+      CMD_BREAKPOINT_CLEAR,
+      CMD_PROCESS_CTRL,
       TRACE_SNAPSHOT,
     ];
     assert.equal(new Set(codes).size, codes.length);
@@ -155,6 +179,7 @@ describe("flowtrace event types", () => {
     assert.equal(EVENT_TYPE.CONSOLE, 0x05);
     assert.equal(EVENT_TYPE.LIFECYCLE, 0x06);
     assert.equal(EVENT_TYPE.VISUAL_STATE, 0x07);
+    assert.equal(EVENT_TYPE.BREAKPOINT_HIT, 0x08);
   });
 });
 
@@ -163,6 +188,16 @@ describe("visual state formats", () => {
     assert.equal(VISUAL_FORMAT.FONTAWESOME, 0x01);
     assert.equal(VISUAL_FORMAT.NETPBM_MONO_84, 0x02);
     assert.equal(VISUAL_FORMAT.NETPBM_RGB_18, 0x03);
+  });
+});
+
+describe("execution control actions", () => {
+  it("pin the run control and process control actions", () => {
+    assert.equal(RUN_ACTION.PAUSE, 0x01);
+    assert.equal(RUN_ACTION.RESUME, 0x02);
+    assert.equal(RUN_ACTION.STEP, 0x03);
+    assert.equal(PROCESS_ACTION.DISABLE, 0x01);
+    assert.equal(PROCESS_ACTION.ENABLE, 0x02);
   });
 });
 
@@ -184,5 +219,7 @@ describe("lifecycle codes", () => {
     assert.equal(LIFECYCLE_CODE.STOP, 0x02);
     assert.equal(LIFECYCLE_CODE.SAFE_MODE, 0x03);
     assert.equal(LIFECYCLE_CODE.FAILED, 0x04);
+    assert.equal(LIFECYCLE_CODE.PAUSED, 0x05);
+    assert.equal(LIFECYCLE_CODE.RESUMED, 0x06);
   });
 });

@@ -19,6 +19,8 @@ import * as protocol from "../src/index.js";
 import {
   assembleTraceFile,
   CMD_AUTH_RESPONSE,
+  CMD_BREAKPOINT_CLEAR,
+  CMD_BREAKPOINT_SET,
   CMD_COMP_DETAIL_REQ,
   CMD_COMP_DETAIL_RES,
   CMD_COMP_INSTALL_REQ,
@@ -30,12 +32,16 @@ import {
   CMD_CRDT_UP_TO_DATE,
   CMD_CRDT_UPDATE,
   CMD_FLOWTRACE_CHUNK,
+  CMD_PROCESS_CTRL,
   CMD_PUBSUB_SUB,
+  CMD_RUN_CTRL,
   decodeAnnounceAppData,
   decodeFrame,
   decodeLxmTelemetry,
   encodeAnnounceAppData,
   encodeAuthResponse,
+  encodeBreakpointClear,
+  encodeBreakpointSet,
   encodeCompDetailReq,
   encodeCompDetailRes,
   encodeCompInstallReq,
@@ -48,7 +54,9 @@ import {
   encodeCrdtUpToDate,
   encodeFlowtraceChunk,
   encodeLxmTelemetry,
+  encodeProcessCtrl,
   encodePubsubSub,
+  encodeRunCtrl,
   readTraceFile,
   TRACE_SNAPSHOT,
 } from "../src/index.js";
@@ -87,6 +95,17 @@ const frameEncoders = {
       baseTimestampMs: decoded.baseTimestampMs,
       events: decoded.events,
     }),
+  [CMD_RUN_CTRL]: (decoded) => encodeRunCtrl(decoded.action),
+  [CMD_BREAKPOINT_SET]: (decoded) =>
+    encodeBreakpointSet({
+      breakpointId: decoded.breakpointId,
+      nodeId: decoded.nodeId,
+      port: decoded.port,
+    }),
+  [CMD_BREAKPOINT_CLEAR]: (decoded) =>
+    encodeBreakpointClear(decoded.breakpointId),
+  [CMD_PROCESS_CTRL]: (decoded) =>
+    encodeProcessCtrl({ nodeId: decoded.nodeId, action: decoded.action }),
 };
 
 /**

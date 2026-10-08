@@ -13,6 +13,8 @@
 import { MsgPack } from "@reticulum/core";
 import {
   CMD_AUTH_RESPONSE,
+  CMD_BREAKPOINT_CLEAR,
+  CMD_BREAKPOINT_SET,
   CMD_COMP_DETAIL_REQ,
   CMD_COMP_DETAIL_RES,
   CMD_COMP_INSTALL_REQ,
@@ -24,8 +26,16 @@ import {
   CMD_CRDT_UP_TO_DATE,
   CMD_CRDT_UPDATE,
   CMD_FLOWTRACE_CHUNK,
+  CMD_PROCESS_CTRL,
   CMD_PUBSUB_SUB,
+  CMD_RUN_CTRL,
 } from "./constants.js";
+import {
+  decodeBreakpointClear,
+  decodeBreakpointSet,
+  decodeProcessCtrl,
+  decodeRunCtrl,
+} from "./debug.js";
 import { ProtocolError } from "./errors.js";
 import {
   decodeCrdtStaleEpoch,
@@ -53,7 +63,8 @@ import { decodeAuthResponse } from "./transport.js";
  *   typeof decodeCrdtStaleEpoch | typeof decodeCrdtUpdate | typeof decodeCompSyncReq |
  *   typeof decodeCompManifest | typeof decodeCompDetailReq | typeof decodeCompDetailRes |
  *   typeof decodeCompWrite | typeof decodeCompInstallReq | typeof decodePubsubSub |
- *   typeof decodeFlowtraceChunk
+ *   typeof decodeFlowtraceChunk | typeof decodeRunCtrl | typeof decodeBreakpointSet |
+ *   typeof decodeBreakpointClear | typeof decodeProcessCtrl
  * >} DecodedFrame
  */
 
@@ -94,6 +105,14 @@ export function decodeFrame(bytes) {
       return decodePubsubSub(bytes);
     case CMD_FLOWTRACE_CHUNK:
       return decodeFlowtraceChunk(bytes);
+    case CMD_RUN_CTRL:
+      return decodeRunCtrl(bytes);
+    case CMD_BREAKPOINT_SET:
+      return decodeBreakpointSet(bytes);
+    case CMD_BREAKPOINT_CLEAR:
+      return decodeBreakpointClear(bytes);
+    case CMD_PROCESS_CTRL:
+      return decodeProcessCtrl(bytes);
     default:
       throw new ProtocolError(
         opcode === undefined

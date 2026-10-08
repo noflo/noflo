@@ -223,6 +223,13 @@ export const EVENT_TYPE = {
   CONSOLE: 0x05,
   LIFECYCLE: 0x06,
   VISUAL_STATE: 0x07,
+  /**
+   * A data breakpoint fired: the payload is the positional tuple
+   * `[breakpoint_id, node_id, port]`. The runtime is paused when this event
+   * is emitted (a `0x05 PAUSED` lifecycle event accompanies it); the packet
+   * itself travels as its own `0x01 DATA` event.
+   */
+  BREAKPOINT_HIT: 0x08,
 };
 
 /**
@@ -233,6 +240,11 @@ export const EVENT_TYPE = {
  * parsing exception strings; the detail travels in an accompanying `0x04
  * ERROR` flowtrace event, frugalized per local policy.
  *
+ * `PAUSED` and `RESUMED` announce run-state changes of the execution
+ * control block (§8): client-requested run control and breakpoint hits
+ * alike, so every telemetry subscriber learns the state change, not only
+ * the client that caused it.
+ *
  * @type {Record<string, number>}
  */
 export const LIFECYCLE_CODE = {
@@ -240,6 +252,8 @@ export const LIFECYCLE_CODE = {
   STOP: 0x02,
   SAFE_MODE: 0x03,
   FAILED: 0x04,
+  PAUSED: 0x05,
+  RESUMED: 0x06,
 };
 
 /**
@@ -252,6 +266,70 @@ export const VISUAL_FORMAT = {
   FONTAWESOME: 0x01,
   NETPBM_MONO_84: 0x02,
   NETPBM_RGB_18: 0x03,
+};
+
+// --- Execution control & debugging (0x40 - 0x4F) ---
+
+/**
+ * Run control — pause, resume, or step the network:
+ * `[0x40, action]` (work document #4 §8, noflo/noflo-ui #243).
+ *
+ * @type {number}
+ */
+export const CMD_RUN_CTRL = 0x40;
+
+/**
+ * Set a data breakpoint:
+ * `[0x41, breakpoint_id, node_id, port]` (noflo/noflo-ui #245). The runtime
+ * pauses when a packet arrives at the node's triggering inport (`port` nil
+ * matches any) and emits `0x05 PAUSED` plus a `0x08 BREAKPOINT_HIT` event.
+ *
+ * @type {number}
+ */
+export const CMD_BREAKPOINT_SET = 0x41;
+
+/**
+ * Clear breakpoints: `[0x42, breakpoint_id]`. A nil id clears every
+ * breakpoint.
+ *
+ * @type {number}
+ */
+export const CMD_BREAKPOINT_CLEAR = 0x42;
+
+/**
+ * Per-process execution control:
+ * `[0x43, node_id, action]` (noflo/noflo-ui #317). Disabled state is
+ * runtime-side execution state, not graph state — it does not travel the
+ * CRDT op log.
+ *
+ * @type {number}
+ */
+export const CMD_PROCESS_CTRL = 0x43;
+
+/**
+ * Actions of `0x40 CMD_RUN_CTRL`. `STEP` processes exactly one queued event
+ * and then remains paused; pause stops the processing of queued events while
+ * in-flight packets complete and further packets keep buffering under the
+ * runtime's backpressure policy.
+ *
+ * @type {Record<string, number>}
+ */
+export const RUN_ACTION = {
+  PAUSE: 0x01,
+  RESUME: 0x02,
+  STEP: 0x03,
+};
+
+/**
+ * Actions of `0x43 CMD_PROCESS_CTRL`. A disabled node stops activating;
+ * queued packets are kept, not dropped, and resume processing when the node
+ * is enabled again.
+ *
+ * @type {Record<string, number>}
+ */
+export const PROCESS_ACTION = {
+  DISABLE: 0x01,
+  ENABLE: 0x02,
 };
 
 // --- Streamable trace file format ---

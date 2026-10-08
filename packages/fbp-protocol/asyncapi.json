@@ -158,6 +158,46 @@
       },
       "x-capability": "TELEMETRY_READ (0x08)"
     },
+    "cmd/0x40": {
+      "description": "Client → runtime: run control (noflo/noflo-ui #243). Pausing stops the processing of queued events — in-flight packets complete and further packets keep buffering under the runtime's backpressure policy. Step processes exactly one queued event and remains paused. Run-state changes are announced on the telemetry stream as `0x05 PAUSED` / `0x06 RESUMED` lifecycle events.",
+      "subscribe": {
+        "operationId": "runCtrl",
+        "message": {
+          "$ref": "#/components/messages/runCtrl"
+        }
+      },
+      "x-capability": "LIFECYCLE_CTRL (0x40)"
+    },
+    "cmd/0x41": {
+      "description": "Client → runtime: set a data breakpoint (noflo/noflo-ui #245). The runtime pauses when a packet arrives at the node — any triggering inport when `port` is nil, otherwise the named one — and emits `0x05 PAUSED` plus a `0x08 BREAKPOINT_HIT` flowtrace event; the packet itself travels as its own `0x01 DATA` event. Breakpoint ids are client-chosen and scoped to the link.",
+      "subscribe": {
+        "operationId": "breakpointSet",
+        "message": {
+          "$ref": "#/components/messages/breakpointSet"
+        }
+      },
+      "x-capability": "LIFECYCLE_CTRL (0x40)"
+    },
+    "cmd/0x42": {
+      "description": "Client → runtime: clear breakpoints. A nil id clears every breakpoint.",
+      "subscribe": {
+        "operationId": "breakpointClear",
+        "message": {
+          "$ref": "#/components/messages/breakpointClear"
+        }
+      },
+      "x-capability": "LIFECYCLE_CTRL (0x40)"
+    },
+    "cmd/0x43": {
+      "description": "Client → runtime: per-process execution control (noflo/noflo-ui #317). Disabled state is runtime-side execution state, not graph state: it does not travel the CRDT op log. A disabled node stops activating; queued packets are kept, not dropped, and resume processing when the node is enabled again.",
+      "subscribe": {
+        "operationId": "processCtrl",
+        "message": {
+          "$ref": "#/components/messages/processCtrl"
+        }
+      },
+      "x-capability": "LIFECYCLE_CTRL (0x40)"
+    },
     "lxmf/fbp.telemetry": {
       "description": "Runtime → mesh, over LXMF store-and-forward (not a link channel): asynchronous telemetry drops, event-driven or scheduled opportunistically with randomized jitter to respect Proof-of-Work limits. LXMF app name: `fbp.telemetry`.",
       "publish": {
@@ -812,7 +852,7 @@
         "name": "flowtraceChunk",
         "title": "0x32 CMD_FLOWTRACE_CHUNK",
         "summary": "Buffered, delta-encoded execution trace chunk.",
-        "description": "Event storms never hit the wire raw: events buffer into chunks, each event carrying a uint32 millisecond delta from the chunk's base timestamp. Event types: `0x01` DATA (raw value), `0x02` BEGIN_GROUP / `0x03` END_GROUP (group string), `0x04` ERROR (exception string), `0x05` CONSOLE (`[stream_id, log_string]`), `0x06` LIFECYCLE (transition code: `0x01` start, `0x02` stop, `0x03` safe-mode, `0x04` failed transition — a rejected `start()` leaves the runtime an honest message to send, with the detail in an accompanying `0x04` ERROR event), `0x07` VISUAL_STATE (`[format_type, binary_pixels]`).",
+        "description": "Event storms never hit the wire raw: events buffer into chunks, each event carrying a uint32 millisecond delta from the chunk's base timestamp. Event types: `0x01` DATA (raw value), `0x02` BEGIN_GROUP / `0x03` END_GROUP (group string), `0x04` ERROR (exception string), `0x05` CONSOLE (`[stream_id, log_string]`), `0x06` LIFECYCLE (transition code: `0x01` start, `0x02` stop, `0x03` safe-mode, `0x04` failed transition — a rejected `start()` leaves the runtime an honest message to send, with the detail in an accompanying `0x04` ERROR event; `0x05` paused and `0x06` resumed announce execution-control run-state changes), `0x07` VISUAL_STATE (`[format_type, binary_pixels]`), `0x08` BREAKPOINT_HIT (`[breakpoint_id, node_id, port]`).",
         "payload": {
           "type": "array",
           "minItems": 4,
@@ -857,7 +897,8 @@
                       4,
                       5,
                       6,
-                      7
+                      7,
+                      8
                     ],
                     "description": "event_type"
                   },
@@ -908,6 +949,178 @@
           }
         ],
         "x-msgpack-hex": "9432a57375622d31cf00000192cc09140095930002a46d6174689304012a93090604930e04d92873746172742072656a65637465643a20636f6d706f6e656e74206d6174682f416464207468726577931203a46d617468",
+        "x-verify": "frame"
+      },
+      "runCtrl": {
+        "name": "runCtrl",
+        "title": "0x40 CMD_RUN_CTRL",
+        "summary": "Run control: pause, resume, or step the network.",
+        "payload": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": [
+            {
+              "type": "integer",
+              "const": 64,
+              "description": "CMD_RUN_CTRL"
+            },
+            {
+              "type": "integer",
+              "enum": [
+                1,
+                2,
+                3
+              ],
+              "description": "action — 0x01 pause (stop processing queued events; in-flight packets complete, further packets keep buffering under the runtime's backpressure policy), 0x02 resume, 0x03 step (process exactly one queued event, remain paused)"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              64,
+              1
+            ]
+          }
+        ],
+        "x-msgpack-hex": "924001",
+        "x-verify": "frame"
+      },
+      "breakpointSet": {
+        "name": "breakpointSet",
+        "title": "0x41 CMD_BREAKPOINT_SET",
+        "summary": "Set a data breakpoint on a node's triggering inport(s).",
+        "payload": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": [
+            {
+              "type": "integer",
+              "const": 65,
+              "description": "CMD_BREAKPOINT_SET"
+            },
+            {
+              "type": [
+                "string",
+                "integer"
+              ],
+              "description": "breakpoint_id — client-chosen, scoped to the link"
+            },
+            {
+              "type": "string",
+              "description": "node_id"
+            },
+            {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "port — nil matches any triggering inport"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              65,
+              "bp-1",
+              "node-1",
+              "in"
+            ]
+          }
+        ],
+        "x-msgpack-hex": "9441a462702d31a66e6f64652d31a2696e",
+        "x-verify": "frame"
+      },
+      "breakpointClear": {
+        "name": "breakpointClear",
+        "title": "0x42 CMD_BREAKPOINT_CLEAR",
+        "summary": "Clear one breakpoint, or all of them with nil.",
+        "payload": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": [
+            {
+              "type": "integer",
+              "const": 66,
+              "description": "CMD_BREAKPOINT_CLEAR"
+            },
+            {
+              "oneOf": [
+                {
+                  "type": [
+                    "string",
+                    "integer"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "breakpoint_id — nil clears every breakpoint"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              66,
+              null
+            ]
+          }
+        ],
+        "x-msgpack-hex": "9242c0",
+        "x-verify": "frame"
+      },
+      "processCtrl": {
+        "name": "processCtrl",
+        "title": "0x43 CMD_PROCESS_CTRL",
+        "summary": "Per-process execution control: disable or enable a node.",
+        "payload": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": [
+            {
+              "type": "integer",
+              "const": 67,
+              "description": "CMD_PROCESS_CTRL"
+            },
+            {
+              "type": "string",
+              "description": "node_id"
+            },
+            {
+              "type": "integer",
+              "enum": [
+                1,
+                2
+              ],
+              "description": "action — 0x01 disable (the node stops activating; queued packets are kept, not dropped), 0x02 enable"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              67,
+              "node-1",
+              1
+            ]
+          }
+        ],
+        "x-msgpack-hex": "9343a66e6f64652d3101",
         "x-verify": "frame"
       },
       "lxmTelemetry": {

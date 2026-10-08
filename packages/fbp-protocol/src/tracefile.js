@@ -2,7 +2,7 @@
  * (c) 2021-2026 Henri Bergius
  * SPDX-License-Identifier: EUPL-1.2
  * @module tracefile
- * @description The streamable trace file format (work document #4 §9): a
+ * @description The streamable trace file format (work document #4 §10): a
  *   fully self-contained, append-only recording where frame 1 is the `0xF0`
  *   topology snapshot and frames 2..N are raw `0x32` flowtrace chunk frames
  *   appended sequentially as they flush from the engine. Frames are
