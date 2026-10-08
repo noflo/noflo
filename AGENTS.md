@@ -18,7 +18,7 @@ At this point we're working on NoFlo 2.x roadmap. Keep the migration guides and 
 
 NoFlo core (`packages/noflo`) remains MIT-licensed. If we migrate other pre-existing NoFlo libraries into this monorepo, they also keep their MIT license _if_ they have 3rd party contributions in the codebase that remains. Otherwise they get EUPL-1.2. In case of uncertainty, ask user.
 
-Any greenfield work (new packages) will be EUPL-1.2
+Any greenfield work (new packages) will be EUPL-1.2. Exception: `@noflo/graph` is MIT despite being greenfield — it is a runtime dependency of MIT-licensed `@noflo/noflo`, and a maintainer decision (2026-10-08) requires dependencies of MIT packages to stay MIT so the core ships without license conflicts. Copyright attribution: Flowhub UG closed in 2020, so new work is `(c) 2021-2026 Henri Bergius`, with historical attribution lines preserved below it
 
 ## Boundaries
 
