@@ -146,7 +146,7 @@ export function getComponent() {
 
 - Preconditions first: `if (!input.hasData("in")) return;` and, for multi-port components, batch the check: `if (!input.hasData("in", "options")) return;`.
 - `getData` consumes the packet from the firing port; reads on control ports are non-consuming.
-- Streams: `hasStream`/`getStream` for bracketed groups; brackets arriving on an inport are forwarded by default to `out` and `error` (`forwardBrackets` defaults to `{ in: ["out", "error"] }`). With multiple data outports, declare `c.forwardBrackets` explicitly, listing every port that should carry the stream grouping through. Set `c.forwardBrackets = {}` for components where grouping is meaningless (generators, sinks).
+- Streams: `hasStream`/`getStream` for bracketed groups; brackets arriving on an inport are forwarded by default to `out` and `error` (`forwardBrackets` defaults to `{ in: ["out", "error"] }`). With multiple data outports, declare `c.forwardBrackets` explicitly, listing every port that should carry the stream grouping through. Set `c.forwardBrackets = {}` for components where grouping is meaningless (generators, sinks). Forwarded brackets attach to actual sends: an outport listed in `forwardBrackets` that receives no send during the activation stays completely silent — e.g. on an error path only the `error` port receives the grouping, and data outports get nothing (not even empty groups).
 - Addressable ports (`addressable: true`): check availability with `input.hasData(["port", idx])` over `input.attached("port")`, and send with `new IP("data", value, { index: idx })`.
 - Scopes: packets carry a `scope`; downstream propagation is automatic. Components that mix unscoped background data into scoped flows set `scoped: false` on the inport receiving the unscoped stream. Components creating new isolation contexts (one per request, per job) assign `scope` on the `IP` they emit.
 
@@ -156,7 +156,7 @@ A Promise returned from the `process` function is interpreted by NoFlo as an imp
 
 - Never declare `process` itself `async`.
 - Pick one style per component:
-  - **Promise-pure**: perform async work and return the Promise; resolve with the output map (or nothing), never calling `send`/`done` inside.
+  - **Promise-pure**: perform async work and return the Promise; resolve with the output map (or nothing), never calling `send`/`done` inside. The `output` parameter is then unused and can be omitted from the callback signature.
   - **Explicit**: call `output.send`/`output.sendDone`/`output.done` yourself and return nothing from `process`.
   - Mixing the two styles corrupts the activation lifecycle.
 - For multi-packet fan-out with backpressure (below) the explicit style with an inner async function is the pattern; call it fire-and-forget with a `.catch((err) => output.done(err))` and do not return its Promise.
@@ -202,12 +202,21 @@ c.process((input, output) => {
 
 ### 3.8 Dependency modernization inside components
 
-- Replace `underscore`/`lodash` with native `Array`/`Object`/`String` methods.
-- Replace `uuid` with `node:crypto` `randomUUID`.
-- Replace `btoa`/`atob` packages with the globals (available in Node >= 16); for binary work use `Uint8Array`/`Buffer` only where Web APIs are unavailable.
-- Replace `request`/`node-fetch`/`axios` with native `fetch`.
-- Replace callback-style async APIs with Promise/async-await versions; Node builtins with Promises APIs (`node:fs/promises`, `node:timers/promises`).
-- Prefer Web-standard APIs so components also run under Deno and Bun.
+Dependency resolution follows a strict ladder. Resolve each need at the highest-priority level that covers it:
+
+1. **Web platform standards** — APIs shared by evergreen browsers and WinterTC (Web-interoperable Runtimes Community Group) server-side runtimes: `fetch`, `URL`/`URLSearchParams`, `TextEncoder`/`TextDecoder`, `structuredClone`, Web streams, `console`, `crypto.randomUUID`, `crypto.subtle.digest` (SHA-1/SHA-256/SHA-384/SHA-512), `atob`/`btoa`, `setTimeout`/`AbortSignal`. These make components multiplatform (Node, Deno, Bun, browser) at zero dependency cost
+2. **`node:` standard library** — for platform needs the Web standards do not cover: `node:fs`, `node:http`/`node:https` servers, `node:child_process`, `node:net`, and hashes outside the WebCrypto set (e.g. MD5). Acceptable for components that are inherently server-side; a component using only level-1 plus level-2 APIs still runs on all server-side runtimes
+3. **Third-party dependencies** — only when neither level covers the need. Prefer small, dependency-free packages; for tiny needs (a few dozen lines), an inline implementation in the component may beat adding a dependency
+
+Rules:
+
+- Replace `underscore`/`lodash` with native `Array`/`Object`/`String` methods (level 1).
+- Replace `uuid` with the global `crypto.randomUUID()` — a Web standard, not `node:crypto` (level 1).
+- Replace `btoa`/`atob` packages with the globals; for binary work use `Uint8Array` (Web standard) over `Buffer` where Web APIs are unavailable (level 1).
+- Replace `request`/`node-fetch`/`axios` with native `fetch` (level 1).
+- Replace callback-style async APIs with Promise/async-await versions; Node builtins with Promises APIs (`node:fs/promises`, `node:timers/promises`) (level 2).
+- **WebCrypto has no MD5**: `crypto.subtle.digest` only supports SHA-1/SHA-256/SHA-384/SHA-512. Gravatar-style MD5 hashing needs `node:crypto` `createHash("md5")` (server-only) or an inline pure-JS implementation (multiplatform). When a service offers a SHA-256 alternative (Gravatar does), prefer it — it is level-1 native. Record the choice and its platform implications in the migration notes.
+- When choosing between Web-standard and `node:` APIs that both cover a need (e.g. `URL` vs `node:url`), the Web standard wins.
 
 ## 4. Testing rules
 
@@ -284,7 +293,7 @@ Use `node:test` files under `test/` (plain `.js`, ESM via the package `"type": "
 - Asserting error-port output, packet types, scopes, or bracket structure (fbp-spec v1 asserts data payloads only).
 - Timing behavior or anything the suite vocabulary cannot express.
 
-Pattern: instantiate the component directly via `getComponent()` (or through a `ComponentLoader` built on `createNodeModulesRegistry`), drive it with `noflo.internalSocket.createSocket()` sockets, and use `node:assert/strict`:
+Pattern: instantiate the component directly via `getComponent()` (or through a `ComponentLoader` built on `createNodeModulesRegistry`), drive it with `noflo.internalSocket.createSocket()` sockets, and use `node:assert/strict`. Name files with the `.test.js` suffix (e.g. `test/Server.test.js`) — Bun's runner only discovers files with `.test`/`.spec` in the filename, and `node --test` works with either naming:
 
 ```js
 import assert from "node:assert/strict";
@@ -339,13 +348,14 @@ describe("Server component", () => {
   "scripts": {
     "test": "npm run types && npm run lint && npm run test:spec && npm run test:node",
     "test:spec": "node \"$(node -p \"require.resolve('@noflo/fbp-spec-runner/src/cli.js')\")\" spec/",
-    "test:node": "node --test test/*.js"
+    "test:node": "node --test test/*.test.js"
   }
 }
 ```
 
-- Pass the files as an unquoted shell glob. Do not pass a directory (`node --test test/` is unreliable across Node versions) and do not quote the glob (glob arguments to the runner require newer Node than the supported floor of 20).
+- Pass the files as an unquoted shell glob. Do not pass a directory (`node --test test/` is unreliable across Node versions) and do not quote the glob (glob arguments to the runner require newer Node than the supported floor of 22). The glob needs at least one file to exist.
 - The `test:spec` invocation goes through `require.resolve` because of the runner CLI symlink caveat described in 4.1; simplify to `fbp-spec-runner spec/` once that is fixed.
+- Cross-runtime verification: libraries whose components stay on levels 1–2 of the dependency ladder (3.8) should run under Deno and Bun as well. Provide opt-in `test:deno` (`deno test --allow-all --no-check test/*.test.js`) and `test:bun` (`bun test test/*.test.js`) scripts outside the default `test` chain, and run them locally; whether they join the CI matrix is a per-library decision. As of this writing the `@noflo/fbp-spec-runner` CLI runs on Node and Deno but not Bun (Bun's `node:test` shim does not support the runner's dynamic suite registration) — the `node:test` fallback covers all three runtimes.
 - The `test:node` leg requires at least one file in `test/` to exist; a library with no fallback tests yet should omit that leg from `test` until the first one lands.
 - Do not add Mocha, Chai, Karma, or assertion libraries.
 
@@ -376,7 +386,7 @@ describe("Server component", () => {
     "types": "tsc -p tsconfig.json",
     "test": "npm run types && npm run lint && npm run test:spec && npm run test:node",
     "test:spec": "node \"$(node -p \"require.resolve('@noflo/fbp-spec-runner/src/cli.js')\")\" spec/",
-    "test:node": "node --test test/*.js"
+    "test:node": "node --test test/*.test.js"
   }
 }
 ```
@@ -446,7 +456,7 @@ trim_trailing_whitespace = true
 ### 5.4 CI
 
 - Delete legacy automation (`.travis.yml`, old CircleCI config, `.github/dependabot.yml`).
-- `.github/workflows/test.yml`: checkout + `setup-node`, run `npm ci` and `npm test` on the supported Node lines (20.x, 22.x, 24.x).
+- `.github/workflows/test.yml`: checkout + `setup-node`, run `npm ci` and `npm test` on the supported Node lines (22.x, 24.x).
 - Keep workflows minimal; no release steps in the test workflow.
 
 ### 5.5 Publishing (OIDC)
@@ -506,7 +516,7 @@ jobs:
 
 ### 5.6 License and changelog
 
-- License: if `git shortlog` shows external contributors, keep MIT unchanged. If the project is single-author, relicense to EUPL-1.2: update the `LICENSE` file and the `package.json` `license` field. When in doubt, ask the user.
+- License: existing component libraries keep their original license unchanged (product decision 2026-10-08; e.g. MIT stays MIT regardless of contributor count). EUPL-1.2 relicensing applies only to genuinely new libraries, when single-author. When in doubt, ask the user.
 - `CHANGELOG.md` in Keep a Changelog format with an `Unreleased` segment describing the migration (2.x compatibility, ESM, test runner switch, dependency changes, license change if any). If the README had a hand-rolled changes section, move it into the changelog.
 - README: rewrite examples for ESM and `@noflo/noflo`, drop badges, drop stale claims. Flag (do not silently fix) content that needs product decisions.
 
@@ -828,7 +838,7 @@ Run all of these; the migration is done when every line holds:
 - [ ] Dependency on `@noflo/noflo` ^2.0.0; devDependencies include `@noflo/fbp-spec-runner` and `@noflo/loader-node`; no unscoped `noflo` 1.x anywhere; no `noflo-nodejs` as a library dependency.
 - [ ] A quick smoke: `node -e "import('@noflo/loader-node').then(async (m) => { const r = await m.createNodeModulesRegistry(process.cwd()); await r.discover(); console.log(Object.keys(r.components)); })"` lists every expected component name.
 - [ ] `package.json`: `type: module`, engines >= 22, scripts, files, license per 5.6; `CHANGELOG.md` Unreleased updated; README current.
-- [ ] CI: `test.yml` on Node 20/22/24; `publish.yml` uses OIDC trusted publishing; no legacy CI files or auth tokens remain.
+- [ ] CI: `test.yml` on Node 22/24; `publish.yml` uses OIDC trusted publishing; no legacy CI files or auth tokens remain.
 - [ ] Changes left uncommitted for review, with a summary of semantic changes and any dropped coverage called out explicitly.
 
 ## 8. Pitfall quick reference
@@ -845,10 +855,13 @@ Run all of these; the migration is done when every line holds:
 - **Eager discovery imports**: side effects at component module top level run for every component of every dependency at registry construction. Keep component modules pure.
 - **Fan-out expectations assert the last packet**: the runner records the most recent data IP per port per step; intermediate packets of a fan-out cannot be asserted in fbp-spec v1.
 - **Error ports must be in `expect` to be observed**: an error IP sent to an unasserted error port vanishes and the case times out instead of failing fast. Assert with `path: $.message` + `contains`.
+- **Forwarded brackets attach to actual sends, not to ports**: a data outport listed in `forwardBrackets` that receives no send during an activation stays completely silent — on an error path, only the `error` port gets the grouping and data outports receive nothing, not even empty groups (see 3.3). Do not expect `forwardBrackets` ports to mirror brackets unconditionally.
+- **IPs of one activation arrive on an edge as a single synchronous burst**: when driving sockets directly in tests, wait for the terminating event (e.g. the closing bracket) and assert on the collected sequence; per-event listeners attached between events of the same activation miss packets.
 - **fbp-spec-runner CLI silently no-ops when invoked via the npm bin symlink** (its direct-invocation check compares the symlink path against the module real path). Invoke through `require.resolve` (see 4.1) until fixed; treat silent zero-output runs as failures.
 - **`node --test` arguments**: pass files via an unquoted shell glob (`node --test test/*.js`); the directory form fails on current Node and quoted globs need Node >= 21. The glob needs at least one file to exist.
 - **Keep-alive connections stall `server.close()`**: a `node:http` server with open keep-alive sockets never fires its close callback. Call `closeAllConnections()` when shutting a server down, and deactivate the activation that started it (see 6.3) — otherwise `shutdown()` hangs.
 - **Port 0 (OS-assigned) tests need the assigned port echoed back**: have server components emit `server.address().port`, not the requested port.
 - **Type checking against a workspace checkout of `@noflo/noflo`**: declarations are build artifacts (`lib/NoFlo.d.ts`); npm-installed packages ship them, checkouts need their `npm run types` run first. Flag TS7016 on `@noflo/noflo` as an environment issue — do not disable `checkJs` to work around it.
+- **WebCrypto has no MD5**: hashing needs outside the SHA-1/SHA-2 family require `node:crypto` (server-only) or an inline pure-JS implementation (multiplatform). Prefer a SHA-256 service alternative where one exists (see 3.8).
 - **Legacy `@runtime noflo-nodejs` comments** in component sources are unnecessary in 2.x; drop them during conversion (discovery defaults to the `noflo` runtime).
 - **Do not commit `fbp.json`** — it is a generated consumer-side cache.
