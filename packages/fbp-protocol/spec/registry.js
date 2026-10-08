@@ -16,6 +16,7 @@ import {
   CMD_COMP_SYNC_REQ,
   CMD_COMP_UP_TO_DATE,
   COMPONENT_TYPE,
+  canonicalManifest,
   canonicalSignature,
   decodeCompDetailReq,
   decodeCompDetailRes,
@@ -32,6 +33,7 @@ import {
   encodeCompUpToDate,
   encodeCompWrite,
   ProtocolError,
+  registryHash,
   sigHash,
 } from "../src/index.js";
 
@@ -347,6 +349,53 @@ describe("canonical signature and sig_hash", () => {
   it("rejects an invalid signature", () => {
     assert.throws(
       () => canonicalSignature({ type: "bogus", in: [], out: [] }),
+      ProtocolError,
+    );
+  });
+});
+
+describe("canonical manifest and registry_hash", () => {
+  const entries = {
+    "math/Add": { sigHash: "a".repeat(64), type: COMPONENT_TYPE.ELEMENTARY },
+    "stub/Only": { sigHash: "b".repeat(64), type: COMPONENT_TYPE.STUB },
+  };
+
+  it("serializes with sorted keys as [sig_hash, kind] tuples", () => {
+    assert.equal(
+      canonicalManifest(entries),
+      `{"math/Add":["${"a".repeat(64)}","elementary"],"stub/Only":["${"b".repeat(64)}","stub"]}`,
+    );
+  });
+
+  it("is stable under key reordering", async () => {
+    const reordered = {
+      "stub/Only": entries["stub/Only"],
+      "math/Add": entries["math/Add"],
+    };
+    assert.equal(canonicalManifest(reordered), canonicalManifest(entries));
+    assert.equal(await registryHash(reordered), await registryHash(entries));
+  });
+
+  it("distinguishes registries that differ only in kind", async () => {
+    const relabeled = {
+      ...entries,
+      "math/Add": { ...entries["math/Add"], type: COMPONENT_TYPE.SUBGRAPH },
+    };
+    assert.notEqual(await registryHash(relabeled), await registryHash(entries));
+  });
+
+  it("computes a stable sha-256 hex digest", async () => {
+    const hash = await registryHash(entries);
+    assert.match(hash, /^[0-9a-f]{64}$/);
+    assert.equal(hash, await registryHash(entries));
+  });
+
+  it("rejects invalid entries", () => {
+    assert.throws(
+      () =>
+        canonicalManifest({
+          "math/Add": { sigHash: "a".repeat(64), type: "inferred" },
+        }),
       ProtocolError,
     );
   });

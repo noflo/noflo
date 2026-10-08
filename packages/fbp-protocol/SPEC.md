@@ -250,11 +250,15 @@ entries, `0x24` details, and process listings:
 - `subgraph` — a graph file wired as a component
 - `stub` — a declared signature with no implementation
 
-`sig_hash` values (and `registry_hash`) are hashes of canonical signature
-bytes. The canonical signature serialization is sorted-key JSON over the
+`sig_hash` values (and `registry_hash`) are hashes of canonical bytes.
+The canonical *signature* serialization is sorted-key JSON over the
 component's kind and full port field set (absent optional port fields
 omitted), UTF-8 encoded; the `sig_hash` is its SHA-256 hex digest. The
-canonical serialization substrate is shared with the noflo-ui materialization
+canonical *manifest* serialization is sorted-key JSON over
+`name → [sig_hash, kind]`, UTF-8 encoded; the `registry_hash` is its
+SHA-256 hex digest, computed by runtimes (for `0x22`) and clients (for
+`0x20`) over the manifest they currently hold. The canonical serialization
+substrate is shared with the noflo-ui materialization
 work (WD #43 owns byte-stable canonical serialization; round-trip
 byte-identity is a hard test requirement there). A serialization change
 breaking byte-stability is protocol-visible.

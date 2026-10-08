@@ -331,6 +331,44 @@ export async function sigHash(signature) {
 }
 
 /**
+ * Serialize manifest entries canonically: sorted-key JSON over
+ * `name → [sig_hash, kind]`. The byte-stable substrate the `registry_hash`
+ * is computed over, shared by runtimes and clients — the same cross-repo
+ * rules as the canonical signature serialization apply: a change here is
+ * protocol-visible.
+ *
+ * @param {ManifestEntries} entries
+ * @returns {string}
+ */
+export function canonicalManifest(entries) {
+  assertEntries(entries);
+  /** @type {Record<string, [string, string]>} */
+  const json = {};
+  for (const name of Object.keys(entries).sort()) {
+    json[name] = [entries[name].sigHash, entries[name].type];
+  }
+  return stableStringify(json);
+}
+
+/**
+ * Compute the `registry_hash` of a registry manifest: SHA-256 (hex) over
+ * {@link canonicalManifest}. This is the value carried in `0x20`
+ * `local_registry_hash` and `0x22` `new_registry_hash`; a client computes
+ * it over the manifest it last applied, and the runtime compares. Async
+ * because WebCrypto is.
+ *
+ * @param {ManifestEntries} entries
+ * @returns {Promise<string>}
+ */
+export async function registryHash(entries) {
+  const bytes = new TextEncoder().encode(canonicalManifest(entries));
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/**
  * Render a port as a plain JSON object with sorted keys, dropping absent
  * optional fields so the canonical form is minimal and stable.
  *

@@ -80,6 +80,7 @@ export {
   encodeLxmTelemetry,
 } from "./lxmf.js";
 export {
+  canonicalManifest,
   canonicalSignature,
   decodeCompDetailReq,
   decodeCompDetailRes,
@@ -95,6 +96,7 @@ export {
   encodeCompSyncReq,
   encodeCompUpToDate,
   encodeCompWrite,
+  registryHash,
   sigHash,
 } from "./registry.js";
 export {
