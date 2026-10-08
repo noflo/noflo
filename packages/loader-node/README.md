@@ -4,8 +4,7 @@ Node.js component discovery and source storage for
 [NoFlo](https://noflojs.org), implemented as a `ComponentRegistry`.
 
 The package discovers components from a project directory and its
-`node_modules` dependencies using `fbp-manifest`, and provides the
-registry to NoFlo core:
+`node_modules` dependencies, and provides the registry to NoFlo core:
 
 ```js
 import noflo from "@noflo/noflo";
