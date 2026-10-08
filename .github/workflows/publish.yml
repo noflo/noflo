@@ -71,7 +71,7 @@ jobs:
       # packages/*; order is irrelevant because npm resolves dep version
       # ranges at install time. The JSR loop — dormant until packages gain a
       # jsr.json under the @noflo namespace — uses a topological order via
-      # scripts/jsr-publish-order.mjs, because JSR resolves its jsr:
+      # scripts/jsr-publish-order.js, because JSR resolves its jsr:
       # dependencies at PUBLISH time.)
       - name: Publish all to NPM
         run: |
@@ -79,8 +79,17 @@ jobs:
           real_failures=0
           for dir in packages/*/; do
             name=$(node -p "require('./$dir/package.json').name")
+            # Pre-release versions (2.0.0-alpha.N etc.) publish under the
+            # `next` dist-tag so they never hijack `latest`; stable versions
+            # keep the default tag. JSR has no dist-tag concept, so only the
+            # npm step needs this.
+            version=$(node -p "require('./$dir/package.json').version")
+            case "$version" in
+              *-*) dist_tag=(--tag next) ;;
+              *) dist_tag=() ;;
+            esac
             echo "::group::npm publish $name"
-            if npm publish "$dir" --access public; then
+            if npm publish "$dir" --access public "${dist_tag[@]}"; then
               echo "published $name"
             else
               echo "::error::$name failed to publish"
@@ -94,7 +103,7 @@ jobs:
         run: |
           set -uo pipefail
           real_failures=0
-          for dir in $(node scripts/jsr-publish-order.mjs); do
+          for dir in $(node scripts/jsr-publish-order.js); do
             name=$(node -p "require('./$dir/jsr.json').name")
             echo "::group::jsr publish $name"
             if (cd "$dir" && npx -y jsr publish --allow-dirty); then
