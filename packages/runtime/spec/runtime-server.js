@@ -13,10 +13,12 @@ import { describe, it } from "node:test";
 import {
   CAPABILITY,
   CMD_CRDT_SYNC_REQ,
+  CMD_CRDT_UPDATE,
   decodeAuthResponse,
   encodeAuthResponse,
   encodeCompSyncReq,
   encodeCrdtSyncReq,
+  encodeCrdtUpdate,
   LIMITATION,
   PROTOCOL_VERSION,
   ProtocolError,
@@ -152,6 +154,53 @@ describe("RuntimeServer frame routing", () => {
     server.handleFrame(new Uint8Array([0x92, 0x10]), "link-1");
     assert.equal(events.length, 3);
     assert.ok(events[0].error instanceof ProtocolError);
+  });
+
+  it("drops commands requiring unadvertised capabilities", () => {
+    const transport = capture();
+    // Default mask has no GRAPH_EDIT: a 0x14 mutation is not permitted.
+    const server = new RuntimeServer({ send: transport.send });
+    /** @type {any[]} */
+    const dropped = [];
+    const handled = [];
+    server.addEventListener("notpermitted", (event) =>
+      dropped.push(event.detail),
+    );
+    server.registerHandler(CMD_CRDT_UPDATE, (decoded) => handled.push(decoded));
+    server.handleFrame(
+      encodeCrdtUpdate({
+        clientId: "a",
+        logicalClock: 1,
+        opType: 1,
+        entityId: "n",
+        payload: null,
+      }),
+      "link-1",
+    );
+    assert.equal(handled.length, 0);
+    assert.equal(dropped.length, 1);
+    assert.equal(dropped[0].required, CAPABILITY.GRAPH_EDIT);
+  });
+
+  it("admits commands whose advertised capability covers them", () => {
+    const transport = capture();
+    const server = new RuntimeServer({
+      send: transport.send,
+      capabilities: ["GRAPH_READ", "GRAPH_EDIT"],
+    });
+    const handled = [];
+    server.registerHandler(CMD_CRDT_UPDATE, (decoded) => handled.push(decoded));
+    server.handleFrame(
+      encodeCrdtUpdate({
+        clientId: "a",
+        logicalClock: 1,
+        opType: 1,
+        entityId: "n",
+        payload: null,
+      }),
+      "link-1",
+    );
+    assert.equal(handled.length, 1);
   });
 
   it("survives handler failures without throwing", () => {

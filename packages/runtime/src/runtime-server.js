@@ -17,12 +17,46 @@
 
 import {
   CAPABILITY,
+  CMD_BREAKPOINT_CLEAR,
+  CMD_BREAKPOINT_SET,
+  CMD_COMP_DETAIL_REQ,
+  CMD_COMP_SYNC_REQ,
+  CMD_COMP_WRITE,
+  CMD_CRDT_UPDATE,
+  CMD_HWM_SET,
+  CMD_PROCESS_CTRL,
+  CMD_PROCESS_LIST_REQ,
+  CMD_PUBSUB_SUB,
+  CMD_RUN_CTRL,
   decodeFrame,
   encodeAuthResponse,
   LIMITATION,
   PROTOCOL_VERSION,
   ProtocolError,
 } from "@noflo/fbp-protocol";
+
+/**
+ * Capability a client needs to send a given command. Only client→runtime
+ * commands appear here: runtime→client codes arriving inbound are simply
+ * commands with no handler. Requests and control commands map to the mask
+ * bits the auth response advertises — a client sending a command the
+ * runtime did not advertise is dropped with a `notpermitted` event.
+ *
+ * @type {Record<number, number>}
+ */
+const REQUIRED_CAPABILITY = {
+  [CMD_CRDT_UPDATE]: CAPABILITY.GRAPH_EDIT,
+  [CMD_COMP_SYNC_REQ]: CAPABILITY.COMPONENT_READ,
+  [CMD_COMP_DETAIL_REQ]: CAPABILITY.COMPONENT_READ,
+  [CMD_COMP_WRITE]: CAPABILITY.COMPONENT_WRITE,
+  [CMD_PUBSUB_SUB]: CAPABILITY.TELEMETRY_READ,
+  [CMD_RUN_CTRL]: CAPABILITY.LIFECYCLE_CTRL,
+  [CMD_BREAKPOINT_SET]: CAPABILITY.LIFECYCLE_CTRL,
+  [CMD_BREAKPOINT_CLEAR]: CAPABILITY.LIFECYCLE_CTRL,
+  [CMD_PROCESS_CTRL]: CAPABILITY.LIFECYCLE_CTRL,
+  [CMD_PROCESS_LIST_REQ]: CAPABILITY.GRAPH_READ,
+  [CMD_HWM_SET]: CAPABILITY.LIFECYCLE_CTRL,
+};
 
 /**
  * Compose a capability mask from {@link CAPABILITY} names. Unknown names
@@ -121,12 +155,16 @@ export class RuntimeServer extends EventTarget {
   }
 
   /**
-   * Handle one inbound link frame: decode by leading opcode and dispatch to
-   * the registered handler. Frames the codec rejects — garbage bytes,
-   * unknown opcodes, malformed payloads — do not throw: the protocol has no
-   * error channel for them, and a runtime must survive hostile link
-   * traffic. They surface as `undecodable` events instead. Handler failures
-   * surface as `error` events; neither escapes to the transport.
+   * Handle one inbound link frame: decode by leading opcode, check the
+   * command's capability requirement against the advertised mask, and
+   * dispatch to the registered handler. Frames the codec rejects — garbage
+   * bytes, unknown opcodes, malformed payloads — do not throw: the protocol
+   * has no error channel for them, and a runtime must survive hostile link
+   * traffic. They surface as `undecodable` events instead. Commands the
+   * runtime did not advertise a capability for are dropped with a
+   * `notpermitted` event; commands with no handler yet emit
+   * `unhandledframe`; handler failures surface as `error` events. None of
+   * these escape to the transport.
    *
    * @param {Uint8Array} bytes
    * @param {any} context
@@ -146,6 +184,16 @@ export class RuntimeServer extends EventTarget {
       // A command with no handler is a runtime-side gap, not a client
       // error: surface it as an event, ignore on the wire.
       this.#emit("unhandledframe", { decoded, context });
+      return;
+    }
+    const required = REQUIRED_CAPABILITY[decoded.cmd];
+    if (
+      required !== undefined &&
+      (this.capabilityMask & required) !== required
+    ) {
+      // The runtime did not advertise this capability: the client is
+      // violating what the auth response told it. Drop the frame.
+      this.#emit("notpermitted", { decoded, context, required });
       return;
     }
     try {
