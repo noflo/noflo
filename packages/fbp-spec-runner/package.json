@@ -1,6 +1,6 @@
 {
   "name": "@noflo/fbp-spec-runner",
-  "version": "1.5.2",
+  "version": "2.0.0-alpha.0",
   "description": "In-process fbp-spec test runner for NoFlo components, built on node:test",
   "keywords": [
     "fbp",
