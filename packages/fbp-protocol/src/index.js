@@ -35,6 +35,7 @@ export {
   TRACE_SNAPSHOT,
   VISUAL_FORMAT,
 } from "./constants.js";
+export { decodeFrame } from "./decode.js";
 export { ProtocolError } from "./errors.js";
 export {
   decodeCrdtStaleEpoch,
