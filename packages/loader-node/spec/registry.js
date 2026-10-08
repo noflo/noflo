@@ -163,9 +163,10 @@ exports.getComponent = () => {
     assert.ok(instantiate(definition));
   });
 
-  it("supports TypeScript source with a transpiler", async function () {
+  it("supports TypeScript source with a transpiler", async (t) => {
     if (!registry.getLanguages().includes("typescript")) {
-      this.skip();
+      t.skip();
+      return;
     }
     const source = `\
 import { Component } from '@noflo/noflo';
