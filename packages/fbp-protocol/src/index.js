@@ -35,7 +35,6 @@ export {
   TRACE_SNAPSHOT,
   VISUAL_FORMAT,
 } from "./constants.js";
-
 export { ProtocolError } from "./errors.js";
 export {
   decodeCrdtStaleEpoch,
@@ -70,6 +69,11 @@ export {
   encodeFlowtraceChunkFromTimestamps,
   encodePubsubSub,
 } from "./telemetry.js";
+export {
+  assembleTraceFile,
+  encodeTraceSnapshot,
+  readTraceFile,
+} from "./tracefile.js";
 export {
   decodeAnnounceAppData,
   decodeAuthResponse,
