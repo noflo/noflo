@@ -22,4 +22,4 @@ npm-debug.log
 RELEASE_NOTES.md
 packages/*/~/
 packages/*/types/
-packages/noflo/src/**/*.d.ts
+packages/*/src/**/*.d.ts

@@ -23,8 +23,8 @@
  *                      release-notes editor
  *     6. lockfile    — npm install --package-lock-only (best-effort)
  *     7. commit/tag  — one "release v<version>" commit + tag v<version>
- *     8. pack        — npm run build (always; lib/ is gitignored) then
- *                      npm pack --workspaces --pack-destination dist
+ *     8. pack        — regenerate declarations (gitignored, adjacent .d.ts)
+ *                      then npm pack --workspaces --pack-destination dist
  *     9. push        — git push origin main --tags (rngit refuses to create a
  *                      release for a tag that isn't in its git source repo yet)
  *    10. publish     — copies the compiled release notes to the clipboard and
@@ -412,10 +412,16 @@ export function runRelease({
     }
     console.log();
   } else {
-    // lib/ is gitignored and not committed — always build before packing so
-    // the tarballs ship current compiled CJS even when checks were skipped.
-    console.log("Building packages...");
-    run("npm run build", { cwd: root, stdio: "inherit" });
+    // Generated declarations (adjacent `.d.ts` files under each package's
+    // `src/`) are gitignored and not committed — always regenerate before
+    // packing so the tarballs ship current types even when checks were
+    // skipped. The per-package `.npmignore` files make npm pack include
+    // them despite the .gitignore.
+    console.log("Generating declarations...");
+    run("npm run types --workspaces --if-present", {
+      cwd: root,
+      stdio: "inherit",
+    });
     console.log();
     console.log("Packing tarballs -> dist/...");
     rmSync(dist, { recursive: true, force: true });

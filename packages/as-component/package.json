@@ -10,7 +10,7 @@
   "scripts": {
     "lint": "npx @biomejs/biome check --use-editorconfig=true src/ spec/",
     "test": "node --test --test-force-exit --test-timeout 30000 spec/*.js",
-    "types": "tsc --noEmit -p tsconfig.json",
+    "types": "find src -name '*.d.ts' -delete && tsc -p tsconfig.json",
     "test:deno": "deno test --allow-all --no-check spec/*.js",
     "test:bun": "bun test ./spec/*.js"
   },
@@ -39,5 +39,10 @@
   },
   "devDependencies": {
     "@noflo/noflo": "*"
-  }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md"
+  ]
 }
