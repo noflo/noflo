@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- The debug logger reads `DEBUG` before considering `localStorage`: server-side runtimes no longer touch the `localStorage` global, whose bare access triggers a Node.js 22+ ExperimentalWarning
 
 ## [2.0.0-alpha.1] - 2026-10-08
 - The npm tarball now ships the generated TypeScript declarations (they were accidentally excluded by gitignore-based packaging) and the `types` field points at the real declaration path

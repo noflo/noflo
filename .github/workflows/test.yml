@@ -40,3 +40,19 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:bun
+  firefox:
+    name: Test with Firefox
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: npm
+      - run: npm ci
+      # Real-browser verification for the no-build browser contract (work
+      # document #18): the fixture page runs the static-registry NoFlo flow
+      # as plain ES modules in a real browser. The launcher installs the
+      # pinned Playwright and Firefox on demand (--ensure), so no browser
+      # tooling is a devDependency.
+      - run: npm run test:browser -- --ensure

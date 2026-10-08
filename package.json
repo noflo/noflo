@@ -7,6 +7,7 @@
   "scripts": {
     "test": "npm run types --workspaces --if-present && npm run test --workspaces --if-present && npm run test:scripts && npm run check:jsr && npm run check:browser",
     "test:scripts": "node --test scripts/*.test.js",
+    "test:browser": "node scripts/run-playwright.mjs",
     "check:jsr": "node scripts/check-jsr-entrypoints.js",
     "check:browser": "node scripts/check-browser-sources.js",
     "lint": "npm run lint --workspaces --if-present",

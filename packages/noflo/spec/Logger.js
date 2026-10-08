@@ -106,7 +106,7 @@ describe("native debug logger", () => {
     assert.equal(output.length, 1);
   });
 
-  it("reads the pattern from localStorage when available", () => {
+  it("ignores localStorage on server runtimes (access warns on Node 22+)", () => {
     const originalLocalStorage = globalThis.localStorage;
     Object.defineProperty(globalThis, "localStorage", {
       value: {
@@ -119,7 +119,9 @@ describe("native debug logger", () => {
       delete process.env.DEBUG;
       const log = createDebug("from-storage");
       log("hello");
-      assert.equal(output.length, 1);
+      // Server-side runtimes read DEBUG from the environment only; probing
+      // localStorage there triggers Node's ExperimentalWarning.
+      assert.deepEqual(output, []);
     } finally {
       Object.defineProperty(globalThis, "localStorage", {
         value: originalLocalStorage,

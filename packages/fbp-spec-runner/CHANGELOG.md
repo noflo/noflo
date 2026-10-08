@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- Socket event wiring uses the EventTarget API (`addEventListener`), so running the tester no longer emits NoFlo EventEmitter deprecation warnings
 
 ## [2.0.0-alpha.1] - 2026-10-08
 ### Added

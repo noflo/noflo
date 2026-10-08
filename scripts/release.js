@@ -76,10 +76,18 @@ const today = () => new Date().toISOString().slice(0, 10);
  */
 export function applyVersionBump(pkg, newVersion, internalPackages = []) {
   const next = { ...pkg, version: newVersion };
-  if (pkg.dependencies) {
-    next.dependencies = { ...pkg.dependencies };
+  // Internal workspace references are kept in caret lockstep across every
+  // dependency section: runtime deps, dev deps (workspace packages used in
+  // specs), and peer deps (loader packages require the core).
+  for (const section of [
+    "dependencies",
+    "devDependencies",
+    "peerDependencies",
+  ]) {
+    if (!pkg[section]) continue;
+    next[section] = { ...pkg[section] };
     for (const dep of internalPackages) {
-      if (dep in next.dependencies) next.dependencies[dep] = `^${newVersion}`;
+      if (dep in next[section]) next[section][dep] = `^${newVersion}`;
     }
   }
   return next;
