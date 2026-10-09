@@ -213,6 +213,47 @@ export class RuntimeServer extends EventTarget {
   }
 
   /**
+   * The static permissions store's resolution: the identity's entry, else
+   * the store's default. Synchronous — authorize must land the mask on
+   * the context before it returns, so no frame slips into a
+   * pre-authorization window the transport could have avoided.
+   *
+   * @param {string|undefined} identityHash
+   * @returns {number}
+   */
+  #resolveStatic(identityHash) {
+    return (
+      (identityHash !== undefined
+        ? this.permissions.identities.get(identityHash)
+        : undefined) ?? this.permissions.default
+    );
+  }
+
+  /**
+   * Resolve the capability mask an identity is granted right now: the
+   * pluggable `capabilityPolicy` when set (DACAR is the native one), else
+   * the static store's identity entry, else its default. This is the one
+   * resolution path the runtime core has — `authorize` applies it when a
+   * link identifies, and transports consult it when an identity-bearing
+   * request arrives outside a link's per-context mask (e.g. a baseline
+   * resource fetch), so a revocation bites the next fetch instead of the
+   * next link. A rejecting policy surfaces as a throw; callers decide
+   * whether that is an error event or a silent denial.
+   *
+   * @param {string|undefined} identityHash Hex hash of the peer's verified
+   *   identity; without one the static store's default applies.
+   * @param {any} [context] The context the resolution serves — a link when
+   *   one exists, so context-mapped policies resolve correctly.
+   * @returns {Promise<number>} The granted capability mask.
+   */
+  async resolveCapabilities(identityHash, context) {
+    if (identityHash !== undefined && this.capabilityPolicy) {
+      return await this.capabilityPolicy(identityHash, context);
+    }
+    return this.#resolveStatic(identityHash);
+  }
+
+  /**
    * Unilaterally send the `0x02 CMD_AUTH_RESPONSE` to one client context —
    * the mask the identified peer is granted. Resolution order: the
    * pluggable `capabilityPolicy` when set (DACAR is the native one), then
@@ -230,7 +271,7 @@ export class RuntimeServer extends EventTarget {
     let mask;
     if (identityHash !== undefined && this.capabilityPolicy) {
       try {
-        mask = await this.capabilityPolicy(identityHash, context);
+        mask = await this.resolveCapabilities(identityHash, context);
       } catch (error) {
         // A failing authorization plane denies closed: the peer gets no
         // capabilities until the plane answers again.
@@ -238,10 +279,9 @@ export class RuntimeServer extends EventTarget {
         mask = 0;
       }
     } else {
-      mask =
-        (identityHash !== undefined
-          ? this.permissions.identities.get(identityHash)
-          : undefined) ?? this.permissions.default;
+      // The static path resolves synchronously: the mask is in force
+      // before authorize returns, leaving no grantable window.
+      mask = this.#resolveStatic(identityHash);
     }
     // Enforcement is per context from here on; the transport evicts the
     // entry when the context dies (forgetContext).

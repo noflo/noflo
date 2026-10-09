@@ -30,6 +30,7 @@
 
 import {
   ANNOUNCE_ASPECT,
+  CAPABILITY,
   decodeFrame,
   encodeAnnounceAppData,
 } from "@noflo/fbp-protocol";
@@ -163,6 +164,13 @@ export class ReticulumBinding extends EventTarget {
    * content-addressed like the epoch id. A client fetches it with
    * `link.request(token)`.
    *
+   * The token is addressing and integrity, not authorization: every fetch
+   * re-consults the requester's identity-based capability decision — the
+   * same resolution `authorize` applies — and requires `GRAPH_READ`. A
+   * shared or stale token earns a denied peer nothing, and a mid-link
+   * revocation bites the next fetch instead of the next link. The
+   * response is suppressed for unidentified or ungranted requesters.
+   *
    * @param {Uint8Array} bytes
    * @returns {Promise<string>}
    */
@@ -170,7 +178,8 @@ export class ReticulumBinding extends EventTarget {
     const token = toHex(await Identity.truncatedHash(bytes));
     this.resources.set(token, bytes);
     await this.destination?.registerRequestHandler(token, {
-      responseGenerator: () => this.resources.get(token),
+      responseGenerator: (_path, _data, _requestId, remoteIdentity) =>
+        this.#serveBaseline(token, remoteIdentity),
     });
     // Bound the served baselines: evict the oldest-served one and drop its
     // request handler, so graph churn cannot accumulate unbounded state.
@@ -180,6 +189,50 @@ export class ReticulumBinding extends EventTarget {
       await this.destination?.removeRequestHandler?.(oldest);
     }
     return token;
+  }
+
+  /**
+   * Serve one baseline fetch after re-checking the requester's
+   * identity-based capabilities. Returning null suppresses the response.
+   *
+   * @param {string} token
+   * @param {any} remoteIdentity The verified identity of the requester.
+   * @returns {Promise<Uint8Array|null>}
+   */
+  async #serveBaseline(token, remoteIdentity) {
+    if (!remoteIdentity?.identityHash) {
+      return null;
+    }
+    const identityHash = toHex(remoteIdentity.identityHash);
+    try {
+      const mask = await this.server.resolveCapabilities(
+        identityHash,
+        this.#linkForIdentity(identityHash),
+      );
+      if ((mask & CAPABILITY.GRAPH_READ) !== CAPABILITY.GRAPH_READ) {
+        return null;
+      }
+    } catch {
+      // A failing authorization plane denies closed: no baseline.
+      return null;
+    }
+    return this.resources.get(token) ?? null;
+  }
+
+  /**
+   * @param {string} identityHash
+   * @returns {any} A live link carrying this identity, if any.
+   */
+  #linkForIdentity(identityHash) {
+    for (const link of this.links) {
+      if (
+        link.remoteIdentity?.identityHash &&
+        toHex(link.remoteIdentity.identityHash) === identityHash
+      ) {
+        return link;
+      }
+    }
+    return null;
   }
 
   /**

@@ -206,6 +206,45 @@ describe("RuntimeServer permissions (DACAR)", () => {
       CAPABILITY.GRAPH_READ,
     );
   });
+
+  it("resolves capabilities through one shared identity-based seam", async () => {
+    const server = new RuntimeServer({
+      permissions: {
+        default: ["GRAPH_READ"],
+        identities: { aabb: ["GRAPH_EDIT"] },
+      },
+    });
+    // The same resolution authorize applies, consultable by identity.
+    assert.equal(
+      await server.resolveCapabilities("aabb"),
+      CAPABILITY.GRAPH_EDIT,
+    );
+    assert.equal(
+      await server.resolveCapabilities("ccdd"),
+      CAPABILITY.GRAPH_READ,
+    );
+    assert.equal(
+      await server.resolveCapabilities(undefined),
+      CAPABILITY.GRAPH_READ,
+    );
+    // A rejecting authorization plane throws from the seam; authorize
+    // turns that into an error event and denies the link closed.
+    const failing = new RuntimeServer({
+      capabilityPolicy: () => {
+        throw new Error("authorization plane down");
+      },
+    });
+    /** @type {any[]} */
+    const errors = [];
+    failing.addEventListener("error", (event) => errors.push(event.detail));
+    await assert.rejects(
+      () => failing.resolveCapabilities("aabb", null),
+      /plane down/,
+    );
+    await failing.authorize("link-1", "aabb");
+    assert.equal(failing.grantedFor("link-1"), 0);
+    assert.equal(errors.length, 1);
+  });
 });
 
 describe("RuntimeServer frame routing", () => {

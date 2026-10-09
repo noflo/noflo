@@ -8,6 +8,8 @@
 - `TelemetryProtocol` options `flushCeilingMs` (default 5 minutes) and `maxSubscriptionsPerContext` (default 32), with a `subscriptionlimit` event on exhaustion (work document #30)
 - `GraphProtocol` option `maxKnownClocks` (default 1024) bounding the attacker-populated client clock map (work document #30)
 - `assembleRuntime` options `permissions`, `capabilityPolicy`, and `limitationCode`, forwarded to the server core (work document #30)
+- `RuntimeServer.resolveCapabilities()` — the one identity-based capability resolution path, consultable by transports; `authorize` is refactored onto it (work document #30)
+- Baseline resource fetches now re-check the requester's identity-based capability decision (`GRAPH_READ`) on every fetch instead of serving to any linked peer holding the token — revocations bite the next fetch, and the token is reduced to addressing and integrity (work document #30)
 ### Fixed
 - Security audit findings (work document #30): `0x27 CMD_COMP_INSTALL_REQ` now requires `COMPONENT_WRITE` and `0x10 CMD_CRDT_SYNC_REQ` requires `GRAPH_READ` — both were previously invokable by any peer, including fully denied ones, making the package-install hook reachable without authentication and the graph baseline fetchable without `GRAPH_READ`
 - The server core now fails closed: contexts the transport never authorized are denied everything instead of falling back to the permissions store's default mask, closing the attacker-controlled pre-identification window and the DACAR bypass for peers that never identify (work document #30)

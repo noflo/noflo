@@ -29,7 +29,7 @@ import {
 } from "@noflo/fbp-protocol";
 import { GraphModel } from "@noflo/graph";
 import { ComponentLoader } from "@noflo/noflo";
-import { LinkStatus } from "@reticulum/core";
+import { Identity, LinkStatus, toHex } from "@reticulum/core";
 import {
   assembleRuntime,
   DEFAULT_ASPECT,
@@ -422,7 +422,12 @@ describe("Reticulum binding: baseline resources", () => {
     assert.match(token, /^[0-9a-f]{32}$/);
     const handler = destination.requestHandlers.get(token);
     assert.ok(handler, "the token is registered as a request path");
-    assert.deepEqual([...handler.responseGenerator()], [...bytes]);
+    // Identified requesters granted the default read surface are served.
+    const reader = await Identity.generate();
+    assert.deepEqual(
+      [...(await handler.responseGenerator(token, null, null, reader))],
+      [...bytes],
+    );
     // Deterministic: same bytes, same token.
     assert.equal(await binding.serveResource(bytes), token);
   });
@@ -439,6 +444,70 @@ describe("Reticulum binding: baseline resources", () => {
     assert.equal(binding.resources.has(first), false, "oldest evicted");
     assert.equal(binding.resources.has(second), true);
     assert.equal(binding.resources.has(third), true);
+  });
+
+  it("serves baselines only to identities currently granted GRAPH_READ", async () => {
+    const wired = wiredBinding();
+    const { binding, server, destination } = wired;
+    await binding.start();
+    const bytes = new TextEncoder().encode('{"name":"main"}');
+    const token = await binding.serveResource(bytes);
+    const handler = destination.requestHandlers.get(token);
+    // The store's default mask must not leak the baseline here: zero it so
+    // only explicitly granted identities are served.
+    server.permissions.default = 0;
+    const granted = await Identity.generate();
+    const denied = await Identity.generate();
+    server.grant(toHex(granted.identityHash), ["GRAPH_READ"]);
+    const fetch = (/** @type {any} */ identity) =>
+      handler.responseGenerator(token, null, null, identity);
+    // Granted identity: the baseline is served.
+    assert.deepEqual([...(await fetch(granted))], [...bytes]);
+    // Unknown identity: nothing.
+    assert.equal(await fetch(denied), null);
+    // Unidentified requester: nothing.
+    assert.equal(await fetch(null), null);
+    // A revocation bites the next fetch — the token earns a revoked peer
+    // nothing, however it was shared.
+    server.revoke(toHex(granted.identityHash));
+    assert.equal(await fetch(granted), null);
+  });
+
+  it("re-checks the DACAR policy by identity on every fetch", async () => {
+    const grantee = await Identity.generate();
+    const grantedHash = toHex(grantee.identityHash);
+    /** @type {any[]} */
+    const evaluated = [];
+    const server = new RuntimeServer({
+      capabilityPolicy: (identityHash) => {
+        evaluated.push(identityHash);
+        return identityHash === grantedHash ? CAPABILITY.GRAPH_READ : 0;
+      },
+    });
+    const destination = new FakeDestination();
+    const binding = new ReticulumBinding({
+      server,
+      reticulum: /** @type {any} */ ({}),
+      identity: /** @type {any} */ ({}),
+      nodeName: "dacar-runtime",
+      createDestination: async () => destination,
+    });
+    await binding.start();
+    const bytes = new TextEncoder().encode('{"name":"main"}');
+    const token = await binding.serveResource(bytes);
+    const handler = destination.requestHandlers.get(token);
+    // The grantee fetches through DACAR, without ever authorizing a link.
+    assert.deepEqual(
+      [...(await handler.responseGenerator(token, null, null, grantee))],
+      [...bytes],
+    );
+    assert.deepEqual(evaluated, [grantedHash]);
+    // A stranger is denied closed by the policy.
+    const stranger = await Identity.generate();
+    assert.equal(
+      await handler.responseGenerator(token, null, null, stranger),
+      null,
+    );
   });
 });
 
@@ -537,7 +606,14 @@ describe("assembly", () => {
     const decoded = decodeCrdtStaleEpoch(/** @type {any} */ (staleFrame()));
     assert.match(decoded.rnsResourceHash, /^[0-9a-f]{32}$/);
     const handler = destination.requestHandlers.get(decoded.rnsResourceHash);
-    const served = handler.responseGenerator();
+    const reader = await Identity.generate();
+    const served = await handler.responseGenerator(
+      decoded.rnsResourceHash,
+      null,
+      null,
+      reader,
+    );
+    assert.ok(served, "an identified reader is served the baseline");
     assert.ok(new TextDecoder().decode(served).includes("node-1"));
   });
 });
