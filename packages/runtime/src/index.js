@@ -14,5 +14,7 @@
 /* @ts-self-types="./index.d.ts" */
 
 export { GraphProtocol } from "./graph-protocol.js";
+export { NetworkHost } from "./network-host.js";
 export { RegistryProtocol } from "./registry-protocol.js";
 export { capabilitiesMask, RuntimeServer } from "./runtime-server.js";
+export { TelemetryProtocol } from "./telemetry-protocol.js";
