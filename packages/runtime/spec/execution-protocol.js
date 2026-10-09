@@ -15,7 +15,6 @@ import { describe, it } from "node:test";
 import { asComponent } from "@noflo/as-component";
 import {
   CMD_AUTH_RESPONSE,
-  CMD_FLOWTRACE_CHUNK,
   decodeFlowtraceChunk,
   EVENT_TYPE,
   encodeBreakpointClear,

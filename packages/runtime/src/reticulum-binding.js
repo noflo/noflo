@@ -175,9 +175,7 @@ export class ReticulumBinding extends EventTarget {
     // Bound the served baselines: evict the oldest-served one and drop its
     // request handler, so graph churn cannot accumulate unbounded state.
     if (this.resources.size > this.maxResources) {
-      const oldest = /** @type {string} */ (
-        this.resources.keys().next().value
-      );
+      const oldest = /** @type {string} */ (this.resources.keys().next().value);
       this.resources.delete(oldest);
       await this.destination?.removeRequestHandler?.(oldest);
     }
@@ -236,10 +234,7 @@ export class ReticulumBinding extends EventTarget {
       opcode = undefined;
     }
     for (const link of this.links) {
-      if (
-        link !== exceptContext &&
-        this.server.canReceive(link, opcode)
-      ) {
+      if (link !== exceptContext && this.server.canReceive(link, opcode)) {
         this.#transmit(link, bytes);
       }
     }

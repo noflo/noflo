@@ -19,10 +19,7 @@
 
 /* @ts-self-types="./lxmf.d.ts" */
 
-import {
-  ProtocolError,
-  encodeLxmTelemetry,
-} from "@noflo/fbp-protocol";
+import { encodeLxmTelemetry, ProtocolError } from "@noflo/fbp-protocol";
 import { LXMessage } from "@reticulum/lxmf";
 
 /**

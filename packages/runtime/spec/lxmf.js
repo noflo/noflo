@@ -12,7 +12,7 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
 
-import { ProtocolError, decodeLxmTelemetry } from "@noflo/fbp-protocol";
+import { decodeLxmTelemetry, ProtocolError } from "@noflo/fbp-protocol";
 import { LxmfTelemetry, TELEMETRY_FIELD } from "../src/lxmf.js";
 
 const identity = {

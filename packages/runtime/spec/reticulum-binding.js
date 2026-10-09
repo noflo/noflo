@@ -529,8 +529,7 @@ describe("assembly", () => {
     // The authorized context first received the unilateral auth response,
     // so wait for the stale-epoch reply (opcode 0x12) specifically.
     const deadline = Date.now() + 5000;
-    const staleFrame = () =>
-      sentPackets.find((payload) => payload[1] === 0x12);
+    const staleFrame = () => sentPackets.find((payload) => payload[1] === 0x12);
     while (staleFrame() === undefined && Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, 5));
     }
