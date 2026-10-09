@@ -543,7 +543,7 @@
       "packages/as-component": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/noflo@^2.0.0-alpha.1",
+            "npm:@noflo/noflo@^2.0.0-alpha.2",
             "npm:get-function-params@^2.0.6"
           ]
         }
@@ -566,8 +566,8 @@
       "packages/fbp-spec-runner": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/loader-node@^2.0.0-alpha.1",
-            "npm:@noflo/noflo@^2.0.0-alpha.1",
+            "npm:@noflo/loader-node@^2.0.0-alpha.2",
+            "npm:@noflo/noflo@^2.0.0-alpha.2",
             "npm:@types/node@24"
           ]
         }
@@ -575,16 +575,16 @@
       "packages/loader-node": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/fbp@^2.0.0-alpha.1",
-            "npm:@noflo/graph@^2.0.0-alpha.1",
-            "npm:@noflo/noflo@^2.0.0-alpha.1"
+            "npm:@noflo/fbp@^2.0.0-alpha.2",
+            "npm:@noflo/graph@^2.0.0-alpha.2",
+            "npm:@noflo/noflo@^2.0.0-alpha.2"
           ]
         }
       },
       "packages/noflo": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/graph@^2.0.0-alpha.1",
+            "npm:@noflo/graph@^2.0.0-alpha.2",
             "npm:@types/node@24",
             "npm:flowtrace@~0.1.8",
             "npm:typescript@^4.0.2"
