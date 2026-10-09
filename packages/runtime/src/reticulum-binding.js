@@ -64,6 +64,12 @@ export const DEFAULT_ASPECT = ANNOUNCE_ASPECT;
  *   {@link DEFAULT_ASPECT}.
  * @property {number} [options.announceIntervalMs] Announce cadence — the
  *   runtime's physical-policy decision; defaults to the RNS library floor.
+ * @property {boolean} [options.authorizeUnidentified] Grant the
+ *   permissions store's default mask to peers that never identify, by
+ *   authorizing each link at establishment. Off by default: an
+ *   unidentified — and therefore unverified — peer is denied everything
+ *   until it identifies, closing the attacker-controlled window between
+ *   link establishment and identification.
  * @property {(binding: ReticulumBinding) => Promise<import("@reticulum/core").Destination>} [options.createDestination] Injectable
  *   destination factory for tests; the default builds the real IN
  *   destination from the binding's aspect, identity, and RNS instance.
@@ -80,6 +86,7 @@ export class ReticulumBinding extends EventTarget {
     this.nodeName = options.nodeName;
     this.aspect = options.aspect ?? DEFAULT_ASPECT;
     this.announceIntervalMs = options.announceIntervalMs;
+    this.authorizeUnidentified = options.authorizeUnidentified ?? false;
     this.createDestination =
       options.createDestination ??
       (async (binding) =>
@@ -243,6 +250,13 @@ export class ReticulumBinding extends EventTarget {
    * @returns {void}
    */
   #wireLink(link) {
+    // Fail closed by default: the link is denied everything until the peer
+    // identifies. Deployments that affirmatively want open monitoring can
+    // authorize unidentified links with the store's default mask; identify
+    // then re-authorizes with the identity-specific mask.
+    if (this.authorizeUnidentified) {
+      this.server.authorize(link);
+    }
     // Zero-trust auth: the link handshake verified cryptography; the peer's
     // `link.identify()` gives us its long-term identity. On verification,
     // unilaterally advertise what the identified peer may do (work document

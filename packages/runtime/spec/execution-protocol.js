@@ -14,6 +14,8 @@ import { describe, it } from "node:test";
 
 import { asComponent } from "@noflo/as-component";
 import {
+  CMD_AUTH_RESPONSE,
+  CMD_FLOWTRACE_CHUNK,
   decodeFlowtraceChunk,
   EVENT_TYPE,
   encodeBreakpointClear,
@@ -68,6 +70,8 @@ async function wiredServer(builder) {
   const execution = new ExecutionProtocol({ host, telemetry });
   telemetry.register(server);
   execution.register(server);
+  // Fail closed: contexts must be authorized before their frames count.
+  server.authorize("link-1");
   server.handleFrame(
     encodePubsubSub({
       subId: "sub-1",
@@ -114,9 +118,9 @@ async function registerWaitComponent(loader) {
 
 /** Drain the telemetry stream into decoded flowtrace events. */
 function drain(transport) {
-  return transport.log.sent.flatMap(
-    (sent) => decodeFlowtraceChunk(sent.bytes).events,
-  );
+  return transport.log.sent
+    .filter((sent) => sent.bytes[1] !== CMD_AUTH_RESPONSE)
+    .flatMap((sent) => decodeFlowtraceChunk(sent.bytes).events);
 }
 
 describe("execution protocol: start and stop", () => {

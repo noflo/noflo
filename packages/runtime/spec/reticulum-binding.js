@@ -269,6 +269,54 @@ describe("Reticulum binding: link lifecycle", () => {
     assert.equal(decoded.protocolVersion, PROTOCOL_VERSION);
   });
 
+  it("denies unidentified links by default and can authorize them explicitly", async () => {
+    const wired = wiredBinding();
+    const { binding, server, destination } = wired;
+    /** @type {FakeLink[]} */
+    const links = [];
+    destination.respondToLinkRequest = async () => {
+      const link = new FakeLink();
+      links.push(link);
+      return link;
+    };
+    await binding.start();
+    destination.dispatchEvent(
+      new globalThis.CustomEvent("link_request", {
+        detail: { packet: {}, transport: {} },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // Default: the peer never identified, so it was never authorized —
+    // it is denied everything.
+    assert.equal(server.grantedFor(links[0]), 0);
+
+    // Opting into open monitoring authorizes the link at establishment
+    // with the store's default mask. (The first binding's listener is
+    // still attached too, so read the link the open binding itself wired.)
+    const openBinding = new ReticulumBinding({
+      server,
+      reticulum: /** @type {any} */ ({}),
+      identity: /** @type {any} */ ({}),
+      nodeName: "open",
+      authorizeUnidentified: true,
+      createDestination: async () => destination,
+    });
+    await openBinding.start();
+    destination.dispatchEvent(
+      new globalThis.CustomEvent("link_request", {
+        detail: { packet: {}, transport: {} },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const openLink = [...openBinding.links][0];
+    assert.ok(openLink, "the open binding wired its link");
+    assert.equal(
+      server.grantedFor(openLink),
+      server.capabilityMask,
+      "the unidentified link got the store's default mask",
+    );
+  });
+
   it("feeds link frames to the server and closes subscriptions with the link", async () => {
     const wired = wiredBinding();
     const { binding, server, destination } = wired;
@@ -398,8 +446,13 @@ describe("assembly", () => {
       broadcast() {},
       capabilities: ["GRAPH_READ", "GRAPH_EDIT", "COMPONENT_READ"],
     });
+    runtime.server.authorize("link-1");
     runtime.server.handleFrame(encodeCompSyncReq("stale-hash"), "link-1");
-    const decoded = decodeCompManifest(log.sent[0].bytes);
+    const manifestFrame = log.sent.find(
+      (entry) => entry.bytes[1] === CMD_COMP_MANIFEST,
+    );
+    assert.ok(manifestFrame, "the manifest is answered on the wire");
+    const decoded = decodeCompManifest(manifestFrame.bytes);
     assert.equal(decoded.cmd, CMD_COMP_MANIFEST);
     assert.deepEqual(Object.keys(decoded.entries), ["math/Add"]);
   });
@@ -438,14 +491,20 @@ describe("assembly", () => {
         sentPackets.push(packet.payload);
       },
     };
+    // Fail closed: the context must be authorized for its frames to count.
+    runtime.server.authorize(linkContext);
     runtime.server.handleFrame(encodeCrdtSyncReq("0000", {}), linkContext);
     // The handshake hashes the epoch asynchronously; wait for the reply.
+    // The authorized context first received the unilateral auth response,
+    // so wait for the stale-epoch reply (opcode 0x12) specifically.
     const deadline = Date.now() + 5000;
-    while (sentPackets.length === 0 && Date.now() < deadline) {
+    const staleFrame = () =>
+      sentPackets.find((payload) => payload[1] === 0x12);
+    while (staleFrame() === undefined && Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, 5));
     }
-    assert.ok(sentPackets.length > 0, "the stale-epoch reply is delivered");
-    const decoded = decodeCrdtStaleEpoch(sentPackets[0]);
+    assert.ok(staleFrame(), "the stale-epoch reply is delivered");
+    const decoded = decodeCrdtStaleEpoch(/** @type {any} */ (staleFrame()));
     assert.match(decoded.rnsResourceHash, /^[0-9a-f]{32}$/);
     const handler = destination.requestHandlers.get(decoded.rnsResourceHash);
     const served = handler.responseGenerator();

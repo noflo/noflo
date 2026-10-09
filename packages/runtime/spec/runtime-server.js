@@ -157,7 +157,8 @@ describe("RuntimeServer permissions (DACAR)", () => {
     server.authorize("granted-link", "aabb");
     server.handleFrame(encodeRunCtrl(RUN_ACTION.START), "granted-link");
     assert.equal(handled.length, 1);
-    // The default-mask link never identified: run control is not granted.
+    // The other link was never authorized: fail closed, run control is
+    // not granted.
     /** @type {any[]} */
     const dropped = [];
     server.addEventListener("notpermitted", (event) =>
@@ -216,6 +217,7 @@ describe("RuntimeServer frame routing", () => {
     server.registerHandler(CMD_CRDT_SYNC_REQ, (decoded, context) => {
       seen.push({ decoded, context });
     });
+    server.authorize("link-1");
     server.handleFrame(encodeCrdtSyncReq(1, { a: 1 }), "link-1");
     assert.equal(seen.length, 1);
     assert.equal(seen[0].decoded.cmd, CMD_CRDT_SYNC_REQ);
@@ -346,10 +348,53 @@ describe("RuntimeServer frame routing", () => {
     });
     const handled = [];
     server.registerHandler(CMD_CRDT_UPDATE, (decoded) => handled.push(decoded));
+    server.authorize("link-1");
     server.handleFrame(
       encodeCrdtUpdate({
         clientId: "a",
         logicalClock: 1,
+        opType: 1,
+        entityId: "n",
+        payload: null,
+      }),
+      "link-1",
+    );
+    assert.equal(handled.length, 1);
+  });
+
+  it("denies commands from contexts that were never authorized", () => {
+    const transport = capture();
+    const server = new RuntimeServer({
+      send: transport.send,
+      capabilities: 0xff,
+    });
+    const handled = [];
+    /** @type {any[]} */
+    const dropped = [];
+    server.registerHandler(CMD_CRDT_UPDATE, (decoded) => handled.push(decoded));
+    server.addEventListener("notpermitted", (event) =>
+      dropped.push(event.detail),
+    );
+    // The context never went through authorize: fail closed, whatever the
+    // permissions store or advertised capabilities say.
+    server.handleFrame(
+      encodeCrdtUpdate({
+        clientId: "a",
+        logicalClock: 1,
+        opType: 1,
+        entityId: "n",
+        payload: null,
+      }),
+      "link-1",
+    );
+    assert.equal(handled.length, 0);
+    assert.equal(dropped.length, 1);
+    // Once authorized, the granted mask applies.
+    server.authorize("link-1");
+    server.handleFrame(
+      encodeCrdtUpdate({
+        clientId: "a",
+        logicalClock: 2,
         opType: 1,
         entityId: "n",
         payload: null,
@@ -368,6 +413,7 @@ describe("RuntimeServer frame routing", () => {
     server.registerHandler(CMD_CRDT_SYNC_REQ, () => {
       throw new Error("handler blew up");
     });
+    server.authorize("link-1");
     server.handleFrame(encodeCrdtSyncReq(1, { a: 1 }), "link-1");
     assert.equal(errors.length, 1);
     assert.equal(errors[0].error.message, "handler blew up");

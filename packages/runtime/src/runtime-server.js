@@ -93,10 +93,12 @@ export class RuntimeServer extends EventTarget {
    *   needs (graph, telemetry, components read-only).
    * @param {{ default?: string[]|number, identities?: Record<string, string[]|number> }} [options.permissions]
    *   The built-in static capability store: identity hash (hex) to the
-   *   capability mask that peer is granted, plus the mask for peers without
-   *   an entry and for links that never identify. Mutable — changes take
-   *   effect on the peer's next link. Ignored when `capabilityPolicy` is
-   *   set.
+   *   capability mask that peer is granted, plus the mask `authorize`
+   *   grants when it is called without a known identity — the affirmative
+   *   open-monitoring choice, which the transport must make explicitly.
+   *   A context the transport never authorizes is denied everything.
+   *   Mutable — changes take effect on the peer's next link. Ignored when
+   *   `capabilityPolicy` is set.
    * @param {(identityHash: string, context: any) => number|Promise<number>} [options.capabilityPolicy]
    *   Pluggable capability resolution for identified peers — the seam for
    *   real authorization planes (DACAR is the native one, see the `./dacar`
@@ -257,7 +259,8 @@ export class RuntimeServer extends EventTarget {
   /**
    * Drop a context's resolved capability mask — the transport calls this
    * when the context dies (a Reticulum link closes), keeping the store
-   * from growing with every link.
+   * from growing with every link. A forgotten context is denied
+   * everything until it is authorized again.
    *
    * @param {any} context
    * @returns {void}
@@ -300,7 +303,7 @@ export class RuntimeServer extends EventTarget {
 
   /**
    * Handle one inbound link frame: decode by leading opcode, check the
-   * command's capability requirement against the advertised mask, and
+   * command's capability requirement against the context's granted mask, and
    * dispatch to the registered handler. Frames the codec rejects — garbage
    * bytes, unknown opcodes, malformed payloads — do not throw: the protocol
    * has no error channel for them, and a runtime must survive hostile link
@@ -331,8 +334,12 @@ export class RuntimeServer extends EventTarget {
       return;
     }
     const required = REQUIRED_CAPABILITY[decoded.cmd];
-    const granted =
-      this.#contextCapabilities.get(context) ?? this.permissions.default;
+    // Fail closed: a context the transport never authorized has no
+    // capabilities, whatever the permissions store's default says. The
+    // pre-identification window of a link is attacker-controlled, so the
+    // default mask must never be granted implicitly — only an explicit
+    // authorize() resolves it for the context.
+    const granted = this.#contextCapabilities.get(context) ?? 0;
     if (required !== undefined && (granted & required) !== required) {
       // The peer was not granted this capability: it is violating what its
       // auth response told it. Drop the frame.

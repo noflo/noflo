@@ -11,6 +11,7 @@ import assert from "node:assert";
 import { describe, it } from "node:test";
 
 import {
+  CMD_AUTH_RESPONSE,
   CMD_COMP_DETAIL_RES,
   CMD_COMP_MANIFEST,
   CMD_COMP_UP_TO_DATE,
@@ -40,6 +41,13 @@ function capture() {
       log.broadcast.push(bytes);
     },
   };
+}
+
+/** Outbound frames with the unilateral auth responses excluded. */
+function wire(transport) {
+  return transport.log.sent.filter(
+    (entry) => entry.bytes[1] !== CMD_AUTH_RESPONSE,
+  );
 }
 
 const addSignature = {
@@ -102,6 +110,8 @@ async function wiredServer() {
   const registry = new RegistryProtocol({ catalog });
   await registry.refresh();
   registry.register(server);
+  // Fail closed: contexts must be authorized before their frames count.
+  server.authorize("link-1");
   return { server, registry, catalog, transport, written, installed };
 }
 
@@ -126,8 +136,8 @@ describe("registry protocol", () => {
   it("answers a stale registry sync with the manifest", async () => {
     const { server, registry, transport } = await wiredServer();
     server.handleFrame(encodeCompSyncReq("outdated-hash"), "link-1");
-    assert.equal(transport.log.sent.length, 1);
-    const decoded = decodeCompManifest(transport.log.sent[0].bytes);
+    assert.equal(wire(transport).length, 1);
+    const decoded = decodeCompManifest(wire(transport)[0].bytes);
     assert.equal(decoded.cmd, CMD_COMP_MANIFEST);
     assert.equal(decoded.newRegistryHash, registry.state.hash);
     assert.deepEqual(decoded.entries["math/Add"], {
@@ -143,8 +153,8 @@ describe("registry protocol", () => {
   it("answers a matching registry sync with the match reply", async () => {
     const { server, registry, transport } = await wiredServer();
     server.handleFrame(encodeCompSyncReq(registry.state.hash), "link-1");
-    assert.equal(transport.log.sent.length, 1);
-    const decoded = decodeCompUpToDate(transport.log.sent[0].bytes);
+    assert.equal(wire(transport).length, 1);
+    const decoded = decodeCompUpToDate(wire(transport)[0].bytes);
     assert.equal(decoded.cmd, CMD_COMP_UP_TO_DATE);
   });
 
@@ -154,8 +164,8 @@ describe("registry protocol", () => {
       encodeCompDetailReq(["math/Add", "nothere/Nope"]),
       "link-1",
     );
-    assert.equal(transport.log.sent.length, 1);
-    const decoded = decodeCompDetailRes(transport.log.sent[0].bytes);
+    assert.equal(wire(transport).length, 1);
+    const decoded = decodeCompDetailRes(wire(transport)[0].bytes);
     assert.equal(decoded.cmd, CMD_COMP_DETAIL_RES);
     assert.deepEqual(Object.keys(decoded.components), ["math/Add"]);
     assert.equal(decoded.components["math/Add"].type, "elementary");
@@ -165,7 +175,7 @@ describe("registry protocol", () => {
   it("answers an all-unknown detail request with an empty response", async () => {
     const { server, transport } = await wiredServer();
     server.handleFrame(encodeCompDetailReq(["nothere/Nope"]), "link-1");
-    const decoded = decodeCompDetailRes(transport.log.sent[0].bytes);
+    const decoded = decodeCompDetailRes(wire(transport)[0].bytes);
     assert.deepEqual(decoded.components, {});
   });
 
@@ -184,7 +194,7 @@ describe("registry protocol", () => {
     assert.equal(registry.state.hash, hashBefore);
     // The write added nothing to the catalog, so the manifest is unchanged:
     // the client is not answered on the wire (no ack frames).
-    assert.equal(transport.log.sent.length, 0);
+    assert.equal(wire(transport).length, 0);
   });
 
   it("maps package installs onto the catalog and re-derives state", async () => {
@@ -195,7 +205,7 @@ describe("registry protocol", () => {
     );
     await new Promise((resolve) => setTimeout(resolve, 0));
     assert.deepEqual(installed, ["npm:@noflo/strings@2.0.0"]);
-    assert.equal(transport.log.sent.length, 0);
+    assert.equal(wire(transport).length, 0);
   });
 
   it("surfaces missing catalog hooks as unsupported events", async () => {
@@ -209,6 +219,7 @@ describe("registry protocol", () => {
     });
     await registry.refresh();
     registry.register(server);
+    server.authorize("link-1");
     /** @type {any[]} */
     const unsupported = [];
     server.addEventListener("unsupported", (event) =>
@@ -235,7 +246,7 @@ describe("registry protocol", () => {
     await registry.refresh();
     assert.notEqual(registry.state.hash, oldHash);
     server.handleFrame(encodeCompSyncReq(oldHash), "link-1");
-    const decoded = decodeCompManifest(transport.log.sent[0].bytes);
+    const decoded = decodeCompManifest(wire(transport)[0].bytes);
     assert.equal(decoded.newRegistryHash, registry.state.hash);
     assert.deepEqual(Object.keys(decoded.entries).sort(), [
       "math/Add",

@@ -14,6 +14,7 @@ import { describe, it } from "node:test";
 
 import { asComponent } from "@noflo/as-component";
 import {
+  CMD_AUTH_RESPONSE,
   CMD_FLOWTRACE_CHUNK,
   decodeFlowtraceChunk,
   EVENT_TYPE,
@@ -66,6 +67,9 @@ function wiredServer() {
   const host = new FakeHost();
   const telemetry = new TelemetryProtocol({ host, flushFloorMs: 0 });
   telemetry.register(server);
+  // Fail closed: contexts must be authorized before their frames count.
+  server.authorize("link-1");
+  server.authorize("link-2");
   return { server, telemetry, transport, host };
 }
 
@@ -79,6 +83,13 @@ function subscribe(server, subId = "sub-1", context = "link-1") {
       requestedFlushIntervalMs: 0,
     }),
     context,
+  );
+}
+
+/** Outbound frames with the unilateral auth responses excluded. */
+function wire(transport) {
+  return transport.log.sent.filter(
+    (entry) => entry.bytes[1] !== CMD_AUTH_RESPONSE,
   );
 }
 
@@ -105,8 +116,8 @@ describe("telemetry: event mapping", () => {
     subscribe(server);
     host.emit("ip", { id: "DATA -> ECHO()", type: "data", data: 42 });
     telemetry.flushAll();
-    assert.equal(transport.log.sent.length, 1);
-    const decoded = decodeFlowtraceChunk(transport.log.sent[0].bytes);
+    assert.equal(wire(transport).length, 1);
+    const decoded = decodeFlowtraceChunk(wire(transport)[0].bytes);
     assert.equal(decoded.cmd, CMD_FLOWTRACE_CHUNK);
     assert.equal(decoded.subId, "sub-1");
     assert.equal(decoded.events[0].eventType, EVENT_TYPE.DATA);
@@ -120,7 +131,7 @@ describe("telemetry: event mapping", () => {
     host.emit("ip", { type: "data", data: 1 });
     host.emit("ip", { type: "closeBracket", data: "math" });
     telemetry.flushAll();
-    const decoded = decodeFlowtraceChunk(transport.log.sent[0].bytes);
+    const decoded = decodeFlowtraceChunk(wire(transport)[0].bytes);
     assert.deepEqual(
       decoded.events.map((event) => event.eventType),
       [EVENT_TYPE.BEGIN_GROUP, EVENT_TYPE.DATA, EVENT_TYPE.END_GROUP],
@@ -137,7 +148,7 @@ describe("telemetry: event mapping", () => {
     host.emit("start", { start: 0 });
     host.emit("end", { uptime: 100 });
     telemetry.flushAll();
-    const decoded = decodeFlowtraceChunk(transport.log.sent[0].bytes);
+    const decoded = decodeFlowtraceChunk(wire(transport)[0].bytes);
     assert.deepEqual(
       decoded.events.map((event) => event.eventType),
       [EVENT_TYPE.LIFECYCLE, EVENT_TYPE.LIFECYCLE],
@@ -160,7 +171,7 @@ describe("telemetry: event mapping", () => {
       error: new Error("genuine failure"),
     });
     telemetry.flushAll();
-    const decoded = decodeFlowtraceChunk(transport.log.sent[0].bytes);
+    const decoded = decodeFlowtraceChunk(wire(transport)[0].bytes);
     assert.equal(decoded.events[0].eventType, EVENT_TYPE.STUB_ERROR);
     assert.equal(
       decoded.events[0].payload,
@@ -179,7 +190,7 @@ describe("telemetry: event mapping", () => {
     host.emit("ip", { type: "data", data: cyclic });
     host.emit("ip", { type: "data", data: 7 });
     telemetry.flushAll();
-    const decoded = decodeFlowtraceChunk(transport.log.sent[0].bytes);
+    const decoded = decodeFlowtraceChunk(wire(transport)[0].bytes);
     assert.equal(decoded.events[0].payload, "<unserializable object>");
     assert.equal(decoded.events[1].payload, 7);
   });
@@ -190,22 +201,22 @@ describe("telemetry: event mapping", () => {
     subscribe(server, "sub-2", "link-2");
     host.emit("ip", { type: "data", data: 1 });
     telemetry.flushAll();
-    assert.equal(transport.log.sent.length, 2);
-    assert.equal(transport.log.sent[0].context, "link-1");
-    assert.equal(transport.log.sent[1].context, "link-2");
+    assert.equal(wire(transport).length, 2);
+    assert.equal(wire(transport)[0].context, "link-1");
+    assert.equal(wire(transport)[1].context, "link-2");
   });
 
   it("does not flush empty buffers", () => {
     const { telemetry, transport } = wiredServer();
     telemetry.flushAll();
-    assert.equal(transport.log.sent.length, 0);
+    assert.equal(wire(transport).length, 0);
   });
 
   it("drops events when nobody subscribes", () => {
     const { host, telemetry, transport } = wiredServer();
     host.emit("ip", { type: "data", data: 1 });
     telemetry.flushAll();
-    assert.equal(transport.log.sent.length, 0);
+    assert.equal(wire(transport).length, 0);
   });
 
   it("flushes on the effective cadence: requested interval, floored", async () => {
@@ -218,15 +229,16 @@ describe("telemetry: event mapping", () => {
       flushFloorMs: 20,
     });
     telemetry.register(server);
+    server.authorize("link-1");
     subscribe(server);
     host.emit("ip", { type: "data", data: 1 });
-    assert.equal(transport.log.sent.length, 0);
+    assert.equal(wire(transport).length, 0);
     await new Promise((resolve) => setTimeout(resolve, 60));
-    assert.equal(transport.log.sent.length, 1);
+    assert.equal(wire(transport).length, 1);
     // The timer rearms for subsequent events.
     host.emit("ip", { type: "data", data: 2 });
     await new Promise((resolve) => setTimeout(resolve, 60));
-    assert.equal(transport.log.sent.length, 2);
+    assert.equal(wire(transport).length, 2);
   });
 });
 
@@ -251,13 +263,14 @@ describe("telemetry: real-engine integration", () => {
     const host = new NetworkHost({ graph, componentLoader: loader });
     const telemetry = new TelemetryProtocol({ host, flushFloorMs: 0 });
     telemetry.register(server);
+    server.authorize("link-1");
     subscribe(server);
 
     await host.start();
     // IIP delivery is asynchronous; give the network a beat.
     await new Promise((resolve) => setTimeout(resolve, 50));
     telemetry.flushAll();
-    const events = transport.log.sent.flatMap(
+    const events = wire(transport).flatMap(
       (sent) => decodeFlowtraceChunk(sent.bytes).events,
     );
     const started = events.find((e) => e.eventType === EVENT_TYPE.LIFECYCLE);
@@ -268,7 +281,7 @@ describe("telemetry: real-engine integration", () => {
     await host.stop();
     telemetry.flushAll();
     const stopped = decodeFlowtraceChunk(
-      transport.log.sent[transport.log.sent.length - 1].bytes,
+      wire(transport)[wire(transport).length - 1].bytes,
     );
     assert.equal(stopped.events[0].eventType, EVENT_TYPE.LIFECYCLE);
     assert.equal(stopped.events[0].payload, LIFECYCLE_CODE.STOP);

@@ -11,6 +11,7 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
 import {
+  CMD_AUTH_RESPONSE,
   CMD_CRDT_STALE_EPOCH,
   CMD_CRDT_UP_TO_DATE,
   CMD_CRDT_UPDATE,
@@ -44,6 +45,13 @@ async function flush() {
   await new Promise((resolve) => setImmediate(resolve));
 }
 
+/** Outbound frames with the unilateral auth responses excluded. */
+function wire(transport) {
+  return transport.log.sent.filter(
+    (entry) => entry.bytes[1] !== CMD_AUTH_RESPONSE,
+  );
+}
+
 /** A graph with one node, wired into a server via GraphProtocol. */
 async function wiredServer(_graphCallback) {
   const graph = new GraphModel({ name: "main" });
@@ -60,6 +68,8 @@ async function wiredServer(_graphCallback) {
     resourceProvider: async (bytes) => `resource-of-${bytes.length}-bytes`,
   });
   protocol.register(server);
+  // Fail closed: contexts must be authorized before their frames count.
+  server.authorize("link-1");
   const epoch = await protocol.epoch();
   return { graph, server, protocol, transport, epoch };
 }
@@ -91,7 +101,7 @@ describe("graph protocol: epoch handshake", () => {
     const epoch = await protocol.epoch();
     server.handleFrame(encodeCrdtSyncReq(epoch, { "client-a": 5 }), "link-1");
     await flush();
-    const decoded = decodeCrdtUpToDate(transport.log.sent[0].bytes);
+    const decoded = decodeCrdtUpToDate(wire(transport)[0].bytes);
     assert.equal(decoded.cmd, CMD_CRDT_UP_TO_DATE);
   });
 
@@ -99,8 +109,8 @@ describe("graph protocol: epoch handshake", () => {
     const { server, protocol, transport } = await wiredServer();
     server.handleFrame(encodeCrdtSyncReq("0000", { "client-a": 5 }), "link-1");
     await flush();
-    assert.equal(transport.log.sent.length, 1);
-    const decoded = decodeCrdtStaleEpoch(transport.log.sent[0].bytes);
+    assert.equal(wire(transport).length, 1);
+    const decoded = decodeCrdtStaleEpoch(wire(transport)[0].bytes);
     assert.equal(decoded.cmd, CMD_CRDT_STALE_EPOCH);
     assert.equal(decoded.newEpochId, await protocol.epoch());
     assert.match(decoded.rnsResourceHash, /^resource-of-\d+-bytes$/);
@@ -116,6 +126,7 @@ describe("graph protocol: epoch handshake", () => {
     const protocol = new GraphProtocol({ graph });
     await protocol.epoch();
     protocol.register(server);
+    server.authorize("link-1");
     /** @type {any[]} */
     const unsupported = [];
     server.addEventListener("unsupported", (event) =>

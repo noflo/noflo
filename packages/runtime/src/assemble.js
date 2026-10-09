@@ -110,6 +110,9 @@ export async function assembleRuntime(options) {
  * @param {string} [options.aspect] Destination aspect; defaults to
  *   {@link DEFAULT_ASPECT}.
  * @param {number} [options.announceIntervalMs]
+ * @param {boolean} [options.authorizeUnidentified] Grant the permissions
+ *   store's default mask to peers that never identify; off by default
+ *   (unidentified links are denied everything).
  * @returns {Promise<ReticulumBinding>}
  */
 export async function bindReticulum(options) {
@@ -121,6 +124,7 @@ export async function bindReticulum(options) {
     nodeName: options.nodeName,
     aspect: options.aspect,
     announceIntervalMs: options.announceIntervalMs,
+    authorizeUnidentified: options.authorizeUnidentified,
   });
   // Baseline snapshots for stale clients travel over the link
   // REQUEST/RESPONSE API, served by the binding.
