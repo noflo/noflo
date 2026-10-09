@@ -47,6 +47,14 @@ import { TelemetryProtocol } from "./telemetry-protocol.js";
  *   Loader for the network host.
  * @param {string[]|number} [options.capabilities] Capability mask the
  *   runtime advertises; defaults to the read surface.
+ * @param {{ default?: string[]|number, identities?: Record<string, string[]|number> }} [options.permissions]
+ *   The built-in static capability store, forwarded to the server core.
+ * @param {(identityHash: string, context: any) => number|Promise<number>} [options.capabilityPolicy]
+ *   Pluggable capability resolution for identified peers, forwarded to
+ *   the server core — the DACAR adapter is the native one.
+ * @param {number} [options.limitationCode] One of the protocol's
+ *   limitation codes, forwarded to the server core; defaults to full
+ *   access.
  * @param {string} [options.clientId] Client id the runtime stamps on its
  *   own CRDT operations; defaults to `runtime`.
  * @param {boolean} [options.asyncDelivery]
@@ -67,6 +75,9 @@ export async function assembleRuntime(options) {
     send: options.send,
     broadcast: options.broadcast,
     capabilities: options.capabilities,
+    permissions: options.permissions,
+    capabilityPolicy: options.capabilityPolicy,
+    limitationCode: options.limitationCode,
   });
   const host = new NetworkHost({
     graph: options.graph,

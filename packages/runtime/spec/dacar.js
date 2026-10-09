@@ -10,7 +10,7 @@
 
 import assert from "node:assert";
 import { describe, it } from "node:test";
-import { CAPABILITY } from "@noflo/fbp-protocol";
+import { CAPABILITY, ProtocolError } from "@noflo/fbp-protocol";
 import { Identity, toHex } from "@reticulum/core";
 import {
   Action,
@@ -80,6 +80,20 @@ describe("DacarCapabilityPolicy", () => {
     });
     const mask = await policy.resolve(toHex(stranger.identityHash), null);
     assert.equal(mask, 0);
+  });
+
+  it("rejects malformed identity hashes instead of resolving to zeros", async () => {
+    const { engine } = await engineWith(["access"]);
+    const policy = new DacarCapabilityPolicy({
+      engine,
+      objectId: "fbp.runtime",
+    });
+    for (const malformed of ["zzz", "abc", "", "0x1234"]) {
+      await assert.rejects(
+        () => policy.resolve(malformed, null),
+        ProtocolError,
+      );
+    }
   });
 
   it("short-circuits the coarse allRelation grant to the full mask", async () => {

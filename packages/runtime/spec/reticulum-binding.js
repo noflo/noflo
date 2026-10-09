@@ -12,6 +12,7 @@ import assert from "node:assert";
 import { describe, it } from "node:test";
 import { asComponent } from "@noflo/as-component";
 import {
+  CAPABILITY,
   CMD_AUTH_RESPONSE,
   CMD_COMP_MANIFEST,
   CMD_CRDT_SYNC_REQ,
@@ -22,6 +23,7 @@ import {
   encodeCompSyncReq,
   encodeCrdtSyncReq,
   encodeCrdtUpdate,
+  LIMITATION,
   OP_TYPE,
   PROTOCOL_VERSION,
 } from "@noflo/fbp-protocol";
@@ -441,6 +443,21 @@ describe("Reticulum binding: baseline resources", () => {
 });
 
 describe("assembly", () => {
+  it("forwards the authorization configuration to the server core", async () => {
+    const graph = new GraphModel({ name: "main" });
+    const policy = () => 0;
+    const runtime = await assembleRuntime({
+      graph,
+      catalog: { signatures: () => ({}) },
+      permissions: { default: ["GRAPH_READ"] },
+      capabilityPolicy: policy,
+      limitationCode: LIMITATION.PERMISSION_DENIED,
+    });
+    assert.equal(runtime.server.capabilityPolicy, policy);
+    assert.equal(runtime.server.limitationCode, LIMITATION.PERMISSION_DENIED);
+    assert.equal(runtime.server.permissions.default, CAPABILITY.GRAPH_READ);
+  });
+
   it("wires the full stack: registry sync answers through the server", async () => {
     const graph = new GraphModel({ name: "main" });
     /** @type {{sent: {bytes: Uint8Array, context: any}[]}} */

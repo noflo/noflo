@@ -19,7 +19,10 @@
 
 /* @ts-self-types="./lxmf.d.ts" */
 
-import { encodeLxmTelemetry } from "@noflo/fbp-protocol";
+import {
+  ProtocolError,
+  encodeLxmTelemetry,
+} from "@noflo/fbp-protocol";
 import { LXMessage } from "@reticulum/lxmf";
 
 /**
@@ -55,6 +58,9 @@ export class LxmfTelemetry extends EventTarget {
     super();
     this.router = options.router;
     this.identity = options.identity;
+    // Fail fast on a malformed monitor hash rather than dispatching a
+    // zero-filled destination at drop time.
+    hexToBytes(options.monitorHash);
     this.monitorHash = options.monitorHash;
     this.jitterFraction = options.jitterFraction ?? 0.25;
     /** @type {any} */
@@ -164,8 +170,18 @@ export class LxmfTelemetry extends EventTarget {
 /**
  * @param {string} hex
  * @returns {Uint8Array}
+ * @throws {ProtocolError} On a malformed hex string — a silent zero-fill
+ *   would send telemetry to a garbage destination.
  */
 function hexToBytes(hex) {
+  if (
+    typeof hex !== "string" ||
+    hex.length === 0 ||
+    hex.length % 2 !== 0 ||
+    !/^[0-9a-f]+$/i.test(hex)
+  ) {
+    throw new ProtocolError("malformed hex string");
+  }
   const bytes = new Uint8Array(hex.length / 2);
   for (let i = 0; i < bytes.length; i++) {
     bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);

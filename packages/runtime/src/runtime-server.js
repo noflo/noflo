@@ -323,7 +323,14 @@ export class RuntimeServer extends EventTarget {
     try {
       decoded = decodeFrame(bytes);
     } catch (error) {
-      this.#emit("undecodable", { bytes, context, error });
+      // The raw hostile bytes stay out of the event detail beyond a
+      // diagnostic prefix: transports log these events, and a peer must
+      // not be able to amplify its way into the operator's log files.
+      this.#emit("undecodable", {
+        bytes: bytes.length > 256 ? bytes.slice(0, 256) : bytes,
+        context,
+        error,
+      });
       return;
     }
     const handler = this.handlers.get(decoded.cmd);

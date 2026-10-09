@@ -252,6 +252,11 @@ describe("RuntimeServer frame routing", () => {
     server.handleFrame(new Uint8Array([0x92, 0x10]), "link-1");
     assert.equal(events.length, 3);
     assert.ok(events[0].error instanceof ProtocolError);
+    // Oversized hostile frames surface only as a diagnostic prefix: the
+    // event detail must not become a log-amplification channel.
+    server.handleFrame(new Uint8Array(1024).fill(0x00), "link-1");
+    assert.equal(events.length, 4);
+    assert.equal(events[3].bytes.length, 256);
   });
 
   it("drops commands requiring unadvertised capabilities", () => {

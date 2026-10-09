@@ -124,8 +124,19 @@ export class DacarCapabilityPolicy {
 /**
  * @param {string} hex
  * @returns {Uint8Array}
+ * @throws {ProtocolError} On a malformed hex string — a silent zero-fill
+ *   would resolve a garbage grantee that happens to match nothing, hiding
+ *   the misconfiguration instead of naming it.
  */
 function hexToBytes(hex) {
+  if (
+    typeof hex !== "string" ||
+    hex.length === 0 ||
+    hex.length % 2 !== 0 ||
+    !/^[0-9a-f]+$/i.test(hex)
+  ) {
+    throw new ProtocolError("malformed hex string");
+  }
   const bytes = new Uint8Array(hex.length / 2);
   for (let i = 0; i < bytes.length; i++) {
     bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);

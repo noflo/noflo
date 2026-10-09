@@ -161,22 +161,28 @@ export class GraphProtocol {
    */
   applyOp(decoded) {
     const { opType, entityId, payload } = decoded;
+    // The wire entity_id names the entity; a payload-supplied override
+    // must not rename it behind the protocol's back.
+    const definition =
+      entityId === null || entityId === undefined
+        ? { ...payload }
+        : { ...payload, entity_id: entityId };
     try {
       switch (opType) {
         case OP_TYPE.INSERT_NODE:
-          this.graph.addNode({ entity_id: entityId, ...payload });
+          this.graph.addNode(definition);
           break;
         case OP_TYPE.INSERT_EDGE:
-          this.graph.addEdge({ entity_id: entityId, ...payload });
+          this.graph.addEdge(definition);
           break;
         case OP_TYPE.INSERT_IIP:
-          this.graph.addIIP({ entity_id: entityId, ...payload });
+          this.graph.addIIP(definition);
           break;
         case OP_TYPE.INSERT_EXPORT:
-          this.graph.addExport({ entity_id: entityId, ...payload });
+          this.graph.addExport(definition);
           break;
         case OP_TYPE.INSERT_GROUP:
-          this.graph.addGroup({ entity_id: entityId, ...payload });
+          this.graph.addGroup(definition);
           break;
         case OP_TYPE.TOMBSTONE:
           this.#tombstone(entityId);

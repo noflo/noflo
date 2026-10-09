@@ -276,6 +276,27 @@ describe("graph protocol: inbound operations", () => {
     assert.equal(protocol.knownClocks.has("client-c"), true);
   });
 
+  it("treats the wire entity_id as authoritative over a payload override", async () => {
+    const { server, graph } = await wiredServer();
+    server.handleFrame(
+      encodeCrdtUpdate({
+        clientId: "client-a",
+        logicalClock: 3,
+        opType: OP_TYPE.INSERT_NODE,
+        entityId: "wire-id",
+        payload: {
+          entity_id: "payload-id",
+          component: "math/Add",
+        },
+      }),
+      "link-1",
+    );
+    // A payload-supplied entity_id must not rename the entity behind the
+    // protocol's back: the wire id names the entity.
+    assert.equal(graph.node("wire-id").component, "math/Add");
+    assert.equal(graph.node("payload-id"), undefined);
+  });
+
   it("surfaces model rejections as protocol errors, not crashes", async () => {
     const { server } = await wiredServer();
     /** @type {any[]} */

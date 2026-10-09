@@ -12,7 +12,7 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
 
-import { decodeLxmTelemetry } from "@noflo/fbp-protocol";
+import { ProtocolError, decodeLxmTelemetry } from "@noflo/fbp-protocol";
 import { LxmfTelemetry, TELEMETRY_FIELD } from "../src/lxmf.js";
 
 const identity = {
@@ -149,5 +149,28 @@ describe("lxmf telemetry drops", () => {
     // Constructing the drops without scheduling or explicit events sends
     // nothing — PoW-respecting by default.
     assert.equal(router.sent.length, 0);
+  });
+
+  it("rejects a malformed monitor hash at construction", () => {
+    // A zero-filled destination would silently swallow telemetry; fail
+    // fast instead.
+    assert.throws(
+      () =>
+        new LxmfTelemetry({
+          router: fakeRouter(),
+          identity,
+          monitorHash: "zzzz",
+        }),
+      ProtocolError,
+    );
+    assert.throws(
+      () =>
+        new LxmfTelemetry({
+          router: fakeRouter(),
+          identity,
+          monitorHash: "abc",
+        }),
+      ProtocolError,
+    );
   });
 });
