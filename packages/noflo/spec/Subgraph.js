@@ -516,6 +516,87 @@ describe("NoFlo Subgraph component", () => {
       assert.deepStrictEqual(received, expected);
     });
 
+    it("should deliver internal IIPs when the parent network starts, before any data", async () => {
+      // The guarantee: a subgraph network starts together with its parent
+      // network, so its internal IIPs are delivered during the parent's
+      // start sequence — before the parent sends its own initials and
+      // before any runtime data flows.
+      const parentGraph = nativeGraph("Parent With Initials Child");
+      parentGraph.addNode("Child", "Initials");
+      parentGraph.addInport("in", "Child", "in");
+      parentGraph.addOutport("out", "Child", "out");
+      const network = await noflo.createNetwork(parentGraph, {
+        componentLoader: cl,
+      });
+      const child = network.processes.Child.component;
+      const i = noflo.internalSocket.createSocket();
+      const o = noflo.internalSocket.createSocket();
+      // Sockets attach before start so the IIP-driven emission is seen
+      child.inPorts.in.attach(i);
+      child.outPorts.out.attach(o);
+      const received = [];
+      listen(o, "ip", (ip) => {
+        if (ip.type === "data") {
+          received.push(ip.data);
+        }
+      });
+      await network.start();
+      // The IIP was delivered during start; data sent afterwards pairs
+      // with the already-delivered initial
+      i.send("Foo");
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      assert.deepStrictEqual(received, ["initial-value", "Foo"]);
+      await network.stop();
+    });
+
+    it("should apply internal IIPs to data sent after an explicit component start", async () => {
+      const inst = await cl.load("Initials");
+      const i = noflo.internalSocket.createSocket();
+      const o = noflo.internalSocket.createSocket();
+      inst.inPorts.in.attach(i);
+      inst.outPorts.out.attach(o);
+      const received = [];
+      listen(o, "ip", (ip) => {
+        if (ip.type === "data") {
+          received.push(ip.data);
+        }
+      });
+      await inst.start();
+      i.send("Foo");
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      assert.deepStrictEqual(received, ["initial-value", "Foo"]);
+      await inst.tearDown();
+    });
+
+    it("should not restart an already-started internal network on a redundant start", async () => {
+      // A subgraph whose internal network was started implicitly (data
+      // triggering the exported inport connect) must not get torn down
+      // and restarted when the parent network later starts the component
+      const inst = await cl.load("Defaults");
+      const i = noflo.internalSocket.createSocket();
+      const o = noflo.internalSocket.createSocket();
+      inst.inPorts.in.attach(i);
+      inst.outPorts.out.attach(o);
+      // Implicit start via data before any explicit start
+      i.send("Foo");
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      assert.strictEqual(inst.network.isStarted(), true);
+      // Parent-style explicit start must not stop/restart the network
+      await inst.start();
+      assert.strictEqual(inst.network.isStarted(), true);
+      // The default was delivered once, not again after the restart
+      const received = [];
+      listen(o, "ip", (ip) => {
+        if (ip.type === "data") {
+          received.push(ip.data);
+        }
+      });
+      i.send("Bar");
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      assert.deepStrictEqual(received, ["Bar"]);
+      await inst.tearDown();
+    });
+
     it("should reactivate when receiving new data packets", async () => {
       const inst = await cl.load("Defaults");
       const i = noflo.internalSocket.createSocket();
