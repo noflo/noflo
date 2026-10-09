@@ -21,6 +21,8 @@ import {
   decodeCrdtStaleEpoch,
   encodeCompSyncReq,
   encodeCrdtSyncReq,
+  encodeCrdtUpdate,
+  OP_TYPE,
   PROTOCOL_VERSION,
 } from "@noflo/fbp-protocol";
 import { GraphModel } from "@noflo/graph";
@@ -177,6 +179,66 @@ describe("Reticulum binding: announce", () => {
 });
 
 describe("Reticulum binding: link lifecycle", () => {
+  it("broadcasts only to links whose granted capabilities cover the frame", async () => {
+    const wired = wiredBinding();
+    const { binding, server, destination } = wired;
+    /** @type {FakeLink[]} */
+    const links = [];
+    destination.respondToLinkRequest = async () => {
+      const link = new FakeLink();
+      links.push(link);
+      return link;
+    };
+    await binding.start();
+    for (const _ of [1, 2]) {
+      destination.dispatchEvent(
+        new globalThis.CustomEvent("link_request", {
+          detail: { packet: {}, transport: {} },
+        }),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    const [grantedLink, deniedLink] = links;
+    // One peer granted GRAPH_READ, one denied everything: authorize stores
+    // the mask per context, so zero the store default first.
+    server.permissions.default = 0;
+    server.grant("aabb", ["GRAPH_READ"]);
+    server.authorize(grantedLink, "aabb");
+    server.authorize(deniedLink, "ccdd");
+    // Wait out the auth responses, then broadcast a 0x14 operation.
+    grantedLink.sent.length = 0;
+    deniedLink.sent.length = 0;
+    server.broadcast(
+      encodeCrdtUpdate({
+        clientId: "runtime",
+        logicalClock: 1,
+        opType: OP_TYPE.INSERT_NODE,
+        entityId: "node-1",
+        payload: { component: "math/Add" },
+      }),
+    );
+    assert.equal(grantedLink.sent.length, 1, "the granted link receives it");
+    assert.equal(
+      deniedLink.sent.length,
+      0,
+      "the denied link is filtered out of the fan-out",
+    );
+    // The origin link is excluded from convergence echoes, and the denied
+    // link still receives nothing.
+    server.broadcast(
+      encodeCrdtUpdate({
+        clientId: "runtime",
+        logicalClock: 2,
+        opType: OP_TYPE.INSERT_NODE,
+        entityId: "node-2",
+        payload: { component: "math/Add" },
+      }),
+      grantedLink,
+    );
+    assert.equal(grantedLink.sent.length, 1);
+    assert.equal(deniedLink.sent.length, 0);
+  });
+
   it("authorizes on identify and routes decrypted link data", async () => {
     const wired = wiredBinding();
     const { binding, destination } = wired;

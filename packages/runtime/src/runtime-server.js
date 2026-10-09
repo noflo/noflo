@@ -63,6 +63,20 @@ const REQUIRED_CAPABILITY = {
 };
 
 /**
+ * Capability a client needs to *receive* a given command — the outbound
+ * counterpart of {@link REQUIRED_CAPABILITY}. Broadcasts are fan-outs the
+ * sender does not address; without this map a peer the runtime denied
+ * would still receive every rebroadcast operation stream. Only
+ * runtime→client commands the runtime broadcasts appear here; a command
+ * with no entry is deliverable to any authorized context.
+ *
+ * @type {Record<number, number>}
+ */
+const OUTBOUND_CAPABILITY = {
+  [CMD_CRDT_UPDATE]: CAPABILITY.GRAPH_READ,
+};
+
+/**
  * The transport-neutral FBP Protocol 2.0 runtime core.
  *
  * @extends {EventTarget}
@@ -250,6 +264,38 @@ export class RuntimeServer extends EventTarget {
    */
   forgetContext(context) {
     this.#contextCapabilities.delete(context);
+  }
+
+  /**
+   * The capability mask resolved for one context: the mask `authorize`
+   * stored for it, or zero when the context was never authorized. A
+   * transport uses this to keep unauthorized contexts out of fan-outs.
+   *
+   * @param {any} context
+   * @returns {number}
+   */
+  grantedFor(context) {
+    return this.#contextCapabilities.get(context) ?? 0;
+  }
+
+  /**
+   * Whether a context may receive a runtime→client command: commands with
+   * an outbound capability requirement are deliverable only to contexts
+   * whose granted mask covers it. Transports consult this per broadcast
+   * recipient, so a denied peer on a live link never sees operation
+   * streams it was not granted.
+   *
+   * @param {any} context
+   * @param {number|undefined} opcode Command code of the outbound frame.
+   * @returns {boolean}
+   */
+  canReceive(context, opcode) {
+    const required = OUTBOUND_CAPABILITY[/** @type {number} */ (opcode)];
+    if (required === undefined) {
+      return true;
+    }
+    const granted = this.grantedFor(context);
+    return (granted & required) === required;
   }
 
   /**

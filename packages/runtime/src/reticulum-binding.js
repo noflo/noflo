@@ -28,7 +28,11 @@
  *   browsers). The destination is injectable for testing.
  */
 
-import { ANNOUNCE_ASPECT, encodeAnnounceAppData } from "@noflo/fbp-protocol";
+import {
+  ANNOUNCE_ASPECT,
+  decodeFrame,
+  encodeAnnounceAppData,
+} from "@noflo/fbp-protocol";
 import {
   Destination,
   DestType,
@@ -190,15 +194,29 @@ export class ReticulumBinding extends EventTarget {
   }
 
   /**
-   * Deliver one frame to every live link except the given one.
+   * Deliver one frame to every live link except the given one — but only
+   * to links whose granted capabilities cover the frame's outbound
+   * requirement: a peer the runtime denied must not receive operation
+   * streams it was not granted, even though the link itself stays open.
    *
    * @param {Uint8Array} bytes
    * @param {any} [exceptContext]
    * @returns {void}
    */
   broadcast(bytes, exceptContext) {
+    let opcode;
+    try {
+      opcode = decodeFrame(bytes).cmd;
+    } catch {
+      // The runtime's own frames decode; if one ever does not, deliver it
+      // rather than silently dropping it.
+      opcode = undefined;
+    }
     for (const link of this.links) {
-      if (link !== exceptContext) {
+      if (
+        link !== exceptContext &&
+        this.server.canReceive(link, opcode)
+      ) {
         this.#transmit(link, bytes);
       }
     }
