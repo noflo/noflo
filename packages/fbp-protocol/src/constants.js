@@ -9,6 +9,8 @@
  *   banned on the wire to preserve radio airtime.
  */
 
+import { ProtocolError } from "./errors.js";
+
 /**
  * Protocol generation advertised in the announce app_data and in the `0x02`
  * auth response (work document #4 updates #6 and #7). A single version
@@ -73,6 +75,27 @@ export const LIMITATION = {
   LINK_SATURATED: 0x03,
   CONCURRENCY_LOCK: 0x04,
 };
+
+/**
+ * Compose a capability mask from {@link CAPABILITY} names. Unknown names
+ * fail loudly: a typo'd capability would otherwise silently narrow the
+ * advertised mask.
+ *
+ * @param {string[]} names Capability names, e.g. `["GRAPH_READ", "GRAPH_EDIT"]`.
+ * @returns {number} Bitwise capability mask.
+ * @throws {ProtocolError} On an unknown capability name.
+ */
+export function capabilitiesMask(names) {
+  let mask = 0;
+  for (const name of names) {
+    const bit = CAPABILITY[name];
+    if (bit === undefined) {
+      throw new ProtocolError(`unknown capability name: ${name}`);
+    }
+    mask |= bit;
+  }
+  return mask;
+}
 
 // --- CRDT graph synchronization (0x10 - 0x1F) ---
 

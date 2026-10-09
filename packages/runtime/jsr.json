@@ -4,7 +4,8 @@
   "license": "EUPL-1.2",
   "exports": {
     ".": "./src/index.js",
-    "./lxmf": "./src/lxmf.js"
+    "./lxmf": "./src/lxmf.js",
+    "./dacar": "./src/dacar.js"
   },
   "publish": {
     "include": [

@@ -257,7 +257,11 @@ describe("assembly autostart", () => {
       const pending = new Promise((resolve) => {
         release = resolve;
       });
+      // The parameter name names the inport; using it keeps the linter
+      // quiet while the value itself is irrelevant — the process only
+      // needs to keep the network running until shutdown.
       const component = asComponent((input) => {
+        void input;
         void release;
         return pending;
       });

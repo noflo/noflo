@@ -44,6 +44,7 @@ export {
   CMD_PUBSUB_SUB,
   CMD_RUN_CTRL,
   COMPONENT_TYPE,
+  capabilitiesMask,
   EVENT_TYPE,
   EXECUTION_STATE,
   LIFECYCLE_CODE,
