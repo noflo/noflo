@@ -34,6 +34,8 @@ export class Subgraph extends Component {
     /** @type {import("../lib/ComponentLoader.js").ComponentLoader|null} */
     this.loader = null;
     this.load = 0;
+    /** @type {Promise<void>|null} */
+    this.startingPromise = null;
 
     this.inPorts = new InPorts({
       graph: {
@@ -272,22 +274,44 @@ export class Subgraph extends Component {
   }
 
   setUp() {
-    this.starting = true;
+    // Start the internal network. This is invoked when the parent
+    // network starts this component, or when a user starts the component
+    // directly — in both cases the internal IIPs are delivered before
+    // the parent network sends its own initials or any data flows.
+    // Never restart a network that is already running: the initial
+    // delivery has happened, and a stop/restart cycle would tear down
+    // internal component state.
     if (!this.isReady()) {
-      return new Promise((resolve, reject) => {
+      // The graph is still being wired; wait for ready, then start. The
+      // starting guard is intentionally not held while waiting, so the
+      // recursive call proceeds once ready.
+      this.startingPromise = new Promise((resolve, reject) => {
         /** @param {Event} _event */ const onReady = (_event) => {
           this.removeEventListener("ready", onReady);
           this.setUp().then(resolve, reject);
         };
         this.addEventListener("ready", onReady);
       });
+      return this.startingPromise;
     }
+    if (this.starting) {
+      // A start is already in flight; do not run a second one
+      // concurrently
+      return this.startingPromise;
+    }
+    this.starting = true;
     if (!this.network) {
+      this.starting = false;
       return Promise.resolve();
     }
-    return this.network.start().then(() => {
+    if (this.network.isStarted()) {
+      this.starting = false;
+      return Promise.resolve();
+    }
+    this.startingPromise = this.network.start().then(() => {
       this.starting = false;
     });
+    return this.startingPromise;
   }
 
   tearDown() {
