@@ -12,11 +12,13 @@ import { describe, it } from "node:test";
 
 import {
   CAPABILITY,
+  CMD_COMP_INSTALL_REQ,
   CMD_CRDT_SYNC_REQ,
   CMD_CRDT_UPDATE,
   CMD_RUN_CTRL,
   decodeAuthResponse,
   encodeAuthResponse,
+  encodeCompInstallReq,
   encodeCompSyncReq,
   encodeCrdtSyncReq,
   encodeCrdtUpdate,
@@ -274,6 +276,66 @@ describe("RuntimeServer frame routing", () => {
     assert.equal(handled.length, 0);
     assert.equal(dropped.length, 1);
     assert.equal(dropped[0].required, CAPABILITY.GRAPH_EDIT);
+  });
+
+  it("drops install requests from read-only contexts and admits granted ones", () => {
+    const transport = capture();
+    // The default mask is the read surface: no COMPONENT_WRITE.
+    const server = new RuntimeServer({ send: transport.send });
+    const handled = [];
+    /** @type {any[]} */
+    const dropped = [];
+    server.registerHandler(CMD_COMP_INSTALL_REQ, (decoded) =>
+      handled.push(decoded),
+    );
+    server.addEventListener("notpermitted", (event) =>
+      dropped.push(event.detail),
+    );
+    server.authorize("reader-link");
+    server.handleFrame(
+      encodeCompInstallReq("npm:@noflo/strings@2.0.0"),
+      "reader-link",
+    );
+    assert.equal(handled.length, 0);
+    assert.equal(dropped.length, 1);
+    assert.equal(dropped[0].required, CAPABILITY.COMPONENT_WRITE);
+    // A peer granted COMPONENT_WRITE may install packages.
+    server.grant("aabb", ["COMPONENT_WRITE"]);
+    server.authorize("writer-link", "aabb");
+    server.handleFrame(
+      encodeCompInstallReq("npm:@noflo/strings@2.0.0"),
+      "writer-link",
+    );
+    assert.equal(handled.length, 1);
+    assert.equal(handled[0].packageUri, "npm:@noflo/strings@2.0.0");
+  });
+
+  it("drops graph syncs from contexts without GRAPH_READ", () => {
+    const transport = capture();
+    const server = new RuntimeServer({
+      send: transport.send,
+      permissions: { default: 0 },
+    });
+    const handled = [];
+    /** @type {any[]} */
+    const dropped = [];
+    server.registerHandler(CMD_CRDT_SYNC_REQ, (decoded) =>
+      handled.push(decoded),
+    );
+    server.addEventListener("notpermitted", (event) =>
+      dropped.push(event.detail),
+    );
+    server.authorize("denied-link");
+    server.handleFrame(encodeCrdtSyncReq("0000", {}), "denied-link");
+    assert.equal(handled.length, 0);
+    assert.equal(dropped.length, 1);
+    assert.equal(dropped[0].required, CAPABILITY.GRAPH_READ);
+    // The default read surface includes GRAPH_READ: syncs are admitted.
+    const open = new RuntimeServer({ send: transport.send });
+    open.registerHandler(CMD_CRDT_SYNC_REQ, (decoded) => handled.push(decoded));
+    open.authorize("reader-link");
+    open.handleFrame(encodeCrdtSyncReq("0000", {}), "reader-link");
+    assert.equal(handled.length, 1);
   });
 
   it("admits commands whose advertised capability covers them", () => {
