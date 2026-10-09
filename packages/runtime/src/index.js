@@ -13,9 +13,11 @@
 
 /* @ts-self-types="./index.d.ts" */
 
+export { assembleRuntime, bindReticulum } from "./assemble.js";
 export { ExecutionProtocol } from "./execution-protocol.js";
 export { GraphProtocol } from "./graph-protocol.js";
 export { NetworkHost } from "./network-host.js";
 export { RegistryProtocol } from "./registry-protocol.js";
+export { DEFAULT_ASPECT, ReticulumBinding } from "./reticulum-binding.js";
 export { capabilitiesMask, RuntimeServer } from "./runtime-server.js";
 export { TelemetryProtocol } from "./telemetry-protocol.js";
