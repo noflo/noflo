@@ -47,6 +47,15 @@ export class TelemetryProtocol {
    * @param {number} [options.flushFloorMs] Lower bound the runtime imposes
    *   on flush cadence regardless of the client's request — the
    *   physics-dictates-policy knob. Defaults to 0 (honor requests).
+   * @param {number} [options.flushCeilingMs] Upper bound on the flush
+   *   cadence regardless of the client's request. A client can otherwise
+   *   buffer every event for days with one huge interval. Defaults to
+   *   300000 (5 minutes); the floor wins when it sits above the ceiling.
+   * @param {number} [options.maxSubscriptionsPerContext] Subscription
+   *   budget per link context. A hostile or buggy client can otherwise
+   *   create unbounded subscription state per unique `sub_id`. When the
+   *   budget is exhausted the new subscription is rejected and a
+   *   `subscriptionlimit` event surfaces on the server. Defaults to 32.
    * @param {string} [options.stubErrorName] Error name classifying a
    *   process error as raised by a stub component (work document #19's
    *   `StubNotImplementedError`); mapped to `0x09 STUB_ERROR` instead of
@@ -55,6 +64,8 @@ export class TelemetryProtocol {
   constructor(options) {
     this.host = options.host;
     this.flushFloorMs = options.flushFloorMs ?? 0;
+    this.flushCeilingMs = options.flushCeilingMs ?? 300_000;
+    this.maxSubscriptionsPerContext = options.maxSubscriptionsPerContext ?? 32;
     this.stubErrorName = options.stubErrorName ?? "StubNotImplementedError";
     /** @type {Map<string|number, Subscription>} */
     this.subscriptions = new Map();
@@ -71,6 +82,26 @@ export class TelemetryProtocol {
   register(server) {
     this.server = server;
     server.registerHandler(CMD_PUBSUB_SUB, (decoded, context) => {
+      // The per-context subscription budget keeps one link from growing
+      // the store without bound.
+      let perContext = 0;
+      for (const subscription of this.subscriptions.values()) {
+        if (subscription.context === context) {
+          perContext += 1;
+        }
+      }
+      if (perContext >= this.maxSubscriptionsPerContext) {
+        this.server.dispatchEvent(
+          new globalThis.CustomEvent("subscriptionlimit", {
+            detail: {
+              subId: decoded.subId,
+              context,
+              limit: this.maxSubscriptionsPerContext,
+            },
+          }),
+        );
+        return;
+      }
       this.subscriptions.set(String(decoded.subId), {
         subId: decoded.subId,
         targetType: decoded.targetType,
@@ -207,9 +238,12 @@ export class TelemetryProtocol {
     if (subscription.timer !== null) {
       return;
     }
-    const interval = Math.max(
-      subscription.requestedFlushIntervalMs,
-      this.flushFloorMs,
+    // The client's interval is a request: the runtime floors it to keep
+    // constrained links from being stormed and ceilings it so one client
+    // cannot buffer every event for days.
+    const interval = Math.min(
+      Math.max(subscription.requestedFlushIntervalMs, this.flushFloorMs),
+      Math.max(this.flushCeilingMs, this.flushFloorMs),
     );
     subscription.timer = setTimeout(() => {
       subscription.timer = null;

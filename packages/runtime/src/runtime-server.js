@@ -20,8 +20,10 @@ import {
   CMD_BREAKPOINT_CLEAR,
   CMD_BREAKPOINT_SET,
   CMD_COMP_DETAIL_REQ,
+  CMD_COMP_INSTALL_REQ,
   CMD_COMP_SYNC_REQ,
   CMD_COMP_WRITE,
+  CMD_CRDT_SYNC_REQ,
   CMD_CRDT_UPDATE,
   CMD_HWM_SET,
   CMD_PROCESS_CTRL,
@@ -45,10 +47,12 @@ import {
  * @type {Record<number, number>}
  */
 const REQUIRED_CAPABILITY = {
+  [CMD_CRDT_SYNC_REQ]: CAPABILITY.GRAPH_READ,
   [CMD_CRDT_UPDATE]: CAPABILITY.GRAPH_EDIT,
   [CMD_COMP_SYNC_REQ]: CAPABILITY.COMPONENT_READ,
   [CMD_COMP_DETAIL_REQ]: CAPABILITY.COMPONENT_READ,
   [CMD_COMP_WRITE]: CAPABILITY.COMPONENT_WRITE,
+  [CMD_COMP_INSTALL_REQ]: CAPABILITY.COMPONENT_WRITE,
   [CMD_PUBSUB_SUB]: CAPABILITY.TELEMETRY_READ,
   [CMD_RUN_CTRL]: CAPABILITY.LIFECYCLE_CTRL,
   [CMD_BREAKPOINT_SET]: CAPABILITY.LIFECYCLE_CTRL,
@@ -56,6 +60,20 @@ const REQUIRED_CAPABILITY = {
   [CMD_PROCESS_CTRL]: CAPABILITY.LIFECYCLE_CTRL,
   [CMD_PROCESS_LIST_REQ]: CAPABILITY.GRAPH_READ,
   [CMD_HWM_SET]: CAPABILITY.LIFECYCLE_CTRL,
+};
+
+/**
+ * Capability a client needs to *receive* a given command — the outbound
+ * counterpart of {@link REQUIRED_CAPABILITY}. Broadcasts are fan-outs the
+ * sender does not address; without this map a peer the runtime denied
+ * would still receive every rebroadcast operation stream. Only
+ * runtime→client commands the runtime broadcasts appear here; a command
+ * with no entry is deliverable to any authorized context.
+ *
+ * @type {Record<number, number>}
+ */
+const OUTBOUND_CAPABILITY = {
+  [CMD_CRDT_UPDATE]: CAPABILITY.GRAPH_READ,
 };
 
 /**
@@ -75,10 +93,12 @@ export class RuntimeServer extends EventTarget {
    *   needs (graph, telemetry, components read-only).
    * @param {{ default?: string[]|number, identities?: Record<string, string[]|number> }} [options.permissions]
    *   The built-in static capability store: identity hash (hex) to the
-   *   capability mask that peer is granted, plus the mask for peers without
-   *   an entry and for links that never identify. Mutable — changes take
-   *   effect on the peer's next link. Ignored when `capabilityPolicy` is
-   *   set.
+   *   capability mask that peer is granted, plus the mask `authorize`
+   *   grants when it is called without a known identity — the affirmative
+   *   open-monitoring choice, which the transport must make explicitly.
+   *   A context the transport never authorizes is denied everything.
+   *   Mutable — changes take effect on the peer's next link. Ignored when
+   *   `capabilityPolicy` is set.
    * @param {(identityHash: string, context: any) => number|Promise<number>} [options.capabilityPolicy]
    *   Pluggable capability resolution for identified peers — the seam for
    *   real authorization planes (DACAR is the native one, see the `./dacar`
@@ -193,6 +213,47 @@ export class RuntimeServer extends EventTarget {
   }
 
   /**
+   * The static permissions store's resolution: the identity's entry, else
+   * the store's default. Synchronous — authorize must land the mask on
+   * the context before it returns, so no frame slips into a
+   * pre-authorization window the transport could have avoided.
+   *
+   * @param {string|undefined} identityHash
+   * @returns {number}
+   */
+  #resolveStatic(identityHash) {
+    return (
+      (identityHash !== undefined
+        ? this.permissions.identities.get(identityHash)
+        : undefined) ?? this.permissions.default
+    );
+  }
+
+  /**
+   * Resolve the capability mask an identity is granted right now: the
+   * pluggable `capabilityPolicy` when set (DACAR is the native one), else
+   * the static store's identity entry, else its default. This is the one
+   * resolution path the runtime core has — `authorize` applies it when a
+   * link identifies, and transports consult it when an identity-bearing
+   * request arrives outside a link's per-context mask (e.g. a baseline
+   * resource fetch), so a revocation bites the next fetch instead of the
+   * next link. A rejecting policy surfaces as a throw; callers decide
+   * whether that is an error event or a silent denial.
+   *
+   * @param {string|undefined} identityHash Hex hash of the peer's verified
+   *   identity; without one the static store's default applies.
+   * @param {any} [context] The context the resolution serves — a link when
+   *   one exists, so context-mapped policies resolve correctly.
+   * @returns {Promise<number>} The granted capability mask.
+   */
+  async resolveCapabilities(identityHash, context) {
+    if (identityHash !== undefined && this.capabilityPolicy) {
+      return await this.capabilityPolicy(identityHash, context);
+    }
+    return this.#resolveStatic(identityHash);
+  }
+
+  /**
    * Unilaterally send the `0x02 CMD_AUTH_RESPONSE` to one client context —
    * the mask the identified peer is granted. Resolution order: the
    * pluggable `capabilityPolicy` when set (DACAR is the native one), then
@@ -210,7 +271,7 @@ export class RuntimeServer extends EventTarget {
     let mask;
     if (identityHash !== undefined && this.capabilityPolicy) {
       try {
-        mask = await this.capabilityPolicy(identityHash, context);
+        mask = await this.resolveCapabilities(identityHash, context);
       } catch (error) {
         // A failing authorization plane denies closed: the peer gets no
         // capabilities until the plane answers again.
@@ -218,10 +279,9 @@ export class RuntimeServer extends EventTarget {
         mask = 0;
       }
     } else {
-      mask =
-        (identityHash !== undefined
-          ? this.permissions.identities.get(identityHash)
-          : undefined) ?? this.permissions.default;
+      // The static path resolves synchronously: the mask is in force
+      // before authorize returns, leaving no grantable window.
+      mask = this.#resolveStatic(identityHash);
     }
     // Enforcement is per context from here on; the transport evicts the
     // entry when the context dies (forgetContext).
@@ -239,7 +299,8 @@ export class RuntimeServer extends EventTarget {
   /**
    * Drop a context's resolved capability mask — the transport calls this
    * when the context dies (a Reticulum link closes), keeping the store
-   * from growing with every link.
+   * from growing with every link. A forgotten context is denied
+   * everything until it is authorized again.
    *
    * @param {any} context
    * @returns {void}
@@ -249,8 +310,40 @@ export class RuntimeServer extends EventTarget {
   }
 
   /**
+   * The capability mask resolved for one context: the mask `authorize`
+   * stored for it, or zero when the context was never authorized. A
+   * transport uses this to keep unauthorized contexts out of fan-outs.
+   *
+   * @param {any} context
+   * @returns {number}
+   */
+  grantedFor(context) {
+    return this.#contextCapabilities.get(context) ?? 0;
+  }
+
+  /**
+   * Whether a context may receive a runtime→client command: commands with
+   * an outbound capability requirement are deliverable only to contexts
+   * whose granted mask covers it. Transports consult this per broadcast
+   * recipient, so a denied peer on a live link never sees operation
+   * streams it was not granted.
+   *
+   * @param {any} context
+   * @param {number|undefined} opcode Command code of the outbound frame.
+   * @returns {boolean}
+   */
+  canReceive(context, opcode) {
+    const required = OUTBOUND_CAPABILITY[/** @type {number} */ (opcode)];
+    if (required === undefined) {
+      return true;
+    }
+    const granted = this.grantedFor(context);
+    return (granted & required) === required;
+  }
+
+  /**
    * Handle one inbound link frame: decode by leading opcode, check the
-   * command's capability requirement against the advertised mask, and
+   * command's capability requirement against the context's granted mask, and
    * dispatch to the registered handler. Frames the codec rejects — garbage
    * bytes, unknown opcodes, malformed payloads — do not throw: the protocol
    * has no error channel for them, and a runtime must survive hostile link
@@ -270,7 +363,14 @@ export class RuntimeServer extends EventTarget {
     try {
       decoded = decodeFrame(bytes);
     } catch (error) {
-      this.#emit("undecodable", { bytes, context, error });
+      // The raw hostile bytes stay out of the event detail beyond a
+      // diagnostic prefix: transports log these events, and a peer must
+      // not be able to amplify its way into the operator's log files.
+      this.#emit("undecodable", {
+        bytes: bytes.length > 256 ? bytes.slice(0, 256) : bytes,
+        context,
+        error,
+      });
       return;
     }
     const handler = this.handlers.get(decoded.cmd);
@@ -281,8 +381,12 @@ export class RuntimeServer extends EventTarget {
       return;
     }
     const required = REQUIRED_CAPABILITY[decoded.cmd];
-    const granted =
-      this.#contextCapabilities.get(context) ?? this.permissions.default;
+    // Fail closed: a context the transport never authorized has no
+    // capabilities, whatever the permissions store's default says. The
+    // pre-identification window of a link is attacker-controlled, so the
+    // default mask must never be granted implicitly — only an explicit
+    // authorize() resolves it for the context.
+    const granted = this.#contextCapabilities.get(context) ?? 0;
     if (required !== undefined && (granted & required) !== required) {
       // The peer was not granted this capability: it is violating what its
       // auth response told it. Drop the frame.

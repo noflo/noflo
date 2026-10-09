@@ -11,6 +11,7 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
 import {
+  CMD_AUTH_RESPONSE,
   CMD_CRDT_STALE_EPOCH,
   CMD_CRDT_UP_TO_DATE,
   CMD_CRDT_UPDATE,
@@ -44,6 +45,13 @@ async function flush() {
   await new Promise((resolve) => setImmediate(resolve));
 }
 
+/** Outbound frames with the unilateral auth responses excluded. */
+function wire(transport) {
+  return transport.log.sent.filter(
+    (entry) => entry.bytes[1] !== CMD_AUTH_RESPONSE,
+  );
+}
+
 /** A graph with one node, wired into a server via GraphProtocol. */
 async function wiredServer(_graphCallback) {
   const graph = new GraphModel({ name: "main" });
@@ -60,6 +68,8 @@ async function wiredServer(_graphCallback) {
     resourceProvider: async (bytes) => `resource-of-${bytes.length}-bytes`,
   });
   protocol.register(server);
+  // Fail closed: contexts must be authorized before their frames count.
+  server.authorize("link-1");
   const epoch = await protocol.epoch();
   return { graph, server, protocol, transport, epoch };
 }
@@ -91,7 +101,7 @@ describe("graph protocol: epoch handshake", () => {
     const epoch = await protocol.epoch();
     server.handleFrame(encodeCrdtSyncReq(epoch, { "client-a": 5 }), "link-1");
     await flush();
-    const decoded = decodeCrdtUpToDate(transport.log.sent[0].bytes);
+    const decoded = decodeCrdtUpToDate(wire(transport)[0].bytes);
     assert.equal(decoded.cmd, CMD_CRDT_UP_TO_DATE);
   });
 
@@ -99,8 +109,8 @@ describe("graph protocol: epoch handshake", () => {
     const { server, protocol, transport } = await wiredServer();
     server.handleFrame(encodeCrdtSyncReq("0000", { "client-a": 5 }), "link-1");
     await flush();
-    assert.equal(transport.log.sent.length, 1);
-    const decoded = decodeCrdtStaleEpoch(transport.log.sent[0].bytes);
+    assert.equal(wire(transport).length, 1);
+    const decoded = decodeCrdtStaleEpoch(wire(transport)[0].bytes);
     assert.equal(decoded.cmd, CMD_CRDT_STALE_EPOCH);
     assert.equal(decoded.newEpochId, await protocol.epoch());
     assert.match(decoded.rnsResourceHash, /^resource-of-\d+-bytes$/);
@@ -116,6 +126,7 @@ describe("graph protocol: epoch handshake", () => {
     const protocol = new GraphProtocol({ graph });
     await protocol.epoch();
     protocol.register(server);
+    server.authorize("link-1");
     /** @type {any[]} */
     const unsupported = [];
     server.addEventListener("unsupported", (event) =>
@@ -234,6 +245,56 @@ describe("graph protocol: inbound operations", () => {
       "link-1",
     );
     assert.equal(transport.log.broadcast.length, 0);
+  });
+
+  it("caps the attacker-populated client clock map", async () => {
+    // Three clients against a budget of two evicts the oldest-learned id.
+    const graph = new GraphModel({ name: "main" });
+    const protocol = new GraphProtocol({ graph, maxKnownClocks: 2 });
+    const transport = capture();
+    const server = new RuntimeServer({
+      send: transport.send,
+      capabilities: ["GRAPH_READ", "GRAPH_EDIT"],
+    });
+    protocol.register(server);
+    server.authorize("link-1");
+    for (const clientId of ["client-a", "client-b", "client-c"]) {
+      server.handleFrame(
+        encodeCrdtUpdate({
+          clientId,
+          logicalClock: 1,
+          opType: OP_TYPE.INSERT_NODE,
+          entityId: `node-${clientId}`,
+          payload: { component: "math/Add" },
+        }),
+        "link-1",
+      );
+    }
+    assert.equal(protocol.knownClocks.size, 2);
+    // The oldest-learned client was evicted, the latest two remain.
+    assert.equal(protocol.knownClocks.has("client-a"), false);
+    assert.equal(protocol.knownClocks.has("client-c"), true);
+  });
+
+  it("treats the wire entity_id as authoritative over a payload override", async () => {
+    const { server, graph } = await wiredServer();
+    server.handleFrame(
+      encodeCrdtUpdate({
+        clientId: "client-a",
+        logicalClock: 3,
+        opType: OP_TYPE.INSERT_NODE,
+        entityId: "wire-id",
+        payload: {
+          entity_id: "payload-id",
+          component: "math/Add",
+        },
+      }),
+      "link-1",
+    );
+    // A payload-supplied entity_id must not rename the entity behind the
+    // protocol's back: the wire id names the entity.
+    assert.equal(graph.node("wire-id").component, "math/Add");
+    assert.equal(graph.node("payload-id"), undefined);
   });
 
   it("surfaces model rejections as protocol errors, not crashes", async () => {

@@ -12,11 +12,13 @@ import { describe, it } from "node:test";
 
 import {
   CAPABILITY,
+  CMD_COMP_INSTALL_REQ,
   CMD_CRDT_SYNC_REQ,
   CMD_CRDT_UPDATE,
   CMD_RUN_CTRL,
   decodeAuthResponse,
   encodeAuthResponse,
+  encodeCompInstallReq,
   encodeCompSyncReq,
   encodeCrdtSyncReq,
   encodeCrdtUpdate,
@@ -155,7 +157,8 @@ describe("RuntimeServer permissions (DACAR)", () => {
     server.authorize("granted-link", "aabb");
     server.handleFrame(encodeRunCtrl(RUN_ACTION.START), "granted-link");
     assert.equal(handled.length, 1);
-    // The default-mask link never identified: run control is not granted.
+    // The other link was never authorized: fail closed, run control is
+    // not granted.
     /** @type {any[]} */
     const dropped = [];
     server.addEventListener("notpermitted", (event) =>
@@ -203,6 +206,45 @@ describe("RuntimeServer permissions (DACAR)", () => {
       CAPABILITY.GRAPH_READ,
     );
   });
+
+  it("resolves capabilities through one shared identity-based seam", async () => {
+    const server = new RuntimeServer({
+      permissions: {
+        default: ["GRAPH_READ"],
+        identities: { aabb: ["GRAPH_EDIT"] },
+      },
+    });
+    // The same resolution authorize applies, consultable by identity.
+    assert.equal(
+      await server.resolveCapabilities("aabb"),
+      CAPABILITY.GRAPH_EDIT,
+    );
+    assert.equal(
+      await server.resolveCapabilities("ccdd"),
+      CAPABILITY.GRAPH_READ,
+    );
+    assert.equal(
+      await server.resolveCapabilities(undefined),
+      CAPABILITY.GRAPH_READ,
+    );
+    // A rejecting authorization plane throws from the seam; authorize
+    // turns that into an error event and denies the link closed.
+    const failing = new RuntimeServer({
+      capabilityPolicy: () => {
+        throw new Error("authorization plane down");
+      },
+    });
+    /** @type {any[]} */
+    const errors = [];
+    failing.addEventListener("error", (event) => errors.push(event.detail));
+    await assert.rejects(
+      () => failing.resolveCapabilities("aabb", null),
+      /plane down/,
+    );
+    await failing.authorize("link-1", "aabb");
+    assert.equal(failing.grantedFor("link-1"), 0);
+    assert.equal(errors.length, 1);
+  });
 });
 
 describe("RuntimeServer frame routing", () => {
@@ -214,6 +256,7 @@ describe("RuntimeServer frame routing", () => {
     server.registerHandler(CMD_CRDT_SYNC_REQ, (decoded, context) => {
       seen.push({ decoded, context });
     });
+    server.authorize("link-1");
     server.handleFrame(encodeCrdtSyncReq(1, { a: 1 }), "link-1");
     assert.equal(seen.length, 1);
     assert.equal(seen[0].decoded.cmd, CMD_CRDT_SYNC_REQ);
@@ -248,6 +291,11 @@ describe("RuntimeServer frame routing", () => {
     server.handleFrame(new Uint8Array([0x92, 0x10]), "link-1");
     assert.equal(events.length, 3);
     assert.ok(events[0].error instanceof ProtocolError);
+    // Oversized hostile frames surface only as a diagnostic prefix: the
+    // event detail must not become a log-amplification channel.
+    server.handleFrame(new Uint8Array(1024).fill(0x00), "link-1");
+    assert.equal(events.length, 4);
+    assert.equal(events[3].bytes.length, 256);
   });
 
   it("drops commands requiring unadvertised capabilities", () => {
@@ -276,6 +324,66 @@ describe("RuntimeServer frame routing", () => {
     assert.equal(dropped[0].required, CAPABILITY.GRAPH_EDIT);
   });
 
+  it("drops install requests from read-only contexts and admits granted ones", () => {
+    const transport = capture();
+    // The default mask is the read surface: no COMPONENT_WRITE.
+    const server = new RuntimeServer({ send: transport.send });
+    const handled = [];
+    /** @type {any[]} */
+    const dropped = [];
+    server.registerHandler(CMD_COMP_INSTALL_REQ, (decoded) =>
+      handled.push(decoded),
+    );
+    server.addEventListener("notpermitted", (event) =>
+      dropped.push(event.detail),
+    );
+    server.authorize("reader-link");
+    server.handleFrame(
+      encodeCompInstallReq("npm:@noflo/strings@2.0.0"),
+      "reader-link",
+    );
+    assert.equal(handled.length, 0);
+    assert.equal(dropped.length, 1);
+    assert.equal(dropped[0].required, CAPABILITY.COMPONENT_WRITE);
+    // A peer granted COMPONENT_WRITE may install packages.
+    server.grant("aabb", ["COMPONENT_WRITE"]);
+    server.authorize("writer-link", "aabb");
+    server.handleFrame(
+      encodeCompInstallReq("npm:@noflo/strings@2.0.0"),
+      "writer-link",
+    );
+    assert.equal(handled.length, 1);
+    assert.equal(handled[0].packageUri, "npm:@noflo/strings@2.0.0");
+  });
+
+  it("drops graph syncs from contexts without GRAPH_READ", () => {
+    const transport = capture();
+    const server = new RuntimeServer({
+      send: transport.send,
+      permissions: { default: 0 },
+    });
+    const handled = [];
+    /** @type {any[]} */
+    const dropped = [];
+    server.registerHandler(CMD_CRDT_SYNC_REQ, (decoded) =>
+      handled.push(decoded),
+    );
+    server.addEventListener("notpermitted", (event) =>
+      dropped.push(event.detail),
+    );
+    server.authorize("denied-link");
+    server.handleFrame(encodeCrdtSyncReq("0000", {}), "denied-link");
+    assert.equal(handled.length, 0);
+    assert.equal(dropped.length, 1);
+    assert.equal(dropped[0].required, CAPABILITY.GRAPH_READ);
+    // The default read surface includes GRAPH_READ: syncs are admitted.
+    const open = new RuntimeServer({ send: transport.send });
+    open.registerHandler(CMD_CRDT_SYNC_REQ, (decoded) => handled.push(decoded));
+    open.authorize("reader-link");
+    open.handleFrame(encodeCrdtSyncReq("0000", {}), "reader-link");
+    assert.equal(handled.length, 1);
+  });
+
   it("admits commands whose advertised capability covers them", () => {
     const transport = capture();
     const server = new RuntimeServer({
@@ -284,10 +392,53 @@ describe("RuntimeServer frame routing", () => {
     });
     const handled = [];
     server.registerHandler(CMD_CRDT_UPDATE, (decoded) => handled.push(decoded));
+    server.authorize("link-1");
     server.handleFrame(
       encodeCrdtUpdate({
         clientId: "a",
         logicalClock: 1,
+        opType: 1,
+        entityId: "n",
+        payload: null,
+      }),
+      "link-1",
+    );
+    assert.equal(handled.length, 1);
+  });
+
+  it("denies commands from contexts that were never authorized", () => {
+    const transport = capture();
+    const server = new RuntimeServer({
+      send: transport.send,
+      capabilities: 0xff,
+    });
+    const handled = [];
+    /** @type {any[]} */
+    const dropped = [];
+    server.registerHandler(CMD_CRDT_UPDATE, (decoded) => handled.push(decoded));
+    server.addEventListener("notpermitted", (event) =>
+      dropped.push(event.detail),
+    );
+    // The context never went through authorize: fail closed, whatever the
+    // permissions store or advertised capabilities say.
+    server.handleFrame(
+      encodeCrdtUpdate({
+        clientId: "a",
+        logicalClock: 1,
+        opType: 1,
+        entityId: "n",
+        payload: null,
+      }),
+      "link-1",
+    );
+    assert.equal(handled.length, 0);
+    assert.equal(dropped.length, 1);
+    // Once authorized, the granted mask applies.
+    server.authorize("link-1");
+    server.handleFrame(
+      encodeCrdtUpdate({
+        clientId: "a",
+        logicalClock: 2,
         opType: 1,
         entityId: "n",
         payload: null,
@@ -306,6 +457,7 @@ describe("RuntimeServer frame routing", () => {
     server.registerHandler(CMD_CRDT_SYNC_REQ, () => {
       throw new Error("handler blew up");
     });
+    server.authorize("link-1");
     server.handleFrame(encodeCrdtSyncReq(1, { a: 1 }), "link-1");
     assert.equal(errors.length, 1);
     assert.equal(errors[0].error.message, "handler blew up");

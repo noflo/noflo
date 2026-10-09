@@ -51,11 +51,16 @@ export class GraphProtocol {
    *   own operations; defaults to `runtime`.
    * @param {ResourceProvider} [options.resourceProvider] Baseline snapshot
    *   provider for `0x12` stale-epoch replies.
+   * @param {number} [options.maxKnownClocks] Budget for the client logical
+   *   clock map. Clocks arrive from the wire with attacker-chosen client
+   *   ids, so the map is capped: once full, the oldest-learned client is
+   *   evicted. Defaults to 1024.
    */
   constructor(options) {
     this.graph = options.graph;
     this.clientId = options.clientId ?? "runtime";
     this.resourceProvider = options.resourceProvider ?? null;
+    this.maxKnownClocks = options.maxKnownClocks ?? 1024;
     /** @type {number} Logical clock of the runtime's own operations. */
     this.clock = 0;
     /**
@@ -156,22 +161,28 @@ export class GraphProtocol {
    */
   applyOp(decoded) {
     const { opType, entityId, payload } = decoded;
+    // The wire entity_id names the entity; a payload-supplied override
+    // must not rename it behind the protocol's back.
+    const definition =
+      entityId === null || entityId === undefined
+        ? { ...payload }
+        : { ...payload, entity_id: entityId };
     try {
       switch (opType) {
         case OP_TYPE.INSERT_NODE:
-          this.graph.addNode({ entity_id: entityId, ...payload });
+          this.graph.addNode(definition);
           break;
         case OP_TYPE.INSERT_EDGE:
-          this.graph.addEdge({ entity_id: entityId, ...payload });
+          this.graph.addEdge(definition);
           break;
         case OP_TYPE.INSERT_IIP:
-          this.graph.addIIP({ entity_id: entityId, ...payload });
+          this.graph.addIIP(definition);
           break;
         case OP_TYPE.INSERT_EXPORT:
-          this.graph.addExport({ entity_id: entityId, ...payload });
+          this.graph.addExport(definition);
           break;
         case OP_TYPE.INSERT_GROUP:
-          this.graph.addGroup({ entity_id: entityId, ...payload });
+          this.graph.addGroup(definition);
           break;
         case OP_TYPE.TOMBSTONE:
           this.#tombstone(entityId);
@@ -274,6 +285,14 @@ export class GraphProtocol {
    */
   #learnClocks(clocks) {
     for (const [clientId, clock] of Object.entries(clocks ?? {})) {
+      if (!this.knownClocks.has(clientId)) {
+        // A new client at the budget: evict the oldest-learned one — the
+        // clock map is attacker-populated, so it must stay bounded.
+        if (this.knownClocks.size >= this.maxKnownClocks) {
+          const oldest = this.knownClocks.keys().next().value;
+          this.knownClocks.delete(oldest);
+        }
+      }
       const known = this.knownClocks.get(clientId) ?? 0;
       this.knownClocks.set(clientId, Math.max(known, clock));
     }

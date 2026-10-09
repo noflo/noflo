@@ -12,6 +12,7 @@ import assert from "node:assert";
 import { describe, it } from "node:test";
 import { asComponent } from "@noflo/as-component";
 import {
+  CAPABILITY,
   CMD_AUTH_RESPONSE,
   CMD_COMP_MANIFEST,
   CMD_CRDT_SYNC_REQ,
@@ -21,11 +22,14 @@ import {
   decodeCrdtStaleEpoch,
   encodeCompSyncReq,
   encodeCrdtSyncReq,
+  encodeCrdtUpdate,
+  LIMITATION,
+  OP_TYPE,
   PROTOCOL_VERSION,
 } from "@noflo/fbp-protocol";
 import { GraphModel } from "@noflo/graph";
 import { ComponentLoader } from "@noflo/noflo";
-import { LinkStatus } from "@reticulum/core";
+import { Identity, LinkStatus, toHex } from "@reticulum/core";
 import {
   assembleRuntime,
   DEFAULT_ASPECT,
@@ -177,6 +181,66 @@ describe("Reticulum binding: announce", () => {
 });
 
 describe("Reticulum binding: link lifecycle", () => {
+  it("broadcasts only to links whose granted capabilities cover the frame", async () => {
+    const wired = wiredBinding();
+    const { binding, server, destination } = wired;
+    /** @type {FakeLink[]} */
+    const links = [];
+    destination.respondToLinkRequest = async () => {
+      const link = new FakeLink();
+      links.push(link);
+      return link;
+    };
+    await binding.start();
+    for (const _ of [1, 2]) {
+      destination.dispatchEvent(
+        new globalThis.CustomEvent("link_request", {
+          detail: { packet: {}, transport: {} },
+        }),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    const [grantedLink, deniedLink] = links;
+    // One peer granted GRAPH_READ, one denied everything: authorize stores
+    // the mask per context, so zero the store default first.
+    server.permissions.default = 0;
+    server.grant("aabb", ["GRAPH_READ"]);
+    server.authorize(grantedLink, "aabb");
+    server.authorize(deniedLink, "ccdd");
+    // Wait out the auth responses, then broadcast a 0x14 operation.
+    grantedLink.sent.length = 0;
+    deniedLink.sent.length = 0;
+    server.broadcast(
+      encodeCrdtUpdate({
+        clientId: "runtime",
+        logicalClock: 1,
+        opType: OP_TYPE.INSERT_NODE,
+        entityId: "node-1",
+        payload: { component: "math/Add" },
+      }),
+    );
+    assert.equal(grantedLink.sent.length, 1, "the granted link receives it");
+    assert.equal(
+      deniedLink.sent.length,
+      0,
+      "the denied link is filtered out of the fan-out",
+    );
+    // The origin link is excluded from convergence echoes, and the denied
+    // link still receives nothing.
+    server.broadcast(
+      encodeCrdtUpdate({
+        clientId: "runtime",
+        logicalClock: 2,
+        opType: OP_TYPE.INSERT_NODE,
+        entityId: "node-2",
+        payload: { component: "math/Add" },
+      }),
+      grantedLink,
+    );
+    assert.equal(grantedLink.sent.length, 1);
+    assert.equal(deniedLink.sent.length, 0);
+  });
+
   it("authorizes on identify and routes decrypted link data", async () => {
     const wired = wiredBinding();
     const { binding, destination } = wired;
@@ -205,6 +269,54 @@ describe("Reticulum binding: link lifecycle", () => {
     const decoded = decodeAuthResponse(wiredLink.sent[0]);
     assert.equal(decoded.cmd, CMD_AUTH_RESPONSE);
     assert.equal(decoded.protocolVersion, PROTOCOL_VERSION);
+  });
+
+  it("denies unidentified links by default and can authorize them explicitly", async () => {
+    const wired = wiredBinding();
+    const { binding, server, destination } = wired;
+    /** @type {FakeLink[]} */
+    const links = [];
+    destination.respondToLinkRequest = async () => {
+      const link = new FakeLink();
+      links.push(link);
+      return link;
+    };
+    await binding.start();
+    destination.dispatchEvent(
+      new globalThis.CustomEvent("link_request", {
+        detail: { packet: {}, transport: {} },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // Default: the peer never identified, so it was never authorized —
+    // it is denied everything.
+    assert.equal(server.grantedFor(links[0]), 0);
+
+    // Opting into open monitoring authorizes the link at establishment
+    // with the store's default mask. (The first binding's listener is
+    // still attached too, so read the link the open binding itself wired.)
+    const openBinding = new ReticulumBinding({
+      server,
+      reticulum: /** @type {any} */ ({}),
+      identity: /** @type {any} */ ({}),
+      nodeName: "open",
+      authorizeUnidentified: true,
+      createDestination: async () => destination,
+    });
+    await openBinding.start();
+    destination.dispatchEvent(
+      new globalThis.CustomEvent("link_request", {
+        detail: { packet: {}, transport: {} },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const openLink = [...openBinding.links][0];
+    assert.ok(openLink, "the open binding wired its link");
+    assert.equal(
+      server.grantedFor(openLink),
+      server.capabilityMask,
+      "the unidentified link got the store's default mask",
+    );
   });
 
   it("feeds link frames to the server and closes subscriptions with the link", async () => {
@@ -310,13 +422,111 @@ describe("Reticulum binding: baseline resources", () => {
     assert.match(token, /^[0-9a-f]{32}$/);
     const handler = destination.requestHandlers.get(token);
     assert.ok(handler, "the token is registered as a request path");
-    assert.deepEqual([...handler.responseGenerator()], [...bytes]);
+    // Identified requesters granted the default read surface are served.
+    const reader = await Identity.generate();
+    assert.deepEqual(
+      [...(await handler.responseGenerator(token, null, null, reader))],
+      [...bytes],
+    );
     // Deterministic: same bytes, same token.
     assert.equal(await binding.serveResource(bytes), token);
+  });
+
+  it("evicts the oldest baseline beyond the resource budget", async () => {
+    const { binding } = wiredBinding();
+    binding.maxResources = 2;
+    const encode = (/** @type {string} */ label) =>
+      new TextEncoder().encode(JSON.stringify({ name: label }));
+    const first = await binding.serveResource(encode("one"));
+    const second = await binding.serveResource(encode("two"));
+    const third = await binding.serveResource(encode("three"));
+    assert.equal(binding.resources.size, 2);
+    assert.equal(binding.resources.has(first), false, "oldest evicted");
+    assert.equal(binding.resources.has(second), true);
+    assert.equal(binding.resources.has(third), true);
+  });
+
+  it("serves baselines only to identities currently granted GRAPH_READ", async () => {
+    const wired = wiredBinding();
+    const { binding, server, destination } = wired;
+    await binding.start();
+    const bytes = new TextEncoder().encode('{"name":"main"}');
+    const token = await binding.serveResource(bytes);
+    const handler = destination.requestHandlers.get(token);
+    // The store's default mask must not leak the baseline here: zero it so
+    // only explicitly granted identities are served.
+    server.permissions.default = 0;
+    const granted = await Identity.generate();
+    const denied = await Identity.generate();
+    server.grant(toHex(granted.identityHash), ["GRAPH_READ"]);
+    const fetch = (/** @type {any} */ identity) =>
+      handler.responseGenerator(token, null, null, identity);
+    // Granted identity: the baseline is served.
+    assert.deepEqual([...(await fetch(granted))], [...bytes]);
+    // Unknown identity: nothing.
+    assert.equal(await fetch(denied), null);
+    // Unidentified requester: nothing.
+    assert.equal(await fetch(null), null);
+    // A revocation bites the next fetch — the token earns a revoked peer
+    // nothing, however it was shared.
+    server.revoke(toHex(granted.identityHash));
+    assert.equal(await fetch(granted), null);
+  });
+
+  it("re-checks the DACAR policy by identity on every fetch", async () => {
+    const grantee = await Identity.generate();
+    const grantedHash = toHex(grantee.identityHash);
+    /** @type {any[]} */
+    const evaluated = [];
+    const server = new RuntimeServer({
+      capabilityPolicy: (identityHash) => {
+        evaluated.push(identityHash);
+        return identityHash === grantedHash ? CAPABILITY.GRAPH_READ : 0;
+      },
+    });
+    const destination = new FakeDestination();
+    const binding = new ReticulumBinding({
+      server,
+      reticulum: /** @type {any} */ ({}),
+      identity: /** @type {any} */ ({}),
+      nodeName: "dacar-runtime",
+      createDestination: async () => destination,
+    });
+    await binding.start();
+    const bytes = new TextEncoder().encode('{"name":"main"}');
+    const token = await binding.serveResource(bytes);
+    const handler = destination.requestHandlers.get(token);
+    // The grantee fetches through DACAR, without ever authorizing a link.
+    assert.deepEqual(
+      [...(await handler.responseGenerator(token, null, null, grantee))],
+      [...bytes],
+    );
+    assert.deepEqual(evaluated, [grantedHash]);
+    // A stranger is denied closed by the policy.
+    const stranger = await Identity.generate();
+    assert.equal(
+      await handler.responseGenerator(token, null, null, stranger),
+      null,
+    );
   });
 });
 
 describe("assembly", () => {
+  it("forwards the authorization configuration to the server core", async () => {
+    const graph = new GraphModel({ name: "main" });
+    const policy = () => 0;
+    const runtime = await assembleRuntime({
+      graph,
+      catalog: { signatures: () => ({}) },
+      permissions: { default: ["GRAPH_READ"] },
+      capabilityPolicy: policy,
+      limitationCode: LIMITATION.PERMISSION_DENIED,
+    });
+    assert.equal(runtime.server.capabilityPolicy, policy);
+    assert.equal(runtime.server.limitationCode, LIMITATION.PERMISSION_DENIED);
+    assert.equal(runtime.server.permissions.default, CAPABILITY.GRAPH_READ);
+  });
+
   it("wires the full stack: registry sync answers through the server", async () => {
     const graph = new GraphModel({ name: "main" });
     /** @type {{sent: {bytes: Uint8Array, context: any}[]}} */
@@ -336,8 +546,13 @@ describe("assembly", () => {
       broadcast() {},
       capabilities: ["GRAPH_READ", "GRAPH_EDIT", "COMPONENT_READ"],
     });
+    runtime.server.authorize("link-1");
     runtime.server.handleFrame(encodeCompSyncReq("stale-hash"), "link-1");
-    const decoded = decodeCompManifest(log.sent[0].bytes);
+    const manifestFrame = log.sent.find(
+      (entry) => entry.bytes[1] === CMD_COMP_MANIFEST,
+    );
+    assert.ok(manifestFrame, "the manifest is answered on the wire");
+    const decoded = decodeCompManifest(manifestFrame.bytes);
     assert.equal(decoded.cmd, CMD_COMP_MANIFEST);
     assert.deepEqual(Object.keys(decoded.entries), ["math/Add"]);
   });
@@ -376,17 +591,29 @@ describe("assembly", () => {
         sentPackets.push(packet.payload);
       },
     };
+    // Fail closed: the context must be authorized for its frames to count.
+    runtime.server.authorize(linkContext);
     runtime.server.handleFrame(encodeCrdtSyncReq("0000", {}), linkContext);
     // The handshake hashes the epoch asynchronously; wait for the reply.
+    // The authorized context first received the unilateral auth response,
+    // so wait for the stale-epoch reply (opcode 0x12) specifically.
     const deadline = Date.now() + 5000;
-    while (sentPackets.length === 0 && Date.now() < deadline) {
+    const staleFrame = () => sentPackets.find((payload) => payload[1] === 0x12);
+    while (staleFrame() === undefined && Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, 5));
     }
-    assert.ok(sentPackets.length > 0, "the stale-epoch reply is delivered");
-    const decoded = decodeCrdtStaleEpoch(sentPackets[0]);
+    assert.ok(staleFrame(), "the stale-epoch reply is delivered");
+    const decoded = decodeCrdtStaleEpoch(/** @type {any} */ (staleFrame()));
     assert.match(decoded.rnsResourceHash, /^[0-9a-f]{32}$/);
     const handler = destination.requestHandlers.get(decoded.rnsResourceHash);
-    const served = handler.responseGenerator();
+    const reader = await Identity.generate();
+    const served = await handler.responseGenerator(
+      decoded.rnsResourceHash,
+      null,
+      null,
+      reader,
+    );
+    assert.ok(served, "an identified reader is served the baseline");
     assert.ok(new TextDecoder().decode(served).includes("node-1"));
   });
 });

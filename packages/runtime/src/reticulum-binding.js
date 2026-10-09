@@ -28,7 +28,12 @@
  *   browsers). The destination is injectable for testing.
  */
 
-import { ANNOUNCE_ASPECT, encodeAnnounceAppData } from "@noflo/fbp-protocol";
+import {
+  ANNOUNCE_ASPECT,
+  CAPABILITY,
+  decodeFrame,
+  encodeAnnounceAppData,
+} from "@noflo/fbp-protocol";
 import {
   Destination,
   DestType,
@@ -60,6 +65,18 @@ export const DEFAULT_ASPECT = ANNOUNCE_ASPECT;
  *   {@link DEFAULT_ASPECT}.
  * @property {number} [options.announceIntervalMs] Announce cadence — the
  *   runtime's physical-policy decision; defaults to the RNS library floor.
+ * @property {boolean} [options.authorizeUnidentified] Grant the
+ *   permissions store's default mask to peers that never identify, by
+ *   authorizing each link at establishment. Off by default: an
+ *   unidentified — and therefore unverified — peer is denied everything
+ *   until it identifies, closing the attacker-controlled window between
+ *   link establishment and identification.
+ * @property {number} [options.maxResources] Budget for concurrently served
+ *   baseline resources. Each `0x12` stale-epoch reply registers the
+ *   current baseline under its content hash; without a cap a long-lived,
+ *   heavily edited runtime would accumulate one full serialization per
+ *   distinct graph state. Oldest-served baselines are evicted first.
+ *   Defaults to 16.
  * @property {(binding: ReticulumBinding) => Promise<import("@reticulum/core").Destination>} [options.createDestination] Injectable
  *   destination factory for tests; the default builds the real IN
  *   destination from the binding's aspect, identity, and RNS instance.
@@ -76,6 +93,8 @@ export class ReticulumBinding extends EventTarget {
     this.nodeName = options.nodeName;
     this.aspect = options.aspect ?? DEFAULT_ASPECT;
     this.announceIntervalMs = options.announceIntervalMs;
+    this.authorizeUnidentified = options.authorizeUnidentified ?? false;
+    this.maxResources = options.maxResources ?? 16;
     this.createDestination =
       options.createDestination ??
       (async (binding) =>
@@ -145,6 +164,13 @@ export class ReticulumBinding extends EventTarget {
    * content-addressed like the epoch id. A client fetches it with
    * `link.request(token)`.
    *
+   * The token is addressing and integrity, not authorization: every fetch
+   * re-consults the requester's identity-based capability decision — the
+   * same resolution `authorize` applies — and requires `GRAPH_READ`. A
+   * shared or stale token earns a denied peer nothing, and a mid-link
+   * revocation bites the next fetch instead of the next link. The
+   * response is suppressed for unidentified or ungranted requesters.
+   *
    * @param {Uint8Array} bytes
    * @returns {Promise<string>}
    */
@@ -152,9 +178,61 @@ export class ReticulumBinding extends EventTarget {
     const token = toHex(await Identity.truncatedHash(bytes));
     this.resources.set(token, bytes);
     await this.destination?.registerRequestHandler(token, {
-      responseGenerator: () => this.resources.get(token),
+      responseGenerator: (_path, _data, _requestId, remoteIdentity) =>
+        this.#serveBaseline(token, remoteIdentity),
     });
+    // Bound the served baselines: evict the oldest-served one and drop its
+    // request handler, so graph churn cannot accumulate unbounded state.
+    if (this.resources.size > this.maxResources) {
+      const oldest = /** @type {string} */ (this.resources.keys().next().value);
+      this.resources.delete(oldest);
+      await this.destination?.removeRequestHandler?.(oldest);
+    }
     return token;
+  }
+
+  /**
+   * Serve one baseline fetch after re-checking the requester's
+   * identity-based capabilities. Returning null suppresses the response.
+   *
+   * @param {string} token
+   * @param {any} remoteIdentity The verified identity of the requester.
+   * @returns {Promise<Uint8Array|null>}
+   */
+  async #serveBaseline(token, remoteIdentity) {
+    if (!remoteIdentity?.identityHash) {
+      return null;
+    }
+    const identityHash = toHex(remoteIdentity.identityHash);
+    try {
+      const mask = await this.server.resolveCapabilities(
+        identityHash,
+        this.#linkForIdentity(identityHash),
+      );
+      if ((mask & CAPABILITY.GRAPH_READ) !== CAPABILITY.GRAPH_READ) {
+        return null;
+      }
+    } catch {
+      // A failing authorization plane denies closed: no baseline.
+      return null;
+    }
+    return this.resources.get(token) ?? null;
+  }
+
+  /**
+   * @param {string} identityHash
+   * @returns {any} A live link carrying this identity, if any.
+   */
+  #linkForIdentity(identityHash) {
+    for (const link of this.links) {
+      if (
+        link.remoteIdentity?.identityHash &&
+        toHex(link.remoteIdentity.identityHash) === identityHash
+      ) {
+        return link;
+      }
+    }
+    return null;
   }
 
   /**
@@ -190,15 +268,26 @@ export class ReticulumBinding extends EventTarget {
   }
 
   /**
-   * Deliver one frame to every live link except the given one.
+   * Deliver one frame to every live link except the given one — but only
+   * to links whose granted capabilities cover the frame's outbound
+   * requirement: a peer the runtime denied must not receive operation
+   * streams it was not granted, even though the link itself stays open.
    *
    * @param {Uint8Array} bytes
    * @param {any} [exceptContext]
    * @returns {void}
    */
   broadcast(bytes, exceptContext) {
+    let opcode;
+    try {
+      opcode = decodeFrame(bytes).cmd;
+    } catch {
+      // The runtime's own frames decode; if one ever does not, deliver it
+      // rather than silently dropping it.
+      opcode = undefined;
+    }
     for (const link of this.links) {
-      if (link !== exceptContext) {
+      if (link !== exceptContext && this.server.canReceive(link, opcode)) {
         this.#transmit(link, bytes);
       }
     }
@@ -225,6 +314,13 @@ export class ReticulumBinding extends EventTarget {
    * @returns {void}
    */
   #wireLink(link) {
+    // Fail closed by default: the link is denied everything until the peer
+    // identifies. Deployments that affirmatively want open monitoring can
+    // authorize unidentified links with the store's default mask; identify
+    // then re-authorizes with the identity-specific mask.
+    if (this.authorizeUnidentified) {
+      this.server.authorize(link);
+    }
     // Zero-trust auth: the link handshake verified cryptography; the peer's
     // `link.identify()` gives us its long-term identity. On verification,
     // unilaterally advertise what the identified peer may do (work document
