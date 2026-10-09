@@ -70,6 +70,12 @@ export const DEFAULT_ASPECT = ANNOUNCE_ASPECT;
  *   unidentified — and therefore unverified — peer is denied everything
  *   until it identifies, closing the attacker-controlled window between
  *   link establishment and identification.
+ * @property {number} [options.maxResources] Budget for concurrently served
+ *   baseline resources. Each `0x12` stale-epoch reply registers the
+ *   current baseline under its content hash; without a cap a long-lived,
+ *   heavily edited runtime would accumulate one full serialization per
+ *   distinct graph state. Oldest-served baselines are evicted first.
+ *   Defaults to 16.
  * @property {(binding: ReticulumBinding) => Promise<import("@reticulum/core").Destination>} [options.createDestination] Injectable
  *   destination factory for tests; the default builds the real IN
  *   destination from the binding's aspect, identity, and RNS instance.
@@ -87,6 +93,7 @@ export class ReticulumBinding extends EventTarget {
     this.aspect = options.aspect ?? DEFAULT_ASPECT;
     this.announceIntervalMs = options.announceIntervalMs;
     this.authorizeUnidentified = options.authorizeUnidentified ?? false;
+    this.maxResources = options.maxResources ?? 16;
     this.createDestination =
       options.createDestination ??
       (async (binding) =>
@@ -165,6 +172,15 @@ export class ReticulumBinding extends EventTarget {
     await this.destination?.registerRequestHandler(token, {
       responseGenerator: () => this.resources.get(token),
     });
+    // Bound the served baselines: evict the oldest-served one and drop its
+    // request handler, so graph churn cannot accumulate unbounded state.
+    if (this.resources.size > this.maxResources) {
+      const oldest = /** @type {string} */ (
+        this.resources.keys().next().value
+      );
+      this.resources.delete(oldest);
+      await this.destination?.removeRequestHandler?.(oldest);
+    }
     return token;
   }
 

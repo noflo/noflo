@@ -113,6 +113,8 @@ export async function assembleRuntime(options) {
  * @param {boolean} [options.authorizeUnidentified] Grant the permissions
  *   store's default mask to peers that never identify; off by default
  *   (unidentified links are denied everything).
+ * @param {number} [options.maxResources] Budget for concurrently served
+ *   baseline resources; defaults to 16.
  * @returns {Promise<ReticulumBinding>}
  */
 export async function bindReticulum(options) {
@@ -125,6 +127,7 @@ export async function bindReticulum(options) {
     aspect: options.aspect,
     announceIntervalMs: options.announceIntervalMs,
     authorizeUnidentified: options.authorizeUnidentified,
+    maxResources: options.maxResources,
   });
   // Baseline snapshots for stale clients travel over the link
   // REQUEST/RESPONSE API, served by the binding.

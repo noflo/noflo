@@ -108,6 +108,66 @@ describe("telemetry: subscriptions", () => {
     telemetry.dropContext("link-1");
     assert.deepEqual([...telemetry.subscriptions.keys()], ["sub-2"]);
   });
+
+  it("enforces the per-context subscription budget", () => {
+    const transport = capture();
+    const server = new RuntimeServer({
+      send: transport.send,
+      capabilities: ["TELEMETRY_READ"],
+    });
+    const host = new FakeHost();
+    const telemetry = new TelemetryProtocol({
+      host,
+      maxSubscriptionsPerContext: 2,
+    });
+    telemetry.register(server);
+    server.authorize("link-1");
+    subscribe(server, "sub-1", "link-1");
+    subscribe(server, "sub-2", "link-1");
+    /** @type {any[]} */
+    const limited = [];
+    server.addEventListener("subscriptionlimit", (event) =>
+      limited.push(event.detail),
+    );
+    subscribe(server, "sub-3", "link-1");
+    assert.equal(limited.length, 1);
+    assert.equal(limited[0].subId, "sub-3");
+    assert.deepEqual([...telemetry.subscriptions.keys()], ["sub-1", "sub-2"]);
+    // Another context has its own budget.
+    server.authorize("link-2");
+    subscribe(server, "sub-3", "link-2");
+    assert.equal(limited.length, 1);
+    assert.ok(telemetry.subscriptions.has("sub-3"));
+  });
+
+  it("ceilings the client's requested flush interval", async () => {
+    const transport = capture();
+    const server = new RuntimeServer({
+      send: transport.send,
+      capabilities: ["TELEMETRY_READ"],
+    });
+    const host = new FakeHost();
+    const telemetry = new TelemetryProtocol({
+      host,
+      flushCeilingMs: 20,
+    });
+    telemetry.register(server);
+    server.authorize("link-1");
+    // The client asks for a 24-day buffer; the runtime refuses to retain
+    // events that long.
+    server.handleFrame(
+      encodePubsubSub({
+        subId: "sub-1",
+        targetType: "network",
+        targetId: "main",
+        requestedFlushIntervalMs: 2 ** 31,
+      }),
+      "link-1",
+    );
+    host.emit("ip", { type: "data", data: 1 });
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    assert.equal(wire(transport).length, 1, "flushed at the ceiling");
+  });
 });
 
 describe("telemetry: event mapping", () => {

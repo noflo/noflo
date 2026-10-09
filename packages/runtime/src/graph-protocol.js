@@ -51,11 +51,16 @@ export class GraphProtocol {
    *   own operations; defaults to `runtime`.
    * @param {ResourceProvider} [options.resourceProvider] Baseline snapshot
    *   provider for `0x12` stale-epoch replies.
+   * @param {number} [options.maxKnownClocks] Budget for the client logical
+   *   clock map. Clocks arrive from the wire with attacker-chosen client
+   *   ids, so the map is capped: once full, the oldest-learned client is
+   *   evicted. Defaults to 1024.
    */
   constructor(options) {
     this.graph = options.graph;
     this.clientId = options.clientId ?? "runtime";
     this.resourceProvider = options.resourceProvider ?? null;
+    this.maxKnownClocks = options.maxKnownClocks ?? 1024;
     /** @type {number} Logical clock of the runtime's own operations. */
     this.clock = 0;
     /**
@@ -274,6 +279,14 @@ export class GraphProtocol {
    */
   #learnClocks(clocks) {
     for (const [clientId, clock] of Object.entries(clocks ?? {})) {
+      if (!this.knownClocks.has(clientId)) {
+        // A new client at the budget: evict the oldest-learned one — the
+        // clock map is attacker-populated, so it must stay bounded.
+        if (this.knownClocks.size >= this.maxKnownClocks) {
+          const oldest = this.knownClocks.keys().next().value;
+          this.knownClocks.delete(oldest);
+        }
+      }
       const known = this.knownClocks.get(clientId) ?? 0;
       this.knownClocks.set(clientId, Math.max(known, clock));
     }

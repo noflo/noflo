@@ -247,6 +247,35 @@ describe("graph protocol: inbound operations", () => {
     assert.equal(transport.log.broadcast.length, 0);
   });
 
+  it("caps the attacker-populated client clock map", async () => {
+    // Three clients against a budget of two evicts the oldest-learned id.
+    const graph = new GraphModel({ name: "main" });
+    const protocol = new GraphProtocol({ graph, maxKnownClocks: 2 });
+    const transport = capture();
+    const server = new RuntimeServer({
+      send: transport.send,
+      capabilities: ["GRAPH_READ", "GRAPH_EDIT"],
+    });
+    protocol.register(server);
+    server.authorize("link-1");
+    for (const clientId of ["client-a", "client-b", "client-c"]) {
+      server.handleFrame(
+        encodeCrdtUpdate({
+          clientId,
+          logicalClock: 1,
+          opType: OP_TYPE.INSERT_NODE,
+          entityId: `node-${clientId}`,
+          payload: { component: "math/Add" },
+        }),
+        "link-1",
+      );
+    }
+    assert.equal(protocol.knownClocks.size, 2);
+    // The oldest-learned client was evicted, the latest two remain.
+    assert.equal(protocol.knownClocks.has("client-a"), false);
+    assert.equal(protocol.knownClocks.has("client-c"), true);
+  });
+
   it("surfaces model rejections as protocol errors, not crashes", async () => {
     const { server } = await wiredServer();
     /** @type {any[]} */

@@ -424,6 +424,20 @@ describe("Reticulum binding: baseline resources", () => {
     // Deterministic: same bytes, same token.
     assert.equal(await binding.serveResource(bytes), token);
   });
+
+  it("evicts the oldest baseline beyond the resource budget", async () => {
+    const { binding } = wiredBinding();
+    binding.maxResources = 2;
+    const encode = (/** @type {string} */ label) =>
+      new TextEncoder().encode(JSON.stringify({ name: label }));
+    const first = await binding.serveResource(encode("one"));
+    const second = await binding.serveResource(encode("two"));
+    const third = await binding.serveResource(encode("three"));
+    assert.equal(binding.resources.size, 2);
+    assert.equal(binding.resources.has(first), false, "oldest evicted");
+    assert.equal(binding.resources.has(second), true);
+    assert.equal(binding.resources.has(third), true);
+  });
 });
 
 describe("assembly", () => {
