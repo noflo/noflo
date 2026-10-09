@@ -28,7 +28,7 @@ NoFlo itself is just a library for implementing flow-based programs in JavaScrip
 * [NoFlo Development Environment](https://app.noflojs.org) -- browser-based visual programming **IDE** for NoFlo and other flow-based systems
 * [noflo-nodejs](https://github.com/noflo/noflo-nodejs) -- command-line interface for running NoFlo programs on **Node.js**
 * [noflo-browser-app](https://github.com/noflo/noflo-browser-app) -- template for building NoFlo programs for **the web**
-* [noflo-assembly](https://github.com/noflo/noflo-assembly) -- **industrial approach** for designing NoFlo programs
+* [@noflo/assembly](https://github.com/noflo/noflo/tree/master/packages/assembly) -- **industrial approach** for designing NoFlo programs
 * [fbp-spec](https://github.com/flowbased/fbp-spec) -- **data-driven tests** for NoFlo and other FBP environments
 * [flowtrace](https://github.com/flowbased/flowtrace) -- tool for **retroactive debugging** of NoFlo programs. Supports visual replay with Flowhub
 

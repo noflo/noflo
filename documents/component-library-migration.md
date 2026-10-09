@@ -37,6 +37,8 @@ A library is 2.x-compatible when all of the following hold. Treat these as the d
 - Component behavior is covered by fbp-spec suites in `spec/`, executed with `@noflo/fbp-spec-runner`.
 - Behavior the fbp-spec runner cannot express (server lifecycles, error-path assertions, timing) is covered by `node:test` files in `test/`.
 
+**Base-class libraries:** a package whose public surface is a `Component` subclass or message helpers for other libraries to build on — `@noflo/assembly` in the core monorepo is the in-tree example — follows the packaging, tooling, and license rules above but ships no `components/` directory: the Component contract and the fbp-spec floor do not apply. Cover the class API (hook wiring through `process()`, validation, message helpers) with `node:test` suites, and exercise any embedded example graphs through `@noflo/loader-node` discovery instead of publishing them.
+
 ### 1.1 Component discovery in 2.x
 
 NoFlo 2.x core does not discover anything. Applications supply a component registry; on Node.js the registry is provided by `@noflo/loader-node` (`createNodeModulesRegistry(baseDir)`), which discovers components via `fbp-manifest`. Library authors do not instantiate the registry, but the library layout must satisfy what it scans:
@@ -410,6 +412,7 @@ NoFlo 2.x ecosystem packages are published under the `@noflo` npm scope. Map eve
 | `noflo-component-loader` / webpack loader plugins | not needed | 2.x is zero-build; browser apps use static registry literals |
 | `noflo-nodejs` (as a library dependency) | remove | It is a CLI for running graphs, not a library dependency; tests use `@noflo/fbp-spec-runner` |
 | `as-component` | `@noflo/as-component` | Function-to-component generation, if used |
+| `noflo-assembly` | `@noflo/assembly` | Message-relay conventions and the Assembly Line `Component` base class, if used |
 
 Rules:
 

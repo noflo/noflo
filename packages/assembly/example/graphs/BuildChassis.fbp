@@ -1,0 +1,7 @@
+INPORT=BuildFrame.IN:IN
+OUTPORT=MountWheels.OUT:OUT
+
+BuildFrame(example/BuildFrame) -> MountEngine(example/MountEngine) -> MountTransmission(example/MountTransmission) -> MountSuspension(example/MountSuspension) -> MountWheels(example/MountWheels)
+
+'Mercedes V8 5.0' -> ENGINE MountEngine
+'4' -> COUNT MountWheels

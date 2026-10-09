@@ -1,0 +1,15 @@
+INPORT=BuildBase.IN:IN
+OUTPORT=WireElectrics.OUT:OUT
+
+BuildBase(example/BuildBodyBase) -> MountPanels(example/MountPanels) -> SupplyParts(example/SupplyBodyParts)
+
+# This part is silly, but we need to test a component with multiple ins and outs
+'Cool Modern Interior' -> INTERIOR SupplyParts
+'Door' -> DOORTYPE SupplyParts
+'4' -> DOORNUM SupplyParts
+
+SupplyParts MAIN -> InstallInterior(example/MountBodyParts) -> MAIN WireElectrics(example/WireElectrics)
+SupplyParts AUX -> MountDoors(example/MountBodyParts) -> AUX WireElectrics(example/WireElectrics)
+
+'interior' -> PARTNAME InstallInterior
+'doors' -> PARTNAME MountDoors

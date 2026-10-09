@@ -1,0 +1,57 @@
+{
+  "name": "@noflo/assembly",
+  "version": "2.0.0-alpha.2",
+  "description": "Message relay conventions for NoFlo",
+  "keywords": [
+    "noflo",
+    "assembly",
+    "messages"
+  ],
+  "author": "Jon Nordby <jononor@gmail.com>",
+  "contributors": [
+    {
+      "name": "Henri Bergius",
+      "email": "henri.bergius@iki.fi"
+    }
+  ],
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">= 22"
+  },
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noflo/noflo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/noflo/noflo/issues"
+  },
+  "scripts": {
+    "lint": "npx @biomejs/biome check --use-editorconfig=true src/ spec/",
+    "test": "node --test spec/*.js",
+    "types": "find src -name '*.d.ts' -delete && tsc -p tsconfig.json",
+    "test:deno": "deno test --allow-all --no-check spec/*.js",
+    "test:bun": "bun test ./spec/*.js"
+  },
+  "peerDependencies": {
+    "@noflo/noflo": "^2.0.0-alpha.2"
+  },
+  "devDependencies": {
+    "@noflo/fbp": "^2.0.0-alpha.2",
+    "@noflo/loader-node": "^2.0.0-alpha.2",
+    "@noflo/noflo": "^2.0.0-alpha.2",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.0.0"
+  }
+}

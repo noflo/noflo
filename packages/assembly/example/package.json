@@ -1,0 +1,6 @@
+{
+  "name": "example",
+  "version": "0.0.1",
+  "description": "How to build a car with NoFlo ;-)",
+  "type": "module"
+}
