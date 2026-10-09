@@ -1,0 +1,18 @@
+{
+  "name": "@noflo/runtime",
+  "version": "2.0.0-alpha.1",
+  "license": "EUPL-1.2",
+  "exports": {
+    ".": "./src/index.js",
+    "./lxmf": "./src/lxmf.js",
+    "./dacar": "./src/dacar.js"
+  },
+  "publish": {
+    "include": [
+      "src/",
+      "package.json",
+      "jsr.json",
+      "CHANGELOG.md"
+    ]
+  }
+}

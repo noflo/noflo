@@ -82,6 +82,11 @@ export { exportFbpJson, GraphModel, importFbpJson } from "@noflo/graph";
 // platform-specific discovery is provided by registry implementations like
 // [@noflo/loader-node](https://jsr.io/@noflo/loader-node).
 export { ComponentLoader } from "./ComponentLoader.js";
+// ### Network
+//
+// The Network class, for runtimes and tools that build on the engine
+// directly (1.x exported it; the 2.x native-graph model keeps that surface).
+export { Network } from "./Network.js";
 // ### Platform detection
 //
 // NoFlo works on both Node.js and the browser. Because some dependencies are different,
