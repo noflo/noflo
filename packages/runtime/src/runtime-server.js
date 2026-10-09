@@ -95,8 +95,10 @@ export class RuntimeServer extends EventTarget {
    * @param {number} [options.protocolVersion] Defaults to {@link PROTOCOL_VERSION}.
    * @param {(bytes: Uint8Array, context: any) => void} [options.send] Deliver
    *   a frame to one client context.
-   * @param {(bytes: Uint8Array) => void} [options.broadcast] Deliver a frame
-   *   to every authorized client context.
+   * @param {(bytes: Uint8Array, exceptContext?: any) => void} [options.broadcast] Deliver
+   *   a frame to every authorized client context except the given one, if
+   *   any — used to converge operation logs without echoing an operation
+   *   back to its origin.
    */
   constructor(options = {}) {
     super();
@@ -114,7 +116,7 @@ export class RuntimeServer extends EventTarget {
     this.protocolVersion = options.protocolVersion ?? PROTOCOL_VERSION;
     /** @type {(bytes: Uint8Array, context: any) => void} */
     this.send = options.send ?? (() => {});
-    /** @type {(bytes: Uint8Array) => void} */
+    /** @type {(bytes: Uint8Array, exceptContext?: any) => void} */
     this.broadcast = options.broadcast ?? (() => {});
     /** @type {Map<number, (decoded: any, context: any) => any>} */
     this.handlers = new Map();

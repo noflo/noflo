@@ -13,5 +13,6 @@
 
 /* @ts-self-types="./index.d.ts" */
 
+export { GraphProtocol } from "./graph-protocol.js";
 export { RegistryProtocol } from "./registry-protocol.js";
 export { capabilitiesMask, RuntimeServer } from "./runtime-server.js";
