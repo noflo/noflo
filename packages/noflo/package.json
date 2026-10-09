@@ -8,7 +8,7 @@
     "noflo"
   ],
   "author": "Henri Bergius <henri.bergius@iki.fi>",
-  "version": "2.0.0-alpha.2",
+  "version": "2.0.0-alpha.1",
   "license": "MIT",
   "engines": {
     "node": ">= 22"
