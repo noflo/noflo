@@ -17,6 +17,8 @@
  *   package.
  */
 
+/* @ts-self-types="./lxmf.d.ts" */
+
 import { encodeLxmTelemetry } from "@noflo/fbp-protocol";
 import { LXMessage } from "@reticulum/lxmf";
 
