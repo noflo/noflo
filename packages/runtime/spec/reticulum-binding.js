@@ -82,8 +82,19 @@ class FakeDestination extends EventTarget {
 class FakeLink extends EventTarget {
   constructor() {
     super();
-    /** @type {Uint8Array[]} */
+    /** @type {Uint8Array[]} Decoded payloads of packets sent over the link. */
     this.sent = [];
+  }
+
+  /**
+   * The real link's send takes a Packet and encrypts; the fake records the
+   * plaintext payload.
+   *
+   * @param {{ payload: Uint8Array }} packet
+   * @returns {Promise<void>}
+   */
+  async send(packet) {
+    this.sent.push(packet.payload);
   }
 
   /**
@@ -166,7 +177,7 @@ describe("Reticulum binding: announce", () => {
 describe("Reticulum binding: link lifecycle", () => {
   it("authorizes on identify and routes decrypted link data", async () => {
     const wired = wiredBinding();
-    const { binding, log, destination } = wired;
+    const { binding, destination } = wired;
     /** @type {FakeLink|null} */
     let link = null;
     destination.respondToLinkRequest = async () => {
@@ -183,15 +194,15 @@ describe("Reticulum binding: link lifecycle", () => {
     assert.ok(link, "the handshake produced a wired link");
 
     // The peer identifies itself; the runtime unilaterally advertises its
-    // capabilities.
-    /** @type {FakeLink} */ (link).dispatchEvent(
+    // capabilities over the link.
+    const wiredLink = /** @type {FakeLink} */ (link);
+    wiredLink.dispatchEvent(
       new globalThis.CustomEvent("identify", { detail: {} }),
     );
-    assert.equal(log.sent.length, 1);
-    const decoded = decodeAuthResponse(log.sent[0].bytes);
+    assert.equal(wiredLink.sent.length, 1);
+    const decoded = decodeAuthResponse(wiredLink.sent[0]);
     assert.equal(decoded.cmd, CMD_AUTH_RESPONSE);
     assert.equal(decoded.protocolVersion, PROTOCOL_VERSION);
-    assert.equal(log.sent[0].context, link);
   });
 
   it("feeds link frames to the server and closes subscriptions with the link", async () => {
@@ -300,13 +311,24 @@ describe("assembly", () => {
     runtime.graph.resourceProvider = async (bytes) =>
       binding.serveResource(bytes);
     await binding.start();
-    // A stale sync produces a 0x12 with the binding's content-addressed token.
-    runtime.server.handleFrame(encodeCrdtSyncReq("0000", {}), "link-1");
+    // A stale sync produces a 0x12 with the binding's content-addressed
+    // token. The binding delivers to link contexts: the fake context
+    // records the packets the real link would encrypt.
+    /** @type {Uint8Array[]} */
+    const sentPackets = [];
+    const linkContext = {
+      send: async (/** @type {{ payload: Uint8Array }} */ packet) => {
+        sentPackets.push(packet.payload);
+      },
+    };
+    runtime.server.handleFrame(encodeCrdtSyncReq("0000", {}), linkContext);
     // The handshake hashes the epoch asynchronously; wait for the reply.
-    while (log.sent.length === 0) {
+    const deadline = Date.now() + 5000;
+    while (sentPackets.length === 0 && Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, 5));
     }
-    const decoded = decodeCrdtStaleEpoch(log.sent[0].bytes);
+    assert.ok(sentPackets.length > 0, "the stale-epoch reply is delivered");
+    const decoded = decodeCrdtStaleEpoch(sentPackets[0]);
     assert.match(decoded.rnsResourceHash, /^[0-9a-f]{32}$/);
     const handler = destination.requestHandlers.get(decoded.rnsResourceHash);
     const served = handler.responseGenerator();

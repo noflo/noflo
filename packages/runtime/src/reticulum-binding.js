@@ -29,7 +29,14 @@
  */
 
 import { ANNOUNCE_ASPECT, encodeAnnounceAppData } from "@noflo/fbp-protocol";
-import { Destination, DestType, Identity, LinkStatus } from "@reticulum/core";
+import {
+  Destination,
+  DestType,
+  Identity,
+  LinkStatus,
+  Packet,
+  PacketType,
+} from "@reticulum/core";
 
 /**
  * The default destination aspect runtimes announce under: the protocol's
@@ -80,6 +87,8 @@ export class ReticulumBinding extends EventTarget {
         ));
     /** @type {import("@reticulum/core").Destination|null} */
     this.destination = null;
+    /** @type {Set<import("@reticulum/core").Link>} Live links, for broadcast. */
+    this.links = new Set();
     /** @type {Map<string, Uint8Array>} Served baseline resources, token → bytes. */
     this.resources = new Map();
   }
@@ -99,12 +108,21 @@ export class ReticulumBinding extends EventTarget {
       destinationHash: destination.destinationHash,
       nodeName: this.nodeName,
     });
+    // Bind the destination to the transport: without registration, inbound
+    // LINKREQUESTs addressed to its hash are dropped as "not addressed to
+    // us". Test fakes have no RNS instance to register with.
+    this.reticulum.registerDestination?.(destination);
     destination.addEventListener("link_request", (/** @type {any} */ event) => {
       this.#onLinkRequest(event.detail).catch((error) => {
         this.#emit("error", { error, detail: event.detail });
       });
     });
     this.destination = destination;
+    // The binding is the transport: from here on, the server's send and
+    // broadcast deliver frames over links.
+    this.server.send = (bytes, context) => this.deliver(bytes, context);
+    this.server.broadcast = (bytes, exceptContext) =>
+      this.broadcast(bytes, exceptContext);
     destination.startAnnouncing(
       this.announceIntervalMs === undefined
         ? {}
@@ -148,7 +166,58 @@ export class ReticulumBinding extends EventTarget {
     if (!link) {
       return;
     }
+    this.links.add(link);
     this.#wireLink(link);
+  }
+
+  /**
+   * Deliver one frame to one link context.
+   *
+   * @param {Uint8Array} bytes
+   * @param {any} context The link the frame is bound for.
+   * @returns {void}
+   */
+  deliver(bytes, context) {
+    if (typeof context?.send !== "function") {
+      // Not a link context: frames only travel over links.
+      this.#emit("error", {
+        error: new Error("cannot deliver: context is not a link"),
+        detail: { bytes },
+      });
+      return;
+    }
+    this.#transmit(context, bytes);
+  }
+
+  /**
+   * Deliver one frame to every live link except the given one.
+   *
+   * @param {Uint8Array} bytes
+   * @param {any} [exceptContext]
+   * @returns {void}
+   */
+  broadcast(bytes, exceptContext) {
+    for (const link of this.links) {
+      if (link !== exceptContext) {
+        this.#transmit(link, bytes);
+      }
+    }
+  }
+
+  /**
+   * @param {import("@reticulum/core").Link} link
+   * @param {Uint8Array} bytes
+   * @returns {void}
+   */
+  #transmit(link, bytes) {
+    // The link outbound path overrides the destination; the Packet typedef
+    // marks destinationHash required regardless.
+    const packet = new Packet(
+      /** @type {any} */ ({ packetType: PacketType.DATA, payload: bytes }),
+    );
+    link.send(packet).catch((error) => {
+      this.#emit("error", { error, detail: { link, bytes } });
+    });
   }
 
   /**
@@ -170,6 +239,7 @@ export class ReticulumBinding extends EventTarget {
     link.addEventListener("statuschange", (/** @type {any} */ event) => {
       if (event.detail.status === LinkStatus.CLOSED) {
         // Subscriptions and other per-link state live with the link.
+        this.links.delete(link);
         this.#emit("linkclosed", { link });
       }
     });
