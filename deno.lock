@@ -598,6 +598,7 @@
             "npm:@noflo/graph@^2.0.0-alpha.1",
             "npm:@noflo/noflo@^2.0.0-alpha.1",
             "npm:@reticulum/core@~0.9.7",
+            "npm:@reticulum/dacar@^1.1.0",
             "npm:@reticulum/lxmf@~0.9.7",
             "npm:@reticulum/node@~0.9.7"
           ]
