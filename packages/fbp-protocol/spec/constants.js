@@ -217,6 +217,8 @@ describe("execution control actions", () => {
     assert.equal(RUN_ACTION.PAUSE, 0x01);
     assert.equal(RUN_ACTION.RESUME, 0x02);
     assert.equal(RUN_ACTION.STEP, 0x03);
+    assert.equal(RUN_ACTION.START, 0x04);
+    assert.equal(RUN_ACTION.STOP, 0x05);
     assert.equal(PROCESS_ACTION.DISABLE, 0x01);
     assert.equal(PROCESS_ACTION.ENABLE, 0x02);
   });

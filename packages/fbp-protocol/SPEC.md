@@ -384,9 +384,15 @@ depth is physics, not protocol.
 | `0x01` | Pause — stop processing queued events                   |
 | `0x02` | Resume                                                  |
 | `0x03` | Step — process exactly one queued event, remain paused  |
+| `0x04` | Start — build and start the network                     |
+| `0x05` | Stop — stop the running network                         |
 
 Stepping while paused processes one queued event and leaves the runtime
-paused; the step's own flowtrace events show what ran.
+paused; the step's own flowtrace events show what ran. Start and stop are
+the lifecycle control the `LIFECYCLE_CTRL` capability names: a start that
+the runtime rejects (component startup failure, graph error) surfaces as a
+`0x04 FAILED` lifecycle event with the detail in an accompanying `0x04
+ERROR` event (WD #4 update #1), not as silence.
 **`0x41` CMD_BREAKPOINT_SET** — set a data breakpoint:
 `[0x41, breakpoint_id, node_id, port]`. The runtime pauses when a packet
 arrives at the node — at any triggering inport when `port` is nil,

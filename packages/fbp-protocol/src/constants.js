@@ -360,7 +360,10 @@ export const CMD_PROCESS_CTRL = 0x43;
  * Actions of `0x40 CMD_RUN_CTRL`. `STEP` processes exactly one queued event
  * and then remains paused; pause stops the processing of queued events while
  * in-flight packets complete and further packets keep buffering under the
- * runtime's backpressure policy.
+ * runtime's backpressure policy. `START` and `STOP` drive the network's
+ * lifecycle: a rejected start surfaces as a `0x04 FAILED` lifecycle event
+ * with the detail in an accompanying `0x04 ERROR` event (work document #4
+ * updates #1 and #20).
  *
  * @type {Record<string, number>}
  */
@@ -368,6 +371,8 @@ export const RUN_ACTION = {
   PAUSE: 0x01,
   RESUME: 0x02,
   STEP: 0x03,
+  START: 0x04,
+  STOP: 0x05,
 };
 
 /**

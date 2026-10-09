@@ -45,7 +45,7 @@ import {
 } from "../src/index.js";
 
 describe("0x40 CMD_RUN_CTRL", () => {
-  it("round-trips pause, resume, and step", () => {
+  it("round-trips every action", () => {
     for (const action of Object.values(RUN_ACTION)) {
       const decoded = decodeRunCtrl(encodeRunCtrl(action));
       assert.equal(decoded.cmd, CMD_RUN_CTRL);
@@ -58,7 +58,7 @@ describe("0x40 CMD_RUN_CTRL", () => {
   });
 
   it("rejects unknown actions", () => {
-    assert.throws(() => encodeRunCtrl(0x04), ProtocolError);
+    assert.throws(() => encodeRunCtrl(0x06), ProtocolError);
     const frame = new Uint8Array([0x92, 0x40, 0x09]);
     assert.throws(() => decodeRunCtrl(frame), ProtocolError);
   });
