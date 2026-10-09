@@ -1,42 +1,50 @@
 {
-  "name": "noflo-assembly",
-  "version": "0.3.1",
-  "description": "Industrial approach to writing NoFlo applications",
-  "main": "index.js",
-  "types": "index.d.ts",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/noflo/noflo-assembly.git"
-  },
-  "scripts": {
-    "lint": "eslint src/*.js example/components/*.js spec/*.js",
-    "build": "tsc",
-    "pretest": "npm run build && npm run lint",
-    "test": "mocha -R spec spec/*.js"
-  },
+  "name": "@noflo/assembly",
+  "description": "Message relay conventions for NoFlo",
+  "version": "2.0.0-alpha.1",
   "keywords": [
     "noflo",
-    "ecosystem:noflo",
-    "ecosystem:noflo-assembly"
+    "assembly",
+    "messages"
   ],
-  "author": "Vladimir Sibirov",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/noflo/noflo-assembly/issues"
+  "author": "Jon Nordby <jononor@gmail.com>",
+  "contributors": [
+    {
+      "name": "Henri Bergius",
+      "email": "henri.bergius@iki.fi"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/noflo/noflo-assembly"
   },
-  "homepage": "https://github.com/noflo/noflo-assembly/wiki",
+  "license": "MIT",
   "dependencies": {
-    "noflo": "^1.0.0"
+    "@noflo/noflo": "^2.0.0-alpha.2"
   },
   "devDependencies": {
-    "@types/node": "^14.14.12",
-    "chai": "^4.1.2",
-    "eslint": "^7.7.0",
-    "eslint-config-airbnb-base": "^14.2.0",
-    "eslint-plugin-import": "^2.22.0",
-    "mocha": "^8.1.3",
-    "noflo": "^1.4.2",
-    "noflo-wrapper": "^0.5.0",
-    "typescript": "^4.1.2"
-  }
+    "@biomejs/biome": "^2.0.0",
+    "@noflo/fbp": "^2.0.0-alpha.1",
+    "@noflo/loader-node": "^2.0.0-alpha.1",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "lint": "npx @biomejs/biome check --use-editorconfig=true src/ test/",
+    "format": "npx @biomejs/biome check --use-editorconfig=true --write src/ test/",
+    "types": "tsc -p tsconfig.json",
+    "test": "npm run types && npm run lint && npm run test:node",
+    "test:node": "node --test test/*.test.js"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "src/",
+    "test/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ]
 }

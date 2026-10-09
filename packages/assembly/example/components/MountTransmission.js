@@ -1,4 +1,4 @@
-const { Component } = require('../../index');
+import { Component } from "../../src/index.js";
 
 class MountTransmission extends Component {
   constructor() {
@@ -14,4 +14,6 @@ class MountTransmission extends Component {
   }
 }
 
-exports.getComponent = () => new MountTransmission();
+export function getComponent() {
+  return new MountTransmission();
+}

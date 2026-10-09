@@ -1,4 +1,4 @@
-const { Component, merge, fail } = require('../../index');
+import { Component, merge, fail } from "../../src/index.js";
 
 class CombineAssemblies extends Component {
   constructor() {
@@ -8,7 +8,7 @@ class CombineAssemblies extends Component {
     });
   }
 
-  handle(input, output) {
+  processMessage(input, output) {
     if (!input.hasData('b', 'c')) { return null; }
 
     const b = input.getData('b');
@@ -43,4 +43,6 @@ class CombineAssemblies extends Component {
   }
 }
 
-exports.getComponent = () => new CombineAssemblies();
+export function getComponent() {
+  return new CombineAssemblies();
+}

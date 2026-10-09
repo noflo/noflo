@@ -1,4 +1,4 @@
-const { Component, fork } = require('../../index');
+import { Component, fork } from "../../src/index.js";
 
 class SplitAssemblies extends Component {
   constructor() {
@@ -9,7 +9,7 @@ class SplitAssemblies extends Component {
     });
   }
 
-  handle(input, output) {
+  processMessage(input, output) {
     if (!input.hasData('in')) { return null; }
     const msg = input.getData('in');
     // We have to call error check and validation manually
@@ -29,4 +29,6 @@ class SplitAssemblies extends Component {
   }
 }
 
-exports.getComponent = () => new SplitAssemblies();
+export function getComponent() {
+  return new SplitAssemblies();
+}

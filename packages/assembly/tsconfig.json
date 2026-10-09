@@ -1,18 +1,13 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
     "allowJs": true,
     "checkJs": true,
-    "outDir": ".",
-    "declaration": true,
+    "noEmit": true,
     "strict": true,
-    "rootDir": "src"
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "skipLibCheck": true
   },
-  "include": [
-    "src/*.js",
-  ],
-  "exclude": [
-    "*.js",
-  ]
+  "include": ["src/", "test/"]
 }

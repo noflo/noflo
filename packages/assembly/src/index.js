@@ -1,4 +1,4 @@
-import { Component as NoFloComponent } from 'noflo';
+import { Component as NoFloComponent } from "@noflo/noflo";
 
 /**
  * @typedef {{ errors: Error[], [key: string]: any }} AssemblyMessage
@@ -15,19 +15,19 @@ import { Component as NoFloComponent } from 'noflo';
 /**
  * @callback RelayFunction
  * @param {AssemblyMessage} msg
- * @param {import("noflo/lib/ProcessOutput").default} output
+ * @param {{ sendDone(map: Record<string, unknown>): void }} output
  */
 
 /** @type {AssemblyValidatorFunctions} */
 const validators = {
   def: (val) => val !== undefined,
-  set: (val) => (val !== undefined) && (val !== null),
+  set: (val) => val !== undefined && val !== null,
   ok: (val) => !!val,
-  num: (val) => typeof val === 'number',
-  str: (val) => typeof val === 'string',
-  obj: (val) => (typeof val === 'object') && (val !== null),
-  func: (val) => typeof val === 'function',
-  '>0': (val) => val > 0,
+  num: (val) => typeof val === "number",
+  str: (val) => typeof val === "string",
+  obj: (val) => typeof val === "object" && val !== null,
+  func: (val) => typeof val === "function",
+  ">0": (val) => val > 0,
 };
 
 /** @type {AssemblyErrorMessages} */
@@ -39,7 +39,7 @@ const errorMessages = {
   str: (key, val) => `${key} is not a string: ${val}`,
   obj: (key, val) => `${key} is not an object: ${val}`,
   func: (key, val) => `${key} is not a function: ${val}`,
-  '>0': (key, val) => `${key} is not positive: ${val}`,
+  ">0": (key, val) => `${key} is not positive: ${val}`,
 };
 
 /**
@@ -49,10 +49,12 @@ const errorMessages = {
  */
 export function fail(msg, err) {
   if (!Array.isArray(msg.errors)) {
-    throw new Error('Message.errors is not an array');
+    throw new Error("Message.errors is not an array");
   }
   const errs = Array.isArray(err) ? err : [err];
-  errs.forEach((e) => msg.errors.push(e));
+  for (const e of errs) {
+    msg.errors.push(e);
+  }
   return msg;
 }
 
@@ -80,16 +82,16 @@ function normalizePorts(options, direction) {
       const tmp = {};
       const portsArray = /** @type {Array<string>} */ (options[key]);
       portsArray.forEach((name) => {
-        tmp[name] = { datatype: 'all' };
+        tmp[name] = { datatype: "all" };
       });
       result[key] = tmp;
     } // else is normal NoFlo ports object
   } else {
     // Default to single port
-    const dir = direction === 'out' ? 'Outgoing' : 'Incoming';
+    const dir = direction === "out" ? "Outgoing" : "Incoming";
     result[key] = {
       [direction]: {
-        datatype: 'object',
+        datatype: "object",
         description: `${dir} message`,
         required: true,
       },
@@ -108,7 +110,7 @@ function normalizeValidators(rules) {
     /** @type {AssemblyValidators} */
     const res = {};
     rules.forEach((f) => {
-      res[f] = 'ok';
+      res[f] = "ok";
     });
     return res;
   }
@@ -116,29 +118,36 @@ function normalizeValidators(rules) {
 }
 
 /**
- * @typedef {Object} AssemblyComponentOptions
+ * @typedef {Object<string, any>} AssemblyComponentOptions
+ * @property {string} [description]
+ * @property {string} [icon]
+ * @property {Object<string, any>} [inPorts]
+ * @property {Object<string, any>} [outPorts]
  * @property {AssemblyValidators|Array<string>} [validates]
  */
 
 export class Component extends NoFloComponent {
   /**
-   * @param {import("noflo/lib/Component").ComponentOptions & AssemblyComponentOptions} [options]
+   * @param {AssemblyComponentOptions} [options]
    */
   constructor(options = {}) {
-    let opts = normalizePorts(options, 'in');
-    opts = normalizePorts(opts, 'out');
+    let opts = normalizePorts(options, "in");
+    opts = normalizePorts(opts, "out");
     super(opts);
-    /** @type {RelayFunction|null} */
-    this.relay = this.relay || null;
     if (options.validates) {
       this.validates = normalizeValidators(options.validates);
     }
 
-    if (typeof this.relay === 'function') {
-      const func = /** @type {RelayFunction} */ (this.relay.bind(this));
+    const relay = /** @type {RelayFunction|undefined} */ (
+      /** @type {unknown} */ (this.relay)
+    );
+    if (typeof relay === "function") {
+      const func = relay.bind(this);
       this.process((input, output) => {
-        if (!input.hasData('in')) { return; }
-        const msg = input.getData('in');
+        if (!input.hasData("in")) {
+          return;
+        }
+        const msg = input.getData("in");
         if (!this.validate(msg)) {
           output.sendDone(msg);
           return;
@@ -146,8 +155,12 @@ export class Component extends NoFloComponent {
         func(msg, output);
       });
     }
-    if (typeof this.handle === 'function') {
-      this.process(this.handle);
+    const processMessage =
+      /** @type {undefined | ((input: any, output: any) => any)} */ (
+        /** @type {unknown} */ (this.processMessage)
+      );
+    if (typeof processMessage === "function") {
+      this.process(processMessage);
     }
   }
 
@@ -166,9 +179,11 @@ export class Component extends NoFloComponent {
      * @param {string} validator
      */
     function checkField(obj, objPath, path, validator) {
-      if (!obj || (path.length <= 0)) { return; }
+      if (!obj || path.length <= 0) {
+        return;
+      }
       const key = /** @type {string} */ (path.shift());
-      const v = path.length === 0 ? validator : 'obj';
+      const v = path.length === 0 ? validator : "obj";
       if (!validators[v](obj[key])) {
         errors.push(new Error(errorMessages[v](`${objPath}.${key}`, obj[key])));
         return;
@@ -179,10 +194,12 @@ export class Component extends NoFloComponent {
     }
 
     Object.keys(rules).forEach((f) => {
-      const path = f.indexOf('.') > 0 ? f.split('.') : [f];
+      const path = f.indexOf(".") > 0 ? f.split(".") : [f];
       let v = rules[f];
-      if (!(v in validators)) { v = 'ok'; }
-      checkField(msg, 'msg', path, v);
+      if (!(v in validators)) {
+        v = "ok";
+      }
+      checkField(msg, "msg", path, v);
     });
     return errors;
   }
@@ -195,7 +212,7 @@ export class Component extends NoFloComponent {
     if (failed(msg)) {
       return false;
     }
-    if (rules && typeof rules === 'object') {
+    if (rules && typeof rules === "object") {
       rules = normalizeValidators(rules);
       const errs = this.checkFields(msg, rules);
       if (errs.length > 0) {
@@ -216,11 +233,15 @@ export class Component extends NoFloComponent {
 export function fork(msg, excludeKeys = [], cloneKeys = []) {
   /** @type {AssemblyMessage} */
   const newMsg = {
-    errors: cloneKeys.includes('error') ? msg.errors.slice(0) : msg.errors,
+    errors: cloneKeys.includes("error") ? msg.errors.slice(0) : msg.errors,
   };
   Object.keys(msg).forEach((key) => {
-    if (key === 'errors') { return; }
-    if (excludeKeys.includes(key)) { return; }
+    if (key === "errors") {
+      return;
+    }
+    if (excludeKeys.includes(key)) {
+      return;
+    }
     if (cloneKeys.includes(key)) {
       newMsg[key] = JSON.parse(JSON.stringify(msg[key]));
     } else {
@@ -239,7 +260,10 @@ export function merge(base, extra) {
   const combined = base;
   const baseKeys = Object.keys(base);
   Object.keys(extra).forEach((key) => {
-    if ((baseKeys.indexOf(key) === -1 || base[key] === undefined) && extra[key] !== undefined) {
+    if (
+      (baseKeys.indexOf(key) === -1 || base[key] === undefined) &&
+      extra[key] !== undefined
+    ) {
       combined[key] = extra[key];
     }
   });

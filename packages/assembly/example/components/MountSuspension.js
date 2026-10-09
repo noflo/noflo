@@ -1,4 +1,4 @@
-const { Component } = require('../../index');
+import { Component } from "../../src/index.js";
 
 class MountSuspension extends Component {
   // Can skip constructor
@@ -12,6 +12,8 @@ class MountSuspension extends Component {
   }
 }
 
-exports.getComponent = () => new MountSuspension({
+export function getComponent() {
+  return new MountSuspension({
   description: 'Mounts suspension',
 });
+}

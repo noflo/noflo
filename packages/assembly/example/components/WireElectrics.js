@@ -1,4 +1,4 @@
-const { Component } = require('../../index');
+import { Component } from "../../src/index.js";
 
 class WireElectrics extends Component {
   constructor() {
@@ -9,7 +9,7 @@ class WireElectrics extends Component {
     });
   }
 
-  handle(input, output) {
+  processMessage(input, output) {
     if (!input.hasData('main', 'aux')) { return null; }
 
     const main = input.getData('main');
@@ -29,4 +29,6 @@ class WireElectrics extends Component {
   }
 }
 
-exports.getComponent = () => new WireElectrics();
+export function getComponent() {
+  return new WireElectrics();
+}

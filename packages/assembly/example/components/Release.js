@@ -1,4 +1,4 @@
-const { Component, failed } = require('../../index');
+import { Component, failed } from "../../src/index.js";
 
 class Release extends Component {
   constructor() {
@@ -25,4 +25,6 @@ class Release extends Component {
   }
 }
 
-exports.getComponent = () => new Release();
+export function getComponent() {
+  return new Release();
+}

@@ -1,4 +1,4 @@
-const { Component } = require('../../index');
+import { Component } from "../../src/index.js";
 
 class MountBodyParts extends Component {
   constructor() {
@@ -22,7 +22,7 @@ class MountBodyParts extends Component {
     });
   }
 
-  handle(input, output) {
+  processMessage(input, output) {
     if (!input.hasData('in', 'partname')) { return null; }
 
     const msg = input.getData('in');
@@ -40,4 +40,6 @@ class MountBodyParts extends Component {
   }
 }
 
-exports.getComponent = () => new MountBodyParts();
+export function getComponent() {
+  return new MountBodyParts();
+}

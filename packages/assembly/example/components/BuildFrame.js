@@ -1,4 +1,4 @@
-const { Component } = require('../../index');
+import { Component } from "../../src/index.js";
 
 class BuildFrame extends Component {
   constructor() {
@@ -9,6 +9,10 @@ class BuildFrame extends Component {
     });
   }
 
+  /**
+   * @param {Record<string, any>} msg
+   * @param {{ sendDone(map: Record<string, unknown>): void, done(): void }} output
+   */
   relay(msg, output) {
     msg.chassis = {
       id: msg.id,
@@ -18,4 +22,6 @@ class BuildFrame extends Component {
   }
 }
 
-exports.getComponent = () => new BuildFrame();
+export function getComponent() {
+  return new BuildFrame();
+}

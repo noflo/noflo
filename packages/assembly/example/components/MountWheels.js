@@ -1,4 +1,4 @@
-const { Component } = require('../../index');
+import { Component } from "../../src/index.js";
 
 class MountWheels extends Component {
   constructor() {
@@ -19,7 +19,7 @@ class MountWheels extends Component {
     });
   }
 
-  handle(input, output) {
+  processMessage(input, output) {
     if (!input.hasData('in', 'count')) { return null; }
 
     const msg = input.getData('in');
@@ -38,4 +38,6 @@ class MountWheels extends Component {
   }
 }
 
-exports.getComponent = () => new MountWheels();
+export function getComponent() {
+  return new MountWheels();
+}

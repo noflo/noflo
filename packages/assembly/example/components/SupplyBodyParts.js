@@ -1,4 +1,4 @@
-const { Component } = require('../../index');
+import { Component } from "../../src/index.js";
 
 class SupplyBodyParts extends Component {
   constructor() {
@@ -42,7 +42,7 @@ class SupplyBodyParts extends Component {
     });
   }
 
-  handle(input, output) {
+  processMessage(input, output) {
     if (!input.hasData('in', 'interior', 'doortype', 'doornum')) { return null; }
     const msg = input.getData('in');
     const interior = input.getData('interior');
@@ -74,4 +74,6 @@ class SupplyBodyParts extends Component {
   }
 }
 
-exports.getComponent = () => new SupplyBodyParts();
+export function getComponent() {
+  return new SupplyBodyParts();
+}

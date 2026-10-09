@@ -1,4 +1,4 @@
-const { Component } = require('../../index');
+import { Component } from "../../src/index.js";
 
 class BuildBodyBase extends Component {
   constructor() {
@@ -16,4 +16,6 @@ class BuildBodyBase extends Component {
   }
 }
 
-exports.getComponent = () => new BuildBodyBase();
+export function getComponent() {
+  return new BuildBodyBase();
+}

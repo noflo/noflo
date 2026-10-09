@@ -1,4 +1,4 @@
-const { Component } = require('../../index');
+import { Component } from "../../src/index.js";
 
 class MountEngine extends Component {
   constructor() {
@@ -19,7 +19,11 @@ class MountEngine extends Component {
     });
   }
 
-  handle(input, output) {
+  /**
+   * @param {{ hasData(...ports: string[]): boolean, getData(...ports: string[]): any }} input
+   * @param {{ sendDone(map: Record<string, unknown>): void, done(): void }} output
+   */
+  processMessage(input, output) {
     if (!input.hasData('in', 'engine')) { return null; }
 
     const msg = input.getData('in');
@@ -36,4 +40,6 @@ class MountEngine extends Component {
   }
 }
 
-exports.getComponent = () => new MountEngine();
+export function getComponent() {
+  return new MountEngine();
+}

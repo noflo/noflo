@@ -1,5 +1,5 @@
-const { IP } = require('noflo');
-const { Component } = require('../../index');
+import { IP } from "@noflo/noflo";
+import { Component } from "../../src/index.js";
 
 class Order extends Component {
   constructor() {
@@ -9,7 +9,7 @@ class Order extends Component {
     this.counter = 0;
   }
 
-  handle(input, output) {
+  processMessage(input, output) {
     this.counter += 1;
     // Create a new assembly message
     const msg = {
@@ -24,4 +24,6 @@ class Order extends Component {
   }
 }
 
-exports.getComponent = () => new Order();
+export function getComponent() {
+  return new Order();
+}
