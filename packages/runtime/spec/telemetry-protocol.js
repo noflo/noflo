@@ -15,10 +15,8 @@ import { describe, it } from "node:test";
 import { asComponent } from "@noflo/as-component";
 import {
   CMD_FLOWTRACE_CHUNK,
-  CMD_PUBSUB_SUB,
   decodeFlowtraceChunk,
   EVENT_TYPE,
-  encodeFlowtraceChunk,
   encodePubsubSub,
   LIFECYCLE_CODE,
 } from "@noflo/fbp-protocol";

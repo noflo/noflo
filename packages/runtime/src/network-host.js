@@ -32,16 +32,36 @@ export class NetworkHost extends EventTarget {
    * @param {import("@noflo/noflo").ComponentLoader} [options.componentLoader]
    *   Loader resolving component implementations for the network.
    * @param {boolean} [options.asyncDelivery]
+   * @param {number|null} [options.highWaterMark] Network-global backpressure
+   *   default applied when the network is built; the engine resolves the
+   *   high-water mark at edge construction, so runtime changes are pending
+   *   until the next build (see {@link NetworkHost#setHighWaterMark}).
    */
   constructor(options) {
     super();
     this.graph = options.graph;
     this.componentLoader = options.componentLoader ?? null;
     this.asyncDelivery = options.asyncDelivery ?? false;
+    this.pendingHighWaterMark = options.highWaterMark;
     /** @type {import("@noflo/noflo").Network|null} */
     this.network = null;
     /** @type {Promise<import("@noflo/noflo").Network>|null} */
     this.starting = null;
+  }
+
+  /**
+   * Set the network-global high-water mark applied when the network is next
+   * built (work document #4 §8: `0x46 CMD_HWM_SET`). The engine resolves
+   * the high-water mark at edge construction, so a change while a network
+   * runs is deferred — callers signal that to clients through their own
+   * channel (the execution handler emits an ERROR flowtrace event).
+   *
+   * @param {number|null} highWaterMark Non-negative integer (0 synchronous,
+   *   n admitted in-flight) or null (unbounded).
+   * @returns {void}
+   */
+  setHighWaterMark(highWaterMark) {
+    this.pendingHighWaterMark = highWaterMark;
   }
 
   /**
@@ -127,6 +147,9 @@ export class NetworkHost extends EventTarget {
       componentLoader: this.componentLoader ?? undefined,
       delay: true,
       asyncDelivery: this.asyncDelivery,
+      ...(this.pendingHighWaterMark === undefined
+        ? {}
+        : { highWaterMark: this.pendingHighWaterMark }),
     });
     this.#subscribeNetwork(network);
     this.network = network;

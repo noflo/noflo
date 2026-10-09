@@ -82,10 +82,10 @@ export class TelemetryProtocol {
       });
     });
     this.host.addEventListener("start", () => {
-      this.#record(EVENT_TYPE.LIFECYCLE, LIFECYCLE_CODE.START);
+      this.record(EVENT_TYPE.LIFECYCLE, LIFECYCLE_CODE.START);
     });
     this.host.addEventListener("end", () => {
-      this.#record(EVENT_TYPE.LIFECYCLE, LIFECYCLE_CODE.STOP);
+      this.record(EVENT_TYPE.LIFECYCLE, LIFECYCLE_CODE.STOP);
     });
     this.host.addEventListener("ip", (/** @type {any} */ event) => {
       this.#recordIp(event.detail);
@@ -137,13 +137,13 @@ export class TelemetryProtocol {
   #recordIp(ip) {
     switch (ip?.type) {
       case "openBracket":
-        this.#record(EVENT_TYPE.BEGIN_GROUP, ip.data ?? "");
+        this.record(EVENT_TYPE.BEGIN_GROUP, ip.data ?? "");
         break;
       case "closeBracket":
-        this.#record(EVENT_TYPE.END_GROUP, ip.data ?? "");
+        this.record(EVENT_TYPE.END_GROUP, ip.data ?? "");
         break;
       case "data":
-        this.#record(EVENT_TYPE.DATA, ip.data);
+        this.record(EVENT_TYPE.DATA, ip.data);
         break;
       default:
         // Connect/disconnect and other socket events are not flowtrace
@@ -170,7 +170,7 @@ export class TelemetryProtocol {
       error?.name === this.stubErrorName
         ? EVENT_TYPE.STUB_ERROR
         : EVENT_TYPE.ERROR;
-    this.#record(type, message);
+    this.record(type, message);
   }
 
   /**
@@ -180,7 +180,14 @@ export class TelemetryProtocol {
    * @param {any} payload
    * @returns {void}
    */
-  #record(eventType, payload) {
+  /**
+   * Record one event into every subscription's buffer.
+   *
+   * @param {number} eventType
+   * @param {any} payload
+   * @returns {void}
+   */
+  record(eventType, payload) {
     if (this.subscriptions.size === 0) {
       return;
     }
