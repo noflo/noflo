@@ -1,0 +1,50 @@
+{
+  "name": "@noflo/assembly",
+  "description": "Message relay conventions for NoFlo",
+  "version": "2.0.0-alpha.1",
+  "keywords": [
+    "noflo",
+    "assembly",
+    "messages"
+  ],
+  "author": "Jon Nordby <jononor@gmail.com>",
+  "contributors": [
+    {
+      "name": "Henri Bergius",
+      "email": "henri.bergius@iki.fi"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/noflo/noflo-assembly"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@noflo/noflo": "^2.0.0-alpha.2"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
+    "@noflo/fbp": "^2.0.0-alpha.1",
+    "@noflo/loader-node": "^2.0.0-alpha.1",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "lint": "npx @biomejs/biome check --use-editorconfig=true src/ test/",
+    "format": "npx @biomejs/biome check --use-editorconfig=true --write src/ test/",
+    "types": "tsc -p tsconfig.json",
+    "test": "npm run types && npm run lint && npm run test:node",
+    "test:node": "node --test test/*.test.js"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "src/",
+    "test/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ]
+}

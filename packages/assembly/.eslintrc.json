@@ -1,0 +1,13 @@
+{
+    "extends": "airbnb-base",
+    "plugins": [
+        "import"
+    ],
+    "rules": {
+      "class-methods-use-this": 0, // for terse defs
+      "import/no-extraneous-dependencies": 0, // for test dependencies
+      "no-console": 0, // example needs output
+      "no-param-reassign": 0, // for terse defs
+      "no-unused-expressions": 0 // for chai
+    }
+}

@@ -1,0 +1,9 @@
+INPORT=Order.IN:IN
+OUTPORT=Release.OUT:OUT
+
+Order(example/Order) -> Split(example/SplitAssemblies)
+
+Split C -> BuildChassis(example/BuildChassis) -> C Combine(example/CombineAssemblies)
+Split B -> BuildBody(example/BuildBody) -> B Combine
+
+Combine -> Release(example/Release)
