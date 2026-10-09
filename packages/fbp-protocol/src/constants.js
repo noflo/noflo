@@ -20,6 +20,17 @@
  */
 export const PROTOCOL_VERSION = 2;
 
+/**
+ * The destination aspect runtimes announce under: `fbp.runtime` (work
+ * document #4 §3). A stable discovery filter — the aspect name is never
+ * versioned, announce app_data is the version advertisement — and it is
+ * named for the protocol, not any single runtime: NoFlo, MicroFlo, and
+ * other FBP runtimes share one discovery namespace.
+ *
+ * @type {string}
+ */
+export const ANNOUNCE_ASPECT = "fbp.runtime";
+
 // --- Transport & identity (0x00 - 0x0F) ---
 
 /**

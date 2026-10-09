@@ -11,6 +11,7 @@ import assert from "node:assert";
 import { describe, it } from "node:test";
 
 import {
+  ANNOUNCE_ASPECT,
   CAPABILITY,
   CMD_AUTH_RESPONSE,
   CMD_BREAKPOINT_CLEAR,
@@ -49,6 +50,10 @@ import {
 describe("protocol version", () => {
   it("is generation 2 per the FBP Protocol 2.0 design", () => {
     assert.equal(PROTOCOL_VERSION, 2);
+  });
+
+  it("announces under the protocol-named aspect, never versioned", () => {
+    assert.equal(ANNOUNCE_ASPECT, "fbp.runtime");
   });
 });
 

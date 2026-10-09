@@ -42,5 +42,8 @@
     "@noflo/noflo": "^2.0.0-alpha.1",
     "@reticulum/core": "^0.9.7",
     "@reticulum/lxmf": "^0.9.7"
+  },
+  "devDependencies": {
+    "@reticulum/node": "^0.9.7"
   }
 }

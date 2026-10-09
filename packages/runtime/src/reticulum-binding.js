@@ -28,18 +28,17 @@
  *   browsers). The destination is injectable for testing.
  */
 
-import { encodeAnnounceAppData } from "@noflo/fbp-protocol";
+import { ANNOUNCE_ASPECT, encodeAnnounceAppData } from "@noflo/fbp-protocol";
 import { Destination, DestType, Identity, LinkStatus } from "@reticulum/core";
 
 /**
- * The default destination aspect runtimes announce under. A stable
- * discovery filter: the aspect name is never versioned (work document #4
- * §3); app_data is the version advertisement. Named for the protocol, not
- * any single runtime — NoFlo, MicroFlo, and other FBP runtimes share it.
+ * The default destination aspect runtimes announce under: the protocol's
+ * {@link ANNOUNCE_ASPECT} (`fbp.runtime`) — a stable discovery filter named
+ * for the protocol, not any single runtime.
  *
  * @type {string}
  */
-export const DEFAULT_ASPECT = "fbp.runtime";
+export const DEFAULT_ASPECT = ANNOUNCE_ASPECT;
 
 /**
  * @typedef {object} ReticulumBindingOptions

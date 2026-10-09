@@ -96,7 +96,10 @@ app_data = msgpack([ protocol_version, destination_hash_raw16, node_name ])
 The destination aspect is the discovery filter in RNS; app_data is opaque
 binary. The aspect name is NOT versioned (e.g. `fbp.conn.v2` was rejected):
 versioning the aspect would force re-announcing under a new name on every
-major bump and fragment discovery.
+major bump and fragment discovery. The aspect itself is pinned as
+**`fbp.runtime`** (`ANNOUNCE_ASPECT` in the reference implementation):
+named for the protocol rather than any single runtime — NoFlo, MicroFlo,
+and other FBP runtimes share one discovery namespace.
 
 ## 4. Transport & identity (0x00 – 0x0F)
 
