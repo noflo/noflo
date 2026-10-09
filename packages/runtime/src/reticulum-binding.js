@@ -230,8 +230,13 @@ export class ReticulumBinding extends EventTarget {
     // unilaterally advertise what the identified peer may do (work document
     // #4 §4). Per-link DACAR capability narrowing is the application's
     // concern; the binding advertises the server's mask.
-    link.addEventListener("identify", () => {
-      this.server.authorize(link);
+    link.addEventListener("identify", (/** @type {any} */ event) => {
+      // The peer proved who it is: resolve its mask from the DACAR store
+      // and enforce per context from here on.
+      const identityHash = event.detail?.identity
+        ? toHex(event.detail.identity.identityHash)
+        : undefined;
+      this.server.authorize(link, identityHash);
     });
     link.addEventListener("data", (/** @type {any} */ event) => {
       this.server.handleFrame(event.detail.packet.payload, link);
@@ -240,6 +245,7 @@ export class ReticulumBinding extends EventTarget {
       if (event.detail.status === LinkStatus.CLOSED) {
         // Subscriptions and other per-link state live with the link.
         this.links.delete(link);
+        this.server.forgetContext(link);
         this.#emit("linkclosed", { link });
       }
     });

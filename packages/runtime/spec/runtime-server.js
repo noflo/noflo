@@ -14,14 +14,17 @@ import {
   CAPABILITY,
   CMD_CRDT_SYNC_REQ,
   CMD_CRDT_UPDATE,
+  CMD_RUN_CTRL,
   decodeAuthResponse,
   encodeAuthResponse,
   encodeCompSyncReq,
   encodeCrdtSyncReq,
   encodeCrdtUpdate,
+  encodeRunCtrl,
   LIMITATION,
   PROTOCOL_VERSION,
   ProtocolError,
+  RUN_ACTION,
 } from "@noflo/fbp-protocol";
 import { capabilitiesMask, RuntimeServer } from "../src/index.js";
 
@@ -107,6 +110,97 @@ describe("RuntimeServer auth", () => {
           limitationCode: LIMITATION.FULL_ACCESS,
         }),
       ],
+    );
+  });
+});
+
+describe("RuntimeServer permissions (DACAR)", () => {
+  it("resolves the granted mask at authorize time", () => {
+    const transport = capture();
+    const server = new RuntimeServer({
+      send: transport.send,
+      capabilities: ["GRAPH_READ"],
+      permissions: {
+        default: ["GRAPH_READ"],
+        identities: {
+          aabb: ["GRAPH_READ", "GRAPH_EDIT", "LIFECYCLE_CTRL"],
+        },
+      },
+    });
+    server.authorize("link-1", "aabb");
+    server.authorize("link-2", "ccdd");
+    assert.equal(
+      decodeAuthResponse(transport.log.sent[0].bytes).capabilityMask,
+      CAPABILITY.GRAPH_READ | CAPABILITY.GRAPH_EDIT | CAPABILITY.LIFECYCLE_CTRL,
+    );
+    // An unknown identity falls back to the store's default.
+    assert.equal(
+      decodeAuthResponse(transport.log.sent[1].bytes).capabilityMask,
+      CAPABILITY.GRAPH_READ,
+    );
+  });
+
+  it("enforces per context after authorize", () => {
+    const transport = capture();
+    const server = new RuntimeServer({
+      send: transport.send,
+      capabilities: ["GRAPH_READ", "GRAPH_EDIT", "LIFECYCLE_CTRL"],
+      permissions: {
+        default: ["GRAPH_READ"],
+        identities: { aabb: ["GRAPH_READ", "GRAPH_EDIT", "LIFECYCLE_CTRL"] },
+      },
+    });
+    const handled = [];
+    server.registerHandler(CMD_RUN_CTRL, (decoded) => handled.push(decoded));
+    server.authorize("granted-link", "aabb");
+    server.handleFrame(encodeRunCtrl(RUN_ACTION.START), "granted-link");
+    assert.equal(handled.length, 1);
+    // The default-mask link never identified: run control is not granted.
+    /** @type {any[]} */
+    const dropped = [];
+    server.addEventListener("notpermitted", (event) =>
+      dropped.push(event.detail),
+    );
+    server.handleFrame(encodeRunCtrl(RUN_ACTION.START), "other-link");
+    assert.equal(handled.length, 1);
+    assert.equal(dropped.length, 1);
+  });
+
+  it("keeps the global mask when no permissions store is configured", () => {
+    const transport = capture();
+    const server = new RuntimeServer({
+      send: transport.send,
+      capabilities: 0xff,
+    });
+    server.authorize("link-1", "aabb");
+    assert.equal(
+      decodeAuthResponse(transport.log.sent[0].bytes).capabilityMask,
+      0xff,
+    );
+    server.authorize("link-2");
+    assert.equal(
+      decodeAuthResponse(transport.log.sent[1].bytes).capabilityMask,
+      0xff,
+    );
+  });
+
+  it("grants and revokes identities between links", () => {
+    const transport = capture();
+    const server = new RuntimeServer({
+      send: transport.send,
+      permissions: { default: ["GRAPH_READ"] },
+    });
+    server.grant("aabb", ["COMPONENT_WRITE"]);
+    server.authorize("link-1", "aabb");
+    assert.equal(
+      decodeAuthResponse(transport.log.sent[0].bytes).capabilityMask,
+      CAPABILITY.COMPONENT_WRITE,
+    );
+    server.revoke("aabb");
+    server.authorize("link-2", "aabb");
+    assert.equal(
+      decodeAuthResponse(transport.log.sent[1].bytes).capabilityMask,
+      CAPABILITY.GRAPH_READ,
     );
   });
 });

@@ -85,11 +85,20 @@ export function capabilitiesMask(names) {
  * @extends {EventTarget}
  */
 export class RuntimeServer extends EventTarget {
+  /** @type {Map<any, number>} Per-context capability mask, set at authorize. */
+  #contextCapabilities = new Map();
+
   /**
    * @param {object} [options]
    * @param {string[]|number} [options.capabilities] Capability names or a
-   *   precomputed mask; defaults to the full read surface a monitoring
-   *   client needs (graph, telemetry, components read-only).
+   *   precomputed mask — the *default* mask, used for peers the DACAR store
+   *   does not know; defaults to the full read surface a monitoring client
+   *   needs (graph, telemetry, components read-only).
+   * @param {{ default?: string[]|number, identities?: Record<string, string[]|number> }} [options.permissions]
+   *   The DACAR capability store (work document #4 §4): identity hash (hex)
+   *   to the capability mask that peer is granted, plus the mask for peers
+   *   without an entry and for links that never identify. Mutable — changes
+   *   take effect on the peer's next link.
    * @param {number} [options.limitationCode] One of {@link LIMITATION};
    *   defaults to full access.
    * @param {number} [options.protocolVersion] Defaults to {@link PROTOCOL_VERSION}.
@@ -112,6 +121,8 @@ export class RuntimeServer extends EventTarget {
       typeof capabilities === "number"
         ? capabilities
         : capabilitiesMask(capabilities);
+    /** @type {{ default: number, identities: Map<string, number> }} */
+    this.permissions = this.#normalizePermissions(options.permissions);
     this.limitationCode = options.limitationCode ?? LIMITATION.FULL_ACCESS;
     this.protocolVersion = options.protocolVersion ?? PROTOCOL_VERSION;
     /** @type {(bytes: Uint8Array, context: any) => void} */
@@ -120,6 +131,63 @@ export class RuntimeServer extends EventTarget {
     this.broadcast = options.broadcast ?? (() => {});
     /** @type {Map<number, (decoded: any, context: any) => any>} */
     this.handlers = new Map();
+    /** @type {Map<any, number>} Capability mask resolved per authorized context. */
+    this.#contextCapabilities = new Map();
+  }
+
+  /**
+   * @param {{ default?: string[]|number, identities?: Record<string, string[]|number> }} [permissions]
+   * @returns {{ default: number, identities: Map<string, number> }}
+   */
+  #normalizePermissions(permissions) {
+    if (!permissions) {
+      return { default: this.capabilityMask, identities: new Map() };
+    }
+    const asMask = (/** @type {string[]|number|undefined} */ value) =>
+      value === undefined
+        ? undefined
+        : typeof value === "number"
+          ? value
+          : capabilitiesMask(value);
+    const identities = new Map();
+    for (const [hash, granted] of Object.entries(
+      permissions.identities ?? {},
+    )) {
+      identities.set(hash, /** @type {number} */ (asMask(granted)));
+    }
+    return {
+      default: asMask(permissions.default) ?? this.capabilityMask,
+      identities,
+    };
+  }
+
+  /**
+   * Grant a capability set to one identity: the DACAR store's mutable face.
+   * Takes effect on the peer's next link — the mask resolves at identify
+   * time.
+   *
+   * @param {string} identityHash Hex identity hash of the peer.
+   * @param {string[]|number} capabilities Capability names or a mask.
+   * @returns {void}
+   */
+  grant(identityHash, capabilities) {
+    this.permissions.identities.set(
+      identityHash,
+      typeof capabilities === "number"
+        ? capabilities
+        : capabilitiesMask(capabilities),
+    );
+  }
+
+  /**
+   * Remove an identity's entry: the peer falls back to the store's default
+   * mask on its next link.
+   *
+   * @param {string} identityHash
+   * @returns {void}
+   */
+  revoke(identityHash) {
+    this.permissions.identities.delete(identityHash);
   }
 
   /**
@@ -137,24 +205,45 @@ export class RuntimeServer extends EventTarget {
   }
 
   /**
-   * Unilaterally send the `0x02 CMD_AUTH_RESPONSE` to one client context.
-   * The transport calls this when a Reticulum link establishes with a
-   * verified identity — auth itself is the transport's job
-   * (`link.identify()`); this only advertises what the identified peer may
-   * do.
+   * Unilaterally send the `0x02 CMD_AUTH_RESPONSE` to one client context —
+   * the mask the identified peer is granted, resolved from the DACAR store
+   * (work document #4 §4). The transport calls this when the peer proves
+   * its identity (`link.identify()`); auth itself is the transport's job.
    *
    * @param {any} context
+   * @param {string} [identityHash] Hex hash of the peer's verified identity;
+   *   without it the store's default mask applies and the context stays at
+   *   that default for enforcement.
    * @returns {void}
    */
-  authorize(context) {
+  authorize(context, identityHash) {
+    const mask =
+      (identityHash !== undefined
+        ? this.permissions.identities.get(identityHash)
+        : undefined) ?? this.permissions.default;
+    // Enforcement is per context from here on; the transport evicts the
+    // entry when the context dies (forgetContext).
+    this.#contextCapabilities.set(context, mask);
     this.send(
       encodeAuthResponse({
         protocolVersion: this.protocolVersion,
-        capabilityMask: this.capabilityMask,
+        capabilityMask: mask,
         limitationCode: this.limitationCode,
       }),
       context,
     );
+  }
+
+  /**
+   * Drop a context's resolved capability mask — the transport calls this
+   * when the context dies (a Reticulum link closes), keeping the store
+   * from growing with every link.
+   *
+   * @param {any} context
+   * @returns {void}
+   */
+  forgetContext(context) {
+    this.#contextCapabilities.delete(context);
   }
 
   /**
@@ -190,12 +279,11 @@ export class RuntimeServer extends EventTarget {
       return;
     }
     const required = REQUIRED_CAPABILITY[decoded.cmd];
-    if (
-      required !== undefined &&
-      (this.capabilityMask & required) !== required
-    ) {
-      // The runtime did not advertise this capability: the client is
-      // violating what the auth response told it. Drop the frame.
+    const granted =
+      this.#contextCapabilities.get(context) ?? this.permissions.default;
+    if (required !== undefined && (granted & required) !== required) {
+      // The peer was not granted this capability: it is violating what its
+      // auth response told it. Drop the frame.
       this.#emit("notpermitted", { decoded, context, required });
       return;
     }

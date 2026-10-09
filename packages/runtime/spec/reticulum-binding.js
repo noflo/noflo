@@ -10,6 +10,7 @@
 
 import assert from "node:assert";
 import { describe, it } from "node:test";
+import { asComponent } from "@noflo/as-component";
 import {
   CMD_AUTH_RESPONSE,
   CMD_COMP_MANIFEST,
@@ -23,6 +24,7 @@ import {
   PROTOCOL_VERSION,
 } from "@noflo/fbp-protocol";
 import { GraphModel } from "@noflo/graph";
+import { ComponentLoader } from "@noflo/noflo";
 import { LinkStatus } from "@reticulum/core";
 import {
   assembleRuntime,
@@ -242,6 +244,55 @@ describe("Reticulum binding: link lifecycle", () => {
     wiredLink.close();
     assert.equal(closed.length, 1);
     assert.equal(closed[0], wiredLink);
+  });
+});
+
+describe("assembly autostart", () => {
+  it("builds and starts the network when autostart is requested", async () => {
+    const graph = new GraphModel({ name: "main" });
+    const loader = new ComponentLoader();
+    await loader.registerComponent("runtime", "Wait", () => {
+      /** @type {(() => void) | undefined} */
+      let release;
+      const pending = new Promise((resolve) => {
+        release = resolve;
+      });
+      const component = asComponent((input) => {
+        void release;
+        return pending;
+      });
+      const baseTearDown =
+        /** @type {(() => any) | undefined} */
+        (component.tearDown?.bind(component));
+      component.tearDown = () => {
+        release?.();
+        return baseTearDown?.();
+      };
+      return component;
+    });
+    graph.addNode({ entity_id: "wait", component: "runtime/Wait" });
+    graph.addIIP({
+      entity_id: "iip-1",
+      data: "go",
+      to: { node: "wait", port: "input" },
+    });
+    const runtime = await assembleRuntime({
+      graph,
+      catalog: { signatures: () => ({}) },
+      componentLoader: loader,
+      autostart: true,
+    });
+    assert.equal(runtime.host.running, true);
+    await runtime.host.stop();
+  });
+
+  it("does not start the network by default", async () => {
+    const graph = new GraphModel({ name: "main" });
+    const runtime = await assembleRuntime({
+      graph,
+      catalog: { signatures: () => ({}) },
+    });
+    assert.equal(runtime.host.started, false);
   });
 });
 

@@ -50,6 +50,11 @@ import { TelemetryProtocol } from "./telemetry-protocol.js";
  * @param {string} [options.clientId] Client id the runtime stamps on its
  *   own CRDT operations; defaults to `runtime`.
  * @param {boolean} [options.asyncDelivery]
+ * @param {boolean} [options.autostart] Build and start the network as part
+ *   of assembly — the typical case of a running program that is observable
+ *   and modifiable at runtime. Off by default: a runtime that only ever
+ *   starts on a client's `0x40 RUN_CTRL START` is also valid. A rejected
+ *   start fails the assembly: the program did not come up.
  * @param {(bytes: Uint8Array, context: any) => void} [options.send] Deliver
  *   a frame to one client context; defaults to a no-op until a transport
  *   provides one.
@@ -81,6 +86,12 @@ export async function assembleRuntime(options) {
   execution.register(server);
   // The registry state must be derived before the first registry sync.
   await registry.refresh();
+  if (options.autostart) {
+    // The typical use: the program is already running, observable and
+    // modifiable at runtime. Lifecycle control stays available to clients
+    // (0x40 RUN_CTRL stop/start restarts it).
+    await host.start();
+  }
   return { server, host, registry, graph, telemetry, execution };
 }
 
