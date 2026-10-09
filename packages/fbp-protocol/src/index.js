@@ -84,6 +84,7 @@ export {
   encodeCrdtUpToDate,
 } from "./graph.js";
 export {
+  /** @typedef {import("./lxmf.js").LxmTelemetry} LxmTelemetry */
   decodeLxmTelemetry,
   encodeLxmTelemetry,
 } from "./lxmf.js";

@@ -3,7 +3,8 @@
   "version": "2.0.0-alpha.1",
   "license": "EUPL-1.2",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./lxmf": "./src/lxmf.js"
   },
   "publish": {
     "include": [

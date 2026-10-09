@@ -18,7 +18,8 @@
   "main": "./src/index.js",
   "module": "./src/index.js",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./lxmf": "./src/lxmf.js"
   },
   "files": [
     "src",
