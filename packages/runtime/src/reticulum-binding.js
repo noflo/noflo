@@ -34,11 +34,12 @@ import { Destination, DestType, Identity, LinkStatus } from "@reticulum/core";
 /**
  * The default destination aspect runtimes announce under. A stable
  * discovery filter: the aspect name is never versioned (work document #4
- * §3); app_data is the version advertisement.
+ * §3); app_data is the version advertisement. Named for the protocol, not
+ * any single runtime — NoFlo, MicroFlo, and other FBP runtimes share it.
  *
  * @type {string}
  */
-export const DEFAULT_ASPECT = "noflo.runtime";
+export const DEFAULT_ASPECT = "fbp.runtime";
 
 /**
  * @typedef {object} ReticulumBindingOptions
