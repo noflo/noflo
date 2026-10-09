@@ -1,13 +1,26 @@
 {
   "compilerOptions": {
-    "allowJs": true,
+    "module": "nodenext",
+    "target": "esnext",
+    "types": [
+      "node"
+    ],
     "checkJs": true,
-    "noEmit": true,
-    "strict": true,
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "target": "ES2022",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "noEmit": false,
+    "allowJs": true,
+    "strict": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "rootDir": "src",
+    "outDir": "src"
   },
-  "include": ["src/", "test/"]
+  "include": [
+    "src/**/*.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "spec",
+    "src/**/*.d.ts"
+  ]
 }

@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Added
+
+- The library is ingested into the `noflo/noflo` monorepo as `packages/assembly`, with full git history preserved (work document #27). Source of truth for further development is the monorepo
+
+### Changed
+
+- Package aligned with the monorepo conventions: lockstep version `2.0.0-alpha.2`, repository and issue URLs pointing at `noflo/noflo`, tests under `spec/`, shared `tsconfig` template, and a `jsr.json` for dual-registry publishing. `@noflo/noflo` is now a peer dependency, matching the base-class library convention used by `@noflo/as-component`. Legacy 1.x tooling remnants (Babel, ESLint, package-local lockfile and workflows) were removed
+
 ## [2.0.0-alpha.1] - 2026-10-09
 
 ### Added

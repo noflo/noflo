@@ -6,7 +6,7 @@ Assembly Line provides message-relay conventions for NoFlo programs:
 a shared message envelope (`msg.errors` for error accumulation), a
 small library of validation helpers, and a `Component` base class where
 components either declare a `relay(msg, output)` hook for single-input
-processing or a `handle(input, output)` hook for multi-port ones.
+processing or a `processMessage(input, output)` hook for multi-port ones.
 
 ## Goals
 
@@ -27,4 +27,4 @@ Import the helpers and the component base class:
 import { Component, fail, failed, fork, merge } from "@noflo/assembly";
 ```
 
-An [example](https://github.com/noflo/noflo-assembly/tree/master/example) is embedded into this repository: how to build a car with NoFlo, from order to release.
+An [example](https://github.com/noflo/noflo/tree/master/packages/assembly/example) is embedded into this repository: how to build a car with NoFlo, from order to release.

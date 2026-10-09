@@ -1,3 +1,19 @@
+/**
+ * @noflo/assembly - Message relay conventions for NoFlo
+ * (c) 2021-2026 Henri Bergius
+ * (c) 2017-2021 Vladimir Sibirov
+ * SPDX-License-Identifier: MIT
+ *
+ * Assembly Line: a shared message envelope (`msg.errors` for error
+ * accumulation), validation helpers, and a `Component` base class where
+ * components either declare a `relay(msg, output)` hook for single-input
+ * processing or a `processMessage(input, output)` hook for multi-port ones.
+ *
+ * @module @noflo/assembly
+ */
+
+/* @ts-self-types="./index.d.ts" */
+
 import { Component as NoFloComponent } from "@noflo/noflo";
 
 /**
