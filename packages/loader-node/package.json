@@ -1,6 +1,6 @@
 {
   "name": "@noflo/loader-node",
-  "version": "2.0.0-alpha.1",
+  "version": "2.0.0-alpha.2",
   "description": "Node.js component discovery and source storage for NoFlo, as a ComponentRegistry implementation",
   "type": "module",
   "main": "./src/index.js",
@@ -37,7 +37,7 @@
     "url": "https://github.com/noflo/noflo/issues"
   },
   "peerDependencies": {
-    "@noflo/noflo": "^2.0.0-alpha.1"
+    "@noflo/noflo": "^2.0.0-alpha.2"
   },
   "peerDependenciesMeta": {
     "typescript": {
@@ -45,11 +45,11 @@
     }
   },
   "dependencies": {
-    "@noflo/fbp": "^2.0.0-alpha.1",
-    "@noflo/graph": "^2.0.0-alpha.1"
+    "@noflo/fbp": "^2.0.0-alpha.2",
+    "@noflo/graph": "^2.0.0-alpha.2"
   },
   "devDependencies": {
-    "@noflo/noflo": "^2.0.0-alpha.1"
+    "@noflo/noflo": "^2.0.0-alpha.2"
   },
   "files": [
     "src",

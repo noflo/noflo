@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.0.0-alpha.2] - 2026-10-09
+
 ## [2.0.0-alpha.1] - 2026-10-08
 - The npm tarball now ships generated TypeScript declarations and declares them via `types`; JSR publishing added (`jsr.json`)
 ### Added

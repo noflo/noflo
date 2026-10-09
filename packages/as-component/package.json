@@ -1,6 +1,6 @@
 {
   "name": "@noflo/as-component",
-  "version": "2.0.0-alpha.1",
+  "version": "2.0.0-alpha.2",
   "description": "Generate NoFlo components from JavaScript functions",
   "type": "module",
   "main": "./src/index.js",
@@ -32,13 +32,13 @@
     "url": "https://github.com/noflo/noflo/issues"
   },
   "peerDependencies": {
-    "@noflo/noflo": "^2.0.0-alpha.1"
+    "@noflo/noflo": "^2.0.0-alpha.2"
   },
   "dependencies": {
     "get-function-params": "^2.0.6"
   },
   "devDependencies": {
-    "@noflo/noflo": "^2.0.0-alpha.1"
+    "@noflo/noflo": "^2.0.0-alpha.2"
   },
   "files": [
     "src",

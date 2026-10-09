@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.0.0-alpha.2] - 2026-10-09
 - Control ports now buffer the latest complete stream instead of only the last data IP: bracket packets are kept, a new stream (openBracket or unbracketed data IP) discards the previously buffered one, `has()` on a control port reports whether a data IP is present in the buffered stream (brackets alone do not satisfy it), `getData()` still returns the latest data IP non-consumingly, and `getStream()` works on control ports — enabling multi-value and grouped configuration streams (for example key lists) to be read from control ports
 - The debug logger reads `DEBUG` before considering `localStorage`: server-side runtimes no longer touch the `localStorage` global, whose bare access triggers a Node.js 22+ ExperimentalWarning
 - The devDependencies `@types/debug`, `process`, `replace`, and `util`: all four were unused leftovers — the debug module was already replaced by the native logger, and `process`/`util` were browserify-era shims made obsolete by the no-build browser contract

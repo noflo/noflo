@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.0.0-alpha.2] - 2026-10-09
+
 ## [2.0.0-alpha.1] - 2026-10-08
 ### Removed
 - **noflo**: The `debug` dependency: core runtime dependencies are now `@noflo/graph` alone
