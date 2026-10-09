@@ -1,6 +1,7 @@
 {
   "name": "noflo-monorepo",
   "private": true,
+  "type": "module",
   "workspaces": [
     "packages/*"
   ],
