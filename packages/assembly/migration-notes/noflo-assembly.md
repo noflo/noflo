@@ -16,18 +16,10 @@ a packaging migration.
   `@noflo/loader-node` over the `example/` package root (namespace
   `example/`).
 
-## API change (flagged for maintainer review)
+## API change (decided)
 
-- The multi-port hook `handle(input, output)` is renamed to
-  `processMessage(input, output)`. NoFlo's Component base class uses
-  `handle` as the instance property holding the processing function
-  (set by `process()`), so a subclass method of that name collides
-  with it — a type error for every subclass and shadowing fragility at
-  runtime (the prototype method is invisible once `process()` runs).
-  The 1.x name would keep working at runtime but fails type checking
-  for all subclass authors. If the maintainer prefers keeping the 1.x
-  name, the alternative is a core-level change to how NoFlo stores the
-  processing function.
+- The multi-port hook `handle(input, output)` is renamed to `processMessage(input, output)`. NoFlo's Component base class uses `handle` as the instance property holding the processing function (set by `process()`), so a subclass method of that name collides with it — a type error for every subclass and shadowing fragility at runtime (the prototype method is invisible once `process()` runs). The 1.x name would keep working at runtime but fails type checking for all subclass authors.
+- Maintainer decision (2026-10-10, work document #27): keep `processMessage`. The new name is the 2.x API; no compatibility alias is provided and no core-level storage change is made. Relay-style `relay(msg, output)` hooks are unchanged.
 
 ## Test notes
 
