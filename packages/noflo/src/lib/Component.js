@@ -281,11 +281,6 @@ export class Component extends LegacyEventBase {
   }
 
   /**
-   * @callback ErrorableCallback
-   * @param {Error | null} error
-   */
-
-  /**
    * Component-specific initialization, called at network start-up. Override
    * in a component implementation to do component-specific setup work.
    * Return a Promise to delay start-up until it resolves; throw to fail the

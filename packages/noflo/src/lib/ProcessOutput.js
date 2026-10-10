@@ -127,7 +127,7 @@ export default class ProcessOutput {
     const componentPorts = [];
     let mapIsInPorts = false;
     Object.keys(this.ports.ports).forEach((port) => {
-      if (port !== "error" && port !== "ports" && port !== "_callbacks") {
+      if (port !== "error" && port !== "ports") {
         componentPorts.push(port);
       }
       if (
