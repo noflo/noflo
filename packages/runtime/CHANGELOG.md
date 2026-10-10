@@ -1,6 +1,19 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- **The static permissions store is removed** — capability resolution always goes through the `capabilityPolicy` (DACAR is the native implementation), which is now required at construction. The advertised capability surface is enforced as the ceiling of every grant (granted ∩ advertised)
+- `ReticulumBinding` loses `authorizeUnidentified`: an unidentified peer has no identity for the plane to evaluate
+- The graph protocol is plane-aware: ops and syncs carry a plane_id; unknown non-main planes are materialized as ephemeral graph planes on first op; the main plane is nil
+- The `0x02` auth response carries runtime metadata and the advertised capability ceiling alongside the granted mask
+### Added
+- `0x47 CMD_PACKET_SEND` handler: resolves the plane's exported inport and injects the packet via `network.addInitial`
+- `0x48 CMD_GET_STATUS` handler: answers epoch, run state, uptime, and the advertised ceiling
+- `0x16 CMD_PLANE_LIST` handler: answers the plane tree (main + ephemera)
+- `0x17 CMD_OP_REJECTED` emission: structurally-rejected ops and permission denials surface to the client explicitly (silence never carries semantics)
+- `TelemetryProtocol.observeHost()`: wire an ephemeral plane host's events into the telemetry stream
+- `GraphProtocol.getPlane()`: public accessor for the execution protocol's multi-plane support
+- The e2e fbp-spec interaction test: mint an ephemeral plane, build a fixture via CRDT ops, start via `0x40`, inject via `0x47`, observe via `0x32`, query `0x48`, tear down via `0x15`
 ### Added
 - Round-trip spec pinning the NoFlo core `Flowtrace` recorder's JSON state to the binary trace-file encoding (`assembleTraceFileFromRecorder`), and the duplicated event-vocabulary constants to equality between `@noflo/noflo` and `@noflo/fbp-protocol` (work document #23 update #2)
 

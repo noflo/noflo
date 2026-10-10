@@ -22,11 +22,16 @@ import {
   CMD_BREAKPOINT_SET,
   CMD_COMP_DETAIL_REQ,
   CMD_COMP_INSTALL_REQ,
+  CMD_COMP_SOURCE,
   CMD_COMP_SYNC_REQ,
   CMD_COMP_WRITE,
   CMD_CRDT_SYNC_REQ,
   CMD_CRDT_UPDATE,
+  CMD_GET_STATUS,
   CMD_HWM_SET,
+  CMD_PACKET_SEND,
+  CMD_PLANE_DROP,
+  CMD_PLANE_LIST,
   CMD_PROCESS_CTRL,
   CMD_PROCESS_LIST_REQ,
   CMD_PUBSUB_SUB,
@@ -61,6 +66,11 @@ const REQUIRED_CAPABILITY = {
   [CMD_PROCESS_CTRL]: CAPABILITY.LIFECYCLE_CTRL,
   [CMD_PROCESS_LIST_REQ]: CAPABILITY.GRAPH_READ,
   [CMD_HWM_SET]: CAPABILITY.LIFECYCLE_CTRL,
+  [CMD_PLANE_DROP]: CAPABILITY.LIFECYCLE_CTRL,
+  [CMD_PLANE_LIST]: CAPABILITY.GRAPH_READ,
+  [CMD_COMP_SOURCE]: CAPABILITY.COMPONENT_READ,
+  [CMD_PACKET_SEND]: CAPABILITY.LIFECYCLE_CTRL,
+  [CMD_GET_STATUS]: CAPABILITY.GRAPH_READ,
 };
 
 /**
@@ -94,6 +104,11 @@ export class RuntimeServer extends EventTarget {
    *   the server does not advertise cannot be exercised no matter what the
    *   authorization plane grants. Defaults to the read surface a
    *   monitoring client needs (graph, telemetry, components read-only).
+   *   Also carried in the 0x02 handshake as the advertised mask, so clients
+   *   can tell a permission denial from an unsupported feature.
+   * @param {any} [options.runtimeMetadata] Free-form identifying
+   *   information carried in the 0x02 handshake — runtime kind, label,
+   *   version (the external review's runtime:runtime equivalent).
    * @param {(identityHash: string, context: any) => number|Promise<number>} options.capabilityPolicy
    *   Required. The authorization plane: resolves a verified peer's
    *   identity hash (and link context) to the granted capability mask —
@@ -131,6 +146,12 @@ export class RuntimeServer extends EventTarget {
         : capabilitiesMask(capabilities);
     this.capabilityPolicy = options.capabilityPolicy;
     this.limitationCode = options.limitationCode ?? LIMITATION.FULL_ACCESS;
+    /** Free-form runtime identifying information carried in the 0x02
+     * handshake (runtime kind, label, version) — the external review's
+     * runtime:runtime equivalent.
+     * @type {any}
+     */
+    this.runtimeMetadata = options.runtimeMetadata ?? null;
     this.protocolVersion = options.protocolVersion ?? PROTOCOL_VERSION;
     /** @type {(bytes: Uint8Array, context: any) => void} */
     this.send = options.send ?? (() => {});
@@ -218,6 +239,8 @@ export class RuntimeServer extends EventTarget {
         protocolVersion: this.protocolVersion,
         capabilityMask: mask,
         limitationCode: this.limitationCode,
+        runtimeMetadata: this.runtimeMetadata,
+        advertisedMask: this.capabilityMask,
       }),
       context,
     );

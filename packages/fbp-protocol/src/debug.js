@@ -18,7 +18,9 @@ import { MsgPack } from "@reticulum/core";
 import {
   CMD_BREAKPOINT_CLEAR,
   CMD_BREAKPOINT_SET,
+  CMD_GET_STATUS,
   CMD_HWM_SET,
+  CMD_PACKET_SEND,
   CMD_PROCESS_CTRL,
   CMD_PROCESS_LIST,
   CMD_PROCESS_LIST_REQ,
@@ -27,6 +29,7 @@ import {
   EXECUTION_STATE,
   PROCESS_ACTION,
   RUN_ACTION,
+  RUN_STATE,
 } from "./constants.js";
 import { ProtocolError } from "./errors.js";
 
@@ -46,22 +49,22 @@ import { ProtocolError } from "./errors.js";
  * @param {number} action One of {@link RUN_ACTION}.
  * @returns {Uint8Array}
  */
-export function encodeRunCtrl(action) {
+export function encodeRunCtrl(action, planeId = undefined) {
   assertRunAction(action);
-  return MsgPack.encode([CMD_RUN_CTRL, action]);
+  return MsgPack.encode([CMD_RUN_CTRL, action, planeId ?? null]);
 }
 
 /**
  * Decode a `0x40 CMD_RUN_CTRL`.
  *
  * @param {Uint8Array} bytes
- * @returns {{ cmd: number, action: number }}
+ * @returns {{ cmd: number, action: number, planeId: number|string|null }}
  */
 export function decodeRunCtrl(bytes) {
   const frame = MsgPack.decode(bytes);
-  expectFrame(frame, CMD_RUN_CTRL, 2);
+  expectFrame(frame, CMD_RUN_CTRL, 3);
   assertRunAction(frame[1], CMD_RUN_CTRL);
-  return { cmd: CMD_RUN_CTRL, action: frame[1] };
+  return { cmd: CMD_RUN_CTRL, action: frame[1], planeId: frame[2] ?? null };
 }
 
 /**
@@ -456,4 +459,128 @@ function assertEntry(entry, nodeId) {
       CMD_PROCESS_LIST,
     );
   }
+}
+
+/**
+ * Encode a `0x47 CMD_PACKET_SEND`: send one packet into a running
+ * network's inport — `[0x47, plane_id, port, payload]` (work document #4
+ * update #36). The plane addresses the graph instance (nil = the main
+ * graph); the port is an inport name — an exported port of the main plane,
+ * or an inport of an ephemeral plane's fixture. One command serves
+ * interactive packet injection and the remote fbp-spec runner's sequenced
+ * case inputs, and makes a runtime usable as a remote component in another
+ * network. Requires `LIFECYCLE_CTRL`.
+ *
+ * @param {object} packet
+ * @param {number|string|null} packet.planeId nil addresses the main plane.
+ * @param {string} packet.port Inport name.
+ * @param {any} packet.payload
+ * @returns {Uint8Array}
+ */
+export function encodePacketSend({ planeId, port, payload }) {
+  if (typeof port !== "string" || port.length === 0) {
+    throw new ProtocolError("port must be a non-empty string", CMD_PACKET_SEND);
+  }
+  return MsgPack.encode([CMD_PACKET_SEND, planeId, port, payload]);
+}
+
+/**
+ * Decode a `0x47 CMD_PACKET_SEND`.
+ *
+ * @param {Uint8Array} bytes
+ * @returns {{ cmd: number, planeId: number|string|null, port: string, payload: any }}
+ */
+export function decodePacketSend(bytes) {
+  const frame = MsgPack.decode(bytes);
+  expectFrame(frame, CMD_PACKET_SEND, 4);
+  const [cmd, planeId, port, payload] = frame;
+  if (typeof port !== "string" || port.length === 0) {
+    throw new ProtocolError("port must be a non-empty string", cmd);
+  }
+  return { cmd: CMD_PACKET_SEND, planeId, port, payload };
+}
+
+/**
+ * Encode a `0x48 CMD_GET_STATUS` request: `[0x48]` (external review,
+ * update #35: the `getstatus` equivalent — late subscribers and monitors
+ * ask for the run state instead of inferring it from lifecycle events they
+ * never saw). Requires `GRAPH_READ`.
+ *
+ * @returns {Uint8Array}
+ */
+export function encodeGetStatus() {
+  return MsgPack.encode([CMD_GET_STATUS]);
+}
+
+/**
+ * Decode a `0x48 CMD_GET_STATUS` request.
+ *
+ * @param {Uint8Array} bytes
+ * @returns {{ cmd: number }}
+ */
+export function decodeGetStatus(bytes) {
+  const frame = MsgPack.decode(bytes);
+  expectFrame(frame, CMD_GET_STATUS, 1);
+  return { cmd: CMD_GET_STATUS };
+}
+
+/**
+ * Encode a `0x48 CMD_GET_STATUS` reply:
+ * `[0x48, epoch_id, run_state, uptime_ms, advertised_mask]` — the main
+ * plane's epoch, the {@link RUN_STATE}, the network's uptime in
+ * milliseconds, and the runtime's full advertised capability surface (the
+ * ceiling the peer's `0x02` granted mask was filtered through; the
+ * external review's `allCapabilities` vs `capabilities` distinction).
+ *
+ * @param {object} status
+ * @param {number|string} status.epochId The main plane's current epoch.
+ * @param {number} status.runState One of {@link RUN_STATE}.
+ * @param {number} status.uptimeMs Non-negative integer.
+ * @param {number} status.advertisedMask
+ * @returns {Uint8Array}
+ */
+export function encodeGetStatusRes({
+  epochId,
+  runState,
+  uptimeMs,
+  advertisedMask,
+}) {
+  if (!Object.values(RUN_STATE).includes(runState)) {
+    throw new ProtocolError(
+      "run_state must be from the vocabulary",
+      CMD_GET_STATUS,
+    );
+  }
+  if (!Number.isInteger(uptimeMs) || uptimeMs < 0) {
+    throw new ProtocolError(
+      "uptime_ms must be a non-negative integer",
+      CMD_GET_STATUS,
+    );
+  }
+  return MsgPack.encode([
+    CMD_GET_STATUS,
+    epochId,
+    runState,
+    uptimeMs,
+    advertisedMask,
+  ]);
+}
+
+/**
+ * Decode a `0x48 CMD_GET_STATUS` reply.
+ *
+ * @param {Uint8Array} bytes
+ * @returns {{ cmd: number, epochId: number|string, runState: number, uptimeMs: number, advertisedMask: number }}
+ */
+export function decodeGetStatusRes(bytes) {
+  const frame = MsgPack.decode(bytes);
+  expectFrame(frame, CMD_GET_STATUS, 5);
+  const [cmd, epochId, runState, uptimeMs, advertisedMask] = frame;
+  if (!Object.values(RUN_STATE).includes(runState)) {
+    throw new ProtocolError("run_state must be from the vocabulary", cmd);
+  }
+  if (!Number.isInteger(uptimeMs) || uptimeMs < 0) {
+    throw new ProtocolError("uptime_ms must be a non-negative integer", cmd);
+  }
+  return { cmd: CMD_GET_STATUS, epochId, runState, uptimeMs, advertisedMask };
 }

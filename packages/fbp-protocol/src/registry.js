@@ -22,6 +22,7 @@ import {
   CMD_COMP_DETAIL_RES,
   CMD_COMP_INSTALL_REQ,
   CMD_COMP_MANIFEST,
+  CMD_COMP_SOURCE,
   CMD_COMP_SYNC_REQ,
   CMD_COMP_UP_TO_DATE,
   CMD_COMP_WRITE,
@@ -42,17 +43,31 @@ import { ProtocolError } from "./errors.js";
  * @property {string} [description] Longer textual description of the port.
  * @property {boolean} [required] Whether the port must be connected.
  * @property {boolean} [control] Control-port identification (inports only, noflo-ui WD #40).
+ *   The field set is kept in lockstep with the publish-time manifest's
+ *   harvest (`@noflo/manifest` `harvestPorts`); `values` and `default`
+ *   are inport options (`noflo"s InPort` validates them).
+ * @property {any[]} [values] Enumeration of accepted values, for inports
+ *   that take one of a known set — advisory metadata noflo-ui renders as
+ *   pickers. Omitted from the wire when absent.
+ * @property {any} [default] The inport's default value, applied when the
+ *   graph leaves it unconfigured. Omitted from the wire when absent.
  */
 
 /**
  * A component definition as answered by `0x24 CMD_COMP_DETAIL_RES`: the
  * declared component kind plus the full signature, shareable before any
- * implementation exists (stubs are valid state).
+ * implementation exists (stubs are valid state). Component-level
+ * `description` and `icon` ride the detail (external review, update #35:
+ * UIs render nodes with icons; decided before the signature freeze so the
+ * canonical bytes settle once).
  *
  * @typedef {object} ComponentDetail
  * @property {string} type One of {@link COMPONENT_TYPE}.
  * @property {PortInfo[]} in Inports.
  * @property {PortInfo[]} out Outports.
+ * @property {string} [description] What the component does.
+ * @property {string} [icon] Icon name, in the vocabulary 1.x runtimes and
+ *   noflo-ui render (FontAwesome names).
  */
 
 /**
@@ -308,13 +323,87 @@ export function decodeCompInstallReq(bytes) {
  */
 export function canonicalSignature(signature) {
   assertDetail(signature, null);
-  return stableStringify({
+  /** @type {Record<string, any>} */
+  const json = {
     type: signature.type,
     in: signature.in.map(portJson),
     out: signature.out.map(portJson),
-  });
+  };
+  // Component-level description and icon ride the canonical form (external
+  // review, update #35: decided before the signature freeze so the bytes
+  // settle once).
+  if (signature.description !== undefined) {
+    json.description = signature.description;
+  }
+  if (signature.icon !== undefined) json.icon = signature.icon;
+  return stableStringify(json);
 }
 
+/**
+ * Encode a `0x26 CMD_COMP_SOURCE` request: `[0x26, component_name]` —
+ * read a component's source from the runtime (work document #4 update #35,
+ * the read counterpart of `0x25`). Requires `COMPONENT_READ`.
+ *
+ * @param {string} componentName
+ * @returns {Uint8Array}
+ */
+export function encodeCompSourceReq(componentName) {
+  assertName(componentName, CMD_COMP_SOURCE, "component_name");
+  return MsgPack.encode([CMD_COMP_SOURCE, componentName]);
+}
+
+/**
+ * Decode a `0x26 CMD_COMP_SOURCE` request.
+ *
+ * @param {Uint8Array} bytes
+ * @returns {{ cmd: number, componentName: string }}
+ */
+export function decodeCompSourceReq(bytes) {
+  const frame = MsgPack.decode(bytes);
+  expectFrame(frame, CMD_COMP_SOURCE, 2);
+  assertName(frame[1], CMD_COMP_SOURCE, "component_name");
+  return { cmd: CMD_COMP_SOURCE, componentName: frame[1] };
+}
+
+/**
+ * Encode a `0x26 CMD_COMP_SOURCE` response:
+ * `[0x26, component_name, source]`. A nil source means the runtime holds
+ * no source for the component (native or hardware components).
+ *
+ * @param {string} componentName
+ * @param {string|null} source
+ * @returns {Uint8Array}
+ */
+export function encodeCompSourceRes(componentName, source) {
+  assertName(componentName, CMD_COMP_SOURCE, "component_name");
+  if (source !== null && (typeof source !== "string" || source.length === 0)) {
+    throw new ProtocolError(
+      "source must be a non-empty string or nil",
+      CMD_COMP_SOURCE,
+    );
+  }
+  return MsgPack.encode([CMD_COMP_SOURCE, componentName, source ?? null]);
+}
+
+/**
+ * Decode a `0x26 CMD_COMP_SOURCE` response.
+ *
+ * @param {Uint8Array} bytes
+ * @returns {{ cmd: number, componentName: string, source: string|null }}
+ */
+export function decodeCompSourceRes(bytes) {
+  const frame = MsgPack.decode(bytes);
+  expectFrame(frame, CMD_COMP_SOURCE, 3);
+  assertName(frame[1], CMD_COMP_SOURCE, "component_name");
+  const source = frame[2];
+  if (source !== null && (typeof source !== "string" || source.length === 0)) {
+    throw new ProtocolError(
+      "source must be a non-empty string or nil",
+      CMD_COMP_SOURCE,
+    );
+  }
+  return { cmd: CMD_COMP_SOURCE, componentName: frame[1], source };
+}
 /**
  * Compute the `sig_hash` of a component signature: SHA-256 (hex) over
  * {@link canonicalSignature}. Async because WebCrypto is; available on
@@ -383,6 +472,8 @@ function portJson(port) {
   if (port.description !== undefined) json.description = port.description;
   if (port.required !== undefined) json.required = port.required;
   if (port.control !== undefined) json.control = port.control;
+  if (port.values !== undefined) json.values = port.values;
+  if (port.default !== undefined) json.default = port.default;
   return json;
 }
 

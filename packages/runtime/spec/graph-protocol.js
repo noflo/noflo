@@ -102,7 +102,10 @@ describe("graph protocol: epoch handshake", () => {
   it("answers a matching sync with the up-to-date short-circuit", async () => {
     const { server, protocol, transport } = await wiredServer();
     const epoch = await protocol.epoch();
-    server.handleFrame(encodeCrdtSyncReq(epoch, { "client-a": 5 }), "link-1");
+    server.handleFrame(
+      encodeCrdtSyncReq(null, epoch, { "client-a": 5 }),
+      "link-1",
+    );
     await flush();
     const decoded = decodeCrdtUpToDate(wire(transport)[0].bytes);
     assert.equal(decoded.cmd, CMD_CRDT_UP_TO_DATE);
@@ -110,7 +113,10 @@ describe("graph protocol: epoch handshake", () => {
 
   it("answers a stale sync with the new epoch and a baseline resource", async () => {
     const { server, protocol, transport } = await wiredServer();
-    server.handleFrame(encodeCrdtSyncReq("0000", { "client-a": 5 }), "link-1");
+    server.handleFrame(
+      encodeCrdtSyncReq(null, "0000", { "client-a": 5 }),
+      "link-1",
+    );
     await flush();
     assert.equal(wire(transport).length, 1);
     const decoded = decodeCrdtStaleEpoch(wire(transport)[0].bytes);
@@ -137,7 +143,7 @@ describe("graph protocol: epoch handshake", () => {
     server.addEventListener("unsupported", (event) =>
       unsupported.push(event.detail),
     );
-    server.handleFrame(encodeCrdtSyncReq("0000", {}), "link-1");
+    server.handleFrame(encodeCrdtSyncReq(null, "0000", {}), "link-1");
     await flush();
     assert.equal(unsupported.length, 1);
     assert.equal(unsupported[0].hook, "resourceProvider");
@@ -149,6 +155,7 @@ describe("graph protocol: inbound operations", () => {
     const { server, graph } = await wiredServer();
     server.handleFrame(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: "client-a",
         logicalClock: 3,
         opType: OP_TYPE.INSERT_NODE,
@@ -164,6 +171,7 @@ describe("graph protocol: inbound operations", () => {
     const { server, transport } = await wiredServer();
     server.handleFrame(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: "client-a",
         logicalClock: 3,
         opType: OP_TYPE.INSERT_NODE,
@@ -184,6 +192,7 @@ describe("graph protocol: inbound operations", () => {
     const { server, transport } = await wiredServer();
     server.handleFrame(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: "client-a",
         logicalClock: 3,
         opType: OP_TYPE.INSERT_NODE,
@@ -200,6 +209,7 @@ describe("graph protocol: inbound operations", () => {
   it("treats tombstones as idempotent", async () => {
     const { server, transport } = await wiredServer();
     const frame = encodeCrdtUpdate({
+      planeId: null,
       clientId: "client-a",
       logicalClock: 3,
       opType: OP_TYPE.TOMBSTONE,
@@ -215,6 +225,7 @@ describe("graph protocol: inbound operations", () => {
     const { server, graph } = await wiredServer();
     server.handleFrame(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: "client-a",
         logicalClock: 3,
         opType: OP_TYPE.UI_METADATA,
@@ -226,6 +237,7 @@ describe("graph protocol: inbound operations", () => {
     assert.deepEqual(graph.node("node-1").metadata, { x: 10, y: 20 });
     server.handleFrame(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: "client-a",
         logicalClock: 4,
         opType: OP_TYPE.UI_METADATA,
@@ -241,6 +253,7 @@ describe("graph protocol: inbound operations", () => {
     const { server, transport } = await wiredServer();
     server.handleFrame(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: "client-a",
         logicalClock: 3,
         opType: OP_TYPE.UI_METADATA,
@@ -268,6 +281,7 @@ describe("graph protocol: inbound operations", () => {
     for (const clientId of ["client-a", "client-b", "client-c"]) {
       server.handleFrame(
         encodeCrdtUpdate({
+          planeId: null,
           clientId,
           logicalClock: 1,
           opType: OP_TYPE.INSERT_NODE,
@@ -287,6 +301,7 @@ describe("graph protocol: inbound operations", () => {
     const { server, graph } = await wiredServer();
     server.handleFrame(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: "client-a",
         logicalClock: 3,
         opType: OP_TYPE.INSERT_NODE,
@@ -313,6 +328,7 @@ describe("graph protocol: inbound operations", () => {
     // context.
     server.handleFrame(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: "client-a",
         logicalClock: 3,
         opType: OP_TYPE.INSERT_NODE,

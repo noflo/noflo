@@ -24,12 +24,16 @@
 import {
   CMD_BREAKPOINT_CLEAR,
   CMD_BREAKPOINT_SET,
+  CMD_GET_STATUS,
   CMD_HWM_SET,
+  CMD_PACKET_SEND,
   CMD_PROCESS_CTRL,
   CMD_RUN_CTRL,
   EVENT_TYPE,
+  encodeGetStatusRes,
   LIFECYCLE_CODE,
   RUN_ACTION,
+  RUN_STATE,
 } from "@noflo/fbp-protocol";
 
 /**
@@ -48,13 +52,27 @@ export class ExecutionProtocol {
    * @param {object} options
    * @param {import("./network-host.js").NetworkHost} options.host
    * @param {import("./telemetry-protocol.js").TelemetryProtocol} options.telemetry
+   * @param {import("./graph-protocol.js").GraphProtocol} [options.graphProtocol]
+   * @param {import("./graph-protocol.js").GraphProtocol} [options.graphProtocol] The
+   *   graph protocol, for access to the plane registry (multi-plane support).
    *   Control failures and lifecycle outcomes reach subscribed clients as
    *   flowtrace events through it.
    */
   constructor(options) {
     this.host = options.host;
     this.telemetry = options.telemetry;
+    /** The graph protocol, for access to the plane registry. */
+    this.graphProtocol = options.graphProtocol ?? null;
+    /** Ephemeral plane hosts, keyed by plane id.
+     * @type {Map<string|number, import("./network-host.js").NetworkHost>}
+     */
+    this.#planeHosts = new Map();
   }
+  /**
+   * Ephemeral plane hosts, keyed by plane id.
+   * @type {Map<string|number, import("./network-host.js").NetworkHost>}
+   */
+  #planeHosts;
 
   /**
    * Register the `0x40`–`0x46` handlers on a runtime server. Requires the
@@ -69,10 +87,19 @@ export class ExecutionProtocol {
     server.registerHandler(CMD_RUN_CTRL, async (decoded) => {
       switch (decoded.action) {
         case RUN_ACTION.START:
-          await this.#start();
+          if (decoded.planeId !== null && decoded.planeId !== undefined) {
+            await this.#startPlane(decoded.planeId);
+          } else {
+            await this.#start();
+          }
           break;
         case RUN_ACTION.STOP:
-          await this.host.stop();
+          if (decoded.planeId !== null && decoded.planeId !== undefined) {
+            const ph = this.#planeHosts.get(decoded.planeId);
+            if (ph) await ph.stop();
+          } else {
+            await this.host.stop();
+          }
           break;
         case RUN_ACTION.PAUSE:
           this.#engineGap("pause");
@@ -95,6 +122,44 @@ export class ExecutionProtocol {
     });
     server.registerHandler(CMD_PROCESS_CTRL, (decoded, context) => {
       this.#engineGap("per-process disable", decoded, context);
+    });
+    server.registerHandler(CMD_PACKET_SEND, (decoded) => {
+      const planeId = decoded.planeId;
+      const isMain = planeId === null || planeId === undefined;
+      const network = isMain
+        ? this.host.network
+        : this.#planeHosts.get(planeId)?.network;
+      if (!network) return;
+      const model = isMain
+        ? this.host.graph
+        : this.graphProtocol?.getPlane(planeId)?.model;
+      if (!model) return;
+      const target = this.#resolveExport(model, decoded.port);
+      if (!target) return;
+      network
+        .addInitial({
+          entity_id: `packet-send-${Date.now()}`,
+          from: { data: decoded.payload },
+          to: { node: target.node, port: target.port },
+        })
+        .catch(() => {});
+    });
+    server.registerHandler(CMD_GET_STATUS, (_decoded, context) => {
+      const network = this.host.network;
+      const runState = network?.isRunning?.()
+        ? RUN_STATE.RUNNING
+        : RUN_STATE.STOPPED;
+      const uptime = network?.uptime?.() ?? 0;
+      const epoch = this.host.graph?.name ?? "main";
+      this.server.send(
+        encodeGetStatusRes({
+          epochId: epoch,
+          runState,
+          uptimeMs: uptime,
+          advertisedMask: this.server.capabilityMask,
+        }),
+        context,
+      );
     });
     server.registerHandler(CMD_HWM_SET, (decoded) => {
       this.host.setHighWaterMark(decoded.highWaterMark);
@@ -124,6 +189,44 @@ export class ExecutionProtocol {
       this.telemetry.record(EVENT_TYPE.LIFECYCLE, LIFECYCLE_CODE.FAILED);
       this.telemetry.record(EVENT_TYPE.ERROR, `start failed: ${message}`);
     }
+  }
+
+  /**
+   * Resolve an exported inport name on a graph model.
+   *
+   * @param {import("@noflo/graph").GraphModel|undefined} model
+   * @param {string} portName
+   * @returns {{ node: string, port: string }|null}
+   */
+  #resolveExport(model, portName) {
+    for (const exp of model?.exports?.() ?? []) {
+      if (exp.direction === "inport" && exp.public === portName) {
+        return { node: exp.internal.node, port: exp.internal.port };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Start a network for an ephemeral plane: create a NetworkHost for the
+   * plane's model, build the network, and start it.
+   *
+   * @param {string|number} planeId
+   * @returns {Promise<void>}
+   */
+  async #startPlane(planeId) {
+    const existing = this.#planeHosts.get(planeId);
+    if (existing?.network) return;
+    const model = this.graphProtocol?.getPlane(planeId)?.model;
+    if (!model) return;
+    const host = new /** @type {any} */ (this.host).constructor({
+      graph: model,
+      componentLoader: this.host.componentLoader,
+    });
+    this.#planeHosts.set(planeId, host);
+    // Wire the ephemeral plane's network events into the telemetry stream
+    this.telemetry.observeHost(host);
+    await host.start();
   }
 
   /**

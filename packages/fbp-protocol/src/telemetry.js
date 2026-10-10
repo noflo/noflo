@@ -109,20 +109,31 @@ export function decodePubsubSub(bytes) {
 
 /**
  * Encode a `0x32 CMD_FLOWTRACE_CHUNK`:
- * `[0x32, sub_id, base_timestamp_ms, [trace_events_array]]` where each
- * event is the positional tuple `[time_delta_ms, event_type, payload]`.
+ * `[0x32, sub_id, plane_id, base_timestamp_ms, [trace_events_array]]` where each
+ * event is the positional tuple `[time_delta_ms, event_type, payload]`. The
+ * plane id attributes the whole chunk to the graph instance it was recorded
+ * on — nil for the main plane (work document #4 update #32: frugal-path
+ * attribution by compact id, never names).
  *
  * @param {object} chunk
  * @param {string|number} chunk.subId Subscription the chunk belongs to.
+ * @param {number|string|null} chunk.planeId The plane the events were
+ *   recorded on; nil for the main plane.
  * @param {number} chunk.baseTimestampMs Epoch milliseconds of delta zero.
  * @param {FlowtraceEvent[]} chunk.events Delta-encoded events in order.
  * @returns {Uint8Array}
  */
-export function encodeFlowtraceChunk({ subId, baseTimestampMs, events }) {
+export function encodeFlowtraceChunk({
+  subId,
+  planeId,
+  baseTimestampMs,
+  events,
+}) {
   assertTimestamp(baseTimestampMs);
   return MsgPack.encode([
     CMD_FLOWTRACE_CHUNK,
     subId,
+    planeId ?? null,
     baseTimestampMs,
     events.map(eventTuple),
   ]);
@@ -135,10 +146,12 @@ export function encodeFlowtraceChunk({ subId, baseTimestampMs, events }) {
  *
  * @param {object} chunk
  * @param {string|number} chunk.subId
+ * @param {number|string|null} [chunk.planeId] The plane the events were
+ *   recorded on; nil for the main plane.
  * @param {TimestampedEvent[]} chunk.events Chronologically ordered events.
  * @returns {Uint8Array}
  */
-export function encodeFlowtraceChunkFromTimestamps({ subId, events }) {
+export function encodeFlowtraceChunkFromTimestamps({ subId, planeId, events }) {
   if (!Array.isArray(events) || events.length === 0) {
     throw new ProtocolError(
       "a flowtrace chunk needs at least one event",
@@ -157,6 +170,7 @@ export function encodeFlowtraceChunkFromTimestamps({ subId, events }) {
   }
   return encodeFlowtraceChunk({
     subId,
+    planeId,
     baseTimestampMs,
     events: events.map((event) => ({
       timeDeltaMs: event.timestampMs - baseTimestampMs,
@@ -170,12 +184,12 @@ export function encodeFlowtraceChunkFromTimestamps({ subId, events }) {
  * Decode a `0x32 CMD_FLOWTRACE_CHUNK`.
  *
  * @param {Uint8Array} bytes
- * @returns {{ cmd: number, subId: string|number, baseTimestampMs: number, events: FlowtraceEvent[] }}
+ * @returns {{ cmd: number, subId: string|number, planeId: number|string|null, baseTimestampMs: number, events: FlowtraceEvent[] }}
  */
 export function decodeFlowtraceChunk(bytes) {
   const frame = MsgPack.decode(bytes);
-  expectFrame(frame, CMD_FLOWTRACE_CHUNK, 4);
-  const [cmd, subId, baseTimestampMs, tuples] = frame;
+  expectFrame(frame, CMD_FLOWTRACE_CHUNK, 5);
+  const [cmd, subId, planeId, baseTimestampMs, tuples] = frame;
   assertTimestamp(baseTimestampMs, cmd);
   if (!Array.isArray(tuples)) {
     throw new ProtocolError("trace_events_array must be an array", cmd);
@@ -198,7 +212,39 @@ export function decodeFlowtraceChunk(bytes) {
     }
     return { timeDeltaMs, eventType, payload };
   });
-  return { cmd, subId, baseTimestampMs, events };
+  return { cmd, subId, planeId, baseTimestampMs, events };
+}
+
+/**
+ * Build the DATA event payload envelope: `[src, tgt, value]` — where each
+ * ref is the positional tuple `[node_id, port, index?]` or nil (an IIP has
+ * no source; an unconnected outport has no target). `node_id` is the graph
+ * model's entity id **within the attributed plane** — the exact identifier
+ * the `0x14` ops use, so consumers join events against the frame-1
+ * topology without name resolution. Nested subgraph instances are their
+ * own planes (work document #4 update #33): the chunk's plane_id anchors
+ * the tree position through the `0x16` parent chain, so no path arrays
+ * travel per event. Group events keep their plain string payloads.
+ *
+ * @param {{ node: string, port: string, index?: number }|null} src
+ * @param {{ node: string, port: string, index?: number }|null} tgt
+ * @param {any} value
+ * @returns {any[]}
+ */
+export function dataEventEnvelope(src, tgt, value) {
+  return [portRef(src), portRef(tgt), value];
+}
+
+/**
+ * @param {{ node: string, port: string, index?: number }|null} ref
+ * @returns {any[]|null}
+ */
+function portRef(ref) {
+  if (!ref) return null;
+  /** @type {any[]} */
+  const out = [ref.node, ref.port];
+  if (ref.index !== undefined) out.push(ref.index);
+  return out;
 }
 
 /**

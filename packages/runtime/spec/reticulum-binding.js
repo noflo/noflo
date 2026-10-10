@@ -214,6 +214,7 @@ describe("Reticulum binding: link lifecycle", () => {
     deniedLink.sent.length = 0;
     server.broadcast(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: "runtime",
         logicalClock: 1,
         opType: OP_TYPE.INSERT_NODE,
@@ -231,6 +232,7 @@ describe("Reticulum binding: link lifecycle", () => {
     // link still receives nothing.
     server.broadcast(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: "runtime",
         logicalClock: 2,
         opType: OP_TYPE.INSERT_NODE,
@@ -325,7 +327,7 @@ describe("Reticulum binding: link lifecycle", () => {
     server.addEventListener("unhandledframe", (event) =>
       unhandled.push(event.detail.decoded),
     );
-    wiredLink.receiveData(encodeCrdtSyncReq(1, { a: 1 }));
+    wiredLink.receiveData(encodeCrdtSyncReq(null, 1, { a: 1 }));
     assert.equal(unhandled.length, 1);
     assert.equal(unhandled[0].cmd, CMD_CRDT_SYNC_REQ);
     // Link closure drops context-bound state.
@@ -456,9 +458,8 @@ describe("Reticulum binding: baseline resources", () => {
     const grantedHash = toHex(grantee.identityHash);
     /** @type {any[]} */
     const evaluated = [];
-    const serverPolicy = staticPolicy();
+    const _serverPolicy = staticPolicy();
     const server = new RuntimeServer({
-      capabilityPolicy: serverPolicy,
       capabilityPolicy: (identityHash) => {
         evaluated.push(identityHash);
         return identityHash === grantedHash ? CAPABILITY.GRAPH_READ : 0;
@@ -496,7 +497,6 @@ describe("assembly", () => {
     const graph = new GraphModel({ name: "main" });
     const policy = () => 0;
     const runtime = await assembleRuntime({
-      capabilityPolicy: staticPolicy(),
       graph,
       catalog: { signatures: () => ({}) },
       capabilityPolicy: policy,
@@ -574,7 +574,10 @@ describe("assembly", () => {
     };
     // Fail closed: the context must be authorized for its frames to count.
     await runtime.server.authorize(linkContext, "test-identity");
-    runtime.server.handleFrame(encodeCrdtSyncReq("0000", {}), linkContext);
+    runtime.server.handleFrame(
+      encodeCrdtSyncReq(null, "0000", {}),
+      linkContext,
+    );
     // The handshake hashes the epoch asynchronously; wait for the reply.
     // The authorized context first received the unilateral auth response,
     // so wait for the stale-epoch reply (opcode 0x12) specifically.

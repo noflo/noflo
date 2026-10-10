@@ -404,16 +404,14 @@ export class Component extends EventBase {
           }
         });
         Object.keys(this.bracketContext.out).forEach((portName) => {
-          Object.keys(this.bracketContext.out[portName]).forEach(
-            (scope) => {
-              const opens = this.bracketContext.out[portName][scope];
-              if (opens.length > 0) {
-                debugBrackets(
-                  `${this.nodeId} bracket context on '${portName}' discarded at shutdown with ${opens.length} unattached open brackets — forwarded brackets attach to actual sends`,
-                );
-              }
-            },
-          );
+          Object.keys(this.bracketContext.out[portName]).forEach((scope) => {
+            const opens = this.bracketContext.out[portName][scope];
+            if (opens.length > 0) {
+              debugBrackets(
+                `${this.nodeId} bracket context on '${portName}' discarded at shutdown with ${opens.length} unattached open brackets — forwarded brackets attach to actual sends`,
+              );
+            }
+          });
         });
         // Clear contents of inport buffers
         const inPorts = this.inPorts.ports || this.inPorts;

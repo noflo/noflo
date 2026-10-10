@@ -25,6 +25,7 @@ import {
   CMD_COMP_DETAIL_RES,
   CMD_COMP_INSTALL_REQ,
   CMD_COMP_MANIFEST,
+  CMD_COMP_SOURCE,
   CMD_COMP_SYNC_REQ,
   CMD_COMP_UP_TO_DATE,
   CMD_COMP_WRITE,
@@ -33,7 +34,12 @@ import {
   CMD_CRDT_UP_TO_DATE,
   CMD_CRDT_UPDATE,
   CMD_FLOWTRACE_CHUNK,
+  CMD_GET_STATUS,
   CMD_HWM_SET,
+  CMD_OP_REJECTED,
+  CMD_PACKET_SEND,
+  CMD_PLANE_DROP,
+  CMD_PLANE_LIST,
   CMD_PROCESS_CTRL,
   CMD_PROCESS_LIST,
   CMD_PROCESS_LIST_REQ,
@@ -82,10 +88,27 @@ const doc = JSON.parse(
 const frameEncoders = {
   [CMD_AUTH_RESPONSE]: (decoded) => encodeAuthResponse(decoded),
   [CMD_CRDT_SYNC_REQ]: (decoded) =>
-    encodeCrdtSyncReq(decoded.epochId, decoded.clientClocks),
-  [CMD_CRDT_UP_TO_DATE]: () => encodeCrdtUpToDate(),
+    encodeCrdtSyncReq(decoded.planeId, decoded.epochId, decoded.clientClocks),
+  [CMD_CRDT_UP_TO_DATE]: (decoded) =>
+    encodeCrdtUpToDate(decoded.planeId, decoded.epochId),
   [CMD_CRDT_STALE_EPOCH]: (decoded) =>
-    encodeCrdtStaleEpoch(decoded.newEpochId, decoded.rnsResourceHash),
+    encodeCrdtStaleEpoch(
+      decoded.planeId,
+      decoded.newEpochId,
+      decoded.rnsResourceHash,
+    ),
+  [protocol.CMD_PLANE_DROP]: (decoded) =>
+    protocol.encodePlaneDrop(decoded.planeId),
+  [protocol.CMD_PLANE_LIST]: (decoded) =>
+    decoded.entries
+      ? protocol.encodePlaneListRes(decoded.entries)
+      : protocol.encodePlaneList(),
+  [protocol.CMD_OP_REJECTED]: (decoded) =>
+    protocol.encodeOpRejected({
+      rejectedCmd: decoded.rejectedCmd,
+      planeId: decoded.planeId,
+      detail: decoded.detail,
+    }),
   [CMD_CRDT_UPDATE]: (decoded) => encodeCrdtUpdate(decoded),
   [CMD_COMP_SYNC_REQ]: (decoded) =>
     encodeCompSyncReq(decoded.localRegistryHash),
@@ -96,6 +119,15 @@ const frameEncoders = {
   [CMD_COMP_DETAIL_RES]: (decoded) => encodeCompDetailRes(decoded.components),
   [CMD_COMP_WRITE]: (decoded) =>
     encodeCompWrite(decoded.componentName, decoded.source),
+  [protocol.CMD_COMP_SOURCE]: (decoded) =>
+    decoded.source !== undefined
+      ? protocol.encodeCompSourceRes(decoded.componentName, decoded.source)
+      : protocol.encodeCompSourceReq(decoded.componentName),
+  [protocol.CMD_PACKET_SEND]: (decoded) => protocol.encodePacketSend(decoded),
+  [protocol.CMD_GET_STATUS]: (decoded) =>
+    decoded.runState !== undefined
+      ? protocol.encodeGetStatusRes(decoded)
+      : protocol.encodeGetStatus(),
   [CMD_COMP_INSTALL_REQ]: (decoded) => encodeCompInstallReq(decoded.packageUri),
   [CMD_PUBSUB_SUB]: (decoded) => encodePubsubSub(decoded),
   [CMD_FLOWTRACE_CHUNK]: (decoded) =>
@@ -303,6 +335,7 @@ describe("wire examples round-trip through the codecs", () => {
             chunks: parsed.chunks.map((chunk) =>
               encodeFlowtraceChunk({
                 subId: chunk.subId,
+                planeId: chunk.planeId,
                 baseTimestampMs: chunk.baseTimestampMs,
                 events: chunk.events,
               }),

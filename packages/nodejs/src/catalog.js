@@ -45,9 +45,16 @@ function portInfos(ports, isInport) {
     if (options.required) {
       info.required = true;
     }
-    // Control ports are non-triggering inports (noflo-ui work document #40)
-    if (isInport && options.triggering === false) {
+    // Control-port identification rides the InPort's own option, matching
+    // the manifest harvest's field (noflo-ui work document #40)
+    if (isInport && options.control) {
       info.control = true;
+    }
+    if (options.values !== undefined) {
+      info.values = options.values;
+    }
+    if (options.default !== undefined) {
+      info.default = options.default;
     }
     return info;
   });
@@ -65,11 +72,21 @@ export function componentDetail(component) {
     : component.isSubgraph()
       ? COMPONENT_TYPE.SUBGRAPH
       : COMPONENT_TYPE.ELEMENTARY;
-  return {
+  const detail = {
     type,
     in: portInfos(component.inPorts, true),
     out: portInfos(component.outPorts, false),
   };
+  // Component-level description and icon, matching the manifest harvest's
+  // component fields (external review: UIs render icons)
+  if (component.description) {
+    detail.description = component.description;
+  }
+  const icon = component.getIcon?.() ?? component.icon;
+  if (icon) {
+    detail.icon = icon;
+  }
+  return detail;
 }
 
 /**
