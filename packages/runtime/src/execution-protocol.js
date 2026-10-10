@@ -161,6 +161,13 @@ export class ExecutionProtocol {
         context,
       );
     });
+    server.addEventListener("planedrop", (/** @type {any} */ event) => {
+      const planeHost = this.#planeHosts.get(event.detail.planeId);
+      if (planeHost) {
+        planeHost.stop().catch(() => {});
+        this.#planeHosts.delete(event.detail.planeId);
+      }
+    });
     server.registerHandler(CMD_HWM_SET, (decoded) => {
       this.host.setHighWaterMark(decoded.highWaterMark);
       if (this.host.network) {

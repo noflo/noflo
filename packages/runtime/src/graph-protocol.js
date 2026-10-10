@@ -29,6 +29,7 @@ import {
   encodeCrdtUpdate,
   encodeCrdtUpToDate,
   encodeOpRejected,
+  encodePlaneDrop,
   encodePlaneListRes,
   OP_TYPE,
   ProtocolError,
@@ -273,18 +274,17 @@ export class GraphProtocol {
       if (plane) {
         this.#planes.delete(decoded.planeId);
       }
-      // The runtime always acknowledges the drop (silence never carries
-      // semantics): emit a lifecycle STOP on the telemetry stream.
-      server.broadcast(
-        encodeCrdtUpdate({
-          planeId: decoded.planeId,
-          clientId: this.clientId,
-          logicalClock: 0,
-          opType: OP_TYPE.TOMBSTONE,
-          entityId: null,
-          payload: null,
+      // Acknowledge the drop to the requesting context — silence never
+      // carries semantics. Other clients on the plane learn through the
+      // plane's telemetry channel.
+      server.send(encodePlaneDrop(decoded.planeId), context);
+      // Notify the execution protocol so it can stop the plane's network
+      // (cross-protocol wiring: the plane registry owns the graph state,
+      // the execution protocol owns the running network).
+      server.dispatchEvent(
+        new globalThis.CustomEvent("planedrop", {
+          detail: { planeId: decoded.planeId },
         }),
-        context,
       );
     });
 
