@@ -1,7 +1,20 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- `assembleTraceFileFromRecorder` now projects the recorder's metadata into the DATA event payload envelope \`[src, tgt, value]\` instead of dropping it (external review, update #35 point 1: the event stream maps onto the frame-1 topology), and the chunk frame carries the plane id
 ### Added
+- Plane addressing (work document #4 updates #24–#33): the graph-sync block (\`0x10\`, \`0x11\`, \`0x12\`, \`0x14\`) gains a nil-defaulted \`plane_id\` — one plane per graph instance (the main graph, node-anchored subgraph instances, client-minted ephemera); the handshake replies name the plane and epoch
+- \`0x15 CMD_PLANE_DROP\`: one-command ephemeral plane teardown — stops the network and discards state wholesale; the main plane is not droppable
+- \`0x16 CMD_PLANE_LIST\`: the plane tree — every running graph instance with its kind, parent, node id, component name, and label
+- \`0x17 CMD_OP_REJECTED\`: the runtime's explicit no — permission denials per plane and structural rejections, carrying the op identity triple so clients revert their mirrors
+- \`0x26 CMD_COMP_SOURCE\`: the read counterpart of \`0x25\` — pull component source from the runtime
+- \`0x47 CMD_PACKET_SEND\`: plane-addressed input injection — interactive use, remote fbp-spec cases, and the runtime-as-remote-component pattern
+- \`0x48 CMD_GET_STATUS\`: run state, uptime, epoch, and the advertised capability ceiling
+- Auth response (\`0x02\`) carries runtime metadata and the advertised capability ceiling alongside the granted mask
+- \`EVENT_TYPE\` gains \`CONNECTION_OPEN\` (0x0b) and \`CONNECTION_CLOSE\` (0x0c) — the framing 1.x UIs animate edge activity with
+- \`ComponentDetail\` carries component-level \`description\` and \`icon\`; \`PortInfo\` carries \`values\` and \`default\` (inports) — in lockstep with the publish-time manifest harvest
+- The \`0x32\` chunk frame gains a \`plane_id\` at position 2, and DATA event payloads carry the positional envelope \`[src, tgt, value]\` so the event stream maps onto the frame-1 topology
 - `assembleTraceFileFromRecorder` (work document #23 update #2): the binary encoding of the NoFlo core trace recorder's `toJSON()` state — snapshot fields framed as the `0xF0` snapshot, event tuples projected to a `0x32` chunk frame based at the recording start, the recorder's optional fourth metadata element projection-dropped so wire payloads stay the raw value. Consumed duck-typed with no dependency on `@noflo/noflo` (the protocol package stays runtime-agnostic); a round-trip spec in `@noflo/runtime` pins the JSON and binary representations together
 
 ## [2.0.0-alpha.3] - 2026-10-10
