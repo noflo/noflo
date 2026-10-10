@@ -3,8 +3,6 @@
 //     NoFlo may be freely distributed under the MIT license
 /* @ts-self-types="./logger.d.ts" */
 
-import { isBrowser } from "./Platform.js";
-
 /**
  * @file logger module
  * @description Native-API debug logger replacing the `debug` npm module
@@ -18,15 +16,15 @@ import { isBrowser } from "./Platform.js";
  * `DEBUG` environment variable on server-side runtimes.
  *
  * Server runtimes are checked first and the `localStorage` probe only runs
- * when `isBrowser()` says so: merely touching the `localStorage` global in
- * Node.js 22+ triggers an ExperimentalWarning, which would spam every
- * library consumer that enables a debug namespace.
+ * when no `process` object is available: merely touching the `localStorage`
+ * global in Node.js 22+ triggers an ExperimentalWarning, which would spam
+ * every library consumer that enables a debug namespace.
  *
  * @returns {string|null}
  */
 function getPattern() {
-  if (!isBrowser()) {
-    if (typeof process === "undefined" || !process.env) return null;
+  if (typeof process !== "undefined" && process.versions) {
+    if (!process.env) return null;
     return process.env.DEBUG || null;
   }
   const stored = globalThis.localStorage?.getItem("debug");

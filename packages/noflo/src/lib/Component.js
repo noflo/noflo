@@ -5,14 +5,14 @@
 //     NoFlo may be freely distributed under the MIT license
 /* @ts-self-types="./Component.d.ts" */
 
-import InPort from "./InPort.js"; // eslint-disable-line no-unused-vars
-import IP from "./IP.js"; // eslint-disable-line no-unused-vars
 /* eslint-disable
     class-methods-use-this,
     no-underscore-dangle,
     import/prefer-default-export,
 */
-import { LegacyEventBase } from "./LegacyEvents.js";
+import { EventBase } from "./EventBase.js";
+import InPort from "./InPort.js"; // eslint-disable-line no-unused-vars
+import IP from "./IP.js"; // eslint-disable-line no-unused-vars
 import { createDebug } from "./logger.js";
 import OutPort from "./OutPort.js"; // eslint-disable-line no-unused-vars
 import { InPorts, normalizePortName, OutPorts } from "./Ports.js";
@@ -62,7 +62,7 @@ const debugSend = createDebug("noflo:component:send");
  * The `noflo.Component` interface provides a way to instantiate and extend
  * NoFlo components.
  */
-export class Component extends LegacyEventBase {
+export class Component extends EventBase {
   /**
    * Create a component. Ports, icon, description, ordering behavior, and the
    * process function can all be provided via options, or set up imperatively
@@ -204,12 +204,6 @@ export class Component extends LegacyEventBase {
      * @type {string|null}
      */
     this.nodeId = null;
-
-    /**
-     * Deprecated legacy component connection counter
-     * @type {number}
-     */
-    this.__openConnections = 0;
   }
 
   /**
@@ -285,11 +279,6 @@ export class Component extends LegacyEventBase {
     }
     throw e;
   }
-
-  /**
-   * @callback ErrorableCallback
-   * @param {Error | null} error
-   */
 
   /**
    * Component-specific initialization, called at network start-up. Override
@@ -423,21 +412,6 @@ export class Component extends LegacyEventBase {
         this.forwardBrackets[inPort] = tmp;
       }
     });
-  }
-
-  /**
-   * Check whether the component uses the legacy (pre-Process API) programming
-   * interface.
-   *
-   * @returns {boolean}
-   */
-  isLegacy() {
-    // Process API
-    if (this.handle) {
-      return false;
-    }
-    // Legacy
-    return true;
   }
 
   /**

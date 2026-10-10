@@ -5,7 +5,7 @@
  * (c) 2011-2012 Henri Bergius, Nemein
  * NoFlo may be freely distributed under the MIT license
  *
- * @file LegacyEvents module
+ * @file EventBase module
  * @description EventTarget support layer for NoFlo's engine classes. The
  *   public event registration API is the native one
  *   (`addEventListener`/`removeEventListener`); the legacy EventEmitter
@@ -17,25 +17,25 @@
  *
  *   - A per-instance listener registry enabling **synchronous, ordered
  *     dispatch with exception propagation**
- *     ({@link LegacyEventBase#dispatchLifecycleEvent}): Node's
+ *     ({@link EventBase#dispatchLifecycleEvent}): Node's
  *     `dispatchEvent` isolates listener exceptions (surfacing them as
  *     uncaught exceptions) instead of propagating them synchronously to
  *     the caller. NoFlo's error semantics depend on synchronous
  *     propagation — a listener throw must reach the dispatcher so the
  *     socket/network error-escalation chain works.
- *   - **Listener-count queries** ({@link LegacyEventBase#listeners}):
+ *   - **Listener-count queries** ({@link EventBase#listeners}):
  *     the escalation contract (work document #8, P2) throws process
  *     errors when nobody is listening, which requires knowing whether
  *     any listener is registered — a question `EventTarget` cannot
  *     answer.
- *   - **Bulk removal** ({@link LegacyEventBase#removeAllListeners}),
+ *   - **Bulk removal** ({@link EventBase#removeAllListeners}),
  *     since `EventTarget` cannot enumerate listeners either.
  *
  *   Listeners registered through `addEventListener` receive the
  *   dispatched `DetailEvent`, with the payload in its `detail` property.
  */
 
-/* @ts-self-types="./LegacyEvents.d.ts" */
+/* @ts-self-types="./EventBase.d.ts" */
 
 /**
  * CustomEvent fallback for runtimes predating the global constructor.
@@ -83,8 +83,8 @@ function registryFor(instance) {
  *
  * @param {any} Base
  */
-export function LegacyEventMixin(Base) {
-  return class LegacyEventBase extends Base {
+export function EventTargetMixin(Base) {
+  return class EventBase extends Base {
     /**
      * Track listener registrations, so `listeners()` can answer the
      * "is anyone listening" question EventTarget can't, and so
@@ -191,4 +191,4 @@ export function LegacyEventMixin(Base) {
 }
 
 /** Ready-made EventTarget base for classes that have no other base class. */
-export const LegacyEventBase = LegacyEventMixin(EventTarget);
+export const EventBase = EventTargetMixin(EventTarget);

@@ -14,10 +14,10 @@
 import { exportFbpJson, sameRef } from "@noflo/graph";
 import { ComponentLoader } from "./ComponentLoader.js";
 import { resolveHighWaterMark } from "./Edge.js";
+import { EventBase } from "./EventBase.js";
 import * as internalSocket from "./InternalSocket.js";
 import IP from "./IP.js";
-import { LegacyEventBase } from "./LegacyEvents.js";
-import { deprecated, makeAsync } from "./Platform.js";
+import { makeAsync } from "./Platform.js";
 import { debounce } from "./Utils.js";
 
 /**
@@ -115,7 +115,7 @@ function connectPort(socket, process, port, index, inbound) {
  * Initial Information Packets, and mirror live-edit mutations back into the
  * graph model.
  */
-export class Network extends LegacyEventBase {
+export class Network extends EventBase {
   /**
    * All NoFlo networks are instantiated with a graph. Upon instantiation
    * they will load all the needed components, instantiate them, and
@@ -196,12 +196,6 @@ export class Network extends LegacyEventBase {
        * @type {ComponentLoader}
        */
       this.loader = options.componentLoader;
-    } else if (this.graph.graphMetadata().componentLoader) {
-      deprecated(
-        "Passing componentLoader via Graph properties is deprecated, pass via Network options instead",
-      );
-      /** @type {ComponentLoader} */
-      this.loader = this.graph.graphMetadata().componentLoader;
     } else {
       /** @type {ComponentLoader} */
       this.loader = new ComponentLoader({
@@ -250,11 +244,6 @@ export class Network extends LegacyEventBase {
         return;
       }
       if (process.component.load > 0) {
-        // Modern component with load
-        active.push(name);
-      }
-      if (process.component.__openConnections > 0) {
-        // Legacy component
         active.push(name);
       }
     });
@@ -329,8 +318,7 @@ export class Network extends LegacyEventBase {
   /**
    * Emit a network lifecycle event, buffering events emitted before the
    * network has started and flushing the buffer on start. Errors, icons, and
-   * network end are emitted immediately; `ip` events also re-emit their
-   * legacy per-type variants.
+   * network end are emitted immediately.
    *
    * @protected
    * @param {string} event
@@ -360,22 +348,6 @@ export class Network extends LegacyEventBase {
         this.dispatchLifecycleEvent(ev.type, ev.payload);
       });
       this.eventBuffer = [];
-    }
-
-    if (event === "ip") {
-      // Emit also the legacy events from IP
-      switch (payload.type) {
-        case "openBracket":
-          this.bufferedEmit("begingroup", payload);
-          return;
-        case "closeBracket":
-          this.bufferedEmit("endgroup", payload);
-          return;
-        case "data":
-          this.bufferedEmit("data", payload);
-          break;
-        default:
-      }
     }
   }
 
@@ -644,14 +616,12 @@ export class Network extends LegacyEventBase {
 
   /**
    * Subscribe to events from a socket: forward packet traffic to the edge
-   * observers and the network `ip` event, escalate process errors when
-   * nobody listens, and drive legacy-component activation via
-   * connect/disconnect counts.
+   * observers and the network `ip` event, and escalate process errors when
+   * nobody listens.
    *
    * @param {internalSocket.InternalSocket} socket
-   * @param {NetworkProcess} [source]
    */
-  subscribeSocket(socket, source) {
+  subscribeSocket(socket) {
     // Transport-level observation: one stable dispatcher per edge that
     // forwards to the CURRENT network observer list at event time, so
     // observer registration can never drift out of sync with wired edges
@@ -691,28 +661,6 @@ export class Network extends LegacyEventBase {
         throw errEvent;
       }
       this.bufferedEmit("process-error", errEvent);
-    });
-    if (!source?.component?.isLegacy()) {
-      return;
-    }
-    const comp = /** @type {import("./Component.js").Component} */ (
-      source.component
-    );
-    // Handle activation for legacy components via connects/disconnects
-    socket.addEventListener("connect", () => {
-      if (!comp.__openConnections) {
-        comp.__openConnections = 0;
-      }
-      comp.__openConnections += 1;
-    });
-    socket.addEventListener("disconnect", () => {
-      comp.__openConnections -= 1;
-      if (comp.__openConnections < 0) {
-        comp.__openConnections = 0;
-      }
-      if (comp.__openConnections === 0) {
-        this.checkIfFinished();
-      }
     });
   }
 
@@ -836,7 +784,7 @@ export class Network extends LegacyEventBase {
       return this.ensureNode(edge.to.node, "inbound")
         .then((to) => {
           // Subscribe to events from the socket
-          this.subscribeSocket(socket, from);
+          this.subscribeSocket(socket);
 
           return connectPort(socket, to, edge.to.port, edge.to.index, true);
         })

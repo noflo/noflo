@@ -3,9 +3,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { Component } from "../src/lib/Component.js";
-import { LegacyEventMixin } from "../src/lib/LegacyEvents.js";
+import { EventTargetMixin } from "../src/lib/EventBase.js";
 
-describe("LegacyEvents EventTarget support layer", () => {
+describe("EventBase EventTarget support layer", () => {
   it("dispatches DetailEvents to addEventListener listeners", () => {
     const c = new Component();
     let payload = null;
@@ -83,7 +83,7 @@ describe("LegacyEvents EventTarget support layer", () => {
 
   it("mixes onto arbitrary EventTarget bases", () => {
     class Base extends EventTarget {}
-    const Evented = LegacyEventMixin(Base);
+    const Evented = EventTargetMixin(Base);
     const e = new Evented();
     let payload = null;
     e.addEventListener("custom", (event) => {

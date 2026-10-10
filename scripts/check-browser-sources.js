@@ -18,7 +18,7 @@
  *   3. **No CommonJS `require()`** — plain ESM only.
  *   4. **No unreviewed Node `process` global access** — `process.*` is only
  *      allowed in files on the reviewed allowlist, where every use is behind
- *      a runtime guard (`isBrowser()` or `typeof process`). A new file
+ *      a runtime guard (`typeof process`). A new file
  *      reaching for `process` fails here and must either drop the Node-ism or
  *      be consciously reviewed onto the allowlist.
  *
@@ -50,7 +50,7 @@ const BROWSER_PACKAGES = ["noflo", "graph", "fbp", "as-component"];
 
 /**
  * Files where Node `process` global access is allowed: every use is behind a
- * runtime guard (`isBrowser()` or a `typeof process` check), reviewed as part
+ * runtime guard (a `typeof process` capability check), reviewed as part
  * of #18's Node-isms audit. Keep this list short — prefer guarding-free code.
  *
  * @type {string[]}
@@ -233,8 +233,8 @@ export function checkAll(root) {
 
 const HOWTO =
   "Fix: drop the Node-ism (use platform-neutral Web-standards APIs), or guard\n" +
-  "     it behind isBrowser()/typeof process and — for `process` access only —\n" +
-  "     add the file to PROCESS_ALLOWLIST in this script after review.\n" +
+  "     it behind a `typeof process` capability check and — for `process` access\n" +
+  "     only — add the file to PROCESS_ALLOWLIST in this script after review.\n" +
   "     Server-side packages (@noflo/loader-node, @noflo/fbp-spec-runner) are\n" +
   "     out of scope and may use Node APIs freely.";
 

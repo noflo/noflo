@@ -9,30 +9,7 @@
     prefer-rest-params,
 */
 
-// Guess language from filename
-/**
- * @param {string} filename
- * @returns {string}
- */
-export function guessLanguageFromFilename(filename) {
-  if (/.*\.ts$/.test(filename)) {
-    return "typescript";
-  }
-  return "javascript";
-}
-
-/**
- * @param {Object} obj
- * @returns {boolean}
- */
-export function isArray(obj) {
-  if (Array.isArray) {
-    return Array.isArray(obj);
-  }
-  return Object.prototype.toString.call(obj) === "[object Array]";
-}
-
-// the following functions are from http://underscorejs.org/docs/underscore.html
+// The following function is from http://underscorejs.org/docs/underscore.html
 // Underscore.js 1.8.3 http://underscorejs.org
 // (c) 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 // Underscore may be freely distributed under the MIT license.

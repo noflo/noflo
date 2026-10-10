@@ -383,38 +383,6 @@ describe("ComponentLoader", () => {
       const instance = await loader.load("registry/Split");
       assert.strictEqual(instance.getIcon(), "bug");
     });
-
-    it("warns on legacy components", async () => {
-      const warnings = [];
-      const originalWarn = console.warn;
-      console.warn = (message) => warnings.push(message);
-      try {
-        const loader = new noflo.ComponentLoader({
-          registry: {
-            list: () => ({
-              "registry/Legacy": {
-                getComponent: () => {
-                  const c = new noflo.Component();
-                  c.inPorts.add("in", { datatype: "string" });
-                  c.outPorts.add("out", { datatype: "string" });
-                  // Legacy components use the pre-Process-API handle-style
-                  listen(c.inPorts.in, "data", () => {});
-                  return c;
-                },
-              },
-            }),
-          },
-        });
-        const instance = await loader.load("registry/Legacy");
-        assert.ok(instance.isLegacy());
-      } finally {
-        console.warn = originalWarn;
-      }
-      assert.ok(
-        warnings.some((w) => w.includes("legacy NoFlo APIs")),
-        "expected a legacy warning",
-      );
-    });
   });
 
   describe("loading a subgraph from a registry graph model", () => {
@@ -526,10 +494,24 @@ describe("ComponentLoader", () => {
 
     it("supports the registerLoader plugin hook", async () => {
       const l2 = new noflo.ComponentLoader({});
-      await l2.registerLoader((loader, callback) => {
+      await l2.registerLoader((loader) => {
         loader.registerComponent("plugin", "Split", splitModule());
-        callback(null);
       });
+      const instance = await l2.load("plugin/Split");
+      assert.ok(instance.inPorts.ports.in);
+    });
+
+    it("awaits the Promise a plugin returns", async () => {
+      const l2 = new noflo.ComponentLoader({});
+      let registered = false;
+      await l2.registerLoader(async (loader) => {
+        await new Promise((resolve) => {
+          setTimeout(resolve, 1);
+        });
+        loader.registerComponent("plugin", "Split", splitModule());
+        registered = true;
+      });
+      assert.strictEqual(registered, true);
       const instance = await l2.load("plugin/Split");
       assert.ok(instance.inPorts.ports.in);
     });
@@ -537,8 +519,16 @@ describe("ComponentLoader", () => {
     it("rejects when the plugin hook fails", async () => {
       const l2 = new noflo.ComponentLoader({});
       await assert.rejects(
-        l2.registerLoader((_loader, callback) => {
-          callback(new Error("Plugin failed"));
+        l2.registerLoader(() => Promise.reject(new Error("Plugin failed"))),
+        /Plugin failed/,
+      );
+    });
+
+    it("rejects when the plugin hook throws", async () => {
+      const l2 = new noflo.ComponentLoader({});
+      await assert.rejects(
+        l2.registerLoader(() => {
+          throw new Error("Plugin failed");
         }),
         /Plugin failed/,
       );
@@ -579,26 +569,14 @@ describe("ComponentLoader", () => {
     });
 
     it("registerLoader settles with the plugin completion", async () => {
-      await l.registerLoader((_loader, callback) => {
-        callback(null);
+      let done = false;
+      await l.registerLoader(async () => {
+        await new Promise((resolve) => {
+          setTimeout(resolve, 1);
+        });
+        done = true;
       });
-    });
-
-    it("Promise usage emits no deprecation warnings", async () => {
-      const warnings = [];
-      const originalWarn = console.warn;
-      console.warn = (message) => warnings.push(message);
-      try {
-        l.registerComponent("my-project", "Split3", splitModule());
-        await l.load("my-project/Split3");
-        await l.listComponents();
-      } finally {
-        console.warn = originalWarn;
-      }
-      assert.deepEqual(
-        warnings.filter((w) => w.includes("deprecated")),
-        [],
-      );
+      assert.strictEqual(done, true);
     });
   });
 });

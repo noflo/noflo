@@ -79,38 +79,41 @@ export default class InPort extends BasePort {
       socket.setDataDelegate(() => this.options.default);
     }
 
-    /**
-     * @param {string} type
-     * @param {any} detail
-     */
-    const forward = (type, detail) =>
-      this.handleSocketEvent(type, detail, localId);
-    socket.addEventListener("connect", () => forward("connect", socket));
-    socket.addEventListener("begingroup", (event) =>
-      forward("begingroup", event.detail),
-    );
-    socket.addEventListener("data", (event) => {
-      this.validateData(event.detail);
-      return forward("data", event.detail);
+    // Connection framing stays a port-level event (consumed for example by
+    // subgraphs starting their internal network on first data); packets are
+    // delivered through the `ip` event only.
+    socket.addEventListener("connect", () => {
+      if (this.isAddressable()) {
+        this.dispatchLifecycleEvent("connect", [socket, localId]);
+        return;
+      }
+      this.dispatchLifecycleEvent("connect", socket);
     });
-    socket.addEventListener("endgroup", (event) =>
-      forward("endgroup", event.detail),
-    );
-    socket.addEventListener("disconnect", () => forward("disconnect", socket));
+    socket.addEventListener("disconnect", () => {
+      if (this.isAddressable()) {
+        this.dispatchLifecycleEvent("disconnect", [socket, localId]);
+        return;
+      }
+      this.dispatchLifecycleEvent("disconnect", socket);
+    });
     socket.addEventListener("ip", (event) =>
       this.handleIP(event.detail, localId),
     );
   }
 
   /**
-   * Receive an Information Packet from a socket: stamp it with ownership,
-   * index, and port datatype/schema, buffer it, and emit the `ip` event.
+   * Receive an Information Packet from a socket: validate it against the
+   * port's `values` list, stamp it with ownership, index, and port
+   * datatype/schema, buffer it, and emit the `ip` event.
    *
    * @param {import("./IP.js").default} packet
    * @param {number|null} [index]
    */
   handleIP(packet, index = null) {
     const ip = packet;
+    if (ip.type === "data") {
+      this.validateData(ip.data);
+    }
     ip.owner = this.nodeInstance;
     if (this.isAddressable()) {
       ip.index = index;
@@ -141,22 +144,6 @@ export default class InPort extends BasePort {
     }
     buf.push(ip);
     this.dispatchLifecycleEvent("ip", ip);
-  }
-
-  /**
-   * Emit a port lifecycle event for a socket event. Addressable ports carry
-   * `[payload, index]` as the event detail (matching attach/detach); `ip`
-   * events keep the raw IP object with its `index` property.
-   *
-   * @param {string} event
-   * @param {any} payload
-   * @param {number|null} id
-   */
-  handleSocketEvent(event, payload, id) {
-    if (this.isAddressable()) {
-      return this.dispatchLifecycleEvent(event, [payload, id]);
-    }
-    return this.dispatchLifecycleEvent(event, payload);
   }
 
   /**

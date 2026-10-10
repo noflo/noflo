@@ -65,7 +65,7 @@ const registry = await createNodeModulesRegistry(process.cwd());
 const network = await noflo.createNetwork(graph, { registry });
 ```
 
-The factory discovers components and graph files (registering graphs as pre-parsed `GraphModel`s), supports the `fbp.json` manifest cache (`noflo-cache-preheat`), transpiles TypeScript components when a compiler is installed, evaluates component sources for `setSource`, and drives `noflo.loader` plugin modules from package manifests.
+The factory discovers components and graph files (registering graphs as pre-parsed `GraphModel`s), supports the `fbp.json` manifest cache (`noflo-cache-preheat`), transpiles TypeScript components when a compiler is installed, evaluates component sources for `setSource`, and drives `noflo.loader` plugin modules from package manifests. A plugin module's default export is a function receiving a registration shim (`registerComponent`, `registerGraph`, `setLibraryIcon`) and returning a Promise (or nothing) that settles when its registration work is done.
 
 ## Passing registries around
 

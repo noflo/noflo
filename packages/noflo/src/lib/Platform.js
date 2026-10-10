@@ -11,55 +11,37 @@
 */
 
 /**
- * Detect whether NoFlo is running in a browser-like environment rather than a
- * server-side JavaScript runtime.
+ * Run a function asynchronously. On runtimes exposing a `process` object this
+ * uses `process.nextTick` (or `setImmediate` for same-loop scheduling);
+ * browser-like runtimes fall back to `setTimeout`.
  *
- * @returns {boolean}
- */
-export function isBrowser() {
-  if (
-    typeof process !== "undefined" &&
-    process.versions &&
-    (process.versions.node || process.versions.deno || process.versions.bun)
-  ) {
-    return false;
-  }
-  return true;
-}
-
-// Mechanism for showing API deprecation warnings. By default logs the warnings
-// but can also be configured to throw instead with the `NOFLO_FATAL_DEPRECATED`
-// env var.
-/**
- * @param {string} message
- * @returns {void}
- */
-export function deprecated(message) {
-  if (isBrowser()) {
-    console.warn(message);
-    return;
-  }
-  if (process.env.NOFLO_FATAL_DEPRECATED) {
-    throw new Error(message);
-  }
-  console.warn(message);
-}
-
-/**
+ * The scheduling phase is deliberate and load-bearing: `process.nextTick`
+ * runs before promise callbacks (ordering socket-event emission against the
+ * promise-based Edge chain), while `setImmediate`/`setTimeout` are
+ * macrotasks that give the event loop a turn before the callback runs (for
+ * example initial Information Packets must not be sent until pending I/O of
+ * the current iteration has had its chance). Do NOT replace these with
+ * `queueMicrotask`: it is a microtask and would fire before the event loop
+ * continues, reordering packet delivery and diverging from the browser
+ * fallback, which is also a macrotask.
+ *
  * @param {Function} func
+ * @param {boolean} [sameLoop]
  * @returns {void}
  */
 export function makeAsync(func, sameLoop = false) {
-  if (isBrowser()) {
-    // FIXME: Browsers don't have setImmediate yet so can't do same loop
-    setTimeout(func, 0);
+  if (
+    typeof process !== "undefined" &&
+    typeof process.nextTick === "function"
+  ) {
+    if (sameLoop && typeof setImmediate === "function") {
+      setImmediate(() => {
+        func();
+      });
+      return;
+    }
+    process.nextTick(func);
     return;
   }
-  if (sameLoop) {
-    setImmediate(() => {
-      func();
-    });
-    return;
-  }
-  process.nextTick(func);
+  setTimeout(func, 0);
 }

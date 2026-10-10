@@ -14,72 +14,79 @@
 import { GraphModel, importFbpJson } from "@noflo/graph";
 import { Component } from "../lib/Component.js";
 import { Network } from "../lib/Network.js";
-import { deprecated, isBrowser } from "../lib/Platform.js";
+import { makeAsync } from "../lib/Platform.js";
 import { InPorts, OutPorts } from "../lib/Ports.js";
 
-// The Subgraph component is used to wrap NoFlo Networks into components
-// inside another network.
+/**
+ * Options for constructing a Subgraph: the same options a `Network` takes,
+ * plus the node metadata of the component instance.
+ *
+ * @typedef {import("../lib/Network.js").NetworkOptions & {
+ *   metadata?: Object<string, any>
+ * }} SubgraphOptions
+ */
+
+/**
+ * A subgraph component: wraps a NoFlo network built from a graph model into
+ * a component usable inside another network. The graph and the network
+ * options are provided at construction; the internal network is created
+ * (components loaded, sockets wired, exported ports mapped) asynchronously
+ * from the constructor, with {@link Subgraph#prepared} resolving on
+ * completion and the `ready` lifecycle event signalling it.
+ */
 export class Subgraph extends Component {
   /**
-   * @param {Object<string, any>} [metadata]
+   * Create a subgraph component for the given graph definition, taking the
+   * same options a `Network` takes.
+   *
+   * @param {import("@noflo/graph").GraphModel|Object<string, any>} graph
+   *   A live graph model or an FBP JSON definition
+   * @param {SubgraphOptions} [options]
    */
-  constructor(metadata) {
+  constructor(graph, options = {}) {
     super();
-    this.metadata = metadata;
+    if (graph === undefined || graph === null) {
+      throw new Error(
+        "Subgraph requires a graph definition: pass a GraphModel or FBP JSON document",
+      );
+    }
+    /** @type {Object<string, any>|undefined} Node metadata of the component instance */
+    this.metadata = options.metadata;
     /** @type {import("../lib/Network.js").Network|null} */
     this.network = null;
     this.ready = true;
     this.started = false;
     this.starting = false;
-    /** @type {import("../lib/ComponentLoader.js").ComponentLoader|null} */
-    this.loader = null;
     this.load = 0;
     /** @type {Promise<void>|null} */
     this.startingPromise = null;
 
-    this.inPorts = new InPorts({
-      graph: {
-        datatype: "all",
-        description:
-          "NoFlo graph definition to be used with the subgraph component",
-        required: true,
-      },
-    });
-    this.outPorts = new OutPorts();
+    this.inPorts = new InPorts({});
+    this.outPorts = new OutPorts({});
 
-    this.inPorts.ports.graph.addEventListener("ip", (event) => {
-      const packet = event.detail;
-      if (packet.type !== "data") {
-        return;
-      }
-      deprecated(
-        "Sending graph packets into a subgraph at runtime is deprecated; register pre-parsed graph models with the component loader or construct networks directly",
-      );
-      // TODO: Port this part to Process API and use output.error method instead
-      this.setGraph(packet.data).catch(this.error);
-    });
-  }
-
-  /**
-   * @param {import("@noflo/graph").GraphModel|Object<string, any>} graph
-   *   A live graph model or an FBP JSON definition
-   * @returns {Promise<void>}
-   */
-  setGraph(graph) {
     this.ready = false;
-    if (graph instanceof GraphModel) {
-      // Existing graph model
-      return this.createNetwork(graph);
-    }
-    // JSON definition of a graph
-    return this.createNetwork(importFbpJson(graph));
+    /**
+     * Promise resolving when the internal network has been created and the
+     * exported ports mapped.
+     *
+     * @type {Promise<void>}
+     */
+    this.prepared = this.createNetwork(
+      graph instanceof GraphModel ? graph : importFbpJson(graph),
+      options,
+    );
   }
 
   /**
+   * Build the internal network for the graph, wiring it up and mapping the
+   * exported ports onto this component.
+   *
+   * @protected
    * @param {import("@noflo/graph").GraphModel} graph
+   * @param {SubgraphOptions} [options]
    * @returns {Promise<void>}
    */
-  createNetwork(graph) {
+  createNetwork(graph, options = {}) {
     const graphMetadata = graph.graphMetadata();
     this.description = graphMetadata.description || "";
     this.icon = graphMetadata.icon || this.icon;
@@ -89,12 +96,11 @@ export class Subgraph extends Component {
       graphObj.name = this.nodeId;
     }
 
-    const network = new Network(graphObj, {
-      componentLoader: this.loader || undefined,
-    });
+    const network = new Network(graphObj, options);
 
-    return network.loader
-      .listComponents()
+    // Keep the `network` lifecycle event asynchronous so listeners attached
+    // right after construction can observe it
+    return Promise.resolve()
       .then(() => {
         this.network = network;
         this.dispatchLifecycleEvent("network", network);
@@ -199,17 +205,10 @@ export class Subgraph extends Component {
   }
 
   setToReady() {
-    if (!isBrowser()) {
-      process.nextTick(() => {
-        this.ready = true;
-        return this.dispatchLifecycleEvent("ready");
-      });
-    } else {
-      setTimeout(() => {
-        this.ready = true;
-        return this.dispatchLifecycleEvent("ready");
-      }, 0);
-    }
+    makeAsync(() => {
+      this.ready = true;
+      this.dispatchLifecycleEvent("ready");
+    });
   }
 
   /**
@@ -269,10 +268,6 @@ export class Subgraph extends Component {
     return true;
   }
 
-  isLegacy() {
-    return false;
-  }
-
   setUp() {
     // Start the internal network. This is invoked when the parent
     // network starts this component, or when a user starts the component
@@ -321,11 +316,4 @@ export class Subgraph extends Component {
     }
     return this.network.stop().then(() => {});
   }
-}
-
-/**
- * @param {Object<string, any>} [metadata]
- */
-export function getComponent(metadata) {
-  return new Subgraph(metadata);
 }

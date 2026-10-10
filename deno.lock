@@ -548,6 +548,17 @@
           ]
         }
       },
+      "packages/assembly": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@noflo/fbp@^2.0.0-alpha.2",
+            "npm:@noflo/loader-node@^2.0.0-alpha.2",
+            "npm:@noflo/noflo@^2.0.0-alpha.2",
+            "npm:@types/node@24",
+            "npm:typescript@5"
+          ]
+        }
+      },
       "packages/fbp": {
         "packageJson": {
           "dependencies": [

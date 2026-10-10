@@ -227,28 +227,16 @@ describe("InternalSocket delegating transport to Edge", () => {
     );
   });
 
-  it("emits derived legacy events alongside ip events", () => {
+  it("emits only ip events for bracketed packets", () => {
     const socket = internalSocket.createSocket();
     const events = [];
     listen(socket, "ip", (ip) => {
       events.push(`ip:${ip.type}`);
     });
-    listen(socket, "data", (data) => {
-      events.push(`data:${data}`);
-    });
-    listen(socket, "begingroup", (group) => {
-      events.push(`begingroup:${group}`);
-    });
     socket.post(new IP("openBracket", "g"));
     socket.post(new IP("data", 42));
     socket.post(new IP("closeBracket", "g"));
-    assert.deepEqual(events, [
-      "ip:openBracket",
-      "begingroup:g",
-      "ip:data",
-      "data:42",
-      "ip:closeBracket",
-    ]);
+    assert.deepEqual(events, ["ip:openBracket", "ip:data", "ip:closeBracket"]);
   });
 
   it("applies the edge metadata high-water mark", async () => {
@@ -277,7 +265,6 @@ describe("hierarchical high-water mark wiring through networks", () => {
   let loader;
   before(async () => {
     loader = new noflo.ComponentLoader({});
-    await loader.listComponents();
     const bounded = () => {
       const c = new noflo.Component();
       c.inPorts.add("in", { datatype: "all" });
@@ -362,7 +349,6 @@ describe("network-level edge observation", () => {
   let observeLoader;
   before(async () => {
     observeLoader = new noflo.ComponentLoader({});
-    await observeLoader.listComponents();
     const repeat = () => {
       const c = new noflo.Component();
       c.inPorts.add("in", { datatype: "all" });

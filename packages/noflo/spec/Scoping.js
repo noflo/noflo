@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { afterEach, before, beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
-import { listen, listenOnce } from "./utils/events.js";
+import {
+  closeBracket,
+  listen,
+  listenIPSequence,
+  listenOnce,
+  openBracket,
+} from "./utils/events.js";
 import { loadJsonGraphFixture } from "./utils/loadJsonGraph.js";
 
 describe("Scope isolation", () => {
@@ -105,17 +111,11 @@ describe("Scope isolation", () => {
 
   before(() => {
     loader = new noflo.ComponentLoader({});
-    return loader.listComponents().then(() => {
-      loader.registerComponent("process", "Async", processAsync);
-      loader.registerComponent("process", "Merge", processMerge);
-      loader.registerComponent("process", "MergeA", processMergeA);
-      loader.registerComponent("process", "Unscope", processUnscope);
-      loader.registerComponent(
-        "process",
-        "MergeUnscoped",
-        processMergeUnscoped,
-      );
-    });
+    loader.registerComponent("process", "Async", processAsync);
+    loader.registerComponent("process", "Merge", processMerge);
+    loader.registerComponent("process", "MergeA", processMergeA);
+    loader.registerComponent("process", "Unscope", processUnscope);
+    loader.registerComponent("process", "MergeUnscoped", processMergeUnscoped);
   });
   describe("pure Process API merging two inputs", () => {
     let c = null;
@@ -157,20 +157,8 @@ describe("Scope isolation", () => {
       ];
       const received = [];
 
-      listen(out, "connect", () => {
-        received.push("CONN");
-      });
-      listen(out, "begingroup", (group) => {
-        received.push(`< ${group}`);
-      });
-      listen(out, "data", (data) => {
-        received.push(`DATA ${data}`);
-      });
-      listen(out, "endgroup", () => {
-        received.push(">");
-      });
-      listen(out, "disconnect", () => {
-        received.push("DISC");
+      listenIPSequence(out, received);
+      listenOnce(out, "disconnect", () => {
         assert.deepStrictEqual(received, expected);
         done();
       });
@@ -179,11 +167,11 @@ describe("Scope isolation", () => {
       in2.send("foo");
       in2.disconnect();
       in1.connect();
-      in1.beginGroup(1);
-      in1.beginGroup("a");
+      openBracket(in1, 1);
+      openBracket(in1, "a");
       in1.send("baz");
-      in1.endGroup();
-      in1.endGroup();
+      closeBracket(in1);
+      closeBracket(in1);
       in1.disconnect();
     });
     it("should forward new-style brackets as expected regardless of sending order", (_t, done) => {
@@ -198,30 +186,18 @@ describe("Scope isolation", () => {
       ];
       const received = [];
 
-      listen(out, "connect", () => {
-        received.push("CONN");
-      });
-      listen(out, "begingroup", (group) => {
-        received.push(`< ${group}`);
-      });
-      listen(out, "data", (data) => {
-        received.push(`DATA ${data}`);
-      });
-      listen(out, "endgroup", () => {
-        received.push(">");
-      });
-      listen(out, "disconnect", () => {
-        received.push("DISC");
+      listenIPSequence(out, received);
+      listenOnce(out, "disconnect", () => {
         assert.deepStrictEqual(received, expected);
         done();
       });
 
       in1.connect();
-      in1.beginGroup(1);
-      in1.beginGroup("a");
+      openBracket(in1, 1);
+      openBracket(in1, "a");
       in1.send("baz");
-      in1.endGroup();
-      in1.endGroup();
+      closeBracket(in1);
+      closeBracket(in1);
       in1.disconnect();
       in2.connect();
       in2.send("foo");

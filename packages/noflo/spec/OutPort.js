@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
-import { listen, listenOnce } from "./utils/events.js";
+import {
+  listen,
+  listenData,
+  listenDataOnce,
+  listenOnce,
+} from "./utils/events.js";
 
 describe("Outport Port", () => {
   describe("with addressable ports", () => {
@@ -19,13 +24,13 @@ describe("Outport Port", () => {
       p.attach(s2);
       p.attach(s3);
       assert.deepEqual(p.listAttached(), [0, 1, 2]);
-      listen(s1, "data", () => {
+      listenData(s1, () => {
         assert.strictEqual(true, false);
       });
-      listen(s2, "data", (data) => {
+      listenData(s2, (data) => {
         assert.strictEqual(data, "some-data");
       });
-      listen(s3, "data", () => {
+      listenData(s3, () => {
         assert.strictEqual(true, false);
       });
       p.send("some-data", 1);
@@ -33,7 +38,7 @@ describe("Outport Port", () => {
     it("should be able to send to index 0", (_t, done) => {
       const p = new noflo.OutPort({ addressable: true });
       p.attach(s1);
-      listen(s1, "data", (data) => {
+      listenData(s1, (data) => {
         assert.strictEqual(data, "my-data");
         done();
       });
@@ -86,13 +91,13 @@ describe("Outport Port", () => {
     it("should repeat the previously sent value on attach event", (_t, done) => {
       const p = new noflo.OutPort({ caching: true });
 
-      listenOnce(s1, "data", (data) => {
+      listenDataOnce(s1, (data) => {
         assert.strictEqual(data, "foo");
       });
-      listenOnce(s2, "data", (data) => {
+      listenDataOnce(s2, (data) => {
         assert.strictEqual(data, "foo");
         // Next value should be different
-        listenOnce(s2, "data", (data) => {
+        listenDataOnce(s2, (data) => {
           assert.strictEqual(data, "bar");
           done();
         });
@@ -115,13 +120,13 @@ describe("Outport Port", () => {
       p.attach(s1);
       p.attach(s2);
 
-      listen(s1, "data", () => {
+      listenData(s1, () => {
         assert.strictEqual(true, false);
       });
-      listen(s2, "data", (data) => {
+      listenData(s2, (data) => {
         assert.strictEqual(data, "some-data");
       });
-      listen(s3, "data", (data) => {
+      listenData(s3, (data) => {
         assert.strictEqual(data, "some-data");
         done();
       });

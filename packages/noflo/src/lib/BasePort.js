@@ -3,7 +3,7 @@
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
 /* @ts-self-types="./BasePort.d.ts" */
-import { LegacyEventBase } from "./LegacyEvents.js";
+import { EventBase } from "./EventBase.js";
 
 // ## NoFlo Port Base class
 //
@@ -47,11 +47,7 @@ const validTypes = [
 function handleOptions(options) {
   // We default to the `all` type if no explicit datatype
   // was provided
-  let datatype = options.datatype || "all";
-  // Normalize the legacy `integer` type to `int`.
-  if (datatype === "integer") {
-    datatype = "int";
-  }
+  const datatype = options.datatype || "all";
 
   // By default ports are not required for graph execution
   const required = options.required || false;
@@ -88,7 +84,7 @@ function handleOptions(options) {
   });
 }
 
-export default class BasePort extends LegacyEventBase {
+export default class BasePort extends EventBase {
   /**
    * @param {BaseOptions} options
    */

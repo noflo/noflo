@@ -13,7 +13,6 @@
 
 import { GraphModel } from "@noflo/graph";
 import { Subgraph } from "../components/Subgraph.js";
-import { deprecated } from "./Platform.js";
 
 /**
  * @callback ComponentFactory
@@ -280,12 +279,6 @@ export class ComponentLoader {
             inst.componentName = name;
           }
 
-          if (inst.isLegacy()) {
-            deprecated(
-              `Component ${name} uses legacy NoFlo APIs. Please port to Process API`,
-            );
-          }
-
           this.setIcon(name, inst);
           return inst;
         },
@@ -378,16 +371,18 @@ export class ComponentLoader {
   loadGraph(name, component, metadata) {
     // The subgraph wrapper is core machinery instantiated directly;
     // there is no user-loadable `Graph` catalog entry
-    const subgraph = new Subgraph(metadata);
-    // Cast bridges the source-inferred and declaration-emitted identities of
-    // ComponentLoader (the protected loadGraph member makes them nominal)
-    subgraph.loader =
-      /** @type {import("./ComponentLoader.js").ComponentLoader} */ (
-        /** @type {unknown} */ (this)
-      );
-    subgraph.inPorts.remove("graph");
+    const subgraph = new Subgraph(component, {
+      // Cast bridges the source-inferred and declaration-emitted identities
+      // of ComponentLoader (the protected loadGraph member makes them
+      // nominal)
+      componentLoader:
+        /** @type {import("./ComponentLoader.js").ComponentLoader} */ (
+          /** @type {unknown} */ (this)
+        ),
+      metadata,
+    });
     this.setIcon(name, subgraph);
-    return subgraph.setGraph(component).then(() => subgraph);
+    return subgraph.prepared.then(() => subgraph);
   }
 
   // Set icon for the component instance. If the instance
@@ -465,12 +460,6 @@ export class ComponentLoader {
   }
 
   /**
-   * @callback ErrorableCallback
-   * @param {Error|null} error
-   * @returns {void}
-   */
-
-  /**
    * Register a NoFlo Component constructor or factory method as a component
    * available for loading, in addition to the components provided by the
    * registry.
@@ -499,33 +488,30 @@ export class ComponentLoader {
   }
 
   /**
+   * Register a custom component loader plugin. The plugin is invoked
+   * immediately with the loader, and can register components, graphs, and
+   * library icons. The plugin performs its asynchronous work before
+   * resolving the Promise it returns; a rejection (or a synchronous throw)
+   * fails the registration. Registry implementations like
+   * `@noflo/loader-node` drive this hook for `noflo.loader` plugin modules
+   * discovered in package manifests; core accepts plugins, it never
+   * discovers them.
+   *
    * @callback CustomLoader
    * @param {ComponentLoader} loader
-   * @param {ErrorableCallback} callback
-   * @returns {void}
+   * @returns {Promise<void>|void}
    */
 
   /**
-   * Register a custom component loader. The plugin is invoked immediately
-   * and can register any components or graphs it wishes. Registry
-   * implementations like `@noflo/loader-node` drive this hook for
-   * `noflo.loader` plugin modules discovered in package manifests; core
-   * accepts plugins, it never discovers them.
+   * Register a custom component loader plugin.
    *
    * @param {CustomLoader} loader
    * @returns {Promise<void>}
    */
   registerLoader(loader) {
-    const promise = new Promise((resolve, reject) => {
-      loader(this, (err) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve();
-      });
-    });
-    return promise;
+    return Promise.resolve()
+      .then(() => loader(this))
+      .then(() => {});
   }
 
   /**

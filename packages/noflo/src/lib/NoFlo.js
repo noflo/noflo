@@ -68,7 +68,6 @@ import { exportFbpJson, GraphModel, importFbpJson } from "@noflo/graph";
 // The options object can also be used for setting ComponentLoader options in this
 // network.
 import { Network } from "./Network.js";
-import { isBrowser } from "./Platform.js";
 
 // ### Native graph model
 //
@@ -87,11 +86,6 @@ export { ComponentLoader } from "./ComponentLoader.js";
 // The Network class, for runtimes and tools that build on the engine
 // directly (1.x exported it; the 2.x native-graph model keeps that surface).
 export { Network } from "./Network.js";
-// ### Platform detection
-//
-// NoFlo works on both Node.js and the browser. Because some dependencies are different,
-// we need a way to detect which we're on.
-export { isBrowser } from "./Platform.js";
 
 import { ComponentLoader } from "./ComponentLoader.js";
 
@@ -147,11 +141,10 @@ import IP from "./IP.js";
 export function createNetwork(graphInstance, options = {}) {
   const network = new Network(graphInstance, options);
 
-  // Ensure components are loaded before continuing
-  const promise = network.loader.listComponents().then(() => {
+  const promise = Promise.resolve().then(() => {
     if (options.delay) {
       // In case of delayed execution we don't wire it up
-      return Promise.resolve(network);
+      return network;
     }
     return network.connect().then(() => network.start());
   });
@@ -178,7 +171,6 @@ export { asCallback, asPromise } from "./AsCallback.js";
 import { asCallback, asPromise } from "./AsCallback.js";
 
 export default {
-  isBrowser,
   GraphModel,
   importFbpJson,
   exportFbpJson,
