@@ -371,15 +371,18 @@ export class ComponentLoader {
   loadGraph(name, component, metadata) {
     // The subgraph wrapper is core machinery instantiated directly;
     // there is no user-loadable `Graph` catalog entry
-    const subgraph = new Subgraph(metadata);
-    // Cast bridges the source-inferred and declaration-emitted identities of
-    // ComponentLoader (the protected loadGraph member makes them nominal)
-    subgraph.loader =
-      /** @type {import("./ComponentLoader.js").ComponentLoader} */ (
-        /** @type {unknown} */ (this)
-      );
+    const subgraph = new Subgraph(component, {
+      // Cast bridges the source-inferred and declaration-emitted identities
+      // of ComponentLoader (the protected loadGraph member makes them
+      // nominal)
+      componentLoader:
+        /** @type {import("./ComponentLoader.js").ComponentLoader} */ (
+          /** @type {unknown} */ (this)
+        ),
+      metadata,
+    });
     this.setIcon(name, subgraph);
-    return subgraph.setGraph(component).then(() => subgraph);
+    return subgraph.prepared.then(() => subgraph);
   }
 
   // Set icon for the component instance. If the instance
