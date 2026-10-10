@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "module": "nodenext",
+    "target": "esnext",
+    "types": [
+      "node"
+    ],
+    "checkJs": true,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "strict": false,
+    "noEmit": true
+  },
+  "include": [
+    "src/*.js",
+    "src/**/*.js",
+    "bin/*.js",
+    "test/**/*.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "test/fixtures",
+    "src/**/*.d.ts"
+  ]
+}

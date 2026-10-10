@@ -1,0 +1,41 @@
+{
+  "name": "@noflo/manifest",
+  "version": "2.0.0-alpha.1",
+  "description": "Publish-time component manifest generator for NoFlo libraries",
+  "type": "module",
+  "bin": {
+    "noflo-manifest": "./bin/noflo-manifest.js"
+  },
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "dependencies": {
+    "@noflo/assembly": "^2.0.0-alpha.3",
+    "@noflo/fbp": "^2.0.0-alpha.3",
+    "@noflo/graph": "^2.0.0-alpha.3",
+    "@noflo/loader-node": "^2.0.0-alpha.3",
+    "@noflo/noflo": "^2.0.0-alpha.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "lint": "npx @biomejs/biome check --use-editorconfig=true src/ test/ bin/",
+    "format": "npx @biomejs/biome check --use-editorconfig=true --write src/ test/ bin/",
+    "types": "tsc -p tsconfig.json",
+    "test": "npm run types && npm run lint && npm run test:node",
+    "test:node": "node --test test/*.test.js",
+    "test:deno": "deno test --allow-all --no-check test/*.test.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "src/",
+    "bin/"
+  ],
+  "license": "EUPL-1.2"
+}
