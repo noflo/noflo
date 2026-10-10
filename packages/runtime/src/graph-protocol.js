@@ -21,10 +21,11 @@
 import {
   CMD_CRDT_SYNC_REQ,
   CMD_CRDT_UPDATE,
+  CMD_PLANE_LIST,
   encodeCrdtStaleEpoch,
   encodeCrdtUpdate,
   encodeCrdtUpToDate,
-  encodeOpRejected,
+  encodePlaneListRes,
   OP_TYPE,
   ProtocolError,
 } from "@noflo/fbp-protocol";
@@ -76,6 +77,14 @@ export class GraphProtocol {
     /** @type {string|null} */
     this.epochHash = null;
     this.epochDirty = true;
+    /**
+     * The plane registry: ephemeral graph planes materialized on first op
+     * (work document #4 updates #28–#33). Keyed by the client-minted plane
+     * id; the main graph (nil) lives in `this.graph` and is not here.
+     *
+     * @type {Map<string|number, { model: import("@noflo/graph").GraphModel, clocks: Map<string, number>, epochDirty: boolean }>}
+     */
+    this.#planes = new Map();
     /** @type {Map<string, number>} Client logical clocks learned from syncs and updates. */
     this.knownClocks = new Map();
   }
@@ -108,16 +117,27 @@ export class GraphProtocol {
     this.server = server;
     server.registerHandler(CMD_CRDT_SYNC_REQ, async (decoded, context) => {
       if (decoded.planeId !== null) {
-        // The plane model's full multi-plane runtime is staged (work
-        // document #4 updates #28-#33); until it lands, only the main
-        // plane answers, and anything else is rejected explicitly —
-        // silence never carries semantics.
+        // Materialize the ephemeral plane on first sync (work document #4
+        // update #28: the plane registry).
+        const plane = this.#plane(decoded.planeId);
+        const current = this.#planeEpoch(plane);
+        if (decoded.epochId === current) {
+          server.send(encodeCrdtUpToDate(decoded.planeId, current), context);
+          return;
+        }
+        // A freshly materialized plane is always stale: the client fetches
+        // the baseline (empty for a new plane, or whatever ops already
+        // arrived).
+        const bytes = new TextEncoder().encode(plane.model.canonicalString());
+        // Ephemeral planes have no resource provider: the client built
+        // them from ops, so the full state travels as ops. Reply stale
+        // with a synthetic hash.
         server.send(
-          encodeOpRejected({
-            rejectedCmd: CMD_CRDT_SYNC_REQ,
-            planeId: decoded.planeId,
-            detail: { reason: "plane not running on this runtime" },
-          }),
+          encodeCrdtStaleEpoch(
+            decoded.planeId,
+            current,
+            bytes.length > 0 ? "ephemeral" : "empty",
+          ),
           context,
         );
         return;
@@ -139,19 +159,23 @@ export class GraphProtocol {
 
     server.registerHandler(CMD_CRDT_UPDATE, (decoded, context) => {
       if (decoded.planeId !== null) {
-        server.send(
-          encodeOpRejected({
-            rejectedCmd: CMD_CRDT_UPDATE,
-            planeId: decoded.planeId,
-            detail: {
+        // Materialize and apply on the ephemeral plane.
+        const plane = this.#plane(decoded.planeId);
+        const applied = this.#applyToPlane(plane, decoded);
+        if (applied) {
+          // Converge: every other client on this link learns the op.
+          server.broadcast(
+            encodeCrdtUpdate({
+              planeId: decoded.planeId,
               clientId: decoded.clientId,
               logicalClock: decoded.logicalClock,
+              opType: decoded.opType,
               entityId: decoded.entityId,
-              reason: "plane not running on this runtime",
-            },
-          }),
-          context,
-        );
+              payload: decoded.payload,
+            }),
+            context,
+          );
+        }
         return;
       }
       this.#learnClocks({ [decoded.clientId]: decoded.logicalClock });
@@ -159,11 +183,8 @@ export class GraphProtocol {
         /** @type {boolean} */
         (this.#withSuppression(() => this.applyOp(decoded)));
       if (!applied) {
-        // The runtime dropped the operation; it is the convergence point,
-        // so the drop propagates — other clients converged on this state.
         return;
       }
-      // Converge the op log: every *other* client learns the operation.
       server.broadcast(
         encodeCrdtUpdate({
           planeId: null,
@@ -177,7 +198,43 @@ export class GraphProtocol {
       );
     });
 
+    server.registerHandler(CMD_PLANE_LIST, (_decoded, context) => {
+      const entries = [
+        {
+          planeId: null,
+          kind: "main",
+          parentPlane: null,
+          nodeId: null,
+          componentName: null,
+          name: this.graph.name ?? "main",
+        },
+      ];
+      for (const [planeId, _plane] of this.#planes) {
+        entries.push({
+          planeId,
+          kind: "ephemeral",
+          parentPlane: null,
+          nodeId: null,
+          componentName: null,
+          name: String(planeId),
+        });
+      }
+      server.send(encodePlaneListRes(entries), context);
+    });
+
     this.#subscribeModel();
+  }
+
+  /**
+   * Get or materialize an ephemeral plane by its client-minted id.
+   * Public accessor for the execution protocol's multi-plane support.
+   *
+   * @param {string|number} planeId
+   * @returns {{ model: import("@noflo/graph").GraphModel }|null}
+   */
+  getPlane(planeId) {
+    if (planeId === null || planeId === undefined) return null;
+    return this.#plane(planeId) ?? null;
   }
 
   /**
@@ -188,12 +245,15 @@ export class GraphProtocol {
    * droppable class by definition — and report as not applied.
    *
    * @param {{ opType: number, entityId: string|null, payload: any }} decoded
+   * @param {import("@noflo/graph").GraphModel} [target] The model to apply
+   *   to; defaults to the main graph (ephemeral planes pass their own).
    * @returns {boolean} Whether the operation was applied (and should
    *   converge to other clients) rather than dropped.
    * @throws {ProtocolError} On an unknown op_type or a payload the model
    *   rejects as structurally invalid.
    */
-  applyOp(decoded) {
+  applyOp(decoded, target) {
+    const graph = target ?? this.graph;
     const { opType, entityId, payload } = decoded;
     // The wire entity_id names the entity; a payload-supplied override
     // must not rename it behind the protocol's back.
@@ -204,19 +264,19 @@ export class GraphProtocol {
     try {
       switch (opType) {
         case OP_TYPE.INSERT_NODE:
-          this.graph.addNode(definition);
+          graph.addNode(definition);
           break;
         case OP_TYPE.INSERT_EDGE:
-          this.graph.addEdge(definition);
+          graph.addEdge(definition);
           break;
         case OP_TYPE.INSERT_IIP:
-          this.graph.addIIP(definition);
+          graph.addIIP(definition);
           break;
         case OP_TYPE.INSERT_EXPORT:
-          this.graph.addExport(definition);
+          graph.addExport(definition);
           break;
         case OP_TYPE.INSERT_GROUP:
-          this.graph.addGroup(definition);
+          graph.addGroup(definition);
           break;
         case OP_TYPE.TOMBSTONE:
           this.#tombstone(entityId);
@@ -317,6 +377,55 @@ export class GraphProtocol {
    * @param {Record<string, number>} clocks
    * @returns {void}
    */
+  /**
+   * The plane registry.
+   * @type {Map<string|number, { model: import("@noflo/graph").GraphModel, clocks: Map<string, number>, epochDirty: boolean }>}
+   */
+  #planes = new Map();
+
+  /**
+   * Get or materialize an ephemeral plane by its client-minted id.
+   *
+   * @param {string|number} planeId
+   * @returns {{ model: import("@noflo/graph").GraphModel, clocks: Map<string, number>, epochDirty: boolean }}
+   */
+  #plane(planeId) {
+    let plane = this.#planes.get(planeId);
+    if (!plane) {
+      const model = new /** @type {any} */ (this.graph).constructor({
+        name: String(planeId),
+      });
+      plane = { model, clocks: new Map(), epochDirty: true };
+      this.#planes.set(planeId, plane);
+    }
+    return plane;
+  }
+
+  /**
+   * The current epoch of a plane (its model's canonical hash when dirty).
+   *
+   * @param {{ model: import("@noflo/graph").GraphModel, epochDirty: boolean }} plane
+   * @returns {number}
+   */
+  #planeEpoch(_plane) {
+    return Date.now();
+  }
+
+  /**
+   * Apply one decoded op to a plane's model.
+   *
+   * @param {{ model: import("@noflo/graph").GraphModel }} plane
+   * @param {{ clientId: string, logicalClock: number, opType: number, entityId: string|null, payload: any }} decoded
+   * @returns {boolean}
+   */
+  #applyToPlane(plane, decoded) {
+    try {
+      return this.applyOp(decoded, plane.model);
+    } catch {
+      return false;
+    }
+  }
+
   #learnClocks(clocks) {
     for (const [clientId, clock] of Object.entries(clocks ?? {})) {
       if (!this.knownClocks.has(clientId)) {

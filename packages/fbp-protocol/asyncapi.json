@@ -1207,8 +1207,8 @@
     "summary": "Run control: pause, resume, or step the network.",
     "payload": {
      "type": "array",
-     "minItems": 2,
-     "maxItems": 2,
+     "minItems": 3,
+     "maxItems": 3,
      "items": [
       {
        "type": "integer",
@@ -1225,6 +1225,14 @@
         5
        ],
        "description": "action — 0x01 pause (stop processing queued events; in-flight packets complete, further packets keep buffering under the runtime's backpressure policy), 0x02 resume, 0x03 step (process exactly one queued event, remain paused), 0x04 start (build and start the network), 0x05 stop (stop the running network); a rejected start surfaces as a 0x04 FAILED lifecycle event with the detail in an accompanying 0x04 ERROR event"
+      },
+      {
+       "type": [
+        "integer",
+        "string",
+        "null"
+       ],
+       "description": "plane_id — ephemeral planes only; nil is the main plane"
       }
      ]
     },
@@ -1233,11 +1241,12 @@
       "name": "decoded",
       "payload": [
        64,
-       1
+       1,
+       null
       ]
      }
     ],
-    "x-msgpack-hex": "924001",
+    "x-msgpack-hex": "934001c0",
     "x-verify": "frame"
    },
    "breakpointSet": {

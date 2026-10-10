@@ -160,6 +160,30 @@ export class TelemetryProtocol {
   }
 
   /**
+   * Observe an additional network host — ephemeral plane hosts started by
+   * the execution protocol. Their events flow into the same subscription
+   * buffers (work document #4 update #33: one identifier per graph
+   * instance, shared by telemetry and commands).
+   *
+   * @param {import("./network-host.js").NetworkHost} host
+   * @returns {void}
+   */
+  observeHost(host) {
+    host.addEventListener("start", () => {
+      this.record(EVENT_TYPE.LIFECYCLE, LIFECYCLE_CODE.START);
+    });
+    host.addEventListener("end", () => {
+      this.record(EVENT_TYPE.LIFECYCLE, LIFECYCLE_CODE.STOP);
+    });
+    host.addEventListener("ip", (/** @type {any} */ event) => {
+      this.#recordIp(event.detail);
+    });
+    host.addEventListener("process-error", (/** @type {any} */ event) => {
+      this.#recordError(event.detail);
+    });
+  }
+
+  /**
    * Record one network IP event as flowtrace events: brackets become group
    * boundaries, data becomes the raw value.
    *

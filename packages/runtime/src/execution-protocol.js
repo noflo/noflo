@@ -52,13 +52,27 @@ export class ExecutionProtocol {
    * @param {object} options
    * @param {import("./network-host.js").NetworkHost} options.host
    * @param {import("./telemetry-protocol.js").TelemetryProtocol} options.telemetry
+   * @param {import("./graph-protocol.js").GraphProtocol} [options.graphProtocol]
+   * @param {import("./graph-protocol.js").GraphProtocol} [options.graphProtocol] The
+   *   graph protocol, for access to the plane registry (multi-plane support).
    *   Control failures and lifecycle outcomes reach subscribed clients as
    *   flowtrace events through it.
    */
   constructor(options) {
     this.host = options.host;
     this.telemetry = options.telemetry;
+    /** The graph protocol, for access to the plane registry. */
+    this.graphProtocol = options.graphProtocol ?? null;
+    /** Ephemeral plane hosts, keyed by plane id.
+     * @type {Map<string|number, import("./network-host.js").NetworkHost>}
+     */
+    this.#planeHosts = new Map();
   }
+  /**
+   * Ephemeral plane hosts, keyed by plane id.
+   * @type {Map<string|number, import("./network-host.js").NetworkHost>}
+   */
+  #planeHosts;
 
   /**
    * Register the `0x40`–`0x46` handlers on a runtime server. Requires the
@@ -73,10 +87,19 @@ export class ExecutionProtocol {
     server.registerHandler(CMD_RUN_CTRL, async (decoded) => {
       switch (decoded.action) {
         case RUN_ACTION.START:
-          await this.#start();
+          if (decoded.planeId !== null && decoded.planeId !== undefined) {
+            await this.#startPlane(decoded.planeId);
+          } else {
+            await this.#start();
+          }
           break;
         case RUN_ACTION.STOP:
-          await this.host.stop();
+          if (decoded.planeId !== null && decoded.planeId !== undefined) {
+            const ph = this.#planeHosts.get(decoded.planeId);
+            if (ph) await ph.stop();
+          } else {
+            await this.host.stop();
+          }
           break;
         case RUN_ACTION.PAUSE:
           this.#engineGap("pause");
@@ -101,33 +124,27 @@ export class ExecutionProtocol {
       this.#engineGap("per-process disable", decoded, context);
     });
     server.registerHandler(CMD_PACKET_SEND, (decoded) => {
-      if (!this.host.network) {
-        return;
-      }
-      // Resolve the exported inport: the plane's graph maps the port name
-      // to its internal node + port.
-      const port = decoded.port;
-      const target = this.#resolveExport(port);
-      if (!target) {
-        this.server.dispatchEvent(
-          new globalThis.CustomEvent("unsupported", {
-            detail: {
-              hook: `packet send: no exported inport named ${port}`,
-              decoded,
-              context: undefined,
-            },
-          }),
-        );
-        return;
-      }
-      this.host.network
+      const planeId = decoded.planeId;
+      const isMain = planeId === null || planeId === undefined;
+      const network = isMain
+        ? this.host.network
+        : this.#planeHosts.get(planeId)?.network;
+      if (!network) return;
+      const model = isMain
+        ? this.host.graph
+        : this.graphProtocol?.getPlane(planeId)?.model;
+      if (!model) return;
+      const target = this.#resolveExport(model, decoded.port);
+      if (!target) return;
+      network
         .addInitial({
+          entity_id: `packet-send-${Date.now()}`,
           from: { data: decoded.payload },
           to: { node: target.node, port: target.port },
         })
         .catch(() => {});
     });
-    server.registerHandler(CMD_GET_STATUS, (decoded, context) => {
+    server.registerHandler(CMD_GET_STATUS, (_decoded, context) => {
       const network = this.host.network;
       const runState = network?.isRunning?.()
         ? RUN_STATE.RUNNING
@@ -175,18 +192,41 @@ export class ExecutionProtocol {
   }
 
   /**
-   * Resolve an exported inport name to its internal node + port.
+   * Resolve an exported inport name on a graph model.
    *
+   * @param {import("@noflo/graph").GraphModel|undefined} model
    * @param {string} portName
    * @returns {{ node: string, port: string }|null}
    */
-  #resolveExport(portName) {
-    for (const exp of this.host.graph?.exports?.() ?? []) {
+  #resolveExport(model, portName) {
+    for (const exp of model?.exports?.() ?? []) {
       if (exp.direction === "inport" && exp.public === portName) {
         return { node: exp.internal.node, port: exp.internal.port };
       }
     }
     return null;
+  }
+
+  /**
+   * Start a network for an ephemeral plane: create a NetworkHost for the
+   * plane's model, build the network, and start it.
+   *
+   * @param {string|number} planeId
+   * @returns {Promise<void>}
+   */
+  async #startPlane(planeId) {
+    const existing = this.#planeHosts.get(planeId);
+    if (existing?.network) return;
+    const model = this.graphProtocol?.getPlane(planeId)?.model;
+    if (!model) return;
+    const host = new /** @type {any} */ (this.host).constructor({
+      graph: model,
+      componentLoader: this.host.componentLoader,
+    });
+    this.#planeHosts.set(planeId, host);
+    // Wire the ephemeral plane's network events into the telemetry stream
+    this.telemetry.observeHost(host);
+    await host.start();
   }
 
   /**

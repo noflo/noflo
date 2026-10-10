@@ -49,9 +49,9 @@ import { ProtocolError } from "./errors.js";
  * @param {number} action One of {@link RUN_ACTION}.
  * @returns {Uint8Array}
  */
-export function encodeRunCtrl(action) {
+export function encodeRunCtrl(action, planeId = undefined) {
   assertRunAction(action);
-  return MsgPack.encode([CMD_RUN_CTRL, action]);
+  return MsgPack.encode([CMD_RUN_CTRL, action, planeId ?? null]);
 }
 
 /**
@@ -62,9 +62,9 @@ export function encodeRunCtrl(action) {
  */
 export function decodeRunCtrl(bytes) {
   const frame = MsgPack.decode(bytes);
-  expectFrame(frame, CMD_RUN_CTRL, 2);
+  expectFrame(frame, CMD_RUN_CTRL, 3);
   assertRunAction(frame[1], CMD_RUN_CTRL);
-  return { cmd: CMD_RUN_CTRL, action: frame[1] };
+  return { cmd: CMD_RUN_CTRL, action: frame[1], planeId: frame[2] ?? null };
 }
 
 /**
