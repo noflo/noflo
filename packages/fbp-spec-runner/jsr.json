@@ -7,7 +7,8 @@
     "./compiler": "./src/compiler.js",
     "./network": "./src/network.js",
     "./assertions": "./src/assertions.js",
-    "./loader": "./src/loader.js"
+    "./loader": "./src/loader.js",
+    "./fixture": "./src/fixture.js"
   },
   "publish": {
     "include": [

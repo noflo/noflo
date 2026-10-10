@@ -36,7 +36,7 @@ export function compileSuite(suite, context) {
         ? `${testCase.name} — ${testCase.assertion}`
         : testCase.name;
       it(label, testOptions, () =>
-        executeTestCase(context.loader, suite.topic, testCase, timeout),
+        executeTestCase(context.loader, suite, testCase, timeout),
       );
     }
   });

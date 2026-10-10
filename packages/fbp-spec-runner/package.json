@@ -19,6 +19,7 @@
     "@types/node": "^24.0.0"
   },
   "dependencies": {
+    "@noflo/fbp": "^2.0.0-alpha.2",
     "@noflo/loader-node": "^2.0.0-alpha.2",
     "@noflo/noflo": "^2.0.0-alpha.2"
   },

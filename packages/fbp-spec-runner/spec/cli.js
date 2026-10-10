@@ -48,11 +48,14 @@ describe("fbp-spec-runner CLI", () => {
         "spec/fixtures/accumulate.yaml",
         "spec/fixtures/multi.yaml",
         "spec/fixtures/repeat.json",
+        "spec/fixtures/graph.yaml",
       ],
       { cwd: process.cwd() },
     );
     assert.match(stdout, /sending a boolean/);
     assert.match(stdout, /stateful sequence/);
+    assert.match(stdout, /sending through a graph fixture/);
+    assert.match(stdout, /sending through a JSON fixture graph/);
     assert.doesNotMatch(stdout, /✖/);
   });
 

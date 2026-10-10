@@ -4,12 +4,17 @@
  * @file assertions module
  * @description fbp-spec expectation operators mapped to `node:assert/strict`.
  *
- *   Mirrors the operator vocabulary and semantics of fbp-spec's
- *   `lib/expectation.js` (verified against fbp-spec@0.8.0): one expectation
+ *   Mirrors the operator vocabulary and semantics of the released
+ *   fbp-spec@0.8.0 (`lib/expectation.js`, chai-based): one expectation
  *   object carries exactly one operator — the first key that isn't `path` —
  *   and an optional `path` JSONPath selector applied to the packet data
  *   first. Every JSONPath match must satisfy the operator; zero matches is
  *   a failure.
+ *
+ *   Note: the `type` operator deliberately keeps chai `a()` type-name
+ *   semantics (`array`, `null`, `date`, `regexp`), matching the released
+ *   chai-based fbp-spec; `../fbp-spec`'s expectation library implements
+ *   the same naming since the chai removal there.
  */
 /* @ts-self-types="./assertions.d.ts" */
 
@@ -18,6 +23,8 @@ import { JSONPath } from "../vendor/jsonpath-plus-11.1.0.js";
 
 /**
  * Chai-compatible type name for `type` assertions (includes `array`/`null`).
+ * Matches the released fbp-spec's chai `a()` semantics; `../fbp-spec`'s
+ * expectation library implements the same naming.
  *
  * @param {any} value
  * @returns {string}
@@ -25,6 +32,8 @@ import { JSONPath } from "../vendor/jsonpath-plus-11.1.0.js";
 const typeName = (value) => {
   if (Array.isArray(value)) return "array";
   if (value === null) return "null";
+  if (value instanceof Date) return "date";
+  if (value instanceof RegExp) return "regexp";
   return typeof value;
 };
 
@@ -47,13 +56,13 @@ const operators = {
   },
   above(actual, expected, portName) {
     assert.ok(
-      typeof actual === "number" && actual > expected,
+      actual > expected,
       `Failed on port ${portName}: expected ${JSON.stringify(actual)} to be above ${expected}`,
     );
   },
   below(actual, expected, portName) {
     assert.ok(
-      typeof actual === "number" && actual < expected,
+      actual < expected,
       `Failed on port ${portName}: expected ${JSON.stringify(actual)} to be below ${expected}`,
     );
   },
@@ -65,59 +74,79 @@ const operators = {
     );
   },
   haveKeys(actual, expected, portName) {
-    assert.ok(
-      actual !== null && typeof actual === "object",
-      `Failed on port ${portName}: haveKeys expects an object, got ${typeName(actual)}`,
-    );
-    const actualKeys = Object.keys(/** @type {object} */ (actual)).sort();
+    // Like fbp-spec, keys are taken from any value; non-objects simply
+    // contribute no or index keys rather than failing upfront
+    const actualKeys = Object.keys(actual ?? {}).sort();
     const expectedKeys = [...expected].sort();
     assert.deepEqual(
       actualKeys,
       expectedKeys,
-      `Failed on port ${portName}: expected exactly keys [${expectedKeys}], got [${actualKeys}]`,
+      `Failed on port ${portName}: expected ${JSON.stringify(actual)} to have keys ${JSON.stringify(expectedKeys)}, got ${JSON.stringify(actualKeys)}`,
     );
   },
   includeKeys(actual, expected, portName) {
-    assert.ok(
-      actual !== null && typeof actual === "object",
-      `Failed on port ${portName}: includeKeys expects an object, got ${typeName(actual)}`,
-    );
+    const actualKeys = Object.keys(actual ?? {});
     for (const key of expected) {
       assert.ok(
-        key in /** @type {object} */ (actual),
-        `Failed on port ${portName}: expected key '${key}' to be included`,
+        actualKeys.includes(key),
+        `Failed on port ${portName}: expected ${JSON.stringify(actual)} to include key ${key}`,
       );
     }
   },
   contains(actual, expected, portName) {
     if (typeof actual === "string") {
       assert.ok(
-        actual.includes(String(expected)),
+        actual.includes(expected),
         `Failed on port ${portName}: expected '${actual}' to contain '${expected}'`,
       );
       return;
     }
     if (Array.isArray(actual)) {
+      // Members are matched with deep equality, like chai's include
       assert.ok(
-        actual.includes(expected),
-        `Failed on port ${portName}: expected array to contain ${JSON.stringify(expected)}`,
+        actual.some((member) => deepEqual(member, expected)),
+        `Failed on port ${portName}: expected ${JSON.stringify(actual)} to contain ${JSON.stringify(expected)}`,
       );
       return;
     }
+    if (actual !== null && typeof actual === "object") {
+      // Objects are matched as a deep-equal subset
+      for (const key of Object.keys(expected)) {
+        assert.ok(
+          deepEqual(actual[key], expected[key]),
+          `Failed on port ${portName}: expected ${JSON.stringify(actual)} to contain { '${key}': ${JSON.stringify(expected[key])} }`,
+        );
+      }
+      return;
+    }
     assert.fail(
-      `Failed on port ${portName}: contains expects a string or array, got ${typeName(actual)}`,
+      `Failed on port ${portName}: cannot check contains on ${JSON.stringify(actual)}`,
     );
   },
-  noterror(actual, _expected, portName) {
-    if (actual && /** @type {Error} */ (actual).message) {
+  noterror(actual) {
+    // Like fbp-spec, any error-like value fails the expectation by being
+    // thrown; non-errors pass silently
+    if (actual?.message) {
       throw actual;
     }
-    assert.ok(
-      actual !== undefined,
-      `Failed on port ${portName}: noterror received no data`,
-    );
   },
 };
+
+/**
+ * Structural comparison used by `contains` and `equals`-style checks.
+ *
+ * @param {any} a
+ * @param {any} b
+ * @returns {boolean}
+ */
+function deepEqual(a, b) {
+  try {
+    assert.deepStrictEqual(a, b);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Find the operator of an expectation object: the first key that isn't

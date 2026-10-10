@@ -1,0 +1,30 @@
+name: Repeat through FBP fixture graph
+topic: Repeat
+fixture:
+  type: fbp
+  data: |
+    INPORT=Testee.IN:in
+    OUTPORT=Testee.OUT:out
+    Testee(Repeat)
+cases:
+  - name: sending through a graph fixture
+    assertion: should repeat through the fixture graph
+    inputs:
+      in: through the graph
+    expect:
+      out:
+        equals: through the graph
+---
+name: Repeat through JSON fixture graph
+topic: Repeat
+fixture:
+  type: json
+  data: '{"processes":{"Testee":{"component":"Repeat"}},"inports":{"in":{"process":"Testee","port":"in"}},"outports":{"out":{"process":"Testee","port":"out"}}}'
+cases:
+  - name: sending through a JSON fixture graph
+    assertion: should repeat through the JSON fixture graph
+    inputs:
+      in: 1337
+    expect:
+      out:
+        equals: 1337
