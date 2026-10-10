@@ -88,16 +88,41 @@ export function decodeAnnounceAppData(bytes) {
  * @param {number} [options.limitationCode] One of {@link LIMITATION}; defaults to full access.
  * @returns {Uint8Array}
  */
+/**
+ * Encode a `0x02 CMD_AUTH_RESPONSE`:
+ * `[0x02, protocol_version, granted_mask, limitation_code, runtime_metadata, advertised_mask]`.
+ * The granted mask is what the authorization plane allows this peer —
+ * filtered through the advertised surface (external review, update #35:
+ * the `allCapabilities` vs `capabilities` distinction — the full ceiling
+ * travels in `advertised_mask`, so a client can tell a permission denial
+ * from an unsupported feature). `runtime_metadata` identifies the runtime
+ * kind: `{ type, label, version, ... }` — the external review's
+ * `runtime:runtime` equivalent (NoFlo vs MicroFlo, versions, repository).
+ *
+ * @param {object} auth
+ * @param {number} [auth.protocolVersion]
+ * @param {number} auth.capabilityMask The granted mask for this peer.
+ * @param {number} [auth.limitationCode]
+ * @param {any} [auth.runtimeMetadata] Free-form identifying information —
+ *   runtime kind, label, version.
+ * @param {number} [auth.advertisedMask] The runtime's full advertised
+ *   capability surface; defaults to the granted mask.
+ * @returns {Uint8Array}
+ */
 export function encodeAuthResponse({
   protocolVersion = PROTOCOL_VERSION,
   capabilityMask,
   limitationCode = LIMITATION.FULL_ACCESS,
+  runtimeMetadata = null,
+  advertisedMask = capabilityMask,
 }) {
   return MsgPack.encode([
     CMD_AUTH_RESPONSE,
     protocolVersion,
     capabilityMask,
     limitationCode,
+    runtimeMetadata,
+    advertisedMask,
   ]);
 }
 
@@ -116,14 +141,15 @@ export function decodeAuthResponse(bytes) {
       CMD_AUTH_RESPONSE,
     );
   }
-  if (frame.length !== 4) {
+  if (frame.length !== 6) {
     throw new ProtocolError(
-      "auth response must carry opcode, protocol_version, capability_mask, and limitation_code",
+      "auth response must carry opcode, protocol_version, capability_mask, limitation_code, runtime_metadata, and advertised_mask",
       CMD_AUTH_RESPONSE,
     );
   }
-  const [, protocolVersion, capabilityMask, limitationCode] = frame;
-  for (const field of [protocolVersion, capabilityMask, limitationCode]) {
+  const [, protocolVersion, capabilityMask, limitationCode, runtimeMetadata, advertisedMask] =
+    frame;
+  for (const field of [protocolVersion, capabilityMask, limitationCode, advertisedMask]) {
     if (!Number.isInteger(field) || field < 0 || field > 0xff) {
       throw new ProtocolError(
         "auth response fields must be uint8 values",
@@ -136,6 +162,8 @@ export function decodeAuthResponse(bytes) {
     protocolVersion,
     capabilityMask,
     limitationCode,
+    runtimeMetadata,
+    advertisedMask,
   };
 }
 

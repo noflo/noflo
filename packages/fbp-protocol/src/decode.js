@@ -22,9 +22,13 @@ import {
   CMD_COMP_MANIFEST,
   CMD_COMP_SYNC_REQ,
   CMD_COMP_UP_TO_DATE,
+  CMD_COMP_SOURCE,
   CMD_COMP_WRITE,
   CMD_CRDT_STALE_EPOCH,
   CMD_CRDT_SYNC_REQ,
+  CMD_OP_REJECTED,
+  CMD_PLANE_DROP,
+  CMD_PLANE_LIST,
   CMD_CRDT_UP_TO_DATE,
   CMD_CRDT_UPDATE,
   CMD_FLOWTRACE_CHUNK,
@@ -33,6 +37,8 @@ import {
   CMD_PROCESS_LIST,
   CMD_PROCESS_LIST_REQ,
   CMD_PUBSUB_SUB,
+  CMD_GET_STATUS,
+  CMD_PACKET_SEND,
   CMD_RUN_CTRL,
 } from "./constants.js";
 import {
@@ -42,6 +48,9 @@ import {
   decodeProcessCtrl,
   decodeProcessList,
   decodeProcessListReq,
+  decodeGetStatus,
+  decodeGetStatusRes,
+  decodePacketSend,
   decodeRunCtrl,
 } from "./debug.js";
 import { ProtocolError } from "./errors.js";
@@ -50,6 +59,10 @@ import {
   decodeCrdtSyncReq,
   decodeCrdtUpdate,
   decodeCrdtUpToDate,
+  decodeOpRejected,
+  decodePlaneDrop,
+  decodePlaneList,
+  decodePlaneListRes,
 } from "./graph.js";
 import {
   decodeCompDetailReq,
@@ -58,6 +71,8 @@ import {
   decodeCompManifest,
   decodeCompSyncReq,
   decodeCompUpToDate,
+  decodeCompSourceReq,
+  decodeCompSourceRes,
   decodeCompWrite,
 } from "./registry.js";
 import { decodeFlowtraceChunk, decodePubsubSub } from "./telemetry.js";
@@ -99,6 +114,15 @@ export function decodeFrame(bytes) {
       return decodeCrdtStaleEpoch(bytes);
     case CMD_CRDT_UPDATE:
       return decodeCrdtUpdate(bytes);
+    case CMD_PLANE_DROP:
+      return decodePlaneDrop(bytes);
+    case CMD_PLANE_LIST:
+      // Request and reply share the opcode; arity discriminates.
+      return head.length === 1
+        ? decodePlaneList(bytes)
+        : decodePlaneListRes(bytes);
+    case CMD_OP_REJECTED:
+      return decodeOpRejected(bytes);
     case CMD_COMP_SYNC_REQ:
       return decodeCompSyncReq(bytes);
     case CMD_COMP_UP_TO_DATE:
@@ -111,6 +135,11 @@ export function decodeFrame(bytes) {
       return decodeCompDetailRes(bytes);
     case CMD_COMP_WRITE:
       return decodeCompWrite(bytes);
+    case CMD_COMP_SOURCE:
+      // The request and the response share the opcode; arity discriminates.
+      return head.length === 2
+        ? decodeCompSourceReq(bytes)
+        : decodeCompSourceRes(bytes);
     case CMD_COMP_INSTALL_REQ:
       return decodeCompInstallReq(bytes);
     case CMD_PUBSUB_SUB:
@@ -119,6 +148,13 @@ export function decodeFrame(bytes) {
       return decodeFlowtraceChunk(bytes);
     case CMD_RUN_CTRL:
       return decodeRunCtrl(bytes);
+    case CMD_PACKET_SEND:
+      return decodePacketSend(bytes);
+    case CMD_GET_STATUS:
+      // Request and reply share the opcode; arity discriminates.
+      return head.length === 1
+        ? decodeGetStatus(bytes)
+        : decodeGetStatusRes(bytes);
     case CMD_BREAKPOINT_SET:
       return decodeBreakpointSet(bytes);
     case CMD_BREAKPOINT_CLEAR:

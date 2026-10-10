@@ -27,10 +27,12 @@ import {
 } from "../src/index.js";
 
 describe("0x11 CMD_CRDT_UP_TO_DATE", () => {
-  it("is a two-byte frame", () => {
-    assert.deepEqual([...encodeCrdtUpToDate()], [0x91, 0x11]);
-    assert.deepEqual(decodeCrdtUpToDate(encodeCrdtUpToDate()), {
+  it("is a three-byte frame: opcode, nil plane id, epoch", () => {
+    assert.deepEqual([...encodeCrdtUpToDate(null, 7)], [0x93, 0x11, 0xc0, 0x07]);
+    assert.deepEqual(decodeCrdtUpToDate(encodeCrdtUpToDate(null, 7)), {
       cmd: CMD_CRDT_UP_TO_DATE,
+      planeId: null,
+      epochId: 7,
     });
   });
 });
@@ -38,7 +40,7 @@ describe("0x11 CMD_CRDT_UP_TO_DATE", () => {
 describe("0x10 CMD_CRDT_SYNC_REQ", () => {
   it("round-trips epoch and client clocks", () => {
     const decoded = decodeCrdtSyncReq(
-      encodeCrdtSyncReq(7, { client_a: 15, client_b: 3 }),
+      encodeCrdtSyncReq(null, 7, { client_a: 15, client_b: 3 }),
     );
     assert.equal(decoded.cmd, CMD_CRDT_SYNC_REQ);
     assert.equal(decoded.epochId, 7);
@@ -46,9 +48,9 @@ describe("0x10 CMD_CRDT_SYNC_REQ", () => {
   });
 
   it("rejects non-integer or negative clocks", () => {
-    assert.throws(() => encodeCrdtSyncReq(7, { client_a: 1.5 }), ProtocolError);
+    assert.throws(() => encodeCrdtSyncReq(null, 7, { client_a: 1.5 }), ProtocolError);
     assert.throws(
-      () => decodeCrdtSyncReq(encodeCrdtSyncReq(7, { client_a: -1 })),
+      () => decodeCrdtSyncReq(encodeCrdtSyncReq(null, 7, { client_a: -1 })),
       ProtocolError,
     );
   });
@@ -64,20 +66,21 @@ describe("0x10 CMD_CRDT_SYNC_REQ", () => {
 
 describe("0x12 CMD_CRDT_STALE_EPOCH", () => {
   it("round-trips the new epoch and resource hash", () => {
-    const decoded = decodeCrdtStaleEpoch(encodeCrdtStaleEpoch(8, "res-hash-1"));
+    const decoded = decodeCrdtStaleEpoch(encodeCrdtStaleEpoch(null, 8, "res-hash-1"));
     assert.equal(decoded.cmd, CMD_CRDT_STALE_EPOCH);
     assert.equal(decoded.newEpochId, 8);
     assert.equal(decoded.rnsResourceHash, "res-hash-1");
   });
 
   it("rejects an empty resource hash", () => {
-    assert.throws(() => encodeCrdtStaleEpoch(8, ""), ProtocolError);
+    assert.throws(() => encodeCrdtStaleEpoch(null, 8, ""), ProtocolError);
   });
 });
 
 describe("0x14 CMD_CRDT_UPDATE", () => {
   it("round-trips a node insert", () => {
     const update = {
+      planeId: null,
       clientId: "client_a",
       logicalClock: 16,
       opType: OP_TYPE.INSERT_NODE,
@@ -96,6 +99,7 @@ describe("0x14 CMD_CRDT_UPDATE", () => {
   it("round-trips a tombstone with a null payload", () => {
     const decoded = decodeCrdtUpdate(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: "runtime",
         logicalClock: 17,
         opType: OP_TYPE.TOMBSTONE,
@@ -111,6 +115,7 @@ describe("0x14 CMD_CRDT_UPDATE", () => {
     assert.throws(
       () =>
         encodeCrdtUpdate({
+        planeId: null,
           clientId: "a",
           logicalClock: 1,
           opType: 0x99,
@@ -125,6 +130,7 @@ describe("0x14 CMD_CRDT_UPDATE", () => {
     assert.throws(
       () =>
         encodeCrdtUpdate({
+        planeId: null,
           clientId: "a",
           logicalClock: 0.5,
           opType: OP_TYPE.TOMBSTONE,

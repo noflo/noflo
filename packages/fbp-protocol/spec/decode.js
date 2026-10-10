@@ -34,11 +34,12 @@ describe("decodeFrame", () => {
   it("dispatches every link-level frame to its typed decoder", async () => {
     const cases = [
       { bytes: encodeAuthResponse({ capabilityMask: 0x01 }), cmd: 0x02 },
-      { bytes: encodeCrdtSyncReq(1, { a: 1 }), cmd: 0x10 },
-      { bytes: encodeCrdtUpToDate(), cmd: 0x11 },
-      { bytes: encodeCrdtStaleEpoch(2, "hash"), cmd: 0x12 },
+      { bytes: encodeCrdtSyncReq(null, 1, { a: 1 }), cmd: 0x10 },
+      { bytes: encodeCrdtUpToDate(null, 1), cmd: 0x11 },
+      { bytes: encodeCrdtStaleEpoch(null, 2, "hash"), cmd: 0x12 },
       {
         bytes: encodeCrdtUpdate({
+          planeId: null,
           clientId: "a",
           logicalClock: 1,
           opType: OP_TYPE.TOMBSTONE,
