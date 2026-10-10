@@ -157,17 +157,15 @@ const processGenerator = () => {
 describe("Network Lifecycle", () => {
   const loader = new noflo.ComponentLoader({});
 
-  before(() =>
-    loader.listComponents().then(() => {
-      loader.registerComponent("process", "Async", processAsync);
-      loader.registerComponent("process", "Promise", processPromise);
-      loader.registerComponent("process", "Sync", processSync);
-      loader.registerComponent("process", "Merge", processMerge);
-      loader.registerComponent("process", "Bracketize", processBracketize);
-      loader.registerComponent("process", "NonSending", processNonSending);
-      loader.registerComponent("process", "Generator", processGenerator);
-    }),
-  );
+  before(() => {
+    loader.registerComponent("process", "Async", processAsync);
+    loader.registerComponent("process", "Promise", processPromise);
+    loader.registerComponent("process", "Sync", processSync);
+    loader.registerComponent("process", "Merge", processMerge);
+    loader.registerComponent("process", "Bracketize", processBracketize);
+    loader.registerComponent("process", "NonSending", processNonSending);
+    loader.registerComponent("process", "Generator", processGenerator);
+  });
   describe("with single Process API component receiving IIP", () => {
     let c = null;
     let out = null;

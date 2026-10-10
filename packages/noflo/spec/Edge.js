@@ -277,7 +277,6 @@ describe("hierarchical high-water mark wiring through networks", () => {
   let loader;
   before(async () => {
     loader = new noflo.ComponentLoader({});
-    await loader.listComponents();
     const bounded = () => {
       const c = new noflo.Component();
       c.inPorts.add("in", { datatype: "all" });
@@ -362,7 +361,6 @@ describe("network-level edge observation", () => {
   let observeLoader;
   before(async () => {
     observeLoader = new noflo.ComponentLoader({});
-    await observeLoader.listComponents();
     const repeat = () => {
       const c = new noflo.Component();
       c.inPorts.add("in", { datatype: "all" });

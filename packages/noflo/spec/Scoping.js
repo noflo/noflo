@@ -105,17 +105,11 @@ describe("Scope isolation", () => {
 
   before(() => {
     loader = new noflo.ComponentLoader({});
-    return loader.listComponents().then(() => {
-      loader.registerComponent("process", "Async", processAsync);
-      loader.registerComponent("process", "Merge", processMerge);
-      loader.registerComponent("process", "MergeA", processMergeA);
-      loader.registerComponent("process", "Unscope", processUnscope);
-      loader.registerComponent(
-        "process",
-        "MergeUnscoped",
-        processMergeUnscoped,
-      );
-    });
+    loader.registerComponent("process", "Async", processAsync);
+    loader.registerComponent("process", "Merge", processMerge);
+    loader.registerComponent("process", "MergeA", processMergeA);
+    loader.registerComponent("process", "Unscope", processUnscope);
+    loader.registerComponent("process", "MergeUnscoped", processMergeUnscoped);
   });
   describe("pure Process API merging two inputs", () => {
     let c = null;

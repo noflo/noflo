@@ -98,8 +98,9 @@ export class Subgraph extends Component {
 
     const network = new Network(graphObj, options);
 
-    return network.loader
-      .listComponents()
+    // Keep the `network` lifecycle event asynchronous so listeners attached
+    // right after construction can observe it
+    return Promise.resolve()
       .then(() => {
         this.network = network;
         this.dispatchLifecycleEvent("network", network);

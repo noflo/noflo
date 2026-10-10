@@ -390,11 +390,9 @@ describe("NoFlo Subgraph component", () => {
     let cl = null;
     before(() => {
       cl = new noflo.ComponentLoader({});
-      return cl.listComponents().then(() => {
-        cl.components.Split = createSplit;
-        cl.components.Defaults = grDefaults;
-        cl.components.Initials = grInitials;
-      });
+      cl.components.Split = createSplit;
+      cl.components.Defaults = grDefaults;
+      cl.components.Initials = grInitials;
     });
 
     it("should send defaults", async () => {

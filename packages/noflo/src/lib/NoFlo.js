@@ -147,11 +147,10 @@ import IP from "./IP.js";
 export function createNetwork(graphInstance, options = {}) {
   const network = new Network(graphInstance, options);
 
-  // Ensure components are loaded before continuing
-  const promise = network.loader.listComponents().then(() => {
+  const promise = Promise.resolve().then(() => {
     if (options.delay) {
       // In case of delayed execution we don't wire it up
-      return Promise.resolve(network);
+      return network;
     }
     return network.connect().then(() => network.start());
   });

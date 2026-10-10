@@ -722,9 +722,7 @@ describe("NoFlo Network", () => {
     let loader = null;
     before(() => {
       loader = new noflo.ComponentLoader({});
-      return loader.listComponents().then(() => {
-        loader.components.Split = Split;
-      });
+      loader.components.Split = Split;
     });
     it("should fail on connect with non-existing component", () => {
       const g = nativeGraph();
