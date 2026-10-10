@@ -39,7 +39,7 @@ before(() => {
   );
   fs.writeFileSync(
     path.join(fixtureDir, "components", "AssemblyThing.js"),
-    'import { Component } from "@noflo/noflo";\nimport { Component as AssemblyComponent } from "@noflo/assembly";\nexport function getComponent() {\n  class RelayThing extends AssemblyComponent {\n    relay(msg, output) {\n      output.sendDone(msg);\n    }\n  }\n  const c = new RelayThing({ description: "Relay-style" });\n  return c;\n}\n',
+    'import { Component as AssemblyComponent } from "@noflo/assembly";\nexport function getComponent() {\n  class RelayThing extends AssemblyComponent {\n    relay(msg, output) {\n      output.sendDone(msg);\n    }\n  }\n  const c = new RelayThing({ description: "Relay-style" });\n  return c;\n}\n',
   );
   fs.writeFileSync(
     path.join(fixtureDir, "graphs", "Pipeline.fbp"),

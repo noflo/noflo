@@ -1,4 +1,3 @@
-import { Component } from "@noflo/noflo";
 import { Component as AssemblyComponent } from "@noflo/assembly";
 export function getComponent() {
   class RelayThing extends AssemblyComponent {

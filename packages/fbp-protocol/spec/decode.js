@@ -18,7 +18,6 @@ import {
   encodeCompInstallReq,
   encodeCompManifest,
   encodeCompSyncReq,
-  encodeCompUpToDate,
   encodeCompWrite,
   encodeCrdtStaleEpoch,
   encodeCrdtSyncReq,

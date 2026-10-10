@@ -26,7 +26,10 @@ jobs:
         with:
           deno-version: 'v2.x'
           cache: true
-      - run: deno install
+      # The monorepo's own workspace packages publish alphas minutes
+      # before CI runs; Deno's supply-chain age policy would block them.
+      # Workspace deps are trusted by construction.
+      - run: deno install --minimum-dependency-age=0
       - run: deno run test:deno
   bun:
     name: Test with Bun
