@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [2.0.0-alpha.3] - 2026-10-10
 ### Added
 - Initial wire-constant module for FBP Protocol 2.0 over Reticulum (work document #4): the `fbp.runtime` announce aspect (`ANNOUNCE_ASPECT`, work document #4 update #21), command codes for the transport/identity, CRDT graph synchronization, component registry, execution control, and telemetry blocks, the capability mask and limitation codes, graph op types, flowtrace event types, visual-state formats, the shared `elementary | subgraph | stub` component-type vocabulary (#25/#4 update #11), and the `0xF0` trace-snapshot frame code. Lifecycle transition codes are pinned per work document #4 §7, including the `FAILED` transition encoding with its detail carried in an accompanying `0x04 ERROR` event (#4 update #1) and the `PAUSED`/`RESUMED` run-state codes, plus the `BREAKPOINT_HIT` flowtrace event type carrying the breakpoint cause
 - `0x40` block execution control & debugging codecs (work document #4 §8): run control — pause, resume, and step (noflo/noflo-ui #243), plus start and stop (#4 update #20): the lifecycle control the `LIFECYCLE_CTRL` capability names — data breakpoints with client-chosen link-scoped ids and nil-matches-any triggering inport (#245), and per-process disable/enable with queued packets kept rather than dropped (#317); all commands require the `LIFECYCLE_CTRL` capability, with no dedicated ack frames — run-state changes ride the telemetry stream as `PAUSED`/`RESUMED` lifecycle events and breakpoint hits as `BREAKPOINT_HIT` events

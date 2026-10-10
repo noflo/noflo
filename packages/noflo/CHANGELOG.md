@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.0.0-alpha.3] - 2026-10-10
 ### Fixed
 - Subgraph internal networks are guarded against concurrent and redundant starts: `setUp` no longer stops-and-restarts an already-running internal network when the parent network (or an explicit `component.start()`) starts the subgraph after its implicit data-triggered start — a cycle that tore down internal component state and re-delivered initials. The guaranteed contract is that a subgraph delivers its internal IIPs during the network start that activates it (the parent network's start, or an explicit `start()`), before any data is processed; data sent to a never-started bare subgraph component before `start()` still races the implicit start and is not guaranteed to see the IIPs
 ### Changed
