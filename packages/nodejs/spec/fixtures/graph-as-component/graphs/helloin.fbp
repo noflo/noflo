@@ -1,0 +1,3 @@
+# @name HelloIn
+INPORT=repeat.IN:IN
+repeat(graph-as-component/Repeat) OUT -> IN stdout(graph-as-component/Output)

@@ -1,0 +1,26 @@
+topic: "core/Repeat"
+cases:
+-
+  name: 'sending a boolean'
+  assertion: 'should repeat the same'
+  inputs:
+    in: true
+  expect:
+    out:
+     equals: true
+-
+  name: 'sending a number'
+  assertion: 'should repeat the same'
+  inputs:
+    in: 1000
+  expect:
+    out:
+      equals: 1000
+-
+  name: 'sending a string'
+  assertion: 'should repeat the same'
+  inputs:
+    in: "my string"
+  expect:
+    out:
+      equals: "my string"
