@@ -15,7 +15,7 @@ import { MsgPack } from "@reticulum/core";
 import { TRACE_SNAPSHOT } from "./constants.js";
 import { ProtocolError } from "./errors.js";
 import { splitMsgpackFrames } from "./msgpack-frames.js";
-import { decodeFlowtraceChunk } from "./telemetry.js";
+import { decodeFlowtraceChunk, encodeFlowtraceChunk } from "./telemetry.js";
 
 /**
  * Runtime metadata carried in the snapshot frame: free-form identifying
@@ -158,6 +158,62 @@ export function readTraceFile(bytes) {
     snapshot: { formatVersion, timestampMs, runtimeMetadata, graphDefinition },
     chunks,
   };
+}
+
+/**
+ * Assemble a complete trace file from the JSON state of the NoFlo core trace
+ * recorder — the `toJSON()` output of `Flowtrace` from `@noflo/noflo` (work
+ * document #23). The recorder owns the event model as data; this function
+ * is the binary encoding: the snapshot state is MsgPack-framed as the
+ * `0xF0` snapshot frame and the delta-encoded event tuples are projected to
+ * a single `0x32` chunk frame (the recorder's tuples carry an optional
+ * fourth metadata element, which the wire projection drops — payload stays
+ * the raw value per work document #4 §7).
+ *
+ * This module deliberately has no dependency on `@noflo/noflo`; the state
+ * is consumed duck-typed, and a round-trip spec in `@noflo/runtime` pins
+ * the two representations together.
+ *
+ * @param {object} state The recorder's `toJSON()` output.
+ * @param {{ formatVersion: number, timestampMs: number, runtimeMetadata: any,
+ *   graphDefinition: any }} state.snapshot
+ * @param {Array<[number, number, any, any?]>} state.chunks Delta-encoded
+ *   event tuples; any fourth metadata element is projection-dropped.
+ * @returns {Uint8Array} The complete trace file.
+ * @throws {ProtocolError} When the state is malformed.
+ */
+export function assembleTraceFileFromRecorder(state) {
+  const snapshot = state?.snapshot;
+  if (!snapshot) {
+    throw new ProtocolError("recorder state needs a snapshot", TRACE_SNAPSHOT);
+  }
+  if (!Array.isArray(state.chunks)) {
+    throw new ProtocolError(
+      "recorder state needs a chunks array",
+      TRACE_SNAPSHOT,
+    );
+  }
+  const chunks = [];
+  if (state.chunks.length > 0) {
+    chunks.push(
+      encodeFlowtraceChunk({
+        subId: 0,
+        baseTimestampMs: snapshot.timestampMs,
+        events: state.chunks.map((tuple) => ({
+          timeDeltaMs: tuple[0],
+          eventType: tuple[1],
+          payload: tuple[2],
+        })),
+      }),
+    );
+  }
+  return assembleTraceFile({
+    runtimeMetadata: snapshot.runtimeMetadata,
+    graphDefinition: snapshot.graphDefinition,
+    chunks,
+    timestampMs: snapshot.timestampMs,
+    formatVersion: snapshot.formatVersion,
+  });
 }
 
 /**

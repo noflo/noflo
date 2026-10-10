@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { afterEach, before, describe, it } from "node:test";
-import flowtrace from "flowtrace";
 import * as noflo from "../src/lib/NoFlo.js";
 import { listen } from "./utils/events.js";
 import { loadJsonGraphFixture } from "./utils/loadJsonGraph.js";
@@ -470,7 +469,7 @@ describe("asCallback interface", () => {
     });
     describe("with flowtrace option", () => {
       it("should store a trace for a simple component execution", (_t, done) => {
-        const trace = new flowtrace.Flowtrace();
+        const trace = new noflo.Flowtrace();
         const wrapped = noflo.asCallback("process/Async", {
           loader,
           flowtrace: trace,
@@ -479,48 +478,48 @@ describe("asCallback interface", () => {
           assert.strictEqual(err, null);
           assert.strictEqual(out, "hello");
           const collectedTrace = trace.toJSON();
-          assert.ok(
-            Object.keys(collectedTrace.header.metadata).includes("start"),
-          );
-          assert.ok(
-            Object.keys(collectedTrace.header.metadata).includes("end"),
-          );
+          assert.strictEqual(collectedTrace.snapshot.formatVersion, 1);
           assert.strictEqual(
-            typeof collectedTrace.header.graphs["process/Async"],
-            "object",
+            typeof collectedTrace.snapshot.timestampMs,
+            "number",
           );
-          assert.strictEqual(collectedTrace.header.main, "process/Async");
-          const eventTypes = collectedTrace.events.map(
-            (e) => `${e.protocol}:${e.command}`,
+          assert.strictEqual(collectedTrace.snapshot.main, "process/Async");
+          assert.ok(collectedTrace.snapshot.graphs["process/Async"]);
+          assert.strictEqual(
+            collectedTrace.snapshot.graphDefinition,
+            collectedTrace.snapshot.graphs["process/Async"],
           );
+          const eventTypes = collectedTrace.chunks.map(([, type]) => type);
           assert.deepStrictEqual(eventTypes, [
-            "network:started",
-            "network:data",
-            "network:data",
-            "network:stopped",
+            noflo.EVENT_TYPE.LIFECYCLE,
+            noflo.EVENT_TYPE.DATA,
+            noflo.EVENT_TYPE.DATA,
+            noflo.EVENT_TYPE.LIFECYCLE,
           ]);
-          assert.deepEqual(
-            JSON.parse(JSON.stringify(collectedTrace.events[1].payload)),
-            {
-              data: "hello",
-              src: null,
-              tgt: {
-                node: "process/Async",
-                port: "in",
-              },
+          assert.strictEqual(collectedTrace.chunks[1][2], "hello");
+          assert.deepStrictEqual(collectedTrace.chunks[1][3], {
+            graph: "process/Async",
+            subgraph: null,
+            src: null,
+            tgt: {
+              node: "process/Async",
+              port: "in",
             },
-          );
-          assert.deepEqual(
-            JSON.parse(JSON.stringify(collectedTrace.events[2].payload)),
-            {
-              data: "hello",
-              src: {
-                node: "process/Async",
-                port: "out",
-              },
-              tgt: null,
+            datatype: null,
+            schema: null,
+          });
+          assert.strictEqual(collectedTrace.chunks[2][2], "hello");
+          assert.deepStrictEqual(collectedTrace.chunks[2][3], {
+            graph: "process/Async",
+            subgraph: null,
+            src: {
+              node: "process/Async",
+              port: "out",
             },
-          );
+            tgt: null,
+            datatype: null,
+            schema: null,
+          });
           done();
         });
       });

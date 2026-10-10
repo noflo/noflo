@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { before, beforeEach, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
-import flowtrace from "flowtrace";
 import { Subgraph } from "../src/components/Subgraph.js";
 import * as noflo from "../src/lib/NoFlo.js";
 import {
@@ -716,7 +715,7 @@ describe("NoFlo Subgraph component", () => {
     describe("with two levels of subgraphs", () => {
       let graph = null;
       let network = null;
-      const trace = new flowtrace.Flowtrace();
+      const trace = new noflo.Flowtrace();
       before(async () => {
         graph = nativeGraph("main");
         network = await noflo.createNetwork(graph, {
@@ -813,24 +812,23 @@ describe("NoFlo Subgraph component", () => {
       it("should produce a Flowtrace with both graphs included", () => {
         const collectedTrace = trace.toJSON();
         assert.deepEqual(
-          Object.keys(collectedTrace.header.graphs),
+          Object.keys(collectedTrace.snapshot.graphs),
           ["main", "foo/AB2", "foo/AB"],
           "should have exported all graphs",
         );
-        const eventTypes = collectedTrace.events.map(
-          (e) => `${e.protocol}:${e.command}`,
-        );
+        assert.strictEqual(collectedTrace.snapshot.main, "main");
+        const eventTypes = collectedTrace.chunks.map(([, type]) => type);
         assert.deepStrictEqual(eventTypes, [
-          "network:started",
-          "network:data",
-          "network:data",
-          "network:data",
-          "network:data",
-          "network:stopped",
+          noflo.EVENT_TYPE.LIFECYCLE,
+          noflo.EVENT_TYPE.DATA,
+          noflo.EVENT_TYPE.DATA,
+          noflo.EVENT_TYPE.DATA,
+          noflo.EVENT_TYPE.DATA,
+          noflo.EVENT_TYPE.LIFECYCLE,
         ]);
-        const subgraphs = collectedTrace.events.map((e) => {
-          const s = e.payload.subgraph ? e.payload.subgraph.join(":") : "";
-          return s;
+        const subgraphs = collectedTrace.chunks.map((chunk) => {
+          const subgraph = chunk[3]?.subgraph;
+          return subgraph ? subgraph.join(":") : "";
         });
         assert.deepStrictEqual(subgraphs, ["", "", "Sub:A", "Sub", "", ""]);
       });

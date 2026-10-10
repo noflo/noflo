@@ -96,7 +96,7 @@ function connectPort(socket, process, port, index, inbound) {
  * @typedef NetworkOwnOptions
  * @property {ComponentLoader} [componentLoader] - Component loader instance to use, if any
  * @property {import("./ComponentLoader.js").ComponentRegistry} [registry] - Application-supplied component registry, used to construct a loader when no loader is given
- * @property {Object} [flowtrace] - Flowtrace instance to use for tracing this network run
+ * @property {import("./Flowtrace.js").Flowtrace} [flowtrace] - Flowtrace instance to use for tracing this network run
  * @property {boolean} [asyncDelivery] - Make Information Packet delivery asynchronous
  * @property {number|null} [highWaterMark] - Default backpressure buffer size for all edges in this network; null = unbounded
  */
@@ -212,7 +212,7 @@ export class Network extends EventBase {
      * @type {string|null}
      */
     this.flowtraceName = null;
-    this.setFlowtrace(options.flowtrace || false, null);
+    this.setFlowtrace(options.flowtrace || null, null);
   }
 
   /**
@@ -307,6 +307,13 @@ export class Network extends EventBase {
       }
       case "end": {
         this.flowtrace.addNetworkStopped(this.flowtraceName);
+        break;
+      }
+      case "process-error": {
+        this.flowtrace.addNetworkError(
+          this.flowtraceName,
+          payload?.error ?? payload,
+        );
         break;
       }
       default: {
@@ -1353,7 +1360,7 @@ export class Network extends EventBase {
    * all existing subgraph networks under the given name. Passing a falsy
    * value disables tracing.
    *
-   * @param {Object|null} flowtrace
+   * @param {import("./Flowtrace.js").Flowtrace|null} flowtrace
    * @param {string|null} [name]
    * @param {boolean} [main]
    */

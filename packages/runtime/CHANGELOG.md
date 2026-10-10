@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Round-trip spec pinning the NoFlo core `Flowtrace` recorder's JSON state to the binary trace-file encoding (`assembleTraceFileFromRecorder`), and the duplicated event-vocabulary constants to equality between `@noflo/noflo` and `@noflo/fbp-protocol` (work document #23 update #2)
 
 ## [2.0.0-alpha.3] - 2026-10-10
 ### Added

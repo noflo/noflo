@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- `assembleTraceFileFromRecorder` (work document #23 update #2): the binary encoding of the NoFlo core trace recorder's `toJSON()` state — snapshot fields framed as the `0xF0` snapshot, event tuples projected to a `0x32` chunk frame based at the recording start, the recorder's optional fourth metadata element projection-dropped so wire payloads stay the raw value. Consumed duck-typed with no dependency on `@noflo/noflo` (the protocol package stays runtime-agnostic); a round-trip spec in `@noflo/runtime` pins the JSON and binary representations together
 
 ## [2.0.0-alpha.3] - 2026-10-10
 ### Added

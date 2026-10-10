@@ -141,6 +141,7 @@ export {
 } from "./telemetry.js";
 export {
   assembleTraceFile,
+  assembleTraceFileFromRecorder,
   encodeTraceSnapshot,
   readTraceFile,
 } from "./tracefile.js";

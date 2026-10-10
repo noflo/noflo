@@ -18,7 +18,6 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
-    "flowtrace": "^0.1.8",
     "typescript": "^4.0.2"
   },
   "main": "./src/lib/NoFlo.js",

@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- The native `Flowtrace` trace recorder (work document #23): NoFlo ships its own recorder instead of the third-party `flowtrace` devDependency. Networks record through the same duck-typed `setFlowtrace` contract as before (`mainGraph`, `addGraph`, `addNetworkPacket`, `addNetworkStarted`, `addNetworkStopped`), so external recorder implementations keep working — the class is the shipped default, exported from the main entrypoint together with the telemetry event vocabulary (`EVENT_TYPE`, `LIFECYCLE_CODE`) it encodes. Event tuples are delta-encoded in the FBP Protocol 2.0 telemetry vocabulary (work document #4 §7), with the JSON export (`toJSON()`) rendering the streamable trace file (§10): the `0xF0` snapshot content plus the event stream, where the optional fourth tuple element carries the UI-grade metadata envelope (graph, subgraph path, source/target ports, datatype, schema) that the binary wire projection drops
+- Process errors now reach the trace: `Network` records `process-error` events as `0x04 ERROR` flowtrace events (the legacy recorder never captured them)
+### Removed
+- The `flowtrace` devDependency — core's runtime dependencies are `@noflo/graph` alone
 
 ## [2.0.0-alpha.3] - 2026-10-10
 ### Fixed

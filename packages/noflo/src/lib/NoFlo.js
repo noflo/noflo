@@ -87,6 +87,14 @@ export { ComponentLoader } from "./ComponentLoader.js";
 // directly (1.x exported it; the 2.x native-graph model keeps that surface).
 export { Network } from "./Network.js";
 
+// ### Trace recorder
+//
+// The native Flowtrace recorder, using the FBP Protocol 2.0 telemetry
+// vocabulary; the duck-typed `flowtrace` network option consumes it.
+import { EVENT_TYPE, Flowtrace, LIFECYCLE_CODE } from "./Flowtrace.js";
+
+export { EVENT_TYPE, Flowtrace, LIFECYCLE_CODE };
+
 import { ComponentLoader } from "./ComponentLoader.js";
 
 // ### Component baseclasses
