@@ -115,6 +115,8 @@ describe("RuntimeServer auth", () => {
           protocolVersion: PROTOCOL_VERSION,
           capabilityMask: 0xff,
           limitationCode: LIMITATION.FULL_ACCESS,
+          runtimeMetadata: server.runtimeMetadata,
+          advertisedMask: server.capabilityMask,
         }),
       ],
     );
@@ -264,7 +266,7 @@ describe("RuntimeServer frame routing", () => {
       seen.push({ decoded, context });
     });
     await server.authorize("link-1", "test-identity");
-    server.handleFrame(encodeCrdtSyncReq(1, { a: 1 }), "link-1");
+    server.handleFrame(encodeCrdtSyncReq(null, 1, { a: 1 }), "link-1");
     assert.equal(seen.length, 1);
     assert.equal(seen[0].decoded.cmd, CMD_CRDT_SYNC_REQ);
     assert.equal(seen[0].decoded.epochId, 1);
@@ -402,7 +404,7 @@ describe("RuntimeServer frame routing", () => {
       dropped.push(event.detail),
     );
     await server.authorize("denied-link", "test-identity");
-    server.handleFrame(encodeCrdtSyncReq("0000", {}), "denied-link");
+    server.handleFrame(encodeCrdtSyncReq(null, "0000", {}), "denied-link");
     assert.equal(handled.length, 0);
     assert.equal(dropped.length, 1);
     assert.equal(dropped[0].required, CAPABILITY.GRAPH_READ);
@@ -415,7 +417,7 @@ describe("RuntimeServer frame routing", () => {
     });
     open.registerHandler(CMD_CRDT_SYNC_REQ, (decoded) => handled.push(decoded));
     await open.authorize("reader-link", "reader-identity");
-    open.handleFrame(encodeCrdtSyncReq("0000", {}), "reader-link");
+    open.handleFrame(encodeCrdtSyncReq(null, "0000", {}), "reader-link");
     assert.equal(handled.length, 1);
   });
 
@@ -501,7 +503,7 @@ describe("RuntimeServer frame routing", () => {
       throw new Error("handler blew up");
     });
     await server.authorize("link-1", "test-identity");
-    server.handleFrame(encodeCrdtSyncReq(1, { a: 1 }), "link-1");
+    server.handleFrame(encodeCrdtSyncReq(null, 1, { a: 1 }), "link-1");
     assert.equal(errors.length, 1);
     assert.equal(errors[0].error.message, "handler blew up");
   });
@@ -515,6 +517,6 @@ describe("RuntimeServer frame routing", () => {
  * @returns {void}
  */
 function assertAuthFrameShape(bytes) {
-  assert.equal(bytes[0], 0x94); // fixarray(4)
+  assert.equal(bytes[0], 0x96); // fixarray(6)
   assert.equal(bytes[1], 0x02); // CMD_AUTH_RESPONSE
 }

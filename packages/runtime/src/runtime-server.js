@@ -94,6 +94,11 @@ export class RuntimeServer extends EventTarget {
    *   the server does not advertise cannot be exercised no matter what the
    *   authorization plane grants. Defaults to the read surface a
    *   monitoring client needs (graph, telemetry, components read-only).
+   *   Also carried in the 0x02 handshake as the advertised mask, so clients
+   *   can tell a permission denial from an unsupported feature.
+   * @param {any} [options.runtimeMetadata] Free-form identifying
+   *   information carried in the 0x02 handshake — runtime kind, label,
+   *   version (the external review's runtime:runtime equivalent).
    * @param {(identityHash: string, context: any) => number|Promise<number>} options.capabilityPolicy
    *   Required. The authorization plane: resolves a verified peer's
    *   identity hash (and link context) to the granted capability mask —
@@ -131,6 +136,12 @@ export class RuntimeServer extends EventTarget {
         : capabilitiesMask(capabilities);
     this.capabilityPolicy = options.capabilityPolicy;
     this.limitationCode = options.limitationCode ?? LIMITATION.FULL_ACCESS;
+    /** Free-form runtime identifying information carried in the 0x02
+     * handshake (runtime kind, label, version) — the external review's
+     * runtime:runtime equivalent.
+     * @type {any}
+     */
+    this.runtimeMetadata = options.runtimeMetadata ?? null;
     this.protocolVersion = options.protocolVersion ?? PROTOCOL_VERSION;
     /** @type {(bytes: Uint8Array, context: any) => void} */
     this.send = options.send ?? (() => {});
@@ -218,6 +229,8 @@ export class RuntimeServer extends EventTarget {
         protocolVersion: this.protocolVersion,
         capabilityMask: mask,
         limitationCode: this.limitationCode,
+        runtimeMetadata: this.runtimeMetadata,
+        advertisedMask: this.capabilityMask,
       }),
       context,
     );

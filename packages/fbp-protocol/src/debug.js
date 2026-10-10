@@ -18,18 +18,18 @@ import { MsgPack } from "@reticulum/core";
 import {
   CMD_BREAKPOINT_CLEAR,
   CMD_BREAKPOINT_SET,
+  CMD_GET_STATUS,
   CMD_HWM_SET,
+  CMD_PACKET_SEND,
   CMD_PROCESS_CTRL,
   CMD_PROCESS_LIST,
-  CMD_GET_STATUS,
-  CMD_PACKET_SEND,
   CMD_PROCESS_LIST_REQ,
   CMD_RUN_CTRL,
-  RUN_STATE,
   COMPONENT_TYPE,
   EXECUTION_STATE,
   PROCESS_ACTION,
   RUN_ACTION,
+  RUN_STATE,
 } from "./constants.js";
 import { ProtocolError } from "./errors.js";
 
@@ -539,14 +539,31 @@ export function decodeGetStatus(bytes) {
  * @param {number} status.advertisedMask
  * @returns {Uint8Array}
  */
-export function encodeGetStatusRes({ epochId, runState, uptimeMs, advertisedMask }) {
+export function encodeGetStatusRes({
+  epochId,
+  runState,
+  uptimeMs,
+  advertisedMask,
+}) {
   if (!Object.values(RUN_STATE).includes(runState)) {
-    throw new ProtocolError("run_state must be from the vocabulary", CMD_GET_STATUS);
+    throw new ProtocolError(
+      "run_state must be from the vocabulary",
+      CMD_GET_STATUS,
+    );
   }
   if (!Number.isInteger(uptimeMs) || uptimeMs < 0) {
-    throw new ProtocolError("uptime_ms must be a non-negative integer", CMD_GET_STATUS);
+    throw new ProtocolError(
+      "uptime_ms must be a non-negative integer",
+      CMD_GET_STATUS,
+    );
   }
-  return MsgPack.encode([CMD_GET_STATUS, epochId, runState, uptimeMs, advertisedMask]);
+  return MsgPack.encode([
+    CMD_GET_STATUS,
+    epochId,
+    runState,
+    uptimeMs,
+    advertisedMask,
+  ]);
 }
 
 /**

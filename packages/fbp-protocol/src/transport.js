@@ -147,9 +147,20 @@ export function decodeAuthResponse(bytes) {
       CMD_AUTH_RESPONSE,
     );
   }
-  const [, protocolVersion, capabilityMask, limitationCode, runtimeMetadata, advertisedMask] =
-    frame;
-  for (const field of [protocolVersion, capabilityMask, limitationCode, advertisedMask]) {
+  const [
+    ,
+    protocolVersion,
+    capabilityMask,
+    limitationCode,
+    runtimeMetadata,
+    advertisedMask,
+  ] = frame;
+  for (const field of [
+    protocolVersion,
+    capabilityMask,
+    limitationCode,
+    advertisedMask,
+  ]) {
     if (!Number.isInteger(field) || field < 0 || field > 0xff) {
       throw new ProtocolError(
         "auth response fields must be uint8 values",

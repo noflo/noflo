@@ -22,9 +22,9 @@ import {
   CMD_COMP_DETAIL_RES,
   CMD_COMP_INSTALL_REQ,
   CMD_COMP_MANIFEST,
+  CMD_COMP_SOURCE,
   CMD_COMP_SYNC_REQ,
   CMD_COMP_UP_TO_DATE,
-  CMD_COMP_SOURCE,
   CMD_COMP_WRITE,
   COMPONENT_TYPE,
 } from "./constants.js";
@@ -338,7 +338,6 @@ export function canonicalSignature(signature) {
   if (signature.icon !== undefined) json.icon = signature.icon;
   return stableStringify(json);
 }
-
 
 /**
  * Encode a `0x26 CMD_COMP_SOURCE` request: `[0x26, component_name]` —

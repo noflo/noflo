@@ -20,8 +20,8 @@ import {
   CMD_OP_REJECTED,
   CMD_PLANE_DROP,
   CMD_PLANE_LIST,
-  PLANE_KIND,
   OP_TYPE,
+  PLANE_KIND,
 } from "./constants.js";
 import { ProtocolError } from "./errors.js";
 

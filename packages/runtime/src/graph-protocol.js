@@ -24,6 +24,7 @@ import {
   encodeCrdtStaleEpoch,
   encodeCrdtUpdate,
   encodeCrdtUpToDate,
+  encodeOpRejected,
   OP_TYPE,
   ProtocolError,
 } from "@noflo/fbp-protocol";
@@ -106,10 +107,25 @@ export class GraphProtocol {
   register(server) {
     this.server = server;
     server.registerHandler(CMD_CRDT_SYNC_REQ, async (decoded, context) => {
+      if (decoded.planeId !== null) {
+        // The plane model's full multi-plane runtime is staged (work
+        // document #4 updates #28-#33); until it lands, only the main
+        // plane answers, and anything else is rejected explicitly —
+        // silence never carries semantics.
+        server.send(
+          encodeOpRejected({
+            rejectedCmd: CMD_CRDT_SYNC_REQ,
+            planeId: decoded.planeId,
+            detail: { reason: "plane not running on this runtime" },
+          }),
+          context,
+        );
+        return;
+      }
       this.#learnClocks(decoded.clientClocks);
       const current = await this.epoch();
       if (decoded.epochId === current) {
-        server.send(encodeCrdtUpToDate(), context);
+        server.send(encodeCrdtUpToDate(null, current), context);
         return;
       }
       if (!this.resourceProvider) {
@@ -118,10 +134,26 @@ export class GraphProtocol {
       }
       const bytes = new TextEncoder().encode(this.graph.canonicalString());
       const resourceHash = await this.resourceProvider(bytes);
-      server.send(encodeCrdtStaleEpoch(current, resourceHash), context);
+      server.send(encodeCrdtStaleEpoch(null, current, resourceHash), context);
     });
 
     server.registerHandler(CMD_CRDT_UPDATE, (decoded, context) => {
+      if (decoded.planeId !== null) {
+        server.send(
+          encodeOpRejected({
+            rejectedCmd: CMD_CRDT_UPDATE,
+            planeId: decoded.planeId,
+            detail: {
+              clientId: decoded.clientId,
+              logicalClock: decoded.logicalClock,
+              entityId: decoded.entityId,
+              reason: "plane not running on this runtime",
+            },
+          }),
+          context,
+        );
+        return;
+      }
       this.#learnClocks({ [decoded.clientId]: decoded.logicalClock });
       const applied =
         /** @type {boolean} */
@@ -134,6 +166,7 @@ export class GraphProtocol {
       // Converge the op log: every *other* client learns the operation.
       server.broadcast(
         encodeCrdtUpdate({
+          planeId: null,
           clientId: decoded.clientId,
           logicalClock: decoded.logicalClock,
           opType: decoded.opType,
@@ -412,6 +445,7 @@ export class GraphProtocol {
     this.clock += 1;
     this.server.broadcast(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: this.clientId,
         logicalClock: this.clock,
         opType,

@@ -28,7 +28,10 @@ import {
 
 describe("0x11 CMD_CRDT_UP_TO_DATE", () => {
   it("is a three-byte frame: opcode, nil plane id, epoch", () => {
-    assert.deepEqual([...encodeCrdtUpToDate(null, 7)], [0x93, 0x11, 0xc0, 0x07]);
+    assert.deepEqual(
+      [...encodeCrdtUpToDate(null, 7)],
+      [0x93, 0x11, 0xc0, 0x07],
+    );
     assert.deepEqual(decodeCrdtUpToDate(encodeCrdtUpToDate(null, 7)), {
       cmd: CMD_CRDT_UP_TO_DATE,
       planeId: null,
@@ -48,7 +51,10 @@ describe("0x10 CMD_CRDT_SYNC_REQ", () => {
   });
 
   it("rejects non-integer or negative clocks", () => {
-    assert.throws(() => encodeCrdtSyncReq(null, 7, { client_a: 1.5 }), ProtocolError);
+    assert.throws(
+      () => encodeCrdtSyncReq(null, 7, { client_a: 1.5 }),
+      ProtocolError,
+    );
     assert.throws(
       () => decodeCrdtSyncReq(encodeCrdtSyncReq(null, 7, { client_a: -1 })),
       ProtocolError,
@@ -66,7 +72,9 @@ describe("0x10 CMD_CRDT_SYNC_REQ", () => {
 
 describe("0x12 CMD_CRDT_STALE_EPOCH", () => {
   it("round-trips the new epoch and resource hash", () => {
-    const decoded = decodeCrdtStaleEpoch(encodeCrdtStaleEpoch(null, 8, "res-hash-1"));
+    const decoded = decodeCrdtStaleEpoch(
+      encodeCrdtStaleEpoch(null, 8, "res-hash-1"),
+    );
     assert.equal(decoded.cmd, CMD_CRDT_STALE_EPOCH);
     assert.equal(decoded.newEpochId, 8);
     assert.equal(decoded.rnsResourceHash, "res-hash-1");
@@ -115,7 +123,7 @@ describe("0x14 CMD_CRDT_UPDATE", () => {
     assert.throws(
       () =>
         encodeCrdtUpdate({
-        planeId: null,
+          planeId: null,
           clientId: "a",
           logicalClock: 1,
           opType: 0x99,
@@ -130,7 +138,7 @@ describe("0x14 CMD_CRDT_UPDATE", () => {
     assert.throws(
       () =>
         encodeCrdtUpdate({
-        planeId: null,
+          planeId: null,
           clientId: "a",
           logicalClock: 0.5,
           opType: OP_TYPE.TOMBSTONE,
