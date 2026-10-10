@@ -13,7 +13,6 @@
 
 import { GraphModel } from "@noflo/graph";
 import { Subgraph } from "../components/Subgraph.js";
-import { deprecated } from "./Platform.js";
 
 /**
  * @callback ComponentFactory
@@ -278,12 +277,6 @@ export class ComponentLoader {
           const inst = instance;
           if (typeof name === "string") {
             inst.componentName = name;
-          }
-
-          if (inst.isLegacy()) {
-            deprecated(
-              `Component ${name} uses legacy NoFlo APIs. Please port to Process API`,
-            );
           }
 
           this.setIcon(name, inst);

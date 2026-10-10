@@ -250,11 +250,6 @@ export class Network extends LegacyEventBase {
         return;
       }
       if (process.component.load > 0) {
-        // Modern component with load
-        active.push(name);
-      }
-      if (process.component.__openConnections > 0) {
-        // Legacy component
         active.push(name);
       }
     });
@@ -644,14 +639,12 @@ export class Network extends LegacyEventBase {
 
   /**
    * Subscribe to events from a socket: forward packet traffic to the edge
-   * observers and the network `ip` event, escalate process errors when
-   * nobody listens, and drive legacy-component activation via
-   * connect/disconnect counts.
+   * observers and the network `ip` event, and escalate process errors when
+   * nobody listens.
    *
    * @param {internalSocket.InternalSocket} socket
-   * @param {NetworkProcess} [source]
    */
-  subscribeSocket(socket, source) {
+  subscribeSocket(socket) {
     // Transport-level observation: one stable dispatcher per edge that
     // forwards to the CURRENT network observer list at event time, so
     // observer registration can never drift out of sync with wired edges
@@ -691,28 +684,6 @@ export class Network extends LegacyEventBase {
         throw errEvent;
       }
       this.bufferedEmit("process-error", errEvent);
-    });
-    if (!source?.component?.isLegacy()) {
-      return;
-    }
-    const comp = /** @type {import("./Component.js").Component} */ (
-      source.component
-    );
-    // Handle activation for legacy components via connects/disconnects
-    socket.addEventListener("connect", () => {
-      if (!comp.__openConnections) {
-        comp.__openConnections = 0;
-      }
-      comp.__openConnections += 1;
-    });
-    socket.addEventListener("disconnect", () => {
-      comp.__openConnections -= 1;
-      if (comp.__openConnections < 0) {
-        comp.__openConnections = 0;
-      }
-      if (comp.__openConnections === 0) {
-        this.checkIfFinished();
-      }
     });
   }
 
@@ -836,7 +807,7 @@ export class Network extends LegacyEventBase {
       return this.ensureNode(edge.to.node, "inbound")
         .then((to) => {
           // Subscribe to events from the socket
-          this.subscribeSocket(socket, from);
+          this.subscribeSocket(socket);
 
           return connectPort(socket, to, edge.to.port, edge.to.index, true);
         })

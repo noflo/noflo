@@ -383,38 +383,6 @@ describe("ComponentLoader", () => {
       const instance = await loader.load("registry/Split");
       assert.strictEqual(instance.getIcon(), "bug");
     });
-
-    it("warns on legacy components", async () => {
-      const warnings = [];
-      const originalWarn = console.warn;
-      console.warn = (message) => warnings.push(message);
-      try {
-        const loader = new noflo.ComponentLoader({
-          registry: {
-            list: () => ({
-              "registry/Legacy": {
-                getComponent: () => {
-                  const c = new noflo.Component();
-                  c.inPorts.add("in", { datatype: "string" });
-                  c.outPorts.add("out", { datatype: "string" });
-                  // Legacy components use the pre-Process-API handle-style
-                  listen(c.inPorts.in, "data", () => {});
-                  return c;
-                },
-              },
-            }),
-          },
-        });
-        const instance = await loader.load("registry/Legacy");
-        assert.ok(instance.isLegacy());
-      } finally {
-        console.warn = originalWarn;
-      }
-      assert.ok(
-        warnings.some((w) => w.includes("legacy NoFlo APIs")),
-        "expected a legacy warning",
-      );
-    });
   });
 
   describe("loading a subgraph from a registry graph model", () => {

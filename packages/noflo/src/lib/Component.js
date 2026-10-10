@@ -204,12 +204,6 @@ export class Component extends LegacyEventBase {
      * @type {string|null}
      */
     this.nodeId = null;
-
-    /**
-     * Deprecated legacy component connection counter
-     * @type {number}
-     */
-    this.__openConnections = 0;
   }
 
   /**
@@ -423,21 +417,6 @@ export class Component extends LegacyEventBase {
         this.forwardBrackets[inPort] = tmp;
       }
     });
-  }
-
-  /**
-   * Check whether the component uses the legacy (pre-Process API) programming
-   * interface.
-   *
-   * @returns {boolean}
-   */
-  isLegacy() {
-    // Process API
-    if (this.handle) {
-      return false;
-    }
-    // Legacy
-    return true;
   }
 
   /**

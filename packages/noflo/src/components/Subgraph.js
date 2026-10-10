@@ -269,10 +269,6 @@ export class Subgraph extends Component {
     return true;
   }
 
-  isLegacy() {
-    return false;
-  }
-
   setUp() {
     // Start the internal network. This is invoked when the parent
     // network starts this component, or when a user starts the component
