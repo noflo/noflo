@@ -399,7 +399,7 @@ export class Component extends EventBase {
           const buffered = reportedPort.countBuffered();
           if (buffered > 0) {
             debugComponent(
-              `${this.nodeId} port '${portName}' still holds ${buffered} unconsumed IPs at shutdown — reading a port with get()/getData() while the activation is waiting for more data makes that activation never re-invoke; check the has/get order`,
+              `${this.nodeId} port '${portName}' holds ${buffered} unconsumed IPs at shutdown. Either data arrived that no activation consumed, or an activation consumed data it should not have before waiting for more — in that case the pending activation never re-invokes (check the has/get order)`,
             );
           }
         });

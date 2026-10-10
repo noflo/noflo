@@ -5,7 +5,8 @@
 /* @ts-self-types="./IP.d.ts" */
 
 /**
- * @typedef {Object<string, boolean|string>} IPOptions
+ * @typedef {Object<string, boolean|string|number>} IPOptions
+ * @property {number|null} [index] - Connection index for addressable ports
  */
 
 /**

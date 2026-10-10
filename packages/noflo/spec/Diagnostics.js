@@ -48,11 +48,7 @@ describe("Component shutdown diagnostics", () => {
       await c.shutdown();
     });
     assert.ok(
-      lines.some((line) =>
-        line.includes(
-          "still holds 1 unconsumed IPs at shutdown",
-        ),
-      ),
+      lines.some((line) => line.includes("holds 1 unconsumed IPs at shutdown")),
       `expected the unconsumed-IP report, got: ${JSON.stringify(lines)}`,
     );
   });
@@ -72,6 +68,37 @@ describe("Component shutdown diagnostics", () => {
     );
   });
 
+  it("does not warn for control ports holding their configured value", async () => {
+    const lines = await captureDebug("noflo:component", async () => {
+      const c = new noflo.Component({
+        inPorts: {
+          in: { datatype: "string" },
+          cfg: { datatype: "string", control: true },
+        },
+        outPorts: { out: { datatype: "string" } },
+      });
+      const ins = new noflo.internalSocket.InternalSocket();
+      const cfg = new noflo.internalSocket.InternalSocket();
+      c.inPorts.in.attach(ins);
+      c.inPorts.cfg.attach(cfg);
+      // A correctly-used control port: read the value, complete
+      c.process((input, output) => {
+        if (!input.hasData("in", "cfg")) {
+          return;
+        }
+        input.getData("cfg");
+        output.sendDone({ out: input.getData("in") });
+      });
+      ins.post(new noflo.IP("data", "payload"));
+      cfg.post(new noflo.IP("data", "configured"));
+      await c.shutdown();
+    });
+    assert.ok(
+      !lines.some((line) => line.includes("unconsumed IPs")),
+      `expected no control-port false positive, got: ${JSON.stringify(lines)}`,
+    );
+  });
+
   it("reports discarded bracket contexts at shutdown", async () => {
     const lines = await captureDebug("noflo:component:brackets", async () => {
       const c = new noflo.Component({
@@ -81,17 +108,13 @@ describe("Component shutdown diagnostics", () => {
       // Simulate an activation that opened a forwarded bracket context
       // but never sent on the out port
       c.bracketContext.out.out = {
-        null: [
-          new noflo.IP("openBracket", "dangling"),
-        ],
+        null: [new noflo.IP("openBracket", "dangling")],
       };
       await c.shutdown();
     });
     assert.ok(
       lines.some((line) =>
-        line.includes(
-          "bracket context on 'out' discarded at shutdown",
-        ),
+        line.includes("bracket context on 'out' discarded at shutdown"),
       ),
       `expected the discarded-context report, got: ${JSON.stringify(lines)}`,
     );
@@ -107,9 +130,10 @@ describe("Component option diagnostics", () => {
       });
     });
     assert.ok(
-      lines.some((line) =>
-        line.includes("unknown option 'forwardbrackets'") &&
-        line.includes("'forwardBrackets'"),
+      lines.some(
+        (line) =>
+          line.includes("unknown option 'forwardbrackets'") &&
+          line.includes("'forwardBrackets'"),
       ),
       `expected the option-typo warning, got: ${JSON.stringify(lines)}`,
     );

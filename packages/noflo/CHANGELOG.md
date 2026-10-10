@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Debug-mode lifecycle diagnostics (WD 11 update #4): at shutdown, a warning when an inport buffer still holds unconsumed IPs (either data no activation ever consumed, or the has/get-order footgun where a pending activation never re-invokes), and a warning when a `forwardBrackets" port still holds unattached open brackets that never attached to a send. Control ports are excluded from the unconsumed report — they buffer their latest stream non-consumingly by design, so a configured control port holding its value at shutdown is correct usage. All diagnostics are visible only with the DEBUG environment variable enabled
+- A warning when a Component constructor receives an option key that case-insensitively matches a known option but differs in casing (e.g. the 1.x-era lowercase `forwardbrackets`) — unknown options are otherwise silently ignored
+- `InPort.countBuffered()` exposing the buffered IP count across all buffer shapes (regular, IIP, scoped, indexed)
+### Changed
+- The non-addressable send error now explains the cause and remedy: the packet carries a source-connection index, clear `ip.index" before sending to a non-addressable port
+- The `IPOptions" typedef accepts numeric values and documents the `index" field for addressable routing, closing the typing gap that forced `ip.index = x" instance-assignment workarounds
+### Added
 - The native `Flowtrace` trace recorder (work document #23): NoFlo ships its own recorder instead of the third-party `flowtrace` devDependency. Networks record through the same duck-typed `setFlowtrace` contract as before (`mainGraph`, `addGraph`, `addNetworkPacket`, `addNetworkStarted`, `addNetworkStopped`), so external recorder implementations keep working — the class is the shipped default, exported from the main entrypoint together with the telemetry event vocabulary (`EVENT_TYPE`, `LIFECYCLE_CODE`) it encodes. Event tuples are delta-encoded in the FBP Protocol 2.0 telemetry vocabulary (work document #4 §7), with the JSON export (`toJSON()`) rendering the streamable trace file (§10): the `0xF0` snapshot content plus the event stream, where the optional fourth tuple element carries the UI-grade metadata envelope (graph, subgraph path, source/target ports, datatype, schema) that the binary wire projection drops
 - Process errors now reach the trace: `Network` records `process-error` events as `0x04 ERROR` flowtrace events (the legacy recorder never captured them)
 ### Removed
