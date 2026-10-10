@@ -17,38 +17,21 @@ import {
 const fixtureDir = path.join("test", "fixtures", "library");
 
 before(() => {
-  fs.rmSync(fixtureDir, { recursive: true, force: true });
-  fs.mkdirSync(path.join(fixtureDir, "components"), { recursive: true });
-  fs.mkdirSync(path.join(fixtureDir, "graphs"), { recursive: true });
-  fs.mkdirSync(path.join(fixtureDir, "spec"), { recursive: true });
-  fs.writeFileSync(
-    path.join(fixtureDir, "package.json"),
-    JSON.stringify({
-      name: "@noflo/testlib",
-      description: "Manifest test fixture",
-      noflo: { icon: "cog" },
-    }),
-  );
-  fs.writeFileSync(
-    path.join(fixtureDir, "components", "BrowserThing.js"),
-    'import { Component } from "@noflo/noflo";\nexport function getComponent() {\n  const c = new Component({\n    description: "Runs everywhere",\n    icon: "globe",\n    inPorts: { in: { datatype: "string", required: true } },\n    outPorts: { out: { datatype: "string" } },\n  });\n  c.process((input, output) => {\n    if (!input.hasData("in")) { return; }\n    output.sendDone({ out: input.getData("in") });\n  });\n  return c;\n}\n',
-  );
-  fs.writeFileSync(
-    path.join(fixtureDir, "components", "NodeThing.js"),
-    'import fs from "node:fs";\nimport { Component } from "@noflo/noflo";\nexport function getComponent() {\n  const c = new Component({\n    inPorts: { in: { datatype: "string", required: true } },\n    outPorts: { out: { datatype: "string" } },\n  });\n  c.process((input, output) => {\n    if (!input.hasData("in")) { return; }\n    output.sendDone({ out: fs.readFileSync(input.getData("in"), "utf-8") });\n  });\n  return c;\n}\n',
-  );
-  fs.writeFileSync(
-    path.join(fixtureDir, "components", "AssemblyThing.js"),
-    'import { Component as AssemblyComponent } from "@noflo/assembly";\nexport function getComponent() {\n  class RelayThing extends AssemblyComponent {\n    /**\n     * @param {Record<string, any>} msg\n     * @param {{ sendDone(map: Record<string, unknown>): void }} output\n     */\n    relay(msg, output) {\n      output.sendDone(msg);\n    }\n  }\n  const c = new RelayThing({ description: "Relay-style" });\n  return c;\n}\n',
-  );
-  fs.writeFileSync(
-    path.join(fixtureDir, "graphs", "Pipeline.fbp"),
-    "INPORT=Reader.in:in\nOUTPORT=Reader.out:out\nReader(testlib/BrowserThing)\n",
-  );
-  fs.writeFileSync(
-    path.join(fixtureDir, "spec", "BrowserThing.yaml"),
-    "topic: testlib/BrowserThing\n",
-  );
+  // The fixture library is committed: no regeneration, so the linted
+  // sources are exactly what the manifest generator reads
+  for (const required of [
+    "package.json",
+    "components/BrowserThing.js",
+    "components/NodeThing.js",
+    "components/AssemblyThing.js",
+    "graphs/Pipeline.fbp",
+    "spec/BrowserThing.yaml",
+  ]) {
+    assert.ok(
+      fs.existsSync(path.join(fixtureDir, required)),
+      `fixture missing: ${required}`,
+    );
+  }
 });
 
 describe("normalizeLibraryName", () => {

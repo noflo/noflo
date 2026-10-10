@@ -1,1 +1,7 @@
-{"name":"@noflo/testlib","description":"Manifest test fixture","noflo":{"icon":"cog"}}
+{
+  "name": "@noflo/testlib",
+  "description": "Manifest test fixture",
+  "noflo": {
+    "icon": "cog"
+  }
+}

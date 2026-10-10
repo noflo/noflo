@@ -6,7 +6,9 @@ export function getComponent() {
     outPorts: { out: { datatype: "string" } },
   });
   c.process((input, output) => {
-    if (!input.hasData("in")) { return; }
+    if (!input.hasData("in")) {
+      return;
+    }
     output.sendDone({ out: fs.readFileSync(input.getData("in"), "utf-8") });
   });
   return c;
