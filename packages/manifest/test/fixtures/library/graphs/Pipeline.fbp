@@ -1,0 +1,3 @@
+INPORT=Reader.in:in
+OUTPORT=Reader.out:out
+Reader(testlib/BrowserThing)
