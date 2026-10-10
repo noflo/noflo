@@ -58,7 +58,7 @@ export function encodeRunCtrl(action, planeId = undefined) {
  * Decode a `0x40 CMD_RUN_CTRL`.
  *
  * @param {Uint8Array} bytes
- * @returns {{ cmd: number, action: number }}
+ * @returns {{ cmd: number, action: number, planeId: number|string|null }}
  */
 export function decodeRunCtrl(bytes) {
   const frame = MsgPack.decode(bytes);
