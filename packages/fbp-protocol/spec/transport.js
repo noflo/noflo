@@ -106,7 +106,7 @@ describe("auth response", () => {
         PROTOCOL_VERSION,
         0x07,
         LIMITATION.FULL_ACCESS,
-        null,
+        0xc0,
         0x07,
       ],
     );
