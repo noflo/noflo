@@ -214,7 +214,7 @@ export class Subgraph extends Component {
 
   /**
    * @param {string} name
-   * @param {import("../lib/BaseNetwork.js").NetworkProcess} process
+   * @param {import("../lib/Network.js").NetworkProcess} process
    * @returns {boolean}
    */
   findEdgePorts(name, process) {

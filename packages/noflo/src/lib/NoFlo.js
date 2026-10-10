@@ -136,7 +136,7 @@ import IP from "./IP.js";
  */
 
 /**
- * @typedef { CreateNetworkOptions & import("./BaseNetwork.js").NetworkOptions} NetworkOptions
+ * @typedef { CreateNetworkOptions & import("./Network.js").NetworkOptions} NetworkOptions
  */
 
 /**
@@ -153,10 +153,7 @@ export function createNetwork(graphInstance, options = {}) {
       // In case of delayed execution we don't wire it up
       return Promise.resolve(network);
     }
-    const connected = /** @type {Promise<Network>} */ (network.connect());
-    return connected.then(
-      () => /** @type {Promise<Network>} */ (network.start()),
-    );
+    return network.connect().then(() => network.start());
   });
   return promise;
 }

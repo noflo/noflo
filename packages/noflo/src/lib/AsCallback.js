@@ -102,7 +102,7 @@ function prepareNetwork(component, options) {
       componentLoader: options.loader,
     });
     // Wire the network up
-    return /** @type {Promise<Network>} */ (network.connect());
+    return network.connect();
   }
 
   if (!options.loader) {
@@ -140,7 +140,7 @@ function prepareNetwork(component, options) {
       componentLoader: options.loader,
     });
     // Wire the network up and start execution
-    return /** @type {Promise<Network>} */ (network.connect());
+    return network.connect();
   });
 }
 
