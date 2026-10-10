@@ -1,2 +1,7 @@
 #!/usr/bin/env node
-require("../src/noflo-nodejs.js").main();
+import { main } from "../src/noflo-nodejs.js";
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

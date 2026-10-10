@@ -6,7 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Changed
-- Ingested into the `noflo/noflo` monorepo as `@noflo/nodejs` (work document #31): package renamed and versioned in the monorepo lockstep, legacy tooling (ESLint, Travis-era CI, Dependabot config, `fbp-config.json`) removed, git history preserved via `git filter-repo`. The legacy 1.x runtime server (`noflo-runtime-base`/`-websocket`/`-webrtc` over the fbp-protocol 1.x wire) is not carried forward — the package re-architects as the Node.js host around `@noflo/runtime` and FBP Protocol 2.0 over Reticulum; the modernization lands in follow-up commits on the ingestion branch
+- Ingested into the `noflo/noflo` monorepo as `@noflo/nodejs` (work document #31): package renamed and versioned in the monorepo lockstep, git history preserved via `git filter-repo`. The 1.x runtime stack — `noflo-runtime-base`/`-websocket`/`-webrtc` over the fbp-protocol 1.x wire, WebSocket/WebRTC serving, secret-based auth, flowhub-registry pings, mDNS advertisement — is not carried forward. The modernized host re-architects around `@noflo/runtime` and FBP Protocol 2.0 over Reticulum
+- Configuration moves from `flowhub.json` to layered `.noflo.json` (user-level, project-level, env, CLI, generated), with the mesh-facing surface replacing the socket-era options: the runtime's Reticulum identity is generated on first run and persisted in the transport storage, mesh attachment prefers the local shared Reticulum instance and falls back to AutoInterface (plus an optional rnsd uplink), and `--host`/`--port`/`--tls-*`/`--secret`/`--signaller`/`--mdns`/`--registry`/`--open` are gone
+- Authorization is Dacar: the host evaluates grants from the node store the `dacar` CLI maintains (`DACAR_HOME`, default `~/.dacar`) — trust anchors, salts, and grants never appear in the host configuration, and the legacy static permission maps are gone. With no Dacar store the host runs fully deny-closed with a warning; `SIGHUP` re-reads the grant store after an external `dacar sync`
+### Added
+- Batch mode owns its shutdown: on network end the host stops itself and flushes the trace before the CLI exits, so an immediately-finishing graph cannot race the exit path
+- Trace recording writes the streamable FBP Protocol 2.0 trace file format (`.flowtrace/*.trace`) via the core `Flowtrace` recorder and `assembleTraceFileFromRecorder`, flushed on network end, `SIGTERM`/`SIGINT`, and `SIGUSR2`
+- Process errors now surface both in debug output and as `0x04 ERROR` trace events
+- Programmatic entry `run(graph, options, preStart)` returning a `HostHandle` (network, mesh binding, trace recorder, stop)
+- `README.md` rewritten for the 2.x host: configuration reference, mesh attachment, the Dacar grant workflow (granting access on the admin machine and delivering deltas to the runtime machine), signals, and the 1.x migration notes
 
 ## noflo-nodejs 0.15.3 (12-01-2024)
 

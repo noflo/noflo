@@ -1,2 +1,0 @@
-
-'hello world' -> IN repeat(core/Repeat) OUT -> IN stdout(core/Output)

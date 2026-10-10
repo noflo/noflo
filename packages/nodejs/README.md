@@ -1,177 +1,191 @@
-Command-line tool for running NoFlo programs on Node.js
-=================================
+# `@noflo/nodejs` — NoFlo host for Node.js
 
-This tool is designed to be used together with the [NoFlo UI](https://app.noflojs.org/) development environment
-for running [NoFlo](http://noflojs.org/) networks on [Node.js](http://nodejs.org/). This tool runs your
-NoFlo programs, and provides a [FBP Protocol](https://flowbased.github.io/fbp-protocol/) interface over
-either WebSockets or WebRTC to tools like NoFlo UI and fbp-spec.
+Command-line host for running [NoFlo](https://noflojs.org) programs on Node.js as observable, mesh-reachable runtimes. The host loads your project's graph, discovers your component libraries, and serves the running program as an [FBP Protocol 2.0](https://github.com/noflo/noflo) runtime over [Reticulum](https://reticulum.network) — inspectable and live-editable from tools like noflo-ui, over the mesh, with [Dacar](https://github.com/noflo/dacar) deciding who is allowed to do what.
 
-This enables inspection of the state of the running NoFlo program, as well as live editing of the graph
-and components of your project.
+This is the 2.x re-architecture of the legacy `noflo-nodejs` CLI: the 1.x runtime stack (WebSocket/WebRTC servers speaking fbp-protocol 1.x, secret-based auth, flowhub-registry pings, mDNS advertisement) is replaced by the in-tree `@noflo/runtime` speaking FBP Protocol 2.0 over Reticulum links, with Dacar capability grants instead of secrets.
 
-## Prepare a project folder
-
-Start by setting up a local NoFlo Node.js project. For example:
+## Install
 
 ```shell
-$ mkdir my-project
-$ cd my-project
+$ npm install @noflo/nodejs
+```
+
+This installs the `noflo-nodejs` command-line tool and the programmatic entry. It is part of the `noflo/noflo` monorepo and shares the engine's lockstep version.
+
+## Quickstart
+
+Set up a NoFlo project, with component libraries installed as npm dependencies:
+
+```shell
+$ mkdir my-project && cd my-project
 $ npm init
-$ npm install noflo --save
-$ npm install noflo-nodejs --save
+$ npm install @noflo/noflo @noflo/nodejs
+$ npm install @noflo/core @noflo/strings   # whatever component libraries you need
 ```
 
-Continue by installing whatever [NoFlo component libraries](https://www.npmjs.com/browse/keyword/noflo) you need, for example:
+Initialize a Dacar node store for the machine (authorization is mandatory — without it, every client is denied):
 
 ```shell
-$ npm install noflo-core --save
+$ npx dacar init
 ```
 
-If you want, this is a great time to push your project to [GitHub](https://github.com/).
-
-## Starting the runtime
-
-Once you have installed the runtime, it is time to start it:
+Run a graph:
 
 ```shell
-$ npx noflo-nodejs
+$ npx noflo-nodejs --graph graphs/MyMainGraph.json
 ```
 
-This will start a WebSocket-based NoFlo Runtime server. When started, it will output an URL with the connection details needed by NoFlo UI.
-
-Copy paste this URL into the browser. The NoFlo UI IDE will open, and automatically connect to your runtime.
-To make changes hit 'Edit as Project'. You should be able to see available components and build up your system.
-
-## Starting an existing graph
-
-If you want to run an existing graph, you can use the `--graph` option.
+The host announces itself on the mesh and prints its identity hash. Run with `--batch` to exit when the graph finishes:
 
 ```shell
-noflo-nodejs --graph graphs/MyMainGraph.json
+$ npx noflo-nodejs --graph graphs/MyMainGraph.json --batch
 ```
 
-If you want the process to exit when the network stops, you can pass `--batch`.
-
-## Typical project setup
-
-In most Node.js projects there will be three different setups you might want to have with NoFlo: development, testing, and production. Each of these can be easily expressed via NPM scripts in `package.json`:
+Typical project setup via npm scripts:
 
 ```json
 {
   "name": "my-project",
   "scripts": {
-    "dev": "noflo-nodejs --host localhost --auto-save --graph ./graphs/MyGraph.json",
-    "test": "fbp-spec --secret test --address ws://localhost:3333 --command 'noflo-nodejs --port 3333 --capture-output --secret test --open false' spec/",
-    "start": "noflo-nodejs --protocol webrtc --graph ./graphs/MyGraph.json"
-  },
-  "dependencies": {
-    ...
-  },
-  ...
+    "dev": "noflo-nodejs --graph ./graphs/MyGraph.json",
+    "start": "noflo-nodejs --graph ./graphs/MyGraph.json --batch"
+  }
 }
 ```
 
-With this setup you get the following:
+## Configuration
 
-* By running `npm run dev`, noflo-nodejs will start your projects' main graph and open the NoFlo UI IDE in your browser. Any changes you make in NoFlo UI will be persisted on your local hard drive
-* By running `npm test`, [fbp-spec](https://github.com/flowbased/fbp-spec) will start a noflo-nodejs instance, connect to it, and run all of your local fbp-spec tests
-* By running `npm start`, noflo-nodejs starts your program, enabling remote debugging via the WebRTC protocol
+Settings load in layers, each level overriding the previous: defaults → `~/.noflo.json` (user-level) → `.noflo.json` (project-level) → environment variables → CLI arguments → generated values. Values that differ from their default persist back into the project-level `.noflo.json` on first run, so a generated node name sticks.
 
-## Host address autodetection for WebSockets
+| Setting | CLI flag | Environment | Default | Description |
+| --- | --- | --- | --- | --- |
+| `name` | `--name` | | `<package name> NoFlo runtime` | Node name announced on the mesh |
+| `graph` | `--graph` | | | Path to the graph file to run (`.json` or `.fbp`) |
+| `baseDir` | `--base-dir` | `PROJECT_HOME` | current directory | Project base directory used for component loading |
+| `batch` | `--batch` | | off | Exit the process when the network stops |
+| `identity` | | | | Path to the Reticulum identity key file, generated on first run |
+| `storage` | | | `.noflo/rns` | Directory for the Reticulum transport storage |
+| `rnsHost` | `--rns-host` | `RNS_HOST` | | rnsd uplink hostname, used when no shared Reticulum instance is available |
+| `rnsPort` | `--rns-port` | `RNS_PORT` | | rnsd uplink TCP port |
+| `dacarStore` | `--dacar-store` | `DACAR_HOME` | `~/.dacar` | Dacar node store to evaluate grants against |
+| `dacarObject` | `--dacar-object` | | `noflo.runtime/<name>` | Dacar object id the runtime's commands address |
+| `dacarAllRelation` | `--dacar-all-relation` | | `access` | Dacar relation whose grant on the object confers the full capability mask |
+| `debug` | `--debug` | | off | Log packet events to stdout |
+| `verbose` | `--verbose` | | off | Log packet contents to stdout |
+| `trace` | `--trace` | | off | Record a flowtrace of the graph execution |
+| `cache` | `--cache` | | off | Read the component catalog from the `fbp.json` manifest cache |
+| `catchExceptions` | `--catch-exceptions` | | off | Catch uncaught exceptions, flush the trace, and exit |
 
-By default `noflo-nodejs` will attempt to autodetect the public hostname/IP of your system.
-If this fails, you can specify `--host myhostname` manually.
+Boolean flags accept both bare form (`--batch`) and explicit values (`--batch false`).
 
-## Securing the WebSocket connection
+## Mesh attachment
 
-The noflo-nodejs runtime can be secured using TLS. Place the key and certificate files somewhere that noflo-nodejs can read, and then start the runtime with the `--tls-key` and --tls-cert` options.
+The host connects to the Reticulum network using the ecosystem connection chain: if a local shared Reticulum instance is running (an rnsd), the host attaches to it over the shared-instance socket — the shared instance already owns the mesh interfaces. Otherwise the host opens an AutoInterface (zero-config LAN peering), adding an explicit rnsd uplink when `rnsHost`/`rnsPort` are configured. On machines with no usable network interfaces the host still runs the program — it just announces to nobody.
 
-For example, to use self-signed keys, you could do the following:
+The host's Reticulum identity is generated on first run and persisted under the transport storage directory; peers that cache the public key keep recognizing the runtime across restarts. A corrupt key file surfaces loudly instead of being regenerated, since that would change the node's address.
 
-```shell
-$ openssl genrsa -out localhost.key 2048
-$ openssl req -new -x509 -key localhost.key -out localhost.cert -days 3650 -subj /CN=localhost
-$ noflo-nodejs --tls-key=localhost.key --tls-cert=localhost.cert
-```
+## Authorization with Dacar
 
-Note: browsers may refuse to connect to a WebSocket with a self-signed certificate by default. You can visit the runtime URL with your browser first to accept the certificate before connecting to it in the IDE.
+Access control is [Dacar](https://github.com/noflo/dacar): a decentralized, offline-first capability system where signed grants replicate over the mesh and every node evaluates locally, deny-closed. There are no secrets or allow lists in the host configuration — the Dacar node store *is* the authorization configuration, and the host reads it from the location the `dacar` CLI maintains (`DACAR_HOME`, default `~/.dacar`; override with `dacarStore`).
 
-## Peer-to-peer WebRTC connections
+The runtime's commands address a single Dacar object, `noflo.runtime/<name>` by default, where `<name>` is the configured node name, slugified. Capability relations map one-to-one onto the protocol's capability bits: `graph.read`, `graph.edit`, `metadata.sync`, `telemetry.read`, `component.read`, `component.write`, `lifecycle.ctrl`, and `admin`. Additionally, the host defines the coarse relation `access`, whose grant on the object confers the full capability mask.
 
-If you want to use a peer-to-peer WebRTC connection instead of WebSockets, start `noflo-nodejs` with the argument `--protocol webrtc`.
+The examples below use the Python reference CLI, which carries the full command set (`anchor add`, `identity show`, `alias add`, `grant --no-apply`). The Node CLI shipped with `@reticulum/dacar` (`npx dacar`) speaks the same store format and covers `init`, `grant --publish`, `revoke`, `sync`, `apply`, `check`, and `grants`.
 
-While slightly more complex and slower to start, WebRTC has some advantages over WebSockets:
-
-* Peer-to-peer connections can (sometimes) work through firewalls
-* No need for setting up TLS to secure communications between the runtime and the client
-
-By default noflo-nodejs uses [Flowhub's](https://flowhub.io) signalling server for negotiating the connection details between runtime and clients. You can supply a different [RTC Switchboard](https://github.com/rtc-io/rtc-switchboard) instance with the `--signaller` option.
-
-## Debugging
-
-noflo-nodejs supports [flowtrace](https://github.com/flowbased/flowtrace) allows to trace & store the execution of the FBP program,
-so you can debug any issues that would occur. Specify `--trace` to enable tracing.
-
-```shell
-$ noflo-nodejs --graph graphs/MyMainGraph.json --trace
-```
-
-If you are running in `--batch` mode, the file will be dumped to disk when the program terminates.
-Otherwise you can send the `SIGUSR2` to trigger dumping the file to disk.
+### Setting up a runtime machine
 
 ```shell
-$ kill -SIGUSR2 $PID_OF_PROCESS
-... Wrote flowtrace to: .flowtrace/1151020-12063-ami5vq.json
+$ dacar init                     # node store + own identity, aliased `self`
+$ dacar identity show            # the runtime's identity hash (print for your records)
+$ dacar anchor add <admin-hash>  # trust the project administrator's identity
 ```
 
-You can now use various flowtrace tools to introspect the data.
-For instance, you can get a human readable log using `flowtrace-show`
+The trust anchor is the identity whose signed grant operations this machine accepts — typically the project owner. Run `dacar sync` (or receive deltas by any transport, see below) to keep the grant state current. When initializing a multi-machine deployment, share the Privacy Salt out-of-band first (`dacar init --salt dacar-salt.hex` on every node); without a shared salt the grants stored on one machine are unreadable on another.
+
+### a) Granting a user access to the runtime
+
+On the machine where grants are made — the administrator's machine, whose identity is the runtime machine's trust anchor — grant the user the coarse `access` relation on the runtime's object:
 
 ```shell
-$ npx flowtrace-show .flowtrace/1151020-12063-ami5vq.json
-
--> IN repeat CONN
--> IN repeat DATA hello world
--> IN stdout CONN
--> IN stdout DATA hello world
--> IN repeat DISC
--> IN stdout DISC
+$ dacar alias add alice <alice-identity-hash>   # optional, human-readable alias
+$ dacar grant alice access noflo.runtime/my-project
 ```
 
-## Signalling aliveness
+`access` confers the full capability mask (read, edit, telemetry, component source, lifecycle control) — the right default for a developer working on their own project. Verify locally with `dacar check alice access noflo.runtime/my-project`. For restricted roles, grant individual relations instead:
 
-`noflo-nodejs` will ping Flowhub registry periodically to signal aliveness to IDE users. To disable this behavior, set `--registry-ping 0`.
-
-## Persistent runtime configuration
-
-Settings can be loaded from a  `flowhub.json` file.
-By default the configuration will be read from the current working directory,
-but you can change this by setting the `PROJECT_HOME` environment variable.
-
-This file will be automatically saved when you run noflo-nodejs, meaning that settings like runtime ID and secret will be persisted between runs.
-
-Environment variables and command-line options will override settings specified in config file.
-
-Since the values are often machine and/or user specific, you usually don't want to add this file to version control.
-
-## Embedding runtime in an existing service
-
-In addition to running noflo-nodejs as a command-line program that starts and runs your NoFlo graphs, you can embed it into an existing Node.js application. Here is a quick example how to do it:
-
-```javascript
-const runtime = require('noflo-nodejs');
-
-// This function returns a Promise that resolves when the NoFlo runtime has started up
-startRuntime(graphPath, options = {}) {
-  // Configure noflo-nodejs. Options here map roughly to the standard command-line arguments
-  const settings = {
-    id: '9f1432b1-a259-454a-bb67-e9d91525cc63', // Set an unique UUID for your application instance
-    label: 'My cool app',
-    baseDir: __dirname,
-    host: 'localhost',
-    port: 3569,
-    ...options,
-  };
-  return runtime(graphPath, settings);
-}
+```shell
+$ dacar grant alice telemetry.read noflo.runtime/my-project   # observation without edit rights
 ```
+
+The grant is signed immediately with the administrator's key and applied to the local store.
+
+### b) Getting the grant onto the machine the runtime runs on
+
+If grants are made on a different machine than the one running the runtime, the signed delta needs to cross the gap. Two ways, both ending in the runtime host picking the state up on its next reload (or `kill -HUP`):
+
+**Over the mesh** — the grant is signed on the admin machine and published to the plane's RFed broadcast channel; the runtime machine pulls it:
+
+```shell
+admin$ dacar grant alice access noflo.runtime/my-project --publish
+runtime$ dacar sync        # pull pending deltas from the rfed channel
+```
+
+**Over any transport** — export the signed delta as a file and move it however the deployment moves bytes (USB stick, LXMF, QR code — Dacar deltas also travel as Paper Messages):
+
+```shell
+admin$ dacar grant alice access noflo.runtime/my-project --no-apply > delta.hex
+# ...carry delta.hex to the runtime machine by any means...
+runtime$ dacar apply delta.hex
+```
+
+After the store on the runtime machine has the grant, tell the running host to re-read it:
+
+```shell
+$ kill -HUP <noflo-nodejs-pid>    # or restart; the store is read at startup
+```
+
+The host logs `Dacar grant state reloaded`. Until a grant arrives, evaluation is deny-closed: an empty store, a missing store, or an unreachable plane means every client is denied.
+
+### Running without a grant store
+
+The host starts even when no Dacar store exists — useful for batch execution — but warns that every client will be denied. Initialize one with `dacar init` to make the runtime reachable by tools.
+
+## Component discovery
+
+The host discovers components the same way `@noflo/loader-node` does: the project's own `components/` directory, plus every installed npm dependency that ships NoFlo components. Component signatures are harvested for the runtime's registry so clients can render real signatures before installing anything. When `--cache` is set, discovery reads the generated `fbp.json` manifest cache instead of walking `node_modules`.
+
+## Traces
+
+With `--trace`, the host records the execution with the engine's native trace recorder and writes a streamable trace file (the FBP Protocol 2.0 format: a topology snapshot frame followed by delta-encoded execution chunks) into the project's `.flowtrace/` directory. The file is flushed when the network ends, on `SIGTERM`/`SIGINT`, and on demand via `SIGUSR2` — send `kill -USR2` to snapshot a long-running program without stopping it.
+
+## Signals
+
+| Signal | Action |
+| --- | --- |
+| `SIGTERM`, `SIGINT` | Stop the network, flush the trace, exit |
+| `SIGUSR2` | Flush the trace without stopping |
+| `SIGHUP` | Re-read the Dacar grant store after an external `dacar sync` |
+
+## Running as a library
+
+The programmatic entry runs a graph with the runtime attached from inside an application:
+
+```js
+import { run } from "@noflo/nodejs";
+
+const host = await run(graphModelOrPath, {
+  name: "my-project",
+});
+// host.network is the live network; host.binding is the mesh binding
+await host.stop();
+```
+
+An optional `preStart` hook runs after the host is created but before the mesh binding, e.g. for registering additional components.
+
+## Migrating from 1.x
+
+- The `--host`, `--port`, `--tls-key`, `--tls-cert`, `--secret`, and `--permissions` options are gone: there is no listening socket and no secret-based auth. Runtimes are addressed by their Reticulum identity and authorized by Dacar grants.
+- `--protocol webrtc`, `--signaller`, `--mdns`, and `--registry` are gone: discovery is the runtime's announce on the mesh.
+- `--open` is gone for now; the mesh-based noflo-ui does not need a URL launcher.
+- Graphs load through `@noflo/graph`, components through the 2.x registry contract — 1.x component libraries need the modernization pass before this host can run them.
+- Trace files are the streamable FBP Protocol 2.0 format (`.trace`), not the legacy flowtrace JSON.

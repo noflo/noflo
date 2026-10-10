@@ -2,9 +2,31 @@
   "name": "@noflo/nodejs",
   "version": "2.0.0-alpha.3",
   "description": "Command-line host for running NoFlo programs on Node.js",
+  "keywords": [
+    "noflo",
+    "ecosystem:noflo"
+  ],
   "author": "Henri Bergius <henri.bergius@iki.fi>",
   "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">= 22"
+  },
+  "main": "./src/library.js",
+  "module": "./src/library.js",
+  "exports": {
+    ".": "./src/library.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "bin": {
+    "noflo-nodejs": "./bin/noflo-nodejs"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/noflo/noflo.git",
@@ -13,11 +35,26 @@
   "bugs": {
     "url": "https://github.com/noflo/noflo/issues"
   },
-  "keywords": [
-    "noflo",
-    "ecosystem:noflo"
-  ],
-  "engines": {
-    "node": ">= 22"
+  "scripts": {
+    "lint": "npx @biomejs/biome check --use-editorconfig=true src/ spec/",
+    "test": "node --test spec/*.js",
+    "types": "find src -name '*.d.ts' -delete && tsc -p tsconfig.json",
+    "test:deno": "deno test --allow-all --no-check spec/*.js",
+    "test:bun": "bun test ./spec/*.js"
+  },
+  "dependencies": {
+    "@noflo/fbp-protocol": "^2.0.0-alpha.3",
+    "@noflo/graph": "^2.0.0-alpha.3",
+    "@noflo/loader-node": "^2.0.0-alpha.1",
+    "@noflo/noflo": "^2.0.0-alpha.3",
+    "@noflo/runtime": "^2.0.0-alpha.3",
+    "@reticulum/core": "^0.9.7",
+    "@reticulum/dacar": "^1.1.0",
+    "@reticulum/node": "^0.9.7"
+  },
+  "devDependencies": {
+    "@noflo/core": "^2.0.0-alpha.1",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.0.0"
   }
 }

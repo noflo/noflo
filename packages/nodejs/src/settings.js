@@ -1,30 +1,79 @@
-const commander = require("commander");
-const { v4: uuid } = require("uuid");
-const generatePassword = require("password-generator");
-const os = require("os");
-const fs = require("fs");
-const path = require("path");
-const fbpGraph = require("fbp-graph");
-const clone = require("clone");
-const nofloNodejs = require("../package.json");
-const permissions = require("./permissions");
+//     NoFlo - Flow-Based Programming for JavaScript
+//     (c) 2021-2026 Henri Bergius
+//     NoFlo may be freely distributed under the MIT license
 
+/**
+ * @module settings
+ * @description Layered configuration for the NoFlo Node.js host (the
+ *   modernization of legacy `settings.js`, work document #31). Loading
+ *   order, each level overriding the previous:
+ *
+ *   1. Defaults
+ *   2. `~/.noflo.json` (user-level)
+ *   3. `<baseDir>/.noflo.json` (project-level)
+ *   4. Environment variables
+ *   5. CLI arguments (CLI entry only)
+ *   6. Generated values, as needed
+ *
+ *   Values that differ from their default and are not marked transient get
+ *   persisted back into the project-level `.noflo.json`, so a first run
+ *   records its generated node name for subsequent runs.
+ *
+ *   The 2.x host speaks Reticulum, not sockets: there is no listening
+ *   address, secret, or registry to configure. Authorization is Dacar
+ *   (work document #4's capability plane): the host evaluates grants from
+ *   the node store the `dacar` CLI maintains, so trust anchors and grants
+ *   never appear in this configuration at all.
+ */
+/* @ts-self-types="./settings.d.ts" */
+
+import { readFile, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+
+/**
+ * Whether a value is recordable as a CLI/JSON boolean: absent (unset) or a
+ * boolean-ish string.
+ *
+ * @param {string|boolean|undefined} value
+ * @returns {boolean|undefined}
+ */
+function toBoolean(value) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (value === "true") {
+    return true;
+  }
+  if (value === "false") {
+    return false;
+  }
+  return undefined;
+}
+
+/**
+ * The configuration surface. Keys map to CLI flags by kebab-casing
+ * (`baseDir` → `--base-dir`) unless a `cli` alias is given.
+ *
+ * @type {Record<string, {
+ *   description: string,
+ *   cli?: string,
+ *   boolean?: boolean,
+ *   env?: string,
+ *   default?: any,
+ *   generate?: (packageData: any) => any,
+ *   skipSave?: boolean,
+ *   convert?: (value: string) => any,
+ * }>}
+ */
 const config = {
-  protocol: {
-    description: 'Which protocol to use: "webrtc" or "websocket"',
-    default: "websocket",
-  },
-  id: {
-    description: "Unique identifier (UUID) for the runtime",
-    env: "NOFLO_RUNTIME_ID",
-    generate: () => uuid(),
-  },
-  label: {
-    description: "Human-readable label for the runtime",
-    generate: (project) => `${project.name} NoFlo runtime`,
+  name: {
+    description: "Node name announced on the Reticulum mesh",
+    generate: (packageData) =>
+      packageData?.name ? `${packageData.name} NoFlo runtime` : "NoFlo runtime",
   },
   graph: {
-    description: "Path to graph file to run",
+    description: "Path to the graph file to run",
     skipSave: true,
   },
   baseDir: {
@@ -35,371 +84,383 @@ const config = {
     skipSave: true,
   },
   batch: {
-    description: "Exit program when graph finishes",
+    description: "Exit the process when the network stops",
     boolean: true,
     skipSave: true,
   },
-  host: {
+  rnsHost: {
+    cli: "rns-host",
+    env: "RNS_HOST",
     description:
-      'Hostname or IP for the runtime. Use "autodetect" for dynamic detection',
-    default: "autodetect",
+      "Hostname of a Reticulum rnsd uplink to connect to when no shared instance is available",
   },
-  port: {
-    description: "Port for the runtime",
-    default: 3569,
+  rnsPort: {
+    cli: "rns-port",
+    env: "RNS_PORT",
+    description: "TCP port of the Reticulum rnsd uplink",
+    convert: (value) => Number.parseInt(value, 10),
   },
-  tlsKey: {
-    cli: "tls-key",
-    description: "Path to TLS key file",
-  },
-  tlsCert: {
-    cli: "tls-cert",
-    description: "Path to TLS cert file",
-  },
-  secret: {
-    description: "Password to be used by FBP protocol clients",
-    generate: () => generatePassword(),
-  },
-  permissions: {
-    description: "Permissions for the FBP protocol clients",
-    convert: (val) => val.split(","),
-    default: permissions.all(),
-  },
-  captureOutput: {
-    cli: "capture-output",
-    boolean: true,
-    description: "Catch writes to STDOUT and send to FBP protocol client",
-    skipSave: true,
-  },
-  catchExceptions: {
-    cli: "catch-exceptions",
-    boolean: true,
-    description: "Catch exceptions and send to FBP protocol client",
-    skipSave: true,
+  storage: {
+    description:
+      "Directory for the Reticulum transport storage; holds the generated identity key",
   },
   debug: {
+    description: "Log NoFlo packet events to stdout",
     boolean: true,
-    description: "Log NoFlo packet events to STDOUT",
     skipSave: true,
   },
   verbose: {
+    description: "Log NoFlo packet contents to stdout",
     boolean: true,
-    description: "Log NoFlo packet contents to STDOUT",
     skipSave: true,
-  },
-  cache: {
-    boolean: true,
-    description: "Enable NoFlo component loader cache",
   },
   trace: {
+    description: "Record a flowtrace of the graph execution",
     boolean: true,
-    description: "Record flowtrace from graph execution",
   },
-  open: {
+  cache: {
+    description: "Read the component catalog from the fbp.json manifest cache",
     boolean: true,
-    description: "Open the runtime in IDE in user's default browser",
+  },
+  catchExceptions: {
+    cli: "catch-exceptions",
+    description: "Catch uncaught exceptions, flush the trace, and exit",
+    boolean: true,
     skipSave: true,
-    default: true,
   },
-  mdns: {
-    boolean: true,
-    description: "Advertise runtime via mDNS",
-    default: true,
+  dacarStore: {
+    cli: "dacar-store",
+    env: "DACAR_HOME",
+    description:
+      "Dacar node store to evaluate grants against (the one `dacar sync` maintains); when missing, every client is denied",
   },
-  ide: {
-    description: "URL for the FBP protocol client",
-    default: "https://app.noflojs.org",
+  dacarObject: {
+    cli: "dacar-object",
+    description:
+      "Dacar object id the runtime's commands address; defaults to noflo.runtime/<name>",
   },
-  signaller: {
-    description: "URL for the WebRTC signalling server",
-    default: "wss://api.flowhub.io",
-  },
-  registry: {
-    description: "URL for the runtime registry",
-    default: "https://api.flowhub.io",
-  },
-  registryPing: {
-    cli: "registry-ping",
-    description: "How often to ping the runtime registry",
-    convert: (val) => parseInt(val, 10),
-    default: 10 * 60 * 1000,
-  },
-  autoSave: {
-    cli: "auto-save",
-    boolean: true,
-    description: "Save edited graphs and components to disk automatically",
-    default: false,
+  dacarAllRelation: {
+    cli: "dacar-all-relation",
+    default: "access",
+    description:
+      "Dacar relation whose grant on the object confers the full capability mask",
   },
 };
 
-function discoverIp(preferred) {
-  const ifaces = os.networkInterfaces();
-  let externalAddress = "";
-  let internalAddress = "";
-
-  const findInterface = (connection) => {
-    if (connection.family !== "IPv4") {
-      return;
-    }
-    if (connection.internal) {
-      internalAddress = connection.address;
-      return;
-    }
-    externalAddress = connection.address;
-  };
-
-  if (typeof preferred === "string" && ifaces[preferred]) {
-    // Only look at the preferred network interface
-    ifaces[preferred].forEach(findInterface);
-  } else {
-    // Cycle through all network interfaces
-    Object.keys(ifaces).forEach((iface) => {
-      ifaces[iface].forEach(findInterface);
-    });
-  }
-
-  return externalAddress || internalAddress;
+/**
+ * The default Dacar store location, matching the `dacar` CLI
+ * (`DACAR_HOME` or `~/.dacar`).
+ *
+ * @returns {string}
+ */
+export function defaultDacarStore() {
+  return process.env.DACAR_HOME || path.join(os.homedir(), ".dacar");
 }
 
-const readPackage = (baseDir) =>
-  new Promise((resolve, reject) => {
-    const packagePath = path.resolve(baseDir, "./package.json");
-    fs.readFile(packagePath, "utf8", (err, contents) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      try {
-        const packageFile = JSON.parse(contents);
-        resolve(packageFile);
-      } catch (e) {
-        reject(e);
-      }
-    });
-  });
+/**
+ * Available capability names — the FBP Protocol capability vocabulary the
+ * Dacar relations map onto.
+ *
+ * @type {string[]}
+ */
+export const CAPABILITIES = [
+  "GRAPH_READ",
+  "GRAPH_EDIT",
+  "METADATA_SYNC",
+  "TELEMETRY_READ",
+  "COMPONENT_READ",
+  "COMPONENT_WRITE",
+  "LIFECYCLE_CTRL",
+  "ADMIN",
+];
 
-const applyEnv = () =>
-  new Promise((resolve) => {
-    const applied = {};
-    Object.keys(config).forEach((key) => {
-      if (!config[key].env) {
-        return;
-      }
-      if (process.env[config[key].env]) {
-        applied[key] = process.env[config[key].env];
-      }
-    });
-    resolve(applied);
-  });
+/**
+ * Kebab-case a config key the way the CLI flags spell it.
+ *
+ * @param {string} key
+ * @returns {string}
+ */
+function kebab(key) {
+  return key.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+}
 
-const parseArguments = () => {
-  const options = commander.version(nofloNodejs.version, "-v --version");
-  const convertBoolean = (val) => String(val) === "true";
-  Object.keys(config).forEach((key) => {
+/**
+ * Parse CLI arguments into a settings object. Boolean flags accept both
+ * bare form (`--batch`) and explicit values (`--batch false`), matching the
+ * legacy semantics; value-taking flags take the next argument or a
+ * `--flag=value` form.
+ *
+ * @returns {Record<string, any>}
+ */
+function parseArguments() {
+  /** @type {Map<string, string>} */
+  const flags = new Map(
+    Object.entries(config).map(([key, conf]) => [conf.cli ?? kebab(key), key]),
+  );
+  /** @type {Record<string, any>} */
+  const parsed = {};
+  const args = process.argv.slice(2);
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (!arg.startsWith("--")) {
+      throw new Error(`Unexpected argument: ${arg}`);
+    }
+    const eq = arg.indexOf("=");
+    const flag = eq === -1 ? arg.slice(2) : arg.slice(2, eq);
+    let value = eq === -1 ? undefined : arg.slice(eq + 1);
+    const key = flags.get(flag);
+    if (!key) {
+      throw new Error(`Unknown option --${flag}`);
+    }
     const conf = config[key];
-    const optionKey = conf.cli || key;
-    let { description } = conf;
-    if (conf.skipSave) {
-      description = `${description} [not saved to flowhub.json]`;
-    }
-    if (config[key].boolean) {
-      options.option(
-        `--${optionKey} [true]`,
-        description,
-        convertBoolean,
-        conf.default,
-      );
-      return;
-    }
-    if (config[key].convert) {
-      options.option(
-        `--${optionKey} <${optionKey}>`,
-        description,
-        conf.convert,
-        conf.default,
-      );
-      return;
-    }
-    options.option(`--${optionKey} <${optionKey}>`, description, conf.default);
-  });
-  options.parse(process.argv);
-  if (typeof options.register !== "undefined") {
-    console.warn("noflo-nodejs --register is deprecated and has no effect");
-    delete options.register;
-  }
-  return options;
-};
-
-const applyOptions = (settings, options) =>
-  new Promise((resolve) => {
-    const applied = clone(settings);
-    Object.keys(config).forEach((key) => {
-      if (typeof options[key] === "undefined") {
-        return;
-      }
-      applied[key] = options[key];
-    });
-    resolve(applied);
-  });
-
-const applyDefaults = (settings) =>
-  new Promise((resolve) => {
-    const applied = clone(settings);
-    Object.keys(config).forEach((key) => {
-      if (typeof config[key].default === "undefined") {
-        return;
-      }
-      if (typeof applied[key] !== "undefined") {
-        return;
-      }
-      applied[key] = config[key].default;
-    });
-    resolve(applied);
-  });
-
-const applyArguments = (settings) => {
-  const options = parseArguments();
-  return applyOptions(settings, options);
-};
-
-const convertNamespace = (name) => {
-  if (!name) {
-    return "";
-  }
-  if (name === "noflo") {
-    return "";
-  }
-  let cleanedName = name;
-  if (cleanedName[0] === "@") {
-    cleanedName = cleanedName.replace(/@[a-z-]+\//, "");
-  }
-  return cleanedName.replace(/^noflo-/, "");
-};
-
-const generateValues = (settings) => {
-  const applied = clone(settings);
-  return readPackage(applied.baseDir).then((packageData) => {
-    Object.keys(config).forEach((key) => {
-      if (typeof applied[key] !== "undefined") {
-        return;
-      }
-      if (!config[key].generate) {
-        return;
-      }
-      applied[key] = config[key].generate(packageData, applied);
-    });
-    // Ensure permissions is in the correct format
-    if (Array.isArray(applied.permissions)) {
-      if (applied.secret) {
-        const perms = {};
-        perms[applied.secret] = applied.permissions;
-        applied.permissions = perms;
+    if (value === undefined) {
+      if (conf.boolean) {
+        value = "true";
       } else {
-        delete applied.permissions;
+        value = args[++i];
+        if (value === undefined) {
+          throw new Error(`--${flag} requires a value`);
+        }
       }
     }
-    if (packageData.repository && packageData.repository.url) {
-      applied.repository = packageData.repository.url;
+    if (conf.boolean) {
+      const bool = toBoolean(value);
+      if (bool === undefined) {
+        throw new Error(`Invalid boolean value for --${flag}: ${value}`);
+      }
+      parsed[key] = bool;
+    } else if (conf.convert) {
+      parsed[key] = conf.convert(/** @type {string} */ (value));
+    } else {
+      parsed[key] = value;
     }
-    if (packageData.name) {
-      applied.namespace = convertNamespace(packageData.name);
+  }
+  return parsed;
+}
+
+/**
+ * Read a JSON file, returning null when it does not exist.
+ *
+ * @param {string} filePath
+ * @returns {Promise<any|null>}
+ */
+async function readJson(filePath) {
+  let contents;
+  try {
+    contents = await readFile(filePath, "utf8");
+  } catch (err) {
+    if (/** @type {any} */ (err)?.code === "ENOENT") {
+      return null;
     }
-    return applied;
-  });
-};
+    throw err;
+  }
+  return JSON.parse(contents);
+}
 
-const loadSettings = (settings) =>
-  new Promise((resolve, reject) => {
-    const applied = clone(settings);
-    const settingsPath = path.resolve(applied.baseDir, "flowhub.json");
-    fs.readFile(settingsPath, "utf8", (err, contents) => {
-      if (err) {
-        // Not having a persisted settings file is OK
-        resolve(applied);
-        return;
-      }
-      try {
-        const savedSettings = JSON.parse(contents);
-        Object.keys(savedSettings).forEach((key) => {
-          if (typeof applied[key] !== "undefined") {
-            return;
-          }
-          if (config[key].skipSave) {
-            return;
-          }
-          applied[key] = savedSettings[key];
-        });
-        resolve(applied);
-      } catch (e) {
-        // However, if settings file is corrupted, this is a problem
-        reject(e);
-      }
-    });
-  });
+/**
+ * Deep-merge plain objects; arrays and primitives override.
+ *
+ * @param {any} target
+ * @param {any} source
+ * @returns {any}
+ */
+function merge(target, source) {
+  if (!source || typeof source !== "object" || Array.isArray(source)) {
+    return source;
+  }
+  const result = { ...target };
+  for (const [key, value] of Object.entries(source)) {
+    result[key] =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? merge(result[key], value)
+        : value;
+  }
+  return result;
+}
 
-const saveSettings = (settings) =>
-  new Promise((resolve, reject) => {
-    const saveables = {};
-    Object.keys(config).forEach((key) => {
-      if (typeof settings[key] === "undefined") {
-        return;
-      }
-      if (settings[key] === config[key].default) {
-        return;
-      }
-      if (config[key].skipSave) {
-        return;
-      }
-      saveables[key] = settings[key];
-    });
-    const settingsPath = path.resolve(settings.baseDir, "flowhub.json");
-    fs.writeFile(settingsPath, JSON.stringify(saveables, null, 2), (err) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(settings);
-    });
-  });
-
-// These settings may change for each execution so they're done after saving
-const autodetect = (settings) =>
-  new Promise((resolve) => {
-    const applied = clone(settings);
-    if (applied.host === "autodetect") {
-      applied.host = discoverIp();
+/**
+ * Apply environment variables to a settings layer.
+ *
+ * @param {Record<string, any>} settings
+ * @returns {Record<string, any>}
+ */
+function applyEnv(settings) {
+  const applied = { ...settings };
+  for (const [key, conf] of Object.entries(config)) {
+    if (!conf.env) {
+      continue;
     }
-    if (!applied.graph) {
-      const graph = fbpGraph.graph.createGraph("main");
-      graph.setProperties({
-        environment: {
-          type: "noflo-nodejs",
-        },
-      });
-      applied.graph = graph;
+    const value = process.env[conf.env];
+    if (typeof value !== "undefined" && value !== "") {
+      applied[key] = conf.convert ? conf.convert(value) : value;
     }
-    resolve(applied);
-  });
+  }
+  return applied;
+}
 
-// Layered config loading, each level overrides previous
-// - Defaults
-// - ~/.flowhub.json
-// - .flowhub.json
-// - env vars
-// - CLI arguments
-// - Generated, as needed
+/**
+ * Apply an options object (programmatic entry) to a settings layer.
+ *
+ * @param {Record<string, any>} settings
+ * @param {Record<string, any>} options
+ * @returns {Record<string, any>}
+ */
+function applyOptions(settings, options) {
+  const applied = { ...settings };
+  for (const key of Object.keys(config)) {
+    if (typeof options[key] === "undefined") {
+      continue;
+    }
+    applied[key] = options[key];
+  }
+  return applied;
+}
 
-exports.load = () =>
-  applyEnv()
-    .then((settings) => applyArguments(settings))
-    .then((settings) => loadSettings(settings))
-    .then((settings) => generateValues(settings))
-    .then((settings) => saveSettings(settings))
-    .then((settings) => autodetect(settings));
+/**
+ * Apply config defaults for keys that have one and are still unset.
+ *
+ * @param {Record<string, any>} settings
+ * @returns {Record<string, any>}
+ */
+function applyDefaults(settings) {
+  const applied = { ...settings };
+  for (const [key, conf] of Object.entries(config)) {
+    if (typeof conf.default === "undefined") {
+      continue;
+    }
+    if (typeof applied[key] !== "undefined") {
+      continue;
+    }
+    applied[key] = conf.default;
+  }
+  return applied;
+}
 
-exports.loadForLibrary = (options) =>
-  applyEnv()
-    .then((settings) => applyOptions(settings, options))
-    .then((settings) => applyDefaults(settings))
-    .then((settings) => generateValues(settings))
-    .then((settings) => autodetect(settings));
+/**
+ * Fill generated values (e.g. the node name from the project's package.json).
+ *
+ * @param {Record<string, any>} settings
+ * @returns {Promise<Record<string, any>>}
+ */
+async function generateValues(settings) {
+  const applied = { ...settings };
+  let packageData = null;
+  try {
+    packageData = await readJson(path.resolve(applied.baseDir, "package.json"));
+  } catch {
+    // A project without a readable package.json gets generic defaults
+  }
+  for (const [key, conf] of Object.entries(config)) {
+    if (typeof applied[key] !== "undefined" || !conf.generate) {
+      continue;
+    }
+    applied[key] = conf.generate(packageData);
+  }
+  // The Reticulum storage directory (identity key included) defaults under
+  // the project's .noflo/ directory
+  if (typeof applied.storage === "undefined") {
+    applied.storage = path.resolve(applied.baseDir, ".noflo", "rns");
+  }
+  return applied;
+}
+
+/**
+ * Persist non-default, non-transient values into the project-level settings
+ * file so a first run records its configuration.
+ *
+ * @param {Record<string, any>} settings
+ * @returns {Promise<Record<string, any>>}
+ */
+async function saveSettings(settings) {
+  /** @type {Record<string, any>} */
+  const saveables = {};
+  for (const [key, conf] of Object.entries(config)) {
+    if (typeof settings[key] === "undefined" || conf.skipSave) {
+      continue;
+    }
+    if (settings[key] === conf.default) {
+      continue;
+    }
+    saveables[key] = settings[key];
+  }
+  const settingsPath = path.resolve(settings.baseDir, ".noflo.json");
+  await writeFile(settingsPath, `${JSON.stringify(saveables, null, 2)}\n`);
+  return settings;
+}
+
+/**
+ * Validate the Dacar configuration keys.
+ *
+ * @param {Record<string, any>} settings
+ * @returns {void}
+ * @throws {Error} On a malformed Dacar object id or relation
+ */
+function validateDacar(settings) {
+  for (const key of ["dacarObject", "dacarAllRelation"]) {
+    const value = settings[key];
+    if (typeof value !== "undefined" && (typeof value !== "string" || !value)) {
+      throw new Error(`${key} must be a non-empty string`);
+    }
+  }
+}
+
+/**
+ * Layered settings load for the CLI: user-level file, project-level file,
+ * environment variables, CLI arguments, defaults, and generated values —
+ * each layer overriding the previous. The result persists back into the
+ * project-level file.
+ *
+ * @returns {Promise<Record<string, any>>}
+ */
+export async function load() {
+  const cli = parseArguments();
+  const env = applyEnv({});
+  const baseDir = path.resolve(cli.baseDir ?? env.baseDir ?? process.cwd());
+  /** @type {Record<string, any>} */
+  let settings = {};
+  for (const layer of [
+    await readJson(path.join(os.homedir(), ".noflo.json")),
+    await readJson(path.join(baseDir, ".noflo.json")),
+  ]) {
+    if (layer) {
+      settings = merge(settings, layer);
+    }
+  }
+  settings = applyEnv(settings);
+  settings = applyOptions(settings, cli);
+  settings = applyDefaults(settings);
+  settings = await generateValues(settings);
+  if (typeof settings.dacarStore === "undefined") {
+    settings.dacarStore = defaultDacarStore();
+  }
+  validateDacar(settings);
+  await saveSettings(settings);
+  return settings;
+}
+
+/**
+ * Layered settings load for the programmatic entry: env, the given options,
+ * defaults, and generated values. Nothing is persisted and no CLI arguments
+ * are parsed.
+ *
+ * @param {Record<string, any>} options
+ * @returns {Promise<Record<string, any>>}
+ */
+export async function loadForLibrary(options = {}) {
+  let settings = applyEnv({});
+  settings = applyOptions(settings, options);
+  settings = applyDefaults(settings);
+  settings = await generateValues(settings);
+  if (typeof settings.dacarStore === "undefined") {
+    settings.dacarStore = defaultDacarStore();
+  }
+  validateDacar(settings);
+  return settings;
+}
+
+/**
+ * The raw configuration schema, exported for tests and tooling.
+ *
+ * @type {Record<string, any>}
+ */
+export { config };

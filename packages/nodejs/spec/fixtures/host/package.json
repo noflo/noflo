@@ -1,0 +1,6 @@
+{
+  "name": "noflo-host-fixture",
+  "version": "1.0.0",
+  "description": "Fixture project for @noflo/nodejs specs",
+  "type": "module"
+}

@@ -15,6 +15,7 @@
 
 export { capabilitiesMask } from "@noflo/fbp-protocol";
 export { assembleRuntime, bindReticulum } from "./assemble.js";
+export { CAPABILITY_RELATIONS, DacarCapabilityPolicy } from "./dacar.js";
 export { ExecutionProtocol } from "./execution-protocol.js";
 export { GraphProtocol } from "./graph-protocol.js";
 export { LxmfTelemetry, TELEMETRY_FIELD } from "./lxmf.js";

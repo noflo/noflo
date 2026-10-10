@@ -19,8 +19,10 @@
   "module": "./src/index.js",
   "exports": {
     ".": "./src/index.js",
+    "./assemble": "./src/assemble.js",
     "./lxmf": "./src/lxmf.js",
-    "./dacar": "./src/dacar.js"
+    "./dacar": "./src/dacar.js",
+    "./registry-protocol": "./src/registry-protocol.js"
   },
   "files": [
     "src",

@@ -1,402 +1,111 @@
-const { exec, spawn } = require("child_process");
-const { expect } = require("chai");
-const { promisify } = require("util");
-const { v4: uuid } = require("uuid");
-const path = require("path");
-const fs = require("fs");
-const fbpHealthCheck = require("fbp-protocol-healthcheck");
-const fbpClient = require("fbp-client");
-const fbpGraph = require("fbp-graph");
+import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
+import {
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  symlinkSync,
+} from "node:fs";
+import { readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
+import { readTraceFile } from "@noflo/fbp-protocol";
 
-function healthCheck(address, callback) {
-  fbpHealthCheck(address).then(
-    () => callback(),
-    () => healthCheck(address, callback),
+const packageDir = fileURLToPath(new URL("../", import.meta.url));
+const fixtureDir = fileURLToPath(new URL("./fixtures/host/", import.meta.url));
+const bin = join(packageDir, "bin", "noflo-nodejs");
+
+/**
+ * Copy the fixture project into a fresh temp dir and point the CLI at it.
+ * The copy gets a `node_modules` link to the monorepo's installed `@noflo`
+ * packages, since ESM resolution cannot walk up from a temp dir.
+ * @returns {string}
+ */
+function makeProject() {
+  const dir = mkdtempSync(join(tmpdir(), "noflo-nodejs-cli-"));
+  cpSync(fixtureDir, dir, { recursive: true });
+  mkdirSync(join(dir, "node_modules"));
+  symlinkSync(
+    fileURLToPath(new URL("../../../node_modules/@noflo", import.meta.url)),
+    join(dir, "node_modules", "@noflo"),
+    "dir",
   );
+  return dir;
 }
 
-function waitFor(time) {
+/**
+ * @param {string[]} args
+ * @param {string} cwd
+ * @returns {Promise<{ code: number, stdout: string, stderr: string }>}
+ */
+function runCli(args, cwd) {
   return new Promise((resolve) => {
-    setTimeout(resolve, time);
+    execFile(
+      process.execPath,
+      [bin, ...args],
+      {
+        cwd,
+        timeout: 30000,
+        env: { ...process.env, RNS_HOST: "", RNS_PORT: "" },
+      },
+      (err, stdout, stderr) => {
+        const code = err && typeof err.code === "number" ? err.code : 0;
+        resolve({ code, stdout: String(stdout), stderr: String(stderr) });
+      },
+    );
   });
 }
 
 describe("noflo-nodejs CLI", () => {
-  const prog = path.resolve(__dirname, "../bin/noflo-nodejs");
-  const runtimeSecret = process.env.FBP_PROTOCOL_SECRET || "noflo-nodejs";
-  describe("--graph=helloworld.fbp --batch --trace", () => {
-    let stdout = "";
-    let stderr = "";
-    const graph = path.resolve(__dirname, "./fixtures/helloworld.fbp");
-    it("should execute graph and exit", (done) => {
-      const cmd = `${prog} --graph=${graph} --batch --trace --open=false`;
-      exec(cmd, (err, o, e) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        stdout = o;
-        stderr = e;
-        done();
-      });
-    }).timeout(10 * 1000);
-    it("should have written the expected output", () => {
-      expect(stdout).to.contain("hello world");
-    });
-    it("should not have written any errors", () => {
-      expect(stderr).to.eql("");
-    });
-    it("should have produced a flowtrace", () => {
-      expect(stdout.toLowerCase()).to.include("wrote flowtrace to:");
-    });
+  it("runs a graph in batch mode, persists settings, and writes a trace", async () => {
+    const project = makeProject();
+    const storage = join(project, "rns-storage");
+    try {
+      const { code, stdout, stderr } = await runCli(
+        [
+          `--graph=${join(project, "graphs", "main.fbp")}`,
+          "--batch",
+          "--trace",
+          `--base-dir=${project}`,
+          `--storage=${storage}`,
+        ],
+        project,
+      );
+      assert.equal(code, 0, `CLI should exit 0, stderr: ${stderr}`);
+      assert.match(stdout, /announced on the mesh/);
+
+      // The generated node name persisted into the project settings file
+      const saved = JSON.parse(
+        await readFile(join(project, ".noflo.json"), "utf8"),
+      );
+      assert.equal(saved.name, "noflo-host-fixture NoFlo runtime");
+
+      // The trace was written as a streamable trace file
+      const traces = readdirSync(join(project, ".flowtrace"));
+      assert.equal(traces.length, 1);
+      const bytes = await readFile(join(project, ".flowtrace", traces[0]));
+      const decoded = readTraceFile(new Uint8Array(bytes));
+      assert.deepEqual(
+        decoded.snapshot.graphDefinition.nodes.map((n) => n.component),
+        ["host-fixture/SendOnce", "host-fixture/Pass"],
+      );
+    } finally {
+      rmSync(project, { recursive: true, force: true });
+    }
   });
-  describe("--graph=missingcomponent.fbp", () => {
-    const graph = path.resolve(__dirname, "./fixtures/missingcomponent.fbp");
-    it("should fail with an error telling about the missing component", (done) => {
-      const cmd = `${prog} --graph=${graph} --open=false`;
-      exec(cmd, (err) => {
-        expect(err.message).to.contain("Component foo/Bar not available");
-        done();
-      });
-    }).timeout(10 * 1000);
-  });
-  describe("--graph=helloin.fbp", () => {
-    const baseDir = path.resolve(__dirname, "./fixtures/graph-as-component");
-    const graph = path.resolve(baseDir, "./graphs/helloin.fbp");
-    let runtimeProcess;
-    let runtimeClient;
-    before("start runtime", (done) => {
-      runtimeProcess = spawn(prog, [
-        "--host=localhost",
-        "--port=3470",
-        "--open=false",
-        `--secret=${runtimeSecret}`,
-        `--base-dir=${baseDir}`,
-        `--graph=${graph}`,
-      ]);
-      runtimeProcess.stdout.pipe(process.stdout);
-      runtimeProcess.stderr.pipe(process.stderr);
-      healthCheck("ws://localhost:3470", done);
-    });
-    after("stop runtime", (done) => {
-      if (!runtimeProcess) {
-        done();
-        return;
-      }
-      process.kill(runtimeProcess.pid);
-      done();
-    });
-    it("should be possible to connect", () =>
-      fbpClient({
-        address: "ws://localhost:3470",
-        protocol: "websocket",
-        secret: runtimeSecret,
-      }).then((c) => {
-        runtimeClient = c;
-        return c.connect();
-      }));
-    it("should have marked the graph as the main", () => {
-      expect(runtimeClient.definition.graph).to.equal(
-        "graph-as-component/HelloIn",
-      );
-    });
-    it("should be possible to get graph sources", () =>
-      runtimeClient.protocol.component.getsource({
-        name: "graph-as-component/HelloIn",
-      }));
-    it("should be possible to get the component list", () =>
-      runtimeClient.protocol.component.list().then((components) => {
-        const expectedNames = [
-          "graph-as-component/Repeat",
-          "graph-as-component/Output",
-          "Graph",
-          "graph-as-component/HelloIn",
-        ];
-        const names = components.map((c) => c.name);
-        names.sort();
-        expectedNames.sort();
-        expect(names).to.eql(expectedNames);
-      }));
-    it("should be possible to get status of the running network", () =>
-      runtimeClient.protocol.network.getstatus({
-        graph: "graph-as-component/HelloIn",
-      }));
-  });
-  describe("--auto-save", () => {
-    const baseDir = path.resolve(__dirname, "./fixtures/auto-save");
-    const readFile = promisify(fs.readFile);
-    const unlink = promisify(fs.unlink);
-    let runtimeProcess;
-    let runtimeClient;
-    before("start runtime", (done) => {
-      runtimeProcess = spawn(prog, [
-        "--host=localhost",
-        "--port=3471",
-        "--open=false",
-        `--base-dir=${baseDir}`,
-        `--secret=${runtimeSecret}`,
-        "--auto-save=true",
-      ]);
-      runtimeProcess.stdout.pipe(process.stdout);
-      runtimeProcess.stderr.pipe(process.stderr);
-      healthCheck("ws://localhost:3471", done);
-    });
-    after("stop runtime", (done) => {
-      if (!runtimeProcess) {
-        done();
-        return;
-      }
-      process.kill(runtimeProcess.pid);
-      done();
-    });
-    it("should be possible to connect", () =>
-      fbpClient({
-        address: "ws://localhost:3471",
-        protocol: "websocket",
-        secret: runtimeSecret,
-      }).then((c) => {
-        runtimeClient = c;
-        return c.connect();
-      }));
-    describe("setting component sources", () => {
-      const source = `const noflo = require('noflo');
-exports.getComponent = () => {
-  const c = new noflo.Component();
-  c.inPorts.add('in');
-  c.outPorts.add('out');
-  c.process((input, output) => {
-    output.sendDone(input.getData() + 2);
-  });
-  return c;
-};`;
-      const spec = `topic: auto-save/Plusser
-cases:
--
-  name: 'sending a boolean'
-  assertion: 'should repeat the same'
-  inputs:
-    in: true
-  expect:
-    out:
-     equals: true`;
-      const componentPath = path.resolve(
-        __dirname,
-        "./fixtures/auto-save/components/Plusser.js",
-      );
-      const specPath = path.resolve(
-        __dirname,
-        "./fixtures/auto-save/spec/Plusser.yaml",
-      );
-      let plusserFound = false;
-      after("clean up file", () => {
-        if (!plusserFound) {
-          return Promise.resolve();
-        }
-        return unlink(componentPath).then(() => unlink(specPath));
-      });
-      it("should be possible to send the source code to the runtime", () =>
-        runtimeClient.protocol.component
-          .source({
-            name: "Plusser",
-            library: "auto-save",
-            language: "javascript",
-            tests: spec,
-            code: source,
-          })
-          .then(
-            () =>
-              new Promise((resolve) => {
-                setTimeout(() => {
-                  resolve();
-                }, 200);
-              }),
-          ));
-      it("should have saved the source code to the fixture folder", () =>
-        readFile(componentPath, "utf-8").then((contents) => {
-          plusserFound = true;
-          expect(contents).to.eql(source);
-        }));
-      it("should have saved the fbp-spec file to the fixture folder", () =>
-        readFile(specPath, "utf-8").then((contents) => {
-          expect(contents).to.eql(spec);
-        }));
-    });
-    describe("setting component sources outside of project", () => {
-      let source;
-      const componentPath = path.resolve(
-        __dirname,
-        "./fixtures/auto-save/components/Output.js",
-      );
-      before("read source code", () =>
-        readFile(
-          path.resolve(
-            __dirname,
-            "../node_modules/noflo-core/components/Output.js",
-          ),
-          "utf-8",
-        ).then((contents) => {
-          source = contents;
-        }),
-      );
-      it("should be possible to send the source code to the runtime", () =>
-        runtimeClient.protocol.component.source({
-          name: "Output",
-          library: "core",
-          language: "javascript",
-          code: source,
-        }));
-      it("should not have saved the source code to the fixture folder", () =>
-        readFile(componentPath, "utf-8").then(
-          () => Promise.reject(new Error("core/Output was saved unexpectedly")),
-          () => Promise.resolve("No Output.js found, as expected"),
-        ));
-    });
-    describe("editing a graph without namespaced name", () => {
-      const graphName = "Test";
-      const graphPath = path.resolve(
-        __dirname,
-        `./fixtures/auto-save/graphs/${graphName}.json`,
-      );
-      const graphInstance = new fbpGraph.Graph(graphName);
-      let graphFound = false;
-      before("set up graph", () => {
-        graphInstance.setProperties({
-          ...graphInstance.properties,
-          library: "auto-save",
-          id: graphName,
-          main: false,
-          environment: {
-            type: "noflo-nodejs",
-          },
-        });
-        graphInstance.addNode("one", "auto-save/Plusser");
-        graphInstance.addNode("two", "core/Output");
-        graphInstance.addEdge("one", "out", "two", "in");
-        graphInstance.addInitial(1, "one", "in");
-      });
-      after("clean up file", () => {
-        if (!graphFound) {
-          return Promise.resolve();
-        }
-        return unlink(graphPath);
-      });
-      it("should be possible to send a graph to the runtime", () =>
-        runtimeClient.protocol.graph.send(graphInstance, false));
-      it("should have saved the graph JSON to the fixture folder", () =>
-        waitFor(200)
-          .then(() => readFile(graphPath, "utf-8"))
-          .then((contents) => {
-            graphFound = true;
-            const originalGraphJson = JSON.parse(
-              JSON.stringify(graphInstance.toJSON()),
-            );
-            delete originalGraphJson.properties.id;
-            const graphJson = JSON.parse(contents);
-            expect(graphJson).to.eql(originalGraphJson);
-          }));
-    });
-    describe("editing a graph with namespaced name", () => {
-      const graphName = "main";
-      const graphPath = path.resolve(
-        __dirname,
-        "./fixtures/auto-save/graphs/main.json",
-      );
-      const graphInstance = new fbpGraph.Graph(graphName);
-      let graphFound = false;
-      before("set up graph", () => {
-        graphInstance.setProperties({
-          ...graphInstance.properties,
-          library: "auto-save",
-          id: `default/${graphName}`,
-          main: true,
-          environment: {
-            type: "noflo-nodejs",
-          },
-        });
-        graphInstance.addNode("one", "auto-save/Plusser");
-        graphInstance.addNode("two", "core/Output");
-        graphInstance.addEdge("one", "out", "two", "in");
-        graphInstance.addInitial(1, "one", "in");
-      });
-      after("clean up file", () => {
-        if (!graphFound) {
-          return Promise.resolve();
-        }
-        return unlink(graphPath);
-      });
-      it("should be possible to send a graph to the runtime", () =>
-        runtimeClient.protocol.graph.send(
-          {
-            ...graphInstance,
-            name: "default/main",
-          },
-          true,
-        ));
-      it("should have saved the graph JSON to the fixture folder", () =>
-        waitFor(200)
-          .then(() => readFile(graphPath, "utf-8"))
-          .then((contents) => {
-            graphFound = true;
-            const originalGraphJson = JSON.parse(
-              JSON.stringify(graphInstance.toJSON()),
-            );
-            delete originalGraphJson.properties.id;
-            const graphJson = JSON.parse(contents);
-            expect(graphJson).to.eql(originalGraphJson);
-          }));
-    });
-  });
-  describe("--protocol=webrtc", () => {
-    const baseDir = path.resolve(__dirname, "./fixtures/graph-as-component");
-    const graph = path.resolve(baseDir, "./graphs/helloin.fbp");
-    let runtimeProcess;
-    let runtimeClient;
-    const runtimeId = uuid();
-    before("start runtime", (done) => {
-      runtimeProcess = spawn(prog, [
-        "--open=false",
-        `--id=${runtimeId}`,
-        "--protocol=webrtc",
-        `--secret=${runtimeSecret}`,
-        `--base-dir=${baseDir}`,
-        `--graph=${graph}`,
-      ]);
-      runtimeProcess.stdout.pipe(process.stdout);
-      runtimeProcess.stderr.pipe(process.stderr);
-      done();
-    });
-    it("should be possible to connect", function () {
-      this.timeout(6000);
-      return fbpClient(
-        {
-          address: runtimeId,
-          protocol: "webrtc",
-          secret: runtimeSecret,
-        },
-        {
-          connectionTimeout: 5000,
-        },
-      ).then((c) => {
-        runtimeClient = c;
-        return c.connect();
-      });
-    });
-    it("should have marked the graph as the main", () => {
-      expect(runtimeClient.definition.graph).to.equal(
-        "graph-as-component/HelloIn",
-      );
-    });
-    it("should be possible to get graph sources", () =>
-      runtimeClient.protocol.component.getsource({
-        name: "graph-as-component/HelloIn",
-      }));
-    after("stop runtime", (done) => {
-      if (!runtimeProcess) {
-        done();
-        return;
-      }
-      process.kill(runtimeProcess.pid);
-      done();
-    });
+
+  it("fails with a usage error when no graph is given", async () => {
+    const project = makeProject();
+    try {
+      const { code, stderr } = await runCli([`--base-dir=${project}`], project);
+      assert.equal(code, 1);
+      assert.match(stderr, /No graph to run/);
+    } finally {
+      rmSync(project, { recursive: true, force: true });
+    }
   });
 });
