@@ -10,13 +10,8 @@ import { nativeGraph } from "./utils/nativeGraph.js";
 
 describe("NoFlo Subgraph component", () => {
   let c = null;
-  let g = null;
   beforeEach(() => {
-    // The subgraph wrapper is core machinery; directly-instantiated
-    // instances keep the deprecated runtime `graph` inport
     c = new Subgraph();
-    g = noflo.internalSocket.createSocket();
-    c.inPorts.graph.attach(g);
   });
 
   const Split = () => {
@@ -53,8 +48,8 @@ describe("NoFlo Subgraph component", () => {
     it("should not contain a network", () => {
       assert.strictEqual(c.network, null);
     });
-    it("should only have the graph inport", () => {
-      assert.deepEqual(Object.keys(c.inPorts.ports), ["graph"]);
+    it("should have no inports", () => {
+      assert.deepEqual(Object.keys(c.inPorts.ports), []);
       assert.deepEqual(Object.keys(c.outPorts.ports), []);
     });
   });
@@ -72,7 +67,7 @@ describe("NoFlo Subgraph component", () => {
         assert.notEqual(c.network, null);
         c.start().catch(done);
       });
-      g.send({
+      c.setGraph({
         processes: {
           Split: {
             component: "Split",
@@ -85,7 +80,7 @@ describe("NoFlo Subgraph component", () => {
     });
     it("should expose available ports", (_t, done) => {
       listenOnce(c, "ready", () => {
-        assert.deepEqual(Object.keys(c.inPorts.ports), ["graph"]);
+        assert.deepEqual(Object.keys(c.inPorts.ports), []);
         assert.deepEqual(Object.keys(c.outPorts.ports), []);
         done();
       });
@@ -96,7 +91,7 @@ describe("NoFlo Subgraph component", () => {
         c.network.loader.components.Merge = SubgraphMerge;
         c.start().catch(done);
       });
-      g.send({
+      c.setGraph({
         processes: {
           Split: {
             component: "Split",
@@ -133,7 +128,7 @@ describe("NoFlo Subgraph component", () => {
         assert.strictEqual(c.description, "Hello, World!");
         c.start().catch(done);
       });
-      g.send({
+      c.setGraph({
         properties: {
           description: "Hello, World!",
         },
@@ -146,7 +141,7 @@ describe("NoFlo Subgraph component", () => {
     });
     it("should expose only exported ports when they exist", (_t, done) => {
       listenOnce(c, "ready", () => {
-        assert.deepEqual(Object.keys(c.inPorts.ports), ["graph"]);
+        assert.deepEqual(Object.keys(c.inPorts.ports), []);
         assert.deepEqual(Object.keys(c.outPorts.ports), ["out"]);
         done();
       });
@@ -157,7 +152,7 @@ describe("NoFlo Subgraph component", () => {
         c.network.loader.components.Merge = SubgraphMerge;
         c.start().catch(done);
       });
-      g.send({
+      c.setGraph({
         outports: {
           out: {
             process: "Split",
@@ -205,7 +200,7 @@ describe("NoFlo Subgraph component", () => {
         c.network.loader.components.Merge = SubgraphMerge;
         c.start().catch(done);
       });
-      g.send({
+      c.setGraph({
         inports: {
           in: {
             process: "Merge",
@@ -264,12 +259,12 @@ describe("NoFlo Subgraph component", () => {
         c.network.loader.components.Merge = SubgraphMerge;
         c.start().catch(done);
       });
-      g.send(gr);
+      c.setGraph(gr);
       assert.strictEqual(c.ready, false);
     });
     it("should expose available ports", (_t, done) => {
       listenOnce(c, "ready", () => {
-        assert.deepEqual(Object.keys(c.inPorts.ports), ["graph", "in"]);
+        assert.deepEqual(Object.keys(c.inPorts.ports), ["in"]);
         assert.deepEqual(Object.keys(c.outPorts.ports), ["out"]);
         done();
       });
@@ -280,7 +275,7 @@ describe("NoFlo Subgraph component", () => {
         c.network.loader.components.Merge = SubgraphMerge;
         c.start().catch(done);
       });
-      g.send(gr);
+      c.setGraph(gr);
     });
     it("should be able to run the graph", (_t, done) => {
       let doned = false;
@@ -306,7 +301,7 @@ describe("NoFlo Subgraph component", () => {
         c.network.loader.components.Merge = SubgraphMerge;
         c.start().catch(done);
       });
-      g.send(gr);
+      c.setGraph(gr);
     });
   });
   describe("with an FBP JSON fixture with INPORTs and OUTPORTs", () => {
@@ -329,12 +324,12 @@ describe("NoFlo Subgraph component", () => {
         c.network.loader.components.Merge = SubgraphMerge;
         c.start().catch(done);
       });
-      g.send(fbpJson);
+      c.setGraph(fbpJson);
       assert.strictEqual(c.ready, false);
     });
     it("should expose available ports", (_t, done) => {
       listenOnce(c, "ready", () => {
-        assert.deepEqual(Object.keys(c.inPorts.ports), ["graph", "in"]);
+        assert.deepEqual(Object.keys(c.inPorts.ports), ["in"]);
         assert.deepEqual(Object.keys(c.outPorts.ports), ["out"]);
         done();
       });
@@ -345,7 +340,7 @@ describe("NoFlo Subgraph component", () => {
         c.network.loader.components.Merge = SubgraphMerge;
         c.start().catch(done);
       });
-      g.send(fbpJson);
+      c.setGraph(fbpJson);
     });
     it("should be able to run the graph", (_t, done) => {
       listenOnce(c, "ready", () => {
@@ -373,7 +368,7 @@ describe("NoFlo Subgraph component", () => {
         c.network.loader.components.Merge = SubgraphMerge;
         c.start().catch(done);
       });
-      g.send(fbpJson);
+      c.setGraph(fbpJson);
     });
   });
   describe("when a subgraph is used as a component", () => {

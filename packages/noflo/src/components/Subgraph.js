@@ -14,7 +14,7 @@
 import { GraphModel, importFbpJson } from "@noflo/graph";
 import { Component } from "../lib/Component.js";
 import { Network } from "../lib/Network.js";
-import { deprecated, isBrowser } from "../lib/Platform.js";
+import { isBrowser } from "../lib/Platform.js";
 import { InPorts, OutPorts } from "../lib/Ports.js";
 
 // The Subgraph component is used to wrap NoFlo Networks into components
@@ -37,27 +37,8 @@ export class Subgraph extends Component {
     /** @type {Promise<void>|null} */
     this.startingPromise = null;
 
-    this.inPorts = new InPorts({
-      graph: {
-        datatype: "all",
-        description:
-          "NoFlo graph definition to be used with the subgraph component",
-        required: true,
-      },
-    });
+    this.inPorts = new InPorts({});
     this.outPorts = new OutPorts();
-
-    this.inPorts.ports.graph.addEventListener("ip", (event) => {
-      const packet = event.detail;
-      if (packet.type !== "data") {
-        return;
-      }
-      deprecated(
-        "Sending graph packets into a subgraph at runtime is deprecated; register pre-parsed graph models with the component loader or construct networks directly",
-      );
-      // TODO: Port this part to Process API and use output.error method instead
-      this.setGraph(packet.data).catch(this.error);
-    });
   }
 
   /**

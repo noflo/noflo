@@ -378,7 +378,6 @@ export class ComponentLoader {
       /** @type {import("./ComponentLoader.js").ComponentLoader} */ (
         /** @type {unknown} */ (this)
       );
-    subgraph.inPorts.remove("graph");
     this.setIcon(name, subgraph);
     return subgraph.setGraph(component).then(() => subgraph);
   }
