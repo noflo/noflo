@@ -18,9 +18,7 @@
  */
 /* @ts-self-types="./graph-protocol.d.ts" */
 
-import * as protocol from "@noflo/fbp-protocol";
 import {
-  CMD_COMP_SOURCE,
   CMD_CRDT_SYNC_REQ,
   CMD_CRDT_UPDATE,
   CMD_PLANE_DROP,
@@ -285,16 +283,6 @@ export class GraphProtocol {
         new globalThis.CustomEvent("planedrop", {
           detail: { planeId: decoded.planeId },
         }),
-      );
-    });
-
-    server.registerHandler(CMD_COMP_SOURCE, (decoded, context) => {
-      // Source read: for ephemeral planes, return nil (the runtime holds
-      // no source — the client built them from ops). For the main plane,
-      // the resourceProvider or the catalog would serve it.
-      server.send(
-        protocol.encodeCompSourceRes(decoded.componentName, null),
-        context,
       );
     });
 
