@@ -22,8 +22,8 @@
 
 import { DacarCapabilityPolicy } from "@noflo/runtime/dacar";
 import { Engine } from "@reticulum/dacar";
+import { DacarFileAdapter } from "@reticulum/dacar/cli/fileStore";
 import { DacarStore } from "@reticulum/dacar/cli/store";
-import { FileStorageAdapter } from "@reticulum/node";
 
 /**
  * Load the Dacar policy from a node store.
@@ -45,7 +45,9 @@ export async function loadDacarPolicy({
   objectId = undefined,
   allRelation = undefined,
 }) {
-  const store = new DacarStore(new FileStorageAdapter(storePath));
+  // DacarFileAdapter reads and writes the Python-parity loose-file layout
+  // (config INI, state.msgpack, ...) — the same store the dacar CLIs use.
+  const store = new DacarStore(new DacarFileAdapter(storePath));
   /** @type {import("@reticulum/dacar").Config} */
   let config;
   try {

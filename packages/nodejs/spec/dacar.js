@@ -3,8 +3,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { DacarFileAdapter } from "@reticulum/dacar/cli/fileStore";
 import { DacarStore } from "@reticulum/dacar/cli/store";
-import { FileStorageAdapter } from "@reticulum/node";
 import { loadDacarPolicy } from "../src/dacar.js";
 
 describe("dacar policy", () => {
@@ -26,8 +26,9 @@ describe("dacar policy", () => {
   it("builds a policy from a store the dacar CLI maintains", async () => {
     const storeDir = mkdtempSync(join(tmpdir(), "noflo-dacar-store-"));
     try {
-      // `dacar init` in CLI terms: bootstrap config + empty state
-      await DacarStore.init(new FileStorageAdapter(storeDir), {});
+      // `dacar init` in CLI terms: bootstrap config + empty state, in the
+      // Python-parity loose-file layout the CLIs read and write
+      await DacarStore.init(new DacarFileAdapter(storeDir), {});
       const loaded = await loadDacarPolicy({
         storePath: storeDir,
         objectId: "noflo.runtime/test",

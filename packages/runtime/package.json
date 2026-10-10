@@ -44,11 +44,11 @@
     "@noflo/fbp-protocol": "^2.0.0-alpha.3",
     "@noflo/graph": "^2.0.0-alpha.3",
     "@noflo/noflo": "^2.0.0-alpha.3",
-    "@reticulum/core": "^0.9.7",
-    "@reticulum/dacar": "^1.1.0",
-    "@reticulum/lxmf": "^0.9.7"
+    "@reticulum/core": "^0.9.8",
+    "@reticulum/dacar": "^1.6.1",
+    "@reticulum/lxmf": "^0.9.8"
   },
   "devDependencies": {
-    "@reticulum/node": "^0.9.7"
+    "@reticulum/node": "^0.9.8"
   }
 }

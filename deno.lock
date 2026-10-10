@@ -3,7 +3,6 @@
   "specifiers": {
     "npm:@types/node@24": "24.19.1",
     "npm:fbp@^1.8.0": "1.8.0",
-    "npm:flowtrace@~0.1.8": "0.1.10",
     "npm:get-function-params@^2.0.6": "2.0.7",
     "npm:typescript@^4.0.2": "4.9.5"
   },
@@ -543,7 +542,7 @@
       "packages/as-component": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/noflo@^2.0.0-alpha.2",
+            "npm:@noflo/noflo@^2.0.0-alpha.3",
             "npm:get-function-params@^2.0.6"
           ]
         }
@@ -551,9 +550,9 @@
       "packages/assembly": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/fbp@^2.0.0-alpha.2",
-            "npm:@noflo/loader-node@^2.0.0-alpha.2",
-            "npm:@noflo/noflo@^2.0.0-alpha.2",
+            "npm:@noflo/fbp@^2.0.0-alpha.3",
+            "npm:@noflo/loader-node@^2.0.0-alpha.3",
+            "npm:@noflo/noflo@^2.0.0-alpha.3",
             "npm:@types/node@24",
             "npm:typescript@5"
           ]
@@ -570,15 +569,16 @@
       "packages/fbp-protocol": {
         "packageJson": {
           "dependencies": [
-            "npm:@reticulum/core@~0.9.7"
+            "npm:@reticulum/core@~0.9.8"
           ]
         }
       },
       "packages/fbp-spec-runner": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/loader-node@^2.0.0-alpha.2",
-            "npm:@noflo/noflo@^2.0.0-alpha.2",
+            "npm:@noflo/fbp@^2.0.0-alpha.3",
+            "npm:@noflo/loader-node@^2.0.0-alpha.3",
+            "npm:@noflo/noflo@^2.0.0-alpha.3",
             "npm:@types/node@24"
           ]
         }
@@ -586,18 +586,34 @@
       "packages/loader-node": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/fbp@^2.0.0-alpha.2",
-            "npm:@noflo/graph@^2.0.0-alpha.2",
-            "npm:@noflo/noflo@^2.0.0-alpha.2"
+            "npm:@noflo/fbp@^2.0.0-alpha.3",
+            "npm:@noflo/graph@^2.0.0-alpha.3",
+            "npm:@noflo/noflo@^2.0.0-alpha.3"
+          ]
+        }
+      },
+      "packages/nodejs": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@noflo/core@^2.0.0-alpha.1",
+            "npm:@noflo/fbp-protocol@^2.0.0-alpha.3",
+            "npm:@noflo/graph@^2.0.0-alpha.3",
+            "npm:@noflo/loader-node@^2.0.0-alpha.1",
+            "npm:@noflo/noflo@^2.0.0-alpha.3",
+            "npm:@noflo/runtime@^2.0.0-alpha.3",
+            "npm:@reticulum/core@~0.9.8",
+            "npm:@reticulum/dacar@^1.6.0",
+            "npm:@reticulum/node@~0.9.8",
+            "npm:@types/node@24",
+            "npm:typescript@5"
           ]
         }
       },
       "packages/noflo": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/graph@^2.0.0-alpha.2",
+            "npm:@noflo/graph@^2.0.0-alpha.3",
             "npm:@types/node@24",
-            "npm:flowtrace@~0.1.8",
             "npm:typescript@^4.0.2"
           ]
         }
@@ -605,13 +621,13 @@
       "packages/runtime": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/fbp-protocol@^2.0.0-alpha.1",
-            "npm:@noflo/graph@^2.0.0-alpha.1",
-            "npm:@noflo/noflo@^2.0.0-alpha.1",
-            "npm:@reticulum/core@~0.9.7",
-            "npm:@reticulum/dacar@^1.1.0",
-            "npm:@reticulum/lxmf@~0.9.7",
-            "npm:@reticulum/node@~0.9.7"
+            "npm:@noflo/fbp-protocol@^2.0.0-alpha.3",
+            "npm:@noflo/graph@^2.0.0-alpha.3",
+            "npm:@noflo/noflo@^2.0.0-alpha.3",
+            "npm:@reticulum/core@~0.9.8",
+            "npm:@reticulum/dacar@^1.6.0",
+            "npm:@reticulum/lxmf@~0.9.8",
+            "npm:@reticulum/node@~0.9.8"
           ]
         }
       }
