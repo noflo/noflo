@@ -142,9 +142,10 @@ export function derivePlatforms(modulePath) {
   const source = fs.readFileSync(modulePath, "utf8");
   const imports = [];
   const importPattern = /import\s+(?:[\w*{},\s]+from\s+)?["']([^"']+)["']/g;
-  let match;
-  while ((match = importPattern.exec(source)) !== null) {
+  let match = importPattern.exec(source);
+  while (match) {
     imports.push(match[1]);
+    match = importPattern.exec(source);
   }
   let level = 1;
   for (const specifier of imports) {
@@ -279,12 +280,11 @@ export async function createLoader(baseDir) {
  * Statically derives a graph component's signature from its exported
  * ports, by resolving the internal components through the loader and
  * reading the exported port metadata from the wired subgraph.
- * @param {string} baseDir
  * @param {import("@noflo/graph").GraphModel} graph
  * @param {import("@noflo/noflo").ComponentLoader} loader
  * @returns {Promise<{ signature: ManifestSignature, description: string|null, icon: string|null }>}
  */
-export async function deriveGraphSignature(baseDir, graph, loader) {
+export async function deriveGraphSignature(graph, loader) {
   const manifestLoader = loader;
   manifestLoader.registerGraph("__manifest", "__graph", graph);
   const instance = await manifestLoader.load("__manifest/__graph");
@@ -373,7 +373,6 @@ export async function generateManifest(baseDir, options = {}) {
       const graph =
         graphJson instanceof GraphModel ? graphJson : importFbpJson(graphJson);
       const { signature, description, icon } = await deriveGraphSignature(
-        baseDir,
         graph,
         loader,
       );
