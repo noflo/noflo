@@ -165,20 +165,12 @@ export class GraphProtocol {
       if (decoded.planeId !== null) {
         // Materialize and apply on the ephemeral plane.
         const plane = this.#plane(decoded.planeId);
-        const applied = this.#applyToPlane(plane, decoded);
-        if (applied) {
-          server.broadcast(
-            encodeCrdtUpdate({
-              planeId: decoded.planeId,
-              clientId: decoded.clientId,
-              logicalClock: decoded.logicalClock,
-              opType: decoded.opType,
-              entityId: decoded.entityId,
-              payload: decoded.payload,
-            }),
-            context,
-          );
-        } else {
+        let applied;
+        try {
+          applied = this.#applyToPlane(plane, decoded);
+        } catch {
+          // Actual rejection: the model refused the op. The client must
+          // revert its mirror (work document #4 update #34).
           server.send(
             encodeOpRejected({
               rejectedCmd: CMD_CRDT_UPDATE,
@@ -192,14 +184,51 @@ export class GraphProtocol {
             }),
             context,
           );
+          return;
         }
+        if (applied) {
+          server.broadcast(
+            encodeCrdtUpdate({
+              planeId: decoded.planeId,
+              clientId: decoded.clientId,
+              logicalClock: decoded.logicalClock,
+              opType: decoded.opType,
+              entityId: decoded.entityId,
+              payload: decoded.payload,
+            }),
+            context,
+          );
+        }
+        // else: converged no-op — silent is correct (update #34: "a no-op
+        // that still counts as converged" must NOT be rejected).
         return;
       }
       this.#learnClocks({ [decoded.clientId]: decoded.logicalClock });
-      const applied =
-        /** @type {boolean} */
-        (this.#withSuppression(() => this.applyOp(decoded)));
+      let applied;
+      try {
+        applied =
+          /** @type {boolean} */
+          (this.#withSuppression(() => this.applyOp(decoded)));
+      } catch {
+        // Actual rejection: the model refused the op. The client must
+        // revert its mirror (work document #4 update #34).
+        server.send(
+          encodeOpRejected({
+            rejectedCmd: CMD_CRDT_UPDATE,
+            planeId: null,
+            detail: {
+              clientId: decoded.clientId,
+              logicalClock: decoded.logicalClock,
+              entityId: decoded.entityId,
+              reason: "the graph model rejected the operation",
+            },
+          }),
+          context,
+        );
+        return;
+      }
       if (!applied) {
+        // Converged no-op (metadata on unknown entity) — silent is correct.
         return;
       }
       server.broadcast(
@@ -473,11 +502,8 @@ export class GraphProtocol {
    * @returns {boolean}
    */
   #applyToPlane(plane, decoded) {
-    try {
-      return this.applyOp(decoded, plane.model);
-    } catch {
-      return false;
-    }
+    // Throws for actual rejections; returns true/false for applied/converged no-op.
+    return this.applyOp(decoded, plane.model);
   }
 
   #learnClocks(clocks) {

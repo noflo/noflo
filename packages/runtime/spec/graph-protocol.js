@@ -18,6 +18,7 @@ import {
   decodeCrdtStaleEpoch,
   decodeCrdtUpdate,
   decodeCrdtUpToDate,
+  decodeOpRejected,
   encodeCrdtSyncReq,
   encodeCrdtUpdate,
   OP_TYPE,
@@ -319,13 +320,17 @@ describe("graph protocol: inbound operations", () => {
     assert.equal(graph.node("payload-id"), undefined);
   });
 
-  it("surfaces model rejections as protocol errors, not crashes", async () => {
+  it("emits 0x17 CMD_OP_REJECTED when the model rejects an op", async () => {
     const { server } = await wiredServer();
     /** @type {any[]} */
-    const errors = [];
-    server.addEventListener("error", (event) => errors.push(event.detail));
-    // Duplicate node id: the model rejects, the frame is malformed in
-    // context.
+    const sent = [];
+    const origSend = server.send.bind(server);
+    server.send = (bytes, context) => {
+      sent.push(bytes);
+      origSend(bytes, context);
+    };
+    // Duplicate node id: the model rejects, the runtime emits 0x17 so the
+    // client can revert its mirror (work document #4 update #34).
     server.handleFrame(
       encodeCrdtUpdate({
         planeId: null,
@@ -337,8 +342,11 @@ describe("graph protocol: inbound operations", () => {
       }),
       "link-1",
     );
-    assert.equal(errors.length, 1);
-    assert.match(errors[0].error.message, /graph rejected operation/);
+    assert.equal(sent.length, 1);
+    const decoded = decodeOpRejected(sent[0]);
+    assert.equal(decoded.rejectedCmd, CMD_CRDT_UPDATE);
+    assert.equal(decoded.planeId, null);
+    assert.match(decoded.detail.reason, /rejected the operation/);
   });
 });
 
