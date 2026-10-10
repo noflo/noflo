@@ -5,8 +5,8 @@
 //     NoFlo may be freely distributed under the MIT license
 /* @ts-self-types="./Ports.d.ts" */
 
+import { EventBase } from "./EventBase.js";
 import InPort from "./InPort.js";
-import { LegacyEventBase } from "./LegacyEvents.js";
 import OutPort from "./OutPort.js";
 
 /**
@@ -17,7 +17,7 @@ import OutPort from "./OutPort.js";
 //
 // Ports collection classes for NoFlo components. These are
 // used to hold a set of input or output ports of a component.
-class Ports extends LegacyEventBase {
+class Ports extends EventBase {
   /**
    * Create a ports collection. Port definitions are given as a map of port
    * name to port instance or port options; entries are added in order.

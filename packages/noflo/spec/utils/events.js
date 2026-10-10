@@ -5,7 +5,7 @@ import IP from "../../src/lib/IP.js";
  * Spec helper bridging the legacy EventEmitter-style listener contract
  * (handler receives the payload) onto the native EventTarget API, which
  * delivers a `DetailEvent`. Test-only sugar; the library surface is
- * addEventListener-only since the LegacyEventMixin removal (work
+ * addEventListener-only since the EventEmitter-compat mixin removal (work
  * document #8).
  */
 

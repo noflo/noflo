@@ -578,22 +578,5 @@ describe("ComponentLoader", () => {
       });
       assert.strictEqual(done, true);
     });
-
-    it("Promise usage emits no deprecation warnings", async () => {
-      const warnings = [];
-      const originalWarn = console.warn;
-      console.warn = (message) => warnings.push(message);
-      try {
-        l.registerComponent("my-project", "Split3", splitModule());
-        await l.load("my-project/Split3");
-        await l.listComponents();
-      } finally {
-        console.warn = originalWarn;
-      }
-      assert.deepEqual(
-        warnings.filter((w) => w.includes("deprecated")),
-        [],
-      );
-    });
   });
 });

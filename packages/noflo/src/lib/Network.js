@@ -14,9 +14,9 @@
 import { exportFbpJson, sameRef } from "@noflo/graph";
 import { ComponentLoader } from "./ComponentLoader.js";
 import { resolveHighWaterMark } from "./Edge.js";
+import { EventBase } from "./EventBase.js";
 import * as internalSocket from "./InternalSocket.js";
 import IP from "./IP.js";
-import { LegacyEventBase } from "./LegacyEvents.js";
 import { makeAsync } from "./Platform.js";
 import { debounce } from "./Utils.js";
 
@@ -115,7 +115,7 @@ function connectPort(socket, process, port, index, inbound) {
  * Initial Information Packets, and mirror live-edit mutations back into the
  * graph model.
  */
-export class Network extends LegacyEventBase {
+export class Network extends EventBase {
   /**
    * All NoFlo networks are instantiated with a graph. Upon instantiation
    * they will load all the needed components, instantiate them, and
@@ -318,8 +318,7 @@ export class Network extends LegacyEventBase {
   /**
    * Emit a network lifecycle event, buffering events emitted before the
    * network has started and flushing the buffer on start. Errors, icons, and
-   * network end are emitted immediately; `ip` events also re-emit their
-   * legacy per-type variants.
+   * network end are emitted immediately.
    *
    * @protected
    * @param {string} event

@@ -3,7 +3,7 @@
 //     (c) 2014-2017 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
 /* @ts-self-types="./BasePort.d.ts" */
-import { LegacyEventBase } from "./LegacyEvents.js";
+import { EventBase } from "./EventBase.js";
 
 // ## NoFlo Port Base class
 //
@@ -84,7 +84,7 @@ function handleOptions(options) {
   });
 }
 
-export default class BasePort extends LegacyEventBase {
+export default class BasePort extends EventBase {
   /**
    * @param {BaseOptions} options
    */

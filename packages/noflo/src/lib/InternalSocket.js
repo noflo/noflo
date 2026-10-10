@@ -6,8 +6,8 @@
 /* @ts-self-types="./InternalSocket.d.ts" */
 
 import { Edge, resolveHighWaterMark } from "./Edge.js";
+import { EventBase } from "./EventBase.js";
 import IP from "./IP.js";
-import { LegacyEventBase } from "./LegacyEvents.js";
 import { makeAsync } from "./Platform.js";
 
 /**
@@ -24,7 +24,7 @@ import { makeAsync } from "./Platform.js";
 // packets sent from processes' outports, and emitting corresponding
 // events so that the packets can be caught to the inport of the
 // connected process.
-export class InternalSocket extends LegacyEventBase {
+export class InternalSocket extends EventBase {
   /**
    * @private
    */
