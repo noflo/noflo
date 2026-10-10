@@ -1,0 +1,8 @@
+{
+  // This monorepo's CI resolves its own lockstep releases (the @noflo and
+  // @reticulum packages) moments after they publish, and the committed
+  // deno.lock pins exact versions with integrity hashes — so the default
+  // 24-hour minimum dependency age only ever blocks our own first-party
+  // packages. Disable it here; third-party risk is covered by the lockfile.
+  "minimumDependencyAge": 0
+}
