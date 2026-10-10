@@ -26,9 +26,11 @@
  *     7. commit/tag  — one "release v<version>" commit + tag v<version>
  *     8. pack        — regenerate declarations (gitignored, adjacent .d.ts)
  *                      then npm pack --workspaces --pack-destination dist
- *     9. push        — git push origin HEAD --tags, pushing the current
- *                      branch (rngit refuses to create a release for a tag
- *                      that isn't in its git source repo yet)
+ *     9. push        — git push origin HEAD:refs/heads/<branch> --tags,
+ *                      pushing the current branch under an explicit refspec
+ *                      (rngit refuses to create a release for a tag that
+ *                      isn't in its git source repo yet, and rejects bare
+ *                      `HEAD` refspecs)
  *    10. publish     — copies the compiled release notes to the clipboard and
  *                      runs `rngit release <repo> create v<ver>:dist` (which
  *                      opens an editor — just paste). --no-publish defers it.
@@ -175,6 +177,18 @@ function tagExists(root, tag) {
 export function gitOriginUrl(root) {
   const out = tryRun("git remote get-url origin", { cwd: root });
   return out === null ? null : out.trim();
+}
+
+/**
+ * The name of the currently checked-out branch, or null when HEAD is
+ * detached (no branch to push to by name).
+ * @param {string} root
+ * @returns {string | null}
+ */
+export function currentBranch(root) {
+  const out = tryRun("git rev-parse --abbrev-ref HEAD", { cwd: root });
+  const branch = out?.trim();
+  return branch && branch !== "HEAD" ? branch : null;
 }
 
 /**
@@ -494,10 +508,21 @@ export function runRelease({
   // 9. push the commit + tag to the rngit git source (origin). rngit refuses
   //    to create a release for a tag that isn't in the repo yet, so this must
   //    happen *before* `rngit release create`.
+  // Push the current branch whatever it is called (master, main, a release
+  // branch) — a hardcoded branch name breaks on every repo that differs. The
+  // refspec must be explicit (`HEAD:refs/heads/<branch>`): the rngit git
+  // source rejects source-only refspecs like bare `HEAD` with
+  // "Missing ref specification".
+  const branch = currentBranch(root);
+  if (!branch) {
+    throw new Error(
+      "HEAD is detached — check out the branch to release before pushing",
+    );
+  }
   if (dryRun || noPublish) {
     console.log("── Publish (run manually) ──");
     console.log(
-      `  git push origin HEAD --tags     # push tag to rngit git source first`,
+      `  git push origin HEAD:refs/heads/${branch} --tags     # push tag to rngit git source first`,
     );
     console.log(
       `  rngit release ${repo} create ${tag}:dist   # canonical (mesh)`,
@@ -511,7 +536,10 @@ export function runRelease({
   console.log("Pushing release commit + tag to origin (rngit git source)...");
   // Push the current branch whatever it is called (master, main, a release
   // branch) — a hardcoded branch name breaks on every repo that differs.
-  run("git push origin HEAD --tags", { cwd: root, stdio: "inherit" });
+  run(`git push origin HEAD:refs/heads/${branch} --tags`, {
+    cwd: root,
+    stdio: "inherit",
+  });
   console.log();
 
   const copied = copyToClipboard(cl.compiledSection);

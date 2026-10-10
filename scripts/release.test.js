@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import {
   applyVersionBump,
+  currentBranch,
   discoverInternalPackages,
   gitOriginUrl,
   isNpmNotFound,
@@ -194,6 +195,33 @@ test("gitOriginUrl returns null when there is no origin remote", () => {
   try {
     execSync("git init -q", { cwd: root });
     assert.equal(gitOriginUrl(root), null);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("currentBranch reads the checked-out branch name", () => {
+  const root = mkdtempSync(join(tmpdir(), "noflo-branch-"));
+  try {
+    execSync("git init -q -b main", { cwd: root });
+    writeFileSync(join(root, "seed.txt"), "seed");
+    execSync("git add seed.txt && git commit -q -m seed", { cwd: root });
+    assert.equal(currentBranch(root), "main");
+    execSync("git checkout -q -b release-branch", { cwd: root });
+    assert.equal(currentBranch(root), "release-branch");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("currentBranch returns null on a detached HEAD", () => {
+  const root = mkdtempSync(join(tmpdir(), "noflo-detached-"));
+  try {
+    execSync("git init -q -b main", { cwd: root });
+    writeFileSync(join(root, "seed.txt"), "seed");
+    execSync("git add seed.txt && git commit -q -m seed", { cwd: root });
+    execSync("git checkout -q --detach HEAD", { cwd: root });
+    assert.equal(currentBranch(root), null);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
