@@ -1,5 +1,5 @@
 export type AnyInput = any;
-export type SandboxCallback = (...args: any[]) => any;
+export type SandboxCallback = ((...args: any[]) => any);
 export type SandboxPropertyValue = any | SandboxCallback;
 export type ExpressionArray = (string | number)[];
 export type ValueType = "scalar" | "boolean" | "string" | "undefined" | "function" | "integer" | "number" | "nonFinite" | "object" | "array" | "other" | "null";
@@ -27,7 +27,7 @@ export type ScriptConstructor = new (expr: string) => {
 };
 export type EvalClass = ScriptConstructor;
 export type ResultType = "value" | "path" | "pointer" | "parent" | "parentProperty" | "all";
-export type EvalValue = EvalCallback | EvalClass | 'safe' | 'native' | boolean;
+export type EvalValue = EvalCallback | EvalClass | "safe" | "native" | boolean;
 export type PathType = string | string[];
 export type SafeScriptType = {
     Script: ScriptConstructor;
@@ -36,13 +36,13 @@ export type ScriptType = {
     Script: ScriptConstructor;
 };
 export type SandboxType = {
-    [key: string]: any;
     _$_path?: string;
     _$_parentProperty?: ParentProperty;
     _$_parent?: ParentValue;
     _$_property?: string | number;
     _$_root?: AnyInput;
     _$_v?: unknown;
+    [key: string]: SandboxPropertyValue;
 };
 export type JSONPathOptions = {
     json?: AnyInput;
@@ -72,106 +72,11 @@ export type AssignmentExpression = any;
 export type Substitution = any;
 export type AnyParameter = any;
 export type Substitutions = Record<string, Substitution>;
-export type OperatorTable = {
-    [x: string]: (a: AnyParameter, b: AnyParameter) => UnknownResult;
-};
+export type OperatorTable = Record<string, (a: AnyParameter, b: AnyParameter) => UnknownResult>;
 export type UnaryOperatorTable = {
     [key: string]: (a: AnyParameter) => UnknownResult;
 };
 export type ConditionCallback<T> = (item: T) => boolean;
-/**
- * @typedef {object} ReturnObject
- * @property {ExpressionArray|string} path
- * @property {unknown} value
- * @property {ParentValue} parent
- * @property {ParentProperty} parentProperty
- * @property {boolean} [isParentSelector]
- * @property {boolean} [hasArrExpr]
- * @property {ExpressionArray} [expr]
- * @property {string} [pointer]
- */
-/**
- * @callback JSONPathCallback
- * @param {any} preferredOutput Using `any` type instead of `PreferredOutput` so
- *    that user can supply flexible type
- * @param {"value"|"property"} type
- * @param {ReturnObject} fullRetObj
- * @returns {void}
- */
-/**
- * @callback OtherTypeCallback
- * @param {unknown} val
- * @param {ExpressionArray} path
- * @param {ParentValue} parent
- * @param {string|number|null} parentPropName
- * @returns {boolean|null}
- */
-/**
- * @typedef {any} ContextItem
- */
-/**
- * @typedef {any} EvaluatedResult
- */
-/**
- * @callback EvalCallback
- * @param {string} code
- * @param {ContextItem} context
- * @returns {EvaluatedResult}
- */
-/**
- * @typedef {new (expr: string) => {
- *   runInNewContext: (context: object) => EvaluatedResult
- * }} ScriptConstructor
- */
-/**
- * @typedef {ScriptConstructor} EvalClass
- */
-/**
- * @typedef {"value"|"path"|"pointer"|"parent"|"parentProperty"
- *   |"all"} ResultType
- */
-/**
- * @typedef {EvalCallback|EvalClass|'safe'|'native'|boolean} EvalValue
- */
-/**
- * @typedef {string|string[]} PathType
- */
-/**
- * @typedef {{Script: ScriptConstructor}} SafeScriptType
- */
-/**
- * @typedef {{Script: ScriptConstructor}} ScriptType
- */
-/**
- * @typedef {{
- *   _$_path?: string,
- *   _$_parentProperty?: ParentProperty,
- *   _$_parent?: ParentValue,
- *   _$_property?: string|number,
- *   _$_root?: AnyInput,
- *   _$_v?: unknown,
- *   [key: string]: SandboxPropertyValue
- * }} SandboxType
- */
-/**
- * @typedef {object} JSONPathOptions
- * @property {AnyInput} [json]
- * @property {PathType} [path]
- * @property {ResultType} [resultType="value"]
- * @property {boolean} [flatten=false]
- * @property {boolean} [wrap=true]
- * @property {SandboxType} [sandbox={}]
- * @property {EvalValue} [eval='safe']
- * @property {any|null} [parent=null]
- * @property {ParentProperty} [parentProperty=null]
- * @property {JSONPathCallback} [callback]
- * @property {OtherTypeCallback} [otherTypeCallback] Defaults to
- *   function which throws on encountering `@other`
- * @property {Record<string, OtherTypeCallback>} [customTypes] Map of custom
- *   type operator names to their evaluation callbacks
- * @property {boolean} [autostart=true]
- * @property {boolean} [ignoreEvalErrors=false]
- */
 /**
  * @overload
  * @param {string} opts JSON path to evaluate
@@ -189,6 +94,7 @@ export type ConditionCallback<T> = (item: T) => boolean;
  * @returns {unknown} The string form always has `autostart` implicitly
  *   `true`, so the result is the evaluated value, not a `JSONPathClass`
  */
+export function JSONPath(opts: string, expr?: AnyInput, obj?: JSONPathCallback, callback?: OtherTypeCallback, otherTypeCallback?: undefined): unknown;
 /**
  * @overload
  * @param {JSONPathOptions & {autostart: false}} opts An options object
@@ -196,29 +102,16 @@ export type ConditionCallback<T> = (item: T) => boolean;
  *   returns the `JSONPathClass` instance instead
  * @returns {JSONPathClass}
  */
+export function JSONPath(opts: JSONPathOptions & {
+    autostart: false;
+}): JSONPathClass;
 /**
  * @overload
  * @param {JSONPathOptions} opts If a string, will be treated as
  *   `expr`
  * @returns {unknown}
  */
-/**
- * @param {JSONPathOptions|string} opts If a string, will be treated as `expr`
- * @param {string|AnyInput} [expr] JSON path to evaluate
- * @param {AnyInput|JSONPathCallback} [obj] JSON object to evaluate against
- * @param {JSONPathCallback|OtherTypeCallback} [callback] Passed 3
- *     arguments: 1) desired payload per `resultType`,
- *     2) `"value"|"property"`, 3) Full returned object with
- *     all payloads
- * @param {OtherTypeCallback} [otherTypeCallback] If `@other()` is at the end
- *   of one's query, this will be invoked with the value of the item, its
- *   path, its parent, and its parent's property name, and it should return
- *   a boolean indicating whether the supplied value belongs to the "other"
- *   type or not (or it may handle transformations and return `false`).
- * @throws {Error}
- * @returns {unknown|JSONPathClass}
- */
-export function JSONPath(opts: JSONPathOptions | string, expr?: string | AnyInput, obj?: AnyInput | JSONPathCallback, callback?: JSONPathCallback | OtherTypeCallback, otherTypeCallback?: OtherTypeCallback): unknown | JSONPathClass;
+export function JSONPath(opts: JSONPathOptions): unknown;
 export namespace JSONPath {
     /**
      * Clears cached parsed paths and compiled scripts.
@@ -260,28 +153,13 @@ export class JSONPathClass {
      *   `false`).
      * @param {undefined} [otherTypeCallback]
      */
+    constructor(opts: string, expr?: AnyInput, obj?: JSONPathCallback, callback?: OtherTypeCallback, otherTypeCallback?: undefined);
     /**
      * @overload
      * @param {JSONPathOptions} opts If a string, will be treated as
      *   `expr`
      */
-    /**
-     * @param {null|string|JSONPathOptions} opts If a string, will be treated as
-     *   `expr`
-     * @param {string|AnyInput} [expr] JSON path to evaluate
-     * @param {AnyInput|JSONPathCallback} [obj] JSON object to evaluate against
-     * @param {JSONPathCallback|OtherTypeCallback} [callback] Passed 3
-     *     arguments: 1) desired payload per `resultType`,
-     *     2) `"value"|"property"`, 3) Full returned
-     *     object with all payloads
-     * @param {OtherTypeCallback} [otherTypeCallback] If `@other()` is at the
-     *   end of one's query, this will be invoked with the value of the item,
-     *   its path, its parent, and its parent's property name, and it should
-     *   return a boolean indicating whether the supplied value belongs to the
-     *   "other" type or not (or it may handle transformations and return
-     *   `false`).
-     */
-    constructor(opts: null | string | JSONPathOptions, expr?: string | AnyInput, obj?: AnyInput | JSONPathCallback, callback?: JSONPathCallback | OtherTypeCallback, otherTypeCallback?: OtherTypeCallback);
+    constructor(opts: JSONPathOptions);
     /** @type {ResultType|undefined} */
     currResultType: ResultType | undefined;
     /** @type {EvalValue|undefined} */
@@ -311,6 +189,7 @@ export class JSONPathClass {
      * @param {JSONPathOptions} [expr]
      * @returns {ReturnObject|ReturnObject[]|undefined|unknown}
      */
+    evaluate(expr?: JSONPathOptions): ReturnObject | ReturnObject[] | undefined | unknown;
     /**
      * @overload
      * @param {PathType|undefined} [expr]
@@ -319,14 +198,7 @@ export class JSONPathClass {
      * @param {OtherTypeCallback} [otherTypeCallback]
      * @returns {ReturnObject|ReturnObject[]|undefined|unknown}
      */
-    /**
-     * @param {PathType|JSONPathOptions|undefined} [expr]
-     * @param {AnyInput} [json]
-     * @param {JSONPathCallback|null} [callback]
-     * @param {OtherTypeCallback} [otherTypeCallback]
-     * @returns {ReturnObject|ReturnObject[]|undefined|unknown}
-     */
-    evaluate(expr?: PathType | JSONPathOptions | undefined, json?: AnyInput, callback?: JSONPathCallback | null, otherTypeCallback?: OtherTypeCallback): ReturnObject | ReturnObject[] | undefined | unknown;
+    evaluate(expr?: PathType | undefined, json?: AnyInput, callback?: JSONPathCallback | null, otherTypeCallback?: OtherTypeCallback): ReturnObject | ReturnObject[] | undefined | unknown;
     /**
      * @param {ReturnObject} ea
      * @returns {PreferredOutput}

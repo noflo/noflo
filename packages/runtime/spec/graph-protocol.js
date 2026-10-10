@@ -24,6 +24,7 @@ import {
 } from "@noflo/fbp-protocol";
 import { GraphModel } from "@noflo/graph";
 import { GraphProtocol, RuntimeServer } from "../src/index.js";
+import { staticPolicy } from "./policy.js";
 
 /** Capture transport with per-context delivery and exclusion support. */
 function capture() {
@@ -57,7 +58,9 @@ async function wiredServer(_graphCallback) {
   const graph = new GraphModel({ name: "main" });
   graph.addNode({ entity_id: "node-1", component: "math/Add" });
   const transport = capture();
+  const serverPolicy = staticPolicy();
   const server = new RuntimeServer({
+    capabilityPolicy: serverPolicy,
     send: transport.send,
     broadcast: transport.broadcast,
     capabilities: ["GRAPH_READ", "GRAPH_EDIT", "METADATA_SYNC"],
@@ -69,7 +72,7 @@ async function wiredServer(_graphCallback) {
   });
   protocol.register(server);
   // Fail closed: contexts must be authorized before their frames count.
-  server.authorize("link-1");
+  await server.authorize("link-1", "test-identity");
   const epoch = await protocol.epoch();
   return { graph, server, protocol, transport, epoch };
 }
@@ -119,14 +122,16 @@ describe("graph protocol: epoch handshake", () => {
   it("surfaces a missing resource provider as an unsupported event", async () => {
     const graph = new GraphModel({ name: "main" });
     const transport = capture();
+    const serverPolicy = staticPolicy();
     const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
       send: transport.send,
       capabilities: ["GRAPH_READ"],
     });
     const protocol = new GraphProtocol({ graph });
     await protocol.epoch();
     protocol.register(server);
-    server.authorize("link-1");
+    await server.authorize("link-1", "test-identity");
     /** @type {any[]} */
     const unsupported = [];
     server.addEventListener("unsupported", (event) =>
@@ -252,12 +257,14 @@ describe("graph protocol: inbound operations", () => {
     const graph = new GraphModel({ name: "main" });
     const protocol = new GraphProtocol({ graph, maxKnownClocks: 2 });
     const transport = capture();
+    const serverPolicy = staticPolicy();
     const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
       send: transport.send,
       capabilities: ["GRAPH_READ", "GRAPH_EDIT"],
     });
     protocol.register(server);
-    server.authorize("link-1");
+    await server.authorize("link-1", "test-identity");
     for (const clientId of ["client-a", "client-b", "client-c"]) {
       server.handleFrame(
         encodeCrdtUpdate({

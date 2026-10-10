@@ -29,6 +29,7 @@ import {
   RUN_ACTION,
 } from "@noflo/fbp-protocol";
 import { capabilitiesMask, RuntimeServer } from "../src/index.js";
+import { staticPolicy } from "./policy.js";
 
 /** Capture transport: records frames per context. */
 function capture() {
@@ -61,7 +62,7 @@ describe("capabilitiesMask", () => {
 
 describe("RuntimeServer auth", () => {
   it("defaults to the read surface and full access", () => {
-    const server = new RuntimeServer();
+    const server = new RuntimeServer({ capabilityPolicy: staticPolicy() });
     assert.equal(
       server.capabilityMask,
       CAPABILITY.GRAPH_READ |
@@ -72,14 +73,16 @@ describe("RuntimeServer auth", () => {
     assert.equal(server.limitationCode, LIMITATION.FULL_ACCESS);
   });
 
-  it("sends the auth response with the advertised version and mask", () => {
+  it("sends the auth response with the advertised version and mask", async () => {
     const transport = capture();
+    const serverPolicy = staticPolicy();
     const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
       send: transport.send,
       capabilities: ["GRAPH_READ", "GRAPH_EDIT"],
       limitationCode: LIMITATION.HARDWARE_CONSTRAINED,
     });
-    server.authorize("link-1");
+    await server.authorize("link-1", "test-identity");
     assert.equal(transport.log.sent.length, 1);
     const { bytes, context } = transport.log.sent[0];
     assert.equal(context, "link-1");
@@ -93,13 +96,15 @@ describe("RuntimeServer auth", () => {
     assert.equal(decoded.limitationCode, LIMITATION.HARDWARE_CONSTRAINED);
   });
 
-  it("round-trips its own auth response through the protocol codec", () => {
+  it("round-trips its own auth response through the protocol codec", async () => {
     const transport = capture();
+    const serverPolicy = staticPolicy();
     const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
       send: transport.send,
       capabilities: 0xff,
     });
-    server.authorize(null);
+    await server.authorize("link-1", "test-identity");
     const decoded = decodeAuthResponse(transport.log.sent[0].bytes);
     assert.equal(decoded.capabilityMask, 0xff);
     // The runtime's own encoding must equal the protocol codec's.
@@ -117,20 +122,19 @@ describe("RuntimeServer auth", () => {
 });
 
 describe("RuntimeServer permissions (DACAR)", () => {
-  it("resolves the granted mask at authorize time", () => {
+  it("resolves the granted mask at authorize time", async () => {
     const transport = capture();
+    const serverPolicy = staticPolicy(
+      { aabb: ["GRAPH_READ", "GRAPH_EDIT", "LIFECYCLE_CTRL"] },
+      ["GRAPH_READ"],
+    );
     const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
       send: transport.send,
-      capabilities: ["GRAPH_READ"],
-      permissions: {
-        default: ["GRAPH_READ"],
-        identities: {
-          aabb: ["GRAPH_READ", "GRAPH_EDIT", "LIFECYCLE_CTRL"],
-        },
-      },
+      capabilities: ["GRAPH_READ", "GRAPH_EDIT", "LIFECYCLE_CTRL"],
     });
-    server.authorize("link-1", "aabb");
-    server.authorize("link-2", "ccdd");
+    await server.authorize("link-1", "aabb");
+    await server.authorize("link-2", "ccdd");
     assert.equal(
       decodeAuthResponse(transport.log.sent[0].bytes).capabilityMask,
       CAPABILITY.GRAPH_READ | CAPABILITY.GRAPH_EDIT | CAPABILITY.LIFECYCLE_CTRL,
@@ -142,19 +146,17 @@ describe("RuntimeServer permissions (DACAR)", () => {
     );
   });
 
-  it("enforces per context after authorize", () => {
+  it("enforces per context after authorize", async () => {
     const transport = capture();
+    const serverPolicy = staticPolicy();
     const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
       send: transport.send,
       capabilities: ["GRAPH_READ", "GRAPH_EDIT", "LIFECYCLE_CTRL"],
-      permissions: {
-        default: ["GRAPH_READ"],
-        identities: { aabb: ["GRAPH_READ", "GRAPH_EDIT", "LIFECYCLE_CTRL"] },
-      },
     });
     const handled = [];
     server.registerHandler(CMD_RUN_CTRL, (decoded) => handled.push(decoded));
-    server.authorize("granted-link", "aabb");
+    await server.authorize("granted-link", "aabb");
     server.handleFrame(encodeRunCtrl(RUN_ACTION.START), "granted-link");
     assert.equal(handled.length, 1);
     // The other link was never authorized: fail closed, run control is
@@ -169,38 +171,42 @@ describe("RuntimeServer permissions (DACAR)", () => {
     assert.equal(dropped.length, 1);
   });
 
-  it("keeps the global mask when no permissions store is configured", () => {
+  it("keeps the global mask when no permissions store is configured", async () => {
     const transport = capture();
+    const serverPolicy = staticPolicy();
     const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
       send: transport.send,
       capabilities: 0xff,
     });
-    server.authorize("link-1", "aabb");
+    await server.authorize("link-1", "aabb");
     assert.equal(
       decodeAuthResponse(transport.log.sent[0].bytes).capabilityMask,
       0xff,
     );
-    server.authorize("link-2");
+    await server.authorize("link-2", "test-identity");
     assert.equal(
       decodeAuthResponse(transport.log.sent[1].bytes).capabilityMask,
       0xff,
     );
   });
 
-  it("grants and revokes identities between links", () => {
+  it("grants and revokes identities between links", async () => {
     const transport = capture();
+    const serverPolicy = staticPolicy({}, ["GRAPH_READ"]);
     const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
       send: transport.send,
-      permissions: { default: ["GRAPH_READ"] },
+      capabilities: ["GRAPH_READ", "COMPONENT_WRITE"],
     });
-    server.grant("aabb", ["COMPONENT_WRITE"]);
-    server.authorize("link-1", "aabb");
+    serverPolicy.grant("aabb", ["COMPONENT_WRITE"]);
+    await server.authorize("link-1", "aabb");
     assert.equal(
       decodeAuthResponse(transport.log.sent[0].bytes).capabilityMask,
       CAPABILITY.COMPONENT_WRITE,
     );
-    server.revoke("aabb");
-    server.authorize("link-2", "aabb");
+    serverPolicy.revoke("aabb");
+    await server.authorize("link-2", "aabb");
     assert.equal(
       decodeAuthResponse(transport.log.sent[1].bytes).capabilityMask,
       CAPABILITY.GRAPH_READ,
@@ -208,11 +214,10 @@ describe("RuntimeServer permissions (DACAR)", () => {
   });
 
   it("resolves capabilities through one shared identity-based seam", async () => {
+    const serverPolicy = staticPolicy({ aabb: ["GRAPH_EDIT"] }, ["GRAPH_READ"]);
     const server = new RuntimeServer({
-      permissions: {
-        default: ["GRAPH_READ"],
-        identities: { aabb: ["GRAPH_EDIT"] },
-      },
+      capabilityPolicy: serverPolicy,
+      capabilities: ["GRAPH_READ", "GRAPH_EDIT"],
     });
     // The same resolution authorize applies, consultable by identity.
     assert.equal(
@@ -223,10 +228,8 @@ describe("RuntimeServer permissions (DACAR)", () => {
       await server.resolveCapabilities("ccdd"),
       CAPABILITY.GRAPH_READ,
     );
-    assert.equal(
-      await server.resolveCapabilities(undefined),
-      CAPABILITY.GRAPH_READ,
-    );
+    // Without a verified identity the resolution denies closed.
+    assert.equal(await server.resolveCapabilities(undefined), 0);
     // A rejecting authorization plane throws from the seam; authorize
     // turns that into an error event and denies the link closed.
     const failing = new RuntimeServer({
@@ -248,15 +251,19 @@ describe("RuntimeServer permissions (DACAR)", () => {
 });
 
 describe("RuntimeServer frame routing", () => {
-  it("dispatches frames to the handler registered for their command", () => {
+  it("dispatches frames to the handler registered for their command", async () => {
     const transport = capture();
-    const server = new RuntimeServer({ send: transport.send });
+    const serverPolicy = staticPolicy();
+    const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
+      send: transport.send,
+    });
     /** @type {any[]} */
     const seen = [];
     server.registerHandler(CMD_CRDT_SYNC_REQ, (decoded, context) => {
       seen.push({ decoded, context });
     });
-    server.authorize("link-1");
+    await server.authorize("link-1", "test-identity");
     server.handleFrame(encodeCrdtSyncReq(1, { a: 1 }), "link-1");
     assert.equal(seen.length, 1);
     assert.equal(seen[0].decoded.cmd, CMD_CRDT_SYNC_REQ);
@@ -266,7 +273,11 @@ describe("RuntimeServer frame routing", () => {
 
   it("emits unhandledframe for commands with no handler", () => {
     const transport = capture();
-    const server = new RuntimeServer({ send: transport.send });
+    const serverPolicy = staticPolicy();
+    const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
+      send: transport.send,
+    });
     /** @type {any[]} */
     const events = [];
     server.addEventListener("unhandledframe", (event) =>
@@ -279,7 +290,11 @@ describe("RuntimeServer frame routing", () => {
 
   it("survives undecodable frames without throwing", () => {
     const transport = capture();
-    const server = new RuntimeServer({ send: transport.send });
+    const serverPolicy = staticPolicy();
+    const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
+      send: transport.send,
+    });
     /** @type {any[]} */
     const events = [];
     server.addEventListener("undecodable", (event) =>
@@ -301,7 +316,11 @@ describe("RuntimeServer frame routing", () => {
   it("drops commands requiring unadvertised capabilities", () => {
     const transport = capture();
     // Default mask has no GRAPH_EDIT: a 0x14 mutation is not permitted.
-    const server = new RuntimeServer({ send: transport.send });
+    const serverPolicy = staticPolicy();
+    const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
+      send: transport.send,
+    });
     /** @type {any[]} */
     const dropped = [];
     const handled = [];
@@ -324,10 +343,19 @@ describe("RuntimeServer frame routing", () => {
     assert.equal(dropped[0].required, CAPABILITY.GRAPH_EDIT);
   });
 
-  it("drops install requests from read-only contexts and admits granted ones", () => {
+  it("drops install requests from read-only contexts and admits granted ones", async () => {
     const transport = capture();
-    // The default mask is the read surface: no COMPONENT_WRITE.
-    const server = new RuntimeServer({ send: transport.send });
+    // The reader is granted only the read surface; the runtime advertises
+    // COMPONENT_WRITE, so the writer's grant survives the intersection.
+    const serverPolicy = staticPolicy(
+      { "test-identity": ["GRAPH_READ", "TELEMETRY_READ"] },
+      0,
+    );
+    const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
+      send: transport.send,
+      capabilities: ["GRAPH_READ", "TELEMETRY_READ", "COMPONENT_WRITE"],
+    });
     const handled = [];
     /** @type {any[]} */
     const dropped = [];
@@ -337,7 +365,7 @@ describe("RuntimeServer frame routing", () => {
     server.addEventListener("notpermitted", (event) =>
       dropped.push(event.detail),
     );
-    server.authorize("reader-link");
+    await server.authorize("reader-link", "test-identity");
     server.handleFrame(
       encodeCompInstallReq("npm:@noflo/strings@2.0.0"),
       "reader-link",
@@ -346,8 +374,8 @@ describe("RuntimeServer frame routing", () => {
     assert.equal(dropped.length, 1);
     assert.equal(dropped[0].required, CAPABILITY.COMPONENT_WRITE);
     // A peer granted COMPONENT_WRITE may install packages.
-    server.grant("aabb", ["COMPONENT_WRITE"]);
-    server.authorize("writer-link", "aabb");
+    serverPolicy.grant("aabb", ["COMPONENT_WRITE"]);
+    await server.authorize("writer-link", "aabb");
     server.handleFrame(
       encodeCompInstallReq("npm:@noflo/strings@2.0.0"),
       "writer-link",
@@ -356,11 +384,13 @@ describe("RuntimeServer frame routing", () => {
     assert.equal(handled[0].packageUri, "npm:@noflo/strings@2.0.0");
   });
 
-  it("drops graph syncs from contexts without GRAPH_READ", () => {
+  it("drops graph syncs from contexts without GRAPH_READ", async () => {
     const transport = capture();
+    // Fallback zero: an identity without a grant is denied everything.
+    const serverPolicy = staticPolicy({}, 0);
     const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
       send: transport.send,
-      permissions: { default: 0 },
     });
     const handled = [];
     /** @type {any[]} */
@@ -371,28 +401,35 @@ describe("RuntimeServer frame routing", () => {
     server.addEventListener("notpermitted", (event) =>
       dropped.push(event.detail),
     );
-    server.authorize("denied-link");
+    await server.authorize("denied-link", "test-identity");
     server.handleFrame(encodeCrdtSyncReq("0000", {}), "denied-link");
     assert.equal(handled.length, 0);
     assert.equal(dropped.length, 1);
     assert.equal(dropped[0].required, CAPABILITY.GRAPH_READ);
-    // The default read surface includes GRAPH_READ: syncs are admitted.
-    const open = new RuntimeServer({ send: transport.send });
+    // An identity granted GRAPH_READ: syncs are admitted.
+    serverPolicy.grant("reader-identity", ["GRAPH_READ"]);
+    const openPolicy = staticPolicy({ "reader-identity": ["GRAPH_READ"] });
+    const open = new RuntimeServer({
+      capabilityPolicy: openPolicy,
+      send: transport.send,
+    });
     open.registerHandler(CMD_CRDT_SYNC_REQ, (decoded) => handled.push(decoded));
-    open.authorize("reader-link");
+    await open.authorize("reader-link", "reader-identity");
     open.handleFrame(encodeCrdtSyncReq("0000", {}), "reader-link");
     assert.equal(handled.length, 1);
   });
 
-  it("admits commands whose advertised capability covers them", () => {
+  it("admits commands whose advertised capability covers them", async () => {
     const transport = capture();
+    const serverPolicy = staticPolicy();
     const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
       send: transport.send,
       capabilities: ["GRAPH_READ", "GRAPH_EDIT"],
     });
     const handled = [];
     server.registerHandler(CMD_CRDT_UPDATE, (decoded) => handled.push(decoded));
-    server.authorize("link-1");
+    await server.authorize("link-1", "test-identity");
     server.handleFrame(
       encodeCrdtUpdate({
         clientId: "a",
@@ -406,9 +443,11 @@ describe("RuntimeServer frame routing", () => {
     assert.equal(handled.length, 1);
   });
 
-  it("denies commands from contexts that were never authorized", () => {
+  it("denies commands from contexts that were never authorized", async () => {
     const transport = capture();
+    const serverPolicy = staticPolicy();
     const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
       send: transport.send,
       capabilities: 0xff,
     });
@@ -434,7 +473,7 @@ describe("RuntimeServer frame routing", () => {
     assert.equal(handled.length, 0);
     assert.equal(dropped.length, 1);
     // Once authorized, the granted mask applies.
-    server.authorize("link-1");
+    await server.authorize("link-1", "test-identity");
     server.handleFrame(
       encodeCrdtUpdate({
         clientId: "a",
@@ -448,16 +487,20 @@ describe("RuntimeServer frame routing", () => {
     assert.equal(handled.length, 1);
   });
 
-  it("survives handler failures without throwing", () => {
+  it("survives handler failures without throwing", async () => {
     const transport = capture();
-    const server = new RuntimeServer({ send: transport.send });
+    const serverPolicy = staticPolicy();
+    const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
+      send: transport.send,
+    });
     /** @type {any[]} */
     const errors = [];
     server.addEventListener("error", (event) => errors.push(event.detail));
     server.registerHandler(CMD_CRDT_SYNC_REQ, () => {
       throw new Error("handler blew up");
     });
-    server.authorize("link-1");
+    await server.authorize("link-1", "test-identity");
     server.handleFrame(encodeCrdtSyncReq(1, { a: 1 }), "link-1");
     assert.equal(errors.length, 1);
     assert.equal(errors[0].error.message, "handler blew up");

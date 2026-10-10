@@ -27,6 +27,7 @@ import {
   sigHash,
 } from "@noflo/fbp-protocol";
 import { RegistryProtocol, RuntimeServer } from "../src/index.js";
+import { staticPolicy } from "./policy.js";
 
 /** Capture transport: records frames per context. */
 function capture() {
@@ -96,7 +97,9 @@ function testCatalog() {
 async function wiredServer() {
   const { catalog, written, installed } = testCatalog();
   const transport = capture();
+  const serverPolicy = staticPolicy();
   const server = new RuntimeServer({
+    capabilityPolicy: serverPolicy,
     send: transport.send,
     capabilities: [
       "COMPONENT_READ",
@@ -111,7 +114,7 @@ async function wiredServer() {
   await registry.refresh();
   registry.register(server);
   // Fail closed: contexts must be authorized before their frames count.
-  server.authorize("link-1");
+  await server.authorize("link-1", "test-identity");
   return { server, registry, catalog, transport, written, installed };
 }
 
@@ -210,7 +213,9 @@ describe("registry protocol", () => {
 
   it("surfaces missing catalog hooks as unsupported events", async () => {
     const transport = capture();
+    const serverPolicy = staticPolicy();
     const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
       send: transport.send,
       capabilities: ["COMPONENT_READ", "COMPONENT_WRITE"],
     });
@@ -219,7 +224,7 @@ describe("registry protocol", () => {
     });
     await registry.refresh();
     registry.register(server);
-    server.authorize("link-1");
+    await server.authorize("link-1", "test-identity");
     /** @type {any[]} */
     const unsupported = [];
     server.addEventListener("unsupported", (event) =>

@@ -36,6 +36,7 @@ import {
   ReticulumBinding,
   RuntimeServer,
 } from "../src/index.js";
+import { staticPolicy } from "./policy.js";
 
 /**
  * A fake destination: the surface the binding touches, no RNS in the loop.
@@ -131,7 +132,9 @@ class FakeLink extends EventTarget {
 function wiredBinding() {
   /** @type {{sent: {bytes: Uint8Array, context: any}[]}} */
   const log = { sent: [] };
+  const serverPolicy = staticPolicy({}, 0);
   const server = new RuntimeServer({
+    capabilityPolicy: serverPolicy,
     send: (bytes, context) => log.sent.push({ bytes, context }),
     capabilities: [
       "GRAPH_READ",
@@ -148,7 +151,7 @@ function wiredBinding() {
     nodeName: "solar-runtime",
     createDestination: async () => destination,
   });
-  return { binding, server, destination, log };
+  return { binding, server, destination, log, serverPolicy };
 }
 
 describe("Reticulum binding: announce", () => {
@@ -183,7 +186,7 @@ describe("Reticulum binding: announce", () => {
 describe("Reticulum binding: link lifecycle", () => {
   it("broadcasts only to links whose granted capabilities cover the frame", async () => {
     const wired = wiredBinding();
-    const { binding, server, destination } = wired;
+    const { binding, server, destination, serverPolicy } = wired;
     /** @type {FakeLink[]} */
     const links = [];
     destination.respondToLinkRequest = async () => {
@@ -201,12 +204,11 @@ describe("Reticulum binding: link lifecycle", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
     const [grantedLink, deniedLink] = links;
-    // One peer granted GRAPH_READ, one denied everything: authorize stores
-    // the mask per context, so zero the store default first.
-    server.permissions.default = 0;
-    server.grant("aabb", ["GRAPH_READ"]);
-    server.authorize(grantedLink, "aabb");
-    server.authorize(deniedLink, "ccdd");
+    // One peer granted GRAPH_READ, one denied everything: the wired
+    // policy's fallback is zero, so an identity without a grant is denied.
+    serverPolicy.grant("aabb", ["GRAPH_READ"]);
+    await server.authorize(grantedLink, "aabb");
+    await server.authorize(deniedLink, "ccdd");
     // Wait out the auth responses, then broadcast a 0x14 operation.
     grantedLink.sent.length = 0;
     deniedLink.sent.length = 0;
@@ -291,32 +293,6 @@ describe("Reticulum binding: link lifecycle", () => {
     // Default: the peer never identified, so it was never authorized —
     // it is denied everything.
     assert.equal(server.grantedFor(links[0]), 0);
-
-    // Opting into open monitoring authorizes the link at establishment
-    // with the store's default mask. (The first binding's listener is
-    // still attached too, so read the link the open binding itself wired.)
-    const openBinding = new ReticulumBinding({
-      server,
-      reticulum: /** @type {any} */ ({}),
-      identity: /** @type {any} */ ({}),
-      nodeName: "open",
-      authorizeUnidentified: true,
-      createDestination: async () => destination,
-    });
-    await openBinding.start();
-    destination.dispatchEvent(
-      new globalThis.CustomEvent("link_request", {
-        detail: { packet: {}, transport: {} },
-      }),
-    );
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    const openLink = [...openBinding.links][0];
-    assert.ok(openLink, "the open binding wired its link");
-    assert.equal(
-      server.grantedFor(openLink),
-      server.capabilityMask,
-      "the unidentified link got the store's default mask",
-    );
   });
 
   it("feeds link frames to the server and closes subscriptions with the link", async () => {
@@ -393,6 +369,7 @@ describe("assembly autostart", () => {
       to: { node: "wait", port: "input" },
     });
     const runtime = await assembleRuntime({
+      capabilityPolicy: staticPolicy(),
       graph,
       catalog: { signatures: () => ({}) },
       componentLoader: loader,
@@ -405,6 +382,7 @@ describe("assembly autostart", () => {
   it("does not start the network by default", async () => {
     const graph = new GraphModel({ name: "main" });
     const runtime = await assembleRuntime({
+      capabilityPolicy: staticPolicy(),
       graph,
       catalog: { signatures: () => ({}) },
     });
@@ -414,7 +392,7 @@ describe("assembly autostart", () => {
 
 describe("Reticulum binding: baseline resources", () => {
   it("serves content-addressed baselines over the request API", async () => {
-    const { binding, destination } = wiredBinding();
+    const { binding, destination, serverPolicy } = wiredBinding();
     await binding.start();
     const bytes = new TextEncoder().encode('{"name":"main"}');
     const token = await binding.serveResource(bytes);
@@ -422,8 +400,9 @@ describe("Reticulum binding: baseline resources", () => {
     assert.match(token, /^[0-9a-f]{32}$/);
     const handler = destination.requestHandlers.get(token);
     assert.ok(handler, "the token is registered as a request path");
-    // Identified requesters granted the default read surface are served.
+    // Identified requesters granted GRAPH_READ are served.
     const reader = await Identity.generate();
+    serverPolicy.grant(toHex(reader.identityHash), ["GRAPH_READ"]);
     assert.deepEqual(
       [...(await handler.responseGenerator(token, null, null, reader))],
       [...bytes],
@@ -448,17 +427,16 @@ describe("Reticulum binding: baseline resources", () => {
 
   it("serves baselines only to identities currently granted GRAPH_READ", async () => {
     const wired = wiredBinding();
-    const { binding, server, destination } = wired;
+    const { binding, server, destination, serverPolicy } = wired;
     await binding.start();
     const bytes = new TextEncoder().encode('{"name":"main"}');
     const token = await binding.serveResource(bytes);
     const handler = destination.requestHandlers.get(token);
-    // The store's default mask must not leak the baseline here: zero it so
-    // only explicitly granted identities are served.
-    server.permissions.default = 0;
+    // The wired policy's fallback is zero, so only explicitly granted
+    // identities are served.
     const granted = await Identity.generate();
     const denied = await Identity.generate();
-    server.grant(toHex(granted.identityHash), ["GRAPH_READ"]);
+    serverPolicy.grant(toHex(granted.identityHash), ["GRAPH_READ"]);
     const fetch = (/** @type {any} */ identity) =>
       handler.responseGenerator(token, null, null, identity);
     // Granted identity: the baseline is served.
@@ -469,7 +447,7 @@ describe("Reticulum binding: baseline resources", () => {
     assert.equal(await fetch(null), null);
     // A revocation bites the next fetch — the token earns a revoked peer
     // nothing, however it was shared.
-    server.revoke(toHex(granted.identityHash));
+    serverPolicy.revoke(toHex(granted.identityHash));
     assert.equal(await fetch(granted), null);
   });
 
@@ -478,7 +456,9 @@ describe("Reticulum binding: baseline resources", () => {
     const grantedHash = toHex(grantee.identityHash);
     /** @type {any[]} */
     const evaluated = [];
+    const serverPolicy = staticPolicy();
     const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
       capabilityPolicy: (identityHash) => {
         evaluated.push(identityHash);
         return identityHash === grantedHash ? CAPABILITY.GRAPH_READ : 0;
@@ -516,15 +496,14 @@ describe("assembly", () => {
     const graph = new GraphModel({ name: "main" });
     const policy = () => 0;
     const runtime = await assembleRuntime({
+      capabilityPolicy: staticPolicy(),
       graph,
       catalog: { signatures: () => ({}) },
-      permissions: { default: ["GRAPH_READ"] },
       capabilityPolicy: policy,
       limitationCode: LIMITATION.PERMISSION_DENIED,
     });
     assert.equal(runtime.server.capabilityPolicy, policy);
     assert.equal(runtime.server.limitationCode, LIMITATION.PERMISSION_DENIED);
-    assert.equal(runtime.server.permissions.default, CAPABILITY.GRAPH_READ);
   });
 
   it("wires the full stack: registry sync answers through the server", async () => {
@@ -532,6 +511,7 @@ describe("assembly", () => {
     /** @type {{sent: {bytes: Uint8Array, context: any}[]}} */
     const log = { sent: [] };
     const runtime = await assembleRuntime({
+      capabilityPolicy: staticPolicy(),
       graph,
       catalog: {
         signatures: () => ({
@@ -546,7 +526,7 @@ describe("assembly", () => {
       broadcast() {},
       capabilities: ["GRAPH_READ", "GRAPH_EDIT", "COMPONENT_READ"],
     });
-    runtime.server.authorize("link-1");
+    await runtime.server.authorize("link-1", "test-identity");
     runtime.server.handleFrame(encodeCompSyncReq("stale-hash"), "link-1");
     const manifestFrame = log.sent.find(
       (entry) => entry.bytes[1] === CMD_COMP_MANIFEST,
@@ -564,6 +544,7 @@ describe("assembly", () => {
     /** @type {{sent: {bytes: Uint8Array, context: any}[]}} */
     const log = { sent: [] };
     const runtime = await assembleRuntime({
+      capabilityPolicy: staticPolicy(),
       graph,
       catalog: { signatures: () => ({}) },
       send: (bytes, context) => log.sent.push({ bytes, context }),
@@ -592,7 +573,7 @@ describe("assembly", () => {
       },
     };
     // Fail closed: the context must be authorized for its frames to count.
-    runtime.server.authorize(linkContext);
+    await runtime.server.authorize(linkContext, "test-identity");
     runtime.server.handleFrame(encodeCrdtSyncReq("0000", {}), linkContext);
     // The handshake hashes the epoch asynchronously; wait for the reply.
     // The authorized context first received the unilateral auth response,

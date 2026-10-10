@@ -68,12 +68,6 @@ export const DEFAULT_ASPECT = ANNOUNCE_ASPECT;
  *   {@link DEFAULT_ASPECT}.
  * @property {number} [options.announceIntervalMs] Announce cadence — the
  *   runtime's physical-policy decision; defaults to the RNS library floor.
- * @property {boolean} [options.authorizeUnidentified] Grant the
- *   permissions store's default mask to peers that never identify, by
- *   authorizing each link at establishment. Off by default: an
- *   unidentified — and therefore unverified — peer is denied everything
- *   until it identifies, closing the attacker-controlled window between
- *   link establishment and identification.
  * @property {number} [options.maxResources] Budget for concurrently served
  *   baseline resources. Each `0x12` stale-epoch reply registers the
  *   current baseline under its content hash; without a cap a long-lived,
@@ -102,7 +96,6 @@ export class ReticulumBinding extends EventTarget {
     this.nodeName = options.nodeName;
     this.aspect = options.aspect ?? DEFAULT_ASPECT;
     this.announceIntervalMs = options.announceIntervalMs;
-    this.authorizeUnidentified = options.authorizeUnidentified ?? false;
     this.maxResources = options.maxResources ?? 16;
     this.createDestination =
       options.createDestination ??
@@ -323,13 +316,9 @@ export class ReticulumBinding extends EventTarget {
    * @returns {void}
    */
   #wireLink(link) {
-    // Fail closed by default: the link is denied everything until the peer
-    // identifies. Deployments that affirmatively want open monitoring can
-    // authorize unidentified links with the store's default mask; identify
-    // then re-authorizes with the identity-specific mask.
-    if (this.authorizeUnidentified) {
-      this.server.authorize(link);
-    }
+    // Fail closed: the link is denied everything until the peer
+    // identifies — an unidentified peer has no identity for the
+    // authorization plane to evaluate, so there is nothing to grant it.
     // Zero-trust auth: the link handshake verified cryptography; the peer's
     // `link.identify()` gives us its long-term identity. On verification,
     // unilaterally advertise what the identified peer may do (work document

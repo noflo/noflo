@@ -25,6 +25,7 @@ import {
 } from "@reticulum/dacar";
 import { CAPABILITY_RELATIONS, DacarCapabilityPolicy } from "../src/dacar.js";
 import { RuntimeServer } from "../src/index.js";
+import { staticPolicy } from "./policy.js";
 
 /** Build an engine with one granted relation for the grantee. */
 async function engineWith(grants) {
@@ -118,7 +119,9 @@ describe("DacarCapabilityPolicy", () => {
     });
     /** @type {{sent: {bytes: Uint8Array, context: any}[]}} */
     const log = { sent: [] };
+    const serverPolicy = staticPolicy();
     const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
       send: (bytes, context) => log.sent.push({ bytes, context }),
       capabilityPolicy: (identityHash, context) =>
         policy.resolve(identityHash, context),

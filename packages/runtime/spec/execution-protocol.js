@@ -34,6 +34,7 @@ import {
   RuntimeServer,
   TelemetryProtocol,
 } from "../src/index.js";
+import { staticPolicy } from "./policy.js";
 
 /** Capture transport. */
 function capture() {
@@ -57,7 +58,9 @@ function capture() {
  */
 async function wiredServer(builder) {
   const transport = capture();
+  const serverPolicy = staticPolicy();
   const server = new RuntimeServer({
+    capabilityPolicy: serverPolicy,
     send: transport.send,
     capabilities: ["LIFECYCLE_CTRL", "TELEMETRY_READ", "COMPONENT_WRITE"],
   });
@@ -70,7 +73,7 @@ async function wiredServer(builder) {
   telemetry.register(server);
   execution.register(server);
   // Fail closed: contexts must be authorized before their frames count.
-  server.authorize("link-1");
+  await server.authorize("link-1", "test-identity");
   server.handleFrame(
     encodePubsubSub({
       subId: "sub-1",

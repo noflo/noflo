@@ -236,12 +236,10 @@ export async function createHost(options = {}) {
     catalog: await catalogFromLoader(loader),
     componentLoader: loader,
     autostart: false,
-    ...(options.dacar?.policy
-      ? {
-          capabilityPolicy: (identityHash, context) =>
-            options.dacar.policy.resolve(identityHash, context),
-        }
-      : {}),
+    // Always Dacar: a deny-closed policy stands in when no store exists,
+    // so the host still boots (and serves nothing) without one.
+    capabilityPolicy: (identityHash, context) =>
+      options.dacar?.policy?.resolve(identityHash, context) ?? 0,
     ...(options.trace
       ? {
           flowtrace: new Flowtrace({

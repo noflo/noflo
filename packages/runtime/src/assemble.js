@@ -50,11 +50,11 @@ import { TelemetryProtocol } from "./telemetry-protocol.js";
  *   recorder handed to every network the host builds (work document #23).
  * @param {string[]|number} [options.capabilities] Capability mask the
  *   runtime advertises; defaults to the read surface.
- * @param {{ default?: string[]|number, identities?: Record<string, string[]|number> }} [options.permissions]
- *   The built-in static capability store, forwarded to the server core.
- * @param {(identityHash: string, context: any) => number|Promise<number>} [options.capabilityPolicy]
- *   Pluggable capability resolution for identified peers, forwarded to
- *   the server core — the DACAR adapter is the native one.
+ * @param {(identityHash: string, context: any) => number|Promise<number>} options.capabilityPolicy
+ *   Required. The runtime's authorization plane: resolves a verified peer
+ *   to the granted capability mask, filtered through the advertised
+ *   surface. DACAR is the native implementation (see the `./dacar`
+ *   subpath). There is no static fallback store.
  * @param {number} [options.limitationCode] One of the protocol's
  *   limitation codes, forwarded to the server core; defaults to full
  *   access.
@@ -78,7 +78,6 @@ export async function assembleRuntime(options) {
     send: options.send,
     broadcast: options.broadcast,
     capabilities: options.capabilities,
-    permissions: options.permissions,
     capabilityPolicy: options.capabilityPolicy,
     limitationCode: options.limitationCode,
   });
@@ -125,9 +124,6 @@ export async function assembleRuntime(options) {
  * @param {string} [options.aspect] Destination aspect; defaults to
  *   {@link DEFAULT_ASPECT}.
  * @param {number} [options.announceIntervalMs]
- * @param {boolean} [options.authorizeUnidentified] Grant the permissions
- *   store's default mask to peers that never identify; off by default
- *   (unidentified links are denied everything).
  * @param {number} [options.maxResources] Budget for concurrently served
  *   baseline resources; defaults to 16.
  * @returns {Promise<ReticulumBinding>}
@@ -141,7 +137,6 @@ export async function bindReticulum(options) {
     nodeName: options.nodeName,
     aspect: options.aspect,
     announceIntervalMs: options.announceIntervalMs,
-    authorizeUnidentified: options.authorizeUnidentified,
     maxResources: options.maxResources,
   });
   // Baseline snapshots for stale clients travel over the link

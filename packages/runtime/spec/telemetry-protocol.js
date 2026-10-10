@@ -24,6 +24,7 @@ import {
 import { GraphModel } from "@noflo/graph";
 import { ComponentLoader } from "@noflo/noflo";
 import { NetworkHost, RuntimeServer, TelemetryProtocol } from "../src/index.js";
+import { staticPolicy } from "./policy.js";
 
 /** Capture transport. */
 function capture() {
@@ -58,9 +59,11 @@ class StubNotImplementedError extends Error {
 }
 
 /** Server + telemetry wired against a fake host. */
-function wiredServer() {
+async function wiredServer() {
   const transport = capture();
+  const serverPolicy = staticPolicy();
   const server = new RuntimeServer({
+    capabilityPolicy: serverPolicy,
     send: transport.send,
     capabilities: ["TELEMETRY_READ", "GRAPH_READ"],
   });
@@ -68,8 +71,8 @@ function wiredServer() {
   const telemetry = new TelemetryProtocol({ host, flushFloorMs: 0 });
   telemetry.register(server);
   // Fail closed: contexts must be authorized before their frames count.
-  server.authorize("link-1");
-  server.authorize("link-2");
+  await server.authorize("link-1", "test-identity");
+  await server.authorize("link-2", "test-identity");
   return { server, telemetry, transport, host };
 }
 
@@ -94,24 +97,26 @@ function wire(transport) {
 }
 
 describe("telemetry: subscriptions", () => {
-  it("registers subscriptions from 0x30 frames", () => {
-    const { telemetry, server } = wiredServer();
+  it("registers subscriptions from 0x30 frames", async () => {
+    const { telemetry, server } = await wiredServer();
     subscribe(server);
     assert.equal(telemetry.subscriptions.size, 1);
     assert.equal(telemetry.subscriptions.get("sub-1").targetType, "network");
   });
 
-  it("drops subscriptions with their link context", () => {
-    const { telemetry, server } = wiredServer();
+  it("drops subscriptions with their link context", async () => {
+    const { telemetry, server } = await wiredServer();
     subscribe(server, "sub-1", "link-1");
     subscribe(server, "sub-2", "link-2");
     telemetry.dropContext("link-1");
     assert.deepEqual([...telemetry.subscriptions.keys()], ["sub-2"]);
   });
 
-  it("enforces the per-context subscription budget", () => {
+  it("enforces the per-context subscription budget", async () => {
     const transport = capture();
+    const serverPolicy = staticPolicy();
     const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
       send: transport.send,
       capabilities: ["TELEMETRY_READ"],
     });
@@ -121,7 +126,7 @@ describe("telemetry: subscriptions", () => {
       maxSubscriptionsPerContext: 2,
     });
     telemetry.register(server);
-    server.authorize("link-1");
+    await server.authorize("link-1", "test-identity");
     subscribe(server, "sub-1", "link-1");
     subscribe(server, "sub-2", "link-1");
     /** @type {any[]} */
@@ -134,7 +139,7 @@ describe("telemetry: subscriptions", () => {
     assert.equal(limited[0].subId, "sub-3");
     assert.deepEqual([...telemetry.subscriptions.keys()], ["sub-1", "sub-2"]);
     // Another context has its own budget.
-    server.authorize("link-2");
+    await server.authorize("link-2", "test-identity");
     subscribe(server, "sub-3", "link-2");
     assert.equal(limited.length, 1);
     assert.ok(telemetry.subscriptions.has("sub-3"));
@@ -142,7 +147,9 @@ describe("telemetry: subscriptions", () => {
 
   it("ceilings the client's requested flush interval", async () => {
     const transport = capture();
+    const serverPolicy = staticPolicy();
     const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
       send: transport.send,
       capabilities: ["TELEMETRY_READ"],
     });
@@ -152,7 +159,7 @@ describe("telemetry: subscriptions", () => {
       flushCeilingMs: 20,
     });
     telemetry.register(server);
-    server.authorize("link-1");
+    await server.authorize("link-1", "test-identity");
     // The client asks for a 24-day buffer; the runtime refuses to retain
     // events that long.
     server.handleFrame(
@@ -171,8 +178,8 @@ describe("telemetry: subscriptions", () => {
 });
 
 describe("telemetry: event mapping", () => {
-  it("maps data packets to DATA events with raw payloads", () => {
-    const { server, telemetry, transport, host } = wiredServer();
+  it("maps data packets to DATA events with raw payloads", async () => {
+    const { server, telemetry, transport, host } = await wiredServer();
     subscribe(server);
     host.emit("ip", { id: "DATA -> ECHO()", type: "data", data: 42 });
     telemetry.flushAll();
@@ -184,8 +191,8 @@ describe("telemetry: event mapping", () => {
     assert.equal(decoded.events[0].payload, 42);
   });
 
-  it("maps brackets to group boundaries", () => {
-    const { server, telemetry, transport, host } = wiredServer();
+  it("maps brackets to group boundaries", async () => {
+    const { server, telemetry, transport, host } = await wiredServer();
     subscribe(server);
     host.emit("ip", { type: "openBracket", data: "math" });
     host.emit("ip", { type: "data", data: 1 });
@@ -202,8 +209,8 @@ describe("telemetry: event mapping", () => {
     );
   });
 
-  it("maps network lifecycle to START/STOP lifecycle codes", () => {
-    const { server, telemetry, transport, host } = wiredServer();
+  it("maps network lifecycle to START/STOP lifecycle codes", async () => {
+    const { server, telemetry, transport, host } = await wiredServer();
     subscribe(server);
     host.emit("start", { start: 0 });
     host.emit("end", { uptime: 100 });
@@ -219,8 +226,8 @@ describe("telemetry: event mapping", () => {
     );
   });
 
-  it("classifies stub-raised errors by event type (update #9)", () => {
-    const { server, telemetry, transport, host } = wiredServer();
+  it("classifies stub-raised errors by event type (update #9)", async () => {
+    const { server, telemetry, transport, host } = await wiredServer();
     subscribe(server);
     host.emit("process-error", {
       id: "node-1",
@@ -241,8 +248,8 @@ describe("telemetry: event mapping", () => {
     assert.equal(decoded.events[1].payload, "genuine failure");
   });
 
-  it("frugalizes payloads the wire cannot carry", () => {
-    const { server, telemetry, transport, host } = wiredServer();
+  it("frugalizes payloads the wire cannot carry", async () => {
+    const { server, telemetry, transport, host } = await wiredServer();
     subscribe(server);
     /** @type {any} */
     const cyclic = { label: "state" };
@@ -255,8 +262,8 @@ describe("telemetry: event mapping", () => {
     assert.equal(decoded.events[1].payload, 7);
   });
 
-  it("delivers chunks to the subscribing context only", () => {
-    const { server, telemetry, transport, host } = wiredServer();
+  it("delivers chunks to the subscribing context only", async () => {
+    const { server, telemetry, transport, host } = await wiredServer();
     subscribe(server, "sub-1", "link-1");
     subscribe(server, "sub-2", "link-2");
     host.emit("ip", { type: "data", data: 1 });
@@ -266,14 +273,14 @@ describe("telemetry: event mapping", () => {
     assert.equal(wire(transport)[1].context, "link-2");
   });
 
-  it("does not flush empty buffers", () => {
-    const { telemetry, transport } = wiredServer();
+  it("does not flush empty buffers", async () => {
+    const { telemetry, transport } = await wiredServer();
     telemetry.flushAll();
     assert.equal(wire(transport).length, 0);
   });
 
-  it("drops events when nobody subscribes", () => {
-    const { host, telemetry, transport } = wiredServer();
+  it("drops events when nobody subscribes", async () => {
+    const { host, telemetry, transport } = await wiredServer();
     host.emit("ip", { type: "data", data: 1 });
     telemetry.flushAll();
     assert.equal(wire(transport).length, 0);
@@ -281,7 +288,11 @@ describe("telemetry: event mapping", () => {
 
   it("flushes on the effective cadence: requested interval, floored", async () => {
     const transport = capture();
-    const server = new RuntimeServer({ send: transport.send });
+    const serverPolicy = staticPolicy();
+    const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
+      send: transport.send,
+    });
     const host = new FakeHost();
     // 20ms floor: the client's zero request cannot storm the link.
     const telemetry = new TelemetryProtocol({
@@ -289,7 +300,7 @@ describe("telemetry: event mapping", () => {
       flushFloorMs: 20,
     });
     telemetry.register(server);
-    server.authorize("link-1");
+    await server.authorize("link-1", "test-identity");
     subscribe(server);
     host.emit("ip", { type: "data", data: 1 });
     assert.equal(wire(transport).length, 0);
@@ -305,7 +316,9 @@ describe("telemetry: event mapping", () => {
 describe("telemetry: real-engine integration", () => {
   it("streams a real network run through NetworkHost", async () => {
     const transport = capture();
+    const serverPolicy = staticPolicy();
     const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
       send: transport.send,
       capabilities: ["TELEMETRY_READ"],
     });
@@ -323,7 +336,7 @@ describe("telemetry: real-engine integration", () => {
     const host = new NetworkHost({ graph, componentLoader: loader });
     const telemetry = new TelemetryProtocol({ host, flushFloorMs: 0 });
     telemetry.register(server);
-    server.authorize("link-1");
+    await server.authorize("link-1", "test-identity");
     subscribe(server);
 
     await host.start();

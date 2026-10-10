@@ -41,6 +41,7 @@ import {
 } from "@reticulum/core";
 import { TCPClientInterface } from "@reticulum/node/src/interfaces/tcp.js";
 import { assembleRuntime, bindReticulum } from "../src/index.js";
+import { staticPolicy } from "./policy.js";
 
 const RNSD = process.env.RUNTIME_E2E_RNSD;
 
@@ -103,6 +104,7 @@ describeE2E("FBP runtime over a real rnsd", () => {
       const graph = new GraphModel({ name: "main" });
       graph.addNode({ entity_id: "node-1", component: "math/Add" });
       const runtime = await assembleRuntime({
+        capabilityPolicy: staticPolicy(),
         graph,
         catalog: {
           signatures: () => ({
