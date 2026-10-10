@@ -24,12 +24,16 @@
 import {
   CMD_BREAKPOINT_CLEAR,
   CMD_BREAKPOINT_SET,
+  CMD_GET_STATUS,
   CMD_HWM_SET,
+  CMD_PACKET_SEND,
   CMD_PROCESS_CTRL,
   CMD_RUN_CTRL,
   EVENT_TYPE,
+  encodeGetStatusRes,
   LIFECYCLE_CODE,
   RUN_ACTION,
+  RUN_STATE,
 } from "@noflo/fbp-protocol";
 
 /**
@@ -96,6 +100,50 @@ export class ExecutionProtocol {
     server.registerHandler(CMD_PROCESS_CTRL, (decoded, context) => {
       this.#engineGap("per-process disable", decoded, context);
     });
+    server.registerHandler(CMD_PACKET_SEND, (decoded) => {
+      if (!this.host.network) {
+        return;
+      }
+      // Resolve the exported inport: the plane's graph maps the port name
+      // to its internal node + port.
+      const port = decoded.port;
+      const target = this.#resolveExport(port);
+      if (!target) {
+        this.server.dispatchEvent(
+          new globalThis.CustomEvent("unsupported", {
+            detail: {
+              hook: `packet send: no exported inport named ${port}`,
+              decoded,
+              context: undefined,
+            },
+          }),
+        );
+        return;
+      }
+      this.host.network
+        .addInitial({
+          from: { data: decoded.payload },
+          to: { node: target.node, port: target.port },
+        })
+        .catch(() => {});
+    });
+    server.registerHandler(CMD_GET_STATUS, (decoded, context) => {
+      const network = this.host.network;
+      const runState = network?.isRunning?.()
+        ? RUN_STATE.RUNNING
+        : RUN_STATE.STOPPED;
+      const uptime = network?.uptime?.() ?? 0;
+      const epoch = this.host.graph?.name ?? "main";
+      this.server.send(
+        encodeGetStatusRes({
+          epochId: epoch,
+          runState,
+          uptimeMs: uptime,
+          advertisedMask: this.server.capabilityMask,
+        }),
+        context,
+      );
+    });
     server.registerHandler(CMD_HWM_SET, (decoded) => {
       this.host.setHighWaterMark(decoded.highWaterMark);
       if (this.host.network) {
@@ -124,6 +172,21 @@ export class ExecutionProtocol {
       this.telemetry.record(EVENT_TYPE.LIFECYCLE, LIFECYCLE_CODE.FAILED);
       this.telemetry.record(EVENT_TYPE.ERROR, `start failed: ${message}`);
     }
+  }
+
+  /**
+   * Resolve an exported inport name to its internal node + port.
+   *
+   * @param {string} portName
+   * @returns {{ node: string, port: string }|null}
+   */
+  #resolveExport(portName) {
+    for (const exp of this.host.graph?.exports?.() ?? []) {
+      if (exp.direction === "inport" && exp.public === portName) {
+        return { node: exp.internal.node, port: exp.internal.port };
+      }
+    }
+    return null;
   }
 
   /**
