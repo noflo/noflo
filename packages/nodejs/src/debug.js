@@ -1,9 +1,9 @@
-const clc = require('cli-color');
-const path = require('path');
+const clc = require("cli-color");
+const path = require("path");
 
 function networkIdentifier(network, options) {
   if (!network.graph || !options.graph) {
-    return 'Unknown network';
+    return "Unknown network";
   }
   if (!network.graph.name) {
     return path.basename(options.graph);
@@ -12,9 +12,9 @@ function networkIdentifier(network, options) {
 }
 
 function packetIdentifier(ip) {
-  let result = '';
+  let result = "";
   if (ip.subgraph) {
-    result += `${clc.magenta.italic(ip.subgraph.join(':'))} `;
+    result += `${clc.magenta.italic(ip.subgraph.join(":"))} `;
   }
   // TODO: Would be nice to utilize graph edge colors
   result += clc.blue.italic(ip.id);
@@ -35,35 +35,41 @@ function formatTime(ms) {
 }
 
 exports.add = (network, options) => {
-  network.on('start', ({ start }) => {
-    console.log(`${clc.green(networkIdentifier(network, options))} started on ${start}`);
+  network.on("start", ({ start }) => {
+    console.log(
+      `${clc.green(networkIdentifier(network, options))} started on ${start}`,
+    );
   });
-  network.on('end', ({ end, uptime }) => {
-    console.log(`${clc.green(networkIdentifier(network, options))} ended on ${end} (uptime ${formatTime(uptime)})`);
+  network.on("end", ({ end, uptime }) => {
+    console.log(
+      `${clc.green(networkIdentifier(network, options))} ended on ${end} (uptime ${formatTime(uptime)})`,
+    );
   });
-  network.on('ip', (ip) => {
+  network.on("ip", (ip) => {
     if (ip.subGraph && !options.verbose) {
       return;
     }
     switch (ip.type) {
-      case 'openbracket': {
+      case "openbracket": {
         console.log(`${packetIdentifier(ip)} ${clc.cyan(`< ${ip.data}`)}`);
         return;
       }
-      case 'closebracket': {
+      case "closebracket": {
         console.log(`${packetIdentifier(ip)} ${clc.cyan(`> ${ip.data}`)}`);
         return;
       }
-      case 'data': {
+      case "data": {
         if (options.verbose) {
-          console.log(`${packetIdentifier(ip)} ${clc.green('DATA')}`, ip.data);
+          console.log(`${packetIdentifier(ip)} ${clc.green("DATA")}`, ip.data);
           return;
         }
-        console.log(`${packetIdentifier(ip)} ${clc.green('DATA')}`);
+        console.log(`${packetIdentifier(ip)} ${clc.green("DATA")}`);
         return;
       }
       default: {
-        console.log(`${packetIdentifier(ip)} ${clc.cyan(`${ip.type} ${ip.data}`)}`);
+        console.log(
+          `${packetIdentifier(ip)} ${clc.cyan(`${ip.type} ${ip.data}`)}`,
+        );
       }
     }
   });
@@ -73,11 +79,11 @@ exports.add = (network, options) => {
 };
 
 exports.showError = (err) => {
-  let stack = err.stack.split('\n');
+  let stack = err.stack.split("\n");
   console.error(clc.red(err.message));
   if (stack.length > 10) {
     stack = stack.slice(1, 9);
-    stack.push('    ...');
+    stack.push("    ...");
   }
-  console.error(clc.cyan(stack.join('\n')));
+  console.error(clc.cyan(stack.join("\n")));
 };

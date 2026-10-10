@@ -18,6 +18,7 @@ server/
 npm-debug.log
 .DS_Store
 .noflo.json
+.flowtrace/
 *.tgz
 RELEASE_NOTES.md
 packages/*/~/

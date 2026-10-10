@@ -1,3 +1,13 @@
+# Changelog
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+### Changed
+- Ingested into the `noflo/noflo` monorepo as `@noflo/nodejs` (work document #31): package renamed and versioned in the monorepo lockstep, legacy tooling (ESLint, Travis-era CI, Dependabot config, `fbp-config.json`) removed, git history preserved via `git filter-repo`. The legacy 1.x runtime server (`noflo-runtime-base`/`-websocket`/`-webrtc` over the fbp-protocol 1.x wire) is not carried forward — the package re-architects as the Node.js host around `@noflo/runtime` and FBP Protocol 2.0 over Reticulum; the modernization lands in follow-up commits on the ingestion branch
+
 ## noflo-nodejs 0.15.3 (12-01-2024)
 
 * Now using the community version of NoFlo UI by default

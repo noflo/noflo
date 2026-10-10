@@ -1,28 +1,30 @@
-const { spawn, exec } = require('child_process');
-const path = require('path');
-const fbpHealthCheck = require('fbp-protocol-healthcheck');
+const { spawn, exec } = require("child_process");
+const path = require("path");
+const fbpHealthCheck = require("fbp-protocol-healthcheck");
 
 function healthCheck(callback) {
-  fbpHealthCheck('ws://localhost:8081')
-    .then(() => callback(), () => healthCheck(callback));
+  fbpHealthCheck("ws://localhost:8081").then(
+    () => callback(),
+    () => healthCheck(callback),
+  );
 }
 
-describe('FBP Spec Compatibility', () => {
-  const prog = path.resolve(__dirname, '../bin/noflo-nodejs');
-  const tester = path.resolve(__dirname, '../node_modules/.bin/fbp-spec');
-  const runtimeSecret = process.env.FBP_PROTOCOL_SECRET || 'noflo-nodejs';
+describe("FBP Spec Compatibility", () => {
+  const prog = path.resolve(__dirname, "../bin/noflo-nodejs");
+  const tester = path.resolve(__dirname, "../node_modules/.bin/fbp-spec");
+  const runtimeSecret = process.env.FBP_PROTOCOL_SECRET || "noflo-nodejs";
   let progProcess;
-  before('start runtime', (done) => {
+  before("start runtime", (done) => {
     progProcess = spawn(prog, [
-      '--host=localhost',
-      '--port=8081',
-      '--open=false',
-      '--trace=false',
+      "--host=localhost",
+      "--port=8081",
+      "--open=false",
+      "--trace=false",
       `--secret=${runtimeSecret}`,
     ]);
     healthCheck(done);
   });
-  after('stop runtime', (done) => {
+  after("stop runtime", (done) => {
     if (!progProcess) {
       done();
       return;
@@ -30,7 +32,7 @@ describe('FBP Spec Compatibility', () => {
     process.kill(progProcess.pid);
     done();
   });
-  it('should pass the test suite', (done) => {
+  it("should pass the test suite", (done) => {
     exec(
       `${tester} --secret ${runtimeSecret} --address ws://localhost:8081 spec/*.yaml`,
       (err, stdout, stderr) => {
