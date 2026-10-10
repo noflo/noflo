@@ -9,6 +9,7 @@ import {
   generateManifest,
   normalizeLibraryName,
   readLibraryIdentity,
+  readSource,
 } from "../src/index.js";
 
 // A fixture library: two elementary components (one browser-capable, one
@@ -107,6 +108,7 @@ describe("generateManifest", () => {
       "testlib/AssemblyThing",
       "testlib/BrowserThing",
       "testlib/NodeThing",
+      "testlib/CustomName",
       "testlib/Pipeline",
     ]);
   });
@@ -197,7 +199,36 @@ describe("generateManifest", () => {
       pipeline.signature.outports.map((p) => p.name),
       ["out"],
     );
-    assert.deepEqual(pipeline.references, ["testlib/BrowserThing"]);
+    assert.deepEqual(pipeline.references, [
+      "testlib/BrowserThing",
+      "otherlib/Thing",
+      "legacy/LegacyThing",
+    ]);
+  });
+
+  it("resolves the namespaces map from installed providers", () => {
+    assert.deepEqual(manifest.namespaces, {
+      otherlib: { npm: "@noflo/otherlib" },
+      legacy: { npm: "noflo-legacy" },
+    });
+  });
+
+  it("computes graph platforms from its references", () => {
+    const pipeline =
+      /** @type {import("../src/index.js").ManifestComponent} */ (
+        manifest.components.find((c) => c.name === "testlib/Pipeline")
+      );
+    // BrowserThing is browser-capable; otherlib/Thing and
+    // legacy/LegacyThing have no published manifests, so they qualify
+    // node-only and the intersection is node-only
+    assert.deepEqual(pipeline.platforms, ["node"]);
+  });
+
+  it("supports the @name source-comment override", () => {
+    const renamed = manifest.components.find(
+      (c) => c.name === "testlib/CustomName",
+    );
+    assert.ok(renamed, "CustomName should be present");
   });
 
   it("records the revision", async () => {
@@ -205,5 +236,57 @@ describe("generateManifest", () => {
       revision: "abc123",
     });
     assert.equal(withRevision.revision, "abc123");
+  });
+});
+
+describe("manifest failure modes", () => {
+  it("fails loudly when a referenced namespace has no installed provider", async () => {
+    const brokenDir = "test/fixtures/broken-refs";
+    fs.rmSync(brokenDir, { recursive: true, force: true });
+    fs.mkdirSync(path.join(brokenDir, "components"), { recursive: true });
+    fs.mkdirSync(path.join(brokenDir, "graphs"), { recursive: true });
+    fs.writeFileSync(
+      path.join(brokenDir, "package.json"),
+      JSON.stringify({ name: "@noflo/broken", type: "module" }),
+    );
+    fs.writeFileSync(
+      path.join(brokenDir, "components", "Passthrough.js"),
+      'import { Component } from "@noflo/noflo";\nexport function getComponent() {\n  return new Component({});\n}\n',
+    );
+    fs.writeFileSync(
+      path.join(brokenDir, "graphs", "Wiring.fbp"),
+      "INPORT=Thing.in:in\nOUTPORT=Thing.out:out\nThing(missing/Thing)\n",
+    );
+    await assert.rejects(
+      () => generateManifest(brokenDir),
+      /Namespaces without an installed provider: missing/,
+    );
+    fs.rmSync(brokenDir, { recursive: true, force: true });
+  });
+});
+
+describe("readSource", () => {
+  it("reads the revision from a git checkout", () => {
+    const { source, revision } = readSource(process.cwd());
+    assert.ok(source === null || source.startsWith("https://"));
+    // A real checkout resolves HEAD, never a ref name
+    if (fs.existsSync(path.join(process.cwd(), ".git"))) {
+      assert.match(revision ?? "", /^[0-9a-f]{40}$/);
+    }
+  });
+
+  it("yields nulls outside a git checkout", () => {
+    const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "noflo-manifest-"));
+    fs.writeFileSync(
+      path.join(scratch, "package.json"),
+      JSON.stringify({
+        name: "@noflo/scratch",
+        repository: { url: "https://github.com/example/scratch" },
+      }),
+    );
+    const { source, revision } = readSource(scratch);
+    assert.equal(source, "https://github.com/example/scratch");
+    assert.equal(revision, null);
+    fs.rmSync(scratch, { recursive: true, force: true });
   });
 });

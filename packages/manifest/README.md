@@ -49,8 +49,21 @@ const manifest = await generateManifest(baseDir, { revision: "abc123" });
 
 ## Notes
 
-- The tool must run where the library's dependencies are installed
-  (publish CI), since graph signature derivation resolves the internal
-  components of graph exports.
+- Graph signature derivation is data-first: an export's port metadata
+  is read from the in-package harvested signature of the wired
+  component, or from a dependency's published manifest when it ships
+  one. Only when neither source has the wired component does the
+  derivation fall back to loading it — so the tool must run where the
+  library's dependencies are installed (publish CI), and a graph-only
+  library whose dependencies ship manifests has an entirely static
+  pipeline.
+- Platform derivation is static import analysis: dynamic `import()`
+  and `export ... from` clauses are recognized, but relative imports
+  are not walked transitively, and import-looking text inside comments
+  counts as an import.
 - Dynamic loaders (`noflo.loader`) cannot be enumerated without
   execution; the manifest flags their presence instead.
+- Unresolved namespaces are a hard failure: if a graph references a
+  namespace with no installed provider, generation errors naming the
+  namespace rather than shipping a manifest that cannot resolve its
+  closure.

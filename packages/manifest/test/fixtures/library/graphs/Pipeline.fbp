@@ -1,3 +1,8 @@
 INPORT=Reader.in:in
 OUTPORT=Reader.out:out
+
 Reader(testlib/BrowserThing)
+Helper(otherlib/Thing)
+LegacyHelper(legacy/LegacyThing)
+
+Reader out -> in Helper

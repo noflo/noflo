@@ -36,5 +36,6 @@
   "files": [
     "src/",
     "bin/"
-  ]
+  ],
+  "license": "EUPL-1.2"
 }

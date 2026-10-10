@@ -8,8 +8,21 @@
 //
 // The only execution in the pipeline is the author's own code on the
 // author's machine at publish time: elementary component signatures are
-// harvested by calling the module's `getComponent()`.
+// harvested by calling the module's `getComponent()`, and graph
+// signatures are derived from the exported ports of their wired
+// components. Graph signature derivation is data-first: an export's
+// port metadata is read from an in-package harvested signature, or from
+// a dependency's published manifest when one ships; only when neither
+// is available does the derivation fall back to loading the wired
+// component.
 
+// (c) 2021-2026 Henri Bergius
+// SPDX-License-Identifier: EUPL-1.2
+
+// (c) 2021-2026 Henri Bergius
+// SPDX-License-Identifier: EUPL-1.2
+
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -100,12 +113,13 @@ export function readLibraryIdentity(baseDir) {
 
 /**
  * Reads the git repository URL and current revision for the package.
+ * Uses `git rev-parse` so packed refs and worktree `.git` files are
+ * handled; a non-git directory yields nulls.
  * @param {string} baseDir
  * @returns {{ source: string|null, revision: string|null }}
  */
 export function readSource(baseDir) {
   let source = null;
-  let revision = null;
   const pkgPath = path.join(baseDir, "package.json");
   if (fs.existsSync(pkgPath)) {
     const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
@@ -114,41 +128,59 @@ export function readSource(baseDir) {
       source = url.replace(/^git\+/, "").replace(/\.git$/, "");
     }
   }
-  const gitDir = path.join(baseDir, ".git");
-  if (fs.existsSync(gitDir)) {
-    try {
-      revision = fs.readFileSync(path.join(gitDir, "HEAD"), "utf8").trim();
-      const match = /^ref: (.+)$/.exec(revision);
-      if (match) {
-        revision = fs.readFileSync(path.join(gitDir, match[1]), "utf8").trim();
-      }
-    } catch {
-      // Not a readable git checkout
-    }
+  let revision = null;
+  try {
+    revision = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: baseDir,
+      encoding: "utf8",
+    }).trim();
+  } catch {
+    // Not a git checkout (or git unavailable); provenance stays null
+    revision = null;
   }
   return { source, revision };
 }
 
 /**
- * Derives the platform set from a component module's static imports,
- * following the migration protocol's dependency ladder: Web-standard
- * imports (or no imports beyond the framework) are browser-capable,
- * `node:` imports are server-side runtimes, and third-party imports
- * qualify for Node conservatively.
+ * Derives the platform set from a module's static imports, following
+ * the migration protocol's dependency ladder: Web-standard imports (or
+ * no imports beyond the framework) are browser-capable, `node:` imports
+ * are server-side runtimes, and third-party imports qualify for Node
+ * conservatively.
+ *
+ * Known limits, documented in the README: dynamic `import()` and
+ * `export ... from` clauses are recognized, but relative imports are
+ * not walked transitively, and import-looking text inside comments
+ * counts as an import.
  * @param {string} modulePath
  * @returns {string[]}
  */
 export function derivePlatforms(modulePath) {
   const source = fs.readFileSync(modulePath, "utf8");
-  const imports = [];
-  const importPattern = /import\s+(?:[\w*{},\s]+from\s+)?["']([^"']+)["']/g;
-  let match = importPattern.exec(source);
-  while (match) {
-    imports.push(match[1]);
-    match = importPattern.exec(source);
+  return derivePlatformsFromSource(source);
+}
+
+/**
+ * @param {string} source
+ * @returns {string[]}
+ */
+export function derivePlatformsFromSource(source) {
+  /** @type {string[]} */
+  const specifiers = [];
+  const patterns = [
+    /import\s+(?:[\w*{},\s]+from\s+)?["']([^"']+)["']/g,
+    /export\s+(?:[\w*{},\s]+from\s+)?["']([^"']+)["']/g,
+    /import\(\s*["']([^"']+)["']\s*\)/g,
+  ];
+  for (const pattern of patterns) {
+    let match = pattern.exec(source);
+    while (match) {
+      specifiers.push(match[1]);
+      match = pattern.exec(source);
+    }
   }
   let level = 1;
-  for (const specifier of imports) {
+  for (const specifier of specifiers) {
     if (specifier.startsWith("node:")) {
       level = Math.max(level, 2);
       continue;
@@ -157,9 +189,9 @@ export function derivePlatforms(modulePath) {
       continue;
     }
     if (specifier.startsWith(".") || specifier.startsWith("#")) {
-      // Relative package-internal imports carry no additional
+      // Relative and package-internal imports carry no additional
       // requirement at this level; a full closure analysis would walk
-      // them
+      // them transitively
       continue;
     }
     level = 3;
@@ -196,7 +228,7 @@ function harvestPorts(ports) {
 /**
  * Harvests the signature and metadata from an instantiated component.
  * @param {import("@noflo/noflo").Component} instance
- * @returns {{ signature: ManifestSignature, description: string|null, icon: string|null, assembly: boolean }}
+ * @returns {{ signature: ManifestSignature, description: string|null, icon: string|null }}
  */
 export function harvestInstance(instance) {
   const signature = {
@@ -207,7 +239,6 @@ export function harvestInstance(instance) {
     signature,
     description: instance.description ?? null,
     icon: instance.getIcon?.() ?? instance.icon ?? null,
-    assembly: false,
   };
 }
 
@@ -215,10 +246,6 @@ export function harvestInstance(instance) {
  * Detects the Assembly Line convention for an instantiated component by
  * walking its prototype chain against the Assembly base class.
  * @param {import("@noflo/noflo").Component} instance
- * @returns {boolean}
- */
-/**
- * @param {any} instance
  * @returns {Promise<boolean>}
  */
 export async function detectAssembly(instance) {
@@ -240,8 +267,8 @@ export async function detectAssembly(instance) {
 }
 
 /**
- * Finds the fbp-spec suite associated with a component, by the
- * basename convention (spec/<Name>.yaml).
+ * Finds the fbp-spec suite associated with a component, searching the
+ * `spec/` tree recursively by basename.
  * @param {string} baseDir
  * @param {string} componentName
  * @returns {string|null}
@@ -252,13 +279,43 @@ function findSpec(baseDir, componentName) {
   if (!fs.existsSync(specDir)) {
     return null;
   }
-  for (const ext of [".yaml", ".yml", ".json"]) {
-    const candidate = path.join("spec", `${base}${ext}`);
-    if (fs.existsSync(path.join(baseDir, candidate))) {
-      return candidate;
+  /** @type {string|null} */
+  let found = null;
+  const walk = (dir) => {
+    if (found) {
+      return;
     }
-  }
-  return null;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const entryPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(entryPath);
+        continue;
+      }
+      const rel = path.relative(baseDir, entryPath);
+      if (
+        (entry.name === `${base}.yaml` ||
+          entry.name === `${base}.yml` ||
+          entry.name === `${base}.json`) &&
+        !found
+      ) {
+        found = rel.split(path.sep).join("/");
+      }
+    }
+  };
+  walk(specDir);
+  return found;
+}
+
+/**
+ * Reads the `@name` source-comment override for a component file, when
+ * present (the migration protocol's `@name Foo` comment).
+ * @param {string} modulePath
+ * @returns {string|null}
+ */
+function readNameOverride(modulePath) {
+  const source = fs.readFileSync(modulePath, "utf8");
+  const match = /@name\s+([A-Za-z0-9_-]+)/.exec(source);
+  return match ? match[1] : null;
 }
 
 /**
@@ -277,27 +334,164 @@ export async function createLoader(baseDir) {
 }
 
 /**
- * Statically derives a graph component's signature from its exported
- * ports, by resolving the internal components through the loader and
- * reading the exported port metadata from the wired subgraph.
+ * Candidate npm package names providing a library namespace: the scoped
+ * convention first, then the unscoped legacy one (both are valid
+ * providers for the loader's discovery).
+ * @param {string} namespace
+ * @returns {string[]}
+ */
+function providerPackageNames(namespace) {
+  return [`@noflo/${namespace}`, `noflo-${namespace}`];
+}
+
+/**
+ * Resolves the npm package providing a library namespace, by reading
+ * the provider's package.json from the package's own node_modules.
+ * Throws when no provider is installed, since an unresolved namespace
+ * breaks data-only closure resolution.
+ * @param {string} baseDir
+ * @param {string} namespace
+ * @returns {{ npm: string }}
+ */
+function resolveNamespaceProvider(baseDir, namespace) {
+  for (const candidate of providerPackageNames(namespace)) {
+    const pkgPath = path.join(
+      baseDir,
+      "node_modules",
+      candidate,
+      "package.json",
+    );
+    if (fs.existsSync(pkgPath)) {
+      return { npm: JSON.parse(fs.readFileSync(pkgPath, "utf8")).name };
+    }
+  }
+  throw new Error(
+    `Manifest generation failed: the namespace '${namespace}' is referenced by this package's graphs, but no providing package (${providerPackageNames(namespace).join(" or ")}) is installed in node_modules. Install it so the namespaces map can resolve the closure.`,
+  );
+}
+
+/**
+ * Derives a graph component's signature from its exported ports. The
+ * derivation is data-first: an export's port metadata is read from the
+ * in-package harvested signature of the wired component, or from the
+ * wired component's published manifest when its package ships one. Only
+ * when neither source has the wired component does the derivation fall
+ * back to resolving it through the loader (the one executing step).
  * @param {import("@noflo/graph").GraphModel} graph
  * @param {import("@noflo/noflo").ComponentLoader} loader
+ * @param {Map<string, ManifestComponent>} harvestedByName
+ * @param {string} baseDir
  * @returns {Promise<{ signature: ManifestSignature, description: string|null, icon: string|null }>}
  */
-export async function deriveGraphSignature(graph, loader) {
-  const manifestLoader = loader;
-  manifestLoader.registerGraph("__manifest", "__graph", graph);
-  const instance = await manifestLoader.load("__manifest/__graph");
-  const signature = {
-    inports: harvestPorts(instance.inPorts),
-    outports: harvestPorts(instance.outPorts),
-  };
+export async function deriveGraphSignature(
+  graph,
+  loader,
+  harvestedByName,
+  baseDir,
+) {
   const graphMetadata = graph.graphMetadata?.() ?? {};
+  /** @type {ManifestPort[]} */
+  const inports = [];
+  /** @type {ManifestPort[]} */
+  const outports = [];
+  /** @type {boolean} */
+  let needsFallback = false;
+  for (const exp of graph.exports()) {
+    const internal = `${exp.internal.node}/${exp.internal.port}`;
+    const harvested = harvestedByName.get(exp.internal.node);
+    const entry = harvested ?? manifestSignatureFor(baseDir, exp.internal.node);
+    if (!entry) {
+      needsFallback = true;
+      break;
+    }
+    const signature =
+      "type" in entry &&
+      (entry.type === "elementary" || entry.type === "subgraph")
+        ? entry.signature
+        : /** @type {ManifestSignature} */ (/** @type {unknown} */ (entry));
+    const all = [...signature.inports, ...signature.outports];
+    const port = all.find((p) => p.name === exp.internal.port);
+    if (!port) {
+      throw new Error(
+        `Graph export '${exp.public}' targets '${internal}', but the wired component declares no such port`,
+      );
+    }
+    const manifestPort = { ...port, name: exp.public };
+    if (exp.direction === "inport") {
+      inports.push(manifestPort);
+    } else {
+      outports.push(manifestPort);
+    }
+  }
+  if (needsFallback) {
+    // The wired component is neither harvested in-package nor manifest-
+    // published: resolve it through the loader (executes its code)
+    loader.registerGraph("__manifest", "__graph", graph);
+    let instance;
+    try {
+      instance = await loader.load("__manifest/__graph");
+    } catch (error) {
+      const unresolvable = graph
+        .nodes()
+        .map((node) => node.component)
+        .filter(
+          (name) =>
+            !harvestedByName.has(name) && !manifestSignatureFor(baseDir, name),
+        );
+      const namespaces = new Set(
+        unresolvable.map((name) => name.split("/")[0]),
+      );
+      const detail = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Graph wires components that cannot be resolved: ${unresolvable.join(", ")}. No in-package signature, no published manifest, and not loadable (\`${detail}\`). Namespaces without an installed provider: ${[...namespaces].join(", ") || "none"}. Install the providing packages (npm:@noflo/<namespace> or noflo-<namespace>) before generating the manifest.`,
+      );
+    }
+    return {
+      signature: {
+        inports: harvestPorts(instance.inPorts),
+        outports: harvestPorts(instance.outPorts),
+      },
+      description: graphMetadata.description ?? instance.description ?? null,
+      icon: graphMetadata.icon ?? instance.icon ?? null,
+    };
+  }
   return {
-    signature,
-    description: graphMetadata.description ?? instance.description ?? null,
-    icon: graphMetadata.icon ?? instance.icon ?? null,
+    signature: { inports, outports },
+    description: graphMetadata.description ?? null,
+    icon: graphMetadata.icon ?? null,
   };
+}
+
+/**
+ * Reads a component's manifest entry from a dependency's published
+ * manifest, when the dependency ships one.
+ * @param {string} baseDir
+ * @param {string} namespacedName
+ * @returns {ManifestComponent|null}
+ */
+function manifestSignatureFor(baseDir, namespacedName) {
+  const namespace = namespacedName.split("/")[0];
+  if (!namespace) {
+    return null;
+  }
+  for (const candidate of providerPackageNames(namespace)) {
+    const manifestPath = path.join(
+      baseDir,
+      "node_modules",
+      candidate,
+      "noflo.json",
+    );
+    if (!fs.existsSync(manifestPath)) {
+      continue;
+    }
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    return (
+      manifest.components?.find(
+        (/** @type {any} */ c) => c.name === namespacedName,
+      ) ?? null
+    );
+  }
+  return null;
 }
 
 /**
@@ -316,6 +510,22 @@ export function graphReferences(graph) {
 }
 
 /**
+ * Intersects platform sets; an empty intersection (or an empty input)
+ * falls back to node-only, since something must provide the runtime.
+ * @param {string[][]} sets
+ * @returns {string[]}
+ */
+function intersectPlatforms(sets) {
+  if (!sets.length) {
+    return ["node"];
+  }
+  const intersection = sets.reduce((acc, set) =>
+    acc.filter((p) => set.includes(p)),
+  );
+  return intersection.length ? intersection : ["node"];
+}
+
+/**
  * Generates the manifest for a NoFlo component library.
  * @param {string} baseDir - Package root of the library
  * @param {{ revision?: string|null }} [options]
@@ -330,6 +540,8 @@ export async function generateManifest(baseDir, options = {}) {
   const loader = await createLoader(baseDir);
   /** @type {ManifestComponent[]} */
   const components = [];
+  /** @type {Map<string, ManifestComponent>} */
+  const harvestedByName = new Map();
 
   // Elementary components
   if (fs.existsSync(componentsDir)) {
@@ -338,24 +550,33 @@ export async function generateManifest(baseDir, options = {}) {
       .filter((file) => file.endsWith(".js") && !file.endsWith(".d.ts"));
     for (const file of moduleFiles) {
       const modulePath = path.join(componentsDir, file);
+      const nameOverride = readNameOverride(modulePath);
+      const componentName = nameOverride ?? path.basename(file, ".js");
       const moduleUrl = pathToFileURL(modulePath).href;
-      const module = await import(moduleUrl);
-      const instance = module.getComponent();
-      const { signature, description, icon, assembly } = {
-        ...harvestInstance(instance),
-        assembly: await detectAssembly(instance),
-      };
-      components.push({
-        name: `${identity.id}/${path.basename(file, ".js")}`,
+      let instance;
+      try {
+        const module = await import(moduleUrl);
+        instance = module.getComponent();
+      } catch (error) {
+        throw new Error(
+          `Failed to load component '${file}' while harvesting its signature: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+      const { signature, description, icon } = harvestInstance(instance);
+      const assembly = await detectAssembly(instance);
+      const entry = {
+        name: identity.id ? `${identity.id}/${componentName}` : componentName,
         path: path.posix.join("components", file),
-        type: "elementary",
+        type: /** @type {"elementary"} */ ("elementary"),
         description,
         icon,
         signature,
-        spec: findSpec(baseDir, file),
+        spec: findSpec(baseDir, componentName),
         assembly,
         platforms: derivePlatforms(modulePath),
-      });
+      };
+      components.push(entry);
+      harvestedByName.set(componentName, entry);
     }
   }
 
@@ -375,24 +596,46 @@ export async function generateManifest(baseDir, options = {}) {
       const { signature, description, icon } = await deriveGraphSignature(
         graph,
         loader,
+        harvestedByName,
+        baseDir,
+      );
+      const references = graphReferences(graph);
+      // A graph runs wherever all of its wired components run. In-package
+      // platforms are already harvested; cross-package ones come from the
+      // dependency's published manifest when it ships one, and default
+      // to node-only otherwise.
+      const platforms = intersectPlatforms(
+        references.map((reference) => {
+          const inPackage = harvestedByName.get(
+            reference.split("/").pop() ?? "",
+          );
+          if (inPackage) {
+            return inPackage.platforms;
+          }
+          const fromManifest = manifestSignatureFor(baseDir, reference);
+          return fromManifest?.platforms ?? ["node"];
+        }),
       );
       components.push({
-        name: `${identity.id}/${path.basename(file, path.extname(file))}`,
+        name: identity.id
+          ? `${identity.id}/${path.basename(file, path.extname(file))}`
+          : path.basename(file, path.extname(file)),
         path: path.posix.join("graphs", file),
         type: "subgraph",
         description,
         icon,
         signature,
-        spec: findSpec(baseDir, file),
+        spec: findSpec(baseDir, path.basename(file, path.extname(file))),
         assembly: false,
-        references: graphReferences(graph),
-        platforms: ["node"],
+        references,
+        platforms,
       });
     }
   }
 
   // Namespace map: every library namespace referenced by this package's
-  // graphs, resolved to the providing package via node_modules
+  // graphs, resolved to the providing package. Unresolved namespaces are
+  // a hard failure: closure resolution from data is the point of the map.
   /** @type {Record<string, { npm: string }>} */
   const namespaces = {};
   const namespaceNames = new Set();
@@ -405,18 +648,7 @@ export async function generateManifest(baseDir, options = {}) {
     }
   }
   for (const namespace of namespaceNames) {
-    const pkgPath = path.join(
-      baseDir,
-      "node_modules",
-      `@noflo`,
-      namespace,
-      "package.json",
-    );
-    if (fs.existsSync(pkgPath)) {
-      namespaces[namespace] = {
-        npm: JSON.parse(fs.readFileSync(pkgPath, "utf8")).name,
-      };
-    }
+    namespaces[namespace] = resolveNamespaceProvider(baseDir, namespace);
   }
 
   return {

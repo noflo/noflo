@@ -1,0 +1,15 @@
+// @name CustomName
+import { Component } from "@noflo/noflo";
+export function getComponent() {
+  const c = new Component({
+    inPorts: { in: { datatype: "string", required: true } },
+    outPorts: { out: { datatype: "string" } },
+  });
+  c.process((input, output) => {
+    if (!input.hasData("in")) {
+      return;
+    }
+    output.sendDone({ out: input.getData("in") });
+  });
+  return c;
+}
