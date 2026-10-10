@@ -8,6 +8,7 @@
  *   messages are flat positional MsgPack arrays — keyed dictionaries are
  *   banned on the wire to preserve radio airtime.
  */
+/* @ts-self-types="./constants.d.ts" */
 
 import { ProtocolError } from "./errors.js";
 

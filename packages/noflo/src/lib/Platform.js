@@ -10,8 +10,10 @@
     no-undef,
 */
 
-// Platform detection method
 /**
+ * Detect whether NoFlo is running in a browser-like environment rather than a
+ * server-side JavaScript runtime.
+ *
  * @returns {boolean}
  */
 export function isBrowser() {

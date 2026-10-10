@@ -117,9 +117,32 @@ export function hasDescription(jsDoc) {
   return !!(jsDoc && String(jsDoc.doc ?? "").trim());
 }
 
-/** Resolve `./x.js` / `../x.js` against the importing file's directory. */
+/**
+ * Resolve a module specifier against the importing file. Relative specifiers
+ * resolve normally; bare `@noflo/<name>` specifiers resolve to the monorepo
+ * workspace package's JSR entrypoint, so that docs for re-exported symbols
+ * are read from the package that defines them — the same thing JSR's doc
+ * scoring does across published packages.
+ *
+ * @param {string} spec
+ * @param {string} fromFile
+ * @returns {string|null}
+ */
 function resolveFrom(spec, fromFile) {
-  if (!spec.startsWith(".")) return null; // bare specifier (external) — not ours
+  if (!spec.startsWith(".")) {
+    const workspace = spec.match(/^@noflo\/([a-z-]+)$/);
+    if (workspace) {
+      const jsr = join(DEFAULT_ROOT, "packages", workspace[1], "jsr.json");
+      if (existsSync(jsr)) {
+        const { exports: entrypoints } = JSON.parse(readFileSync(jsr, "utf8"));
+        const entry = entrypoints?.["."];
+        if (typeof entry === "string") {
+          return join(dirname(jsr), entry);
+        }
+      }
+    }
+    return null; // other external — not ours
+  }
   return resolve(dirname(fromFile), spec);
 }
 

@@ -19,24 +19,20 @@ import { BaseNetwork } from "./BaseNetwork.js";
  * @property {import("./Component.js").Component} [component]
  */
 
-// ## The NoFlo network coordinator
-//
-// NoFlo networks consist of processes connected to each other
-// via sockets attached from outports to inports.
-//
-// The role of the network coordinator is to take a graph and
-// instantiate all the necessary processes from the designated
-// components, attach sockets between them, and handle the sending
-// of Initial Information Packets.
+/**
+ * The NoFlo network coordinator.
+ *
+ * NoFlo networks consist of processes connected to each other via sockets
+ * attached from outports to inports. The role of the network coordinator is
+ * to take a graph and instantiate all the necessary processes from the
+ * designated components, attach sockets between them, and handle the sending
+ * of Initial Information Packets.
+ */
 export class Network extends BaseNetwork {
-  // Add a process to the network. The node will also be registered
-  // with the current graph.
   /**
-   * @param {import("@noflo/graph").GraphNode} node
-   * @param {Object} options
-   * @returns {Promise<NetworkProcess>}
-   */
-  /**
+   * Add a process to the network. The node will also be registered with the
+   * current graph.
+   *
    * @param {import("@noflo/graph").GraphNode} node
    * @param {Object} [options]
    * @returns {Promise<NetworkProcess>}
@@ -50,24 +46,41 @@ export class Network extends BaseNetwork {
     });
   }
 
-  // Remove a process from the network. The node will also be removed
-  // from the current graph.
+  /**
+   * Remove a process from the network. The node will also be removed from
+   * the current graph.
+   *
+   * @param {import("@noflo/graph").GraphNode} node
+   * @returns {Promise<void>}
+   */
   removeNode(node) {
     return super.removeNode(node).then(() => {
       this.graph.removeNode(node.entity_id);
     });
   }
 
-  // Rename a process in the network. Renaming a process also modifies
-  // the current graph.
+  /**
+   * Rename a process in the network. Renaming a process also modifies the
+   * current graph.
+   *
+   * @param {string} oldId
+   * @param {string} newId
+   * @returns {Promise<void>}
+   */
   renameNode(oldId, newId) {
     return super.renameNode(oldId, newId).then(() => {
       this.graph.renameNode(oldId, newId);
     });
   }
 
-  // Add a connection to the network. The edge will also be registered
-  // with the current graph.
+  /**
+   * Add a connection to the network. The edge will also be registered with
+   * the current graph.
+   *
+   * @param {import("@noflo/graph").GraphEdge} edge
+   * @param {Object} [options]
+   * @returns {Promise<import("./InternalSocket.js").InternalSocket>}
+   */
   addEdge(edge, options = {}) {
     return super.addEdge(edge, options).then((socket) => {
       if (!options.initial) {
@@ -81,16 +94,28 @@ export class Network extends BaseNetwork {
     });
   }
 
-  // Remove a connection from the network. The edge will also be removed
-  // from the current graph.
+  /**
+   * Remove a connection from the network. The edge will also be removed
+   * from the current graph.
+   *
+   * @param {import("@noflo/graph").GraphEdge} edge
+   * @returns {Promise<void>}
+   */
   removeEdge(edge) {
     return super.removeEdge(edge).then(() => {
       this.removeGraphEdge(edge);
     });
   }
 
-  // Add an IIP to the network. The IIP will also be registered with the
-  // current graph. If the network is running, the IIP will be sent immediately.
+  /**
+   * Add an IIP to the network. The IIP will also be registered with the
+   * current graph. If the network is running, the IIP will be sent
+   * immediately.
+   *
+   * @param {import("@noflo/graph").GraphIIP} iip
+   * @param {Object} [options]
+   * @returns {Promise<import("./InternalSocket.js").InternalSocket>}
+   */
   addInitial(iip, options = {}) {
     return super.addInitial(iip, options).then((socket) => {
       if (!options.initial) {
@@ -104,8 +129,13 @@ export class Network extends BaseNetwork {
     });
   }
 
-  // Remove an IIP from the network. The IIP will also be removed from the
-  // current graph.
+  /**
+   * Remove an IIP from the network. The IIP will also be removed from the
+   * current graph.
+   *
+   * @param {import("@noflo/graph").GraphIIP} iip
+   * @returns {Promise<void>}
+   */
   removeInitial(iip) {
     return super.removeInitial(iip).then(() => {
       this.removeGraphIIP(iip);

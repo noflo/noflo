@@ -52,6 +52,8 @@ export const CAPABILITY_RELATIONS = {
 };
 
 /**
+ * Options for {@link DacarCapabilityPolicy}.
+ *
  * @typedef {object} DacarPolicyOptions
  * @property {import("@reticulum/dacar").Engine} options.engine The Dacar
  *   authorization engine (config + CRDT state kept current by the

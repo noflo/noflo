@@ -17,6 +17,9 @@ import { Component } from "@noflo/noflo";
 import getParams from "get-function-params";
 
 /**
+ * A single parameter of the wrapped function, as discovered by parameter
+ * reflection.
+ *
  * @typedef FuncParam
  * @property {string} param
  * @property {any} [default]
@@ -32,6 +35,8 @@ import getParams from "get-function-params";
  * @property {any} [default]
  */
 /**
+ * Options for the {@link asComponent} generator.
+ *
  * @typedef AsComponentOptions
  * @property {string} [description]
  * @property {string} [icon]

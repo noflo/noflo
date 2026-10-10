@@ -27,6 +27,7 @@
  *   metadata changes go through the setters, which replace the entity and
  *   emit a change event.
  */
+/* @ts-self-types="./GraphModel.d.ts" */
 
 import { stableStringify } from "./canonical.js";
 import {
@@ -41,12 +42,31 @@ import {
 } from "./entities.js";
 
 /**
+ * A process instance in the graph.
  * @typedef {import("./entities.js").GraphNode} GraphNode
+ */
+/**
+ * A connection between two node ports.
  * @typedef {import("./entities.js").GraphEdge} GraphEdge
+ */
+/**
+ * An initial Information Packet targeting a node port.
  * @typedef {import("./entities.js").GraphIIP} GraphIIP
+ */
+/**
+ * A public port exposing part of the graph boundary.
  * @typedef {import("./entities.js").GraphExport} GraphExport
+ */
+/**
+ * A named, visual-only collection of nodes.
  * @typedef {import("./entities.js").GraphGroup} GraphGroup
+ */
+/**
+ * The five first-class entity kinds, in canonical order.
  * @typedef {import("./entities.js").EntityKind} EntityKind
+ */
+/**
+ * Reference to one end of a connection: a node and one of its ports.
  * @typedef {import("./entities.js").GraphPortRef} GraphPortRef
  */
 

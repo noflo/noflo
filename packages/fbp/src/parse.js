@@ -10,6 +10,7 @@
  *
  * @module
  */
+/* @ts-self-types="./parse.d.ts" */
 
 import { scanJsonText } from "./json-value.js";
 import { validateContents, validateSchema } from "./validate.js";
@@ -72,6 +73,8 @@ const FAIL = Symbol("parse-fail");
 // biome-ignore lint/suspicious/noShadowRestrictedNames: mirrors the reference `fbp` parser API
 export class SyntaxError extends Error {
   /**
+   * Create a syntax error with the position where parsing failed.
+   *
    * @param {string} message
    * @param {SyntaxErrorLocation} location
    * @param {string | undefined} found
@@ -79,7 +82,17 @@ export class SyntaxError extends Error {
   constructor(message, location, found) {
     super(message);
     this.name = "SyntaxError";
+    /**
+     * Start and end positions of the parse failure.
+     *
+     * @type {SyntaxErrorLocation}
+     */
     this.location = location;
+    /**
+     * The offending character, when the failure happened mid-input.
+     *
+     * @type {string | undefined}
+     */
     this.found = found;
   }
 }

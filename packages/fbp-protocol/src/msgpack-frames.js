@@ -9,6 +9,7 @@
  *   length of the value starting at an offset, structure-aware, without
  *   materializing any of it.
  */
+/* @ts-self-types="./msgpack-frames.d.ts" */
 
 import { ProtocolError } from "./errors.js";
 

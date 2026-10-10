@@ -56,67 +56,109 @@ const debugSend = createDebug("noflo:component:send");
 // eslint-disable-next-line max-len
 /** @typedef {{ __resolved?: boolean, __bracketClosingAfter?: BracketContext[], [key: string]: any }} ProcessResult */
 
-// ## NoFlo Component Base class
-//
-// The `noflo.Component` interface provides a way to instantiate
-// and extend NoFlo components.
+/**
+ * The NoFlo Component base class.
+ *
+ * The `noflo.Component` interface provides a way to instantiate and extend
+ * NoFlo components.
+ */
 export class Component extends LegacyEventBase {
   /**
+   * Create a component. Ports, icon, description, ordering behavior, and the
+   * process function can all be provided via options, or set up imperatively
+   * afterwards (ports via `component.inPorts.add`, the process function via
+   * {@link Component#process}).
+   *
    * @param {ComponentOptions} [options]
    */
   constructor(options = {}) {
     super();
     const opts = options;
-    // Prepare inports, if any were given in options.
-    // They can also be set up imperatively after component
-    // instantiation by using the `component.inPorts.add`
-    // method.
+    // Prepare inports, if any were given in options
     if (!opts.inPorts) {
       opts.inPorts = {};
     }
-    if (opts.inPorts instanceof InPorts) {
-      this.inPorts = opts.inPorts;
-    } else {
-      this.inPorts = new InPorts(opts.inPorts);
-    }
+    /**
+     * Input ports of the component; can also be extended imperatively after instantiation via {@link InPorts#add}
+     * @type {InPorts}
+     */
+    this.inPorts =
+      opts.inPorts instanceof InPorts
+        ? opts.inPorts
+        : new InPorts(opts.inPorts);
 
-    // Prepare outports, if any were given in opts.
-    // They can also be set up imperatively after component
-    // instantiation by using the `component.outPorts.add`
-    // method.
+    // Prepare outports, if any were given in opts
     if (!opts.outPorts) {
       opts.outPorts = {};
     }
-    if (opts.outPorts instanceof OutPorts) {
-      this.outPorts = opts.outPorts;
-    } else {
-      this.outPorts = new OutPorts(opts.outPorts);
-    }
+    /**
+     * Output ports of the component; can also be extended imperatively after instantiation via {@link OutPorts#add}
+     * @type {OutPorts}
+     */
+    this.outPorts =
+      opts.outPorts instanceof OutPorts
+        ? opts.outPorts
+        : new OutPorts(opts.outPorts);
 
     // Set the default component icon and description
+    /**
+     * Icon name for UI display, from options or library defaults
+     * @type {string}
+     */
     this.icon = opts.icon ? opts.icon : "";
+    /**
+     * One-line component description
+     * @type {string}
+     */
     this.description = opts.description ? opts.description : "";
 
-    /** @type {string|null} */
+    /**
+     * Name the component instance is registered under in the network, populated by the network
+     * @type {string|null}
+     */
     this.componentName = null;
-    /** @type {string|null} */
+    /**
+     * Base directory for the component, populated by the loader on Node.js
+     * @type {string|null}
+     */
     this.baseDir = null;
 
     // Initially the component is not started
+    /**
+     * Whether the component has been started via {@link Component#start}
+     * @type {boolean}
+     */
     this.started = false;
+    /**
+     * Number of currently active processing contexts
+     * @type {number}
+     */
     this.load = 0;
 
     // Whether the component should keep send packets
     // out in the order they were received
+    /**
+     * Whether to keep output packets in the order input was received, fixed at construction
+     * @type {boolean}
+     */
     this.ordered = opts.ordered != null ? opts.ordered : false;
+    /**
+     * Whether to automatically switch to ordered output when packet order is detected to matter; overridden by {@link Component#ordered}
+     * @type {boolean|null}
+     */
     this.autoOrdering = opts.autoOrdering != null ? opts.autoOrdering : null;
 
     // Queue for handling ordered output packets
-    /** @type {ProcessResult[]} */
+    /**
+     * Output queue for ordered components, drained by {@link Component#processOutputQueue}
+     * @type {ProcessResult[]}
+     */
     this.outputQ = [];
 
-    // Context used for bracket forwarding
-    /** @type {BracketContext} */
+    /**
+     * Bracket forwarding state, keyed by direction (`in`/`out`), port, and scope
+     * @type {BracketContext}
+     */
     this.bracketContext = {
       in: {},
       out: {},
@@ -124,6 +166,10 @@ export class Component extends LegacyEventBase {
 
     // Whether the component should activate when it
     // receives packets
+    /**
+     * Whether incoming packets should activate the process function (only `false` for components driven manually)
+     * @type {boolean}
+     */
     this.activateOnInput =
       opts.activateOnInput != null ? opts.activateOnInput : true;
 
@@ -132,11 +178,20 @@ export class Component extends LegacyEventBase {
     if (!opts.forwardBrackets) {
       opts.forwardBrackets = { in: ["out", "error"] };
     }
+    /**
+     * Map of inport name to the outports its brackets forward to
+     * @type {Object<string, string[]>}
+     */
     this.forwardBrackets = opts.forwardBrackets;
 
     // The component's process function can either be
     // passed in opts, or given imperatively after
     // instantation using the `component.process` method.
+    /**
+     * The Process API handler, set via options or {@link Component#process}
+     * @type {ProcessingFunction|null}
+     */
+    this.handle = typeof opts.process === "function" ? opts.process : null;
     if (typeof opts.process === "function") {
       this.process(opts.process);
     }
@@ -144,26 +199,52 @@ export class Component extends LegacyEventBase {
     // Placeholder for the ID of the current node, populated
     // by NoFlo network
     //
-    /** @type string | null */
+    /**
+     * ID of the node this component instance is attached to in a network, populated by the network
+     * @type {string|null}
+     */
     this.nodeId = null;
 
-    // Deprecated legacy component connection counter
+    /**
+     * Deprecated legacy component connection counter
+     * @type {number}
+     */
     this.__openConnections = 0;
   }
 
+  /**
+   * Get the component description.
+   *
+   * @returns {string}
+   */
   getDescription() {
     return this.description;
   }
 
+  /**
+   * Check whether the component is ready to be started. Always true for
+   * elementary components; subclasses may override with actual readiness
+   * checks.
+   *
+   * @returns {boolean}
+   */
   isReady() {
     return true;
   }
 
+  /**
+   * Check whether the component is a subgraph. Always false for elementary
+   * components; the subgraph component class overrides this.
+   *
+   * @returns {boolean}
+   */
   isSubgraph() {
     return false;
   }
 
   /**
+   * Set the component icon and inform the network about the change.
+   *
    * @param {string} icon - Updated icon for the component
    */
   setIcon(icon) {
@@ -171,16 +252,20 @@ export class Component extends LegacyEventBase {
     this.dispatchLifecycleEvent("icon", this.icon);
   }
 
+  /**
+   * Get the component icon name.
+   *
+   * @returns {string}
+   */
   getIcon() {
     return this.icon;
   }
 
-  // ### Error emitting helper
-  //
-  // If component has an `error` outport that is connected, errors
-  // are sent as IP objects there. If the port is not connected,
-  // errors are thrown.
   /**
+   * Report an error from the component. If the component has an `error`
+   * outport that is connected, errors are sent as IP objects there. If the
+   * port is not connected and not optional, errors are thrown.
+   *
    * @param {Error} e
    * @param {Array<string>} [groups]
    * @param {string} [errorPort]
@@ -206,39 +291,33 @@ export class Component extends LegacyEventBase {
    * @param {Error | null} error
    */
 
-  // ### Setup
-  //
-  // The setUp method is for component-specific initialization.
-  // Called at network start-up.
-  //
-  // Override in component implementation to do component-specific
-  // setup work.
   /**
+   * Component-specific initialization, called at network start-up. Override
+   * in a component implementation to do component-specific setup work.
+   * Return a Promise to delay start-up until it resolves; throw to fail the
+   * network start.
+   *
    * @returns {Promise<void>}
    */
   setUp() {
     return Promise.resolve();
   }
 
-  // ### Teardown
-  //
-  // The tearDown method is for component-specific cleanup. Called
-  // at network shutdown
-  //
-  // Override in component implementation to do component-specific
-  // cleanup work, like clearing any accumulated state.
   /**
+   * Component-specific cleanup, called at network shutdown. Override in a
+   * component implementation to do component-specific cleanup work, like
+   * clearing any accumulated state.
+   *
    * @returns {Promise<void>}
    */
   tearDown() {
     return Promise.resolve();
   }
 
-  // ### Start
-  //
-  // Called when network starts. This sets calls the setUp
-  // method and sets the component to a started state.
   /**
+   * Start the component: calls {@link Component#setUp} and marks the
+   * component started. Called by the network on start-up.
+   *
    * @returns {Promise<void>}
    */
   start() {
@@ -253,15 +332,12 @@ export class Component extends LegacyEventBase {
       });
   }
 
-  // ### Shutdown
-  //
-  // Called when network is shut down. This sets calls the
-  // tearDown method and sets the component back to a
-  // non-started state.
-  //
-  // The returned Promise settles when tearDown finishes and
-  // all active processing contexts have ended.
   /**
+   * Shut the component down: calls {@link Component#tearDown}, waits for all
+   * active processing contexts to finish, clears the inport buffers and
+   * bracket contexts, and marks the component stopped. Called by the network
+   * on shutdown.
+   *
    * @returns {Promise<void>}
    */
   shutdown() {
@@ -312,11 +388,21 @@ export class Component extends LegacyEventBase {
       });
   }
 
+  /**
+   * Check whether the component is currently started.
+   *
+   * @returns {boolean}
+   */
   isStarted() {
     return this.started;
   }
 
-  // Ensures bracket forwarding map is correct for the existing ports
+  /**
+   * Ensure the bracket forwarding map only references ports that actually
+   * exist on the component.
+   *
+   * @returns {void}
+   */
   prepareForwarding() {
     Object.keys(this.forwardBrackets).forEach((inPort) => {
       const outPorts = this.forwardBrackets[inPort];
@@ -339,8 +425,12 @@ export class Component extends LegacyEventBase {
     });
   }
 
-  // Method for determining if a component is using the modern
-  // NoFlo Process API
+  /**
+   * Check whether the component uses the legacy (pre-Process API) programming
+   * interface.
+   *
+   * @returns {boolean}
+   */
   isLegacy() {
     // Process API
     if (this.handle) {
@@ -350,8 +440,9 @@ export class Component extends LegacyEventBase {
     return true;
   }
 
-  // Sets process handler function
   /**
+   * Set the Process API handler function for the component.
+   *
    * @param {ProcessingFunction} handle - Processing function
    * @returns {this}
    */
@@ -376,9 +467,9 @@ export class Component extends LegacyEventBase {
     return this;
   }
 
-  // Method for checking if a given inport is set up for
-  // automatic bracket forwarding
   /**
+   * Check whether a given inport is set up for automatic bracket forwarding.
+   *
    * @param {InPort|string} port
    * @returns {boolean}
    */
@@ -395,9 +486,10 @@ export class Component extends LegacyEventBase {
     return false;
   }
 
-  // Method for checking if a given outport is set up for
-  // automatic bracket forwarding
   /**
+   * Check whether a given inport/outport pair is set up for automatic
+   * bracket forwarding.
+   *
    * @param {InPort|string} inport
    * @param {OutPort|string} outport
    * @returns {boolean}
@@ -427,8 +519,12 @@ export class Component extends LegacyEventBase {
     return false;
   }
 
-  // Method for checking whether the component sends packets
-  // in the same order they were received.
+  /**
+   * Check whether the component sends packets in the same order they were
+   * received.
+   *
+   * @returns {boolean}
+   */
   isOrdered() {
     if (this.ordered) {
       return true;
@@ -439,12 +535,10 @@ export class Component extends LegacyEventBase {
     return false;
   }
 
-  // ### Handling IP objects
-  //
-  // The component has received an Information Packet. Call the
-  // processing function so that firing pattern preconditions can
-  // be checked and component can do processing as needed.
   /**
+   * Handle an Information Packet that arrived on an inport: check the firing
+   * pattern preconditions and invoke the process function as needed.
+   *
    * @param {IP} ip
    * @param {InPort} port
    * @returns {void}
@@ -597,8 +691,6 @@ export class Component extends LegacyEventBase {
         }
       }
     }
-
-    // Prepare the input/output pair
     const context = new ProcessContext(ip, this, port, result);
     const input = new ProcessInput(this.inPorts, context);
     const output = new ProcessOutput(this.outPorts, context);
@@ -639,6 +731,9 @@ export class Component extends LegacyEventBase {
 
   // Get the current bracket forwarding context for an IP object
   /**
+   * Get (or initialize) the bracket forwarding contexts for a port in a
+   * given direction and scope.
+   *
    * @param {string} type
    * @param {string} port
    * @param {string|null} scope
@@ -665,9 +760,9 @@ export class Component extends LegacyEventBase {
     return this.bracketContext[type][name][scope];
   }
 
-  // Add an IP object to the list of results to be sent in
-  // order
   /**
+   * Add an IP object to the list of results to be sent in order.
+   *
    * @param {ProcessResult} result
    * @param {Object} port
    * @param {IP} packet
@@ -698,9 +793,15 @@ export class Component extends LegacyEventBase {
     res[name][method](ip);
   }
 
-  // Get contexts that can be forwarded with this in/outport
-  // pair.
-  /** @private */
+  /**
+   * Get bracket contexts that can be forwarded with this inport/outport
+   * pair.
+   *
+   * @private
+   * @param inport
+   * @param outport
+   * @param contexts
+   */
   getForwardableContexts(inport, outport, contexts) {
     const { name, index } = normalizePortName(outport);
     const forwardable = [];
@@ -734,8 +835,12 @@ export class Component extends LegacyEventBase {
     return forwardable;
   }
 
-  // Add any bracket forwards needed to the result queue
-  /** @private */
+  /**
+   * Add any bracket forwards needed to the result queue.
+   *
+   * @private
+   * @param result
+   */
   addBracketForwards(result) {
     const res = result;
     if (
@@ -867,9 +972,13 @@ export class Component extends LegacyEventBase {
     delete res.__bracketClosingAfter;
   }
 
-  // Whenever an execution context finishes, send all resolved
-  // output from the queue in the order it is in.
-  /** @private */
+  /**
+   * Send all resolved output from the output queue in order. Called whenever
+   * an execution context finishes.
+   *
+   * @private
+   * @returns {void}
+   */
   processOutputQueue() {
     while (this.outputQ.length > 0) {
       if (!this.outputQ[0].__resolved) {
@@ -941,6 +1050,9 @@ export class Component extends LegacyEventBase {
   // Signal that component has activated. There may be multiple
   // activated contexts at the same time
   /**
+   * Signal that a processing context has activated. There may be multiple
+   * activated contexts at the same time.
+   *
    * @param {Object} context
    * @param {boolean} context.activated
    * @param {boolean} context.deactivated
@@ -959,9 +1071,10 @@ export class Component extends LegacyEventBase {
     }
   }
 
-  // Signal that component has deactivated. There may be multiple
-  // activated contexts at the same time
   /**
+   * Signal that a processing context has deactivated. There may be multiple
+   * activated contexts at the same time.
+   *
    * @param {Object} context
    * @param {boolean} context.activated
    * @param {boolean} context.deactivated

@@ -32,6 +32,8 @@ import { LXMessage } from "@reticulum/lxmf";
 export const TELEMETRY_FIELD = "fbp.telemetry";
 
 /**
+ * Options for the LXMF telemetry drops channel.
+ *
  * @typedef {object} LxmfDropOptions
  * @property {import("@reticulum/lxmf").LXMRouter} options.router The
  *   application's LXMF router (identity, interfaces, stamp policy).

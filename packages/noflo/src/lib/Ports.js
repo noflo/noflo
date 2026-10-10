@@ -19,13 +19,17 @@ import OutPort from "./OutPort.js";
 // used to hold a set of input or output ports of a component.
 class Ports extends LegacyEventBase {
   /**
+   * Create a ports collection. Port definitions are given as a map of port
+   * name to port instance or port options; entries are added in order.
+   *
    * @param {Object<string, import("./BasePort.js").default|PortOptions>} ports
    * @param {typeof import("./BasePort.js").default} model
    */
   constructor(ports, model) {
     super();
+    /** @type {typeof import("./BasePort.js").default} Port class instantiated for entries added to this collection */
     this.model = model;
-    /** @type {Object<string, import("./BasePort.js").default>} */
+    /** @type {Object<string, import("./BasePort.js").default>} The ports in this collection, keyed by port name */
     this.ports = {};
     if (!ports) {
       return;
@@ -37,6 +41,11 @@ class Ports extends LegacyEventBase {
   }
 
   /**
+   * Add a port to the collection, replacing any previous port with the same
+   * name. The port is also exposed as a property of the collection under its
+   * name. Port names must be lowercase alphanumeric characters, underscores,
+   * dots, or slashes; `add` and `remove` are reserved.
+   *
    * @param {string} name
    * @param {Object|import("./BasePort.js").default|PortOptions} [options]
    */
@@ -73,6 +82,8 @@ class Ports extends LegacyEventBase {
   }
 
   /**
+   * Remove a port from the collection.
+   *
    * @param {string} name
    */
   remove(name) {
@@ -90,8 +101,15 @@ class Ports extends LegacyEventBase {
 /**
  * @typedef {{ [key: string]: InPort|import("./InPort.js").PortOptions }} InPortsOptions
  */
+/**
+ * An input-ports collection: holds the {@link InPort} instances of a
+ * component and exposes them both via the `ports` map and as named
+ * properties.
+ */
 export class InPorts extends Ports {
   /**
+   * Create an input-ports collection holding {@link InPort} instances.
+   *
    * @param {InPortsOptions} [ports]
    */
   constructor(ports = {}) {
@@ -104,8 +122,15 @@ export class InPorts extends Ports {
 /**
  * @typedef {{ [key: string]: OutPort|import("./OutPort.js").PortOptions }} OutPortsOptions
  */
+/**
+ * An output-ports collection: holds the {@link OutPort} instances of a
+ * component and exposes them both via the `ports` map and as named
+ * properties.
+ */
 export class OutPorts extends Ports {
   /**
+   * Create an output-ports collection holding {@link OutPort} instances.
+   *
    * @param {OutPortsOptions} [ports]
    */
   constructor(ports = {}) {
@@ -114,6 +139,13 @@ export class OutPorts extends Ports {
     this.ports = /** @type {Object<string, OutPort>} */ (basePorts);
   }
 
+  /**
+   * Connect an output port, either to a specific attached socket or to all
+   * of them. See {@link OutPort#connect}.
+   *
+   * @param {string} name
+   * @param {number|null} [socketId]
+   */
   connect(name, socketId) {
     const port = /** @type {OutPort} */ (this.ports[name]);
     if (!port) {
@@ -122,6 +154,13 @@ export class OutPorts extends Ports {
     port.connect(socketId);
   }
 
+  /**
+   * Open a group (bracket) on an output port. See {@link OutPort#beginGroup}.
+   *
+   * @param {string} name
+   * @param {any} group
+   * @param {number|null} [socketId]
+   */
   beginGroup(name, group, socketId) {
     const port = /** @type {OutPort} */ (this.ports[name]);
     if (!port) {
@@ -130,6 +169,13 @@ export class OutPorts extends Ports {
     port.beginGroup(group, socketId);
   }
 
+  /**
+   * Send a data packet to an output port. See {@link OutPort#send}.
+   *
+   * @param {string} name
+   * @param {any} data
+   * @param {number|null} [socketId]
+   */
   send(name, data, socketId) {
     const port = /** @type {OutPort} */ (this.ports[name]);
     if (!port) {
@@ -138,6 +184,12 @@ export class OutPorts extends Ports {
     port.send(data, socketId);
   }
 
+  /**
+   * Close a group (bracket) on an output port. See {@link OutPort#endGroup}.
+   *
+   * @param {string} name
+   * @param {number|null} [socketId]
+   */
   endGroup(name, socketId) {
     const port = /** @type {OutPort} */ (this.ports[name]);
     if (!port) {
@@ -146,6 +198,12 @@ export class OutPorts extends Ports {
     port.endGroup(socketId);
   }
 
+  /**
+   * Disconnect an output port. See {@link OutPort#disconnect}.
+   *
+   * @param {string} name
+   * @param {number|null} [socketId]
+   */
   disconnect(name, socketId) {
     const port = /** @type {OutPort} */ (this.ports[name]);
     if (!port) {
@@ -155,10 +213,10 @@ export class OutPorts extends Ports {
   }
 }
 
-// Port name normalization:
-// returns object containing keys name and index for ports names in
-// format `portname` or `portname[index]`.
 /**
+ * Normalize a port name: returns an object with `name` and, for addressable
+ * ports written as `portname[index]`, the string `index`.
+ *
  * @param {string} name
  * @returns {{ name: string, index?: string }}
  */

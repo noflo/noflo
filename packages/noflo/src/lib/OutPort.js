@@ -6,10 +6,6 @@
 import BasePort from "./BasePort.js";
 import IP from "./IP.js";
 
-// ## NoFlo outport
-//
-// Outport Port (outport) implementation for NoFlo components.
-// These ports are the way a component sends Information Packets.
 /**
  * @typedef OutPortOptions
  * @property {boolean} [caching]
@@ -18,8 +14,17 @@ import IP from "./IP.js";
  * @typedef {import("./BasePort.js").BaseOptions & OutPortOptions} PortOptions
  */
 
+/**
+ * A NoFlo outport.
+ *
+ * Outport Port (outport) implementation for NoFlo components. These ports
+ * are the way a component sends Information Packets.
+ */
 export default class OutPort extends BasePort {
   /**
+   * Create an output port. Ports are scoped by default; caching (resending
+   * the latest data to newly attached sockets) is off unless requested.
+   *
    * @param {PortOptions} options - Options for the outport
    */
   constructor(options = {}) {
@@ -32,10 +37,17 @@ export default class OutPort extends BasePort {
     }
     super(opts);
 
+    /**
+     * Port configuration, including datatype, schema, scoping, and caching behavior
+     * @type {PortOptions}
+     */
     const baseOptions = this.options;
     this.options = /** @type {PortOptions} */ (baseOptions);
 
-    /** @type {Object<string, IP>} */
+    /**
+     * Latest cached data IP per addressable slot, resent on new connections when caching is enabled
+     * @type {Object<string, IP>}
+     */
     this.cache = {};
 
     /**
@@ -49,6 +61,9 @@ export default class OutPort extends BasePort {
   }
 
   /**
+   * Attach a socket to the port. With caching enabled, the cached value for
+   * the slot is sent to the new socket immediately.
+   *
    * @param {import("./InternalSocket.js").InternalSocket} socket
    * @param {number|null} [index]
    */
@@ -60,6 +75,10 @@ export default class OutPort extends BasePort {
   }
 
   /**
+   * Connect the port's socket(s), checking required ports first. On
+   * addressable ports only the given slot is affected; on regular ports all
+   * attached sockets are.
+   *
    * @param {number|null} [index]
    */
   connect(index = null) {
@@ -74,6 +93,8 @@ export default class OutPort extends BasePort {
   }
 
   /**
+   * Open a group (bracket) on the port's socket(s).
+   *
    * @param {string} group
    * @param {number|null} [index]
    */
@@ -89,6 +110,9 @@ export default class OutPort extends BasePort {
   }
 
   /**
+   * Send a data packet to the port's socket(s). With caching enabled the
+   * value is kept for resend on new connections.
+   *
    * @param {any} data
    * @param {number|null} [index]
    */
@@ -107,6 +131,8 @@ export default class OutPort extends BasePort {
   }
 
   /**
+   * Close a group (bracket) on the port's socket(s).
+   *
    * @param {number|null} [index]
    */
   endGroup(index = null) {
@@ -121,6 +147,8 @@ export default class OutPort extends BasePort {
   }
 
   /**
+   * Disconnect the port's socket(s).
+   *
    * @param {number|null} [index]
    */
   disconnect(index = null) {
@@ -135,6 +163,12 @@ export default class OutPort extends BasePort {
   }
 
   /**
+   * Send an Information Packet to the port's socket(s), stamping it with the
+   * port's datatype and schema, updating the cache, and returning `this`.
+   * The admission Promise for the send is available on
+   * {@link OutPort#lastWrite}; it resolves once every receiving edge has
+   * admitted the packet per its high-water mark.
+   *
    * @param {string|IP} type
    * @param {any} [data]
    * @param {import("./IP.js").IPOptions} [options]
@@ -198,6 +232,8 @@ export default class OutPort extends BasePort {
   }
 
   /**
+   * Send an open-bracket IP to the port.
+   *
    * @param {string|null} data
    * @param {import("./IP.js").IPOptions} options
    * @param {number|null} [index]
@@ -207,6 +243,8 @@ export default class OutPort extends BasePort {
   }
 
   /**
+   * Send a data IP to the port.
+   *
    * @param {any} data
    * @param {import("./IP.js").IPOptions} options
    * @param {number|null} [index]
@@ -216,6 +254,8 @@ export default class OutPort extends BasePort {
   }
 
   /**
+   * Send a close-bracket IP to the port.
+   *
    * @param {string|null} data
    * @param {import("./IP.js").IPOptions} options
    * @param {number|null} [index]
@@ -225,7 +265,10 @@ export default class OutPort extends BasePort {
   }
 
   /**
+   * Throw when the port is required but none of its sockets are connected.
+   *
    * @param {Array<import("./InternalSocket.js").InternalSocket|void>} sockets
+   * @returns {void}
    */
   checkRequired(sockets) {
     if (sockets.length === 0 && this.isRequired()) {
@@ -234,6 +277,9 @@ export default class OutPort extends BasePort {
   }
 
   /**
+   * Get the socket(s) a send should target: the single slot for addressable
+   * ports (index required), or all attached sockets for regular ports.
+   *
    * @param {number|null} index
    * @returns {Array<import("./InternalSocket.js").InternalSocket|void>}
    */
@@ -258,6 +304,12 @@ export default class OutPort extends BasePort {
     return this.sockets;
   }
 
+  /**
+   * Check whether the port resends its latest value to newly attached
+   * sockets.
+   *
+   * @returns {boolean}
+   */
   isCaching() {
     if (this.options.caching) {
       return true;

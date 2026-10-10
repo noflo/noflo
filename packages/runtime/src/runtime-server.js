@@ -14,6 +14,7 @@
  *   for calling `authorize` when a link establishes and feeding received
  *   frames to `handleFrame`.
  */
+/* @ts-self-types="./runtime-server.d.ts" */
 
 import {
   CAPABILITY,

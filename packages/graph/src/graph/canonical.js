@@ -10,6 +10,7 @@
  *   cycles rejected up front. Entity collections handed to it are expected
  *   to be sorted by `entity_id` by the caller (see `GraphModel.serialize`).
  */
+/* @ts-self-types="./canonical.d.ts" */
 
 import { GraphModelError } from "./entities.js";
 

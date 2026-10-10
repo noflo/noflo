@@ -1,3 +1,5 @@
+/* @ts-self-types="./manifest.d.ts" */
+
 //     @noflo/loader-node - Node.js component discovery for NoFlo
 //     (c) 2021-2026 Henri Bergius
 //     SPDX-License-Identifier: EUPL-1.2

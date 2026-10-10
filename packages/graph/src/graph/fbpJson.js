@@ -24,6 +24,7 @@
  *   mode mutations, so malformed documents fail fast with
  *   {@link GraphModelError}.
  */
+/* @ts-self-types="./fbpJson.d.ts" */
 
 import { GraphModelError, requirePortRef, requireString } from "./entities.js";
 import { GraphModel } from "./GraphModel.js";

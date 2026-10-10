@@ -19,6 +19,7 @@
  *   subscribed clients see the state of the world through the telemetry
  *   stream.
  */
+/* @ts-self-types="./execution-protocol.d.ts" */
 
 import {
   CMD_BREAKPOINT_CLEAR,

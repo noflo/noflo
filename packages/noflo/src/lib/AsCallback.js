@@ -102,7 +102,7 @@ function prepareNetwork(component, options) {
       componentLoader: options.loader,
     });
     // Wire the network up
-    return network.connect();
+    return /** @type {Promise<Network>} */ (network.connect());
   }
 
   if (!options.loader) {
@@ -140,7 +140,7 @@ function prepareNetwork(component, options) {
       componentLoader: options.loader,
     });
     // Wire the network up and start execution
-    return network.connect();
+    return /** @type {Promise<Network>} */ (network.connect());
   });
 }
 
@@ -502,6 +502,10 @@ function sendOutputMap(outputs, resultType, options) {
  */
 
 /**
+ * Wrap a component or graph into an asynchronous function: each call to the
+ * returned function runs a fresh network with the given input map and
+ * resolves with the collected output map.
+ *
  * @param {import("@noflo/graph").GraphModel | string} component - Graph or component to load
  * @param {Object} options
  * @param {string} [options.name] - Name for the wrapped network
@@ -531,6 +535,10 @@ export function asPromise(component, options) {
 }
 
 /**
+ * Wrap a component or graph into a callback-style function: each call runs a
+ * fresh network with the given input map and hands the collected output map
+ * to the callback.
+ *
  * @param {AsCallbackComponent} component - Graph or component to load
  * @param {AsCallbackOptions} options
  * @returns {NetworkAsCallback}

@@ -16,6 +16,7 @@
  *   clients so runtime-initiated and client-initiated changes converge via
  *   the op log.
  */
+/* @ts-self-types="./graph-protocol.d.ts" */
 
 import {
   CMD_CRDT_SYNC_REQ,
@@ -460,7 +461,10 @@ function unsupported(server, capability, detail, context) {
  * @returns {Promise<string>}
  */
 async function sha256Hex(bytes) {
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    /** @type {BufferSource} */ (bytes),
+  );
   return [...new Uint8Array(digest)]
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");

@@ -11,6 +11,7 @@
  *
  * @module
  */
+/* @ts-self-types="./json-value.d.ts" */
 
 /**
  * @typedef {object} JsonScanResult

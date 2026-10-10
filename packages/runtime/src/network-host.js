@@ -19,10 +19,16 @@
  *   wire state but not the running network until the engine learns to
  *   follow graph deltas.
  */
+/* @ts-self-types="./network-host.d.ts" */
 
 import { createNetwork } from "@noflo/noflo";
 
 /**
+ * The network lifecycle host: owns the NoFlo `Network` built from the
+ * runtime's graph, re-emitting the network's EventTarget events (`start`,
+ * `end`, `ip`, `process-error`, `icon`) as host events, so protocol handlers
+ * can observe a network before, after, and across network recreations.
+ *
  * @extends {EventTarget}
  */
 export class NetworkHost extends EventTarget {

@@ -14,6 +14,7 @@
  *   match a catalog manifest against a runtime advertisement without
  *   fetching details.
  */
+/* @ts-self-types="./registry.d.ts" */
 
 import { MsgPack } from "@reticulum/core";
 import {

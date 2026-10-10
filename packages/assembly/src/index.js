@@ -17,18 +17,34 @@
 import { Component as NoFloComponent } from "@noflo/noflo";
 
 /**
+ * A message travelling through an assembly: a free-form payload where the
+ * `errors` array accumulates errors from every component that touched it.
+ *
  * @typedef {{ errors: Error[], [key: string]: any }} AssemblyMessage
  */
 /**
+ * Validation rules keyed by message path (`field` or `parent.field`), with
+ * validator names as values.
+ *
  * @typedef {{ [key: string]: string}} AssemblyValidators
  */
 /**
+ * The built-in validator functions, keyed by the names usable in
+ * {@link AssemblyValidators}.
+ *
  * @typedef {{ [key: string]: (val: any) => boolean}} AssemblyValidatorFunctions
  */
 /**
+ * Error message templates for the built-in validators, keyed by the same
+ * names.
+ *
  * @typedef {{ [key: string]: (key: string, val?: any) => string}} AssemblyErrorMessages
  */
 /**
+ * The single-input processing hook an assembly component can declare
+ * instead of overriding the full Process API handler: receives the validated
+ * message and the output sender.
+ *
  * @callback RelayFunction
  * @param {AssemblyMessage} msg
  * @param {{ sendDone(map: Record<string, unknown>): void }} output
@@ -59,6 +75,19 @@ const errorMessages = {
 };
 
 /**
+ * Options for constructing an assembly component.
+ *
+ * @typedef {Object<string, any>} AssemblyComponentOptions
+ * @property {string} [description]
+ * @property {string} [icon]
+ * @property {Object<string, any>} [inPorts]
+ * @property {Object<string, any>} [outPorts]
+ * @property {AssemblyValidators|Array<string>} [validates]
+ */
+
+/**
+ * Append an error (or several) to a message's `errors` array.
+ *
  * @param {AssemblyMessage} msg
  * @param {Error|Error[]} err
  * @returns {AssemblyMessage}
@@ -75,6 +104,8 @@ export function fail(msg, err) {
 }
 
 /**
+ * Check whether a message has accumulated any errors.
+ *
  * @param {AssemblyMessage} msg
  * @returns {boolean}
  */
@@ -134,16 +165,18 @@ function normalizeValidators(rules) {
 }
 
 /**
- * @typedef {Object<string, any>} AssemblyComponentOptions
- * @property {string} [description]
- * @property {string} [icon]
- * @property {Object<string, any>} [inPorts]
- * @property {Object<string, any>} [outPorts]
- * @property {AssemblyValidators|Array<string>} [validates]
+ * An assembly component: a NoFlo component with a shared message envelope
+ * (`msg.errors`), declarative field validation, and support for the
+ * `relay(msg, output)` single-input hook and the `processMessage(input,
+ * output)` multi-port hook.
  */
-
 export class Component extends NoFloComponent {
   /**
+   * Create the component. Port definitions may be given as arrays of names
+   * (typed `all`), full NoFlo port definitions, or omitted for a single
+   * default message port. Validation rules from `validates` apply to the
+   * `relay` hook.
+   *
    * @param {AssemblyComponentOptions} [options]
    */
   constructor(options = {}) {
@@ -151,6 +184,11 @@ export class Component extends NoFloComponent {
     opts = normalizePorts(opts, "out");
     super(opts);
     if (options.validates) {
+      /**
+       * Validation rules applied to the message before the relay hook runs.
+       *
+       * @type {AssemblyValidators|undefined}
+       */
       this.validates = normalizeValidators(options.validates);
     }
 
@@ -181,6 +219,9 @@ export class Component extends NoFloComponent {
   }
 
   /**
+   * Check the fields of a message against validation rules, collecting an
+   * Error for every violated rule. Paths may be dotted (`parent.field`).
+   *
    * @param {AssemblyMessage} msg
    * @param {AssemblyValidators} rules
    * @returns {Array<Error>}
@@ -221,6 +262,11 @@ export class Component extends NoFloComponent {
   }
 
   /**
+   * Validate a message against the given rules (defaulting to the rules
+   * given at construction). Violations are appended to the message's
+   * `errors` array; a message that already carries errors fails without
+   * re-validation.
+   *
    * @param {AssemblyMessage} msg
    * @param {AssemblyValidators|Array<string>} [rules]
    */
@@ -241,6 +287,10 @@ export class Component extends NoFloComponent {
 }
 
 /**
+ * Create a new message derived from `msg`. Keys in `excludeKeys` are
+ * dropped; keys in `cloneKeys` are deep-copied instead of shared by
+ * reference. The `errors` array is shared unless `error` is cloned.
+ *
  * @param {AssemblyMessage} msg
  * @param {Array<string>} [excludeKeys]
  * @param {Array<string>} [cloneKeys]
@@ -268,6 +318,9 @@ export function fork(msg, excludeKeys = [], cloneKeys = []) {
 }
 
 /**
+ * Merge the entries of `extra` into `base`, filling in only keys that are
+ * missing or undefined in `base`. Returns the same `base` object, mutated.
+ *
  * @param {AssemblyMessage} base
  * @param {Object<string, any>} extra
  * @returns {AssemblyMessage}

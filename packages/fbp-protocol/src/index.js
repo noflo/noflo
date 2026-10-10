@@ -13,9 +13,27 @@
 /* @ts-self-types="./index.d.ts" */
 
 /**
+ * A runtime-advertised component definition: declared kind and port
+ * signatures.
+ *
  * @typedef {import("./registry.js").ComponentDetail} ComponentDetail
+ */
+
+/**
+ * A manifest entry for one component: signature hash and declared kind.
+ *
  * @typedef {import("./registry.js").ManifestEntry} ManifestEntry
+ */
+
+/**
+ * Registry manifest entries: component name to entry.
+ *
  * @typedef {import("./registry.js").ManifestEntries} ManifestEntries
+ */
+
+/**
+ * A port in a component signature.
+ *
  * @typedef {import("./registry.js").PortInfo} PortInfo
  */
 
@@ -85,7 +103,12 @@ export {
   encodeCrdtUpToDate,
 } from "./graph.js";
 export {
-  /** @typedef {import("./lxmf.js").LxmTelemetry} LxmTelemetry */
+  /**
+   * One telemetry sample decoded from an LXMF drop: flat positional values
+   * following work document #4 §9.
+   *
+   * @typedef {import("./lxmf.js").LxmTelemetry} LxmTelemetry
+   */
   decodeLxmTelemetry,
   encodeLxmTelemetry,
 } from "./lxmf.js";

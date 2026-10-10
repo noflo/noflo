@@ -9,6 +9,7 @@
  *   projection of the changeset reference model owned by noflo-ui #43;
  *   modify is tombstone + insert at the wire level, never the semantic unit.
  */
+/* @ts-self-types="./graph.d.ts" */
 
 import { MsgPack } from "@reticulum/core";
 import {

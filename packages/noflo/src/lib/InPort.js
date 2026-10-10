@@ -5,10 +5,6 @@
 /* @ts-self-types="./InPort.d.ts" */
 import BasePort from "./BasePort.js";
 
-// ## NoFlo inport
-//
-// Input Port (inport) implementation for NoFlo components. These
-// ports are the way a component receives Information Packets.
 /**
  * @typedef InPortOptions
  * @property {any} [default]
@@ -25,8 +21,18 @@ import BasePort from "./BasePort.js";
  * @typedef {import("./BasePort.js").BaseOptions & InPortOptions} PortOptions
  */
 
+/**
+ * A NoFlo inport.
+ *
+ * Input Port (inport) implementation for NoFlo components. These ports are
+ * the way a component receives Information Packets.
+ */
 export default class InPort extends BasePort {
   /**
+   * Create an input port. Control, scoping, and triggering behavior default
+   * to non-control, scoped, and triggering respectively; the buffer
+   * structures are prepared for regular and addressable use.
+   *
    * @param {PortOptions} [options]
    */
   constructor(options = {}) {
@@ -43,17 +49,26 @@ export default class InPort extends BasePort {
 
     super(opts);
 
+    /**
+     * Port configuration, including datatype, schema, and control/scoping/triggering behavior
+     * @type {PortOptions}
+     */
     const baseOptions = this.options;
     this.options = /** @type {PortOptions} */ (baseOptions);
 
-    /** @type {import("./Component.js").Component|null} */
+    /**
+     * The component instance this port belongs to, populated by the network
+     * @type {import("./Component.js").Component|null}
+     */
     this.nodeInstance = null;
 
     this.prepareBuffer();
   }
 
   /**
-   * Assign a delegate for retrieving data should this inPort
+   * Subscribe the port to a socket and forward its events into the port's
+   * buffers and lifecycle events. Installs the default-value data delegate
+   * when the port has one.
    *
    * @param {import("./InternalSocket.js").InternalSocket} socket
    * @param {number|null} [localId]
@@ -88,6 +103,9 @@ export default class InPort extends BasePort {
   }
 
   /**
+   * Receive an Information Packet from a socket: stamp it with ownership,
+   * index, and port datatype/schema, buffer it, and emit the `ip` event.
+   *
    * @param {import("./IP.js").default} packet
    * @param {number|null} [index]
    */
@@ -126,46 +144,82 @@ export default class InPort extends BasePort {
   }
 
   /**
+   * Emit a port lifecycle event for a socket event. Addressable ports carry
+   * `[payload, index]` as the event detail (matching attach/detach); `ip`
+   * events keep the raw IP object with its `index` property.
+   *
    * @param {string} event
    * @param {any} payload
+   * @param {number|null} id
    */
   handleSocketEvent(event, payload, id) {
-    // Emit port event. Addressable ports carry [payload, index] as the
-    // event detail (matching attach/detach); `ip` events keep the raw IP
-    // object with its `index` property.
     if (this.isAddressable()) {
       return this.dispatchLifecycleEvent(event, [payload, id]);
     }
     return this.dispatchLifecycleEvent(event, payload);
   }
 
+  /**
+   * Check whether the port has a default value to send when no packet
+   * arrives.
+   *
+   * @returns {boolean}
+   */
   hasDefault() {
     return this.options.default !== undefined;
   }
 
+  /**
+   * Initialize the port's packet buffers: per-scope and per-index structures
+   * for scoped and/or addressable ports, plus the separate IIP buffer.
+   *
+   * @returns {void}
+   */
   prepareBuffer() {
     if (this.isAddressable()) {
       if (this.options.scoped) {
-        /** @type {Object<string,Object<number,Array<import("./IP.js").default>>>} */
+        /**
+         * Buffers for scoped packets on addressable ports, keyed by scope then slot index
+         * @type {Object<string,Object<number,Array<import("./IP.js").default>>>}
+         */
         this.indexedScopedBuffer = {};
       }
-      /** @type {Object<number,Array<import("./IP.js").default>>} */
+      /**
+       * Buffers for initial information packets on addressable ports, keyed by slot index
+       * @type {Object<number,Array<import("./IP.js").default>>}
+       */
       this.indexedIipBuffer = {};
-      /** @type {Object<number,Array<import("./IP.js").default>>} */
+      /**
+       * Buffers for regular packets on addressable ports, keyed by slot index
+       * @type {Object<number,Array<import("./IP.js").default>>}
+       */
       this.indexedBuffer = {};
       return;
     }
     if (this.options.scoped) {
-      /** @type {Object<string,Array<import("./IP.js").default>>} */
+      /**
+       * Buffers for scoped packets, keyed by scope
+       * @type {Object<string,Array<import("./IP.js").default>>}
+       */
       this.scopedBuffer = {};
     }
-    /** @type {Array<import("./IP.js").default>} */
+    /**
+     * Buffer for initial information packets
+     * @type {Array<import("./IP.js").default>}
+     */
     this.iipBuffer = [];
-    /** @type {Array<import("./IP.js").default>} */
+    /**
+     * Buffer for regular packets
+     * @type {Array<import("./IP.js").default>}
+     */
     this.buffer = [];
   }
 
   /**
+   * Pick the buffer an incoming IP belongs to, creating missing scope or
+   * index entries as needed: the scoped buffer for scoped IPs, the IIP
+   * buffer for initial packets, and the regular buffer otherwise.
+   *
    * @param {import("./IP.js").default} ip
    * @returns {Array<import("./IP.js").default>}
    */
@@ -204,7 +258,11 @@ export default class InPort extends BasePort {
   }
 
   /**
+   * Validate incoming data against the port's `values` list, when one is
+   * configured. Throws on values outside the list.
+   *
    * @param {any} data
+   * @returns {void}
    */
   validateData(data) {
     if (!this.options.values) {
@@ -218,6 +276,9 @@ export default class InPort extends BasePort {
   }
 
   /**
+   * Get the packet buffer for a given scope and addressable-port index.
+   * Returns `undefined` when the scope or index has no buffer yet.
+   *
    * @param {string|null} scope
    * @param {number|null} index
    * @param {boolean} [initial]
@@ -258,6 +319,10 @@ export default class InPort extends BasePort {
   }
 
   /**
+   * Fetch the next packet from the buffer for a given scope and index.
+   * Control ports read non-consumingly, returning the latest data IP of the
+   * buffered stream instead of shifting it.
+   *
    * @param {string|null} scope
    * @param {number|null} index
    * @param {boolean} [initial]
@@ -316,6 +381,9 @@ export default class InPort extends BasePort {
   }
 
   /**
+   * Check whether the port holds an initial information packet for the given
+   * addressable-port index, optionally validated.
+   *
    * @param {number|null} index
    * @param {HasValidationCallback} validate
    */
@@ -376,7 +444,11 @@ export default class InPort extends BasePort {
     return this.length(scope) > 0;
   }
 
-  // Clears inport buffers
+  /**
+   * Clear all inport buffers, resetting the port to an empty state.
+   *
+   * @returns {void}
+   */
   clear() {
     return this.prepareBuffer();
   }

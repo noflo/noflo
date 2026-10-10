@@ -17,6 +17,8 @@ import { parse } from "@noflo/fbp";
 import { exportFbpJson, importFbpJson } from "@noflo/graph";
 
 /**
+ * The native graph model loaded or exported by the file helpers.
+ *
  * @typedef {import("@noflo/graph").GraphModel} GraphModel
  */
 

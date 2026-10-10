@@ -22,6 +22,7 @@
  *   path is through the {@link import("./GraphModel.js").GraphModel} setters,
  *   which emit change events and replace the entity wholesale.
  */
+/* @ts-self-types="./entities.d.ts" */
 
 /**
  * Reference to one end of a connection: a node (by `entity_id`) and one of

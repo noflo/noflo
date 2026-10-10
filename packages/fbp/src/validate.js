@@ -9,6 +9,7 @@
  *
  * @module
  */
+/* @ts-self-types="./validate.d.ts" */
 
 /**
  * @typedef {import('./parse.js').GraphJson} GraphJson

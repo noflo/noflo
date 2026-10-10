@@ -12,6 +12,7 @@
  *   keeps constrained links from being stormed). Explicit start/stop/dump
  *   commands of 1.x are gone; "dump" is the streamable trace file format.
  */
+/* @ts-self-types="./telemetry-protocol.d.ts" */
 
 import {
   CMD_PUBSUB_SUB,

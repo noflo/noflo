@@ -9,6 +9,7 @@
  *   chunk's base timestamp. Flush cadence is the runtime's physical-policy
  *   decision — the requested interval is a client wish, never a constant.
  */
+/* @ts-self-types="./telemetry.d.ts" */
 
 import { MsgPack } from "@reticulum/core";
 import { CMD_FLOWTRACE_CHUNK, CMD_PUBSUB_SUB } from "./constants.js";

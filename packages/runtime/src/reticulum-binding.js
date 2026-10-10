@@ -27,6 +27,7 @@
  *   brings its own `Reticulum` instance (TCP on servers, WebSocket/WebRTC in
  *   browsers). The destination is injectable for testing.
  */
+/* @ts-self-types="./reticulum-binding.d.ts" */
 
 import {
   ANNOUNCE_ASPECT,
@@ -53,6 +54,8 @@ import {
 export const DEFAULT_ASPECT = ANNOUNCE_ASPECT;
 
 /**
+ * Options for {@link ReticulumBinding}.
+ *
  * @typedef {object} ReticulumBindingOptions
  * @property {import("./runtime-server.js").RuntimeServer} options.server
  * @property {import("@reticulum/core").Reticulum} options.reticulum The
@@ -80,6 +83,12 @@ export const DEFAULT_ASPECT = ANNOUNCE_ASPECT;
  * @property {(binding: ReticulumBinding) => Promise<import("@reticulum/core").Destination>} [options.createDestination] Injectable
  *   destination factory for tests; the default builds the real IN
  *   destination from the binding's aspect, identity, and RNS instance.
+ */
+
+/**
+ * The Reticulum transport binding for the FBP runtime: announces the
+ * runtime's destination, establishes and authorizes links, and carries
+ * protocol frames between live links and the server core.
  */
 export class ReticulumBinding extends EventTarget {
   /**

@@ -83,15 +83,33 @@ import { deprecated } from "./Platform.js";
 // applications pass a static ESM-URL registry.
 export class ComponentLoader {
   /**
+   * Create a component loader. When an application registry is supplied, its
+   * catalog is read synchronously at construction and the loader subscribes
+   * to its `change` and `invalidate` events (if any) to keep the cache in
+   * sync.
+   *
    * @param {ComponentLoaderOptions} [options]
    */
   constructor(options = {}) {
+    /**
+     * Loader configuration
+     * @type {ComponentLoaderOptions}
+     */
     this.options = options;
-    /** @type {ComponentRegistry|null} Application-supplied registry */
+    /**
+     * Application-supplied registry
+     * @type {ComponentRegistry|null}
+     */
     this.registry = this.options.registry || null;
-    /** @type {ComponentList|null} */
+    /**
+     * Component catalog, keyed by full component name
+     * @type {ComponentList|null}
+     */
     this.components = {};
-    /** @type {Object<string, string>} */
+    /**
+     * Icon names declared per library prefix
+     * @type {Object<string, string>}
+     */
     this.libraryIcons = {};
 
     // The registry catalog is read synchronously at construction: a
@@ -149,17 +167,18 @@ export class ComponentLoader {
     }
   }
 
-  // Get the library prefix for a given module name. This
-  // is mostly used for generating valid names for namespaced
-  // NPM modules, as well as for convenience renaming all
-  // `noflo-` prefixed modules with just their base name.
-  //
-  // Examples:
-  //
-  // * `my-project` becomes `my-project`
-  // * `@foo/my-project` becomes `my-project`
-  // * `noflo-core` becomes `core`
   /**
+   * Get the library prefix for a given module name. This is mostly used for
+   * generating valid names for namespaced NPM modules, as well as for
+   * convenience renaming all `noflo-` prefixed modules with just their base
+   * name.
+   *
+   * Examples:
+   *
+   * - `my-project` becomes `my-project`
+   * - `@foo/my-project` becomes `my-project`
+   * - `noflo-core` becomes `core`
+   *
    * @param {string} name
    * @returns {string}
    */
@@ -177,21 +196,22 @@ export class ComponentLoader {
     return res.replace(/^noflo-/, "");
   }
 
-  // Get the list of all available components. Promise-returning
-  // accessor per work document #8; the catalog is already populated
-  // at construction.
   /**
+   * Get the list of all available components. The catalog is already
+   * populated at construction, so the returned Promise resolves
+   * immediately.
+   *
    * @returns {Promise<ComponentList>} Promise resolving to list of loaded components
    */
   listComponents() {
     return Promise.resolve(this.components);
   }
 
-  // Load an instance of a specific component. If the
-  // registered component is a graph model or FBP JSON definition,
-  // it will be loaded as an instance of the NoFlo subgraph
-  // component.
   /**
+   * Load an instance of a specific component. If the registered component is
+   * a graph model or FBP JSON definition, it will be loaded as an instance of
+   * the NoFlo subgraph component.
+   *
    * @param {string} name - Component name
    * @param {Object<string, any>} [meta] - Node metadata
    * @returns {Promise<import("./Component.js").Component>}
@@ -313,9 +333,11 @@ export class ComponentLoader {
     return Promise.resolve(instance);
   }
 
-  // Check if a given value is a graph definition
   /**
-   * @param {import("@noflo/graph").GraphModel|object} cPath
+   * Check whether a given value is a graph definition: a live graph model,
+   * an FBP JSON object with a `nodes` array, or a `.json`/`.fbp` file path.
+   *
+   * @param {import("@noflo/graph").GraphModel|object|string} cPath
    * @returns {boolean}
    */
   isGraph(cPath) {
@@ -345,6 +367,8 @@ export class ComponentLoader {
 
   // Load a graph as a NoFlo subgraph component instance
   /**
+   * Load a graph definition as an instance of the subgraph component.
+   *
    * @protected
    * @param {string} name
    * @param {import("@noflo/graph").GraphModel} component
@@ -355,7 +379,12 @@ export class ComponentLoader {
     // The subgraph wrapper is core machinery instantiated directly;
     // there is no user-loadable `Graph` catalog entry
     const subgraph = new Subgraph(metadata);
-    subgraph.loader = this;
+    // Cast bridges the source-inferred and declaration-emitted identities of
+    // ComponentLoader (the protected loadGraph member makes them nominal)
+    subgraph.loader =
+      /** @type {import("./ComponentLoader.js").ComponentLoader} */ (
+        /** @type {unknown} */ (this)
+      );
     subgraph.inPorts.remove("graph");
     this.setIcon(name, subgraph);
     return subgraph.setGraph(component).then(() => subgraph);
@@ -363,11 +392,12 @@ export class ComponentLoader {
 
   // Set icon for the component instance. If the instance
   // has an icon set, then this is a no-op. Otherwise we
-  // determine an icon based on the module it is coming
-  // from, or use a fallback icon separately for subgraphs
-  // and elementary components.
   /**
-   * @param {string} name - Icon to set
+   * Determine an icon for a loaded component based on the module it comes
+   * from, or use a fallback icon separately for subgraphs and elementary
+   * components. Does nothing when the component already carries an icon.
+   *
+   * @param {string} name - Component name to derive the library icon from
    * @param {import("./Component.js").Component} instance
    */
   setIcon(name, instance) {
@@ -393,6 +423,8 @@ export class ComponentLoader {
   }
 
   /**
+   * Get the icon name registered for a library prefix, if any.
+   *
    * @param {string} prefix
    * @returns {string|null}
    */
@@ -404,6 +436,9 @@ export class ComponentLoader {
   }
 
   /**
+   * Register an icon name for a library prefix, used when instantiating
+   * components from that library.
+   *
    * @param {string} prefix
    * @param {string} icon
    */
@@ -412,6 +447,10 @@ export class ComponentLoader {
   }
 
   /**
+   * Build the full component name for a component inside a library,
+   * normalizing the library prefix via the module prefix rules. A component
+   * registered without a package id keeps its bare name.
+   *
    * @param {string} packageId
    * @param {string} name
    * @returns {string}
@@ -431,15 +470,11 @@ export class ComponentLoader {
    * @returns {void}
    */
 
-  // ### Registering components at runtime
-  //
-  // In addition to components provided by the registry,
-  // it is possible to register components at runtime.
-  //
-  // With the `registerComponent` method you can register
-  // a NoFlo Component constructor or factory method
-  // as a component available for loading.
   /**
+   * Register a NoFlo Component constructor or factory method as a component
+   * available for loading, in addition to the components provided by the
+   * registry.
+   *
    * @param {string} packageId
    * @param {string} name
    * @param {ComponentDefinition} cPath
@@ -451,9 +486,9 @@ export class ComponentLoader {
     return Promise.resolve();
   }
 
-  // With the `registerGraph` method you can register new
-  // graphs as loadable components.
   /**
+   * Register a graph model as a loadable component.
+   *
    * @param {string} packageId
    * @param {string} name
    * @param {import("@noflo/graph").GraphModel} gPath
@@ -463,19 +498,20 @@ export class ComponentLoader {
     return this.registerComponent(packageId, name, gPath);
   }
 
-  // With `registerLoader` you can register custom component
-  // loaders. They will be called immediately and can register
-  // any components or graphs they wish. Registry implementations
-  // like `@noflo/loader-node` drive this hook for `noflo.loader`
-  // plugin modules discovered in package manifests; core accepts
-  // plugins, it never discovers them.
   /**
    * @callback CustomLoader
    * @param {ComponentLoader} loader
    * @param {ErrorableCallback} callback
    * @returns {void}
    */
+
   /**
+   * Register a custom component loader. The plugin is invoked immediately
+   * and can register any components or graphs it wishes. Registry
+   * implementations like `@noflo/loader-node` drive this hook for
+   * `noflo.loader` plugin modules discovered in package manifests; core
+   * accepts plugins, it never discovers them.
+   *
    * @param {CustomLoader} loader
    * @returns {Promise<void>}
    */
@@ -492,6 +528,12 @@ export class ComponentLoader {
     return promise;
   }
 
+  /**
+   * Empty the component catalog and re-read the registry catalog, if one is
+   * configured.
+   *
+   * @returns {void}
+   */
   clear() {
     this.components = {};
     if (this.registry && typeof this.registry.list === "function") {

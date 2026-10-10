@@ -8,6 +8,7 @@
  *   Reticulum link establishment. Auth itself is delegated to the transport
  *   layer (`link.identify()`); nothing here carries secrets.
  */
+/* @ts-self-types="./transport.d.ts" */
 
 import { MsgPack } from "@reticulum/core";
 import {

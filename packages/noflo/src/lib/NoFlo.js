@@ -154,7 +154,9 @@ export function createNetwork(graphInstance, options = {}) {
       return Promise.resolve(network);
     }
     const connected = /** @type {Promise<Network>} */ (network.connect());
-    return connected.then(() => network.start());
+    return connected.then(
+      () => /** @type {Promise<Network>} */ (network.start()),
+    );
   });
   return promise;
 }

@@ -9,6 +9,7 @@
  *   snapshot is a file format, not a link frame, and is deliberately not
  *   dispatchable here.
  */
+/* @ts-self-types="./decode.d.ts" */
 
 import { MsgPack } from "@reticulum/core";
 import {

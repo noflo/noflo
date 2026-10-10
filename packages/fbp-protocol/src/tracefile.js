@@ -9,6 +9,7 @@
  *   self-delimiting MsgPack values, so a recording can be parsed
  *   incrementally — including while it is still being written.
  */
+/* @ts-self-types="./tracefile.d.ts" */
 
 import { MsgPack } from "@reticulum/core";
 import { TRACE_SNAPSHOT } from "./constants.js";

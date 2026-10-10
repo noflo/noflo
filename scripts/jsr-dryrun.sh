@@ -60,9 +60,10 @@ for p in "${packages[@]}"; do
   # deno >= 2 ships native `deno publish`; the standalone jsr CLI (npx)
   # embeds an older deno that panics on some declaration rewrites
   #
-  # --allow-slow-types is INTERIM: the @noflo/noflo type-surface audit
-  # (work document #7, GitHub #1035/#1036/#1037) is the real fix —
-  # roughly 200 public-API members need explicit types in JSDoc source.
-  # Remove the flag once the audit lands so the gate bites again.
-  (cd "$ROOT/packages/$p" && deno publish --dry-run --allow-dirty --no-check --allow-slow-types)
+  # --no-check stays: the full-check mode's JS+declaration hybrid resolution
+  # produces phantom TS2305 errors for packages shipping adjacent .d.ts
+  # files (deno 2.9.x); the slow-type public-API gate itself runs regardless
+  # of --no-check, so --allow-slow-types is what was dropped once the
+  # type-surface audit (work document #7) landed.
+  (cd "$ROOT/packages/$p" && deno publish --dry-run --allow-dirty --no-check)
 done

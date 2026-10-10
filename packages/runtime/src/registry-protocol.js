@@ -17,6 +17,7 @@
  *   the full port field set, valid with no implementation behind it (stubs
  *   are state, not errors).
  */
+/* @ts-self-types="./registry-protocol.d.ts" */
 
 import {
   CMD_COMP_DETAIL_REQ,

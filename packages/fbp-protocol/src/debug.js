@@ -12,6 +12,7 @@
  *   flowtrace events; there are no dedicated ack frames, consistent with
  *   the rest of the protocol.
  */
+/* @ts-self-types="./debug.d.ts" */
 
 import { MsgPack } from "@reticulum/core";
 import {

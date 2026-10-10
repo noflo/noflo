@@ -13,6 +13,7 @@
  *   registry, work documents #6/#16), and an optional component loader for
  *   the network host. Isomorphic throughout.
  */
+/* @ts-self-types="./assemble.d.ts" */
 
 import { ExecutionProtocol } from "./execution-protocol.js";
 import { GraphProtocol } from "./graph-protocol.js";

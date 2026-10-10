@@ -9,6 +9,7 @@
  *   microcontrollers make periodic flooding prohibitive; that cadence
  *   policy lives in the runtime, not here.
  */
+/* @ts-self-types="./lxmf.d.ts" */
 
 import { MsgPack } from "@reticulum/core";
 import { VISUAL_FORMAT } from "./constants.js";
