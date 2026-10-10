@@ -17,7 +17,7 @@ import { resolveHighWaterMark } from "./Edge.js";
 import * as internalSocket from "./InternalSocket.js";
 import IP from "./IP.js";
 import { LegacyEventBase } from "./LegacyEvents.js";
-import { deprecated, makeAsync } from "./Platform.js";
+import { makeAsync } from "./Platform.js";
 import { debounce } from "./Utils.js";
 
 /**
@@ -196,12 +196,6 @@ export class Network extends LegacyEventBase {
        * @type {ComponentLoader}
        */
       this.loader = options.componentLoader;
-    } else if (this.graph.graphMetadata().componentLoader) {
-      deprecated(
-        "Passing componentLoader via Graph properties is deprecated, pass via Network options instead",
-      );
-      /** @type {ComponentLoader} */
-      this.loader = this.graph.graphMetadata().componentLoader;
     } else {
       /** @type {ComponentLoader} */
       this.loader = new ComponentLoader({
