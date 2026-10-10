@@ -150,6 +150,19 @@ The host logs `Dacar grant state reloaded`. Until a grant arrives, evaluation is
 
 The host starts even when no Dacar store exists — useful for batch execution — but warns that every client will be denied. Initialize one with `dacar init` to make the runtime reachable by tools.
 
+## Running multiple runtimes
+
+Every runtime announces from its own Reticulum identity, and the identity lives in the transport storage — so each concurrent runtime instance needs its own storage, mirroring how Reticulum itself separates instances (`rnsd --configdir`):
+
+```shell
+$ noflo-nodejs --name worker-a --storage .noflo/rns-a --graph graphs/Main.json
+$ noflo-nodejs --name worker-b --storage .noflo/rns-b --graph graphs/Other.json
+```
+
+Starting a second host with the same storage fails fast with the holder's pid: two transports speaking for one identity breaks addressing. A stale lock left by a crashed process is detected and broken automatically via the recorded pid.
+
+The Dacar grant store is different: it is shared, read-only state for authorization evaluation, so any number of runtime instances can evaluate against the same `~/.dacar`.
+
 ## Component discovery
 
 The host discovers components the same way `@noflo/loader-node` does: the project's own `components/` directory, plus every installed npm dependency that ships NoFlo components. Component signatures are harvested for the runtime's registry so clients can render real signatures before installing anything. When `--cache` is set, discovery reads the generated `fbp.json` manifest cache instead of walking `node_modules`.

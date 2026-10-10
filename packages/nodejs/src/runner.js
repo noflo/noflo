@@ -17,6 +17,15 @@
  */
 /* @ts-self-types="./runner.d.ts" */
 
+import {
+  closeSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  unlinkSync,
+  writeSync,
+} from "node:fs";
+import path from "node:path";
 import { GraphModel } from "@noflo/graph";
 import { createNodeModulesRegistry, loadGraphFile } from "@noflo/loader-node";
 import { ComponentLoader, Flowtrace } from "@noflo/noflo";
@@ -127,7 +136,82 @@ async function createReticulum(options) {
  *   immediately-finishing graph cannot race the listener.
  * @returns {Promise<HostHandle>}
  */
+/**
+ * Guard against two host processes sharing one Reticulum identity: every
+ * runtime must announce from its own identity, and two transports speaking
+ * for one identity break addressing (the node sees a single identity from
+ * several transports). The lock lives inside the transport storage, so the
+ * recipe for a second runtime mirrors Reticulum's multi-instance pattern
+ * (`rnsd --configdir`): give each instance its own `--storage`, and thus
+ * its own identity. A stale lock left by a crashed process is broken by
+ * checking the recorded pid.
+ *
+ * @param {string} [storage] Transport storage directory; no-op when unset
+ * @returns {() => void} Release function, idempotent
+ * @throws {Error} When another live host holds the lock
+ */
+export function acquireHostLock(storage) {
+  if (!storage) {
+    return () => {};
+  }
+  mkdirSync(storage, { recursive: true });
+  const lockPath = path.join(storage, "noflo-host.lock");
+  /** @type {number|undefined} */
+  let fd;
+  try {
+    fd = openSync(lockPath, "wx");
+  } catch (err) {
+    if (/** @type {any} */ (err)?.code !== "EEXIST") {
+      throw err;
+    }
+    // A lock left by a crashed process is broken when its pid is gone
+    let holder = 0;
+    try {
+      holder = Number.parseInt(readFileSync(lockPath, "utf8"), 10);
+    } catch {
+      // Unreadable lock is treated as stale
+    }
+    let alive = false;
+    if (holder > 0) {
+      try {
+        process.kill(holder, 0);
+        alive = true;
+      } catch (e) {
+        alive = /** @type {any} */ (e)?.code === "EPERM";
+      }
+    }
+    if (alive) {
+      throw new Error(
+        `Another noflo-nodejs host (pid ${holder}) is running with the Reticulum storage at ${storage}. ` +
+          "Two runtimes cannot share one identity — give the second instance its own storage (and name), like Reticulum's per-instance config directories: --storage <dir> --name <name>",
+      );
+    }
+    // Stale: remove and retry
+    unlinkSync(lockPath);
+    fd = openSync(lockPath, "wx");
+  }
+  writeSync(fd, `${process.pid}`);
+  let released = false;
+  const release = () => {
+    if (released) {
+      return;
+    }
+    released = true;
+    try {
+      closeSync(fd);
+      unlinkSync(lockPath);
+    } catch {
+      // Best effort: a failed unlink just leaves a stale lock that the
+      // pid check breaks on the next start
+    }
+  };
+  process.once("exit", release);
+  return release;
+}
+
 export async function createHost(options = {}) {
+  const releaseLock = acquireHostLock(options.storage);
+
   const fromFile = !(options.graph instanceof GraphModel);
   const graph = fromFile
     ? await loadGraphFile(/** @type {string} */ (options.graph))
@@ -196,6 +280,7 @@ export async function createHost(options = {}) {
     if (reticulum) {
       await reticulum.stop();
     }
+    releaseLock();
   };
 
   if (options.batch) {
