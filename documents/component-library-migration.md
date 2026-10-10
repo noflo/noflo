@@ -535,7 +535,7 @@ jobs:
 
 - The package must be configured for trusted publishing on npmjs.com (package settings → publishing access → GitHub Actions). Note this in the PR description if it has not been done.
 - Never reintroduce secret-token publishing.
-- Releases are cut with the per-repo `scripts/release.js` (mirroring the core monorepo's release flow, scaled down): version + changelog `[Unreleased]` stamp, one `Release v<version>` commit, tag, push. npm publishing is not part of the script — the first publish of each `@noflo/*` package is manual (OIDC trusted publishing cannot create packages), later versions publish from the `v*` tag, and the workflow skips versions already on the registry. Prerelease versions publish under the `next` dist-tag (npm requires an explicit tag for prereleases). Deprecating the legacy `noflo-*` names is deferred until 2.x stable.
+- Releases are cut with the maintainer's `release-npm` tool: version + changelog `[Unreleased]` stamp, one `Release v<version>` commit, tag, push. npm publishing is not part of the tool — the first publish of each `@noflo/*` package is manual (OIDC trusted publishing cannot create packages), later versions publish from the `v*` tag, and the workflow skips versions already on the registry. Prerelease versions publish under the `next` dist-tag (npm requires an explicit tag for prereleases). Deprecating the legacy `noflo-*` names is deferred until 2.x stable.
 - JSR publishing for libraries (a `jsr.json` plus the doc-coverage gate, mirroring the core monorepo's JSR steps) is planned but not yet part of the per-repo template.
 
 ### 5.6 License and changelog
