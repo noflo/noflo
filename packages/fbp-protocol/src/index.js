@@ -159,6 +159,7 @@ export {
   sigHash,
 } from "./registry.js";
 export {
+  dataEventEnvelope,
   decodeFlowtraceChunk,
   decodePubsubSub,
   encodeFlowtraceChunk,

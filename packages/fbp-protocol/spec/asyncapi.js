@@ -335,6 +335,7 @@ describe("wire examples round-trip through the codecs", () => {
             chunks: parsed.chunks.map((chunk) =>
               encodeFlowtraceChunk({
                 subId: chunk.subId,
+                planeId: chunk.planeId,
                 baseTimestampMs: chunk.baseTimestampMs,
                 events: chunk.events,
               }),

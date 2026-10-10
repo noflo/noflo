@@ -130,7 +130,7 @@ export function encodeAuthResponse({
  * Decode a `0x02 CMD_AUTH_RESPONSE`.
  *
  * @param {Uint8Array} bytes
- * @returns {{ cmd: number, protocolVersion: number, capabilityMask: number, limitationCode: number }}
+ * @returns {{ cmd: number, protocolVersion: number, capabilityMask: number, limitationCode: number, runtimeMetadata: any, advertisedMask: number }}
  * @throws {ProtocolError} On a non-`0x02` frame or malformed payload.
  */
 export function decodeAuthResponse(bytes) {

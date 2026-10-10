@@ -1066,8 +1066,8 @@
     "description": "Event storms never hit the wire raw: events buffer into chunks, each event carrying a uint32 millisecond delta from the chunk's base timestamp. Event types: `0x01` DATA (raw value), `0x02` BEGIN_GROUP / `0x03` END_GROUP (group string), `0x04` ERROR (exception string), `0x05` CONSOLE (`[stream_id, log_string]`), `0x06` LIFECYCLE (transition code: `0x01` start, `0x02` stop, `0x03` safe-mode, `0x04` failed transition — a rejected `start()` leaves the runtime an honest message to send, with the detail in an accompanying `0x04` ERROR event; `0x05` paused and `0x06` resumed announce execution-control run-state changes), `0x07` VISUAL_STATE (`[format_type, binary_pixels]`), `0x08` BREAKPOINT_HIT (`[breakpoint_id, node_id, port]`), `0x09` STUB_ERROR (exception string — the canonical classification for errors raised by stub components: the event type itself marks the error as unimplemented rather than a genuine component failure), `0x0a` EDGE_CAPACITY (`[edge_id, in_flight, desired_size]` — one backpressure sample per edge per flush; `desired_size` nil when the edge is unbounded; a data-channel observation, never an error).",
     "payload": {
      "type": "array",
-     "minItems": 4,
-     "maxItems": 4,
+     "minItems": 5,
+     "maxItems": 5,
      "items": [
       {
        "type": "integer",
@@ -1080,6 +1080,14 @@
         "integer"
        ],
        "description": "sub_id"
+      },
+      {
+       "type": [
+        "integer",
+        "string",
+        "null"
+       ],
+       "description": "plane_id"
       },
       {
        "type": "integer",
@@ -1130,6 +1138,7 @@
       "payload": [
        50,
        "sub-1",
+       null,
        1730000000000,
        [
         [
@@ -1189,7 +1198,7 @@
       ]
      }
     ],
-    "x-msgpack-hex": "9432a57375622d31cf00000192cc09140099930002a46d6174689304012a93090604930e04d92873746172742072656a65637465643a20636f6d706f6e656e74206d6174682f416464207468726577931203a46d61746893190115931c09d9226d6174682f446976696465206973206e6f7420696d706c656d656e74656420796574931f0a93a6656467652d31033c931f0a93a6656467652d3201c0",
+    "x-msgpack-hex": "9532a57375622d31c0cf00000192cc09140099930002a46d6174689304012a93090604930e04d92873746172742072656a65637465643a20636f6d706f6e656e74206d6174682f416464207468726577931203a46d61746893190115931c09d9226d6174682f446976696465206973206e6f7420696d706c656d656e74656420796574931f0a93a6656467652d31033c931f0a93a6656467652d3201c0",
     "x-verify": "frame"
    },
    "runCtrl": {
@@ -1636,7 +1645,7 @@
     "title": "Streamable trace file",
     "summary": "Self-contained, append-only flowtrace recording for playback in UI Web Workers.",
     "description": "Not a link frame: a file format. Frame 1 is the topology snapshot `[0xF0, format_ver, timestamp_ms, runtime_metadata, complete_graph_definition]` and must come first; frames 2..N are raw `0x32 CMD_FLOWTRACE_CHUNK` byte arrays appended sequentially as they flush from the engine. Frames are self-delimiting MsgPack values, so a recording can be parsed incrementally — including while it is still being written.",
-    "x-msgpack-hex": "95ccf001cf00000192cc09140083a86e6f64654e616d65ad736f6c61722d72756e74696d65a772756e74696d65a56e6f666c6fa776657273696f6ea5322e302e3082a970726f63657373657381a66e6f64655f3181a9636f6d706f6e656e74a86d6174682f416464ab636f6e6e656374696f6e73909432a57375622d31cf00000192cc091400919300012a",
+    "x-msgpack-hex": "95ccf001cf00000192cc09140083a86e6f64654e616d65ad736f6c61722d72756e74696d65a772756e74696d65a56e6f666c6fa776657273696f6ea5322e302e3082a970726f63657373657381a66e6f64655f3181a9636f6d706f6e656e74a86d6174682f416464ab636f6e6e656374696f6e73909532a57375622d31c0cf00000192cc091400919300012a",
     "x-verify": "tracefile"
    },
    "planeDrop": {

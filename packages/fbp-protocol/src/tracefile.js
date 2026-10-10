@@ -12,7 +12,7 @@
 /* @ts-self-types="./tracefile.d.ts" */
 
 import { MsgPack } from "@reticulum/core";
-import { TRACE_SNAPSHOT } from "./constants.js";
+import { EVENT_TYPE, TRACE_SNAPSHOT } from "./constants.js";
 import { ProtocolError } from "./errors.js";
 import { splitMsgpackFrames } from "./msgpack-frames.js";
 import { decodeFlowtraceChunk, encodeFlowtraceChunk } from "./telemetry.js";
@@ -166,9 +166,10 @@ export function readTraceFile(bytes) {
  * document #23). The recorder owns the event model as data; this function
  * is the binary encoding: the snapshot state is MsgPack-framed as the
  * `0xF0` snapshot frame and the delta-encoded event tuples are projected to
- * a single `0x32` chunk frame (the recorder's tuples carry an optional
- * fourth metadata element, which the wire projection drops — payload stays
- * the raw value per work document #4 §7).
+ * a single `0x32` chunk frame. DATA event payloads are projected to the
+ * wire envelope `[src, tgt, value]` from the recorder's metadata (external
+ * review, update #35 point 1: the event stream maps onto the frame-1
+ * topology); other payload kinds pass through as recorded.
  *
  * This module deliberately has no dependency on `@noflo/noflo`; the state
  * is consumed duck-typed, and a round-trip spec in `@noflo/runtime` pins
@@ -178,7 +179,7 @@ export function readTraceFile(bytes) {
  * @param {{ formatVersion: number, timestampMs: number, runtimeMetadata: any,
  *   graphDefinition: any }} state.snapshot
  * @param {Array<[number, number, any, any?]>} state.chunks Delta-encoded
- *   event tuples; any fourth metadata element is projection-dropped.
+ *   event tuples; the fourth metadata element feeds the DATA envelope.
  * @returns {Uint8Array} The complete trace file.
  * @throws {ProtocolError} When the state is malformed.
  */
@@ -198,12 +199,40 @@ export function assembleTraceFileFromRecorder(state) {
     chunks.push(
       encodeFlowtraceChunk({
         subId: 0,
+        // A single-plane recording: the main plane (nil) unless the
+        // snapshot names one. Multi-plane recordings are staged.
+        planeId: null,
         baseTimestampMs: snapshot.timestampMs,
-        events: state.chunks.map((tuple) => ({
-          timeDeltaMs: tuple[0],
-          eventType: tuple[1],
-          payload: tuple[2],
-        })),
+        events: state.chunks.map((tuple) => {
+          const meta = tuple[3] ?? null;
+          const isEdgeEvent =
+            tuple[1] === EVENT_TYPE.DATA ||
+            tuple[1] === EVENT_TYPE.BEGIN_GROUP ||
+            tuple[1] === EVENT_TYPE.END_GROUP ||
+            tuple[1] === EVENT_TYPE.CONNECTION_OPEN ||
+            tuple[1] === EVENT_TYPE.CONNECTION_CLOSE;
+          if (isEdgeEvent && meta) {
+            // The envelope: [src, tgt, value] — src/tgt as port refs.
+            const ref = (p) =>
+              p
+                ? [p.node, p.port, ...(p.index !== undefined ? [p.index] : [])]
+                : null;
+            const value =
+              tuple[1] === EVENT_TYPE.DATA
+                ? tuple[2]
+                : (meta.group ?? tuple[2]);
+            return {
+              timeDeltaMs: tuple[0],
+              eventType: tuple[1],
+              payload: [ref(meta.src), ref(meta.tgt), value],
+            };
+          }
+          return {
+            timeDeltaMs: tuple[0],
+            eventType: tuple[1],
+            payload: tuple[2],
+          };
+        }),
       }),
     );
   }
