@@ -13,6 +13,7 @@
  * Usage:
  *   fbp-spec-runner [--base-dir <dir>] <file-or-dir> [...]
  */
+/* @ts-self-types="./cli.d.ts" */
 
 import { spawnSync } from "node:child_process";
 import { readdir, stat } from "node:fs/promises";

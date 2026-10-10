@@ -1,6 +1,6 @@
 {
   "name": "@noflo/runtime",
-  "version": "2.0.0-alpha.1",
+  "version": "2.0.0-alpha.2",
   "description": "FBP Protocol 2.0 runtime for NoFlo over Reticulum: wire the 2.x engine to the mesh, on servers and in browsers",
   "keywords": [
     "fbp",
@@ -39,9 +39,9 @@
     "test:bun": "bun test ./spec/*.js"
   },
   "dependencies": {
-    "@noflo/fbp-protocol": "^2.0.0-alpha.1",
-    "@noflo/graph": "^2.0.0-alpha.1",
-    "@noflo/noflo": "^2.0.0-alpha.1",
+    "@noflo/fbp-protocol": "^2.0.0-alpha.2",
+    "@noflo/graph": "^2.0.0-alpha.2",
+    "@noflo/noflo": "^2.0.0-alpha.2",
     "@reticulum/core": "^0.9.7",
     "@reticulum/dacar": "^1.1.0",
     "@reticulum/lxmf": "^0.9.7"

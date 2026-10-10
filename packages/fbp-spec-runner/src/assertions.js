@@ -11,6 +11,7 @@
  *   first. Every JSONPath match must satisfy the operator; zero matches is
  *   a failure.
  */
+/* @ts-self-types="./assertions.d.ts" */
 
 import assert from "node:assert/strict";
 import { JSONPath } from "../vendor/jsonpath-plus-11.1.0.js";
@@ -28,6 +29,10 @@ const typeName = (value) => {
 };
 
 /**
+ * A single fbp-spec expectation operator: validates the JSONPath-extracted
+ * packet payload against the expectation's value, failing the enclosing
+ * `node:test` assertion when it does not match.
+ *
  * @typedef {(actual: any, expected: any, portName: string) => void} Operator
  */
 

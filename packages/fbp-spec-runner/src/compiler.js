@@ -4,6 +4,7 @@
  * @file compiler module
  * @description Compile fbp-spec suites into `node:test` describe/it blocks.
  */
+/* @ts-self-types="./compiler.d.ts" */
 
 import { describe, it } from "node:test";
 import { createNodeModulesRegistry } from "@noflo/loader-node";

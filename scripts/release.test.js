@@ -14,6 +14,7 @@ import {
   applyVersionBump,
   discoverInternalPackages,
   gitOriginUrl,
+  isNpmNotFound,
   packageMetas,
 } from "./release.js";
 
@@ -154,6 +155,25 @@ test("discoverInternalPackages reads workspace names dynamically", () => {
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("isNpmNotFound recognizes npm's missing-package errors", () => {
+  assert.equal(
+    isNpmNotFound(
+      "npm error code E404\nnpm error 404 Not Found - GET https://registry.npmjs.org/@noflo/ghost",
+    ),
+    true,
+  );
+  assert.equal(
+    isNpmNotFound(
+      "npm error code E404 '@noflo/ghost' is not in the npm registry.",
+    ),
+    true,
+  );
+  // network/auth failures must not be misread as "unpublished"
+  assert.equal(isNpmNotFound("npm error network request failed"), false);
+  assert.equal(isNpmNotFound("npm error code ENEEDAUTH"), false);
+  assert.equal(isNpmNotFound(""), false);
 });
 
 test("gitOriginUrl reads the origin remote url", () => {

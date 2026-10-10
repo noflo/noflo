@@ -1,6 +1,8 @@
 # Changelog
 
-## [Unreleased]
+## Unreleased
+### Added
+- The package ships to JSR: `jsr.json` manifest with the CLI (`.`) and the programmatic modules (`./compiler`, `./network`, `./assertions`, `./loader`) as entrypoints, generated TypeScript declarations for the `src/` modules and the vendored bundles (adjacent `.d.ts`, emitted by `npm run types`), and `@ts-self-types` pointers so JSR scores the typed surface
 
 ## [2.0.0-alpha.2] - 2026-10-09
 - Socket event wiring uses the EventTarget API (`addEventListener`), so running the tester no longer emits NoFlo EventEmitter deprecation warnings

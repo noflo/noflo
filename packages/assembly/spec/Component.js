@@ -4,6 +4,7 @@ import * as noflo from "@noflo/noflo";
 
 import { getComponent as getBuildFrame } from "../example/components/BuildFrame.js";
 import { getComponent as getMountEngine } from "../example/components/MountEngine.js";
+import { getComponent as getOrder } from "../example/components/Order.js";
 
 /**
  * Minimal stand-in for the noflo-wrapper test harness: drives a
@@ -115,6 +116,28 @@ describe("Assembly Component", () => {
       const msg = /** @type {Record<string, any>} */ (await received);
       assert.ok(msg.errors.length > 0);
       assert.ok(msg.errors[0].message.includes("not an object"));
+    });
+  });
+
+  describe("of processMessage kind", () => {
+    it("should receive the component as this", async () => {
+      const c = wrap(getOrder());
+      /** @type {unknown[]} */
+      const ids = [];
+      const done = new Promise((resolve) => {
+        c.receive("out", (msg) => {
+          ids.push(/** @type {Record<string, any>} */ (msg).id);
+          if (ids.length === 2) {
+            resolve(ids);
+          }
+        });
+      });
+      c.send({ in: { errors: [] } });
+      c.send({ in: { errors: [] } });
+      // Core invokes the handler as `this.handle(...)` (Component.js), so
+      // `this` inside a subclass's `processMessage` is the component
+      // instance — Order counts activations on its instance `counter`
+      assert.deepEqual(await done, [1, 2]);
     });
   });
 });

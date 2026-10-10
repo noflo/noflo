@@ -78,6 +78,30 @@ export { x };
   }
 });
 
+test("checkPackage: shebang before the module doc is accepted (CLI bin entrypoints)", () => {
+  const root = mkdtempSync(join(tmpdir(), "jsr-ep-shebang-"));
+  try {
+    const pkgDir = join(root, "packages", "fake");
+    fixture(pkgDir, {
+      src: `#!/usr/bin/env node
+
+/**
+ * @file cli.js
+ * @description example CLI
+ */
+
+/* @ts-self-types="../types/src/index.d.ts" */
+
+export const x = 1;
+`,
+      dts: true,
+    });
+    assert.deepEqual(checkPackage(pkgDir), []);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("checkPackage: missing @ts-self-types pointer → flagged (the slow-type regression)", () => {
   const root = mkdtempSync(join(tmpdir(), "jsr-ep-noptr-"));
   try {

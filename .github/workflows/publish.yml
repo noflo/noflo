@@ -1,10 +1,10 @@
-name: Publish to npm
+name: Publish to npm and JSR
 
-# Additional convenience distribution to the npm registry (and later JSR).
+# Additional convenience distribution to the npm registry and JSR.
 # The CANONICAL release is the rngit release (signed tarballs over the mesh);
-# this workflow merely mirrors the same tagged versions to npmjs.com so the
-# broader JS ecosystem can `npm install` them. It runs only when a `v*` tag
-# reaches the `github` remote.
+# this workflow merely mirrors the same tagged versions to npmjs.com and
+# jsr.io so the broader JS ecosystem can install them. It runs only when a
+# `v*` tag reaches the `github` remote.
 on:
   push:
     tags:
@@ -34,6 +34,17 @@ jobs:
           # publish targets the right registry; auth comes from OIDC
           # trusted publishing (no NPM_TOKEN needed).
           registry-url: https://registry.npmjs.org
+
+      # JSR publishing runs native `deno publish`, not `npx jsr` — the
+      # standalone jsr CLI embeds an older deno that panics on some
+      # declaration rewrites (see scripts/jsr-dryrun.sh). `deno publish`
+      # detects the GitHub Actions environment and authenticates through
+      # OIDC trusted publishing (the `id-token: write` permission above); no
+      # JSR token is needed.
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
 
       - run: npm ci
 
@@ -71,8 +82,7 @@ jobs:
       # block the rest — the loop below continues past failures and only
       # fails the job for real publish errors. (The npm loop iterates
       # packages/*; order is irrelevant because npm resolves dep version
-      # ranges at install time. The JSR loop — dormant until packages gain a
-      # jsr.json under the @noflo namespace — uses a topological order via
+      # ranges at install time. The JSR loop uses a topological order via
       # scripts/jsr-publish-order.js, because JSR resolves its jsr:
       # dependencies at PUBLISH time.)
       - name: Publish all to NPM
@@ -114,10 +124,17 @@ jobs:
           for dir in $(node scripts/jsr-publish-order.js); do
             name=$(node -p "require('./$dir/jsr.json').name")
             echo "::group::jsr publish $name"
-            if (cd "$dir" && npx -y jsr publish --allow-dirty); then
+            # --no-check mirrors scripts/jsr-dryrun.sh: full-check mode
+            # produces phantom TS2305 errors for packages shipping adjacent
+            # .d.ts files (deno 2.9.x); the slow-type public-API gate runs
+            # regardless of this flag.
+            if out=$(cd "$dir" && deno publish --allow-dirty --no-check 2>&1); then
               echo "published $name"
+            elif grep -qi "already exists" <<<"$out"; then
+              echo "$name already published — skipping"
             else
               echo "::error::$name failed to publish to JSR"
+              printf '%s\n' "$out"
               real_failures=$((real_failures+1))
             fi
             echo "::endgroup::"

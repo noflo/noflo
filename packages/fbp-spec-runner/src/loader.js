@@ -9,6 +9,7 @@
  *   suites (the multi-suite format used by fbp-spec), handled via the
  *   vendored YAML parser.
  */
+/* @ts-self-types="./loader.d.ts" */
 
 import { readFile } from "node:fs/promises";
 import { parseAllDocuments } from "../vendor/yaml-2.9.1.js";

@@ -14,6 +14,7 @@
  *   expected port, evaluate, then proceed. This is what makes testing
  *   stateful components possible.
  */
+/* @ts-self-types="./network.d.ts" */
 
 import * as noflo from "@noflo/noflo";
 import { evaluateExpectStep } from "./assertions.js";

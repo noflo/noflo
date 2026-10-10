@@ -1,0 +1,21 @@
+{
+  "name": "@noflo/fbp-spec-runner",
+  "version": "2.0.0-alpha.2",
+  "license": "EUPL-1.2",
+  "exports": {
+    ".": "./src/cli.js",
+    "./compiler": "./src/compiler.js",
+    "./network": "./src/network.js",
+    "./assertions": "./src/assertions.js",
+    "./loader": "./src/loader.js"
+  },
+  "publish": {
+    "include": [
+      "src/",
+      "vendor/",
+      "package.json",
+      "jsr.json",
+      "CHANGELOG.md"
+    ]
+  }
+}

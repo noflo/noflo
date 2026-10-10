@@ -5,10 +5,14 @@
     "types": ["node"],
     "checkJs": true,
     "skipLibCheck": true,
-    "noEmit": true,
+    "noEmit": false,
     "allowJs": true,
-    "strict": false
+    "strict": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "rootDir": ".",
+    "outDir": "."
   },
   "include": ["src/**/*.js"],
-  "exclude": ["../**/vendor/**", "vendor/**"]
+  "exclude": ["../**/vendor/**", "vendor/**/*.d.ts", "src/**/*.d.ts"]
 }

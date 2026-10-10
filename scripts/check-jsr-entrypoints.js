@@ -78,7 +78,11 @@ export function checkPackage(pkgDir) {
       continue;
     }
     const src = readFileSync(file, "utf8");
-    const hasModuleDoc = /^\s*\/\*\*/.test(src);
+    // A `#!` shebang line (CLI bin entrypoints) precedes the module doc;
+    // JSR/deno-doc accept a shebang there the same way, so strip it before
+    // checking for the leading doc block.
+    const srcBody = src.replace(/^#![^\n]*\n/, "");
+    const hasModuleDoc = /^\s*\/\*\*/.test(srcBody);
     const selfTypes = src.match(SELF_TYPES_RE);
     if (!hasModuleDoc) {
       problems.push({ pkg, key, file, kind: "no-module-doc" });

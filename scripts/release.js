@@ -178,6 +178,44 @@ export function gitOriginUrl(root) {
 }
 
 /**
+ * Whether an `npm view` failure's combined stdout/stderr text indicates the
+ * package does not exist on the registry — as opposed to a network or auth
+ * error, where existence is simply unknown and the check stays silent.
+ * @param {string} errText
+ * @returns {boolean}
+ */
+export function isNpmNotFound(errText) {
+  return /E404|404 Not Found|is not in the npm registry/i.test(errText);
+}
+
+/**
+ * Package names that have never been published to npm. OIDC trusted
+ * publishing cannot create new package names, so a workspace package missing
+ * from the registry needs a manual first publish before the tag-triggered CI
+ * publish run can ship it.
+ * @param {ReturnType<typeof packageMetas>} metas
+ * @returns {string[]} Scoped names not found on the registry. Lookup failures
+ *   other than "not found" (offline, auth) are skipped — the check is
+ *   advisory, not a gate.
+ */
+export function npmUnpublished(metas) {
+  /** @type {string[]} */
+  const missing = [];
+  for (const m of metas) {
+    try {
+      execSync(`npm view ${m.json.name} version`, {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+    } catch (err) {
+      const errText = `${/** @type {any} */ (err)?.stdout ?? ""}${/** @type {any} */ (err)?.stderr ?? ""}`;
+      if (isNpmNotFound(errText)) missing.push(m.json.name);
+    }
+  }
+  return missing;
+}
+
+/**
  * Run `npm pack --dry-run` in a package dir and return the list of files that
  * would be packed (the "Tarball Contents" block).
  * @param {string} pkgDir
@@ -283,6 +321,16 @@ export function runRelease({
   console.log(
     `Release ${current} -> ${version} (${date})  [${repo}]${dryRun ? "  [DRY-RUN]" : ""}\n`,
   );
+
+  // Pre-flight note: packages that have never been published to npm need a
+  // manual first publish — OIDC trusted publishing cannot create new package
+  // names, so the tag-triggered CI publish run would fail for them.
+  const unpublished = npmUnpublished(metas);
+  if (unpublished.length > 0) {
+    console.log(
+      `⚠ Never published to npm — manual first publish required before the CI publish run:\n  ${unpublished.join(", ")}\n`,
+    );
+  }
 
   // 2. checks
   if (!dryRun && !skipChecks) {
