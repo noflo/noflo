@@ -42,6 +42,9 @@ export class NetworkHost extends EventTarget {
    *   default applied when the network is built; the engine resolves the
    *   high-water mark at edge construction, so runtime changes are pending
    *   until the next build (see {@link NetworkHost#setHighWaterMark}).
+   * @param {import("@noflo/noflo").Flowtrace} [options.flowtrace] Trace
+   *   recorder handed to every network this host builds, recording all
+   *   executions under the graph's name (work document #23).
    */
   constructor(options) {
     super();
@@ -49,6 +52,7 @@ export class NetworkHost extends EventTarget {
     this.componentLoader = options.componentLoader ?? null;
     this.asyncDelivery = options.asyncDelivery ?? false;
     this.pendingHighWaterMark = options.highWaterMark;
+    this.flowtrace = options.flowtrace ?? null;
     /** @type {import("@noflo/noflo").Network|null} */
     this.network = null;
     /** @type {Promise<import("@noflo/noflo").Network>|null} */
@@ -153,6 +157,7 @@ export class NetworkHost extends EventTarget {
       componentLoader: this.componentLoader ?? undefined,
       delay: true,
       asyncDelivery: this.asyncDelivery,
+      ...(this.flowtrace ? { flowtrace: this.flowtrace } : {}),
       ...(this.pendingHighWaterMark === undefined
         ? {}
         : { highWaterMark: this.pendingHighWaterMark }),

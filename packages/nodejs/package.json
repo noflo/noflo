@@ -1,41 +1,43 @@
 {
-  "name": "@noflo/runtime",
+  "name": "@noflo/nodejs",
   "version": "2.0.0-alpha.3",
-  "description": "FBP Protocol 2.0 runtime for NoFlo over Reticulum: wire the 2.x engine to the mesh, on servers and in browsers",
+  "description": "Command-line host for running NoFlo programs on Node.js",
   "keywords": [
-    "fbp",
     "noflo",
-    "reticulum",
-    "runtime",
-    "protocol"
+    "ecosystem:noflo"
   ],
   "author": "Henri Bergius <henri.bergius@iki.fi>",
-  "license": "EUPL-1.2",
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">= 22"
   },
-  "main": "./src/index.js",
-  "module": "./src/index.js",
+  "main": "./src/library.js",
+  "module": "./src/library.js",
   "exports": {
-    ".": "./src/index.js",
-    "./assemble": "./src/assemble.js",
-    "./lxmf": "./src/lxmf.js",
-    "./dacar": "./src/dacar.js",
-    "./registry-protocol": "./src/registry-protocol.js"
+    ".": "./src/library.js"
   },
   "files": [
+    "bin",
     "src",
+    "README.md",
     "CHANGELOG.md",
-    "SPEC.md"
+    "LICENSE"
   ],
+  "bin": {
+    "noflo-nodejs": "./bin/noflo-nodejs"
+  },
   "repository": {
     "type": "git",
-    "url": "git://github.com/noflo/noflo.git"
+    "url": "git+https://github.com/noflo/noflo.git",
+    "directory": "packages/nodejs"
+  },
+  "bugs": {
+    "url": "https://github.com/noflo/noflo/issues"
   },
   "scripts": {
-    "test": "node --test spec/*.js",
     "lint": "npx @biomejs/biome check --use-editorconfig=true src/ spec/",
+    "test": "node --test spec/*.js",
     "types": "find src -name '*.d.ts' -delete && tsc -p tsconfig.json",
     "test:deno": "deno test --allow-all --no-check spec/*.js",
     "test:bun": "bun test ./spec/*.js"
@@ -43,12 +45,16 @@
   "dependencies": {
     "@noflo/fbp-protocol": "^2.0.0-alpha.3",
     "@noflo/graph": "^2.0.0-alpha.3",
+    "@noflo/loader-node": "^2.0.0-alpha.1",
     "@noflo/noflo": "^2.0.0-alpha.3",
+    "@noflo/runtime": "^2.0.0-alpha.3",
     "@reticulum/core": "^0.9.8",
     "@reticulum/dacar": "^1.6.1",
-    "@reticulum/lxmf": "^0.9.8"
+    "@reticulum/node": "^0.9.8"
   },
   "devDependencies": {
-    "@reticulum/node": "^0.9.8"
+    "@noflo/core": "^2.0.0-alpha.1",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.0.0"
   }
 }

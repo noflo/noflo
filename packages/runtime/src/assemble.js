@@ -46,6 +46,8 @@ import { TelemetryProtocol } from "./telemetry-protocol.js";
  *   `install` hooks.
  * @param {import("@noflo/noflo").ComponentLoader} [options.componentLoader]
  *   Loader for the network host.
+ * @param {import("@noflo/noflo").Flowtrace} [options.flowtrace] Trace
+ *   recorder handed to every network the host builds (work document #23).
  * @param {string[]|number} [options.capabilities] Capability mask the
  *   runtime advertises; defaults to the read surface.
  * @param {{ default?: string[]|number, identities?: Record<string, string[]|number> }} [options.permissions]
@@ -84,6 +86,7 @@ export async function assembleRuntime(options) {
     graph: options.graph,
     componentLoader: options.componentLoader,
     asyncDelivery: options.asyncDelivery,
+    ...(options.flowtrace ? { flowtrace: options.flowtrace } : {}),
   });
   const registry = new RegistryProtocol({ catalog: options.catalog });
   const graph = new GraphProtocol({

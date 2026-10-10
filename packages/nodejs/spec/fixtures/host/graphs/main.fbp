@@ -1,0 +1,1 @@
+'hello' -> IN send(host-fixture/SendOnce) OUT -> IN pass(host-fixture/Pass)
