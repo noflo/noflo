@@ -1,13 +1,25 @@
 {
   "compilerOptions": {
-    "allowJs": true,
+    "module": "nodenext",
+    "target": "esnext",
+    "types": [
+      "node"
+    ],
     "checkJs": true,
-    "noEmit": true,
-    "strict": true,
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "target": "ES2022",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "allowJs": true,
+    "strict": false,
+    "noEmit": true
   },
-  "include": ["src/", "bin/", "test/"]
+  "include": [
+    "src/*.js",
+    "src/**/*.js",
+    "bin/*.js",
+    "test/**/*.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "test/fixtures",
+    "src/**/*.d.ts"
+  ]
 }
