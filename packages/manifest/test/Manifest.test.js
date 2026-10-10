@@ -129,9 +129,10 @@ describe("generateManifest", () => {
   });
 
   it("harvests elementary signatures matching the live instance", () => {
-    const browserThing = manifest.components.find(
-      (c) => c.name === "testlib/BrowserThing",
-    );
+    const browserThing =
+      /** @type {import("../src/index.js").ManifestComponent} */ (
+        manifest.components.find((c) => c.name === "testlib/BrowserThing")
+      );
     assert.equal(browserThing.type, "elementary");
     assert.equal(browserThing.description, "Runs everywhere");
     assert.equal(browserThing.icon, "globe");
@@ -156,47 +157,54 @@ describe("generateManifest", () => {
   });
 
   it("associates fbp-spec suites by basename", () => {
-    const browserThing = manifest.components.find(
-      (c) => c.name === "testlib/BrowserThing",
-    );
+    const browserThing =
+      /** @type {import("../src/index.js").ManifestComponent} */ (
+        manifest.components.find((c) => c.name === "testlib/BrowserThing")
+      );
     assert.equal(browserThing.spec, "spec/BrowserThing.yaml");
-    const nodeThing = manifest.components.find(
-      (c) => c.name === "testlib/NodeThing",
-    );
+    const nodeThing =
+      /** @type {import("../src/index.js").ManifestComponent} */ (
+        manifest.components.find((c) => c.name === "testlib/NodeThing")
+      );
     assert.equal(nodeThing.spec, null);
   });
 
   it("derives platforms from static imports", () => {
-    const browserThing = manifest.components.find(
-      (c) => c.name === "testlib/BrowserThing",
-    );
+    const browserThing =
+      /** @type {import("../src/index.js").ManifestComponent} */ (
+        manifest.components.find((c) => c.name === "testlib/BrowserThing")
+      );
     assert.deepEqual(browserThing.platforms, [
       "browser",
       "node",
       "deno",
       "bun",
     ]);
-    const nodeThing = manifest.components.find(
-      (c) => c.name === "testlib/NodeThing",
-    );
+    const nodeThing =
+      /** @type {import("../src/index.js").ManifestComponent} */ (
+        manifest.components.find((c) => c.name === "testlib/NodeThing")
+      );
     assert.deepEqual(nodeThing.platforms, ["node", "deno", "bun"]);
   });
 
   it("detects the Assembly Line convention", () => {
-    const assemblyThing = manifest.components.find(
-      (c) => c.name === "testlib/AssemblyThing",
-    );
+    const assemblyThing =
+      /** @type {import("../src/index.js").ManifestComponent} */ (
+        manifest.components.find((c) => c.name === "testlib/AssemblyThing")
+      );
     assert.equal(assemblyThing.assembly, true);
-    const browserThing = manifest.components.find(
-      (c) => c.name === "testlib/BrowserThing",
-    );
+    const browserThing =
+      /** @type {import("../src/index.js").ManifestComponent} */ (
+        manifest.components.find((c) => c.name === "testlib/BrowserThing")
+      );
     assert.equal(browserThing.assembly, false);
   });
 
   it("derives graph signatures statically and lists references", () => {
-    const pipeline = manifest.components.find(
-      (c) => c.name === "testlib/Pipeline",
-    );
+    const pipeline =
+      /** @type {import("../src/index.js").ManifestComponent} */ (
+        manifest.components.find((c) => c.name === "testlib/Pipeline")
+      );
     assert.equal(pipeline.type, "subgraph");
     assert.deepEqual(
       pipeline.signature.inports.map((p) => p.name),

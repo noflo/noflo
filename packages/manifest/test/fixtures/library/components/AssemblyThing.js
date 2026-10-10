@@ -2,6 +2,10 @@ import { Component as AssemblyComponent } from "@noflo/assembly";
 import { Component } from "@noflo/noflo";
 export function getComponent() {
   class RelayThing extends AssemblyComponent {
+    /**
+     * @param {Record<string, any>} msg
+     * @param {{ sendDone(map: Record<string, unknown>): void }} output
+     */
     relay(msg, output) {
       output.sendDone(msg);
     }
