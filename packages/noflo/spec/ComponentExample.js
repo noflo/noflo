@@ -19,7 +19,7 @@ describe("MergeObjects component", () => {
     age: 33,
   };
   before((t) => {
-    if (noflo.isBrowser()) {
+    if (typeof process === "undefined" || !process.versions?.node) {
       t.skip();
       return;
     }

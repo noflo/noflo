@@ -10,56 +10,46 @@
     no-undef,
 */
 
-/**
- * Detect whether NoFlo is running in a browser-like environment rather than a
- * server-side JavaScript runtime.
- *
- * @returns {boolean}
- */
-export function isBrowser() {
-  if (
-    typeof process !== "undefined" &&
-    process.versions &&
-    (process.versions.node || process.versions.deno || process.versions.bun)
-  ) {
-    return false;
-  }
-  return true;
-}
-
 // Mechanism for showing API deprecation warnings. By default logs the warnings
 // but can also be configured to throw instead with the `NOFLO_FATAL_DEPRECATED`
-// env var.
+// environment variable (available on runtimes that expose `process`).
 /**
  * @param {string} message
  * @returns {void}
  */
 export function deprecated(message) {
-  if (isBrowser()) {
-    console.warn(message);
-    return;
-  }
-  if (process.env.NOFLO_FATAL_DEPRECATED) {
+  if (
+    typeof process !== "undefined" &&
+    process.env &&
+    process.env.NOFLO_FATAL_DEPRECATED
+  ) {
     throw new Error(message);
   }
   console.warn(message);
 }
 
 /**
+ * Run a function asynchronously. On runtimes exposing a `process` object this
+ * uses `process.nextTick` (or `setImmediate` for same-loop scheduling);
+ * browser-like runtimes fall back to `setTimeout`.
+ *
  * @param {Function} func
+ * @param {boolean} [sameLoop]
  * @returns {void}
  */
 export function makeAsync(func, sameLoop = false) {
-  if (isBrowser()) {
-    // FIXME: Browsers don't have setImmediate yet so can't do same loop
-    setTimeout(func, 0);
+  if (
+    typeof process !== "undefined" &&
+    typeof process.nextTick === "function"
+  ) {
+    if (sameLoop && typeof setImmediate === "function") {
+      setImmediate(() => {
+        func();
+      });
+      return;
+    }
+    process.nextTick(func);
     return;
   }
-  if (sameLoop) {
-    setImmediate(() => {
-      func();
-    });
-    return;
-  }
-  process.nextTick(func);
+  setTimeout(func, 0);
 }

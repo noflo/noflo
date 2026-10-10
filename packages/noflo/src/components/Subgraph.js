@@ -14,7 +14,7 @@
 import { GraphModel, importFbpJson } from "@noflo/graph";
 import { Component } from "../lib/Component.js";
 import { Network } from "../lib/Network.js";
-import { isBrowser } from "../lib/Platform.js";
+import { makeAsync } from "../lib/Platform.js";
 import { InPorts, OutPorts } from "../lib/Ports.js";
 
 /**
@@ -205,17 +205,10 @@ export class Subgraph extends Component {
   }
 
   setToReady() {
-    if (!isBrowser()) {
-      process.nextTick(() => {
-        this.ready = true;
-        return this.dispatchLifecycleEvent("ready");
-      });
-    } else {
-      setTimeout(() => {
-        this.ready = true;
-        return this.dispatchLifecycleEvent("ready");
-      }, 0);
-    }
+    makeAsync(() => {
+      this.ready = true;
+      this.dispatchLifecycleEvent("ready");
+    });
   }
 
   /**

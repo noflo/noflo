@@ -673,7 +673,7 @@ describe("NoFlo Network", () => {
       "should be able to connect without errors",
       { timeout: 120000 },
       (_t, done) => {
-        if (noflo.isBrowser()) {
+        if (typeof process === "undefined" || !process.versions?.node) {
           // Async mode is too much for Puppeteer here
           _t.skip();
           return;
