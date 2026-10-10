@@ -439,4 +439,55 @@ export default class InPort extends BasePort {
   clear() {
     return this.prepareBuffer();
   }
+
+  /**
+   * Counts the IPs currently buffered on this port, across the regular,
+   * IIP, scoped, and indexed buffer shapes. Used by the component's
+   * shutdown path to report unconsumed data.
+   *
+   * @returns {number}
+   */
+  /**
+   * Counts the IPs currently buffered on this port, across the regular,
+   * IIP, scoped, and indexed buffer shapes. Used by the component's
+   * shutdown path to report unconsumed data.
+   *
+   * Control ports always buffer their latest stream non-consumingly by
+   * design, so they are excluded: a configured control port holding its
+   * value at shutdown is correct usage, not a footgun.
+   *
+   * @returns {number}
+   */
+  countBuffered() {
+    if (this.options.control) {
+      return 0;
+    }
+    let count = 0;
+    if (this.isAddressable()) {
+      if (this.options.scoped) {
+        Object.keys(this.indexedScopedBuffer ?? {}).forEach((scope) => {
+          Object.keys(this.indexedScopedBuffer[scope] ?? {}).forEach(
+            (index) => {
+              count += (this.indexedScopedBuffer[scope][index] ?? []).length;
+            },
+          );
+        });
+      }
+      Object.keys(this.indexedIipBuffer ?? {}).forEach((index) => {
+        count += (this.indexedIipBuffer[index] ?? []).length;
+      });
+      Object.keys(this.indexedBuffer ?? {}).forEach((index) => {
+        count += (this.indexedBuffer[index] ?? []).length;
+      });
+      return count;
+    }
+    if (this.options.scoped) {
+      Object.keys(this.scopedBuffer ?? {}).forEach((scope) => {
+        count += (this.scopedBuffer[scope] ?? []).length;
+      });
+    }
+    count += (this.iipBuffer ?? []).length;
+    count += (this.buffer ?? []).length;
+    return count;
+  }
 }

@@ -74,6 +74,35 @@ export class Component extends EventBase {
   constructor(options = {}) {
     super();
     const opts = options;
+    // Detect case-typo option keys: 1.x-era option names like
+    // `forwardbrackets` are silently ignored by the engine, which turns
+    // them into invisible behavior changes. Only differing casing is
+    // reported, so extension-provided options (e.g. base-class hooks)
+    // never trip this
+    const knownOptionKeys = [
+      "inPorts",
+      "outPorts",
+      "icon",
+      "description",
+      "process",
+      "ordered",
+      "autoOrdering",
+      "activateOnInput",
+      "forwardBrackets",
+    ];
+    Object.keys(opts).forEach((key) => {
+      if (knownOptionKeys.includes(key)) {
+        return;
+      }
+      const caseMatch = knownOptionKeys.find(
+        (known) => known.toLowerCase() === key.toLowerCase(),
+      );
+      if (caseMatch) {
+        debugComponent(
+          `${this.nodeId ?? "component"} received unknown option '${key}' — did you mean '${caseMatch}'? Unknown options are silently ignored`,
+        );
+      }
+    });
     // Prepare inports, if any were given in options
     if (!opts.inPorts) {
       opts.inPorts = {};
@@ -354,6 +383,38 @@ export class Component extends EventBase {
           }),
       )
       .then(() => {
+        // Diagnostics before clearing: report data a component consumed
+        // prematurely or never got around to reading, and bracket
+        // contexts that never attached. Both are classic silent-hang
+        // and silent-drop shapes that otherwise vanish here without a
+        // trace (debug-visible only)
+        const inPortsForReport = this.inPorts.ports || this.inPorts;
+        Object.keys(inPortsForReport).forEach((portName) => {
+          const reportedPort = /** @type {InPort} */ (
+            inPortsForReport[portName]
+          );
+          if (typeof reportedPort.countBuffered !== "function") {
+            return;
+          }
+          const buffered = reportedPort.countBuffered();
+          if (buffered > 0) {
+            debugComponent(
+              `${this.nodeId} port '${portName}' holds ${buffered} unconsumed IPs at shutdown. Either data arrived that no activation consumed, or an activation consumed data it should not have before waiting for more — in that case the pending activation never re-invokes (check the has/get order)`,
+            );
+          }
+        });
+        Object.keys(this.bracketContext.out).forEach((portName) => {
+          Object.keys(this.bracketContext.out[portName]).forEach(
+            (scope) => {
+              const opens = this.bracketContext.out[portName][scope];
+              if (opens.length > 0) {
+                debugBrackets(
+                  `${this.nodeId} bracket context on '${portName}' discarded at shutdown with ${opens.length} unattached open brackets — forwarded brackets attach to actual sends`,
+                );
+              }
+            },
+          );
+        });
         // Clear contents of inport buffers
         const inPorts = this.inPorts.ports || this.inPorts;
         Object.keys(inPorts).forEach((portName) => {

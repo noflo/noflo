@@ -264,7 +264,7 @@ export default class OutPort extends BasePort {
     }
     if (index !== null) {
       throw new Error(
-        `${this.getId()} is not addressable port and index ${index} provided`,
+        `${this.getId()} is not addressable, but the packet carries index ${index} — clear ip.index before sending to a non-addressable port`,
       );
     }
     // Regular sockets affect all outbound connections
