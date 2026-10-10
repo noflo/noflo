@@ -423,6 +423,19 @@ export async function deriveGraphSignature(
       outports.push(manifestPort);
     }
   }
+  /**
+   * Resolves a library-namespaced reference to the harvested in-package
+   * entry, matching on the full name or the bare component name.
+   * @param {string} reference
+   * @returns {ManifestComponent|undefined}
+   */
+  const harvestedForReference = (reference) => {
+    if (harvestedByName.has(reference)) {
+      return harvestedByName.get(reference);
+    }
+    const bare = reference.split("/").pop() ?? "";
+    return harvestedByName.get(bare);
+  };
   if (needsFallback) {
     // The wired component is neither harvested in-package nor manifest-
     // published: resolve it through the loader (executes its code)
@@ -436,7 +449,8 @@ export async function deriveGraphSignature(
         .map((node) => node.component)
         .filter(
           (name) =>
-            !harvestedByName.has(name) && !manifestSignatureFor(baseDir, name),
+            !harvestedForReference(name) &&
+            !manifestSignatureFor(baseDir, name),
         );
       const namespaces = new Set(
         unresolvable.map((name) => name.split("/")[0]),

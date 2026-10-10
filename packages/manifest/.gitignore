@@ -1,3 +1,5 @@
 /node_modules/
 /fbp.json
 /noflo.json
+!test/fixtures/library/node_modules/
+!test/fixtures/library/node_modules/**
