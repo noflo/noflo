@@ -350,22 +350,6 @@ export class Network extends LegacyEventBase {
       });
       this.eventBuffer = [];
     }
-
-    if (event === "ip") {
-      // Emit also the legacy events from IP
-      switch (payload.type) {
-        case "openBracket":
-          this.bufferedEmit("begingroup", payload);
-          return;
-        case "closeBracket":
-          this.bufferedEmit("endgroup", payload);
-          return;
-        case "data":
-          this.bufferedEmit("data", payload);
-          break;
-        default:
-      }
-    }
   }
 
   /**
