@@ -27,6 +27,7 @@
  */
 /* @ts-self-types="./settings.d.ts" */
 
+import { readFileSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -158,6 +159,57 @@ export function defaultDacarStore() {
 }
 
 /**
+ * The host package's version, read once from the package manifest.
+ *
+ * @type {string|undefined}
+ */
+let packageVersion;
+
+/**
+ * The package version for `--version`.
+ *
+ * @returns {string}
+ */
+export function version() {
+  if (!packageVersion) {
+    const manifest = JSON.parse(
+      readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+    );
+    packageVersion = manifest.version;
+  }
+  return packageVersion;
+}
+
+/**
+ * Human-readable usage text, generated from the configuration schema so it
+ * cannot drift from the parser.
+ *
+ * @returns {string}
+ */
+export function usage() {
+  const lines = [
+    `noflo-nodejs v${version()} - run NoFlo programs on Node.js as FBP Protocol 2.0 runtimes`,
+    "",
+    "Usage: noflo-nodejs [options]",
+    "",
+    "Options:",
+  ];
+  for (const [key, conf] of Object.entries(config)) {
+    const flag = `--${conf.cli ?? kebab(key)}`;
+    const type = conf.boolean ? "[true|false]" : "<value>";
+    const env = conf.env ? ` [env: ${conf.env}]` : "";
+    const generated = conf.generate ? " [generated]" : "";
+    lines.push(
+      `  ${flag} ${type}`.padEnd(34) + `${conf.description}${env}${generated}`,
+    );
+  }
+  lines.push("");
+  lines.push("  -h, --help".padEnd(34) + "Show this help");
+  lines.push("  -v, --version".padEnd(34) + "Show the version");
+  return lines.join("\n");
+}
+
+/**
  * Available capability names — the FBP Protocol capability vocabulary the
  * Dacar relations map onto.
  *
@@ -202,6 +254,20 @@ function parseArguments() {
   const args = process.argv.slice(2);
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
+    if (
+      arg === "-h" ||
+      arg === "--help" ||
+      arg === "-v" ||
+      arg === "--version"
+    ) {
+      const err = /** @type {any} */ (new Error(arg));
+      if (arg === "-h" || arg === "--help") {
+        err.help = true;
+      } else {
+        err.version = true;
+      }
+      throw err;
+    }
     if (!arg.startsWith("--")) {
       throw new Error(`Unexpected argument: ${arg}`);
     }

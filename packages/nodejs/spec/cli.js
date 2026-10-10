@@ -108,4 +108,28 @@ describe("noflo-nodejs CLI", () => {
       rmSync(project, { recursive: true, force: true });
     }
   });
+
+  it("prints usage with -h and --help", async () => {
+    for (const flag of ["-h", "--help"]) {
+      const { code, stdout } = await runCli([flag], makeProject());
+      assert.equal(code, 0);
+      assert.match(stdout, /Usage: noflo-nodejs/);
+      assert.match(stdout, /--dacar-store/);
+      assert.match(stdout, /--graph/);
+    }
+  });
+
+  it("prints the version with -v and --version", async () => {
+    for (const flag of ["-v", "--version"]) {
+      const { code, stdout } = await runCli([flag], makeProject());
+      assert.equal(code, 0);
+      assert.match(stdout, /^\d+\.\d+\.\d+/);
+    }
+  });
+
+  it("rejects unknown options", async () => {
+    const { code, stderr } = await runCli(["--nonsense"], makeProject());
+    assert.equal(code, 1);
+    assert.match(stderr, /Unknown option --nonsense/);
+  });
 });

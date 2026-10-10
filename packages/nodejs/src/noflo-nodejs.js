@@ -16,7 +16,7 @@
 import { toHex } from "@reticulum/core";
 import { loadDacarPolicy } from "./dacar.js";
 import { createHost } from "./runner.js";
-import { load } from "./settings.js";
+import { load, usage, version } from "./settings.js";
 import { slugify, writeTrace } from "./trace.js";
 
 /**
@@ -44,7 +44,22 @@ async function flushTrace(options, flowtrace, graphName) {
  * @returns {Promise<void>}
  */
 export async function main() {
-  const options = await load();
+  /** @type {Record<string, any>} */
+  let options;
+  try {
+    options = await load();
+  } catch (err) {
+    if (/** @type {any} */ (err)?.help) {
+      console.log(usage());
+      process.exit(0);
+    }
+    if (/** @type {any} */ (err)?.version) {
+      console.log(version());
+      process.exit(0);
+    }
+    console.error(/** @type {any} */ (err)?.message ?? err);
+    process.exit(1);
+  }
   if (!options.graph) {
     console.error(
       "No graph to run. Pass --graph <file>, or set a project graph.",
