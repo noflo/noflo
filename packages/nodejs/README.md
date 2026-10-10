@@ -152,6 +152,8 @@ The host starts even when no Dacar store exists — useful for batch execution �
 
 ## Running multiple runtimes
 
+The recommended deployment shape is **one `noflo-nodejs` process per main graph**: each process is one runtime with its own identity and destination, which is how the mesh addresses programs.
+
 Every runtime announces from its own Reticulum identity, and the identity lives in the transport storage — so each concurrent runtime instance needs its own storage, mirroring how Reticulum itself separates instances (`rnsd --configdir`):
 
 ```shell
