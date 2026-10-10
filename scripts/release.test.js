@@ -204,6 +204,10 @@ test("currentBranch reads the checked-out branch name", () => {
   const root = mkdtempSync(join(tmpdir(), "noflo-branch-"));
   try {
     execSync("git init -q -b main", { cwd: root });
+    execSync(
+      'git config user.name "Test" && git config user.email test@example.com',
+      { cwd: root },
+    );
     writeFileSync(join(root, "seed.txt"), "seed");
     execSync("git add seed.txt && git commit -q -m seed", { cwd: root });
     assert.equal(currentBranch(root), "main");
@@ -218,6 +222,10 @@ test("currentBranch returns null on a detached HEAD", () => {
   const root = mkdtempSync(join(tmpdir(), "noflo-detached-"));
   try {
     execSync("git init -q -b main", { cwd: root });
+    execSync(
+      'git config user.name "Test" && git config user.email test@example.com',
+      { cwd: root },
+    );
     writeFileSync(join(root, "seed.txt"), "seed");
     execSync("git add seed.txt && git commit -q -m seed", { cwd: root });
     execSync("git checkout -q --detach HEAD", { cwd: root });
