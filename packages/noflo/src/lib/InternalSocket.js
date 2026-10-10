@@ -10,47 +10,6 @@ import IP from "./IP.js";
 import { LegacyEventBase } from "./LegacyEvents.js";
 import { makeAsync } from "./Platform.js";
 
-function legacyToIp(event, payload) {
-  // No need to wrap modern IP Objects
-  if (IP.isIP(payload)) {
-    return payload;
-  }
-
-  // Wrap legacy events into appropriate IP objects
-  switch (event) {
-    case "begingroup":
-      return new IP("openBracket", payload);
-    case "endgroup":
-      return new IP("closeBracket");
-    case "data":
-      return new IP("data", payload);
-    default:
-      return null;
-  }
-}
-
-function ipToLegacy(ip) {
-  switch (ip.type) {
-    case "openBracket":
-      return {
-        event: "begingroup",
-        payload: ip.data,
-      };
-    case "data":
-      return {
-        event: "data",
-        payload: ip.data,
-      };
-    case "closeBracket":
-      return {
-        event: "endgroup",
-        payload: ip.data,
-      };
-    default:
-      return null;
-  }
-}
-
 /**
  * @typedef SocketError
  * @property {Error} error
@@ -149,24 +108,12 @@ export class InternalSocket extends LegacyEventBase {
   }
 
   /**
-   * Deliver an IP from the edge to the socket's listeners: the modern
-   * `ip` event plus the derived legacy event.
+   * Deliver an IP from the edge to the socket's listeners.
    *
    * @param {IP} ip
    */
   #deliverIP(ip) {
     this.emitEvent("ip", ip);
-    if (!ip?.type) {
-      return;
-    }
-    const legacy = ipToLegacy(ip);
-    if (legacy.event === "connect") {
-      this.connected = true;
-    }
-    if (legacy.event === "disconnect") {
-      this.connected = false;
-    }
-    this.emitEvent(legacy.event, legacy.payload);
   }
 
   emitEvent(event, data) {
@@ -243,10 +190,9 @@ export class InternalSocket extends LegacyEventBase {
   // message queues can be used as additional packet relay mechanisms.
   send(data) {
     if (data === undefined && typeof this.dataDelegate === "function") {
-      this.handleSocketEvent("data", this.dataDelegate());
-      return;
+      data = this.dataDelegate();
     }
-    this.handleSocketEvent("data", data);
+    return this.post(new IP("data", data), false);
   }
 
   // ## Sending information packets without open bracket
@@ -271,16 +217,45 @@ export class InternalSocket extends LegacyEventBase {
     if (ip === undefined && typeof this.dataDelegate === "function") {
       ip = this.dataDelegate();
     }
-    // Send legacy connect/disconnect if needed
+    // Connect before sending when there is no open bracket framing
     if (!this.isConnected() && this.brackets.length === 0) {
       this.connect();
     }
-    const write = this.handleSocketEvent("ip", ip, false);
-    if (write) {
-      // Side-channel: keep fire-and-forget use rejection-free. Errors
-      // reach awaiting callers through the returned promise and escalate
-      // through the error plane for everyone else.
-      write.catch(() => {});
+    let write;
+    if (ip.type === "closeBracket" && this.brackets.length === 0) {
+      // A stray close is silently dropped
+    } else {
+      if (ip.type === "openBracket") {
+        this.brackets.push(ip.data);
+      }
+      if (ip.type === "closeBracket") {
+        if (ip.data == null) {
+          // Name the closing bracket after the innermost open group
+          ip.data = this.brackets[this.brackets.length - 1];
+        }
+        this.brackets.pop();
+      }
+      // Transport the IP through the edge; delivery emits the events. A
+      // rejected write escalates through the socket error path (side-
+      // channel catch — the returned promise still rejects for awaiting
+      // callers, so transport errors reach them without becoming unhandled
+      // rejections in fire-and-forget call sites).
+      write = this.edge.write(ip);
+      write.catch((error) => {
+        if (this.listeners("error").length === 0) {
+          // No error listener: escalate loudly, like the 1.x debug
+          // emission path did
+          setImmediate(() => {
+            throw error;
+          });
+          return;
+        }
+        this.dispatchLifecycleEvent("error", {
+          id: this.to ? this.to.process.id : null,
+          error,
+          metadata: this.metadata,
+        });
+      });
     }
     if (autoDisconnect && this.isConnected() && this.brackets.length === 0) {
       this.disconnect();
@@ -288,42 +263,24 @@ export class InternalSocket extends LegacyEventBase {
     return write;
   }
 
-  // ## Information Packet grouping
+  // ## Brackets and streams
   //
-  // Processes sending data to sockets may also group the packets
-  // when necessary. This allows transmitting tree structures as
-  // a stream of packets.
+  // Packets can carry structure as bracket substreams: an `openBracket`
+  // IP opens a stream, the packets belonging to it follow, and a
+  // `closeBracket` IP closes it. Brackets nest, so tree structures can be
+  // transmitted as a stream of packets. The stream name travels in the
+  // bracket IP payloads — an `openBracket` for `article` followed by data
+  // for its fields reads as:
   //
-  // For example, an object could be split into multiple packets
-  // where each property is identified by a separate grouping:
+  // * `openBracket "article"`
+  // * `data "Lorem ipsum"` (title)
+  // * `data "Henri Bergius"` (author)
+  // * `closeBracket "article"`
   //
-  //     # Group by object ID
-  //     @outPorts.out.beginGroup object.id
-  //
-  //     for property, value of object
-  //       @outPorts.out.beginGroup property
-  //       @outPorts.out.send value
-  //       @outPorts.out.endGroup()
-  //
-  //     @outPorts.out.endGroup()
-  //
-  // This would cause a tree structure to be sent to the receiving
-  // process as a stream of packets. So, an article object may be
-  // as packets like:
-  //
-  // * `/<article id>/title/Lorem ipsum`
-  // * `/<article id>/author/Henri Bergius`
-  //
-  // Components are free to ignore groupings, but are recommended
-  // to pass received groupings onward if the data structures remain
-  // intact through the component's processing.
-  beginGroup(group) {
-    this.handleSocketEvent("begingroup", group);
-  }
-
-  endGroup() {
-    this.handleSocketEvent("endgroup");
-  }
+  // Components are free to ignore brackets, but are recommended to
+  // forward them onward if the data structures remain intact through
+  // the component's processing — a stream that arrives grouped should
+  // leave grouped.
 
   // ## Socket data delegation
   //
@@ -366,67 +323,6 @@ export class InternalSocket extends LegacyEventBase {
       return `DATA -> ${toStr(this.to)}`;
     }
     return `${fromStr(this.from)} -> ${toStr(this.to)}`;
-  }
-
-  /* eslint-disable no-param-reassign */
-  handleSocketEvent(event, payload, autoConnect = true) {
-    const isIP = event === "ip" && IP.isIP(payload);
-    const ip = isIP ? payload : legacyToIp(event, payload);
-    if (!ip) {
-      return;
-    }
-
-    if (!this.isConnected() && autoConnect && this.brackets.length === 0) {
-      // Connect before sending
-      this.connect();
-    }
-
-    if (event === "begingroup") {
-      this.brackets.push(payload);
-    }
-    if (isIP && ip.type === "openBracket") {
-      this.brackets.push(ip.data);
-    }
-
-    if (event === "endgroup") {
-      // Prevent closing already closed groups
-      if (this.brackets.length === 0) {
-        return;
-      }
-      // Add group name to bracket
-      ip.data = this.brackets.pop();
-      payload = ip.data;
-    }
-    if (isIP && payload.type === "closeBracket") {
-      // Prevent closing already closed brackets
-      if (this.brackets.length === 0) {
-        return;
-      }
-      this.brackets.pop();
-    }
-
-    // Transport the IP through the edge; delivery emits the events. A
-    // rejected write escalates through the socket error path (side-
-    // channel catch — the returned promise still rejects for awaiting
-    // callers, so transport errors reach them without becoming unhandled
-    // rejections in fire-and-forget call sites).
-    const write = this.edge.write(ip);
-    write.catch((error) => {
-      if (this.listeners("error").length === 0) {
-        // No error listener: escalate loudly, like the 1.x debug
-        // emission path did
-        setImmediate(() => {
-          throw error;
-        });
-        return;
-      }
-      this.dispatchLifecycleEvent("error", {
-        id: this.to ? this.to.process.id : null,
-        error,
-        metadata: this.metadata,
-      });
-    });
-    return write;
   }
 }
 

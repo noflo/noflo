@@ -5,7 +5,12 @@ import { fileURLToPath } from "node:url";
 import flowtrace from "flowtrace";
 import { Subgraph } from "../src/components/Subgraph.js";
 import * as noflo from "../src/lib/NoFlo.js";
-import { listen, listenOnce } from "./utils/events.js";
+import {
+  listen,
+  listenData,
+  listenDataOnce,
+  listenOnce,
+} from "./utils/events.js";
 import { nativeGraph } from "./utils/nativeGraph.js";
 
 describe("NoFlo Subgraph component", () => {
@@ -206,7 +211,7 @@ describe("NoFlo Subgraph component", () => {
         const out = noflo.internalSocket.createSocket();
         c.inPorts.in.attach(ins);
         c.outPorts.out.attach(out);
-        listen(out, "data", (data) => {
+        listenData(out, (data) => {
           assert.strictEqual(data, "Foo");
           done();
         });
@@ -270,7 +275,7 @@ describe("NoFlo Subgraph component", () => {
         const out = noflo.internalSocket.createSocket();
         c.inPorts.in.attach(ins);
         c.outPorts.out.attach(out);
-        listen(out, "data", (data) => {
+        listenData(out, (data) => {
           assert.strictEqual(data, "Baz");
           if (doned) {
             process.exit(1);
@@ -335,7 +340,7 @@ describe("NoFlo Subgraph component", () => {
         c.inPorts.in.attach(ins);
         c.outPorts.out.attach(out);
         let received = false;
-        listen(out, "data", (data) => {
+        listenData(out, (data) => {
           assert.strictEqual(data, "Foo");
           received = true;
         });
@@ -400,7 +405,7 @@ describe("NoFlo Subgraph component", () => {
       const o = noflo.internalSocket.createSocket();
       inst.outPorts.out.attach(o);
       const data = new Promise((resolve) => {
-        listenOnce(o, "data", (data) => {
+        listenDataOnce(o, (data) => {
           assert.strictEqual(data, "default-value");
           resolve();
         });
@@ -414,7 +419,7 @@ describe("NoFlo Subgraph component", () => {
       const o = noflo.internalSocket.createSocket();
       inst.outPorts.out.attach(o);
       const data = new Promise((resolve) => {
-        listenOnce(o, "data", (data) => {
+        listenDataOnce(o, (data) => {
           assert.strictEqual(data, "initial-value");
           resolve();
         });
@@ -430,7 +435,7 @@ describe("NoFlo Subgraph component", () => {
       inst.inPorts.in.attach(i);
       inst.outPorts.out.attach(o);
       const data = new Promise((resolve) => {
-        listenOnce(o, "data", (data) => {
+        listenDataOnce(o, (data) => {
           assert.strictEqual(data, "Foo");
           resolve();
         });

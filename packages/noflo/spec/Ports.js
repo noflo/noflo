@@ -74,14 +74,8 @@ describe("Ports collection", () => {
     it("should throw when calling connect with port that doesn't exist", () => {
       assert.throws(() => p.connect("bar"));
     });
-    it("should throw when calling beginGroup with port that doesn't exist", () => {
-      assert.throws(() => p.beginGroup("bar"));
-    });
     it("should throw when calling send with port that doesn't exist", () => {
       assert.throws(() => p.send("bar"));
-    });
-    it("should throw when calling endGroup with port that doesn't exist", () => {
-      assert.throws(() => p.endGroup("bar"));
     });
     it("should throw when calling disconnect with port that doesn't exist", () => {
       assert.throws(() => p.disconnect("bar"));

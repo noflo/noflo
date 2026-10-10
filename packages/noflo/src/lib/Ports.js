@@ -155,21 +155,6 @@ export class OutPorts extends Ports {
   }
 
   /**
-   * Open a group (bracket) on an output port. See {@link OutPort#beginGroup}.
-   *
-   * @param {string} name
-   * @param {any} group
-   * @param {number|null} [socketId]
-   */
-  beginGroup(name, group, socketId) {
-    const port = /** @type {OutPort} */ (this.ports[name]);
-    if (!port) {
-      throw new Error(`Port ${name} not available`);
-    }
-    port.beginGroup(group, socketId);
-  }
-
-  /**
    * Send a data packet to an output port. See {@link OutPort#send}.
    *
    * @param {string} name
@@ -182,20 +167,6 @@ export class OutPorts extends Ports {
       throw new Error(`Port ${name} not available`);
     }
     port.send(data, socketId);
-  }
-
-  /**
-   * Close a group (bracket) on an output port. See {@link OutPort#endGroup}.
-   *
-   * @param {string} name
-   * @param {number|null} [socketId]
-   */
-  endGroup(name, socketId) {
-    const port = /** @type {OutPort} */ (this.ports[name]);
-    if (!port) {
-      throw new Error(`Port ${name} not available`);
-    }
-    port.endGroup(socketId);
   }
 
   /**

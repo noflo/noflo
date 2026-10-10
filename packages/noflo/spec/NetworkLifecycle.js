@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
 import { afterEach, before, beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
-import { listen, listenOnce } from "./utils/events.js";
+import {
+  closeBracket,
+  listen,
+  listenData,
+  listenDataOnce,
+  listenIPSequence,
+  listenOnce,
+  openBracket,
+} from "./utils/events.js";
 import { loadJsonGraphFixture } from "./utils/loadJsonGraph.js";
 import { nativeGraph } from "./utils/nativeGraph.js";
 
@@ -465,21 +473,7 @@ describe("Network Lifecycle", () => {
       ];
       const received = [];
 
-      listen(out, "connect", () => {
-        received.push("CONN");
-      });
-      listen(out, "begingroup", (group) => {
-        received.push(`< ${group}`);
-      });
-      listen(out, "data", (data) => {
-        received.push(`DATA ${data}`);
-      });
-      listen(out, "endgroup", () => {
-        received.push(">");
-      });
-      listen(out, "disconnect", () => {
-        received.push("DISC");
-      });
+      listenIPSequence(out, received);
 
       let wasStarted = false;
       const checkStart = () => {
@@ -499,11 +493,11 @@ describe("Network Lifecycle", () => {
         in2.send("foo");
         in2.disconnect();
         in1.connect();
-        in1.beginGroup(1);
-        in1.beginGroup("a");
+        openBracket(in1, 1);
+        openBracket(in1, "a");
         in1.send("baz");
-        in1.endGroup();
-        in1.endGroup();
+        closeBracket(in1);
+        closeBracket(in1);
         in1.disconnect();
       }, done);
     });
@@ -519,21 +513,7 @@ describe("Network Lifecycle", () => {
       ];
       const received = [];
 
-      listen(out, "connect", () => {
-        received.push("CONN");
-      });
-      listen(out, "begingroup", (group) => {
-        received.push(`< ${group}`);
-      });
-      listen(out, "data", (data) => {
-        received.push(`DATA ${data}`);
-      });
-      listen(out, "endgroup", () => {
-        received.push(">");
-      });
-      listen(out, "disconnect", () => {
-        received.push("DISC");
-      });
+      listenIPSequence(out, received);
 
       let wasStarted = false;
       const checkStart = () => {
@@ -550,11 +530,11 @@ describe("Network Lifecycle", () => {
 
       c.start().then(() => {
         in1.connect();
-        in1.beginGroup(1);
-        in1.beginGroup("a");
+        openBracket(in1, 1);
+        openBracket(in1, "a");
         in1.send("baz");
-        in1.endGroup();
-        in1.endGroup();
+        closeBracket(in1);
+        closeBracket(in1);
         in1.disconnect();
         in2.connect();
         in2.send("foo");
@@ -644,7 +624,7 @@ describe("Network Lifecycle", () => {
       }));
     it("should start generating when receiving a start packet", (_t, done) => {
       c.start().then(() => {
-        listenOnce(out, "data", () => {
+        listenDataOnce(out, () => {
           assert.equal(c.network.isRunning(), true);
           done();
         });
@@ -653,7 +633,7 @@ describe("Network Lifecycle", () => {
     });
     it("should stop generating when receiving a stop packet", (_t, done) => {
       c.start().then(() => {
-        listenOnce(out, "data", () => {
+        listenDataOnce(out, () => {
           assert.equal(c.network.isRunning(), true);
           stop.send(true);
           setTimeout(() => {

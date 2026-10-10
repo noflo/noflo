@@ -47,8 +47,9 @@ describe("Inport Port", () => {
     it("should deliver the packet to the listener", (_t, done) => {
       const s = new noflo.internalSocket.InternalSocket();
       const p = new noflo.InPort();
-      listen(p, "data", (packet) => {
-        assert.strictEqual(packet, "some-data");
+      listen(p, "ip", (ip) => {
+        assert.strictEqual(ip.type, "data");
+        assert.strictEqual(ip.data, "some-data");
         done();
       });
       p.attach(s);
@@ -64,16 +65,18 @@ describe("Inport Port", () => {
       p.attach(s);
     });
     it("should send the default value as a packet, though on next tick after initialization", (_t, done) => {
-      listen(p, "data", (data) => {
-        assert.strictEqual(data, "default-value");
+      listen(p, "ip", (ip) => {
+        assert.strictEqual(ip.type, "data");
+        assert.strictEqual(ip.data, "default-value");
         done();
       });
       s.send();
     });
     it("should send the default value before IIP", (_t, done) => {
       const received = ["default-value", "some-iip"];
-      listen(p, "data", (data) => {
-        assert.strictEqual(data, received.shift());
+      listen(p, "ip", (ip) => {
+        assert.strictEqual(ip.type, "data");
+        assert.strictEqual(ip.data, received.shift());
         if (received.length === 0) {
           done();
         }
@@ -130,8 +133,9 @@ describe("Inport Port", () => {
       const p = new noflo.InPort({ values: "noflo is awesome".split(" ") });
       const s = new noflo.internalSocket.InternalSocket();
       p.attach(s);
-      listen(p, "data", (data) => {
-        assert.strictEqual(data, "awesome");
+      listen(p, "ip", (ip) => {
+        assert.strictEqual(ip.type, "data");
+        assert.strictEqual(ip.data, "awesome");
         done();
       });
       s.send("awesome");
@@ -140,9 +144,12 @@ describe("Inport Port", () => {
       const p = new noflo.InPort({ values: "noflo is awesome".split(" ") });
       const s = new noflo.internalSocket.InternalSocket();
       p.attach(s);
-      listen(p, "data", () => {
+      listen(p, "ip", (ip) => {
+        if (ip.type !== "data") {
+          return;
+        }
         // Fail the test, we shouldn't have received anything
-        assert.equal(true, false);
+        assert.fail("Received an unexpected data packet");
       });
       assert.throws(() => s.send("terrific"));
     });
@@ -169,33 +176,6 @@ describe("Inport Port", () => {
       assert.deepEqual(ps.inPorts.in.listAttached(), [0]);
       s.send("some-data");
       s.disconnect();
-    });
-    it("should translate IP objects to legacy events", (_t, done) => {
-      const s = new noflo.internalSocket.InternalSocket();
-      const expectedEvents = ["connect", "data", "disconnect"];
-      const receivedEvents = [];
-      const ps = {
-        outPorts: new noflo.OutPorts({ out: new noflo.OutPort() }),
-        inPorts: new noflo.InPorts(),
-      };
-      ps.inPorts.add("in", {
-        datatype: "string",
-        required: true,
-      });
-      listen(ps.inPorts.in, "connect", () => {
-        receivedEvents.push("connect");
-      });
-      listen(ps.inPorts.in, "data", () => {
-        receivedEvents.push("data");
-      });
-      listen(ps.inPorts.in, "disconnect", () => {
-        receivedEvents.push("disconnect");
-        assert.deepStrictEqual(receivedEvents, expectedEvents);
-        done();
-      });
-      ps.inPorts.in.attach(s);
-      assert.deepEqual(ps.inPorts.in.listAttached(), [0]);
-      s.post(new noflo.IP("data", "some-data"));
     });
     it("should stamp an IP object with the port's datatype", (_t, done) => {
       const p = new noflo.InPort({ datatype: "string" });

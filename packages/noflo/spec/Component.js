@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { before, beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
-import { listen, listenOnce } from "./utils/events.js";
+import {
+  closeBracket,
+  listen,
+  listenOnce,
+  openBracket,
+  sendData,
+} from "./utils/events.js";
 
 describe("Component", () => {
   describe("with required ports", () => {
@@ -174,21 +180,22 @@ describe("Component", () => {
       const s1 = new noflo.internalSocket.InternalSocket();
       const s2 = new noflo.internalSocket.InternalSocket();
       const groups = ["foo", "bar"];
-      listen(s2, "begingroup", (grp) => {
-        assert.strictEqual(grp, groups.shift());
-      });
-      listen(s2, "data", (err) => {
-        assert.equal(Error.isError(err), true);
-        assert.strictEqual(groups.length, 0);
-        done();
+      listen(s2, "ip", (ip) => {
+        if (ip.type === "openBracket") {
+          assert.strictEqual(ip.data, groups.shift());
+        }
+        if (ip.type === "data" && Error.isError(ip.data)) {
+          assert.strictEqual(groups.length, 0);
+          done();
+        }
       });
 
       c.inPorts.in.attach(s1);
       c.outPorts.error.attach(s2);
       c.inPorts.in.nodeInstance = c;
-      s1.beginGroup("foo");
-      s1.beginGroup("bar");
-      s1.send("some-data");
+      openBracket(s1, "foo");
+      openBracket(s1, "bar");
+      sendData(s1, "some-data");
     });
   });
   describe("defining ports with invalid names", () => {
@@ -3041,12 +3048,12 @@ describe("Component", () => {
           done();
         });
         sin1.connect();
-        sin1.beginGroup(1);
-        sin1.beginGroup(2);
+        openBracket(sin1, 1);
+        openBracket(sin1, 2);
         sin1.send("A");
-        sin1.endGroup();
+        closeBracket(sin1);
         sin1.send("B");
-        sin1.endGroup();
+        closeBracket(sin1);
         sin1.disconnect();
       });
       it("should send packets with brackets in expected order when asynchronous", (_t, done) => {
@@ -3104,12 +3111,12 @@ describe("Component", () => {
         });
 
         sin1.connect();
-        sin1.beginGroup(1);
-        sin1.beginGroup(2);
+        openBracket(sin1, 1);
+        openBracket(sin1, 2);
         sin1.send("A");
-        sin1.endGroup();
+        closeBracket(sin1);
         sin1.send("B");
-        sin1.endGroup();
+        closeBracket(sin1);
         sin1.disconnect();
       });
     });

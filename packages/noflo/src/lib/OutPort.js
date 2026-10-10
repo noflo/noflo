@@ -93,23 +93,6 @@ export default class OutPort extends BasePort {
   }
 
   /**
-   * Open a group (bracket) on the port's socket(s).
-   *
-   * @param {string} group
-   * @param {number|null} [index]
-   */
-  beginGroup(group, index = null) {
-    const sockets = this.getSockets(index);
-    this.checkRequired(sockets);
-    sockets.forEach((socket) => {
-      if (!socket) {
-        return;
-      }
-      socket.beginGroup(group);
-    });
-  }
-
-  /**
    * Send a data packet to the port's socket(s). With caching enabled the
    * value is kept for resend on new connections.
    *
@@ -127,22 +110,6 @@ export default class OutPort extends BasePort {
         return;
       }
       socket.send(data);
-    });
-  }
-
-  /**
-   * Close a group (bracket) on the port's socket(s).
-   *
-   * @param {number|null} [index]
-   */
-  endGroup(index = null) {
-    const sockets = this.getSockets(index);
-    this.checkRequired(sockets);
-    sockets.forEach((socket) => {
-      if (!socket) {
-        return;
-      }
-      socket.endGroup();
     });
   }
 
