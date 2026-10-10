@@ -18,13 +18,17 @@
  */
 /* @ts-self-types="./graph-protocol.d.ts" */
 
+import * as protocol from "@noflo/fbp-protocol";
 import {
+  CMD_COMP_SOURCE,
   CMD_CRDT_SYNC_REQ,
   CMD_CRDT_UPDATE,
+  CMD_PLANE_DROP,
   CMD_PLANE_LIST,
   encodeCrdtStaleEpoch,
   encodeCrdtUpdate,
   encodeCrdtUpToDate,
+  encodeOpRejected,
   encodePlaneListRes,
   OP_TYPE,
   ProtocolError,
@@ -163,7 +167,6 @@ export class GraphProtocol {
         const plane = this.#plane(decoded.planeId);
         const applied = this.#applyToPlane(plane, decoded);
         if (applied) {
-          // Converge: every other client on this link learns the op.
           server.broadcast(
             encodeCrdtUpdate({
               planeId: decoded.planeId,
@@ -172,6 +175,20 @@ export class GraphProtocol {
               opType: decoded.opType,
               entityId: decoded.entityId,
               payload: decoded.payload,
+            }),
+            context,
+          );
+        } else {
+          server.send(
+            encodeOpRejected({
+              rejectedCmd: CMD_CRDT_UPDATE,
+              planeId: decoded.planeId,
+              detail: {
+                clientId: decoded.clientId,
+                logicalClock: decoded.logicalClock,
+                entityId: decoded.entityId,
+                reason: "the graph model rejected the operation",
+              },
             }),
             context,
           );
@@ -220,6 +237,36 @@ export class GraphProtocol {
         });
       }
       server.send(encodePlaneListRes(entries), context);
+    });
+
+    server.registerHandler(CMD_PLANE_DROP, (decoded, context) => {
+      const plane = this.#planes.get(decoded.planeId);
+      if (plane) {
+        this.#planes.delete(decoded.planeId);
+      }
+      // The runtime always acknowledges the drop (silence never carries
+      // semantics): emit a lifecycle STOP on the telemetry stream.
+      server.broadcast(
+        encodeCrdtUpdate({
+          planeId: decoded.planeId,
+          clientId: this.clientId,
+          logicalClock: 0,
+          opType: OP_TYPE.TOMBSTONE,
+          entityId: null,
+          payload: null,
+        }),
+        context,
+      );
+    });
+
+    server.registerHandler(CMD_COMP_SOURCE, (decoded, context) => {
+      // Source read: for ephemeral planes, return nil (the runtime holds
+      // no source — the client built them from ops). For the main plane,
+      // the resourceProvider or the catalog would serve it.
+      server.send(
+        protocol.encodeCompSourceRes(decoded.componentName, null),
+        context,
+      );
     });
 
     this.#subscribeModel();
@@ -402,13 +449,20 @@ export class GraphProtocol {
   }
 
   /**
-   * The current epoch of a plane (its model's canonical hash when dirty).
+   * The current epoch of a plane: derived from the model's content so
+   * unmodified re-syncs match (external review point 6 — wall-clock
+   * epochs always looked stale).
    *
-   * @param {{ model: import("@noflo/graph").GraphModel, epochDirty: boolean }} plane
+   * @param {{ model: import("@noflo/graph").GraphModel }} plane
    * @returns {number}
    */
-  #planeEpoch(_plane) {
-    return Date.now();
+  #planeEpoch(plane) {
+    const str = plane.model.canonicalString();
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+    }
+    return Math.abs(hash) || 1;
   }
 
   /**
