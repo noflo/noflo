@@ -494,10 +494,24 @@ describe("ComponentLoader", () => {
 
     it("supports the registerLoader plugin hook", async () => {
       const l2 = new noflo.ComponentLoader({});
-      await l2.registerLoader((loader, callback) => {
+      await l2.registerLoader((loader) => {
         loader.registerComponent("plugin", "Split", splitModule());
-        callback(null);
       });
+      const instance = await l2.load("plugin/Split");
+      assert.ok(instance.inPorts.ports.in);
+    });
+
+    it("awaits the Promise a plugin returns", async () => {
+      const l2 = new noflo.ComponentLoader({});
+      let registered = false;
+      await l2.registerLoader(async (loader) => {
+        await new Promise((resolve) => {
+          setTimeout(resolve, 1);
+        });
+        loader.registerComponent("plugin", "Split", splitModule());
+        registered = true;
+      });
+      assert.strictEqual(registered, true);
       const instance = await l2.load("plugin/Split");
       assert.ok(instance.inPorts.ports.in);
     });
@@ -505,8 +519,16 @@ describe("ComponentLoader", () => {
     it("rejects when the plugin hook fails", async () => {
       const l2 = new noflo.ComponentLoader({});
       await assert.rejects(
-        l2.registerLoader((_loader, callback) => {
-          callback(new Error("Plugin failed"));
+        l2.registerLoader(() => Promise.reject(new Error("Plugin failed"))),
+        /Plugin failed/,
+      );
+    });
+
+    it("rejects when the plugin hook throws", async () => {
+      const l2 = new noflo.ComponentLoader({});
+      await assert.rejects(
+        l2.registerLoader(() => {
+          throw new Error("Plugin failed");
         }),
         /Plugin failed/,
       );
@@ -547,9 +569,14 @@ describe("ComponentLoader", () => {
     });
 
     it("registerLoader settles with the plugin completion", async () => {
-      await l.registerLoader((_loader, callback) => {
-        callback(null);
+      let done = false;
+      await l.registerLoader(async () => {
+        await new Promise((resolve) => {
+          setTimeout(resolve, 1);
+        });
+        done = true;
       });
+      assert.strictEqual(done, true);
     });
 
     it("Promise usage emits no deprecation warnings", async () => {

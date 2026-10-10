@@ -47,11 +47,7 @@ const validTypes = [
 function handleOptions(options) {
   // We default to the `all` type if no explicit datatype
   // was provided
-  let datatype = options.datatype || "all";
-  // Normalize the legacy `integer` type to `int`.
-  if (datatype === "integer") {
-    datatype = "int";
-  }
+  const datatype = options.datatype || "all";
 
   // By default ports are not required for graph execution
   const required = options.required || false;

@@ -48,6 +48,7 @@ NoFlo 2.x core does not discover anything. Applications supply a component regis
 - The component name is the file basename (`components/Replace.js` → `Replace`), overridable with an `@name Foo` comment in the source. Keep names equal to filenames.
 - The library identifier is the npm package name minus any `@scope/` prefix and minus a leading `noflo-`: `noflo-strings` → components are addressed as `strings/Replace`; `@noflo/noflo` itself → bare names like `Repeat`.
 - `noflo.icon` (a Font Awesome icon name without prefix) and `noflo.loader` are read from `package.json`. Keep the `noflo.icon` key.
+- **`noflo.loader` plugin modules are Promise-based in 2.x.** A plugin is a module whose default export is a function receiving a registration shim (`registerComponent`, `registerGraph`, `setLibraryIcon`) and **returning a Promise** (or nothing) that settles when its registration work is done — the 1.x `(loader, callback)` completion-callback contract is gone. Do async registration work inside the function and return the promise; throwing or rejecting fails loading.
 - Components are imported eagerly at discovery. Component modules must be side-effect free at import time: no server starts, no file writes, no timers.
 - TypeScript components (`.ts`) are only loadable when a TypeScript compiler is installed in the consuming project (they go through a transpile-and-evaluate path). Migrated libraries should ship plain ESM JavaScript regardless.
 - The generated `fbp.json` manifest cache is an application concern: never commit it to a library repository.

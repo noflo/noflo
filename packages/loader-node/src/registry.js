@@ -412,7 +412,9 @@ export class NodeModulesRegistry extends EventTarget {
   }
 
   /**
-   * Invoke a custom loader plugin with a registration shim.
+   * Invoke a custom loader plugin with a registration shim. The plugin
+   * returns a Promise (or nothing) that settles when its registration work
+   * is done; the callback-based 1.x plugin contract is gone.
    *
    * @param {Function} loaderFunc
    * @returns {Promise<void>}
@@ -429,15 +431,9 @@ export class NodeModulesRegistry extends EventTarget {
         this.setLibraryIcon(prefix, icon);
       },
     };
-    return new Promise((resolve, reject) => {
-      loaderFunc(shim, (err) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve();
-      });
-    });
+    return Promise.resolve()
+      .then(() => loaderFunc(shim))
+      .then(() => {});
   }
 
   // ### ComponentRegistry contract
