@@ -1,13 +1,9 @@
 name: Fork component
 topic: assembly-utils/Fork
 fixture:
-  type: fbp
-  data: |
-    INPORT=fork.IN:in
-    OUTPORT=one.OUT:one
-    OUTPORT=two.OUT:two
-    fork(assembly-utils/Fork) OUT[0] -> IN one(core/Repeat)
-    fork() OUT[1] -> IN two(core/Repeat)
+  type: json
+  data: '{"processes": {"fork": {"component": "assembly-utils/Fork"}}, "outports": {"one": {"process": "fork", "port": "out", "index": 0}, "two": {"process": "fork", "port": "out", "index": 1}}, "inports": {"in": {"process": "fork", "port": "in"}}}'
+
 cases:
   - name: with a single packet
     assertion: it should send to all connected outports

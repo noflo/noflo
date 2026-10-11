@@ -11,7 +11,12 @@ export var Alias: {
         /** Create a copy of this node.  */
         clone(): any;
         /** A plain JavaScript representation of this node. */
-        toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {}): any;
+        toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {
+            mapAsMap: any;
+            maxAliasCount: any;
+            onAnchor: any;
+            reviver: any;
+        }): any;
     };
 };
 declare var cst_exports: {};
@@ -56,7 +61,12 @@ export var Composer: {
                 /** Create a copy of this node.  */
                 clone(): any;
                 /** A plain JavaScript representation of this node. */
-                toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {}): any;
+                toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {
+                    mapAsMap: any;
+                    maxAliasCount: any;
+                    onAnchor: any;
+                    reviver: any;
+                }): any;
             };
             createNode(value: any, replacer: any, options: any): any;
             /**
@@ -66,7 +76,7 @@ export var Composer: {
             createPair(key: any, value: any, options?: {}): {
                 key: any;
                 value: any;
-                clone(schema4: any): /*elided*/ any;
+                clone(schema4: any): any;
                 toJSON(_: any, ctx: any): any;
                 toString(ctx: any, onComment: any, onChompKeep: any): any;
             };
@@ -119,7 +129,14 @@ export var Composer: {
              */
             setSchema(version: any, options?: {}): void;
             schema: any;
-            toJS({ json, jsonArg, mapAsMap, maxAliasCount, onAnchor, reviver }?: {}): any;
+            toJS({ json, jsonArg, mapAsMap, maxAliasCount, onAnchor, reviver }?: {
+                json: any;
+                jsonArg: any;
+                mapAsMap: any;
+                maxAliasCount: any;
+                onAnchor: any;
+                reviver: any;
+            }): any;
             /**
              * A JSON representation of the document `contents`.
              *
@@ -140,12 +157,12 @@ export var Composer: {
             docEnd: boolean;
             yaml: any;
             tags: any;
-            clone(): /*elided*/ any;
+            clone(): any;
             /**
              * During parsing, get a Directives instance for the current document and
              * update the stream state according to the current version's spec.
              */
-            atDocument(): /*elided*/ any;
+            atDocument(): any;
             atNextDocument: boolean;
             /**
              * @param onError - May be called even if the action was successful
@@ -180,12 +197,12 @@ export var Composer: {
                 docEnd: boolean;
                 yaml: any;
                 tags: any;
-                clone(): /*elided*/ any;
+                clone(): any;
                 /**
                  * During parsing, get a Directives instance for the current document and
                  * update the stream state according to the current version's spec.
                  */
-                atDocument(): /*elided*/ any;
+                atDocument(): any;
                 atNextDocument: boolean;
                 /**
                  * @param onError - May be called even if the action was successful
@@ -254,7 +271,12 @@ export var Composer: {
                 /** Create a copy of this node.  */
                 clone(): any;
                 /** A plain JavaScript representation of this node. */
-                toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {}): any;
+                toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {
+                    mapAsMap: any;
+                    maxAliasCount: any;
+                    onAnchor: any;
+                    reviver: any;
+                }): any;
             };
             createNode(value: any, replacer: any, options: any): any;
             /**
@@ -264,7 +286,7 @@ export var Composer: {
             createPair(key: any, value: any, options?: {}): {
                 key: any;
                 value: any;
-                clone(schema4: any): /*elided*/ any;
+                clone(schema4: any): any;
                 toJSON(_: any, ctx: any): any;
                 toString(ctx: any, onComment: any, onChompKeep: any): any;
             };
@@ -317,7 +339,14 @@ export var Composer: {
              */
             setSchema(version: any, options?: {}): void;
             schema: any;
-            toJS({ json, jsonArg, mapAsMap, maxAliasCount, onAnchor, reviver }?: {}): any;
+            toJS({ json, jsonArg, mapAsMap, maxAliasCount, onAnchor, reviver }?: {
+                json: any;
+                jsonArg: any;
+                mapAsMap: any;
+                maxAliasCount: any;
+                onAnchor: any;
+                reviver: any;
+            }): any;
             /**
              * A JSON representation of the document `contents`.
              *
@@ -368,7 +397,12 @@ export var Composer: {
                 /** Create a copy of this node.  */
                 clone(): any;
                 /** A plain JavaScript representation of this node. */
-                toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {}): any;
+                toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {
+                    mapAsMap: any;
+                    maxAliasCount: any;
+                    onAnchor: any;
+                    reviver: any;
+                }): any;
             };
             createNode(value: any, replacer: any, options: any): any;
             /**
@@ -378,7 +412,7 @@ export var Composer: {
             createPair(key: any, value: any, options?: {}): {
                 key: any;
                 value: any;
-                clone(schema4: any): /*elided*/ any;
+                clone(schema4: any): any;
                 toJSON(_: any, ctx: any): any;
                 toString(ctx: any, onComment: any, onChompKeep: any): any;
             };
@@ -431,7 +465,14 @@ export var Composer: {
              */
             setSchema(version: any, options?: {}): void;
             schema: any;
-            toJS({ json, jsonArg, mapAsMap, maxAliasCount, onAnchor, reviver }?: {}): any;
+            toJS({ json, jsonArg, mapAsMap, maxAliasCount, onAnchor, reviver }?: {
+                json: any;
+                jsonArg: any;
+                mapAsMap: any;
+                maxAliasCount: any;
+                onAnchor: any;
+                reviver: any;
+            }): any;
             /**
              * A JSON representation of the document `contents`.
              *
@@ -487,7 +528,12 @@ export var Composer: {
                 /** Create a copy of this node.  */
                 clone(): any;
                 /** A plain JavaScript representation of this node. */
-                toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {}): any;
+                toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {
+                    mapAsMap: any;
+                    maxAliasCount: any;
+                    onAnchor: any;
+                    reviver: any;
+                }): any;
             };
             createNode(value: any, replacer: any, options: any): any;
             /**
@@ -497,7 +543,7 @@ export var Composer: {
             createPair(key: any, value: any, options?: {}): {
                 key: any;
                 value: any;
-                clone(schema4: any): /*elided*/ any;
+                clone(schema4: any): any;
                 toJSON(_: any, ctx: any): any;
                 toString(ctx: any, onComment: any, onChompKeep: any): any;
             };
@@ -550,7 +596,14 @@ export var Composer: {
              */
             setSchema(version: any, options?: {}): void;
             schema: any;
-            toJS({ json, jsonArg, mapAsMap, maxAliasCount, onAnchor, reviver }?: {}): any;
+            toJS({ json, jsonArg, mapAsMap, maxAliasCount, onAnchor, reviver }?: {
+                json: any;
+                jsonArg: any;
+                mapAsMap: any;
+                maxAliasCount: any;
+                onAnchor: any;
+                reviver: any;
+            }): any;
             /**
              * A JSON representation of the document `contents`.
              *
@@ -603,7 +656,12 @@ export var Document: {
             /** Create a copy of this node.  */
             clone(): any;
             /** A plain JavaScript representation of this node. */
-            toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {}): any;
+            toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {
+                mapAsMap: any;
+                maxAliasCount: any;
+                onAnchor: any;
+                reviver: any;
+            }): any;
         };
         createNode(value: any, replacer: any, options: any): any;
         /**
@@ -613,7 +671,7 @@ export var Document: {
         createPair(key: any, value: any, options?: {}): {
             key: any;
             value: any;
-            clone(schema4: any): /*elided*/ any;
+            clone(schema4: any): any;
             toJSON(_: any, ctx: any): any;
             toString(ctx: any, onComment: any, onChompKeep: any): any;
         };
@@ -666,7 +724,14 @@ export var Document: {
          */
         setSchema(version: any, options?: {}): void;
         schema: any;
-        toJS({ json, jsonArg, mapAsMap, maxAliasCount, onAnchor, reviver }?: {}): any;
+        toJS({ json, jsonArg, mapAsMap, maxAliasCount, onAnchor, reviver }?: {
+            json: any;
+            jsonArg: any;
+            mapAsMap: any;
+            maxAliasCount: any;
+            onAnchor: any;
+            reviver: any;
+        }): any;
         /**
          * A JSON representation of the document `contents`.
          *
@@ -738,7 +803,7 @@ export var Pair: {
     new (key: any, value?: any): {
         key: any;
         value: any;
-        clone(schema4: any): /*elided*/ any;
+        clone(schema4: any): any;
         toJSON(_: any, ctx: any): any;
         toString(ctx: any, onComment: any, onChompKeep: any): any;
     };
@@ -813,7 +878,7 @@ export var Parser: {
         next(source: any): Generator<any, void, any>;
         /** Call at end of input to push out any remaining constructions */
         end(): Generator<any, void, any>;
-        get sourceToken(): {
+        readonly sourceToken: {
             type: string;
             offset: number;
             indent: number;
@@ -921,7 +986,12 @@ export var Scalar: {
         /** Create a copy of this node.  */
         clone(): any;
         /** A plain JavaScript representation of this node. */
-        toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {}): any;
+        toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {
+            mapAsMap: any;
+            maxAliasCount: any;
+            onAnchor: any;
+            reviver: any;
+        }): any;
     };
     BLOCK_FOLDED: string;
     BLOCK_LITERAL: string;
@@ -957,7 +1027,6 @@ export var YAMLError: {
         stack?: string;
         cause?: unknown;
     };
-    isError(error: unknown): error is Error;
     captureStackTrace(targetObject: object, constructorOpt?: Function): void;
     prepareStackTrace(err: Error, stackTraces: NodeJS.CallSite[]): any;
     stackTraceLimit: number;
@@ -1017,9 +1086,14 @@ export var YAMLMap: {
          */
         setIn(path: any, value: any): void;
         /** A plain JavaScript representation of this node. */
-        toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {}): any;
+        toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {
+            mapAsMap: any;
+            maxAliasCount: any;
+            onAnchor: any;
+            reviver: any;
+        }): any;
     };
-    get tagName(): string;
+    readonly tagName: string;
     /**
      * A generic collection parsing method that can be extended
      * to other node classes that inherit from YAMLMap
@@ -1078,7 +1152,12 @@ export var YAMLMap: {
          */
         setIn(path: any, value: any): void;
         /** A plain JavaScript representation of this node. */
-        toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {}): any;
+        toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {
+            mapAsMap: any;
+            maxAliasCount: any;
+            onAnchor: any;
+            reviver: any;
+        }): any;
     };
 };
 export var YAMLParseError: {
@@ -1090,7 +1169,6 @@ export var YAMLParseError: {
         stack?: string;
         cause?: unknown;
     };
-    isError(error: unknown): error is Error;
     captureStackTrace(targetObject: object, constructorOpt?: Function): void;
     prepareStackTrace(err: Error, stackTraces: NodeJS.CallSite[]): any;
     stackTraceLimit: number;
@@ -1160,9 +1238,14 @@ export var YAMLSeq: {
          */
         setIn(path: any, value: any): void;
         /** A plain JavaScript representation of this node. */
-        toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {}): any;
+        toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {
+            mapAsMap: any;
+            maxAliasCount: any;
+            onAnchor: any;
+            reviver: any;
+        }): any;
     };
-    get tagName(): string;
+    readonly tagName: string;
     from(schema4: any, obj: any, ctx: any): {
         items: any[];
         add(value: any): void;
@@ -1227,7 +1310,12 @@ export var YAMLSeq: {
          */
         setIn(path: any, value: any): void;
         /** A plain JavaScript representation of this node. */
-        toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {}): any;
+        toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {
+            mapAsMap: any;
+            maxAliasCount: any;
+            onAnchor: any;
+            reviver: any;
+        }): any;
     };
 };
 export var YAMLWarning: {
@@ -1239,7 +1327,6 @@ export var YAMLWarning: {
         stack?: string;
         cause?: unknown;
     };
-    isError(error: unknown): error is Error;
     captureStackTrace(targetObject: object, constructorOpt?: Function): void;
     prepareStackTrace(err: Error, stackTraces: NodeJS.CallSite[]): any;
     stackTraceLimit: number;
@@ -1293,7 +1380,12 @@ export function parseAllDocuments(source: any, options?: {}): {
         /** Create a copy of this node.  */
         clone(): any;
         /** A plain JavaScript representation of this node. */
-        toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {}): any;
+        toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {
+            mapAsMap: any;
+            maxAliasCount: any;
+            onAnchor: any;
+            reviver: any;
+        }): any;
     };
     createNode(value: any, replacer: any, options: any): any;
     /**
@@ -1303,7 +1395,7 @@ export function parseAllDocuments(source: any, options?: {}): {
     createPair(key: any, value: any, options?: {}): {
         key: any;
         value: any;
-        clone(schema4: any): /*elided*/ any;
+        clone(schema4: any): any;
         toJSON(_: any, ctx: any): any;
         toString(ctx: any, onComment: any, onChompKeep: any): any;
     };
@@ -1356,7 +1448,14 @@ export function parseAllDocuments(source: any, options?: {}): {
      */
     setSchema(version: any, options?: {}): void;
     schema: any;
-    toJS({ json, jsonArg, mapAsMap, maxAliasCount, onAnchor, reviver }?: {}): any;
+    toJS({ json, jsonArg, mapAsMap, maxAliasCount, onAnchor, reviver }?: {
+        json: any;
+        jsonArg: any;
+        mapAsMap: any;
+        maxAliasCount: any;
+        onAnchor: any;
+        reviver: any;
+    }): any;
     /**
      * A JSON representation of the document `contents`.
      *
@@ -1375,12 +1474,12 @@ export function parseAllDocuments(source: any, options?: {}): {
         docEnd: boolean;
         yaml: any;
         tags: any;
-        clone(): /*elided*/ any;
+        clone(): any;
         /**
          * During parsing, get a Directives instance for the current document and
          * update the stream state according to the current version's spec.
          */
-        atDocument(): /*elided*/ any;
+        atDocument(): any;
         atNextDocument: boolean;
         /**
          * @param onError - May be called even if the action was successful
@@ -1443,7 +1542,12 @@ export function parseDocument(source: any, options?: {}): {
         /** Create a copy of this node.  */
         clone(): any;
         /** A plain JavaScript representation of this node. */
-        toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {}): any;
+        toJS(doc: any, { mapAsMap, maxAliasCount, onAnchor, reviver }?: {
+            mapAsMap: any;
+            maxAliasCount: any;
+            onAnchor: any;
+            reviver: any;
+        }): any;
     };
     createNode(value: any, replacer: any, options: any): any;
     /**
@@ -1453,7 +1557,7 @@ export function parseDocument(source: any, options?: {}): {
     createPair(key: any, value: any, options?: {}): {
         key: any;
         value: any;
-        clone(schema4: any): /*elided*/ any;
+        clone(schema4: any): any;
         toJSON(_: any, ctx: any): any;
         toString(ctx: any, onComment: any, onChompKeep: any): any;
     };
@@ -1506,7 +1610,14 @@ export function parseDocument(source: any, options?: {}): {
      */
     setSchema(version: any, options?: {}): void;
     schema: any;
-    toJS({ json, jsonArg, mapAsMap, maxAliasCount, onAnchor, reviver }?: {}): any;
+    toJS({ json, jsonArg, mapAsMap, maxAliasCount, onAnchor, reviver }?: {
+        json: any;
+        jsonArg: any;
+        mapAsMap: any;
+        maxAliasCount: any;
+        onAnchor: any;
+        reviver: any;
+    }): any;
     /**
      * A JSON representation of the document `contents`.
      *

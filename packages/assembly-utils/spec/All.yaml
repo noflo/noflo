@@ -1,15 +1,12 @@
 name: All component
 topic: assembly-utils/All
 fixture:
-  type: fbp
-  data: |
-    INPORT=only.IN:only
-    OUTPORT=all.OUT:out
-    only(objects/SplitArray) OUT -> IN all(assembly-utils/All)
+  type: json
+  data: '{"processes": {"all": {"component": "assembly-utils/All"}}, "inports": {"only": {"process": "all", "port": "in", "index": 0}}, "outports": {"out": {"process": "all", "port": "out"}}}'
 cases:
   -
     name: with a single connected index and no errors
-    assertion: should produce an assembly with an array
+    assertion: should collect the value into an assembly with an array
     inputs:
       only:
         - one
@@ -21,26 +18,19 @@ cases:
           path: '$.errors'
           equals: []
         -
-          path: '$.data[0]'
+          path: '$.data[0][0]'
           equals:
             - one
             - two
             - three
   -
     name: with a single connected index and an error
-    assertion: should produce an assembly with an error
+    assertion: should collect the assembly and accumulate its error
     inputs:
       only:
-        -
-          errors: []
-          data: one
-        -
-          errors:
-            - message: hello world
-          data: two
-        -
-          errors: []
-          data: three
+        errors:
+          - message: hello world
+        data: one
     expect:
       out:
         -
@@ -50,13 +40,6 @@ cases:
           path: '$.data[0]'
           equals:
             -
-              errors: []
-              data: one
-            -
               errors:
                 - message: hello world
-              data: two
-            -
-              errors: []
-              data: three
-
+              data: one

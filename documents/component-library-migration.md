@@ -868,6 +868,10 @@ Run all of these; the migration is done when every line holds:
 - [ ] Fixture/data files are not lint targets: Biome parses everything matched by the lint globs, including e.g. HTML fixtures under `spec/fixtures/` — narrow the `lint`/`format` globs (e.g. `'spec/**/*.yaml'`) or exclude fixture paths.
 - [ ] Changes left uncommitted for review, with a summary of semantic changes and any dropped coverage called out explicitly.
 
+## 8. Testing conventions
+
+**fbp-spec is always preferred over `node:test` for component behavior tests when feasible.** The YAML suites are runtime-agnostic data, exercisable through `@noflo/fbp-spec-runner`'s in-process runner (see `packages/assembly-utils/spec/assembly-utils.js` for the harness pattern: load suites with `loadSuitesFromFile`, register one `it()` per case against `executeTestCase`, with the discovery base directory pointing at the package root). Reserve `node:test` for what fbp-spec cannot express: class/module-level APIs, error-path plumbing, and runner harnesses themselves.
+
 ## 8. Pitfall quick reference
 
 - **The Process API contract is: check preconditions with `has`, then activate and start processing with `get`.** Reading a port with `getData`/`get` while the activation is still waiting for more data means that pending activation never re-invokes: `load` never drains and `shutdown()` hangs. `has`/`hasData` are safe while waiting. Decide any branching (e.g. which processing mode to use) from `has`-level checks and raw buffer inspection before the first `get` (see 3.3).

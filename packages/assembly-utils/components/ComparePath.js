@@ -1,63 +1,67 @@
-/* eslint eqeqeq: 0 */
-const { default: Component, fail } = require('noflo-assembly');
-const jsonpath = require('jsonpath');
+import jsonpath from "jsonpath";
+import Component, { fail } from "@noflo/assembly";
 
-class ComparePath extends Component {
+export class ComparePath extends Component {
   constructor() {
     super({
-      description: 'Compare an object value extracted with a JSONPath expression',
-      icon: 'check',
+      description: "Compare an object value extracted with a JSONPath expression",
+      icon: "check",
       inPorts: {
         in: {
-          datatype: 'object',
-          description: 'Object to query',
+          datatype: "object",
+          description: "Object to query",
           required: true,
         },
         path: {
-          datatype: 'string',
-          description: 'JSONPath expression',
+          datatype: "string",
+          description: "JSONPath expression",
           required: true,
           control: true,
         },
         comparison: {
-          datatype: 'number',
-          description: 'Value to compare against',
+          datatype: "number",
+          description: "Value to compare against",
           required: true,
           control: true,
         },
         operator: {
-          datatype: 'string',
-          description: 'Comparison operator',
+          datatype: "string",
+          description: "Comparison operator",
           control: true,
-          default: '==',
+          default: "==",
           values: [
-            '==',
-            '!=',
-            '>',
-            '<',
-            '>=',
-            '<=',
+            "==",
+            "!=",
+            ">",
+            "<",
+            ">=",
+            "<=",
           ],
         },
       },
       outPorts: {
         pass: {
-          datatype: 'object',
-          description: 'Object that passed the comparison',
+          datatype: "object",
+          description: "Object that passed the comparison",
         },
         fail: {
-          datatype: 'object',
-          description: 'Object that failed the comparison',
+          datatype: "object",
+          description: "Object that failed the comparison",
         },
       },
     });
   }
 
-  handle(input, output) {
-    if (!input.hasData('in', 'path', 'comparison', 'operator')) {
+  processMessage(input, output) {
+    if (!input.hasData("in", "path", "comparison", "operator")) {
       return;
     }
-    const [msg, path, comparison, operator] = input.getData('in', 'path', 'comparison', 'operator');
+    const [msg, path, comparison, operator] = input.getData(
+      "in",
+      "path",
+      "comparison",
+      "operator",
+    );
     if (!this.validate(msg)) {
       output.sendDone({
         fail: msg,
@@ -77,27 +81,27 @@ class ComparePath extends Component {
 
     let passed = false;
     switch (operator) {
-      case '==': {
+      case "==": {
         passed = result == comparison;
         break;
       }
-      case '!=': {
+      case "!=": {
         passed = result != comparison;
         break;
       }
-      case '>': {
+      case ">": {
         passed = result > comparison;
         break;
       }
-      case '<': {
+      case "<": {
         passed = result < comparison;
         break;
       }
-      case '>=': {
+      case ">=": {
         passed = result >= comparison;
         break;
       }
-      case '<=': {
+      case "<=": {
         passed = result <= comparison;
         break;
       }
@@ -118,4 +122,6 @@ class ComparePath extends Component {
   }
 }
 
-exports.getComponent = () => new ComparePath();
+export function getComponent() {
+  return new ComparePath();
+}

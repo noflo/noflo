@@ -175,6 +175,14 @@
           ]
         }
       },
+      "packages/assembly-utils": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@noflo/fbp-spec-runner@*",
+            "npm:jsonpath@^1.1.1"
+          ]
+        }
+      },
       "packages/fbp": {
         "packageJson": {
           "dependencies": [

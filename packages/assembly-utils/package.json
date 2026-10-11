@@ -1,15 +1,9 @@
 {
-  "name": "noflo-assembly-utils",
-  "version": "0.2.1",
+  "name": "@noflo/assembly-utils",
+  "version": "2.0.0-alpha.3",
   "description": "Utility components for NoFlo Assembly programs",
-  "scripts": {
-    "pretest": "eslint components/*.js",
-    "test": "fbp-spec --secret test --address ws://localhost:3333 --command 'noflo-nodejs --port 3333 --secret test --open false --capture-output' spec"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/noflo/noflo-assembly-utils.git"
-  },
+  "type": "module",
+  "main": "components/ToAssembly.js",
   "keywords": [
     "noflo",
     "ecosystem:noflo",
@@ -17,22 +11,28 @@
   ],
   "author": "Henri Bergius <henri.bergius@iki.fi>",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/noflo/noflo-assembly-utils/issues"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noflo/noflo.git"
   },
-  "homepage": "https://github.com/noflo/noflo-assembly-utils#readme",
+  "bugs": {
+    "url": "https://github.com/noflo/noflo/issues"
+  },
+  "homepage": "https://github.com/noflo/noflo#readme",
+  "peerDependencies": {
+    "@noflo/noflo": "^2.0.0-alpha.3",
+    "@noflo/assembly": "^2.0.0-alpha.3"
+  },
   "dependencies": {
-    "jsonpath": "^1.0.2",
-    "noflo-assembly": "^0.3.1",
-    "noflo": "^1.0.0"
+    "jsonpath": "^1.1.1"
   },
   "devDependencies": {
-    "eslint": "^7.9.0",
-    "eslint-config-airbnb-base": "^14.2.0",
-    "eslint-plugin-import": "^2.22.0",
-    "fbp-spec": "^0.8.0",
-    "noflo-core": "^0.6.1",
-    "noflo-nodejs": "^0.15.0",
-    "noflo-objects": "^0.7.0"
+    "@noflo/fbp-spec-runner": "*"
+  },
+  "scripts": {
+    "test": "node --test --test-force-exit --test-timeout 60000 spec/*.js",
+    "test:deno": "deno test --allow-all --no-check spec/*.js",
+    "test:bun": "bun test ./spec/*.js",
+    "types": "tsc --noEmit -p tsconfig.json"
   }
 }

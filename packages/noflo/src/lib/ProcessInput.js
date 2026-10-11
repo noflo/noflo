@@ -92,7 +92,7 @@ export default class ProcessInput {
    * @typedef {GetArgument|HasValidationCallback} HasArgument
    */
   /**
-   * @param {...HasArgument} params
+   * @param {...(string | HasArgument | Array<string|number>)} params
    */
   has(...params) {
     /** @type {HasValidationCallback} */
@@ -155,7 +155,9 @@ export default class ProcessInput {
 
   // Returns true if the ports contain data packets
   /**
-   * @param {...string} params - Port names to check for data packets
+   * @param {...(string | Array<string|number>)} params - Port names to
+   *   check for data packets; addressable access passes `(port, index)`
+   *   pairs as arrays
    * @returns {boolean}
    */
   hasData(...params) {
@@ -175,7 +177,9 @@ export default class ProcessInput {
 
   // Returns true if a port has a complete stream in its input buffer.
   /**
-   * @param {...HasArgument} params - Port names to check for streams
+   * @param {...(string | HasArgument | Array<string|number>)} params - Port
+   *   names to check for streams; addressable access passes `(port, index)`
+   *   pairs as arrays
    * @returns {boolean}
    */
   hasStream(...params) {

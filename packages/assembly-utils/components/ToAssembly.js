@@ -1,20 +1,20 @@
-const noflo = require('noflo');
+import noflo from "@noflo/noflo";
 
-exports.getComponent = () => {
+export function getComponent() {
   const c = new noflo.Component();
-  c.description = 'Convert regular NoFlo data to an assembly message';
-  c.inPorts.add('in', {
-    datatype: 'all',
+  c.description = "Convert regular NoFlo data to an assembly message";
+  c.inPorts.add("in", {
+    datatype: "all",
   });
-  c.inPorts.add('error', {
-    datatype: 'object',
+  c.inPorts.add("error", {
+    datatype: "object",
   });
-  c.outPorts.add('out', {
-    datatype: 'object',
+  c.outPorts.add("out", {
+    datatype: "object",
   });
   return c.process((input, output) => {
-    if (input.hasData('in')) {
-      const data = input.getData('in');
+    if (input.hasData("in")) {
+      const data = input.getData("in");
       output.sendDone({
         out: {
           errors: [],
@@ -23,15 +23,13 @@ exports.getComponent = () => {
       });
       return;
     }
-    if (input.hasData('error')) {
-      const error = input.getData('error');
+    if (input.hasData("error")) {
+      const error = input.getData("error");
       output.sendDone({
         out: {
-          errors: [
-            error,
-          ],
+          errors: [error],
         },
       });
     }
   });
-};
+}

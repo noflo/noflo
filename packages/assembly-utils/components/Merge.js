@@ -1,28 +1,28 @@
-const noflo = require('noflo');
-const { merge } = require('noflo-assembly');
+import noflo from "@noflo/noflo";
+import { merge } from "@noflo/assembly";
 
-exports.getComponent = () => {
+export function getComponent() {
   const c = new noflo.Component();
-  c.description = 'Merge assembly message from all connections';
-  c.icon = 'angle-double-right';
-  c.inPorts.add('in', {
-    datatype: 'object',
+  c.description = "Merge assembly message from all connections";
+  c.icon = "angle-double-right";
+  c.inPorts.add("in", {
+    datatype: "object",
     addressable: true,
   });
-  c.outPorts.add('out', {
-    datatype: 'object',
+  c.outPorts.add("out", {
+    datatype: "object",
   });
   return c.process((input, output) => {
-    const attachedIndexes = input.attached('in');
+    const attachedIndexes = /** @type {number[]} */ (input.attached("in"));
     const indexesWithData = attachedIndexes
-      .filter((idx) => input.hasData(['in', idx]));
+      .filter((idx) => input.hasData(["in", idx]));
     if (indexesWithData.length < attachedIndexes.length) {
       // Still waiting for data
       return;
     }
-    const messages = indexesWithData.map((idx) => input
-      .getData(['in', idx]));
-    let message = {};
+    const messages = indexesWithData.map((idx) => input.getData(["in", idx]));
+    /** @type {import("@noflo/assembly").AssemblyMessage} */
+    let message = { errors: [] };
     let errors = [];
     messages.forEach((msg) => {
       if (msg.errors && msg.errors.length) {
@@ -37,4 +37,4 @@ exports.getComponent = () => {
       },
     });
   });
-};
+}

@@ -1,13 +1,8 @@
 name: Merge component
 topic: assembly-utils/Merge
 fixture:
-  type: fbp
-  data: |
-    INPORT=one.IN:one
-    INPORT=two.IN:two
-    OUTPORT=merge.OUT:out
-    one(core/Repeat) OUT -> IN[0] merge(assembly-utils/Merge)
-    two(core/Repeat) OUT -> IN[1] merge()
+  type: json
+  data: '{"processes": {"merge": {"component": "assembly-utils/Merge"}}, "inports": {"one": {"process": "merge", "port": "in", "index": 0}, "two": {"process": "merge", "port": "in", "index": 1}}, "outports": {"out": {"process": "merge", "port": "out"}}}'
 cases:
   - name: with a two different packets
     assertion: it should send a merged packet
