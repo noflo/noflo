@@ -1,0 +1,26 @@
+name: FromAssembly component
+topic: assembly-utils/FromAssembly
+cases:
+  -
+    name: with a assembly message without errors
+    assertion: should send the data to OUT
+    inputs:
+      in:
+        errors: []
+        data: 42
+    expect:
+      out:
+        - path: '$.data'
+          equals: 42
+  -
+    name: with a assembly message containing errors
+    assertion: should send the error to ERROR
+    inputs:
+      in:
+        errors:
+          - message: 'Foo'
+        data: 42
+    expect:
+      error:
+        - path: '$.message'
+          equals: 'Foo'

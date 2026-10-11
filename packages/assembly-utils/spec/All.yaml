@@ -1,0 +1,62 @@
+name: All component
+topic: assembly-utils/All
+fixture:
+  type: fbp
+  data: |
+    INPORT=only.IN:only
+    OUTPORT=all.OUT:out
+    only(objects/SplitArray) OUT -> IN all(assembly-utils/All)
+cases:
+  -
+    name: with a single connected index and no errors
+    assertion: should produce an assembly with an array
+    inputs:
+      only:
+        - one
+        - two
+        - three
+    expect:
+      out:
+        -
+          path: '$.errors'
+          equals: []
+        -
+          path: '$.data[0]'
+          equals:
+            - one
+            - two
+            - three
+  -
+    name: with a single connected index and an error
+    assertion: should produce an assembly with an error
+    inputs:
+      only:
+        -
+          errors: []
+          data: one
+        -
+          errors:
+            - message: hello world
+          data: two
+        -
+          errors: []
+          data: three
+    expect:
+      out:
+        -
+          path: '$.errors[0].message'
+          equals: hello world
+        -
+          path: '$.data[0]'
+          equals:
+            -
+              errors: []
+              data: one
+            -
+              errors:
+                - message: hello world
+              data: two
+            -
+              errors: []
+              data: three
+

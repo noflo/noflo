@@ -1,0 +1,52 @@
+name: ComparePath component
+topic: assembly-utils/ComparePath
+cases:
+  -
+    name: with an object containing a passing value
+    assertion: should send the object to the PASS route
+    inputs:
+      path: '$.guide.answer'
+      comparison: 41
+      operator: '>'
+      in:
+        errors: []
+        guide:
+          answer: 42
+    expect:
+      pass:
+        path: '$.guide.answer'
+        equals: 42
+  -
+    name: with an object containing a failing value
+    assertion: should send the object to the FAIL route
+    inputs:
+      path: '$.guide.answer'
+      comparison: 41
+      operator: '<'
+      in:
+        errors: []
+        guide:
+          answer: 42
+    expect:
+      fail:
+        path: '$.guide.answer'
+        equals: 42
+  -
+    name: with an invalid JSONPath
+    assertion: should send the object with errors to the FAIL route
+    inputs:
+      path: '$$.guide.answer'
+      comparison: 41
+      operator: '<'
+      in:
+        errors: []
+        guide:
+          answer: 42
+    expect:
+      fail:
+        -
+          path: '$.guide.answer'
+          equals: 42
+        -
+          path: '$.errors.length'
+          equals: 1
