@@ -14,6 +14,8 @@
 
 import { GraphModel } from "@noflo/graph";
 
+import { Component } from "./index.js";
+
 /**
  * @typedef {import("./index.js").AssemblyMessage} AssemblyMessage
  */
@@ -148,6 +150,11 @@ export function asAssembly(inner, options) {
   if (!options?.target) {
     throw new Error(
       "asAssembly requires options.target: the registry-resolvable name of the inner component",
+    );
+  }
+  if (inner instanceof Component) {
+    throw new Error(
+      "asAssembly: component is already an assembly participant — use it directly in the assembly graph; asAssembly bridges regular Process API components only",
     );
   }
   const { inports, outports, hasError } = summarizePorts(inner);

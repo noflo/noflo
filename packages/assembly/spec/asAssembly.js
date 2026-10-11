@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createNodeModulesRegistry } from "@noflo/loader-node";
 import noflo, { ComponentLoader, exportFbpJson } from "@noflo/noflo";
-import { asAssembly, wrapAssembly } from "../src/index.js";
+import { asAssembly, Component, wrapAssembly } from "../src/index.js";
 
 const baseDir = new URL("../", import.meta.url).pathname;
 
@@ -121,6 +121,19 @@ describe("asAssembly", () => {
     assert.ok(control, "expected the control port exposed");
   });
 
+  it("refuses components that are already assembly", () => {
+    class AssemblyNative extends Component {
+      relay(msg, output) {
+        output.sendDone(msg);
+      }
+    }
+    const inner = new AssemblyNative();
+    assert.throws(
+      () => asAssembly(inner, { target: "test/AssemblyNative" }),
+      /already an assembly participant/,
+    );
+  });
+
   it("rejects addressable ports loudly", () => {
     const inner = new Addressable();
     assert.throws(
@@ -209,6 +222,45 @@ describe("wrapAssembly", () => {
     assert.ok(
       skipped.some((s) => s.name === "test/Addressable"),
       "expected the addressable component in the skip report",
+    );
+  });
+
+  it("leaves already-assembly components native with a skip report", async () => {
+    const loader = await makeLoader();
+    class AssemblyNative extends Component {
+      relay(msg, output) {
+        output.sendDone(msg);
+      }
+    }
+    loader.registerComponent("test", "Native", {
+      getComponent: () => new AssemblyNative(),
+    });
+    loader.registerComponent("test", "CopyLike", CopyLike);
+    const catalog = await loader.listComponents();
+
+    /** @type {Array<{ name: string, reason: string }>} */
+    const skipped = [];
+    const decorated = wrapAssembly(
+      { list: () => catalog, get: async (name) => catalog[name] },
+      {
+        libraries: [{ library: "test" }],
+        onSkip: (report) => skipped.push(report),
+      },
+    );
+
+    const decoratedCatalog = decorated.list();
+    // The assembly-native component stays as its code definition
+    assert.equal(decoratedCatalog["test/Native"].constructor.name, "Object");
+    assert.ok(
+      skipped.some(
+        (s) => s.name === "test/Native" && /already an assembly/.test(s.reason),
+      ),
+      "expected an already-assembly skip report",
+    );
+    // Regular components still wrap
+    assert.equal(
+      decoratedCatalog["test/CopyLike"].constructor.name,
+      "GraphModel",
     );
   });
 
