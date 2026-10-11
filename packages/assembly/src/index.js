@@ -340,3 +340,5 @@ export function merge(base, extra) {
 }
 
 export default Component;
+export { asAssembly } from "./asAssembly.js";
+export { wrapAssembly } from "./wrapAssembly.js";

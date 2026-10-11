@@ -8,7 +8,10 @@
     "./components/Fork.js": "./components/Fork.js",
     "./components/Merge.js": "./components/Merge.js",
     "./components/All.js": "./components/All.js",
-    "./components/ComparePath.js": "./components/ComparePath.js"
+    "./components/ComparePath.js": "./components/ComparePath.js",
+    "./components/ExtractField.js": "./components/ExtractField.js",
+    "./components/ToField.js": "./components/ToField.js",
+    "./components/CollectFields.js": "./components/CollectFields.js"
   },
   "publish": {
     "include": [
