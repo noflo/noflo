@@ -205,8 +205,8 @@ export function asAssembly(inner, options) {
     graph.addNode({
       entity_id: extractNode,
       component: "assembly-utils/ExtractField",
+      metadata: { field },
     });
-    graph.addIIP({ data: field, to: { node: extractNode, port: "field" } });
     graph.addEdge({
       from: { node: "fanout", port: "out", index: mergeIndex },
       to: { node: extractNode, port: "msg" },
@@ -219,45 +219,46 @@ export function asAssembly(inner, options) {
   }
 
   // The result collector merges the original message with the mapped
-  // inner outputs; the fanout feeds it the originating message
-  graph.addNode({ entity_id: "collector", component: "assembly-utils/Merge" });
+  // inner outputs; the fanout feeds it the originating message. The
+  // collector fires when every mapped field delivered, or when the inner
+  // signalled an error instead (work document #36: components signal
+  // failure through the error port instead of their data outports)
+  const fieldNames = Object.values(outMapping);
+  graph.addNode({
+    entity_id: "collector",
+    component: "assembly-utils/CollectFields",
+  });
+  graph.addIIP({
+    data: JSON.stringify(fieldNames),
+    to: { node: "collector", port: "fields" },
+  });
   graph.addEdge({
     from: { node: "fanout", port: "out", index: mergeIndex },
-    to: { node: "collector", port: "in", index: 0 },
+    to: { node: "collector", port: "msg" },
   });
   mergeIndex += 1;
 
-  // Field wrappers per mapped inner outport
-  for (const [innerPort, field] of Object.entries(outMapping)) {
-    const wrapNode = `tofield_${innerPort}`;
-    graph.addNode({ entity_id: wrapNode, component: "assembly-utils/ToField" });
-    graph.addIIP({ data: field, to: { node: wrapNode, port: "field" } });
+  // Inner outports wire directly to the collector's addressable data
+  // connections; the connection index matches the field order the
+  // collector was configured with, and bracketed streams are collected
+  // into arrays under the field key
+  let dataIndex = 0;
+  for (const [innerPort] of Object.entries(outMapping)) {
     graph.addEdge({
       from: { node: "inner", port: innerPort },
-      to: { node: wrapNode, port: "in" },
+      to: { node: "collector", port: "data", index: dataIndex },
     });
-    graph.addEdge({
-      from: { node: wrapNode, port: "out" },
-      to: { node: "collector", port: "in", index: mergeIndex },
-    });
+    dataIndex += 1;
     mergeIndex += 1;
   }
 
-  // Inner errors accumulate into the message via the envelope wrapper
+  // Inner errors accumulate into the message through the collector's
+  // error port
   if (hasError) {
-    graph.addNode({
-    entity_id: "toassembly",
-    component: "assembly-utils/ToAssembly",
-  });
     graph.addEdge({
       from: { node: "inner", port: "error" },
-      to: { node: "toassembly", port: "error" },
+      to: { node: "collector", port: "error" },
     });
-    graph.addEdge({
-      from: { node: "toassembly", port: "out" },
-      to: { node: "collector", port: "in", index: mergeIndex },
-    });
-    mergeIndex += 1;
   }
 
   graph.addExport({

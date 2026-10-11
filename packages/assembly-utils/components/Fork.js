@@ -16,12 +16,14 @@ export function getComponent() {
     if (!input.hasData("in")) {
       return;
     }
-    const message = input.getData("in");
+    const ip = /** @type {import("@noflo/noflo").IP} */ (input.get("in"));
+    const message = ip.data;
     const attached = c.outPorts.ports.out.listAttached();
     attached.forEach((index) => {
       output.send({
         out: new noflo.IP("data", fork(message), {
           index,
+          scope: ip.scope,
         }),
       });
     });

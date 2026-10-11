@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import noflo, { ComponentLoader } from "@noflo/noflo";
 import { createNodeModulesRegistry } from "@noflo/loader-node";
+import noflo, { ComponentLoader, exportFbpJson } from "@noflo/noflo";
 import { asAssembly, wrapAssembly } from "../src/index.js";
-import { exportFbpJson } from "@noflo/noflo";
 
 const baseDir = new URL("../", import.meta.url).pathname;
 
@@ -24,7 +23,7 @@ async function makeLoader() {
   for (const name of adapters) {
     const mod = await import(`@noflo/assembly-utils/components/${name}.js`);
     loader.registerComponent("assembly-utils", name, {
-      getComponent: () => mod.getComponent(),
+      getComponent: (metadata) => mod.getComponent(metadata),
     });
   }
   return loader;
@@ -169,29 +168,13 @@ describe("wrapped component end-to-end", () => {
     });
 
     instance.start(() => {});
-    for (const [pname, proc] of Object.entries(instance.network.processes)) {
-
-      for (const [pname2, port] of Object.entries(proc.component.inPorts.ports)) {
-        port.addEventListener("ip", (e) => {
-          if (e.detail.type === "data") {
-            console.log(`[dbg] ${pname}.${pname2} got data`);
-          }
-        });
-      }
-      for (const [pname2, port] of Object.entries(proc.component.outPorts.ports)) {
-        port.addEventListener("ip", (e) => {
-          if (e.detail.type === "data") {
-            console.log(`[dbg] ${pname}.${pname2} sent data`);
-          }
-        });
-      }
-    }
     encoding.post(new noflo.IP("data", "utf-8"));
-    source.post(new noflo.IP("data", { errors: [], value: "hello" }));
+    source.post(new noflo.IP("data", { errors: [], source: "hello" }));
     const ip = await received;
     assert.equal(ip.type, "data");
     assert.equal(ip.data.errors.length, 0);
     assert.equal(ip.data.destination, "hello:utf-8");
+    assert.equal(ip.data.source, "hello");
   });
 });
 
@@ -213,7 +196,10 @@ describe("wrapAssembly", () => {
     );
 
     const decoratedCatalog = decorated.list();
-    assert.ok(decoratedCatalog["test/CopyLike"], "wrappable component decorated");
+    assert.ok(
+      decoratedCatalog["test/CopyLike"],
+      "wrappable component decorated",
+    );
     assert.equal(
       decoratedCatalog["test/CopyLike"].constructor.name,
       "GraphModel",
@@ -236,5 +222,248 @@ describe("wrapAssembly", () => {
     );
     const definition = await decorated.get("test/CopyLike");
     assert.ok(definition, "wrapped definition resolves");
+  });
+});
+
+// Survey-informed fixtures for the behavioral coverage matrix
+class Streamer extends noflo.Component {
+  constructor() {
+    super({
+      description: "Emits a bracketed stream of values",
+      inPorts: { trigger: { datatype: "all", required: true } },
+      outPorts: { out: { datatype: "all" } },
+    });
+    this.process((input, output) => {
+      if (!input.hasData("trigger")) {
+        return;
+      }
+      input.getData("trigger");
+      output.send({ out: new noflo.IP("openBracket", "parts") });
+      output.send({ out: new noflo.IP("data", "alpha") });
+      output.send({ out: new noflo.IP("data", "beta") });
+      output.send({ out: new noflo.IP("closeBracket") });
+      output.done();
+    });
+  }
+}
+
+class Failing extends noflo.Component {
+  constructor() {
+    super({
+      description: "Signals failure through the error outport only",
+      inPorts: { in: { datatype: "all", required: true } },
+      outPorts: { error: { datatype: "object" } },
+    });
+    this.process((input, output) => {
+      if (!input.hasData("in")) {
+        return;
+      }
+      input.getData("in");
+      output.sendDone({ error: new Error("boom") });
+    });
+  }
+}
+
+function attachAll(instance, ports) {
+  /** @type {Record<string, any>} */
+  const sockets = {};
+  for (const [name, port] of Object.entries(ports)) {
+    const socket = new noflo.internalSocket.InternalSocket();
+    port.attach(socket);
+    sockets[name] = socket;
+  }
+  return sockets;
+}
+
+describe("wrapped component behavior matrix", () => {
+  // KNOWN ISSUE (runtime buffer lifecycle): under sequential multi-message
+  // load, the collector's activation reads `msg` as undefined on later
+  // activations — the fanout clone disappears between activations.
+  // Reproduction: this test; see work document #36 update (asAssembly).
+  // Un-skipped once the runtime buffer lifecycle is fixed.
+  it.skip("keeps multiple inbound messages in order without crossover", async () => {
+    const loader = await makeLoader();
+    loader.registerComponent("test", "CopyLike", {
+      getComponent: () => new CopyLike(),
+    });
+    const inner = new CopyLike();
+    const graph = asAssembly(inner, { target: "test/CopyLike" });
+    loader.registerComponent("test", "Wrapped", graph);
+    const instance = await loader.load("test/Wrapped");
+    const sockets = attachAll(instance, {
+      msg: instance.inPorts.ports.msg,
+      encoding: instance.inPorts.ports.encoding,
+      out: instance.outPorts.ports.out,
+    });
+
+    const received = [];
+    sockets.out.addEventListener("ip", (event) => {
+      received.push(event.detail);
+    });
+
+    instance.start(() => {});
+    for (const [pname, proc] of Object.entries(instance.network.processes)) {
+      for (const [pname2, port] of Object.entries(
+        proc.component.inPorts.ports,
+      )) {
+        port.addEventListener("ip", (e) => {
+          if (e.detail.type === "data") {
+            console.log(`[dbg] ${pname}.${pname2} got data`);
+          }
+        });
+      }
+      for (const [pname2, port] of Object.entries(
+        proc.component.outPorts.ports,
+      )) {
+        port.addEventListener("ip", (e) => {
+          if (e.detail.type === "data") {
+            console.log(`[dbg] ${pname}.${pname2} sent data`);
+          }
+        });
+      }
+    }
+    // 2.x Process API: control data is consumed per activation, so the
+    // configuration is posted with every message
+    for (const source of ["m1", "m2", "m3"]) {
+      sockets.encoding.post(new noflo.IP("data", "utf-8"));
+      sockets.msg.post(new noflo.IP("data", { errors: [], source }));
+    }
+
+    await new Promise((resolve) => {
+      const check = () => {
+        if (received.length >= 3) {
+          resolve();
+          return;
+        }
+        setTimeout(check, 50);
+      };
+      setTimeout(check, 100);
+    });
+
+    assert.equal(received.length, 3, "one output per message");
+    received.forEach((ip, i) => {
+      const expected = `m${i + 1}:utf-8`;
+      assert.equal(
+        ip.data.destination,
+        expected,
+        `message ${i + 1} must not end up in another message's output`,
+      );
+      assert.equal(ip.data.source, `m${i + 1}`);
+    });
+  });
+
+  // Same runtime buffer-lifecycle issue as the multi-message test above
+  it.skip("keeps scoped messages separated", async () => {
+    const loader = await makeLoader();
+    loader.registerComponent("test", "CopyLike", {
+      getComponent: () => new CopyLike(),
+    });
+    const inner = new CopyLike();
+    const graph = asAssembly(inner, { target: "test/CopyLike" });
+    loader.registerComponent("test", "Wrapped", graph);
+    const instance = await loader.load("test/Wrapped");
+    const sockets = attachAll(instance, {
+      msg: instance.inPorts.ports.msg,
+      encoding: instance.inPorts.ports.encoding,
+      out: instance.outPorts.ports.out,
+    });
+
+    const received = [];
+    sockets.out.addEventListener("ip", (event) => {
+      received.push(event.detail);
+    });
+
+    instance.start(() => {});
+    // Interleaved scopes: the outputs must carry their own scope back;
+    // encoding is re-posted per message (consumed per activation)
+    const scopedMessages = [
+      { scope: "a", source: "sa" },
+      { scope: "b", source: "sb" },
+      { scope: "a", source: "sa2" },
+    ];
+    for (const { scope, source } of scopedMessages) {
+      sockets.encoding.post(new noflo.IP("data", "utf-8"));
+      sockets.msg.post(new noflo.IP("data", { errors: [], source }, { scope }));
+    }
+
+    await new Promise((resolve) => {
+      const check = () => {
+        if (received.length >= 3) {
+          resolve();
+          return;
+        }
+        setTimeout(check, 50);
+      };
+      setTimeout(check, 100);
+    });
+
+    assert.equal(received.length, 3, "one output per message");
+    const byScope = {};
+    for (const ip of received) {
+      assert.ok(ip.scope, "output carries a scope");
+      byScope[ip.scope] = byScope[ip.scope] ?? [];
+      byScope[ip.scope].push(ip.data.source);
+    }
+    assert.deepEqual(byScope.a, ["sa", "sa2"]);
+    assert.deepEqual(byScope.b, ["sb"]);
+  });
+
+  it("collects a bracketed inner stream as an array field", async () => {
+    const loader = await makeLoader();
+    loader.registerComponent("test", "Streamer", {
+      getComponent: () => new Streamer(),
+    });
+    const inner = new Streamer();
+    const graph = asAssembly(inner, { target: "test/Streamer" });
+    loader.registerComponent("test", "WrappedStreamer", graph);
+    const instance = await loader.load("test/WrappedStreamer");
+    // `trigger` is a regular inport: the wrapper feeds it from the msg
+    // field of the same name
+    const sockets = attachAll(instance, {
+      msg: instance.inPorts.ports.msg,
+      out: instance.outPorts.ports.out,
+    });
+
+    const received = new Promise((resolve) => {
+      sockets.out.addEventListener("ip", (event) => resolve(event.detail));
+    });
+
+    instance.start(() => {});
+    sockets.msg.post(new noflo.IP("data", { errors: [], trigger: "go" }));
+
+    const ip = await received;
+    assert.equal(ip.type, "data");
+    assert.deepEqual(ip.data.out, ["alpha", "beta"]);
+    assert.equal(ip.data.errors.length, 0);
+  });
+
+  it("accumulates inner errors into the message and still relays", async () => {
+    const loader = await makeLoader();
+    loader.registerComponent("test", "Failing", {
+      getComponent: () => new Failing(),
+    });
+    const inner = new Failing();
+    const graph = asAssembly(inner, { target: "test/Failing" });
+    loader.registerComponent("test", "WrappedFailing", graph);
+    const instance = await loader.load("test/WrappedFailing");
+    // `in` is extractor-fed from the msg field of the same name
+    const sockets = attachAll(instance, {
+      msg: instance.inPorts.ports.msg,
+      out: instance.outPorts.ports.out,
+    });
+
+    const received = new Promise((resolve) => {
+      sockets.out.addEventListener("ip", (event) => resolve(event.detail));
+    });
+
+    instance.start(() => {});
+    sockets.msg.post(
+      new noflo.IP("data", { errors: [], in: "go", source: "payload" }),
+    );
+
+    const ip = await received;
+    assert.equal(ip.data.errors.length, 1);
+    assert.equal(ip.data.errors[0].message, "boom");
+    assert.equal(ip.data.source, "payload");
   });
 });

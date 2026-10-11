@@ -60,7 +60,10 @@ import { asAssembly } from "./asAssembly.js";
  * @param {WrapAssemblyConfig} config - Which libraries to wrap and how
  * @returns {WrapAssemblyRegistry & { skips: WrapSkip[] }}
  */
-export function wrapAssembly(registry, /** @type {WrapAssemblyConfig} */ config = {}) {
+export function wrapAssembly(
+  registry,
+  /** @type {WrapAssemblyConfig} */ config = {},
+) {
   /** @type {WrapSkip[]} */
   const skips = [];
   /** @type {Object<string, any>} */
@@ -77,9 +80,7 @@ export function wrapAssembly(registry, /** @type {WrapAssemblyConfig} */ config 
     if (!matches(name)) {
       continue;
     }
-    const library = libraries.find((lib) =>
-      name.startsWith(`${lib.library}/`),
-    );
+    const library = libraries.find((lib) => name.startsWith(`${lib.library}/`));
     const componentName = name.split("/")[1];
     try {
       const module = /** @type {any} */ (definition);
@@ -87,7 +88,7 @@ export function wrapAssembly(registry, /** @type {WrapAssemblyConfig} */ config 
         typeof module?.getComponent === "function"
           ? module.getComponent
           : typeof definition === "function"
-            ? (...args) => new (/** @type {any} */ (definition))(...args)
+            ? (...args) => new /** @type {any} */ (definition)(...args)
             : null;
       if (!getComponent) {
         // Graph models and other definitions stay native
