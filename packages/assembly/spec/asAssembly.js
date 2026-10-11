@@ -327,6 +327,42 @@ function attachAll(instance, ports) {
   return sockets;
 }
 
+// An inner component whose completion order is the REVERSE of its input
+// order: models async file I/O under out-of-order completion
+class SlowCopy extends noflo.Component {
+  constructor() {
+    super({
+      description: "Copies with a per-value delay (out-of-order completion)",
+      inPorts: {
+        source: { datatype: "all", required: true },
+        encoding: { datatype: "string", control: true, default: "utf-8" },
+      },
+      outPorts: {
+        destination: { datatype: "all" },
+        error: { datatype: "object" },
+      },
+    });
+    this.wire();
+  }
+
+  wire() {
+    this.process((input, output) => {
+      if (!input.hasData("source", "encoding")) {
+        return;
+      }
+      const value = input.getData("source");
+      const encoding = input.getData("encoding");
+      // Later values take LONGER: completion order is reversed
+      const delay = value === "m1" ? 120 : value === "m2" ? 60 : 10;
+      setTimeout(() => {
+        output.sendDone({
+          destination: `${value}:${encoding}`,
+        });
+      }, delay);
+    });
+  }
+}
+
 describe("wrapped component behavior matrix", () => {
   // KNOWN ISSUE (runtime buffer lifecycle): under sequential multi-message
   // load, the collector's activation reads `msg` as undefined on later
@@ -517,5 +553,63 @@ describe("wrapped component behavior matrix", () => {
     assert.equal(ip.data.errors.length, 1);
     assert.equal(ip.data.errors[0].message, "boom");
     assert.equal(ip.data.source, "payload");
+  });
+
+  it("pairs out-of-order async completions correctly when messages carry scopes", async () => {
+    const loader = await makeLoader();
+    loader.registerComponent("test", "SlowCopy", {
+      getComponent: () => new SlowCopy(),
+    });
+    const inner = new SlowCopy();
+    const graph = asAssembly(inner, { target: "test/SlowCopy" });
+    loader.registerComponent("test", "WrappedSlow", graph);
+    const instance = await loader.load("test/WrappedSlow");
+    const sockets = attachAll(instance, {
+      msg: instance.inPorts.ports.msg,
+      encoding: instance.inPorts.ports.encoding,
+      out: instance.outPorts.ports.out,
+    });
+
+    /** @type {Array<any>} */
+    const received = [];
+    sockets.out.addEventListener("ip", (event) => {
+      received.push(event.detail);
+    });
+
+    instance.start(() => {});
+    // All three in flight, posted back-to-back; completion order is
+    // reversed by the inner's delays. Each message carries a distinct
+    // scope: the correlation key
+    const inputs = [
+      { scope: "file-1", source: "m1" },
+      { scope: "file-2", source: "m2" },
+      { scope: "file-3", source: "m3" },
+    ];
+    for (const { scope, source } of inputs) {
+      sockets.encoding.post(new noflo.IP("data", "utf-8", { scope }));
+      sockets.msg.post(new noflo.IP("data", { errors: [], source }, { scope }));
+    }
+
+    await new Promise((resolve) => {
+      const check = () => {
+        if (received.length >= 3) {
+          resolve();
+          return;
+        }
+        setTimeout(check, 20);
+      };
+      setTimeout(check, 100);
+    });
+
+    assert.equal(received.length, 3, "one output per in-flight message");
+    const byScope = {};
+    for (const ip of received) {
+      byScope[ip.scope] = ip.data;
+    }
+    // Despite reversed completion, each scope's output pairs with its own
+    // input
+    assert.equal(byScope["file-1"].destination, "m1:utf-8");
+    assert.equal(byScope["file-2"].destination, "m2:utf-8");
+    assert.equal(byScope["file-3"].destination, "m3:utf-8");
   });
 });
