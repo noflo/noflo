@@ -78,6 +78,46 @@ export const LIMITATION = {
 };
 
 /**
+ * Reason codes for `0x17 CMD_OP_REJECTED` rejections: the per-command
+ * counterpart of the {@link LIMITATION} codes a link is initialized with.
+ * For rejected `0x14` operations the detail carries the op identity triple
+ * and a free-form reason; every other rejected command answers
+ * `detail: { reason: <REASON>, message?: string }` — `reason` required,
+ * `message` optional human text. Values mirror the limitation codes where
+ * the semantics overlap; the rest classify why a command could not be
+ * served by this runtime. Additive: new codes do not bump
+ * `PROTOCOL_VERSION`.
+ *
+ * @type {Record<string, number>}
+ */
+export const REASON = {
+  /** Fallback — discouraged: prefer a specific code. */
+  UNSPECIFIED: 0x00,
+  /** The runtime's hardware cannot serve this (same meaning as the `0x02` limitation code). */
+  HARDWARE_CONSTRAINED: 0x01,
+  /** The peer's capability grant does not cover this (same meaning as the `0x02` limitation code). */
+  PERMISSION_DENIED: 0x02,
+  /** The link or runtime is saturated (same meaning as the `0x02` limitation code). */
+  LINK_SATURATED: 0x03,
+  /** Another operation holds the runtime busy (same meaning as the `0x02` limitation code). */
+  CONCURRENCY_LOCK: 0x04,
+  /** Known to the protocol generation but outside this runtime's declared surface — e.g. no ephemeral planes, no component writes, a reserved identifier. */
+  UNSUPPORTED: 0x05,
+  /** The opcode is not recognized by this runtime. */
+  UNKNOWN_COMMAND: 0x06,
+  /** The frame failed structural decode. */
+  MALFORMED: 0x07,
+  /** A payload value sits outside the runtime's declared value model. */
+  PAYLOAD_UNSUPPORTED: 0x08,
+  /** The targeted component is a declared stub without implementation. */
+  STUB: 0x09,
+  /** The command is valid but the runtime's state cannot execute it — e.g. packet send before the plane's network is built. */
+  INVALID_STATE: 0x0a,
+  /** A referenced object does not exist — unknown plane, unknown exported port. */
+  UNKNOWN_TARGET: 0x0b,
+};
+
+/**
  * Compose a capability mask from {@link CAPABILITY} names. Unknown names
  * fail loudly: a typo'd capability would otherwise silently narrow the
  * advertised mask.

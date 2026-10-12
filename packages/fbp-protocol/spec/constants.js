@@ -42,6 +42,7 @@ import {
   OP_TYPE,
   PROCESS_ACTION,
   PROTOCOL_VERSION,
+  REASON,
   RUN_ACTION,
   TRACE_SNAPSHOT,
   VISUAL_FORMAT,
@@ -178,6 +179,19 @@ describe("limitation codes", () => {
     assert.equal(LIMITATION.HARDWARE_CONSTRAINED, 0x01);
     assert.equal(LIMITATION.PERMISSION_DENIED, 0x02);
     assert.equal(LIMITATION.LINK_SATURATED, 0x03);
+    // Reason codes mirror the limitation codes where semantics overlap
+    assert.equal(REASON.HARDWARE_CONSTRAINED, LIMITATION.HARDWARE_CONSTRAINED);
+    assert.equal(REASON.PERMISSION_DENIED, LIMITATION.PERMISSION_DENIED);
+    assert.equal(REASON.LINK_SATURATED, LIMITATION.LINK_SATURATED);
+    assert.equal(REASON.CONCURRENCY_LOCK, LIMITATION.CONCURRENCY_LOCK);
+    assert.equal(REASON.UNSPECIFIED, 0x00);
+    assert.equal(REASON.UNSUPPORTED, 0x05);
+    assert.equal(REASON.UNKNOWN_COMMAND, 0x06);
+    assert.equal(REASON.MALFORMED, 0x07);
+    assert.equal(REASON.PAYLOAD_UNSUPPORTED, 0x08);
+    assert.equal(REASON.STUB, 0x09);
+    assert.equal(REASON.INVALID_STATE, 0x0a);
+    assert.equal(REASON.UNKNOWN_TARGET, 0x0b);
     assert.equal(LIMITATION.CONCURRENCY_LOCK, 0x04);
   });
 });

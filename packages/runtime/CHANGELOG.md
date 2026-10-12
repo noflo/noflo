@@ -24,6 +24,7 @@
 - `0x26 CMD_COMP_SOURCE` answers with a nil source when the runtime holds no `readSource` hook, matching SPEC's "nil source when the runtime holds none" instead of staying silent
 - `0x15 CMD_PLANE_DROP` acknowledges the requesting context (echo to requester only); a failed ephemeral-plane start records FAILED/ERROR telemetry attributed to the plane
 - `0x15 CMD_PLANE_DROP` refuses subgraph planes with `0x17` and cascades to subgraph descendants when an ephemeral plane drops; client-minted ephemeral ids using the reserved `sg/` prefix are rejected with `0x17` on sync and ops (update #42)
+- Rejections carry `REASON` codes (work document #4 update #43, from the MicroFlo constrained-runtime port): `0x47` paths answer `INVALID_STATE`/`UNKNOWN_TARGET`, reserved-id and subgraph-plane refusals answer `UNSUPPORTED`, and engine-unsupported commands (pause/step/breakpoints on engines without them) now answer `0x17 UNSUPPORTED` to the requesting context instead of wire silence — the telemetry ERROR event stays for other subscribers; dropping the main plane (nil plane id) is refused rather than acknowledged
 
 ## [2.0.0-alpha.3] - 2026-10-10
 ### Added

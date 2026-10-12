@@ -31,6 +31,7 @@ import {
   encodePlaneListRes,
   OP_TYPE,
   ProtocolError,
+  REASON,
 } from "@noflo/fbp-protocol";
 import { GraphModelError } from "@noflo/graph";
 
@@ -125,7 +126,8 @@ export class GraphProtocol {
               rejectedCmd: CMD_CRDT_SYNC_REQ,
               planeId: decoded.planeId,
               detail: {
-                reason: error instanceof Error ? error.message : String(error),
+                reason: REASON.UNSUPPORTED,
+                message: error instanceof Error ? error.message : String(error),
               },
             }),
             context,
@@ -182,7 +184,8 @@ export class GraphProtocol {
               rejectedCmd: CMD_CRDT_UPDATE,
               planeId: decoded.planeId,
               detail: {
-                reason: error instanceof Error ? error.message : String(error),
+                reason: REASON.UNSUPPORTED,
+                message: error instanceof Error ? error.message : String(error),
               },
             }),
             context,
@@ -294,6 +297,22 @@ export class GraphProtocol {
     });
 
     server.registerHandler(CMD_PLANE_DROP, (decoded, context) => {
+      if (decoded.planeId === null || decoded.planeId === undefined) {
+        // SPEC §5: the main plane is not droppable — nil is rejected
+        // (update #43: the rejection is explicit, never an ack).
+        server.send(
+          encodeOpRejected({
+            rejectedCmd: CMD_PLANE_DROP,
+            planeId: null,
+            detail: {
+              reason: REASON.UNSUPPORTED,
+              message: "the main plane is not droppable",
+            },
+          }),
+          context,
+        );
+        return;
+      }
       const plane = this.#planes.get(decoded.planeId);
       if (plane?.kind === "subgraph") {
         // Subgraph planes follow their component's presence in the graph
@@ -304,7 +323,8 @@ export class GraphProtocol {
             rejectedCmd: CMD_PLANE_DROP,
             planeId: decoded.planeId,
             detail: {
-              reason:
+              reason: REASON.UNSUPPORTED,
+              message:
                 "subgraph planes follow their component's presence in the graph",
             },
           }),

@@ -27,6 +27,7 @@ import {
   encodePlaneDrop,
   encodePlaneList,
   OP_TYPE,
+  REASON,
 } from "@noflo/fbp-protocol";
 import { GraphModel } from "@noflo/graph";
 import { GraphProtocol, RuntimeServer } from "../src/index.js";
@@ -558,7 +559,8 @@ describe("graph protocol: subgraph planes (update #42)", () => {
     assert.equal(rejections[0].rejectedCmd, CMD_CRDT_UPDATE);
     assert.equal(rejections[1].rejectedCmd, CMD_CRDT_SYNC_REQ);
     for (const rejection of rejections) {
-      assert.match(rejection.detail.reason, /sg\//);
+      assert.equal(rejection.detail.reason, REASON.UNSUPPORTED);
+      assert.match(rejection.detail.message, /sg\//);
     }
   });
 
@@ -578,7 +580,8 @@ describe("graph protocol: subgraph planes (update #42)", () => {
     const rejection = decodeOpRejected(sent[sent.length - 1].bytes);
     assert.equal(rejection.rejectedCmd, CMD_PLANE_DROP);
     assert.equal(rejection.planeId, "sg/main/sub");
-    assert.match(rejection.detail.reason, /presence in the graph/);
+    assert.equal(rejection.detail.reason, REASON.UNSUPPORTED);
+    assert.match(rejection.detail.message, /presence in the graph/);
     // The plane survived the refused drop
     server.handleFrame(encodePlaneList(), "link-1");
     const list = decodePlaneListRes(wire(transport).at(-1).bytes);

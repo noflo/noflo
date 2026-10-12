@@ -32,6 +32,7 @@ import {
   encodePubsubSub,
   encodeRunCtrl,
   OP_TYPE,
+  REASON,
   RUN_ACTION,
 } from "@noflo/fbp-protocol";
 import { GraphModel } from "@noflo/graph";
@@ -661,7 +662,8 @@ describe("subgraph planes and telemetry attribution (update #42)", () => {
       .filter(Boolean)
       .at(-1);
     assert.equal(rejection.rejectedCmd, 0x15);
-    assert.match(rejection.detail.reason, /presence in the graph/);
+    assert.equal(rejection.detail.reason, REASON.UNSUPPORTED);
+    assert.match(rejection.detail.message, /presence in the graph/);
 
     await runtime.host.stop();
   });

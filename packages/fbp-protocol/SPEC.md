@@ -215,10 +215,33 @@ component name resolves the plane to its catalog definition. Requires
 `[0x17, rejected_cmd, plane_id, detail]`. Permission denials per plane,
 Dacar-evaluation refusals, and structurally-rejected graph operations
 alike. For rejected `0x14` operations the detail carries
-`{ client_id, logical_clock, entity_id, reason }` so the client can
-revert the op in its mirror and the changeset model holds. Sent
-runtime → client whenever an operation is refused — silence never carries
-semantics (the `0x21` rationale, generalized). Always deliverable.
+`{ client_id, logical_clock, entity_id, reason }` (reason free-form) so
+the client can revert the op in its mirror and the changeset model
+holds. For every other refused command the detail carries
+`{ reason: <code>, message? }` — `reason` is a code from the registry
+below, `message` optional human text. Sent runtime → client whenever an
+operation is refused — silence never carries semantics (the `0x21`
+rationale, generalized). Always deliverable.
+
+Reason codes — why a command could not be served. Values mirror the
+`0x02` limitation codes where the semantics overlap; the registry is
+additive (new codes do not bump the protocol version), and clients MUST
+Treat unknown codes as `0x00 UNSPECIFIED`:
+
+| Code   | Reason                 | Meaning                                                             |
+| ------ | ---------------------- | ------------------------------------------------------------------- |
+| `0x00` | `UNSPECIFIED`          | fallback — discouraged                                              |
+| `0x01` | `HARDWARE_CONSTRAINED` | the hardware cannot serve this                                       |
+| `0x02` | `PERMISSION_DENIED`    | the capability grant does not cover this                             |
+| `0x03` | `LINK_SATURATED`       | link or runtime saturated                                            |
+| `0x04` | `CONCURRENCY_LOCK`     | another operation holds the runtime busy                             |
+| `0x05` | `UNSUPPORTED`          | known to the protocol generation but outside this runtime's declared surface |
+| `0x06` | `UNKNOWN_COMMAND`      | opcode not recognized by this runtime                                |
+| `0x07` | `MALFORMED`            | frame failed structural decode                                       |
+| `0x08` | `PAYLOAD_UNSUPPORTED`  | payload value outside the runtime's declared value model             |
+| `0x09` | `STUB`                 | the targeted component is a declared stub                            |
+| `0x0a` | `INVALID_STATE`        | valid command, runtime state cannot execute it                        |
+| `0x0b` | `UNKNOWN_TARGET`       | a referenced object does not exist                                   |
 
 Op types (`op_type`) — the mapped projection of the changeset reference
 model is total: every structural entity kind of the graph model has an
@@ -342,10 +365,10 @@ work (WD #43 owns byte-stable canonical serialization; round-trip
 byte-identity is a hard test requirement there). A serialization change
 breaking byte-stability is protocol-visible.
 
-**Open** (before freeze): the encoding for stub-raised
-`StubNotImplementedError` — classifiable as unimplemented rather than
-indistinguishable from genuine component failures — whether as a convention
-on the `0x04 ERROR` payload or its own signal.[^u9]
+Stub-raised errors are classified, not string-matched: an engine-raised
+failure from a declared stub streams as `0x09 STUB_ERROR` (below), and a
+command refused because its target is a stub carries the `0x09 STUB`
+reason code (§5's `0x17` reason registry).[^u9]
 
 ## 7. Live streaming telemetry (0x30 – 0x3F)
 

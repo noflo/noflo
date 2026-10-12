@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Changed
+- `REASON` registry for `0x17 CMD_OP_REJECTED` (work document #4 update #43, from the MicroFlo constrained-runtime port): non-`0x14` rejections answer `detail: { reason: <code>, message? }` — a normative uint8 code vocabulary (`0x00 UNSPECIFIED` … `0x0b UNKNOWN_TARGET`) mirroring the `0x02` limitation codes where semantics overlap, so clients can programmatically distinguish "may not" from "cannot" from "malformed". Additive; closes SPEC §6's open stub-error item (`0x09 STUB` on rejections, `0x09 STUB_ERROR` telemetry for engine-raised)
 - `assembleTraceFileFromRecorder` now projects the recorder's metadata into the DATA event payload envelope `[src, tgt, value]` instead of dropping it (external review, update #35 point 1: the event stream maps onto the frame-1 topology), and the chunk frame carries the plane id
 - The tracefile projection follows the §7 payload rules exactly (work document #4 update #42): the envelope is DATA-only — bracket events keep their plain label payloads (the wire event-type
   vocabulary renames to `BEGIN_BRACKET`/`END_BRACKET`) and connection events project to the flat `[src_node, src_port, tgt_node, tgt_port]` ref pair; the live telemetry path (in `@noflo/runtime`) now carries the same envelope, so every producer conforms to the spec'd shapes

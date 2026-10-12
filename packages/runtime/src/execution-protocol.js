@@ -33,6 +33,7 @@ import {
   encodeGetStatusRes,
   encodeOpRejected,
   LIFECYCLE_CODE,
+  REASON,
   RUN_ACTION,
   RUN_STATE,
 } from "@noflo/fbp-protocol";
@@ -96,13 +97,13 @@ export class ExecutionProtocol {
           }
           break;
         case RUN_ACTION.PAUSE:
-          this.#engineGap("pause");
+          this.#engineGap("pause", decoded);
           break;
         case RUN_ACTION.RESUME:
-          this.#engineGap("resume");
+          this.#engineGap("resume", decoded);
           break;
         case RUN_ACTION.STEP:
-          this.#engineGap("step");
+          this.#engineGap("step", decoded);
           break;
         default:
           break;
@@ -128,7 +129,10 @@ export class ExecutionProtocol {
           encodeOpRejected({
             rejectedCmd: CMD_PACKET_SEND,
             planeId: planeId ?? null,
-            detail: { reason: "plane network not running" },
+            detail: {
+              reason: REASON.INVALID_STATE,
+              message: "plane network not running",
+            },
           }),
           context,
         );
@@ -142,7 +146,10 @@ export class ExecutionProtocol {
           encodeOpRejected({
             rejectedCmd: CMD_PACKET_SEND,
             planeId: planeId ?? null,
-            detail: { reason: "plane model not found" },
+            detail: {
+              reason: REASON.UNKNOWN_TARGET,
+              message: "plane model not found",
+            },
           }),
           context,
         );
@@ -154,7 +161,10 @@ export class ExecutionProtocol {
           encodeOpRejected({
             rejectedCmd: CMD_PACKET_SEND,
             planeId: planeId ?? null,
-            detail: { reason: `no exported inport named ${decoded.port}` },
+            detail: {
+              reason: REASON.UNKNOWN_TARGET,
+              message: `no exported inport named ${decoded.port}`,
+            },
           }),
           context,
         );
@@ -171,7 +181,10 @@ export class ExecutionProtocol {
             encodeOpRejected({
               rejectedCmd: CMD_PACKET_SEND,
               planeId: planeId ?? null,
-              detail: { reason: err?.message ?? "injection failed" },
+              detail: {
+                reason: REASON.INVALID_STATE,
+                message: err?.message ?? "injection failed",
+              },
             }),
             context,
           );
@@ -301,12 +314,23 @@ export class ExecutionProtocol {
    * @returns {void}
    */
   #engineGap(action, decoded, context) {
-    const reason = `${action} is not supported by the running engine`;
+    const message = `${action} is not supported by the running engine`;
     this.server.dispatchEvent(
       new globalThis.CustomEvent("unsupported", {
         detail: { hook: action, decoded, context },
       }),
     );
-    this.telemetry.record(EVENT_TYPE.ERROR, reason);
+    // The rejection reaches the requesting context explicitly (update
+    // #43: reason codes — a client must be able to tell "may not" from
+    // "cannot") and the telemetry stream for other subscribers.
+    this.server.send(
+      encodeOpRejected({
+        rejectedCmd: decoded?.cmd ?? 0,
+        planeId: null,
+        detail: { reason: REASON.UNSUPPORTED, message },
+      }),
+      context,
+    );
+    this.telemetry.record(EVENT_TYPE.ERROR, message);
   }
 }

@@ -281,7 +281,7 @@
    "x-capability": "GRAPH_READ (0x01)"
   },
   "cmd/0x17": {
-   "description": "Runtime → client: an explicit rejection — permission denial per plane, Dacar-evaluation refusal, or a structurally-rejected graph operation. Silence never carries semantics (the 0x21 rationale, generalized); for rejected 0x14 operations the detail carries the op identity triple so the client reverts its mirror and convergence holds (update #34).",
+   "description": "Runtime → client: an explicit rejection — permission denial per plane, Dacar-evaluation refusal, a structurally-rejected graph operation, or a command the runtime cannot serve. Silence never carries semantics (the 0x21 rationale, generalized); for rejected 0x14 operations the detail carries the op identity triple so the client reverts its mirror and convergence holds (update #34). For every other refused command the detail carries `{ reason, message? }` — reason is a code from the §5 registry (0x00 UNSPECIFIED … 0x0b UNKNOWN_TARGET, mirroring the 0x02 limitation codes where semantics overlap), message optional human text (update #43).",
    "publish": {
     "operationId": "opRejected",
     "message": {
