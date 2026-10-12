@@ -227,7 +227,8 @@ export function decodeFlowtraceChunk(bytes) {
  * topology without name resolution. Nested subgraph instances are their
  * own planes (work document #4 update #33): the chunk's plane_id anchors
  * the tree position through the `0x16` parent chain, so no path arrays
- * travel per event. Group events keep their plain string payloads.
+ * travel per event. Bracket events (the stream boundaries) keep their
+ * plain label payloads.
  *
  * @param {{ node: string, port: string, index?: number }|null} src
  * @param {{ node: string, port: string, index?: number }|null} tgt

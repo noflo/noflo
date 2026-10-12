@@ -197,8 +197,8 @@ describe("graph op types", () => {
 describe("flowtrace event types", () => {
   it("match the unified enum", () => {
     assert.equal(EVENT_TYPE.DATA, 0x01);
-    assert.equal(EVENT_TYPE.BEGIN_GROUP, 0x02);
-    assert.equal(EVENT_TYPE.END_GROUP, 0x03);
+    assert.equal(EVENT_TYPE.BEGIN_BRACKET, 0x02);
+    assert.equal(EVENT_TYPE.END_BRACKET, 0x03);
     assert.equal(EVENT_TYPE.ERROR, 0x04);
     assert.equal(EVENT_TYPE.CONSOLE, 0x05);
     assert.equal(EVENT_TYPE.LIFECYCLE, 0x06);

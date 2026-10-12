@@ -3,6 +3,9 @@
 ## [Unreleased]
 ### Changed
 - `assembleTraceFileFromRecorder` now projects the recorder's metadata into the DATA event payload envelope `[src, tgt, value]` instead of dropping it (external review, update #35 point 1: the event stream maps onto the frame-1 topology), and the chunk frame carries the plane id
+- The tracefile projection follows the §7 payload rules exactly (work document #4 update #42): the envelope is DATA-only — bracket events keep their plain label payloads (the wire event-type
+  vocabulary renames to `BEGIN_BRACKET`/`END_BRACKET`) and connection events project to the flat `[src_node, src_port, tgt_node, tgt_port]` ref pair; the live telemetry path (in `@noflo/runtime`) now carries the same envelope, so every producer conforms to the spec'd shapes
+- Subgraph planes (work document #4 update #42): SPEC §5 documents the runtime-reserved `sg/` plane id prefix, subgraph-plane registration at network build, the `0x17` refusal for subgraph-plane drops (and the cascade to descendants when an ephemeral plane drops), and §7 records the effective-plane attribution rule — subgraph-sourced events attribute to the subgraph's plane and the engine's internal path never travels the wire
 ### Added
 - Plane addressing (work document #4 updates #24–#33): the graph-sync block (`0x10`, `0x11`, `0x12`, `0x14`) gains a nil-defaulted `plane_id` — one plane per graph instance (the main graph, node-anchored subgraph instances, client-minted ephemera); the handshake replies name the plane and epoch
 - `0x15 CMD_PLANE_DROP`: one-command ephemeral plane teardown — stops the network and discards state wholesale; the main plane is not droppable

@@ -38,8 +38,8 @@
  */
 export const EVENT_TYPE = {
   DATA: 0x01,
-  BEGIN_GROUP: 0x02,
-  END_GROUP: 0x03,
+  BEGIN_BRACKET: 0x02,
+  END_BRACKET: 0x03,
   ERROR: 0x04,
   CONSOLE: 0x05,
   LIFECYCLE: 0x06,
@@ -210,12 +210,12 @@ export class Flowtrace {
         break;
       }
       case "network:begingroup": {
-        eventType = EVENT_TYPE.BEGIN_GROUP;
+        eventType = EVENT_TYPE.BEGIN_BRACKET;
         value = payload.data ?? payload.group ?? "";
         break;
       }
       case "network:endgroup": {
-        eventType = EVENT_TYPE.END_GROUP;
+        eventType = EVENT_TYPE.END_BRACKET;
         value = payload.data ?? payload.group ?? "";
         break;
       }

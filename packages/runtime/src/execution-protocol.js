@@ -226,6 +226,9 @@ export class ExecutionProtocol {
   async #start() {
     try {
       await this.host.start();
+      // Register the built network's subgraph planes (work document #4
+      // update #42): the walk runs per build and reconciles.
+      this.graphProtocol?.registerSubgraphPlanes(null, this.host.network);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.telemetry.record(EVENT_TYPE.LIFECYCLE, LIFECYCLE_CODE.FAILED);
@@ -270,6 +273,8 @@ export class ExecutionProtocol {
     this.telemetry.observeHost(host, planeId);
     try {
       await host.start();
+      // Register the plane's built-network subgraph planes (update #42)
+      this.graphProtocol?.registerSubgraphPlanes(planeId, host.network);
     } catch (error) {
       // Honest lifecycle: a rejected ephemeral START is FAILED + ERROR,
       // matching the main plane's behavior (work document #4 update #1).

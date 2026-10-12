@@ -169,7 +169,9 @@ export function readTraceFile(bytes) {
  * a single `0x32` chunk frame. DATA event payloads are projected to the
  * wire envelope `[src, tgt, value]` from the recorder's metadata (external
  * review, update #35 point 1: the event stream maps onto the frame-1
- * topology); other payload kinds pass through as recorded.
+ * topology); connection events project to the flat four-string ref pair;
+ * other payload kinds pass through as recorded (work document #4 update #42:
+ * the spec'd payload rules are the contract on every path).
  *
  * This module deliberately has no dependency on `@noflo/noflo`; the state
  * is consumed duck-typed, and a round-trip spec in `@noflo/runtime` pins
@@ -205,26 +207,37 @@ export function assembleTraceFileFromRecorder(state) {
         baseTimestampMs: snapshot.timestampMs,
         events: state.chunks.map((tuple) => {
           const meta = tuple[3] ?? null;
-          const isEdgeEvent =
-            tuple[1] === EVENT_TYPE.DATA ||
-            tuple[1] === EVENT_TYPE.BEGIN_GROUP ||
-            tuple[1] === EVENT_TYPE.END_GROUP ||
-            tuple[1] === EVENT_TYPE.CONNECTION_OPEN ||
-            tuple[1] === EVENT_TYPE.CONNECTION_CLOSE;
-          if (isEdgeEvent && meta) {
-            // The envelope: [src, tgt, value] — src/tgt as port refs.
+          // Per §7: the [src, tgt, value] envelope is DATA-only. Group
+          // events keep their plain string payloads; connection events
+          // carry the flat [src_node, src_port, tgt_node, tgt_port] ref
+          // pair (work document #4 update #42 trims the earlier broader
+          // enveloping back to the spec'd rules).
+          if (tuple[1] === EVENT_TYPE.DATA && meta) {
             const ref = (p) =>
               p
                 ? [p.node, p.port, ...(p.index !== undefined ? [p.index] : [])]
                 : null;
-            const value =
-              tuple[1] === EVENT_TYPE.DATA
-                ? tuple[2]
-                : (meta.group ?? tuple[2]);
             return {
               timeDeltaMs: tuple[0],
               eventType: tuple[1],
-              payload: [ref(meta.src), ref(meta.tgt), value],
+              payload: [ref(meta.src), ref(meta.tgt), tuple[2]],
+            };
+          }
+          if (
+            (tuple[1] === EVENT_TYPE.CONNECTION_OPEN ||
+              tuple[1] === EVENT_TYPE.CONNECTION_CLOSE) &&
+            meta?.src &&
+            meta?.tgt
+          ) {
+            return {
+              timeDeltaMs: tuple[0],
+              eventType: tuple[1],
+              payload: [
+                meta.src.node,
+                meta.src.port,
+                meta.tgt.node,
+                meta.tgt.port,
+              ],
             };
           }
           return {

@@ -87,13 +87,13 @@ describe("0x32 CMD_FLOWTRACE_CHUNK", () => {
       events: [
         {
           timeDeltaMs: 0,
-          eventType: EVENT_TYPE.BEGIN_GROUP,
+          eventType: EVENT_TYPE.BEGIN_BRACKET,
           payload: "batch-1",
         },
         { timeDeltaMs: 12, eventType: EVENT_TYPE.DATA, payload: "hello" },
         {
           timeDeltaMs: 20,
-          eventType: EVENT_TYPE.END_GROUP,
+          eventType: EVENT_TYPE.END_BRACKET,
           payload: "batch-1",
         },
       ],
@@ -254,7 +254,11 @@ describe("absolute-timestamp builder", () => {
       subId: "sub-1",
       planeId: null,
       events: [
-        { timestampMs: 5000, eventType: EVENT_TYPE.BEGIN_GROUP, payload: "g" },
+        {
+          timestampMs: 5000,
+          eventType: EVENT_TYPE.BEGIN_BRACKET,
+          payload: "g",
+        },
         { timestampMs: 5010, eventType: EVENT_TYPE.DATA, payload: "x" },
         { timestampMs: 5020, eventType: EVENT_TYPE.ERROR, payload: "boom" },
       ],

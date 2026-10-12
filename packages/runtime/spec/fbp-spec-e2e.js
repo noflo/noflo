@@ -473,3 +473,196 @@ describe("capability gating of the freeze-readiness commands", () => {
     await runtime.host.stop();
   });
 });
+
+describe("subgraph planes and telemetry attribution (update #42)", () => {
+  it("registers a subgraph plane at network build and attributes its telemetry", async () => {
+    class Pass extends Component {
+      constructor() {
+        super({
+          inPorts: { in: { datatype: "all" } },
+          outPorts: { out: { datatype: "all" } },
+        });
+        this.process(function process(input, output) {
+          if (!input.hasData("in")) {
+            return;
+          }
+          output.sendDone({ out: input.getData("in") });
+        });
+      }
+    }
+    // A subgraph component: FBP JSON wrapping two Pass components with an
+    // internal edge and exported ports — the shape a component library
+    // registers (and the shape asAssembly-generated adapters are promoted
+    // to). The internal edge is where the subgraph's own socket traffic
+    // lives; exported ports are shared port objects, so only internal
+    // sockets produce subgraph-attributed events.
+    const SUBGRAPH_JSON = {
+      properties: { name: "Sub" },
+      inports: { in: { process: "first", port: "in" } },
+      outports: { out: { process: "second", port: "out" } },
+      nodes: [
+        { id: "first", component: "test/Pass" },
+        { id: "second", component: "test/Pass" },
+      ],
+      edges: [
+        {
+          source: { id: "first", port: "out" },
+          target: { id: "second", port: "in" },
+        },
+      ],
+    };
+    const loader = new ComponentLoader({
+      registry: {
+        list: () => ({
+          "test/Pass": { getComponent: () => new Pass() },
+          "test/Sub": SUBGRAPH_JSON,
+        }),
+        get: (name) =>
+          name === "test/Pass"
+            ? Promise.resolve({ getComponent: () => new Pass() })
+            : name === "test/Sub"
+              ? Promise.resolve(SUBGRAPH_JSON)
+              : Promise.resolve(undefined),
+      },
+    });
+
+    const graph = new GraphModel({ name: "main" });
+    graph.addNode({ entity_id: "sub", component: "test/Sub" });
+    graph.addExport({
+      entity_id: "exp-in",
+      direction: "inport",
+      public: "in",
+      internal: { node: "sub", port: "in" },
+    });
+    graph.addExport({
+      entity_id: "exp-out",
+      direction: "outport",
+      public: "out",
+      internal: { node: "sub", port: "out" },
+    });
+
+    const transport = capture();
+    const runtime = await assembleRuntime({
+      graph,
+      catalog: { signatures: () => ({}) },
+      componentLoader: loader,
+      capabilityPolicy: () => 0xff,
+      capabilities: ["GRAPH_READ", "TELEMETRY_READ", "LIFECYCLE_CTRL"],
+      send: (bytes, context) => transport.send(bytes, context),
+      broadcast: (bytes, except) => transport.send(bytes, except),
+      autostart: false,
+    });
+    await runtime.server.authorize("link-1", "test-identity");
+    const send = (bytes) => runtime.server.handleFrame(bytes, "link-1");
+    const sentChunks = () =>
+      transport.log.sent
+        .map((entry) => {
+          try {
+            return decodeFlowtraceChunk(entry.bytes);
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean);
+
+    // Subscribe before start so the whole run is observed
+    send(
+      encodePubsubSub({
+        subId: "sub-telemetry",
+        targetType: "network",
+        targetId: "main",
+        requestedFlushIntervalMs: 0,
+      }),
+    );
+    // Start the main network (async handler — give it a beat)
+    send(encodeRunCtrl(RUN_ACTION.START));
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    // --- The subgraph plane is registered with its anchors ---
+    send(encodePlaneList());
+    const listFrame = transport.log.sent
+      .map((entry) => {
+        try {
+          return decodePlaneListRes(entry.bytes);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean)
+      .at(-1);
+    const subPlane = listFrame.entries.find(
+      (e) => e.kind === "subgraph" && e.nodeId === "sub",
+    );
+    assert.ok(subPlane, "the subgraph plane appears in the 0x16 listing");
+    assert.equal(subPlane.planeId, "sg/main/sub");
+    assert.equal(subPlane.parentPlane, null);
+    assert.equal(subPlane.componentName, "test/Sub");
+
+    // --- Inject a packet through the exported inport ---
+    send(encodePacketSend({ planeId: null, port: "in", payload: "hello" }));
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    // --- Main-plane DATA: the IIP's envelope, target ref joining the
+    // topology (src nil — an IIP has no source) ---
+    const chunks = sentChunks();
+    const mainData = chunks
+      .filter((chunk) => chunk.planeId === null)
+      .flatMap((chunk) => chunk.events)
+      .filter((e) => e.eventType === EVENT_TYPE.DATA);
+    assert.ok(
+      mainData.some(
+        (e) =>
+          Array.isArray(e.payload) &&
+          e.payload[0] === null &&
+          JSON.stringify(e.payload[1]) === JSON.stringify(["sub", "in"]) &&
+          e.payload[2] === "hello",
+      ),
+      "the main-plane DATA event envelopes the IIP injection",
+    );
+
+    // --- Subgraph-plane DATA: attributed to the subgraph's plane, refs
+    // local to the subgraph's own graph (update #42 attribution) ---
+    const subChunks = chunks.filter((chunk) => chunk.planeId === "sg/main/sub");
+    assert.ok(
+      subChunks.length > 0,
+      "subgraph events arrive in their own chunks",
+    );
+    const subData = subChunks.flatMap((chunk) =>
+      chunk.events.filter((e) => e.eventType === EVENT_TYPE.DATA),
+    );
+    assert.ok(subData.length > 0, "DATA events flow from inside the subgraph");
+    for (const event of subData) {
+      assert.equal(
+        Array.isArray(event.payload),
+        true,
+        "DATA payloads envelope",
+      );
+    }
+    assert.ok(
+      subData.some(
+        (e) =>
+          e.payload[2] === "hello" &&
+          JSON.stringify(e.payload).includes("first") &&
+          JSON.stringify(e.payload).includes("second"),
+      ),
+      "the subgraph DATA event joins the subgraph's own topology (first → second)",
+    );
+
+    // --- Dropping the subgraph plane is refused ---
+    send(encodePlaneDrop("sg/main/sub"));
+    const rejection = transport.log.sent
+      .map((entry) => {
+        try {
+          return decodeOpRejected(entry.bytes);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean)
+      .at(-1);
+    assert.equal(rejection.rejectedCmd, 0x15);
+    assert.match(rejection.detail.reason, /presence in the graph/);
+
+    await runtime.host.stop();
+  });
+});

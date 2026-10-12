@@ -115,8 +115,7 @@ The runtime maps the identity against its DACAR capability plane and filters
 the result through its advertised technical surface: the granted mask is
 what the peer may exercise, and the advertised mask is the ceiling —
 together they tell the client whether a denial is a permission issue or an
-unsupported feature (external review, update #35: the
-`allCapabilities` vs `capabilities` distinction).
+unsupported feature (external review, update #35: the `allCapabilities` vs `capabilities` distinction).
 
 - Format: `[0x02, protocol_version, granted_mask, limitation_code, runtime_metadata, advertised_mask]`
 - Types: `[uint8, uint8, uint8, uint8, map, uint8]` — `runtime_metadata` is a free-form map identifying the runtime kind (e.g. `{ type: "noflo-nodejs", label: "...", version: "..." }`), the `runtime:runtime` equivalent from 1.x.
@@ -160,10 +159,17 @@ to the id, and the plane exists until explicitly dropped with `0x15` or
 the runtime restarts. Ephemeral planes are the remote fbp-spec runner's
 fixture mechanism — one plane per suite, cases run inside it, dropped
 after. Subgraph instances are anchored to their node id in the parent
-plane and are materialized as planes when the component instantiates
-(their tree position is derivable from the parent chain in the `0x16`
-listing); lifecycle commands never target them — they follow the parent
-(update #28's lifecycle matrix).
+plane and are materialized as planes at network build (update #42): the
+runtime registers them with deterministic `sg/<parent>/<node_id>` ids
+(`main` standing in for the nil parent), reconciling per build so the
+plane tree follows the component's presence in the built graph. The
+`sg/` prefix is runtime-reserved: client-minted ephemeral ids using it
+are rejected with `0x17` — the namespaces cannot collide. Their tree
+position is derivable from the parent chain in the `0x16` listing;
+lifecycle commands never target subgraph planes — they follow the
+parent (update #28's lifecycle matrix; a drop addressed to one is refused
+with `0x17`, and dropping an ephemeral plane removes its subgraph
+descendants).
 
 **`0x10` CMD_CRDT_SYNC_REQ** — client requests state sync:
 `[0x10, plane_id, epoch_id, { "client_a": 15 }]` (map of client → logical clock; `plane_id` nil = main).
@@ -190,7 +196,9 @@ re-sync from their own op log instead.
 wholesale — the fbp-spec runner's one-command fixture teardown. The
 main plane is not droppable: nil is rejected. Subgraph planes follow
 their component's presence in the graph and are never dropped via a
-lifecycle command. The runtime acknowledges the drop by echoing the
+lifecycle command — a drop addressed to one is answered with `0x17`,
+and dropping an ephemeral plane removes its subgraph descendants with
+it. The runtime acknowledges the drop by echoing the
 frame to the requesting context only — other clients learn through
 telemetry, but only if the plane was ever started. Requires
 `LIFECYCLE_CTRL`.
@@ -303,9 +311,8 @@ signature stays unchanged — source and signature are orthogonal.
 **`0x26` CMD_COMP_SOURCE** — read a component's source from the runtime:
 request `[0x26, component_name]`; the runtime answers on the same opcode with
 `[0x26, component_name, source]` — nil source when the runtime holds none
-(native or hardware components). The read counterpart of `0x25` (external
-review, update #35: pulls source from embedded devices, syncs a project
-back). Requires `COMPONENT_READ`.
+(native or hardware components). The read counterpart of `0x25` (external review, update #35: pulls
+source from embedded devices, syncs a project back). Requires `COMPONENT_READ`.
 
 **`0x27` CMD_COMP_INSTALL_REQ** — dynamic ES module injection via HTTP, npm,
 or RNS: `[0x27, package_uri]`. Third-party libraries MUST be compatible with
@@ -357,8 +364,8 @@ physical-policy decision.
 **`0x32` CMD_FLOWTRACE_CHUNK** — buffered execution trace:
 `[0x32, sub_id, plane_id, base_timestamp_ms, [trace_events_array]]` — the
 plane_id attributes the whole chunk to the graph instance it was recorded
-on; nil for the main plane (update #32: frugal-path attribution by
-compact id, never names).
+on; nil for the main plane (update #32: frugal-path attribution by compact
+id, never names).
 
 Each item in `trace_events_array` is a tuple
 `[time_delta_ms, event_type, payload]`, where `time_delta_ms` is a `uint32`
@@ -369,9 +376,18 @@ the positional tuple `[src, tgt, value]` — where each ref is
 outport has no target). `node_id` is the graph model's entity id within
 the attributed plane — the exact identifier the `0x14` ops use, so
 consumers join events against the frame-1 topology without name
-resolution. Nested subgraph instances are their own planes (update #33):
-the chunk's plane_id anchors the tree position through the `0x16` parent
-chain, so no subgraph path arrays travel per event.
+resolution. The envelope is the payload on every producer path — live
+telemetry and tracefile alike (update #42); bracket events keep their
+plain label payloads — at the protocol level `0x02`/`0x03` are the
+bracket/stream boundary markers, produced from the engine's
+`openBracket`/`closeBracket` IPs (the flowtrace-lineage
+`begingroup`/`endgroup` naming lives only in the recorder's JSON input
+format, work document #23). Nested subgraph instances are their own planes
+(updates #33/#42): events sourced inside one are attributed to the
+subgraph's plane — the runtime resolves the engine's internal subgraph
+path through the plane registry, and that path never travels the wire.
+The chunk's plane_id anchors the tree position through the `0x16`
+parent chain, so no subgraph path arrays travel per event.
 
 **Connection framing.** `EVENT_TYPE` gains `0x0b CONNECTION_OPEN` and
 `0x0c CONNECTION_CLOSE` — the framing 1.x UIs animate edge activity with.
@@ -384,8 +400,8 @@ Unified event types:
 | Code   | Event         | Payload                                   |
 | ------ | ------------- | ----------------------------------------- |
 | `0x01` | `DATA`        | `[src, tgt, value]` envelope               |
-| `0x02` | `BEGIN_GROUP` | group string                               |
-| `0x03` | `END_GROUP`   | group string                               |
+| `0x02` | `BEGIN_BRACKET` | bracket label (stream opens)             |
+| `0x03` | `END_BRACKET` | bracket label (stream closes)              |
 | `0x04` | `ERROR`       | exception string                           |
 | `0x05` | `CONSOLE`     | `[stream_id, log_string]`                  |
 | `0x06` | `LIFECYCLE`   | transition code (uint8)                    |
@@ -606,3 +622,4 @@ with the design reasons:
   string (frugalized per local policy); stack traces are not carried.
 * **`previewurl` output type** — visual output preview is UI territory,
   not wire protocol.
+

@@ -126,16 +126,16 @@ describe("Flowtrace recorder <-> trace file round trip", () => {
       const [timeDeltaMs, eventType, payload, meta] = state.chunks[index];
       assert.equal(event.timeDeltaMs, timeDeltaMs, `delta ${index}`);
       assert.equal(event.eventType, eventType, `type ${index}`);
-      // Edge events carry the [src, tgt, value] envelope built from the
-      // recorder's metadata (work document #4 update #32, external review
-      // point 1); other events pass through as-is.
-      const isEdge = [1, 2, 3].includes(eventType);
+      // Per §7 the envelope is DATA-only: [src, tgt, value] from the
+      // recorder's metadata; group events keep their plain string
+      // payloads (work document #4 update #42); other kinds pass through
+      // as recorded.
       const expected =
-        isEdge && meta
+        eventType === 1 && meta
           ? [
               meta.src ? [meta.src.node, meta.src.port] : null,
               meta.tgt ? [meta.tgt.node, meta.tgt.port] : null,
-              eventType === 1 ? payload : (meta?.group ?? payload),
+              payload,
             ]
           : payload;
       assert.deepEqual(event.payload, expected, `payload ${index}`);

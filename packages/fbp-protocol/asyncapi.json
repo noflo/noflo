@@ -249,7 +249,7 @@
    "x-capability": "none — authenticated by the LXMF transport itself"
   },
   "cmd/0x15": {
-   "description": "Client → runtime: drop an ephemeral graph plane. Runtime → client: the ack echoes to the requesting context only (byte-identical). Other clients learn through telemetry — but only if the plane was ever started; a never-started plane's drop notifies nobody but the requester.",
+   "description": "Client → runtime: drop an ephemeral graph plane. Runtime → client: the ack echoes to the requesting context only (byte-identical). Other clients learn through telemetry — but only if the plane was ever started; a never-started plane's drop notifies nobody but the requester. Subgraph planes are never droppable — a drop addressed to one is answered with `0x17`, and dropping an ephemeral plane removes its subgraph descendants (update #42).",
    "subscribe": {
     "operationId": "planeDrop",
     "message": {
@@ -265,7 +265,7 @@
    }
   },
   "cmd/0x16": {
-   "description": "Client → runtime: list the runtime graph planes. Runtime → client: the plane tree — the main graph, each subgraph instance anchored to its node id, and client-minted ephemera (updates #30/#33).",
+   "description": "Client → runtime: list the runtime graph planes. Runtime → client: the plane tree — the main graph, each subgraph instance anchored to its node id (registered at network build with deterministic `sg/` ids, reconciled per build — update #42), and client-minted ephemera (updates #30/#33/#42).",
    "publish": {
     "operationId": "planeListFromRuntime",
     "message": {
@@ -1069,7 +1069,7 @@
     "name": "flowtraceChunk",
     "title": "0x32 CMD_FLOWTRACE_CHUNK",
     "summary": "Buffered, delta-encoded execution trace chunk.",
-    "description": "Event storms never hit the wire raw: events buffer into chunks, each event carrying a uint32 millisecond delta from the chunk's base timestamp. Event types: `0x01` DATA (raw value), `0x02` BEGIN_GROUP / `0x03` END_GROUP (group string), `0x04` ERROR (exception string), `0x05` CONSOLE (`[stream_id, log_string]`), `0x06` LIFECYCLE (transition code: `0x01` start, `0x02` stop, `0x03` safe-mode, `0x04` failed transition — a rejected `start()` leaves the runtime an honest message to send, with the detail in an accompanying `0x04` ERROR event; `0x05` paused and `0x06` resumed announce execution-control run-state changes), `0x07` VISUAL_STATE (`[format_type, binary_pixels]`), `0x08` BREAKPOINT_HIT (`[breakpoint_id, node_id, port]`), `0x09` STUB_ERROR (exception string — the canonical classification for errors raised by stub components: the event type itself marks the error as unimplemented rather than a genuine component failure), `0x0a` EDGE_CAPACITY (`[edge_id, in_flight, desired_size]` — one backpressure sample per edge per flush; `desired_size` nil when the edge is unbounded; a data-channel observation, never an error).",
+    "description": "Event storms never hit the wire raw: events buffer into chunks, each event carrying a uint32 millisecond delta from the chunk's base timestamp. Event types: `0x01` DATA (raw value), `0x02` BEGIN_BRACKET / `0x03` END_BRACKET (bracket label — the stream boundary the engine emits as openBracket/closeBracket IPs), `0x04` ERROR (exception string), `0x05` CONSOLE (`[stream_id, log_string]`), `0x06` LIFECYCLE (transition code: `0x01` start, `0x02` stop, `0x03` safe-mode, `0x04` failed transition — a rejected `start()` leaves the runtime an honest message to send, with the detail in an accompanying `0x04` ERROR event; `0x05` paused and `0x06` resumed announce execution-control run-state changes), `0x07` VISUAL_STATE (`[format_type, binary_pixels]`), `0x08` BREAKPOINT_HIT (`[breakpoint_id, node_id, port]`), `0x09` STUB_ERROR (exception string — the canonical classification for errors raised by stub components: the event type itself marks the error as unimplemented rather than a genuine component failure), `0x0a` EDGE_CAPACITY (`[edge_id, in_flight, desired_size]` — one backpressure sample per edge per flush; `desired_size` nil when the edge is unbounded; a data-channel observation, never an error).",
     "payload": {
      "type": "array",
      "minItems": 5,

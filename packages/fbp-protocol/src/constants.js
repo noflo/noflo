@@ -350,8 +350,8 @@ export const CMD_FLOWTRACE_CHUNK = 0x32;
  */
 export const EVENT_TYPE = {
   DATA: 0x01,
-  BEGIN_GROUP: 0x02,
-  END_GROUP: 0x03,
+  BEGIN_BRACKET: 0x02,
+  END_BRACKET: 0x03,
   ERROR: 0x04,
   CONSOLE: 0x05,
   LIFECYCLE: 0x06,
