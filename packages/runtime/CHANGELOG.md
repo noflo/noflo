@@ -11,9 +11,13 @@
 - `0x48 CMD_GET_STATUS` handler: answers epoch, run state, uptime, and the advertised ceiling
 - `0x16 CMD_PLANE_LIST` handler: answers the plane tree (main + ephemera)
 - `0x17 CMD_OP_REJECTED` emission: structurally-rejected ops and permission denials surface to the client explicitly (silence never carries semantics)
-- `TelemetryProtocol.observeHost()`: wire an ephemeral plane host's events into the telemetry stream
+- `TelemetryProtocol.observeHost()`: wire an ephemeral plane host's events into the telemetry stream, with the plane id carrying through to the emitted `0x32` chunks (events are grouped per source plane on flush, so an ephemeral plane's START/STOP/DATA are attributed to the plane, not the main plane)
 - `GraphProtocol.getPlane()`: public accessor for the execution protocol's multi-plane support
-- The e2e fbp-spec interaction test: mint an ephemeral plane, build a fixture via CRDT ops, start via `0x40`, inject via `0x47`, observe via `0x32`, query `0x48`, tear down via `0x15`
+- The e2e fbp-spec interaction test: mint an ephemeral plane, build a fixture via CRDT ops, start via `0x40`, inject via `0x47`, observe via `0x32`, query `0x48`, tear down via `0x15` — with assertions for telemetry plane attribution and the `0x15` ack
+### Fixed
+- `0x47 CMD_PACKET_SEND` answers `0x17 CMD_OP_REJECTED` with a reason on every rejection path (no running network, no plane model, no exported inport) instead of wire silence
+- `0x26 CMD_COMP_SOURCE` answers with a nil source when the runtime holds no `readSource` hook, matching SPEC's "nil source when the runtime holds none" instead of staying silent
+- `0x15 CMD_PLANE_DROP` acknowledges the requesting context (echo to requester only); a failed ephemeral-plane start records FAILED/ERROR telemetry attributed to the plane
 ### Added
 - Round-trip spec pinning the NoFlo core `Flowtrace` recorder's JSON state to the binary trace-file encoding (`assembleTraceFileFromRecorder`), and the duplicated event-vocabulary constants to equality between `@noflo/noflo` and `@noflo/fbp-protocol` (work document #23 update #2)
 

@@ -15,10 +15,15 @@ import assert from "node:assert";
 import { describe, it } from "node:test";
 import {
   CMD_GET_STATUS,
+  decodeAuthResponse,
+  decodeCompSourceRes,
   decodeFlowtraceChunk,
   decodeGetStatusRes,
+  decodeOpRejected,
+  decodePlaneDrop,
   decodePlaneListRes,
   EVENT_TYPE,
+  encodeCompSourceReq,
   encodeCrdtUpdate,
   encodeGetStatus,
   encodePacketSend,
@@ -230,8 +235,24 @@ describe("remote fbp-spec interaction over the full protocol stack", () => {
     const status = decodeGetStatusRes(statusFrames[0].bytes);
     assert.equal(status.advertisedMask, runtime.server.capabilityMask);
 
-    // --- Step 8: tear down with 0x15 ---
+    // --- Step 8: tear down with 0x15 — the ack echoes to the requester ---
+    const preDropCount = transport.log.sent.length;
     send(encodePlaneDrop(PLANE));
+    assert.ok(
+      transport.log.sent.length > preDropCount,
+      "the drop ack echoes to the requester",
+    );
+    const dropAck = transport.log.sent
+      .map((entry) => {
+        try {
+          return decodePlaneDrop(entry.bytes);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+    assert.equal(dropAck.length, 1, "exactly one 0x15 ack frame");
+    assert.equal(dropAck[0].planeId, PLANE, "the ack echoes the dropped plane");
 
     // Clean up
     await runtime.host.stop();
@@ -301,5 +322,154 @@ describe("remote fbp-spec interaction over the full protocol stack", () => {
       listFrame.entries.some((e) => e.planeId === "spec-1"),
       "the ephemeral plane appears after materialization",
     );
+  });
+});
+
+describe("capability gating of the freeze-readiness commands", () => {
+  /**
+   * Assemble a runtime whose policy grants one link the full surface and
+   * denies another entirely — the two sides of the per-frame gate.
+   */
+  async function gatedRuntime() {
+    const transport = capture();
+    const runtime = await assembleRuntime({
+      graph: new GraphModel({ name: "main" }),
+      catalog: { signatures: () => ({}) },
+      componentLoader: new ComponentLoader({
+        registry: {
+          list: () => ({}),
+          get: () => Promise.resolve(undefined),
+        },
+      }),
+      capabilityPolicy: (identityHash) =>
+        identityHash === "granted" ? 0xff : 0,
+      capabilities: [
+        "GRAPH_READ",
+        "GRAPH_EDIT",
+        "COMPONENT_READ",
+        "TELEMETRY_READ",
+        "LIFECYCLE_CTRL",
+      ],
+      send: (bytes, context) => transport.send(bytes, context),
+      broadcast: (bytes, except) => transport.send(bytes, except),
+      autostart: false,
+    });
+    await runtime.server.authorize("link-granted", "granted");
+    await runtime.server.authorize("link-denied", "denied");
+    return { runtime, transport };
+  }
+
+  /**
+   * Frames the given link received, excluding the 0x02 auth response
+   * every authorized context gets from authorize() itself.
+   */
+  function framesTo(transport, context) {
+    return transport.log.sent.filter((entry) => {
+      if (entry.context !== context) return false;
+      try {
+        return decodeAuthResponse(entry.bytes).cmd !== 0x02;
+      } catch {
+        return true;
+      }
+    });
+  }
+
+  it("denies 0x16 plane list to a context without grants", async () => {
+    const { runtime, transport } = await gatedRuntime();
+    runtime.server.handleFrame(encodePlaneList(), "link-granted");
+    runtime.server.handleFrame(encodePlaneList(), "link-denied");
+    assert.ok(
+      framesTo(transport, "link-granted").some((entry) => {
+        try {
+          return decodePlaneListRes(entry.bytes).cmd === 0x16;
+        } catch {
+          return false;
+        }
+      }),
+      "granted context gets the plane list",
+    );
+    assert.equal(
+      framesTo(transport, "link-denied").length,
+      0,
+      "denied context gets silence",
+    );
+    await runtime.host.stop();
+  });
+
+  it("denies 0x15 plane drop to a context without grants", async () => {
+    const { runtime, transport } = await gatedRuntime();
+    runtime.server.handleFrame(encodePlaneDrop("spec-1"), "link-granted");
+    runtime.server.handleFrame(encodePlaneDrop("spec-1"), "link-denied");
+    const acks = framesTo(transport, "link-granted").filter((entry) => {
+      try {
+        return decodePlaneDrop(entry.bytes).cmd === 0x15;
+      } catch {
+        return false;
+      }
+    });
+    assert.equal(acks.length, 1, "granted context gets the drop ack");
+    assert.equal(
+      framesTo(transport, "link-denied").length,
+      0,
+      "denied context gets silence",
+    );
+    await runtime.host.stop();
+  });
+
+  it("denies 0x47 packet send to a context without grants", async () => {
+    const { runtime, transport } = await gatedRuntime();
+    await runtime.server.handleFrame(
+      encodePacketSend({ planeId: null, port: "in", payload: "x" }),
+      "link-granted",
+    );
+    await runtime.server.handleFrame(
+      encodePacketSend({ planeId: null, port: "in", payload: "x" }),
+      "link-denied",
+    );
+    // The granted context's handler runs but the runtime holds no running
+    // network for the main plane — it answers 0x17. The denied context is
+    // gated before any handler runs and must get nothing.
+    const rejections = framesTo(transport, "link-granted").filter((entry) => {
+      try {
+        return decodeOpRejected(entry.bytes).rejectedCmd === 0x47;
+      } catch {
+        return false;
+      }
+    });
+    assert.equal(rejections.length, 1, "granted context gets the 0x17 answer");
+    assert.equal(
+      framesTo(transport, "link-denied").length,
+      0,
+      "denied context gets silence",
+    );
+    await runtime.host.stop();
+  });
+
+  it("denies 0x26 source read to a context without grants", async () => {
+    const { runtime, transport } = await gatedRuntime();
+    await runtime.server.handleFrame(
+      encodeCompSourceReq("test/Pass"),
+      "link-granted",
+    );
+    await runtime.server.handleFrame(
+      encodeCompSourceReq("test/Pass"),
+      "link-denied",
+    );
+    // The granted context gets the nil-source answer (the catalog holds
+    // no readSource hook — SPEC: nil source when the runtime holds none).
+    const answers = framesTo(transport, "link-granted").filter((entry) => {
+      try {
+        return decodeCompSourceRes(entry.bytes).cmd === 0x26;
+      } catch {
+        return false;
+      }
+    });
+    assert.equal(answers.length, 1, "granted context gets the nil answer");
+    assert.equal(
+      framesTo(transport, "link-denied").length,
+      0,
+      "denied context gets silence",
+    );
+    await runtime.host.stop();
   });
 });

@@ -49,7 +49,7 @@ import {
  * {@link ExecutionProtocol#register}.
  */
 export class ExecutionProtocol {
-  static _packetSeq = 0;
+  static #packetSeq = 0;
   /**
    * @param {object} options
    * @param {import("./network-host.js").NetworkHost} options.host
@@ -162,7 +162,7 @@ export class ExecutionProtocol {
       }
       network
         .addInitial({
-          entity_id: `packet-send-${++ExecutionProtocol._packetSeq}`,
+          entity_id: `packet-send-${++ExecutionProtocol.#packetSeq}`,
           from: { data: decoded.payload },
           to: { node: target.node, port: target.port },
         })

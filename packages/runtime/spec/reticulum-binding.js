@@ -429,7 +429,7 @@ describe("Reticulum binding: baseline resources", () => {
 
   it("serves baselines only to identities currently granted GRAPH_READ", async () => {
     const wired = wiredBinding();
-    const { binding, server, destination, serverPolicy } = wired;
+    const { binding, destination, serverPolicy } = wired;
     await binding.start();
     const bytes = new TextEncoder().encode('{"name":"main"}');
     const token = await binding.serveResource(bytes);
@@ -458,7 +458,6 @@ describe("Reticulum binding: baseline resources", () => {
     const grantedHash = toHex(grantee.identityHash);
     /** @type {any[]} */
     const evaluated = [];
-    const _serverPolicy = staticPolicy();
     const server = new RuntimeServer({
       capabilityPolicy: (identityHash) => {
         evaluated.push(identityHash);
