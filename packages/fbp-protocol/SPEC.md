@@ -115,7 +115,7 @@ The runtime maps the identity against its DACAR capability plane and filters
 the result through its advertised technical surface: the granted mask is
 what the peer may exercise, and the advertised mask is the ceiling —
 together they tell the client whether a denial is a permission issue or an
-unsupported feature (external review, update #35: the `allCapabilities` vs `capabilities` distinction).
+unsupported feature.[^ext35]
 
 - Format: `[0x02, protocol_version, granted_mask, limitation_code, runtime_metadata, advertised_mask]`
 - Types: `[uint8, uint8, uint8, uint8, map, uint8]` — `runtime_metadata` is a free-form map identifying the runtime kind (e.g. `{ type: "noflo-nodejs", label: "...", version: "..." }`), the `runtime:runtime` equivalent from 1.x.
@@ -159,7 +159,7 @@ to the id, and the plane exists until explicitly dropped with `0x15` or
 the runtime restarts. Ephemeral planes are the remote fbp-spec runner's
 fixture mechanism — one plane per suite, cases run inside it, dropped
 after. Subgraph instances are anchored to their node id in the parent
-plane and are materialized as planes at network build (update #42): the
+plane and are materialized as planes at network build:[^u42] the
 runtime registers them with deterministic `sg/<parent>/<node_id>` ids
 (`main` standing in for the nil parent), reconciling per build so the
 plane tree follows the component's presence in the built graph. The
@@ -167,16 +167,16 @@ plane tree follows the component's presence in the built graph. The
 are rejected with `0x17` — the namespaces cannot collide. Their tree
 position is derivable from the parent chain in the `0x16` listing;
 lifecycle commands never target subgraph planes — they follow the
-parent (update #28's lifecycle matrix; a drop addressed to one is refused
-with `0x17`, and dropping an ephemeral plane removes its subgraph
-descendants).
+parent.[^u28] A drop addressed to one is
+refused with `0x17`, and dropping an ephemeral plane removes its
+subgraph descendants.
 
 **`0x10` CMD_CRDT_SYNC_REQ** — client requests state sync:
 `[0x10, plane_id, epoch_id, { "client_a": 15 }]` (map of client → logical clock; `plane_id` nil = main).
 
 **`0x11` CMD_CRDT_UP_TO_DATE** — epochs match; no delta transfer needed:
 `[0x11, plane_id, epoch_id]`. The reply names the plane and its epoch so
-an up-to-date client learns what it is synced to (update #26).
+an up-to-date client learns what it is synced to.[^u26]
 
 **`0x12` CMD_CRDT_STALE_EPOCH** — forces the client to fetch a baseline
 snapshot via the Reticulum Resource API:
@@ -254,7 +254,7 @@ Edge-level high-water marks travel as edge metadata inside the `0x14`
 payload (the `highWaterMark` field of the native graph model's edge
 metadata), so inserts carry them and a change projects to tombstone +
 insert per the mapping above — modify stays a wire-level encoding detail,
-never the semantic unit (WD #4 update #8). The runtime-global high-water
+never the semantic unit.[^u8] The runtime-global high-water
 mark is runtime configuration, not graph state, and is set with `0x46
 CMD_HWM_SET` (§8).
 
@@ -311,8 +311,8 @@ signature stays unchanged — source and signature are orthogonal.
 **`0x26` CMD_COMP_SOURCE** — read a component's source from the runtime:
 request `[0x26, component_name]`; the runtime answers on the same opcode with
 `[0x26, component_name, source]` — nil source when the runtime holds none
-(native or hardware components). The read counterpart of `0x25` (external review, update #35: pulls
-source from embedded devices, syncs a project back). Requires `COMPONENT_READ`.
+(native or hardware components). The read counterpart of `0x25`, serving
+embedded-device source pull and project sync-back.[^ext35] Requires `COMPONENT_READ`.
 
 **`0x27` CMD_COMP_INSTALL_REQ** — dynamic ES module injection via HTTP, npm,
 or RNS: `[0x27, package_uri]`. Third-party libraries MUST be compatible with
@@ -345,7 +345,7 @@ breaking byte-stability is protocol-visible.
 **Open** (before freeze): the encoding for stub-raised
 `StubNotImplementedError` — classifiable as unimplemented rather than
 indistinguishable from genuine component failures — whether as a convention
-on the `0x04 ERROR` payload or its own signal (WD #4 update #9).
+on the `0x04 ERROR` payload or its own signal.[^u9]
 
 ## 7. Live streaming telemetry (0x30 – 0x3F)
 
@@ -364,8 +364,8 @@ physical-policy decision.
 **`0x32` CMD_FLOWTRACE_CHUNK** — buffered execution trace:
 `[0x32, sub_id, plane_id, base_timestamp_ms, [trace_events_array]]` — the
 plane_id attributes the whole chunk to the graph instance it was recorded
-on; nil for the main plane (update #32: frugal-path attribution by compact
-id, never names).
+on; nil for the main plane. Attribution uses compact ids, never
+names — the frugal-path rule.[^u32]
 
 Each item in `trace_events_array` is a tuple
 `[time_delta_ms, event_type, payload]`, where `time_delta_ms` is a `uint32`
@@ -377,13 +377,13 @@ outport has no target). `node_id` is the graph model's entity id within
 the attributed plane — the exact identifier the `0x14` ops use, so
 consumers join events against the frame-1 topology without name
 resolution. The envelope is the payload on every producer path — live
-telemetry and tracefile alike (update #42); bracket events keep their
+telemetry and tracefile alike.[^u42] Bracket events keep their
 plain label payloads — at the protocol level `0x02`/`0x03` are the
 bracket/stream boundary markers, produced from the engine's
 `openBracket`/`closeBracket` IPs (the flowtrace-lineage
 `begingroup`/`endgroup` naming lives only in the recorder's JSON input
-format, work document #23). Nested subgraph instances are their own planes
-(updates #33/#42): events sourced inside one are attributed to the
+format).[^w23] Nested subgraph instances are their own planes
+(see updates #33/#42):[^u33u42] events sourced inside one are attributed to the
 subgraph's plane — the runtime resolves the engine's internal subgraph
 path through the plane registry, and that path never travels the wire.
 The chunk's plane_id anchors the tree position through the `0x16`
@@ -421,7 +421,7 @@ Lifecycle transition codes (`0x06 LIFECYCLE` payloads):
 | `0x06` | Resumed            |
 
 A `FAILED` code encodes a *failed* transition — a rejected `start()` leaves
-the runtime an honest message to send (WD #4 update #1). UIs render the
+the runtime an honest message to send.[^u1] UIs render the
 transition as errored from the code itself, without parsing exception
 strings; the detail travels in an accompanying `0x04 ERROR` flowtrace event,
 frugalized per local policy.
@@ -437,8 +437,8 @@ A `STUB_ERROR` event is the canonical classification for errors raised by
 stub components — the `StubNotImplementedError` of the StubComponent
 contract (WD #19): the payload is the exception string, exactly as in
 `ERROR`, but the event type itself marks the error as *unimplemented*
-rather than a genuine component failure, with no string-parsing convention
-(WD #4 update #9). Runtimes MAY additionally record it in the LXMF
+rather than a genuine component failure, with no string-parsing convention.[^u9]
+Runtimes MAY additionally record it in the LXMF
 `[errors]` snapshot field (§9).
 
 Visual-state format types:
@@ -457,7 +457,7 @@ admitted in-flight packets and `desired_size` is the live remaining capacity
 subscription's flush cadence — the runtime's physical-policy decision — and
 the sample's delta places it at flush time. Backpressure is normal
 operation, not a fault: the event lives on the data channel, never an error
-channel (WD #4 update #9). The consumer is the noflo-ui high-water-mark
+channel.[^u9] The consumer is the noflo-ui high-water-mark
 visual vocabulary (route color/age).
 
 ## 8. Execution control & debugging (0x40 – 0x4F)
@@ -475,9 +475,8 @@ packets keep buffering under the runtime's backpressure policy; buffering
 depth is physics, not protocol.
 
 **`0x40` CMD_RUN_CTRL** — run control: `[0x40, action, plane_id?]`. The
-optional plane_id starts/stops an ephemeral plane's network (update #28
-option b: the program tree stays main-only, ephemera are not part of it);
-nil addresses the main plane.
+optional plane_id starts/stops an ephemeral plane's network — the program
+tree stays main-only, ephemera are not part of it;[^u28] nil addresses the main plane.
 
 | Code   | Action                                                  |
 | ------ | ------------------------------------------------------- |
@@ -492,7 +491,7 @@ paused; the step's own flowtrace events show what ran. Start and stop are
 the lifecycle control the `LIFECYCLE_CTRL` capability names: a start that
 the runtime rejects (component startup failure, graph error) surfaces as a
 `0x04 FAILED` lifecycle event with the detail in an accompanying `0x04
-ERROR` event (WD #4 update #1), not as silence.
+ERROR` event,[^u1] not as silence.
 **`0x41` CMD_BREAKPOINT_SET** — set a data breakpoint:
 `[0x41, breakpoint_id, node_id, port]`. The runtime pauses when a packet
 arrives at the node — at any triggering inport when `port` is nil,
@@ -524,7 +523,7 @@ process listing below.
 Each entry is the positional `[component, kind, state]` tuple: the component
 the node resolves to, that component's declared kind — the shared vocabulary
 of §6, so clients never infer stub-ness by joining component names against
-their own registries (WD #4 update #9) — and the node's execution state:
+their own registries[^u9] — and the node's execution state:
 
 | Code   | State     |
 | ------ | --------- |
@@ -551,8 +550,8 @@ inport: `[0x47, plane_id, port, payload]`. The plane addresses the graph
 instance (nil = main); the port is an inport name — an exported port of
 the main plane, or an inport of an ephemeral plane's fixture. One command
 serves interactive packet injection, the remote fbp-spec runner's
-sequenced case inputs, and the runtime-as-remote-component pattern
-(update #36). Requires `LIFECYCLE_CTRL`.
+sequenced case inputs, and the runtime-as-remote-component pattern.[^u36]
+Requires `LIFECYCLE_CTRL`.
 
 **`0x48` CMD_GET_STATUS** — query the current run state: request
 `[0x48]`; the runtime answers on the same opcode with
@@ -617,9 +616,57 @@ with the design reasons:
   noflo-ui's rendering. The RNS resource-hash variant is one candidate
   shape. The flat `values`/`default` port options are **not** carried on
   the wire: they stay publish-time manifest data, superseded on the wire
-  by the schema design's inline enums (work document #37 §3.4).
+  by the schema design's inline enums.[^w37]
 * **`network:error.stack`** — the `0x04 ERROR` payload is the exception
   string (frugalized per local policy); stack traces are not carried.
 * **`previewurl` output type** — visual output preview is UI territory,
   not wire protocol.
 
+## Notes
+
+The normative content of this specification is self-contained above. These
+notes point into the design history on the noflo project board for readers
+who want the rationale and discussion behind a rule; nothing normative
+lives in them.
+
+[^ext35]: External review round, work document #4 update #35 — the
+  `allCapabilities` vs `capabilities` distinction; the `0x26` source read.
+
+[^u1]: Work document #4, update #1 — lifecycle transition codes and the
+  `FAILED` encoding with its accompanying `0x04 ERROR` detail event.
+
+[^u8]: Work document #4, update #8 — modify projects to tombstone + insert
+  at the wire level; modify is never the semantic unit.
+
+[^u9]: Work document #4, update #9 — stub-error classification
+  (`0x09 STUB_ERROR`), edge-capacity telemetry, the process-list declared
+  kinds, and the high-water-mark edge field.
+
+[^u26]: Work document #4, update #26 — the `0x11` reply names the plane and
+  epoch so up-to-date clients learn what they are synced to.
+
+[^u28]: Work document #4, update #28 — the plane lifecycle matrix: the
+  program tree stays main-only; ephemera are not part of it; subgraph
+  planes follow their component's presence in the graph.
+
+[^u32]: Work document #4, update #32 — plane attribution and the frugal
+  rule: compact ids per event, never names.
+
+[^u33u42]: Work document #4, updates #33 and #42 — one identifier per
+  graph instance (subgraph planes in the plane tree), and the runtime-side
+  subgraph plane registration with effective-plane telemetry attribution.
+
+[^u36]: Work document #4, update #36 — the runtime-as-remote-component
+  pattern behind `0x47`.
+
+[^u42]: Work document #4, update #42 — subgraph planes at the runtime;
+  effective-plane telemetry attribution; the DATA envelope on every
+  producer path; bracket-event vocabulary naming.
+
+[^w23]: Work document #23 — the flowtrace recorder JSON format (1.x
+  lineage); its `begingroup`/`endgroup` event names are input vocabulary to
+  the tracefile projection, not wire names.
+
+[^w37]: Work document #37 §3.4 — the end-to-end schema design (JSON
+  Schemas: ports, metadata, and forms) that supersedes the flat
+  `values`/`default` port options.
