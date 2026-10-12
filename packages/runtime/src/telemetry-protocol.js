@@ -31,7 +31,7 @@ import { MsgPack } from "@reticulum/core";
  * @property {string} targetId
  * @property {number} requestedFlushIntervalMs
  * @property {any} context The link the subscription arrived on.
- * @property {{ timestampMs: number, eventType: number, payload: any }[]} buffer
+ * @property {{ timestampMs: number, eventType: number, payload: any, planeId?: string|number|null }[]} buffer
  * @property {any} timer
  */
 

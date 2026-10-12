@@ -267,7 +267,7 @@ export class ExecutionProtocol {
     });
     this.#planeHosts.set(planeId, host);
     // Wire the ephemeral plane's network events into the telemetry stream
-    this.telemetry.observeHost(host);
+    this.telemetry.observeHost(host, planeId);
     try {
       await host.start();
     } catch (error) {

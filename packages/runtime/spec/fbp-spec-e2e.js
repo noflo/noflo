@@ -191,6 +191,30 @@ describe("remote fbp-spec interaction over the full protocol stack", () => {
     const events = drainFlowtrace(transport.log);
     const dataEvents = events.filter((e) => e.eventType === EVENT_TYPE.DATA);
     assert.ok(dataEvents.length > 0, "a DATA event reaches the subscriber");
+    // The ephemeral plane's events must carry the plane id — not null
+    // (work document #4 update #33: one identifier per graph instance,
+    // shared by telemetry and commands).
+    const planeAttributed = transport.log.sent
+      .map((entry) => entry.bytes)
+      .map((bytes) => {
+        try {
+          return decodeFlowtraceChunk(bytes);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean)
+      .filter((chunk) =>
+        chunk.events.some((e) => e.eventType === EVENT_TYPE.DATA),
+      );
+    assert.ok(planeAttributed.length > 0, "a chunk with DATA events exists");
+    for (const chunk of planeAttributed) {
+      assert.equal(
+        chunk.planeId,
+        PLANE,
+        `chunk plane_id must be the ephemeral plane, got: ${chunk.planeId}`,
+      );
+    }
 
     // --- Step 7: query the status ---
     send(encodeGetStatus());
