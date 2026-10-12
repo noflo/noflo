@@ -7,5 +7,5 @@
 - `ComparePath` renames its `handle` hook to `processMessage` per the `@noflo/assembly` 2.x API decision (work document #27 update #3)
 - fbp-spec suites ported to `node:test`### Changed
 
--  now uses  instead of the  package, dropping the esprima/static-eval expression-evaluation stack from the dependency tree. Semantic difference: jsonpath-plus resolves syntactically invalid paths to  instead of throwing, so an unresolvable path routes the message to FAIL without accumulating an error. The dependency is declared to JSR via the  mapping ().
+- `assembly-utils/ComparePath` now uses `jsonpath-plus` instead of the `jsonpath` package, dropping the esprima/static-eval expression-evaluation stack from the dependency tree. Semantic difference: jsonpath-plus resolves syntactically invalid paths to `undefined` instead of throwing, so an unresolvable path routes the message to FAIL without accumulating an error. The dependency is declared to JSR via the `imports` mapping (`npm:jsonpath-plus`).
 
