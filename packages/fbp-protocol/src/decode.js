@@ -37,10 +37,10 @@ import {
   CMD_PLANE_LIST,
   CMD_PROCESS_CTRL,
   CMD_PROCESS_LIST,
-  REASON,
   CMD_PROCESS_LIST_REQ,
   CMD_PUBSUB_SUB,
   CMD_RUN_CTRL,
+  REASON,
 } from "./constants.js";
 import {
   decodeBreakpointClear,

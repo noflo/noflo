@@ -17,6 +17,7 @@ import {
   CMD_CRDT_UPDATE,
   CMD_RUN_CTRL,
   decodeAuthResponse,
+  decodeOpRejected,
   encodeAuthResponse,
   encodeCompInstallReq,
   encodeCompSyncReq,
@@ -28,7 +29,6 @@ import {
   ProtocolError,
   REASON,
   RUN_ACTION,
-  decodeOpRejected,
 } from "@noflo/fbp-protocol";
 import { MsgPack } from "@reticulum/core";
 import { capabilitiesMask, RuntimeServer } from "../src/index.js";

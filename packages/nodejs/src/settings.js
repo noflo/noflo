@@ -200,12 +200,12 @@ export function usage() {
     const env = conf.env ? ` [env: ${conf.env}]` : "";
     const generated = conf.generate ? " [generated]" : "";
     lines.push(
-      `  ${flag} ${type}`.padEnd(34) + `${conf.description}${env}${generated}`,
+      `${`  ${flag} ${type}`.padEnd(34)}${conf.description}${env}${generated}`,
     );
   }
   lines.push("");
-  lines.push("  -h, --help".padEnd(34) + "Show this help");
-  lines.push("  -v, --version".padEnd(34) + "Show the version");
+  lines.push(`${"  -h, --help".padEnd(34)}Show this help`);
+  lines.push(`${"  -v, --version".padEnd(34)}Show the version`);
   return lines.join("\n");
 }
 
