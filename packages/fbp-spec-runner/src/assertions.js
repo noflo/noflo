@@ -19,7 +19,7 @@
 /* @ts-self-types="./assertions.d.ts" */
 
 import assert from "node:assert/strict";
-import { JSONPath } from "../vendor/jsonpath-plus-11.1.0.js";
+import { JSONPath } from "jsonpath-plus";
 
 /**
  * Chai-compatible type name for `type` assertions (includes `array`/`null`).

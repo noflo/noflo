@@ -10,8 +10,8 @@
  *   disappearance (see the in-process fbp-spec runner work document and
  *   the SPEC's minimize-dependencies principle).
  *
- *   - `jsonpath-plus-<v>.js`: the package's own single-file browser ESM
- *     distribution, copied verbatim (self-contained, no imports).
+ *   jsonpath-plus used to be vendored the same way but is now a regular
+ *   dependency (consolidated with @noflo/assembly-utils).
  *   - `yaml-<v>.js`: the `yaml` package has no single-file distribution,
  *     so its browser entry is bundled to one ESM file with esbuild
  *     (fetched on demand via npx; only needed when regenerating).
@@ -40,28 +40,11 @@ import { fileURLToPath } from "node:url";
 const PKG_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** @type {{ name: string, version: string }[]} */
-const VENDORED = [
-  { name: "jsonpath-plus", version: "11.1.0" },
-  { name: "yaml", version: "2.9.1" },
-];
+const VENDORED = [{ name: "yaml", version: "2.9.1" }];
 
 /** Prepend the no-type-check pragma so tsc skips the bundle. */
 const withNocheck = (source) =>
   `// @ts-nocheck — vendored bundle, not type-checked\n${source}`;
-
-/**
- * Rewrite JSDoc `@import` specifiers that reference the package's own
- * upstream entry file (for example `./jsonpath.js`) so they point at
- * the vendored filename instead — the vendored file is renamed, and
- * Deno's checker resolves `@import` specifiers statically.
- *
- * @param {string} source
- * @param {string} upstreamEntry
- * @param {string} vendoredName
- * @returns {string}
- */
-const withSelfImports = (source, upstreamEntry, vendoredName) =>
-  source.split(upstreamEntry).join(vendoredName);
 
 const tmp = mkdtempSync(join(tmpdir(), "fbp-spec-runner-vendor-"));
 try {
@@ -81,26 +64,13 @@ try {
     const from = join(extract, "package");
     const target = join(PKG_ROOT, "vendor", `${pkg.name}-${pkg.version}.js`);
 
-    if (pkg.name === "jsonpath-plus") {
-      writeFileSync(
-        target,
-        withSelfImports(
-          withNocheck(
-            readFileSync(join(from, "dist/index-browser-esm.js"), "utf8"),
-          ),
-          "./jsonpath.js",
-          `${pkg.name}-${pkg.version}.js`,
-        ),
-      );
-    } else {
-      execSync(
-        `npx -y esbuild node_modules/${pkg.name}/browser/index.js ` +
-          `--bundle --format=esm --platform=browser ` +
-          `--outfile=${target}`,
-        { cwd: tmp },
-      );
-      writeFileSync(target, withNocheck(readFileSync(target, "utf8")));
-    }
+    execSync(
+      `npx -y esbuild node_modules/${pkg.name}/browser/index.js ` +
+        `--bundle --format=esm --platform=browser ` +
+        `--outfile=${target}`,
+      { cwd: tmp },
+    );
+    writeFileSync(target, withNocheck(readFileSync(target, "utf8")));
     cpSync(
       join(from, "LICENSE"),
       join(PKG_ROOT, "vendor", `LICENSE-${pkg.name}`),

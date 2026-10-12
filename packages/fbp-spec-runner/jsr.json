@@ -18,5 +18,8 @@
       "jsr.json",
       "CHANGELOG.md"
     ]
+  },
+  "imports": {
+    "jsonpath-plus": "npm:jsonpath-plus@^11.2.0"
   }
 }
