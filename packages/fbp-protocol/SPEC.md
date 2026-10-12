@@ -294,7 +294,7 @@ tombstone + insert:
 | ------ | -------------------------------------------------- | ------------------------------------------------------ |
 | `0x01` | Insert node                                         | `{ component, metadata? }`                              |
 | `0x02` | Insert edge                                         | `{ from, to, metadata? }` — port refs `{ node, port, index? }` |
-| `0x03` | Insert IIP                                          | `{ to, data, metadata? }`                               |
+| `0x03` | Insert IIP                                          | `{ to, data, metadata? }` (data is value-model-checked, §8) |
 | `0x04` | Tombstone                                           | nil — kind resolved from the entity's registration      |
 | `0x05` | UI metadata (dropped by constrained nodes)          | the metadata map; nil `entity_id` = graph-level         |
 | `0x06` | Insert export                                       | `{ direction, public, internal, metadata? }`            |
@@ -618,6 +618,16 @@ serves interactive packet injection, the remote fbp-spec runner's
 sequenced case inputs, and the runtime-as-remote-component pattern.[^u36]
 Requires `LIFECYCLE_CTRL`.
 
+Payload fidelity — engines declare a value model, and clients MUST
+respect it. A packet value, IIP `data` value, or flowtrace `DATA` value
+outside the runtime's declared value model (§4 `runtime_metadata`
+`value_model`) MUST NOT crash the runtime or corrupt network state: a
+command context (`0x47`) MUST be answered with `0x17` carrying
+`REASON.PAYLOAD_UNSUPPORTED`, and a structurally-invalid IIP insert MUST
+be rejected the same way. Runtime-generated values are in-model by
+construction, so telemetry needs no gate. Example profile: a
+MicroFlo-class engine's value model is `bang, boolean, int, float,
+buffer, bracket` — no strings, objects, or arrays.
 
 **`0x48` CMD_GET_STATUS** — query the current run state: request
 `[0x48]`; the runtime answers on the same opcode with
