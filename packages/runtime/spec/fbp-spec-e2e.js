@@ -194,6 +194,7 @@ describe("remote fbp-spec interaction over the full protocol stack", () => {
 
     // --- Step 7: query the status ---
     send(encodeGetStatus());
+    await new Promise((resolve) => setTimeout(resolve, 10));
     const statusFrames = transport.log.sent.filter((entry) => {
       try {
         return decodeGetStatusRes(entry.bytes).cmd === CMD_GET_STATUS;

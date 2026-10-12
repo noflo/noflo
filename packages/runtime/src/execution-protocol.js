@@ -66,13 +66,14 @@ export class ExecutionProtocol {
     /** Ephemeral plane hosts, keyed by plane id.
      * @type {Map<string|number, import("./network-host.js").NetworkHost>}
      */
-    this.#planeHosts = new Map();
+    this._planeHosts = new Map();
   }
   /**
    * Ephemeral plane hosts, keyed by plane id.
    * @type {Map<string|number, import("./network-host.js").NetworkHost>}
    */
-  #planeHosts;
+  /** @type {Map<string|number, any>} */
+  _planeHosts = new Map();
 
   /**
    * Register the `0x40`–`0x46` handlers on a runtime server. Requires the
@@ -88,53 +89,53 @@ export class ExecutionProtocol {
       switch (decoded.action) {
         case RUN_ACTION.START:
           if (decoded.planeId !== null && decoded.planeId !== undefined) {
-            await this.#startPlane(decoded.planeId);
+            await this._startPlane(decoded.planeId);
           } else {
-            await this.#start();
+            await this._start();
           }
           break;
         case RUN_ACTION.STOP:
           if (decoded.planeId !== null && decoded.planeId !== undefined) {
-            const ph = this.#planeHosts.get(decoded.planeId);
+            const ph = this._planeHosts.get(decoded.planeId);
             if (ph) await ph.stop();
           } else {
             await this.host.stop();
           }
           break;
         case RUN_ACTION.PAUSE:
-          this.#engineGap("pause");
+          this._engineGap("pause");
           break;
         case RUN_ACTION.RESUME:
-          this.#engineGap("resume");
+          this._engineGap("resume");
           break;
         case RUN_ACTION.STEP:
-          this.#engineGap("step");
+          this._engineGap("step");
           break;
         default:
           break;
       }
     });
     server.registerHandler(CMD_BREAKPOINT_SET, (decoded, context) => {
-      this.#engineGap("breakpoint", decoded, context);
+      this._engineGap("breakpoint", decoded, context);
     });
     server.registerHandler(CMD_BREAKPOINT_CLEAR, (decoded, context) => {
-      this.#engineGap("breakpoint clearing", decoded, context);
+      this._engineGap("breakpoint clearing", decoded, context);
     });
     server.registerHandler(CMD_PROCESS_CTRL, (decoded, context) => {
-      this.#engineGap("per-process disable", decoded, context);
+      this._engineGap("per-process disable", decoded, context);
     });
     server.registerHandler(CMD_PACKET_SEND, (decoded) => {
       const planeId = decoded.planeId;
       const isMain = planeId === null || planeId === undefined;
       const network = isMain
         ? this.host.network
-        : this.#planeHosts.get(planeId)?.network;
+        : this._planeHosts.get(planeId)?.network;
       if (!network) return;
       const model = isMain
         ? this.host.graph
         : this.graphProtocol?.getPlane(planeId)?.model;
       if (!model) return;
-      const target = this.#resolveExport(model, decoded.port);
+      const target = this._resolveExport(model, decoded.port);
       if (!target) return;
       network
         .addInitial({
@@ -144,13 +145,15 @@ export class ExecutionProtocol {
         })
         .catch(() => {});
     });
-    server.registerHandler(CMD_GET_STATUS, (_decoded, context) => {
+    server.registerHandler(CMD_GET_STATUS, async (_decoded, context) => {
       const network = this.host.network;
       const runState = network?.isRunning?.()
         ? RUN_STATE.RUNNING
         : RUN_STATE.STOPPED;
       const uptime = network?.uptime?.() ?? 0;
-      const epoch = this.host.graph?.name ?? "main";
+      const epoch = this.graphProtocol
+        ? await this.graphProtocol.epoch()
+        : (this.host.graph?.name ?? "main");
       this.server.send(
         encodeGetStatusRes({
           epochId: epoch,
@@ -162,10 +165,10 @@ export class ExecutionProtocol {
       );
     });
     server.addEventListener("planedrop", (/** @type {any} */ event) => {
-      const planeHost = this.#planeHosts.get(event.detail.planeId);
+      const planeHost = this._planeHosts.get(event.detail.planeId);
       if (planeHost) {
         planeHost.stop().catch(() => {});
-        this.#planeHosts.delete(event.detail.planeId);
+        this._planeHosts.delete(event.detail.planeId);
       }
     });
     server.registerHandler(CMD_HWM_SET, (decoded) => {
@@ -188,7 +191,7 @@ export class ExecutionProtocol {
    *
    * @returns {Promise<void>}
    */
-  async #start() {
+  async _start() {
     try {
       await this.host.start();
     } catch (error) {
@@ -205,7 +208,7 @@ export class ExecutionProtocol {
    * @param {string} portName
    * @returns {{ node: string, port: string }|null}
    */
-  #resolveExport(model, portName) {
+  _resolveExport(model, portName) {
     for (const exp of model?.exports?.() ?? []) {
       if (exp.direction === "inport" && exp.public === portName) {
         return { node: exp.internal.node, port: exp.internal.port };
@@ -221,8 +224,8 @@ export class ExecutionProtocol {
    * @param {string|number} planeId
    * @returns {Promise<void>}
    */
-  async #startPlane(planeId) {
-    const existing = this.#planeHosts.get(planeId);
+  async _startPlane(planeId) {
+    const existing = this._planeHosts.get(planeId);
     if (existing?.network) return;
     const model = this.graphProtocol?.getPlane(planeId)?.model;
     if (!model) return;
@@ -230,7 +233,7 @@ export class ExecutionProtocol {
       graph: model,
       componentLoader: this.host.componentLoader,
     });
-    this.#planeHosts.set(planeId, host);
+    this._planeHosts.set(planeId, host);
     // Wire the ephemeral plane's network events into the telemetry stream
     this.telemetry.observeHost(host);
     await host.start();
@@ -242,7 +245,7 @@ export class ExecutionProtocol {
    * @param {any} [context]
    * @returns {void}
    */
-  #engineGap(action, decoded, context) {
+  _engineGap(action, decoded, context) {
     const reason = `${action} is not supported by the running engine`;
     this.server.dispatchEvent(
       new globalThis.CustomEvent("unsupported", {
