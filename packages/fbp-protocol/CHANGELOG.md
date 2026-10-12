@@ -13,7 +13,7 @@
 - `0x48 CMD_GET_STATUS`: run state, uptime, epoch, and the advertised capability ceiling
 - Auth response (`0x02`) carries runtime metadata and the advertised capability ceiling alongside the granted mask
 - `EVENT_TYPE` gains `CONNECTION_OPEN` (0x0b) and `CONNECTION_CLOSE` (0x0c) — the framing 1.x UIs animate edge activity with
-- `ComponentDetail` carries component-level `description` and `icon`; `PortInfo` carries `values` and `default` (inports) — in lockstep with the publish-time manifest harvest
+- `ComponentDetail` carries component-level `description` and `icon`. The flat `values`/`default` inport options are not carried on the wire — they stay publish-time manifest data pending the end-to-end schema design (work document #37 §3.4: inline schemas supersede them)
 - The `0x32` chunk frame gains a `plane_id` at position 2, and DATA event payloads carry the positional envelope `[src, tgt, value]` so the event stream maps onto the frame-1 topology
 - `assembleTraceFileFromRecorder` (work document #23 update #2): the binary encoding of the NoFlo core trace recorder's `toJSON()` state — snapshot fields framed as the `0xF0` snapshot, event tuples projected to a `0x32` chunk frame based at the recording start, the recorder's optional fourth metadata element projection-dropped so wire payloads stay the raw value. Consumed duck-typed with no dependency on `@noflo/noflo` (the protocol package stays runtime-agnostic); a round-trip spec in `@noflo/runtime` pins the JSON and binary representations together
 

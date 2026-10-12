@@ -44,13 +44,10 @@ import { ProtocolError } from "./errors.js";
  * @property {boolean} [required] Whether the port must be connected.
  * @property {boolean} [control] Control-port identification (inports only, noflo-ui WD #40).
  *   The field set is kept in lockstep with the publish-time manifest's
- *   harvest (`@noflo/manifest` `harvestPorts`); `values` and `default`
- *   are inport options (`noflo’s InPort` validates them).
- * @property {any[]} [values] Enumeration of accepted values, for inports
- *   that take one of a known set — advisory metadata noflo-ui renders as
- *   pickers. Omitted from the wire when absent.
- * @property {any} [default] The inport's default value, applied when the
- *   graph leaves it unconfigured. Omitted from the wire when absent.
+ *   harvest (`@noflo/manifest` `harvestPorts`) minus the `values` and
+ *   `default` inport options, which are not carried on the wire: they
+ *   stay publish-time manifest data pending the end-to-end schema design
+ *   (work document #37 §3.4 — inline schemas supersede them on the wire).
  */
 
 /**
@@ -472,8 +469,6 @@ function portJson(port) {
   if (port.description !== undefined) json.description = port.description;
   if (port.required !== undefined) json.required = port.required;
   if (port.control !== undefined) json.control = port.control;
-  if (port.values !== undefined) json.values = port.values;
-  if (port.default !== undefined) json.default = port.default;
   return json;
 }
 

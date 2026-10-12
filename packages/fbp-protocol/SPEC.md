@@ -599,8 +599,9 @@ with the design reasons:
 * **Port schema URIs** — datatype/schema handling needs end-to-end design
   from `noflo.BasePort` through the protocol's port definitions to
   noflo-ui's rendering. The RNS resource-hash variant is one candidate
-  shape. Port `values` and `default` are in the signature (§6); full
-  schema support is a follow-on design.
+  shape. The flat `values`/`default` port options are **not** carried on
+  the wire: they stay publish-time manifest data, superseded on the wire
+  by the schema design's inline enums (work document #37 §3.4).
 * **`network:error.stack`** — the `0x04 ERROR` payload is the exception
   string (frugalized per local policy); stack traces are not carried.
 * **`previewurl` output type** — visual output preview is UI territory,

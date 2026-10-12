@@ -50,12 +50,9 @@ function portInfos(ports, isInport) {
     if (isInport && options.control) {
       info.control = true;
     }
-    if (options.values !== undefined) {
-      info.values = options.values;
-    }
-    if (options.default !== undefined) {
-      info.default = options.default;
-    }
+    // The `values` and `default` inport options are not emitted: they
+    // stay publish-time manifest data pending the schema design
+    // (work document #37 §3.4)
     return info;
   });
 }
