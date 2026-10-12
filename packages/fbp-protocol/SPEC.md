@@ -182,11 +182,14 @@ is whatever state the plane's model holds — the client built it from ops.
 `[0x14, plane_id, client_id, logical_clock, op_type, entity_id, payload]`.
 
 **`0x15` CMD_PLANE_DROP** — drop an ephemeral plane:
-`[0x15, plane_id]`. Stops the plane's network if one is running and
-discards its state wholesale — the fbp-spec runner's one-command fixture
-teardown. The main plane is not droppable: nil is rejected. Subgraph
-planes follow their component's presence in the graph and are never
-dropped via a lifecycle command. Requires `LIFECYCLE_CTRL`.
+`[0x15, plane_id]`. Stops the plane's network if one is running and discards its state
+wholesale — the fbp-spec runner's one-command fixture teardown. The
+main plane is not droppable: nil is rejected. Subgraph planes follow
+their component's presence in the graph and are never dropped via a
+lifecycle command. The runtime acknowledges the drop by echoing the
+frame to the requesting context only — other clients learn through
+telemetry, but only if the plane was ever started. Requires
+`LIFECYCLE_CTRL`.
 
 **`0x16` CMD_PLANE_LIST** — list the runtime's graph planes:
 request `[0x16]`; the runtime answers on the same opcode with

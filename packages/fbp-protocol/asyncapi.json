@@ -249,7 +249,7 @@
    "x-capability": "none — authenticated by the LXMF transport itself"
   },
   "cmd/0x15": {
-   "description": "Client → runtime: drop an ephemeral graph plane. Runtime → client: the ack (byte-identical echo) confirms the drop and doubles as the notification to other clients on the link.",
+   "description": "Client → runtime: drop an ephemeral graph plane. Runtime → client: the ack echoes to the requesting context only (byte-identical). Other clients learn through telemetry — but only if the plane was ever started; a never-started plane's drop notifies nobody but the requester.",
    "subscribe": {
     "operationId": "planeDrop",
     "message": {

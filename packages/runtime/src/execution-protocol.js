@@ -49,11 +49,11 @@ import {
  * {@link ExecutionProtocol#register}.
  */
 export class ExecutionProtocol {
+  static _packetSeq = 0;
   /**
    * @param {object} options
    * @param {import("./network-host.js").NetworkHost} options.host
    * @param {import("./telemetry-protocol.js").TelemetryProtocol} options.telemetry
-   * @param {import("./graph-protocol.js").GraphProtocol} [options.graphProtocol]
    * @param {import("./graph-protocol.js").GraphProtocol} [options.graphProtocol] The
    *   graph protocol, for access to the plane registry (multi-plane support).
    *   Control failures and lifecycle outcomes reach subscribed clients as
@@ -67,9 +67,7 @@ export class ExecutionProtocol {
     this.telemetry = options.telemetry;
     /** The graph protocol, for access to the plane registry. */
     this.graphProtocol = options.graphProtocol ?? null;
-    /** Ephemeral plane hosts, keyed by plane id.
-     * @type {Map<string|number, import("./network-host.js").NetworkHost>}
-     */
+    this.#planeHosts = new Map();
   }
   /**
    * Ephemeral plane hosts, keyed by plane id.
@@ -125,26 +123,65 @@ export class ExecutionProtocol {
     server.registerHandler(CMD_PROCESS_CTRL, (decoded, context) => {
       this.#engineGap("per-process disable", decoded, context);
     });
-    server.registerHandler(CMD_PACKET_SEND, (decoded) => {
+    server.registerHandler(CMD_PACKET_SEND, (decoded, context) => {
       const planeId = decoded.planeId;
       const isMain = planeId === null || planeId === undefined;
       const network = isMain
         ? this.host.network
         : this.#planeHosts.get(planeId)?.network;
-      if (!network) return;
+      if (!network) {
+        server.send(
+          encodeOpRejected({
+            rejectedCmd: CMD_PACKET_SEND,
+            planeId: planeId ?? null,
+            detail: { reason: "plane network not running" },
+          }),
+          context,
+        );
+        return;
+      }
       const model = isMain
         ? this.host.graph
         : this.graphProtocol?.getPlane(planeId)?.model;
-      if (!model) return;
+      if (!model) {
+        server.send(
+          encodeOpRejected({
+            rejectedCmd: CMD_PACKET_SEND,
+            planeId: planeId ?? null,
+            detail: { reason: "plane model not found" },
+          }),
+          context,
+        );
+        return;
+      }
       const target = this.#resolveExport(model, decoded.port);
-      if (!target) return;
+      if (!target) {
+        server.send(
+          encodeOpRejected({
+            rejectedCmd: CMD_PACKET_SEND,
+            planeId: planeId ?? null,
+            detail: { reason: `no exported inport named ${decoded.port}` },
+          }),
+          context,
+        );
+        return;
+      }
       network
         .addInitial({
-          entity_id: `packet-send-${Date.now()}`,
+          entity_id: `packet-send-${++ExecutionProtocol._packetSeq}`,
           from: { data: decoded.payload },
           to: { node: target.node, port: target.port },
         })
-        .catch(() => {});
+        .catch((/** @type {any} */ err) => {
+          server.send(
+            encodeOpRejected({
+              rejectedCmd: CMD_PACKET_SEND,
+              planeId: planeId ?? null,
+              detail: { reason: err?.message ?? "injection failed" },
+            }),
+            context,
+          );
+        });
     });
     server.registerHandler(CMD_GET_STATUS, async (_decoded, context) => {
       const network = this.host.network;
