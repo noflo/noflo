@@ -28,3 +28,17 @@ import { Component, fail, failed, fork, merge } from "@noflo/assembly";
 ```
 
 An [example](https://github.com/noflo/noflo/tree/master/packages/assembly/example) is embedded into this repository: how to build a car with NoFlo, from order to release.
+
+## Documentation
+
+The Assembly Line design pattern, conventions, and the
+`asAssembly` wrapping machinery are documented in
+[docs/](./docs/index.md):
+
+- [Introduction](./docs/introduction.md) — rationale and mental model
+- [Components and ports](./docs/components-and-ports.md)
+- [Message passing](./docs/message-passing.md)
+- [Error handling](./docs/error-handling.md)
+- [Concurrency handling](./docs/concurrency.md)
+- [Wrapping regular components](./docs/wrapping-regular-components.md)
+

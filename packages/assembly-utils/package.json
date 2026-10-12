@@ -1,0 +1,39 @@
+{
+  "name": "@noflo/assembly-utils",
+  "version": "2.0.0-alpha.3",
+  "description": "Utility components for NoFlo Assembly programs",
+  "type": "module",
+  "keywords": [
+    "noflo",
+    "ecosystem:noflo",
+    "ecosystem:noflo-assembly"
+  ],
+  "author": "Henri Bergius <henri.bergius@iki.fi>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noflo/noflo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/noflo/noflo/issues"
+  },
+  "homepage": "https://github.com/noflo/noflo#readme",
+  "peerDependencies": {
+    "@noflo/assembly": "^2.0.0-alpha.3",
+    "@noflo/noflo": "^2.0.0-alpha.3"
+  },
+  "devDependencies": {
+    "@noflo/fbp-spec-runner": "*"
+  },
+  "scripts": {
+    "test": "node --test --test-force-exit --test-timeout 60000 spec/*.js",
+    "lint": "npx @biomejs/biome check --use-editorconfig=true components/ spec/",
+    "format": "npx @biomejs/biome check --use-editorconfig=true --write components/ spec/",
+    "test:deno": "deno test --allow-all --no-check spec/*.js",
+    "test:bun": "bun test ./spec/*.js",
+    "types": "find components -name '*.d.ts' -delete; tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "jsonpath-plus": "^11.2.0"
+  }
+}

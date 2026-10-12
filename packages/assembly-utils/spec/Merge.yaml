@@ -1,0 +1,100 @@
+name: Merge component
+topic: assembly-utils/Merge
+fixture:
+  type: json
+  data: '{"processes": {"merge": {"component": "assembly-utils/Merge"}}, "inports": {"one": {"process": "merge", "port": "in", "index": 0}, "two": {"process": "merge", "port": "in", "index": 1}}, "outports": {"out": {"process": "merge", "port": "out"}}}'
+cases:
+  - name: with a two different packets
+    assertion: it should send a merged packet
+    inputs:
+      one:
+        data1: foo
+        errors: []
+      two:
+        data2: bar
+        errors: []
+    expect:
+      out:
+        -
+          path: '$.errors'
+          equals: []
+        -
+          path: '$.data1'
+          equals: foo
+        -
+          path: '$.data2'
+          equals: bar
+  - name: with a two packets with overlapping keys
+    assertion: it should send a merged packet with lowest index winning
+    inputs:
+      one:
+        data: foo
+        errors: []
+      two:
+        data: bar
+        errors: []
+    expect:
+      out:
+        -
+          path: '$.errors'
+          equals: []
+        -
+          path: '$.data'
+          equals: foo
+  - name: with a two packets with overlapping keys in reverse order
+    assertion: it should send a merged packet with lowest index winning
+    inputs:
+      two:
+        data: bar
+        errors: []
+      one:
+        data: foo
+        errors: []
+    expect:
+      out:
+        -
+          path: '$.errors'
+          equals: []
+        -
+          path: '$.data'
+          equals: foo
+  - name: with error in a packet
+    assertion: it should send a merged packet containing the error
+    inputs:
+      one:
+        data: foo
+        errors: []
+      two:
+        data: bar
+        errors:
+          - message: hello world
+    expect:
+      out:
+        -
+          path: '$.errors[0].message'
+          equals: hello world
+        -
+          path: '$.data'
+          equals: foo
+  - name: with error in both packets
+    assertion: it should send a merged packet containing both errors
+    inputs:
+      one:
+        data: foo
+        errors:
+          - message: hello world
+      two:
+        data: bar
+        errors:
+          - message: hei maailma
+    expect:
+      out:
+        -
+          path: '$.errors[0].message'
+          equals: hello world
+        -
+          path: '$.errors[1].message'
+          equals: hei maailma
+        -
+          path: '$.data'
+          equals: foo

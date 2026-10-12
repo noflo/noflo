@@ -82,8 +82,12 @@ export function importFbpJson(json) {
     model.addExport({
       direction: "inport",
       public: publicName,
-      internal: requirePortRef(
-        { node: def?.process, port: def?.port },
+      internal: jsonPortRef(
+        {
+          id: def?.process,
+          port: def?.port,
+          ...(def?.index === undefined ? {} : { index: def.index }),
+        },
         `inports.${publicName}`,
       ),
       ...withDefinedMetadata(exportMetadata(def)),
@@ -93,8 +97,12 @@ export function importFbpJson(json) {
     model.addExport({
       direction: "outport",
       public: publicName,
-      internal: requirePortRef(
-        { node: def?.process, port: def?.port },
+      internal: jsonPortRef(
+        {
+          id: def?.process,
+          port: def?.port,
+          ...(def?.index === undefined ? {} : { index: def.index }),
+        },
         `outports.${publicName}`,
       ),
       ...withDefinedMetadata(exportMetadata(def)),

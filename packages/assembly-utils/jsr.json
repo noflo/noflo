@@ -1,0 +1,28 @@
+{
+  "name": "@noflo/assembly-utils",
+  "version": "2.0.0-alpha.3",
+  "license": "MIT",
+  "exports": {
+    "./components/ToAssembly.js": "./components/ToAssembly.js",
+    "./components/FromAssembly.js": "./components/FromAssembly.js",
+    "./components/Fork.js": "./components/Fork.js",
+    "./components/Merge.js": "./components/Merge.js",
+    "./components/All.js": "./components/All.js",
+    "./components/ComparePath.js": "./components/ComparePath.js",
+    "./components/ExtractField.js": "./components/ExtractField.js",
+    "./components/CollectFields.js": "./components/CollectFields.js",
+    "./components/ToField.js": "./components/ToField.js"
+  },
+  "publish": {
+    "include": [
+      "components/",
+      "README.md",
+      "CHANGELOG.md",
+      "package.json",
+      "jsr.json"
+    ]
+  },
+  "imports": {
+    "jsonpath-plus": "npm:jsonpath-plus@^11.2.0"
+  }
+}

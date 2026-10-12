@@ -266,11 +266,14 @@ async function executeComponentTestCase(loader, topic, testCase, timeout) {
  */
 async function executeGraphTestCase(loader, graph, topic, testCase, timeout) {
   // Public export name -> internal port reference
-  const inExports = /** @type {Map<string, { node: string, port: string }>} */ (
-    new Map()
-  );
+  const inExports =
+    /** @type {Map<string, { node: string, port: string, index?: number }>} */ (
+      new Map()
+    );
   const outExports =
-    /** @type {Map<string, { node: string, port: string }>} */ (new Map());
+    /** @type {Map<string, { node: string, port: string, index?: number }>} */ (
+      new Map()
+    );
   for (const exp of graph.exports()) {
     if (exp.direction === "inport") inExports.set(exp.public, exp.internal);
     if (exp.direction === "outport") outExports.set(exp.public, exp.internal);
@@ -346,7 +349,8 @@ async function executeGraphTestCase(loader, graph, topic, testCase, timeout) {
         }
         stepReceived[publicName] = ip.data;
       });
-      port.attach(socket);
+      // Addressable exports carry the fixture-declared port index
+      port.attach(socket, internal.index ?? null);
       outSockets[publicName] = socket;
     }
 
@@ -365,7 +369,8 @@ async function executeGraphTestCase(loader, graph, topic, testCase, timeout) {
           const err = /** @type {any} */ (event).detail;
           pendingError = err?.error ?? err;
         });
-        port.attach(socket);
+        // Addressable exports carry the fixture-declared port index
+        port.attach(socket, internal.index ?? null);
         inSockets[portName] = socket;
       }
     }

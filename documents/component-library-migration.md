@@ -366,6 +366,10 @@ describe("Server component", () => {
 - The `test:node` leg requires at least one file in `test/` to exist; a library with no fallback tests yet should omit that leg from `test` until the first one lands.
 - Do not add Mocha, Chai, Karma, or assertion libraries.
 
+### 4.4 Convention: prefer fbp-spec, reserve node:test
+
+**fbp-spec is always preferred over `node:test` for component behavior tests when feasible.** The YAML suites are runtime-agnostic data, exercisable through `@noflo/fbp-spec-runner`'s in-process runner (see `packages/assembly-utils/spec/assembly-utils.js` for the harness pattern: discover the suite files, load them with `loadSuitesFromFile`, and register one `it()` per case against `executeTestCase`, with the discovery base directory pointing at the package root). Reserve `node:test` for what fbp-spec cannot express: class/module-level APIs, error-path plumbing, and runner harnesses themselves.
+
 ## 5. Package, tooling, CI, and publishing
 
 ### 5.1 package.json

@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "module": "nodenext",
+    "target": "esnext",
+    "types": [
+      "node"
+    ],
+    "checkJs": true,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "strict": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "rootDir": "components",
+    "outDir": "components"
+  },
+  "include": [
+    "components/**/*.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "components/**/*.d.ts"
+  ]
+}

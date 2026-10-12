@@ -1,0 +1,28 @@
+name: Fork component
+topic: assembly-utils/Fork
+fixture:
+  type: json
+  data: '{"processes": {"fork": {"component": "assembly-utils/Fork"}}, "outports": {"one": {"process": "fork", "port": "out", "index": 0}, "two": {"process": "fork", "port": "out", "index": 1}}, "inports": {"in": {"process": "fork", "port": "in"}}}'
+
+cases:
+  - name: with a single packet
+    assertion: it should send to all connected outports
+    inputs:
+      in:
+        data: foo
+        errors: []
+    expect:
+      one:
+        -
+          path: '$.errors'
+          equals: []
+        -
+          path: '$.data'
+          equals: foo
+      two:
+        -
+          path: '$.errors'
+          equals: []
+        -
+          path: '$.data'
+          equals: foo

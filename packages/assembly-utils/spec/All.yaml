@@ -1,0 +1,45 @@
+name: All component
+topic: assembly-utils/All
+fixture:
+  type: json
+  data: '{"processes": {"all": {"component": "assembly-utils/All"}}, "inports": {"only": {"process": "all", "port": "in", "index": 0}}, "outports": {"out": {"process": "all", "port": "out"}}}'
+cases:
+  -
+    name: with a single connected index and no errors
+    assertion: should collect the value into an assembly with an array
+    inputs:
+      only:
+        - one
+        - two
+        - three
+    expect:
+      out:
+        -
+          path: '$.errors'
+          equals: []
+        -
+          path: '$.data[0][0]'
+          equals:
+            - one
+            - two
+            - three
+  -
+    name: with a single connected index and an error
+    assertion: should collect the assembly and accumulate its error
+    inputs:
+      only:
+        errors:
+          - message: hello world
+        data: one
+    expect:
+      out:
+        -
+          path: '$.errors[0].message'
+          equals: hello world
+        -
+          path: '$.data[0]'
+          equals:
+            -
+              errors:
+                - message: hello world
+              data: one

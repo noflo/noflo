@@ -2,6 +2,8 @@
 node_modules/
 packages/*/lib/
 packages/*/components/
+!packages/assembly-utils/components/
+packages/assembly-utils/components/*.d.ts
 packages/*/browser/
 packages/*/coverage/
 packages/*/.nyc_output/
@@ -12,6 +14,7 @@ coverage/
 .nyc_output/
 dist/
 docs/
+!packages/*/docs/
 docs_tmp/
 _site/
 server/

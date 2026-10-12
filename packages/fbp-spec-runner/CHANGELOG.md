@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+
+### Fixed
+
+- Fixture graphs with addressable exported ports now honor the declared port index when the runner attaches its sockets: previously the index was dropped and exports bound in iteration order, making multi-connection fixtures order-dependent (found by the `@noflo/assembly-utils` Merge fixtures)
 ### Added
 - Explicit graph fixture support, compatible with the reference fbp-spec runner: suites may declare `fixture: {type: 'json', data: ...}` (FBP graph JSON) or `fixture: {type: 'fbp', data: ...}` (FBP DSL source, parsed case-insensitively like the reference `fbp` parser). Fixture graphs run as real NoFlo networks sharing the suite's ComponentLoader, with inputs and expectations addressed through the graph's exported inports and outports. New `./fixture` module resolves fixture graphs with fbp-spec-compatible error messages
 - fbp-spec error semantics: a data packet arriving on a port named `error` fails the case unless the case expects data on that port; the port can also be asserted against like any other
