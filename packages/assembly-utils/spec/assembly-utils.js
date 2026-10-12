@@ -1,9 +1,11 @@
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import { loadSuitesFromFile } from "@noflo/fbp-spec-runner/src/loader.js";
 import { executeTestCase } from "@noflo/fbp-spec-runner/src/network.js";
 import { createNodeModulesRegistry } from "@noflo/loader-node";
-import noflo, { ComponentLoader } from "@noflo/noflo";
+import noflo from "@noflo/noflo";
 
 // The package root is the discovery base: the local walker registers the
 // components/ directory under the package's own namespace
@@ -14,20 +16,17 @@ const baseDir = fileURLToPath(new URL("../", import.meta.url));
 const registry = await createNodeModulesRegistry(baseDir, {});
 const loader = new noflo.ComponentLoader({ registry });
 
-const suiteNames = [
-  "ToAssembly.yaml",
-  "FromAssembly.yaml",
-  "Fork.yaml",
-  "Merge.yaml",
-  "All.yaml",
-  "ComparePath.yaml",
-];
+// Discover the YAML suites so new ones are picked up without edits
+const suiteDir = fileURLToPath(new URL("../spec/", import.meta.url));
+const suiteNames = readdirSync(suiteDir)
+  .filter((name) => name.endsWith(".yaml"))
+  .sort();
 
 // Load every suite before registering: node:test drops describes that are
 // registered after an async gap once the module body has completed
 const suites = [];
 for (const suiteName of suiteNames) {
-  const file = fileURLToPath(new URL(`../spec/${suiteName}`, import.meta.url));
+  const file = join(suiteDir, suiteName);
   suites.push(...(await loadSuitesFromFile(file)));
 }
 

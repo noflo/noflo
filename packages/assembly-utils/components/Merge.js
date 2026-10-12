@@ -4,8 +4,9 @@
  * SPDX-License-Identifier: MIT
  */
 /* @ts-self-types="./Merge.d.ts" */
-import noflo from "@noflo/noflo";
+
 import { merge } from "@noflo/assembly";
+import noflo from "@noflo/noflo";
 
 export function getComponent() {
   const c = new noflo.Component();
@@ -20,8 +21,9 @@ export function getComponent() {
   });
   return c.process((input, output) => {
     const attachedIndexes = /** @type {number[]} */ (input.attached("in"));
-    const indexesWithData = attachedIndexes
-      .filter((idx) => input.hasData(["in", idx]));
+    const indexesWithData = attachedIndexes.filter((idx) =>
+      input.hasData(["in", idx]),
+    );
     if (indexesWithData.length < attachedIndexes.length) {
       // Still waiting for data
       return;
@@ -31,7 +33,7 @@ export function getComponent() {
     let message = { errors: [] };
     let errors = [];
     messages.forEach((msg) => {
-      if (msg.errors && msg.errors.length) {
+      if (msg.errors?.length) {
         errors = errors.concat(msg.errors);
       }
       message = merge(message, msg);

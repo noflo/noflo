@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - The library is ingested into the `noflo/noflo` monorepo as `packages/assembly`, with full git history preserved (work document #27). Source of truth for further development is the monorepo
+- `asAssembly(componentName, options)` and `wrapAssembly(...)`: the work document #36 machinery for turning any regular Process API component into an assembly participant. `asAssembly` builds the adapter as a real generated graph — message fanout, per-inport field extractors, the inner component, and a result collector that merges inner outputs back into the originating message and accumulates inner errors — so the graph the loader runs is the same graph `getSource` reports. The wrapper refuses already-assembly components, and `wrapAssembly` decorates configured libraries with wrapped components while reporting skips
+- The noflo-assembly wiki is brought into `packages/assembly/docs`
+- A scope-based correlation contract for wrapped components: messages carrying scopes stay paired through out-of-order async completions
 
 ### Changed
 

@@ -4,8 +4,9 @@
  * SPDX-License-Identifier: MIT
  */
 /* @ts-self-types="./Fork.d.ts" */
-import noflo from "@noflo/noflo";
+
 import { fork } from "@noflo/assembly";
+import noflo from "@noflo/noflo";
 
 export function getComponent() {
   const c = new noflo.Component();

@@ -7,7 +7,7 @@ import noflo from "@noflo/noflo";
  * @param {Record<string, any>} ports - port name to port instance
  * @returns {{ ins: Record<string, any>, outs: Record<string, any[]> }}
  */
-export function prepare(component, ports) {
+export function prepare(_component, ports) {
   const ins = {};
   const outs = {};
   for (const [name, port] of Object.entries(ports)) {

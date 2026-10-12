@@ -8,7 +8,8 @@ import noflo from "@noflo/noflo";
 
 export function getComponent() {
   const c = new noflo.Component();
-  c.description = "Collect streamed Assemblies from all connected inputs into a single message";
+  c.description =
+    "Collect streamed Assemblies from all connected inputs into a single message";
   c.icon = "fast-forward";
 
   c.inPorts.add("in", {
@@ -21,8 +22,9 @@ export function getComponent() {
   c.forwardBrackets = {};
   return c.process((input, output) => {
     const attachedIndexes = /** @type {number[]} */ (input.attached("in"));
-    const indexesWithStreams = attachedIndexes
-      .filter((idx) => input.hasStream(["in", idx]));
+    const indexesWithStreams = attachedIndexes.filter((idx) =>
+      input.hasStream(["in", idx]),
+    );
     if (indexesWithStreams.length < attachedIndexes.length) {
       // Still waiting for streams
       return;
@@ -40,7 +42,7 @@ export function getComponent() {
         if (ip.type !== "data") {
           return;
         }
-        if (ip.data.errors && ip.data.errors.length) {
+        if (ip.data.errors?.length) {
           // Error anywhere in input is an error in the whole assembly
           message.errors = message.errors.concat(ip.data.errors);
         }

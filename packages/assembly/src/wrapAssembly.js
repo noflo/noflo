@@ -54,7 +54,10 @@ import { asAssembly } from "./asAssembly.js";
  * Decoration is best-effort: no surveyed library is fully wrappable, so
  * components the wrapper declines (addressable ports, streaming shapes)
  * stay native and land in the skip report. Skipped components resolve
- * through to their original definitions.
+ * through to their original definitions. Note that decoration
+ * instantiates every matched component eagerly to harvest its ports —
+ * acceptable for best-effort decoration of moderate libraries, but worth
+ * remembering for very large ones.
  *
  * @param {WrapAssemblyRegistry} registry - The application registry to decorate
  * @param {WrapAssemblyConfig} config - Which libraries to wrap and how

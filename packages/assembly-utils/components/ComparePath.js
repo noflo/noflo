@@ -4,13 +4,15 @@
  * SPDX-License-Identifier: MIT
  */
 /* @ts-self-types="./ComparePath.d.ts" */
-import { JSONPath } from "jsonpath-plus";
+
 import Component, { fail } from "@noflo/assembly";
+import { JSONPath } from "jsonpath-plus";
 
 export class ComparePath extends Component {
   constructor() {
     super({
-      description: "Compare an object value extracted with a JSONPath expression",
+      description:
+        "Compare an object value extracted with a JSONPath expression",
       icon: "check",
       inPorts: {
         in: {
@@ -35,14 +37,7 @@ export class ComparePath extends Component {
           description: "Comparison operator",
           control: true,
           default: "==",
-          values: [
-            "==",
-            "!=",
-            ">",
-            "<",
-            ">=",
-            "<=",
-          ],
+          values: ["==", "!=", ">", "<", ">=", "<="],
         },
       },
       outPorts: {
@@ -91,11 +86,14 @@ export class ComparePath extends Component {
     let passed = false;
     switch (operator) {
       case "==": {
+        // Loose equality is the documented semantic: string "42" compares
+        // equal to number 42, matching the 1.x eval-based implementation
+        // biome-ignore lint/suspicious/noDoubleEquals: documented above
         passed = result == comparison;
         break;
       }
       case "!=": {
-        passed = result != comparison;
+        passed = result !== comparison;
         break;
       }
       case ">": {
@@ -114,10 +112,8 @@ export class ComparePath extends Component {
         passed = result <= comparison;
         break;
       }
-      default: {
-        output.done(new Error(`Unknown operator ${operator}`));
-        return;
-      }
+      // No default branch: the operator port declares its values, so
+      // unknown operators are rejected at the port before firing
     }
     if (passed) {
       output.sendDone({

@@ -51,6 +51,11 @@ import { Component } from "./index.js";
  * @returns {{ inports: PortSummary[], outports: PortSummary[], hasError: boolean }}
  */
 function summarizePorts(inner) {
+  if (!inner?.inPorts?.ports || !inner?.outPorts?.ports) {
+    throw new TypeError(
+      `asAssembly: the target must be a component instance with inPorts and outPorts — got ${inner === null ? "null" : typeof inner}${inner?.constructor ? ` (${inner.constructor.name})` : ""}`,
+    );
+  }
   /** @type {PortSummary[]} */
   const inports = [];
   /** @type {PortSummary[]} */
@@ -117,6 +122,11 @@ function resolveOutMapping(outports, mapping = {}) {
   const resolved = {};
   for (const port of outports) {
     const override = mapping.out?.[port.name];
+    if (override !== undefined && typeof override !== "string") {
+      throw new TypeError(
+        `asAssembly: mapping.out for port '${port.name}' must be a field name string (got ${JSON.stringify(override)})`,
+      );
+    }
     resolved[port.name] = override === undefined ? port.name : override;
   }
   return resolved;

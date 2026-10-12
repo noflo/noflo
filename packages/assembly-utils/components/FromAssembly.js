@@ -23,7 +23,7 @@ export function getComponent() {
       return;
     }
     const data = input.getData("in");
-    if (data.errors && data.errors.length) {
+    if (data.errors?.length) {
       output.done(data.errors[0]);
       return;
     }
