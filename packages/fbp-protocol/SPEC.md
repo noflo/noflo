@@ -177,6 +177,10 @@ snapshot via the Reticulum Resource API:
 `[0x12, plane_id, new_epoch_id, rns_resource_hash]`. The plane id names
 the plane the stale epoch belongs to. For ephemeral planes the baseline
 is whatever state the plane's model holds — the client built it from ops.
+The `rns_resource_hash` is a sentinel (`"ephemeral"` or `"empty"`) for
+planes whose state was built from ops rather than a Resource fetch —
+clients that receive a sentinel hash SHOULD skip the baseline fetch and
+re-sync from their own op log instead.
 
 **`0x14` CMD_CRDT_UPDATE** — positional graph operation:
 `[0x14, plane_id, client_id, logical_clock, op_type, entity_id, payload]`.
@@ -372,13 +376,14 @@ chain, so no subgraph path arrays travel per event.
 **Connection framing.** `EVENT_TYPE` gains `0x0b CONNECTION_OPEN` and
 `0x0c CONNECTION_CLOSE` — the framing 1.x UIs animate edge activity with.
 Payload: `[src_node, src_port, tgt_node, tgt_port]`.
-offset from `base_timestamp_ms`.
+Each item's `time_delta_ms` is a `uint32` offset from the chunk's
+`base_timestamp_ms`.
 
 Unified event types:
 
 | Code   | Event         | Payload                                   |
 | ------ | ------------- | ----------------------------------------- |
-| `0x01` | `DATA`        | raw value                                  |
+| `0x01` | `DATA`        | `[src, tgt, value]` envelope               |
 | `0x02` | `BEGIN_GROUP` | group string                               |
 | `0x03` | `END_GROUP`   | group string                               |
 | `0x04` | `ERROR`       | exception string                           |

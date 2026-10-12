@@ -45,7 +45,7 @@ import { ProtocolError } from "./errors.js";
  * @property {boolean} [control] Control-port identification (inports only, noflo-ui WD #40).
  *   The field set is kept in lockstep with the publish-time manifest's
  *   harvest (`@noflo/manifest` `harvestPorts`); `values` and `default`
- *   are inport options (`noflo"s InPort` validates them).
+ *   are inport options (`noflo’s InPort` validates them).
  * @property {any[]} [values] Enumeration of accepted values, for inports
  *   that take one of a known set — advisory metadata noflo-ui renders as
  *   pickers. Omitted from the wire when absent.

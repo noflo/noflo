@@ -97,13 +97,12 @@ const frameEncoders = {
       decoded.newEpochId,
       decoded.rnsResourceHash,
     ),
-  [protocol.CMD_PLANE_DROP]: (decoded) =>
-    protocol.encodePlaneDrop(decoded.planeId),
-  [protocol.CMD_PLANE_LIST]: (decoded) =>
+  [CMD_PLANE_DROP]: (decoded) => protocol.encodePlaneDrop(decoded.planeId),
+  [CMD_PLANE_LIST]: (decoded) =>
     decoded.entries
       ? protocol.encodePlaneListRes(decoded.entries)
       : protocol.encodePlaneList(),
-  [protocol.CMD_OP_REJECTED]: (decoded) =>
+  [CMD_OP_REJECTED]: (decoded) =>
     protocol.encodeOpRejected({
       rejectedCmd: decoded.rejectedCmd,
       planeId: decoded.planeId,
@@ -119,12 +118,12 @@ const frameEncoders = {
   [CMD_COMP_DETAIL_RES]: (decoded) => encodeCompDetailRes(decoded.components),
   [CMD_COMP_WRITE]: (decoded) =>
     encodeCompWrite(decoded.componentName, decoded.source),
-  [protocol.CMD_COMP_SOURCE]: (decoded) =>
+  [CMD_COMP_SOURCE]: (decoded) =>
     decoded.source !== undefined
       ? protocol.encodeCompSourceRes(decoded.componentName, decoded.source)
       : protocol.encodeCompSourceReq(decoded.componentName),
-  [protocol.CMD_PACKET_SEND]: (decoded) => protocol.encodePacketSend(decoded),
-  [protocol.CMD_GET_STATUS]: (decoded) =>
+  [CMD_PACKET_SEND]: (decoded) => protocol.encodePacketSend(decoded),
+  [CMD_GET_STATUS]: (decoded) =>
     decoded.runState !== undefined
       ? protocol.encodeGetStatusRes(decoded)
       : protocol.encodeGetStatus(),

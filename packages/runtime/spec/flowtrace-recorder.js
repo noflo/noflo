@@ -135,7 +135,7 @@ describe("Flowtrace recorder <-> trace file round trip", () => {
           ? [
               meta.src ? [meta.src.node, meta.src.port] : null,
               meta.tgt ? [meta.tgt.node, meta.tgt.port] : null,
-              eventType === 1 ? payload : payload,
+              eventType === 1 ? payload : (meta?.group ?? payload),
             ]
           : payload;
       assert.deepEqual(event.payload, expected, `payload ${index}`);
