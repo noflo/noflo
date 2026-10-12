@@ -39,8 +39,10 @@ import {
   capabilitiesMask,
   decodeFrame,
   encodeAuthResponse,
+  encodeOpRejected,
   LIMITATION,
   PROTOCOL_VERSION,
+  REASON,
 } from "@noflo/fbp-protocol";
 
 /**
@@ -313,21 +315,51 @@ export class RuntimeServer extends EventTarget {
     try {
       decoded = decodeFrame(bytes);
     } catch (error) {
-      // The raw hostile bytes stay out of the event detail beyond a
-      // diagnostic prefix: transports log these events, and a peer must
-      // not be able to amplify its way into the operator's log files.
+      // Frame interpretation rules (work document #4 update #43): a frame
+      // that fails structural decode is answered with 0x17 MALFORMED — a
+      // subset runtime declines, it never fails silently — and the link
+      // MUST NOT be torn down. The raw hostile bytes stay out of the
+      // event detail beyond a diagnostic prefix: transports log these
+      // events, and a peer must not be able to amplify its way into the
+      // operator's log files.
       this.#emit("undecodable", {
         bytes: bytes.length > 256 ? bytes.slice(0, 256) : bytes,
         context,
         error,
       });
+      this.send(
+        encodeOpRejected({
+          rejectedCmd:
+            typeof error?.opcode === "number" ? error.opcode : 0,
+          planeId: null,
+          detail: {
+            reason: error?.reason ?? REASON.MALFORMED,
+            message: error instanceof Error ? error.message : String(error),
+          },
+        }),
+        context,
+      );
       return;
     }
     const handler = this.handlers.get(decoded.cmd);
     if (!handler) {
-      // A command with no handler is a runtime-side gap, not a client
-      // error: surface it as an event, ignore on the wire.
+      // A command with no handler is either a direction misuse (a
+      // runtime→client opcode sent by a client) or a feature this runtime
+      // does not implement: answer 0x17 UNSUPPORTED — a subset runtime
+      // declines, it never fails silently (update #43). The event stays
+      // for host-side visibility.
       this.#emit("unhandledframe", { decoded, context });
+      this.send(
+        encodeOpRejected({
+          rejectedCmd: decoded.cmd,
+          planeId: null,
+          detail: {
+            reason: REASON.UNSUPPORTED,
+            message: "command not supported by this runtime",
+          },
+        }),
+        context,
+      );
       return;
     }
     const required = REQUIRED_CAPABILITY[decoded.cmd];

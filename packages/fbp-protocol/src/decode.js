@@ -37,6 +37,7 @@ import {
   CMD_PLANE_LIST,
   CMD_PROCESS_CTRL,
   CMD_PROCESS_LIST,
+  REASON,
   CMD_PROCESS_LIST_REQ,
   CMD_PUBSUB_SUB,
   CMD_RUN_CTRL,
@@ -167,12 +168,19 @@ export function decodeFrame(bytes) {
       return decodeProcessList(bytes);
     case CMD_HWM_SET:
       return decodeHwmSet(bytes);
-    default:
-      throw new ProtocolError(
+    default: {
+      // Machine-distinguishable for receivers (work document #4 update
+      // #43): an unrecognized opcode answers REASON.UNKNOWN_COMMAND, a
+      // decode failure of a known opcode answers REASON.MALFORMED.
+      const error = new ProtocolError(
         opcode === undefined
           ? "frame does not start with an opcode"
           : "unknown command code",
         typeof opcode === "number" ? opcode : undefined,
       );
+      error.reason =
+        opcode === undefined ? REASON.MALFORMED : REASON.UNKNOWN_COMMAND;
+      throw error;
+    }
   }
 }

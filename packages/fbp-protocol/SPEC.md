@@ -42,6 +42,27 @@ Core design principles:
   (MsgPack) arrays. Keyed dictionaries (JSON-RPC style) are banned to
   preserve radio airtime.
 
+Frame interpretation rules — how any receiver handles what it does not
+know. The protocol evolves additively without version bumps, so meeting
+an unrecognized code is ordinary, not exceptional, and subset runtimes
+make it the common case:
+
+- A command frame whose opcode the receiver does not recognize MUST be
+  answered with `0x17` carrying `REASON.UNKNOWN_COMMAND` (or
+  `REASON.MALFORMED` when the frame is not structurally decodable). The
+  link MUST NOT be torn down, and the frame MUST NOT be speculatively
+  decoded beyond the msgpack value boundary.
+- A command known to the protocol generation but outside the receiver's
+  registered surface — including a runtime→client opcode sent by a
+  client — MUST be answered with `0x17` carrying `REASON.UNSUPPORTED`.
+- A flowtrace event whose `event_type` the receiver does not recognize
+  MUST be skipped by walking the payload's msgpack value boundary
+  structurally, without interpretation. Every event payload is exactly
+  one self-delimiting msgpack value, so skipping is mandatory and cheap.
+- Unknown op types in `0x14` and unknown entity kinds: skip on receive
+  (convergence integrity outranks interpretation); reject with `0x17`
+  when the receiver is authoritative for the state.
+
 ## 2. Protocol versioning
 
 The protocol generation is a single unsigned integer, `PROTOCOL_VERSION = 2`,
@@ -93,6 +114,10 @@ app_data = msgpack([ protocol_version, destination_hash_raw16, node_name ])
 - `node_name` is a MsgPack string. The whole payload stays far under the
   128-byte announce app_data limit.
 
+The array is exactly three elements — receivers MUST reject any other
+length, and the shape MUST NOT be extended: feature advertisement travels
+in the `0x02` handshake's `runtime_metadata` (§4), not the announce.
+
 The destination aspect is the discovery filter in RNS; app_data is opaque
 binary. The aspect name is NOT versioned (e.g. `fbp.conn.v2` was rejected):
 versioning the aspect would force re-announcing under a new name on every
@@ -118,6 +143,16 @@ together they tell the client whether a denial is a permission issue or an
 unsupported feature.[^ext35]
 
 - Format: `[0x02, protocol_version, granted_mask, limitation_code, runtime_metadata, advertised_mask]`
+- `runtime_metadata` identifies the runtime (kind, label, version) and is
+  free-form: clients MUST ignore keys they do not know. Well-known keys —
+  a SHOULD-registry so constrained runtimes can advertise their profile
+  without new wire surface:
+
+  | Key           | Values                        | Meaning                                            |
+  | ------------- | ----------------------------- | -------------------------------------------------- |
+  | `planes`      | `"main"` or `"ephemeral"`     | the plane surface the runtime serves (§5)          |
+  | `value_model` | a declared profile name       | the packet value model the engine enforces (§8)    |
+  | `source`      | boolean                       | whether `0x26`/`0x25` component source read/write is served |
 - Types: `[uint8, uint8, uint8, uint8, map, uint8]` — `runtime_metadata` is a free-form map identifying the runtime kind (e.g. `{ type: "noflo-nodejs", label: "...", version: "..." }`), the `runtime:runtime` equivalent from 1.x.
 - The `granted_mask` is what this peer may exercise; `advertised_mask` is the runtime's full technical surface.
 
@@ -170,6 +205,13 @@ lifecycle commands never target subgraph planes — they follow the
 parent.[^u28] A drop addressed to one is
 refused with `0x17`, and dropping an ephemeral plane removes its
 subgraph descendants.
+
+Constrained runtimes MAY serve the main plane only. A runtime advertising
+`planes: "main"` (§4) MUST answer `0x16` with only the main plane, and
+MUST answer every command addressed to a non-main plane with `0x17`
+carrying `REASON.UNSUPPORTED` (or `REASON.PERMISSION_DENIED` when the
+peer lacked the capability anyway). `LIFECYCLE_CTRL` with a nil plane_id
+works normally.
 
 **`0x10` CMD_CRDT_SYNC_REQ** — client requests state sync:
 `[0x10, plane_id, epoch_id, { "client_a": 15 }]` (map of client → logical clock; `plane_id` nil = main).
@@ -575,6 +617,7 @@ the main plane, or an inport of an ephemeral plane's fixture. One command
 serves interactive packet injection, the remote fbp-spec runner's
 sequenced case inputs, and the runtime-as-remote-component pattern.[^u36]
 Requires `LIFECYCLE_CTRL`.
+
 
 **`0x48` CMD_GET_STATUS** — query the current run state: request
 `[0x48]`; the runtime answers on the same opcode with
