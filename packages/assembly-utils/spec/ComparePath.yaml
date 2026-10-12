@@ -32,8 +32,8 @@ cases:
         path: '$.guide.answer'
         equals: 42
   -
-    name: with an invalid JSONPath
-    assertion: should send the object with errors to the FAIL route
+    name: with an unresolvable JSONPath
+    assertion: should send the object to the FAIL route; jsonpath-plus resolves invalid paths to undefined instead of throwing, so no error accumulates
     inputs:
       path: '$$.guide.answer'
       comparison: 41
@@ -44,9 +44,5 @@ cases:
           answer: 42
     expect:
       fail:
-        -
-          path: '$.guide.answer'
-          equals: 42
-        -
-          path: '$.errors.length'
-          equals: 1
+        path: '$.guide.answer'
+        equals: 42

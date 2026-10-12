@@ -20,11 +20,8 @@
   },
   "homepage": "https://github.com/noflo/noflo#readme",
   "peerDependencies": {
-    "@noflo/noflo": "^2.0.0-alpha.3",
-    "@noflo/assembly": "^2.0.0-alpha.3"
-  },
-  "dependencies": {
-    "jsonpath": "^1.1.1"
+    "@noflo/assembly": "^2.0.0-alpha.3",
+    "@noflo/noflo": "^2.0.0-alpha.3"
   },
   "devDependencies": {
     "@noflo/fbp-spec-runner": "*"
@@ -34,5 +31,8 @@
     "test:deno": "deno test --allow-all --no-check spec/*.js",
     "test:bun": "bun test ./spec/*.js",
     "types": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "jsonpath-plus": "^11.2.0"
   }
 }

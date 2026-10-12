@@ -1,4 +1,4 @@
-import jsonpath from "jsonpath";
+import { JSONPath } from "jsonpath-plus";
 import Component, { fail } from "@noflo/assembly";
 
 export class ComparePath extends Component {
@@ -71,7 +71,10 @@ export class ComparePath extends Component {
 
     let result;
     try {
-      result = jsonpath.value(msg, path);
+      // jsonpath-plus resolves the query to a list of matches; the
+      // comparison targets the first one
+      // wrap:false makes jsonpath-plus return the matched value directly
+      result = JSONPath({ path, json: msg, wrap: false });
     } catch (e) {
       output.sendDone({
         fail: fail(msg, e),
