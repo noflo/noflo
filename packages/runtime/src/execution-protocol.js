@@ -274,8 +274,16 @@ export class ExecutionProtocol {
       // Honest lifecycle: a rejected ephemeral START is FAILED + ERROR,
       // matching the main plane's behavior (work document #4 update #1).
       const message = error instanceof Error ? error.message : String(error);
-      this.telemetry.record(EVENT_TYPE.LIFECYCLE, 0x04);
-      this.telemetry.record(EVENT_TYPE.ERROR, `start failed: ${message}`);
+      this.telemetry.record(
+        EVENT_TYPE.LIFECYCLE,
+        LIFECYCLE_CODE.FAILED,
+        planeId,
+      );
+      this.telemetry.record(
+        EVENT_TYPE.ERROR,
+        `start failed: ${message}`,
+        planeId,
+      );
       this.#planeHosts.delete(planeId);
       throw error;
     }
