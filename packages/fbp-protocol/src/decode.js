@@ -172,15 +172,13 @@ export function decodeFrame(bytes) {
       // Machine-distinguishable for receivers (work document #4 update
       // #43): an unrecognized opcode answers REASON.UNKNOWN_COMMAND, a
       // decode failure of a known opcode answers REASON.MALFORMED.
-      const error = new ProtocolError(
+      throw new ProtocolError(
         opcode === undefined
           ? "frame does not start with an opcode"
           : "unknown command code",
         typeof opcode === "number" ? opcode : undefined,
+        opcode === undefined ? REASON.MALFORMED : REASON.UNKNOWN_COMMAND,
       );
-      error.reason =
-        opcode === undefined ? REASON.MALFORMED : REASON.UNKNOWN_COMMAND;
-      throw error;
     }
   }
 }
