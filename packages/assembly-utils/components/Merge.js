@@ -1,3 +1,9 @@
+/**
+ * @noflo/assembly-utils - Assembly adapter components for NoFlo
+ * Merge assembly messages from all connected inputs into one.
+ * SPDX-License-Identifier: MIT
+ */
+/* @ts-self-types="./Merge.d.ts" */
 import noflo from "@noflo/noflo";
 import { merge } from "@noflo/assembly";
 

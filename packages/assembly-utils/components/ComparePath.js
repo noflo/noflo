@@ -1,3 +1,9 @@
+/**
+ * @noflo/assembly-utils - Assembly adapter components for NoFlo
+ * Compare a message value resolved by a JSONPath expression against a threshold and route pass/fail.
+ * SPDX-License-Identifier: MIT
+ */
+/* @ts-self-types="./ComparePath.d.ts" */
 import { JSONPath } from "jsonpath-plus";
 import Component, { fail } from "@noflo/assembly";
 

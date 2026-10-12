@@ -30,7 +30,7 @@
     "test": "node --test --test-force-exit --test-timeout 60000 spec/*.js",
     "test:deno": "deno test --allow-all --no-check spec/*.js",
     "test:bun": "bun test ./spec/*.js",
-    "types": "tsc --noEmit -p tsconfig.json"
+    "types": "find components -name '*.d.ts' -delete; tsc -p tsconfig.json"
   },
   "dependencies": {
     "jsonpath-plus": "^11.2.0"

@@ -1,3 +1,9 @@
+/**
+ * @noflo/assembly-utils - Assembly adapter components for NoFlo
+ * Collect streamed assemblies from all connected inputs into a single message.
+ * SPDX-License-Identifier: MIT
+ */
+/* @ts-self-types="./All.d.ts" */
 import noflo from "@noflo/noflo";
 
 export function getComponent() {

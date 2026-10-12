@@ -1,3 +1,9 @@
+/**
+ * @noflo/assembly-utils - Assembly adapter components for NoFlo
+ * Convert regular NoFlo data into an assembly message envelope.
+ * SPDX-License-Identifier: MIT
+ */
+/* @ts-self-types="./ToAssembly.d.ts" */
 import noflo from "@noflo/noflo";
 
 export function getComponent() {

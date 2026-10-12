@@ -1,3 +1,9 @@
+/**
+ * @noflo/assembly-utils - Assembly adapter components for NoFlo
+ * Fork an assembly message to all connected outputs.
+ * SPDX-License-Identifier: MIT
+ */
+/* @ts-self-types="./Fork.d.ts" */
 import noflo from "@noflo/noflo";
 import { fork } from "@noflo/assembly";
 

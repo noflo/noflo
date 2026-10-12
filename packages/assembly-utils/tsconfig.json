@@ -7,11 +7,18 @@
     ],
     "checkJs": true,
     "skipLibCheck": true,
-    "noEmit": true,
     "allowJs": true,
-    "strict": false
+    "strict": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "rootDir": "components",
+    "outDir": "components"
   },
   "include": [
     "components/**/*.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "components/**/*.d.ts"
   ]
 }

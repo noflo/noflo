@@ -1,3 +1,9 @@
+/**
+ * @noflo/assembly-utils - Assembly adapter components for NoFlo
+ * Convert an assembly message back into regular NoFlo data, routing accumulated errors to the error port.
+ * SPDX-License-Identifier: MIT
+ */
+/* @ts-self-types="./FromAssembly.d.ts" */
 import noflo from "@noflo/noflo";
 
 export function getComponent() {
