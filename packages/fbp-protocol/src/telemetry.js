@@ -34,6 +34,9 @@ import { ProtocolError } from "./errors.js";
  * @property {number} timestampMs Absolute event time in epoch milliseconds.
  * @property {number} eventType One of {@link EVENT_TYPE}.
  * @property {any} payload Event-type-specific value.
+ * @property {number|string|null} [planeId] The plane the event belongs to;
+ *   nil for the main plane. Events from a single subscription may span
+ *   planes when the subscription observes multiple hosts.
  */
 
 /**

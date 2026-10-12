@@ -168,18 +168,20 @@ export class TelemetryProtocol {
    * @param {import("./network-host.js").NetworkHost} host
    * @returns {void}
    */
-  observeHost(host) {
+  observeHost(host, planeId = null) {
+    /** @type {string|number|null} */
+    const currentPlane = planeId;
     host.addEventListener("start", () => {
-      this.record(EVENT_TYPE.LIFECYCLE, LIFECYCLE_CODE.START);
+      this.record(EVENT_TYPE.LIFECYCLE, LIFECYCLE_CODE.START, currentPlane);
     });
     host.addEventListener("end", () => {
-      this.record(EVENT_TYPE.LIFECYCLE, LIFECYCLE_CODE.STOP);
+      this.record(EVENT_TYPE.LIFECYCLE, LIFECYCLE_CODE.STOP, currentPlane);
     });
     host.addEventListener("ip", (/** @type {any} */ event) => {
-      this.#recordIp(event.detail);
+      this.#recordIp(event.detail, currentPlane);
     });
     host.addEventListener("process-error", (/** @type {any} */ event) => {
-      this.#recordError(event.detail);
+      this.#recordError(event.detail, currentPlane);
     });
   }
 
@@ -190,16 +192,16 @@ export class TelemetryProtocol {
    * @param {any} ip
    * @returns {void}
    */
-  #recordIp(ip) {
+  #recordIp(ip, planeId = null) {
     switch (ip?.type) {
       case "openBracket":
-        this.record(EVENT_TYPE.BEGIN_GROUP, ip.data ?? "");
+        this.record(EVENT_TYPE.BEGIN_GROUP, ip.data ?? "", planeId);
         break;
       case "closeBracket":
-        this.record(EVENT_TYPE.END_GROUP, ip.data ?? "");
+        this.record(EVENT_TYPE.END_GROUP, ip.data ?? "", planeId);
         break;
       case "data":
-        this.record(EVENT_TYPE.DATA, ip.data);
+        this.record(EVENT_TYPE.DATA, ip.data, planeId);
         break;
       default:
         // Connect/disconnect and other socket events are not flowtrace
@@ -216,7 +218,7 @@ export class TelemetryProtocol {
    * @param {any} detail
    * @returns {void}
    */
-  #recordError(detail) {
+  #recordError(detail, planeId = null) {
     const error = detail?.error ?? detail;
     const message =
       typeof error?.message === "string"
@@ -226,7 +228,7 @@ export class TelemetryProtocol {
       error?.name === this.stubErrorName
         ? EVENT_TYPE.STUB_ERROR
         : EVENT_TYPE.ERROR;
-    this.record(type, message);
+    this.record(type, message, planeId);
   }
 
   /**
@@ -243,14 +245,19 @@ export class TelemetryProtocol {
    * @param {any} payload
    * @returns {void}
    */
-  record(eventType, payload) {
+  record(eventType, payload, planeId = null) {
     if (this.subscriptions.size === 0) {
       return;
     }
     const timestampMs = Date.now();
     const sanitized = frugalPayload(payload);
     for (const subscription of this.subscriptions.values()) {
-      subscription.buffer.push({ timestampMs, eventType, payload: sanitized });
+      subscription.buffer.push({
+        timestampMs,
+        eventType,
+        payload: sanitized,
+        planeId,
+      });
       this.#arm(subscription);
     }
   }
@@ -289,13 +296,25 @@ export class TelemetryProtocol {
     }
     const events = subscription.buffer;
     subscription.buffer = [];
-    this.server.send(
-      encodeFlowtraceChunkFromTimestamps({
-        subId: subscription.subId,
-        events,
-      }),
-      subscription.context,
-    );
+    // Group events by their source plane (a subscription may observe
+    // multiple planes through observeHost).
+    /** @type {Map<string|number|null, typeof events>} */
+    const byPlane = new Map();
+    for (const event of events) {
+      const key = event.planeId ?? null;
+      if (!byPlane.has(key)) byPlane.set(key, []);
+      byPlane.get(key).push(event);
+    }
+    for (const [planeId, planeEvents] of byPlane) {
+      this.server.send(
+        encodeFlowtraceChunkFromTimestamps({
+          subId: subscription.subId,
+          planeId,
+          events: planeEvents,
+        }),
+        subscription.context,
+      );
+    }
   }
 }
 

@@ -67,13 +67,7 @@ export class ExecutionProtocol {
     this.telemetry = options.telemetry;
     /** The graph protocol, for access to the plane registry. */
     this.graphProtocol = options.graphProtocol ?? null;
-    this.#planeHosts = new Map();
   }
-  /**
-   * Ephemeral plane hosts, keyed by plane id.
-   * @type {Map<string|number, import("./network-host.js").NetworkHost>}
-   */
-
   /**
    * Register the `0x40`–`0x46` handlers on a runtime server. Requires the
    * server to advertise `LIFECYCLE_CTRL`; enforcement happens in the server

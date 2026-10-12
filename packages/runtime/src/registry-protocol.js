@@ -155,7 +155,10 @@ export class RegistryProtocol {
 
     server.registerHandler(CMD_COMP_SOURCE, async (decoded, context) => {
       if (!this.catalog.readSource) {
-        unsupported(server, "readSource", decoded, context);
+        // SPEC says the runtime "answers on the same opcode — nil source
+        // when the runtime holds none". A runtime without a readSource
+        // hook holds no source, so the honest answer is nil.
+        server.send(encodeCompSourceRes(decoded.componentName, null), context);
         return;
       }
       const source = await this.catalog.readSource(decoded.componentName);
