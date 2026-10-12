@@ -329,8 +329,7 @@ export class RuntimeServer extends EventTarget {
       });
       this.send(
         encodeOpRejected({
-          rejectedCmd:
-            typeof error?.opcode === "number" ? error.opcode : 0,
+          rejectedCmd: typeof error?.opcode === "number" ? error.opcode : 0,
           planeId: null,
           detail: {
             reason: error?.reason ?? REASON.MALFORMED,

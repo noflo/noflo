@@ -435,6 +435,16 @@ names — the frugal-path rule.[^u32]
 Each item in `trace_events_array` is a tuple
 `[time_delta_ms, event_type, payload]`, where `time_delta_ms` is a `uint32`
 
+**Clock provenance.** Timestamp fields in this protocol — `0x32`'s
+`base_timestamp_ms` with its per-event deltas, the LXMF drop `timestamp`
+(§9), and the tracefile snapshot `timestamp_ms` (§10) — carry the
+*recording runtime's* clock, and its provenance is runtime policy. A
+mesh-isolated microcontroller has no RTC and no NTP; monotonic-derived
+counters (for example a hybrid logical clock) are conforming. Consumers
+MUST NOT assume cross-runtime UTC alignment: timestamps from different
+runtimes are comparable only per runtime. `uptime_ms` in `0x48` (§8) is
+monotonic by definition.
+
 **DATA event payload envelope.** For `0x01 DATA` events, the payload is
 the positional tuple `[src, tgt, value]` — where each ref is
 `[node_id, port, index?]` or nil (an IIP has no source; an unconnected
