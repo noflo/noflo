@@ -121,7 +121,6 @@ describe("DacarCapabilityPolicy", () => {
     const log = { sent: [] };
     const serverPolicy = staticPolicy();
     const server = new RuntimeServer({
-      capabilityPolicy: serverPolicy,
       send: (bytes, context) => log.sent.push({ bytes, context }),
       capabilityPolicy: (identityHash, context) =>
         policy.resolve(identityHash, context),
