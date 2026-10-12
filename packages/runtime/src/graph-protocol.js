@@ -167,9 +167,7 @@ export class GraphProtocol {
         let applied;
         try {
           applied = this.#applyToPlane(plane, decoded);
-        } catch {
-          // Actual rejection: the model refused the op. The client must
-          // revert its mirror (work document #4 update #34).
+        } catch (error) {
           server.send(
             encodeOpRejected({
               rejectedCmd: CMD_CRDT_UPDATE,
@@ -178,7 +176,7 @@ export class GraphProtocol {
                 clientId: decoded.clientId,
                 logicalClock: decoded.logicalClock,
                 entityId: decoded.entityId,
-                reason: "the graph model rejected the operation",
+                reason: error instanceof Error ? error.message : String(error),
               },
             }),
             context,
@@ -208,7 +206,7 @@ export class GraphProtocol {
         applied =
           /** @type {boolean} */
           (this.#withSuppression(() => this.applyOp(decoded)));
-      } catch {
+      } catch (error) {
         // Actual rejection: the model refused the op. The client must
         // revert its mirror (work document #4 update #34).
         server.send(
@@ -219,7 +217,7 @@ export class GraphProtocol {
               clientId: decoded.clientId,
               logicalClock: decoded.logicalClock,
               entityId: decoded.entityId,
-              reason: "the graph model rejected the operation",
+              reason: error instanceof Error ? error.message : String(error),
             },
           }),
           context,

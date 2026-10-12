@@ -249,14 +249,20 @@
    "x-capability": "none — authenticated by the LXMF transport itself"
   },
   "cmd/0x15": {
-   "description": "Client → runtime: drop an ephemeral graph plane — stop its network and discard its state wholesale (the fbp-spec runner fixture teardown). The main plane is not droppable; subgraph planes follow their component presence in the graph (update #28 lifecycle matrix).",
+   "description": "Client → runtime: drop an ephemeral graph plane. Runtime → client: the ack (byte-identical echo) confirms the drop and doubles as the notification to other clients on the link.",
    "subscribe": {
     "operationId": "planeDrop",
     "message": {
      "$ref": "#/components/messages/planeDrop"
     }
    },
-   "x-capability": "LIFECYCLE_CTRL (0x40)"
+   "x-capability": "LIFECYCLE_CTRL (0x40)",
+   "publish": {
+    "operationId": "planeDropAck",
+    "message": {
+     "$ref": "#/components/messages/planeDrop"
+    }
+   }
   },
   "cmd/0x16": {
    "description": "Client → runtime: list the runtime graph planes. Runtime → client: the plane tree — the main graph, each subgraph instance anchored to its node id, and client-minted ephemera (updates #30/#33).",

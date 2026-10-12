@@ -346,7 +346,7 @@ describe("graph protocol: inbound operations", () => {
     const decoded = decodeOpRejected(sent[0]);
     assert.equal(decoded.rejectedCmd, CMD_CRDT_UPDATE);
     assert.equal(decoded.planeId, null);
-    assert.match(decoded.detail.reason, /rejected the operation/);
+    assert.match(decoded.detail.reason, /already exists/);
   });
 });
 

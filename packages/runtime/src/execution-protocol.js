@@ -31,6 +31,7 @@ import {
   CMD_RUN_CTRL,
   EVENT_TYPE,
   encodeGetStatusRes,
+  encodeOpRejected,
   LIFECYCLE_CODE,
   RUN_ACTION,
   RUN_STATE,
@@ -58,6 +59,9 @@ export class ExecutionProtocol {
    *   Control failures and lifecycle outcomes reach subscribed clients as
    *   flowtrace events through it.
    */
+  /** @type {Map<string|number, import("./network-host.js").NetworkHost>} */
+  #planeHosts = new Map();
+
   constructor(options) {
     this.host = options.host;
     this.telemetry = options.telemetry;
@@ -66,14 +70,11 @@ export class ExecutionProtocol {
     /** Ephemeral plane hosts, keyed by plane id.
      * @type {Map<string|number, import("./network-host.js").NetworkHost>}
      */
-    this._planeHosts = new Map();
   }
   /**
    * Ephemeral plane hosts, keyed by plane id.
    * @type {Map<string|number, import("./network-host.js").NetworkHost>}
    */
-  /** @type {Map<string|number, any>} */
-  _planeHosts = new Map();
 
   /**
    * Register the `0x40`–`0x46` handlers on a runtime server. Requires the
@@ -89,53 +90,53 @@ export class ExecutionProtocol {
       switch (decoded.action) {
         case RUN_ACTION.START:
           if (decoded.planeId !== null && decoded.planeId !== undefined) {
-            await this._startPlane(decoded.planeId);
+            await this.#startPlane(decoded.planeId);
           } else {
-            await this._start();
+            await this.#start();
           }
           break;
         case RUN_ACTION.STOP:
           if (decoded.planeId !== null && decoded.planeId !== undefined) {
-            const ph = this._planeHosts.get(decoded.planeId);
+            const ph = this.#planeHosts.get(decoded.planeId);
             if (ph) await ph.stop();
           } else {
             await this.host.stop();
           }
           break;
         case RUN_ACTION.PAUSE:
-          this._engineGap("pause");
+          this.#engineGap("pause");
           break;
         case RUN_ACTION.RESUME:
-          this._engineGap("resume");
+          this.#engineGap("resume");
           break;
         case RUN_ACTION.STEP:
-          this._engineGap("step");
+          this.#engineGap("step");
           break;
         default:
           break;
       }
     });
     server.registerHandler(CMD_BREAKPOINT_SET, (decoded, context) => {
-      this._engineGap("breakpoint", decoded, context);
+      this.#engineGap("breakpoint", decoded, context);
     });
     server.registerHandler(CMD_BREAKPOINT_CLEAR, (decoded, context) => {
-      this._engineGap("breakpoint clearing", decoded, context);
+      this.#engineGap("breakpoint clearing", decoded, context);
     });
     server.registerHandler(CMD_PROCESS_CTRL, (decoded, context) => {
-      this._engineGap("per-process disable", decoded, context);
+      this.#engineGap("per-process disable", decoded, context);
     });
     server.registerHandler(CMD_PACKET_SEND, (decoded) => {
       const planeId = decoded.planeId;
       const isMain = planeId === null || planeId === undefined;
       const network = isMain
         ? this.host.network
-        : this._planeHosts.get(planeId)?.network;
+        : this.#planeHosts.get(planeId)?.network;
       if (!network) return;
       const model = isMain
         ? this.host.graph
         : this.graphProtocol?.getPlane(planeId)?.model;
       if (!model) return;
-      const target = this._resolveExport(model, decoded.port);
+      const target = this.#resolveExport(model, decoded.port);
       if (!target) return;
       network
         .addInitial({
@@ -165,10 +166,10 @@ export class ExecutionProtocol {
       );
     });
     server.addEventListener("planedrop", (/** @type {any} */ event) => {
-      const planeHost = this._planeHosts.get(event.detail.planeId);
+      const planeHost = this.#planeHosts.get(event.detail.planeId);
       if (planeHost) {
         planeHost.stop().catch(() => {});
-        this._planeHosts.delete(event.detail.planeId);
+        this.#planeHosts.delete(event.detail.planeId);
       }
     });
     server.registerHandler(CMD_HWM_SET, (decoded) => {
@@ -191,7 +192,7 @@ export class ExecutionProtocol {
    *
    * @returns {Promise<void>}
    */
-  async _start() {
+  async #start() {
     try {
       await this.host.start();
     } catch (error) {
@@ -208,7 +209,7 @@ export class ExecutionProtocol {
    * @param {string} portName
    * @returns {{ node: string, port: string }|null}
    */
-  _resolveExport(model, portName) {
+  #resolveExport(model, portName) {
     for (const exp of model?.exports?.() ?? []) {
       if (exp.direction === "inport" && exp.public === portName) {
         return { node: exp.internal.node, port: exp.internal.port };
@@ -224,8 +225,8 @@ export class ExecutionProtocol {
    * @param {string|number} planeId
    * @returns {Promise<void>}
    */
-  async _startPlane(planeId) {
-    const existing = this._planeHosts.get(planeId);
+  async #startPlane(planeId) {
+    const existing = this.#planeHosts.get(planeId);
     if (existing?.network) return;
     const model = this.graphProtocol?.getPlane(planeId)?.model;
     if (!model) return;
@@ -233,10 +234,20 @@ export class ExecutionProtocol {
       graph: model,
       componentLoader: this.host.componentLoader,
     });
-    this._planeHosts.set(planeId, host);
+    this.#planeHosts.set(planeId, host);
     // Wire the ephemeral plane's network events into the telemetry stream
     this.telemetry.observeHost(host);
-    await host.start();
+    try {
+      await host.start();
+    } catch (error) {
+      // Honest lifecycle: a rejected ephemeral START is FAILED + ERROR,
+      // matching the main plane's behavior (work document #4 update #1).
+      const message = error instanceof Error ? error.message : String(error);
+      this.telemetry.record(EVENT_TYPE.LIFECYCLE, 0x04);
+      this.telemetry.record(EVENT_TYPE.ERROR, `start failed: ${message}`);
+      this.#planeHosts.delete(planeId);
+      throw error;
+    }
   }
 
   /**
@@ -245,7 +256,7 @@ export class ExecutionProtocol {
    * @param {any} [context]
    * @returns {void}
    */
-  _engineGap(action, decoded, context) {
+  #engineGap(action, decoded, context) {
     const reason = `${action} is not supported by the running engine`;
     this.server.dispatchEvent(
       new globalThis.CustomEvent("unsupported", {
