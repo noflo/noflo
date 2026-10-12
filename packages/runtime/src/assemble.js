@@ -92,8 +92,12 @@ export async function assembleRuntime(options) {
     graph: options.graph,
     clientId: options.clientId,
   });
-  const telemetry = new TelemetryProtocol({ host });
-  const execution = new ExecutionProtocol({ host, telemetry });
+  const telemetry = new TelemetryProtocol({ host, graphProtocol: graph });
+  const execution = new ExecutionProtocol({
+    host,
+    telemetry,
+    graphProtocol: graph,
+  });
   registry.register(server);
   graph.register(server);
   telemetry.register(server);

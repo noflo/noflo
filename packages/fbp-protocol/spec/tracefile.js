@@ -129,7 +129,7 @@ describe("trace file assembly and parsing", () => {
         [0, EVENT_TYPE.DATA, "world"],
         [9, EVENT_TYPE.ERROR, "boom"],
       ]),
-      chunk("sub-1", [[0, EVENT_TYPE.END_GROUP, "g"]]),
+      chunk("sub-1", [[0, EVENT_TYPE.END_BRACKET, "g"]]),
     ];
     const file = assembleTraceFile({
       runtimeMetadata: { name: "mesh-runtime", kind: "noflo-nodejs" },

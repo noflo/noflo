@@ -82,17 +82,18 @@ describe("0x32 CMD_FLOWTRACE_CHUNK", () => {
   it("round-trips delta-encoded events", () => {
     const bytes = encodeFlowtraceChunk({
       subId: "sub-1",
+      planeId: null,
       baseTimestampMs: 1000,
       events: [
         {
           timeDeltaMs: 0,
-          eventType: EVENT_TYPE.BEGIN_GROUP,
+          eventType: EVENT_TYPE.BEGIN_BRACKET,
           payload: "batch-1",
         },
         { timeDeltaMs: 12, eventType: EVENT_TYPE.DATA, payload: "hello" },
         {
           timeDeltaMs: 20,
-          eventType: EVENT_TYPE.END_GROUP,
+          eventType: EVENT_TYPE.END_BRACKET,
           payload: "batch-1",
         },
       ],
@@ -112,11 +113,12 @@ describe("0x32 CMD_FLOWTRACE_CHUNK", () => {
   it("encodes the documented tuple shape positionally", () => {
     const bytes = encodeFlowtraceChunk({
       subId: 1,
+      planeId: null,
       baseTimestampMs: 0,
       events: [{ timeDeltaMs: 0, eventType: EVENT_TYPE.DATA, payload: null }],
     });
-    // fixarray(4), opcode, sub, base, fixarray(1) events, fixarray(3) tuple
-    assert.equal(bytes[0], 0x94);
+    // fixarray(5), opcode, sub, plane, base, fixarray(1) events, fixarray(3) tuple
+    assert.equal(bytes[0], 0x95);
     assert.equal(bytes[1], CMD_FLOWTRACE_CHUNK);
   });
 
@@ -125,6 +127,7 @@ describe("0x32 CMD_FLOWTRACE_CHUNK", () => {
       () =>
         encodeFlowtraceChunk({
           subId: "s",
+          planeId: null,
           baseTimestampMs: 0,
           events: [
             {
@@ -149,7 +152,12 @@ describe("0x32 CMD_FLOWTRACE_CHUNK", () => {
   it("rejects negative timestamps", () => {
     assert.throws(
       () =>
-        encodeFlowtraceChunk({ subId: "s", baseTimestampMs: -1, events: [] }),
+        encodeFlowtraceChunk({
+          subId: "s",
+          planeId: null,
+          baseTimestampMs: -1,
+          events: [],
+        }),
       ProtocolError,
     );
   });
@@ -160,6 +168,7 @@ describe("0x32 CMD_FLOWTRACE_CHUNK", () => {
     // observation, never an error.
     const bytes = encodeFlowtraceChunk({
       subId: "sub-1",
+      planeId: null,
       baseTimestampMs: 3000,
       events: [
         {
@@ -184,6 +193,7 @@ describe("0x32 CMD_FLOWTRACE_CHUNK", () => {
     // type itself is the classification — no string-parsing convention.
     const bytes = encodeFlowtraceChunk({
       subId: "sub-1",
+      planeId: null,
       baseTimestampMs: 2000,
       events: [
         {
@@ -212,6 +222,7 @@ describe("0x32 CMD_FLOWTRACE_CHUNK", () => {
     // exception strings; the detail travels in an accompanying 0x04 ERROR.
     const bytes = encodeFlowtraceChunk({
       subId: "sub-1",
+      planeId: null,
       baseTimestampMs: 1000,
       events: [
         {
@@ -241,8 +252,13 @@ describe("absolute-timestamp builder", () => {
   it("computes deltas from the earliest event", () => {
     const bytes = encodeFlowtraceChunkFromTimestamps({
       subId: "sub-1",
+      planeId: null,
       events: [
-        { timestampMs: 5000, eventType: EVENT_TYPE.BEGIN_GROUP, payload: "g" },
+        {
+          timestampMs: 5000,
+          eventType: EVENT_TYPE.BEGIN_BRACKET,
+          payload: "g",
+        },
         { timestampMs: 5010, eventType: EVENT_TYPE.DATA, payload: "x" },
         { timestampMs: 5020, eventType: EVENT_TYPE.ERROR, payload: "boom" },
       ],
@@ -261,6 +277,7 @@ describe("absolute-timestamp builder", () => {
       () =>
         encodeFlowtraceChunkFromTimestamps({
           subId: "s",
+          planeId: null,
           events: [
             { timestampMs: 2000, eventType: EVENT_TYPE.DATA, payload: 1 },
             { timestampMs: 1000, eventType: EVENT_TYPE.DATA, payload: 2 },

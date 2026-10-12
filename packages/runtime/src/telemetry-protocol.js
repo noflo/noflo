@@ -16,6 +16,7 @@
 
 import {
   CMD_PUBSUB_SUB,
+  dataEventEnvelope,
   EVENT_TYPE,
   encodeFlowtraceChunkFromTimestamps,
   LIFECYCLE_CODE,
@@ -31,7 +32,7 @@ import { MsgPack } from "@reticulum/core";
  * @property {string} targetId
  * @property {number} requestedFlushIntervalMs
  * @property {any} context The link the subscription arrived on.
- * @property {{ timestampMs: number, eventType: number, payload: any }[]} buffer
+ * @property {{ timestampMs: number, eventType: number, payload: any, planeId?: string|number|null }[]} buffer
  * @property {any} timer
  */
 
@@ -61,6 +62,10 @@ export class TelemetryProtocol {
    *   process error as raised by a stub component (work document #19's
    *   `StubNotImplementedError`); mapped to `0x09 STUB_ERROR` instead of
    *   `0x04 ERROR` (work document #4 update #9).
+   * @param {import("./graph-protocol.js").GraphProtocol} [options.graphProtocol]
+   *   The plane registry owner, for effective-plane resolution of
+   *   subgraph-sourced events (work document #4 update #42). Optional —
+   *   without it, subgraph markers resolve to the host plane.
    */
   constructor(options) {
     this.host = options.host;
@@ -68,6 +73,8 @@ export class TelemetryProtocol {
     this.flushCeilingMs = options.flushCeilingMs ?? 300_000;
     this.maxSubscriptionsPerContext = options.maxSubscriptionsPerContext ?? 32;
     this.stubErrorName = options.stubErrorName ?? "StubNotImplementedError";
+    /** @type {import("./graph-protocol.js").GraphProtocol|null} */
+    this.graphProtocol = options.graphProtocol ?? null;
     /** @type {Map<string|number, Subscription>} */
     this.subscriptions = new Map();
   }
@@ -160,22 +167,64 @@ export class TelemetryProtocol {
   }
 
   /**
-   * Record one network IP event as flowtrace events: brackets become group
-   * boundaries, data becomes the raw value.
+   * Observe an additional network host — ephemeral plane hosts started by
+   * the execution protocol. Their events flow into the same subscription
+   * buffers (work document #4 update #33: one identifier per graph
+   * instance, shared by telemetry and commands).
    *
-   * @param {any} ip
+   * @param {import("./network-host.js").NetworkHost} host
    * @returns {void}
    */
-  #recordIp(ip) {
+  observeHost(host, planeId = null) {
+    /** @type {string|number|null} */
+    const currentPlane = planeId;
+    host.addEventListener("start", () => {
+      this.record(EVENT_TYPE.LIFECYCLE, LIFECYCLE_CODE.START, currentPlane);
+    });
+    host.addEventListener("end", () => {
+      this.record(EVENT_TYPE.LIFECYCLE, LIFECYCLE_CODE.STOP, currentPlane);
+    });
+    host.addEventListener("ip", (/** @type {any} */ event) => {
+      this.#recordIp(event.detail, currentPlane);
+    });
+    host.addEventListener("process-error", (/** @type {any} */ event) => {
+      this.#recordError(event.detail, currentPlane);
+    });
+  }
+
+  /**
+   * Record one network IP event as flowtrace events: brackets become group
+   * boundaries (plain string payloads), data becomes the `[src, tgt,
+   * value]` envelope of §7 (work document #4 update #42: the live path
+   * carries the same envelope as the tracefile). Events sourced inside a
+   * nested subgraph resolve to the subgraph's plane first (update #42).
+   *
+   * @param {any} ip
+   * @param {string|number|null} [planeId]
+   * @returns {void}
+   */
+  #recordIp(ip, planeId = null) {
+    const effectivePlane = this.#effectivePlaneId(planeId, ip?.subgraph);
     switch (ip?.type) {
       case "openBracket":
-        this.record(EVENT_TYPE.BEGIN_GROUP, ip.data ?? "");
+        this.record(EVENT_TYPE.BEGIN_BRACKET, ip.data ?? "", effectivePlane);
         break;
       case "closeBracket":
-        this.record(EVENT_TYPE.END_GROUP, ip.data ?? "");
+        this.record(EVENT_TYPE.END_BRACKET, ip.data ?? "", effectivePlane);
         break;
       case "data":
-        this.record(EVENT_TYPE.DATA, ip.data);
+        // The value is frugalized before enveloping: an unserializable
+        // packet must not take the refs down with it — the refs are the
+        // join against the topology.
+        this.record(
+          EVENT_TYPE.DATA,
+          dataEventEnvelope(
+            this.#portRef(ip?.socket?.from),
+            this.#portRef(ip?.socket?.to),
+            frugalPayload(ip.data),
+          ),
+          effectivePlane,
+        );
         break;
       default:
         // Connect/disconnect and other socket events are not flowtrace
@@ -185,14 +234,61 @@ export class TelemetryProtocol {
   }
 
   /**
+   * A socket end as the envelope's port ref: `[node_id, port, index?]` or
+   * nil (an IIP has no source; an unconnected outport no target). The
+   * node id is the graph model's entity id within the attributed plane —
+   * the exact identifier the `0x14` ops use.
+   *
+   * @param {any} end
+   * @returns {{ node: string, port: string, index?: number }|null}
+   */
+  #portRef(end) {
+    if (!end?.process?.id) return null;
+    const ref = { node: end.process.id, port: end.port };
+    if (typeof end.index === "number") ref.index = end.index;
+    return ref;
+  }
+
+  /**
+   * The plane an event belongs to (work document #4 update #42): events
+   * without a subgraph marker belong to the host plane; marked events
+   * resolve through the plane registry's parent chain — the engine's
+   * internal path (outermost node id first) never travels the wire.
+   *
+   * @param {string|number|null} hostPlaneId
+   * @param {string[]|string|null} subgraphPath
+   * @returns {string|number|null}
+   */
+  #effectivePlaneId(hostPlaneId, subgraphPath) {
+    if (
+      !this.graphProtocol ||
+      subgraphPath === null ||
+      subgraphPath === undefined ||
+      subgraphPath.length === 0
+    ) {
+      return hostPlaneId ?? null;
+    }
+    const path = Array.isArray(subgraphPath) ? subgraphPath : [subgraphPath];
+    let parent = hostPlaneId ?? null;
+    for (const nodeId of path) {
+      const planeId = this.graphProtocol.subgraphPlane(parent, nodeId);
+      if (planeId === null) break;
+      parent = planeId;
+    }
+    return parent;
+  }
+
+  /**
    * Record a process error, classified as `STUB_ERROR` when it names the
    * stub error class — the event type itself is the classification (work
-   * document #4 update #9).
+   * document #4 update #9). Subgraph-sourced errors attribute to the
+   * subgraph's plane (update #42).
    *
    * @param {any} detail
+   * @param {string|number|null} [planeId]
    * @returns {void}
    */
-  #recordError(detail) {
+  #recordError(detail, planeId = null) {
     const error = detail?.error ?? detail;
     const message =
       typeof error?.message === "string"
@@ -202,31 +298,35 @@ export class TelemetryProtocol {
       error?.name === this.stubErrorName
         ? EVENT_TYPE.STUB_ERROR
         : EVENT_TYPE.ERROR;
-    this.record(type, message);
+    this.record(
+      type,
+      message,
+      this.#effectivePlaneId(planeId, detail?.subgraph),
+    );
   }
 
-  /**
-   * Append an event to every subscription's buffer and arm its flush.
-   *
-   * @param {number} eventType
-   * @param {any} payload
-   * @returns {void}
-   */
   /**
    * Record one event into every subscription's buffer.
    *
    * @param {number} eventType
    * @param {any} payload
+   * @param {string|number|null} [planeId] The plane the event belongs to;
+   *   nil for the main plane (work document #4 update #42).
    * @returns {void}
    */
-  record(eventType, payload) {
+  record(eventType, payload, planeId = null) {
     if (this.subscriptions.size === 0) {
       return;
     }
     const timestampMs = Date.now();
     const sanitized = frugalPayload(payload);
     for (const subscription of this.subscriptions.values()) {
-      subscription.buffer.push({ timestampMs, eventType, payload: sanitized });
+      subscription.buffer.push({
+        timestampMs,
+        eventType,
+        payload: sanitized,
+        planeId,
+      });
       this.#arm(subscription);
     }
   }
@@ -265,13 +365,25 @@ export class TelemetryProtocol {
     }
     const events = subscription.buffer;
     subscription.buffer = [];
-    this.server.send(
-      encodeFlowtraceChunkFromTimestamps({
-        subId: subscription.subId,
-        events,
-      }),
-      subscription.context,
-    );
+    // Group events by their source plane (a subscription may observe
+    // multiple planes through observeHost).
+    /** @type {Map<string|number|null, typeof events>} */
+    const byPlane = new Map();
+    for (const event of events) {
+      const key = event.planeId ?? null;
+      if (!byPlane.has(key)) byPlane.set(key, []);
+      byPlane.get(key).push(event);
+    }
+    for (const [planeId, planeEvents] of byPlane) {
+      this.server.send(
+        encodeFlowtraceChunkFromTimestamps({
+          subId: subscription.subId,
+          planeId,
+          events: planeEvents,
+        }),
+        subscription.context,
+      );
+    }
   }
 }
 

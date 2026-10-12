@@ -16,6 +16,7 @@ import { asComponent } from "@noflo/as-component";
 import {
   CMD_AUTH_RESPONSE,
   decodeFlowtraceChunk,
+  decodeOpRejected,
   EVENT_TYPE,
   encodeBreakpointClear,
   encodeBreakpointSet,
@@ -24,6 +25,7 @@ import {
   encodePubsubSub,
   encodeRunCtrl,
   LIFECYCLE_CODE,
+  REASON,
   RUN_ACTION,
 } from "@noflo/fbp-protocol";
 import { GraphModel } from "@noflo/graph";
@@ -122,7 +124,27 @@ async function registerWaitComponent(loader) {
 function drain(transport) {
   return transport.log.sent
     .filter((sent) => sent.bytes[1] !== CMD_AUTH_RESPONSE)
-    .flatMap((sent) => decodeFlowtraceChunk(sent.bytes).events);
+    .flatMap((sent) => {
+      try {
+        return decodeFlowtraceChunk(sent.bytes).events;
+      } catch {
+        // Non-chunk frames (0x17 rejections, replies) are not telemetry.
+        return [];
+      }
+    });
+}
+
+/** Decode the 0x17 rejection frames a transport captured. */
+function rejections(transport) {
+  return transport.log.sent
+    .map((sent) => {
+      try {
+        return decodeOpRejected(sent.bytes);
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
 }
 
 describe("execution protocol: start and stop", () => {
@@ -199,6 +221,13 @@ describe("execution protocol: engine gaps", () => {
     const error = drain(transport).pop();
     assert.equal(error?.eventType, EVENT_TYPE.ERROR);
     assert.match(error?.payload ?? "", /pause is not supported/);
+    // The requesting context gets the explicit 0x17 with the reason code
+    // (update #43): "this runtime cannot do this" is wire-visibility, not
+    // silence.
+    const rejection = rejections(transport).at(-1);
+    assert.equal(rejection?.rejectedCmd, 0x40);
+    assert.equal(rejection?.detail.reason, REASON.UNSUPPORTED);
+    assert.match(rejection?.detail.message, /pause is not supported/);
   });
 
   it("reports resume and step as unsupported", async () => {

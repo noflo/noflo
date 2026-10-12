@@ -1,12 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
-import {
-  listen,
-  listenData,
-  listenDataOnce,
-  listenOnce,
-} from "./utils/events.js";
+import { listen, listenData, listenDataOnce } from "./utils/events.js";
 
 describe("Outport Port", () => {
   describe("with addressable ports", () => {

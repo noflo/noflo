@@ -123,10 +123,22 @@ describe("Flowtrace recorder <-> trace file round trip", () => {
     assert.equal(chunk.baseTimestampMs, state.snapshot.timestampMs);
     assert.equal(chunk.events.length, state.chunks.length);
     chunk.events.forEach((event, index) => {
-      const [timeDeltaMs, eventType, payload] = state.chunks[index];
+      const [timeDeltaMs, eventType, payload, meta] = state.chunks[index];
       assert.equal(event.timeDeltaMs, timeDeltaMs, `delta ${index}`);
       assert.equal(event.eventType, eventType, `type ${index}`);
-      assert.deepEqual(event.payload, payload, `payload ${index}`);
+      // Per §7 the envelope is DATA-only: [src, tgt, value] from the
+      // recorder's metadata; group events keep their plain string
+      // payloads (work document #4 update #42); other kinds pass through
+      // as recorded.
+      const expected =
+        eventType === 1 && meta
+          ? [
+              meta.src ? [meta.src.node, meta.src.port] : null,
+              meta.tgt ? [meta.tgt.node, meta.tgt.port] : null,
+              payload,
+            ]
+          : payload;
+      assert.deepEqual(event.payload, expected, `payload ${index}`);
     });
   });
 

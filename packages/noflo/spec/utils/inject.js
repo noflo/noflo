@@ -2,7 +2,7 @@
 if (typeof global !== "undefined") {
   // Node.js injections for Mocha tests
   global.chai = require("chai");
-  global.path = require("path");
+  global.path = require("node:path");
   global.noflo = require("../../src/lib/NoFlo");
   global.flowtrace = { Flowtrace: global.noflo.Flowtrace };
   global.baseDir = process.cwd();

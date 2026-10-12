@@ -100,7 +100,15 @@ describe("auth response", () => {
     const bytes = encodeAuthResponse({ capabilityMask: 0x07 });
     assert.deepEqual(
       [...bytes],
-      [0x94, CMD_AUTH_RESPONSE, PROTOCOL_VERSION, 0x07, LIMITATION.FULL_ACCESS],
+      [
+        0x96,
+        CMD_AUTH_RESPONSE,
+        PROTOCOL_VERSION,
+        0x07,
+        LIMITATION.FULL_ACCESS,
+        0xc0,
+        0x07,
+      ],
     );
   });
 
@@ -115,6 +123,25 @@ describe("auth response", () => {
     assert.equal(decoded.protocolVersion, PROTOCOL_VERSION);
     assert.equal(decoded.capabilityMask, 0x53);
     assert.equal(decoded.limitationCode, LIMITATION.HARDWARE_CONSTRAINED);
+    // The advertised mask defaults to the granted mask; metadata is nil
+    // unless the runtime carries it.
+    assert.equal(decoded.advertisedMask, 0x53);
+    assert.equal(decoded.runtimeMetadata, null);
+  });
+
+  it("carries runtime metadata and the advertised ceiling (update #35)", () => {
+    const decoded = decodeAuthResponse(
+      encodeAuthResponse({
+        capabilityMask: 0x07,
+        runtimeMetadata: { type: "noflo-nodejs", version: "2.0.0" },
+        advertisedMask: 0xff,
+      }),
+    );
+    assert.equal(decoded.advertisedMask, 0xff);
+    assert.deepEqual(decoded.runtimeMetadata, {
+      type: "noflo-nodejs",
+      version: "2.0.0",
+    });
   });
 
   it("rejects non-0x02 frames with the expected opcode attached", () => {

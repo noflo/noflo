@@ -4,14 +4,12 @@ import * as noflo from "../src/lib/NoFlo.js";
 import {
   closeBracket,
   listen,
-  listenData,
   listenDataOnce,
   listenIPSequence,
   listenOnce,
   openBracket,
 } from "./utils/events.js";
 import { loadJsonGraphFixture } from "./utils/loadJsonGraph.js";
-import { nativeGraph } from "./utils/nativeGraph.js";
 
 const processAsync = () => {
   const c = new noflo.Component();

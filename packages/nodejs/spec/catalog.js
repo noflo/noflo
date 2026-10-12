@@ -9,7 +9,7 @@ class Forward extends Component {
       description: "Forwards",
       inPorts: {
         in: { datatype: "string", required: true },
-        config: { datatype: "string", triggering: false, required: true },
+        config: { datatype: "string", control: true, required: true },
       },
       outPorts: { out: { datatype: "string" } },
     });

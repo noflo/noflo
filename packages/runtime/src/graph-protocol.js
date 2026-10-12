@@ -21,11 +21,17 @@
 import {
   CMD_CRDT_SYNC_REQ,
   CMD_CRDT_UPDATE,
+  CMD_PLANE_DROP,
+  CMD_PLANE_LIST,
   encodeCrdtStaleEpoch,
   encodeCrdtUpdate,
   encodeCrdtUpToDate,
+  encodeOpRejected,
+  encodePlaneDrop,
+  encodePlaneListRes,
   OP_TYPE,
   ProtocolError,
+  REASON,
 } from "@noflo/fbp-protocol";
 import { GraphModelError } from "@noflo/graph";
 
@@ -106,10 +112,54 @@ export class GraphProtocol {
   register(server) {
     this.server = server;
     server.registerHandler(CMD_CRDT_SYNC_REQ, async (decoded, context) => {
+      if (decoded.planeId !== null) {
+        // Materialize the ephemeral plane on first sync (work document #4
+        // update #28: the plane registry). The `sg/` prefix is reserved
+        // for subgraph planes: a client minting one is rejected (update
+        // #42) — silence never carries semantics.
+        let plane;
+        try {
+          plane = this.#plane(decoded.planeId);
+        } catch (error) {
+          server.send(
+            encodeOpRejected({
+              rejectedCmd: CMD_CRDT_SYNC_REQ,
+              planeId: decoded.planeId,
+              detail: {
+                reason: REASON.UNSUPPORTED,
+                message: error instanceof Error ? error.message : String(error),
+              },
+            }),
+            context,
+          );
+          return;
+        }
+        const current = this.#planeEpoch(plane);
+        if (decoded.epochId === current) {
+          server.send(encodeCrdtUpToDate(decoded.planeId, current), context);
+          return;
+        }
+        // A freshly materialized plane is always stale: the client fetches
+        // the baseline (empty for a new plane, or whatever ops already
+        // arrived).
+        const bytes = new TextEncoder().encode(plane.model.canonicalString());
+        // Ephemeral planes have no resource provider: the client built
+        // them from ops, so the full state travels as ops. Reply stale
+        // with a synthetic hash.
+        server.send(
+          encodeCrdtStaleEpoch(
+            decoded.planeId,
+            current,
+            bytes.length > 0 ? "ephemeral" : "empty",
+          ),
+          context,
+        );
+        return;
+      }
       this.#learnClocks(decoded.clientClocks);
       const current = await this.epoch();
       if (decoded.epochId === current) {
-        server.send(encodeCrdtUpToDate(), context);
+        server.send(encodeCrdtUpToDate(null, current), context);
         return;
       }
       if (!this.resourceProvider) {
@@ -118,22 +168,97 @@ export class GraphProtocol {
       }
       const bytes = new TextEncoder().encode(this.graph.canonicalString());
       const resourceHash = await this.resourceProvider(bytes);
-      server.send(encodeCrdtStaleEpoch(current, resourceHash), context);
+      server.send(encodeCrdtStaleEpoch(null, current, resourceHash), context);
     });
 
     server.registerHandler(CMD_CRDT_UPDATE, (decoded, context) => {
-      this.#learnClocks({ [decoded.clientId]: decoded.logicalClock });
-      const applied =
-        /** @type {boolean} */
-        (this.#withSuppression(() => this.applyOp(decoded)));
-      if (!applied) {
-        // The runtime dropped the operation; it is the convergence point,
-        // so the drop propagates — other clients converged on this state.
+      if (decoded.planeId !== null) {
+        // Materialize and apply on the ephemeral plane. The `sg/` prefix
+        // rejection surfaces as 0x17 like any other refused operation.
+        let plane;
+        try {
+          plane = this.#plane(decoded.planeId);
+        } catch (error) {
+          server.send(
+            encodeOpRejected({
+              rejectedCmd: CMD_CRDT_UPDATE,
+              planeId: decoded.planeId,
+              detail: {
+                reason: REASON.UNSUPPORTED,
+                message: error instanceof Error ? error.message : String(error),
+              },
+            }),
+            context,
+          );
+          return;
+        }
+        let applied;
+        try {
+          applied = this.#applyToPlane(plane, decoded);
+        } catch (error) {
+          server.send(
+            encodeOpRejected({
+              rejectedCmd: CMD_CRDT_UPDATE,
+              planeId: decoded.planeId,
+              detail: {
+                clientId: decoded.clientId,
+                logicalClock: decoded.logicalClock,
+                entityId: decoded.entityId,
+                reason: error instanceof Error ? error.message : String(error),
+              },
+            }),
+            context,
+          );
+          return;
+        }
+        if (applied) {
+          server.broadcast(
+            encodeCrdtUpdate({
+              planeId: decoded.planeId,
+              clientId: decoded.clientId,
+              logicalClock: decoded.logicalClock,
+              opType: decoded.opType,
+              entityId: decoded.entityId,
+              payload: decoded.payload,
+            }),
+            context,
+          );
+        }
+        // else: converged no-op — silent is correct (update #34: "a no-op
+        // that still counts as converged" must NOT be rejected).
         return;
       }
-      // Converge the op log: every *other* client learns the operation.
+      this.#learnClocks({ [decoded.clientId]: decoded.logicalClock });
+      let applied;
+      try {
+        applied =
+          /** @type {boolean} */
+          (this.#withSuppression(() => this.applyOp(decoded)));
+      } catch (error) {
+        // Actual rejection: the model refused the op. The client must
+        // revert its mirror (work document #4 update #34).
+        server.send(
+          encodeOpRejected({
+            rejectedCmd: CMD_CRDT_UPDATE,
+            planeId: null,
+            detail: {
+              clientId: decoded.clientId,
+              logicalClock: decoded.logicalClock,
+              entityId: decoded.entityId,
+              reason: error instanceof Error ? error.message : String(error),
+            },
+          }),
+          context,
+        );
+        return;
+      }
+      if (!applied) {
+        // Converged no-op (metadata on unknown entity) — silent is correct.
+        return;
+      }
       server.broadcast(
         encodeCrdtUpdate({
+          planeId: null,
           clientId: decoded.clientId,
           logicalClock: decoded.logicalClock,
           opType: decoded.opType,
@@ -144,7 +269,107 @@ export class GraphProtocol {
       );
     });
 
+    server.registerHandler(CMD_PLANE_LIST, (_decoded, context) => {
+      const entries = [
+        {
+          planeId: null,
+          kind: "main",
+          parentPlane: null,
+          nodeId: null,
+          componentName: null,
+          name: this.graph.name ?? "main",
+        },
+      ];
+      for (const [planeId, plane] of this.#planes) {
+        entries.push({
+          planeId,
+          kind: plane.kind,
+          parentPlane: plane.parentPlane ?? null,
+          nodeId: plane.nodeId ?? null,
+          componentName: plane.componentName ?? null,
+          name:
+            plane.kind === "subgraph"
+              ? (plane.componentName ?? String(planeId))
+              : String(planeId),
+        });
+      }
+      server.send(encodePlaneListRes(entries), context);
+    });
+
+    server.registerHandler(CMD_PLANE_DROP, (decoded, context) => {
+      if (decoded.planeId === null || decoded.planeId === undefined) {
+        // SPEC §5: the main plane is not droppable — nil is rejected
+        // (update #43: the rejection is explicit, never an ack).
+        server.send(
+          encodeOpRejected({
+            rejectedCmd: CMD_PLANE_DROP,
+            planeId: null,
+            detail: {
+              reason: REASON.UNSUPPORTED,
+              message: "the main plane is not droppable",
+            },
+          }),
+          context,
+        );
+        return;
+      }
+      const plane = this.#planes.get(decoded.planeId);
+      if (plane?.kind === "subgraph") {
+        // Subgraph planes follow their component's presence in the graph
+        // (work document #4 update #28 lifecycle matrix): they are never
+        // dropped via a lifecycle command.
+        server.send(
+          encodeOpRejected({
+            rejectedCmd: CMD_PLANE_DROP,
+            planeId: decoded.planeId,
+            detail: {
+              reason: REASON.UNSUPPORTED,
+              message:
+                "subgraph planes follow their component's presence in the graph",
+            },
+          }),
+          context,
+        );
+        return;
+      }
+      if (plane) {
+        // Dropping an ephemeral plane cascades to its subgraph
+        // descendants — their anchor left the tree with the host.
+        this.#planes.delete(decoded.planeId);
+        this.#dropSubgraphPlanesUnder(decoded.planeId);
+      }
+      // Acknowledge the drop to the requesting context — silence never
+      // carries semantics. Other clients on the plane learn through the
+      // plane's telemetry channel.
+      server.send(encodePlaneDrop(decoded.planeId), context);
+      // Notify the execution protocol so it can stop the plane's network
+      // (cross-protocol wiring: the plane registry owns the graph state,
+      // the execution protocol owns the running network).
+      server.dispatchEvent(
+        new globalThis.CustomEvent("planedrop", {
+          detail: { planeId: decoded.planeId },
+        }),
+      );
+    });
+
     this.#subscribeModel();
+  }
+
+  /**
+   * Get or materialize an ephemeral plane by its client-minted id.
+   * Public accessor for the execution protocol's multi-plane support.
+   * Subgraph planes are returned when registered; their reserved `sg/`
+   * ids never materialize.
+   *
+   * @param {string|number} planeId
+   * @returns {{ model: import("@noflo/graph").GraphModel|null }|null}
+   */
+  getPlane(planeId) {
+    if (planeId === null || planeId === undefined) return null;
+    const existing = this.#planes.get(planeId);
+    if (existing) return existing;
+    if (typeof planeId === "string" && planeId.startsWith("sg/")) return null;
+    return this.#plane(planeId) ?? null;
   }
 
   /**
@@ -155,12 +380,15 @@ export class GraphProtocol {
    * droppable class by definition — and report as not applied.
    *
    * @param {{ opType: number, entityId: string|null, payload: any }} decoded
+   * @param {import("@noflo/graph").GraphModel} [target] The model to apply
+   *   to; defaults to the main graph (ephemeral planes pass their own).
    * @returns {boolean} Whether the operation was applied (and should
    *   converge to other clients) rather than dropped.
    * @throws {ProtocolError} On an unknown op_type or a payload the model
    *   rejects as structurally invalid.
    */
-  applyOp(decoded) {
+  applyOp(decoded, target) {
+    const graph = target ?? this.graph;
     const { opType, entityId, payload } = decoded;
     // The wire entity_id names the entity; a payload-supplied override
     // must not rename it behind the protocol's back.
@@ -171,19 +399,19 @@ export class GraphProtocol {
     try {
       switch (opType) {
         case OP_TYPE.INSERT_NODE:
-          this.graph.addNode(definition);
+          graph.addNode(definition);
           break;
         case OP_TYPE.INSERT_EDGE:
-          this.graph.addEdge(definition);
+          graph.addEdge(definition);
           break;
         case OP_TYPE.INSERT_IIP:
-          this.graph.addIIP(definition);
+          graph.addIIP(definition);
           break;
         case OP_TYPE.INSERT_EXPORT:
-          this.graph.addExport(definition);
+          graph.addExport(definition);
           break;
         case OP_TYPE.INSERT_GROUP:
-          this.graph.addGroup(definition);
+          graph.addGroup(definition);
           break;
         case OP_TYPE.TOMBSTONE:
           this.#tombstone(entityId);
@@ -284,6 +512,226 @@ export class GraphProtocol {
    * @param {Record<string, number>} clocks
    * @returns {void}
    */
+  /**
+   * One registered graph plane, other than the main plane.
+   *
+   * @typedef {object} Plane
+   * @property {"ephemeral"|"subgraph"} kind Ephemera are client-minted
+   *   and dropped by lifecycle command; subgraph planes follow their
+   *   component's presence in the built network (work document #4
+   *   updates #28/#33/#42).
+   * @property {import("@noflo/graph").GraphModel|null} model The plane's
+   *   graph model; the subgraph's live model when reachable.
+   * @property {Map<string, number>|null} [clocks] Client logical clocks
+   *   learned on the plane (ephemeral planes only).
+   * @property {boolean} [epochDirty] Ephemeral planes: the cached epoch
+   *   is stale.
+   * @property {string|number|null} [parentPlane] Subgraph anchor: the
+   *   containing plane (nil = main).
+   * @property {string|null} [nodeId] Subgraph anchor: the node id in the
+   *   containing graph.
+   * @property {string|null} [componentName] Subgraph: the component the
+   *   node instantiates.
+   */
+
+  /**
+   * The plane registry: ephemeral graph planes materialized on first op
+   * (work document #4 updates #28–#33) and subgraph planes registered at
+   * network build (update #42). Keyed by plane id — client-minted for
+   * ephemera, deterministic `sg/…` ids for subgraphs; the main graph (nil)
+   * lives in `this.graph` and is not here.
+   *
+   * @type {Map<string|number, Plane>}
+   */
+  #planes = new Map();
+
+  /**
+   * The deterministic plane id of a subgraph instance: `sg/` is the
+   * runtime-reserved prefix, the parent chain disambiguates same-named
+   * nodes across planes, and `main` stands in for the nil parent.
+   *
+   * @param {string|number|null} parentPlaneId
+   * @param {string} nodeId
+   * @returns {string}
+   */
+  #subgraphPlaneId(parentPlaneId, nodeId) {
+    return `sg/${parentPlaneId ?? "main"}/${nodeId}`;
+  }
+
+  /**
+   * Get or materialize an ephemeral plane by its client-minted id. The
+   * `sg/` prefix is reserved for runtime-registered subgraph planes: a
+   * client minting one is rejected, so the namespaces cannot collide.
+   *
+   * @param {string|number} planeId
+   * @returns {Plane}
+   */
+  #plane(planeId) {
+    if (typeof planeId === "string" && planeId.startsWith("sg/")) {
+      throw new ProtocolError(
+        "the sg/ plane id prefix is reserved for subgraph planes",
+        CMD_CRDT_UPDATE,
+      );
+    }
+    let plane = this.#planes.get(planeId);
+    if (!plane) {
+      const model = new /** @type {any} */ (this.graph).constructor({
+        name: String(planeId),
+      });
+      plane = {
+        kind: "ephemeral",
+        model,
+        clocks: new Map(),
+        epochDirty: true,
+        parentPlane: null,
+        nodeId: null,
+        componentName: null,
+      };
+      this.#planes.set(planeId, plane);
+    }
+    return plane;
+  }
+
+  /**
+   * Register the subgraph planes of a built network (work document #4
+   * update #42): walk the instantiated components, register a plane for
+   * every subgraph instance anchored to its node id in the containing
+   * graph, and recurse into nested networks. Registration reconciles per
+   * build — subgraph planes under this host that the walk no longer
+   * sees are removed, so the plane tree follows the component's presence
+   * in the built graph.
+   *
+   * @param {string|number|null} hostPlaneId The plane the network belongs
+   *   to (nil = main).
+   * @param {any} network A built NoFlo network (duck-typed: `processes` →
+   *   instantiated components, each possibly wrapping a nested network).
+   * @returns {void}
+   */
+  registerSubgraphPlanes(hostPlaneId, network) {
+    /** @type {Set<string>} */
+    const seen = new Set();
+    /**
+     * @param {string|number|null} parentPlaneId
+     * @param {any} net
+     */
+    const walk = (parentPlaneId, net) => {
+      for (const [nodeId, proc] of Object.entries(net?.processes ?? {})) {
+        const component = proc?.component;
+        if (!component?.isSubgraph?.() || !component.network) continue;
+        const planeId = this.#subgraphPlaneId(parentPlaneId, nodeId);
+        seen.add(planeId);
+        const existing = this.#planes.get(planeId);
+        if (existing?.kind !== "subgraph") {
+          this.#planes.set(planeId, {
+            kind: "subgraph",
+            model: component.network.graph ?? null,
+            parentPlane: parentPlaneId,
+            nodeId,
+            componentName: proc.componentName ?? null,
+          });
+        }
+        walk(planeId, component.network);
+      }
+    };
+    walk(hostPlaneId, network);
+    // Reconcile: drop subgraph planes under this host that the walk no
+    // longer sees (their component left the built graph).
+    for (const [planeId, plane] of [...this.#planes]) {
+      if (
+        plane.kind !== "subgraph" ||
+        seen.has(/** @type {string} */ (planeId))
+      ) {
+        continue;
+      }
+      if (this.#planeRootHost(plane) === (hostPlaneId ?? null)) {
+        this.#planes.delete(planeId);
+      }
+    }
+  }
+
+  /**
+   * The host plane a registered subgraph plane hangs off: walk the parent
+   * chain until it leaves the subgraph registry — an ephemeral plane id,
+   * or nil for the main plane.
+   *
+   * @param {Plane} plane
+   * @returns {string|number|null}
+   */
+  #planeRootHost(plane) {
+    let parent = plane.parentPlane ?? null;
+    while (parent !== null) {
+      const parentPlane = this.#planes.get(parent);
+      if (parentPlane?.kind !== "subgraph") {
+        return parent;
+      }
+      parent = parentPlane.parentPlane ?? null;
+    }
+    return null;
+  }
+
+  /**
+   * Resolve a subgraph plane by its anchor: the plane registered for the
+   * `nodeId` node inside the `parentPlaneId` plane. The telemetry
+   * protocol's effective-plane resolution walks event paths through this
+   * (update #42).
+   *
+   * @param {string|number|null} parentPlaneId
+   * @param {string} nodeId
+   * @returns {string|null} The subgraph plane id, or null when unregistered.
+   */
+  subgraphPlane(parentPlaneId, nodeId) {
+    const planeId = this.#subgraphPlaneId(parentPlaneId, nodeId);
+    const plane = this.#planes.get(planeId);
+    return plane?.kind === "subgraph" ? planeId : null;
+  }
+
+  /**
+   * Remove every subgraph plane anchored under the given (dropped)
+   * plane, cascading through the parent chain (update #42).
+   *
+   * @param {string|number} parentPlaneId
+   * @returns {void}
+   */
+  #dropSubgraphPlanesUnder(parentPlaneId) {
+    for (const [planeId, plane] of [...this.#planes]) {
+      if (
+        plane.kind === "subgraph" &&
+        this.#planeRootHost(plane) === parentPlaneId
+      ) {
+        this.#planes.delete(planeId);
+      }
+    }
+  }
+
+  /**
+   * The current epoch of a plane: derived from the model's content so
+   * unmodified re-syncs match (external review point 6 — wall-clock
+   * epochs always looked stale).
+   *
+   * @param {{ model: import("@noflo/graph").GraphModel }} plane
+   * @returns {number}
+   */
+  #planeEpoch(plane) {
+    const str = plane.model.canonicalString();
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+    }
+    return Math.abs(hash) || 1;
+  }
+
+  /**
+   * Apply one decoded op to a plane's model.
+   *
+   * @param {{ model: import("@noflo/graph").GraphModel }} plane
+   * @param {{ clientId: string, logicalClock: number, opType: number, entityId: string|null, payload: any }} decoded
+   * @returns {boolean}
+   */
+  #applyToPlane(plane, decoded) {
+    // Throws for actual rejections; returns true/false for applied/converged no-op.
+    return this.applyOp(decoded, plane.model);
+  }
+
   #learnClocks(clocks) {
     for (const [clientId, clock] of Object.entries(clocks ?? {})) {
       if (!this.knownClocks.has(clientId)) {
@@ -412,6 +860,7 @@ export class GraphProtocol {
     this.clock += 1;
     this.server.broadcast(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: this.clientId,
         logicalClock: this.clock,
         opType,

@@ -22,10 +22,12 @@
 import {
   CMD_COMP_DETAIL_REQ,
   CMD_COMP_INSTALL_REQ,
+  CMD_COMP_SOURCE,
   CMD_COMP_SYNC_REQ,
   CMD_COMP_WRITE,
   encodeCompDetailRes,
   encodeCompManifest,
+  encodeCompSourceRes,
   encodeCompUpToDate,
   registryHash,
   sigHash,
@@ -48,6 +50,9 @@ import {
  * @property {(packageUri: string) => Promise<void>} [install]
  *   Install an ES module package (`0x27`), resolving through the ecosystem
  *   catalog's provenance fields (work document #26).
+ * @property {(name: string) => Promise<string|null>} [readSource]
+ *   Read a component's source (`0x26`, the read counterpart of `0x25`) —
+ *   nil when the runtime holds no source (native/hardware components).
  */
 
 /**
@@ -146,6 +151,21 @@ export class RegistryProtocol {
       // The signature is orthogonal to source, but a write can add a
       // component the catalog did not list before — re-derive state.
       await this.refresh();
+    });
+
+    server.registerHandler(CMD_COMP_SOURCE, async (decoded, context) => {
+      if (!this.catalog.readSource) {
+        // SPEC says the runtime "answers on the same opcode — nil source
+        // when the runtime holds none". A runtime without a readSource
+        // hook holds no source, so the honest answer is nil.
+        server.send(encodeCompSourceRes(decoded.componentName, null), context);
+        return;
+      }
+      const source = await this.catalog.readSource(decoded.componentName);
+      server.send(
+        encodeCompSourceRes(decoded.componentName, source ?? null),
+        context,
+      );
     });
 
     server.registerHandler(CMD_COMP_INSTALL_REQ, async (decoded, context) => {

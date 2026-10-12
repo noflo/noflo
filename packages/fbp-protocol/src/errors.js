@@ -20,8 +20,12 @@ export class ProtocolError extends Error {
    *
    * @param {string} message
    * @param {number} [opcode] Command code the frame claimed, when known.
+   * @param {number} [reason] REASON code classifying the failure for `0x17`
+   *   answers (work document #4 update #43): unrecognized opcodes carry
+   *   `REASON.UNKNOWN_COMMAND`; receivers answer known-but-malformed
+   *   payloads with `REASON.MALFORMED`.
    */
-  constructor(message, opcode) {
+  constructor(message, opcode, reason) {
     super(
       opcode === undefined
         ? message
@@ -31,5 +35,7 @@ export class ProtocolError extends Error {
     this.name = "ProtocolError";
     /** @type {number|undefined} Command code the frame claimed, when known */
     this.opcode = opcode;
+    /** @type {number|undefined} REASON code for the `0x17` answer, when classified */
+    this.reason = reason;
   }
 }

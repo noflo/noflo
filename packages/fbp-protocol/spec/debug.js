@@ -54,7 +54,10 @@ describe("0x40 CMD_RUN_CTRL", () => {
   });
 
   it("encodes the two-byte wire layout", () => {
-    assert.deepEqual([...encodeRunCtrl(RUN_ACTION.PAUSE)], [0x92, 0x40, 0x01]);
+    assert.deepEqual(
+      [...encodeRunCtrl(RUN_ACTION.PAUSE)],
+      [0x93, 0x40, 0x01, 0xc0],
+    );
   });
 
   it("rejects unknown actions", () => {

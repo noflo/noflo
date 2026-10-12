@@ -13,14 +13,21 @@ import { describe, it } from "node:test";
 import {
   CMD_AUTH_RESPONSE,
   CMD_CRDT_STALE_EPOCH,
+  CMD_CRDT_SYNC_REQ,
   CMD_CRDT_UP_TO_DATE,
   CMD_CRDT_UPDATE,
+  CMD_PLANE_DROP,
   decodeCrdtStaleEpoch,
   decodeCrdtUpdate,
   decodeCrdtUpToDate,
+  decodeOpRejected,
+  decodePlaneListRes,
   encodeCrdtSyncReq,
   encodeCrdtUpdate,
+  encodePlaneDrop,
+  encodePlaneList,
   OP_TYPE,
+  REASON,
 } from "@noflo/fbp-protocol";
 import { GraphModel } from "@noflo/graph";
 import { GraphProtocol, RuntimeServer } from "../src/index.js";
@@ -63,7 +70,12 @@ async function wiredServer(_graphCallback) {
     capabilityPolicy: serverPolicy,
     send: transport.send,
     broadcast: transport.broadcast,
-    capabilities: ["GRAPH_READ", "GRAPH_EDIT", "METADATA_SYNC"],
+    capabilities: [
+      "GRAPH_READ",
+      "GRAPH_EDIT",
+      "METADATA_SYNC",
+      "LIFECYCLE_CTRL",
+    ],
   });
   const protocol = new GraphProtocol({
     graph,
@@ -102,7 +114,10 @@ describe("graph protocol: epoch handshake", () => {
   it("answers a matching sync with the up-to-date short-circuit", async () => {
     const { server, protocol, transport } = await wiredServer();
     const epoch = await protocol.epoch();
-    server.handleFrame(encodeCrdtSyncReq(epoch, { "client-a": 5 }), "link-1");
+    server.handleFrame(
+      encodeCrdtSyncReq(null, epoch, { "client-a": 5 }),
+      "link-1",
+    );
     await flush();
     const decoded = decodeCrdtUpToDate(wire(transport)[0].bytes);
     assert.equal(decoded.cmd, CMD_CRDT_UP_TO_DATE);
@@ -110,7 +125,10 @@ describe("graph protocol: epoch handshake", () => {
 
   it("answers a stale sync with the new epoch and a baseline resource", async () => {
     const { server, protocol, transport } = await wiredServer();
-    server.handleFrame(encodeCrdtSyncReq("0000", { "client-a": 5 }), "link-1");
+    server.handleFrame(
+      encodeCrdtSyncReq(null, "0000", { "client-a": 5 }),
+      "link-1",
+    );
     await flush();
     assert.equal(wire(transport).length, 1);
     const decoded = decodeCrdtStaleEpoch(wire(transport)[0].bytes);
@@ -137,7 +155,7 @@ describe("graph protocol: epoch handshake", () => {
     server.addEventListener("unsupported", (event) =>
       unsupported.push(event.detail),
     );
-    server.handleFrame(encodeCrdtSyncReq("0000", {}), "link-1");
+    server.handleFrame(encodeCrdtSyncReq(null, "0000", {}), "link-1");
     await flush();
     assert.equal(unsupported.length, 1);
     assert.equal(unsupported[0].hook, "resourceProvider");
@@ -149,6 +167,7 @@ describe("graph protocol: inbound operations", () => {
     const { server, graph } = await wiredServer();
     server.handleFrame(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: "client-a",
         logicalClock: 3,
         opType: OP_TYPE.INSERT_NODE,
@@ -164,6 +183,7 @@ describe("graph protocol: inbound operations", () => {
     const { server, transport } = await wiredServer();
     server.handleFrame(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: "client-a",
         logicalClock: 3,
         opType: OP_TYPE.INSERT_NODE,
@@ -184,6 +204,7 @@ describe("graph protocol: inbound operations", () => {
     const { server, transport } = await wiredServer();
     server.handleFrame(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: "client-a",
         logicalClock: 3,
         opType: OP_TYPE.INSERT_NODE,
@@ -200,6 +221,7 @@ describe("graph protocol: inbound operations", () => {
   it("treats tombstones as idempotent", async () => {
     const { server, transport } = await wiredServer();
     const frame = encodeCrdtUpdate({
+      planeId: null,
       clientId: "client-a",
       logicalClock: 3,
       opType: OP_TYPE.TOMBSTONE,
@@ -215,6 +237,7 @@ describe("graph protocol: inbound operations", () => {
     const { server, graph } = await wiredServer();
     server.handleFrame(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: "client-a",
         logicalClock: 3,
         opType: OP_TYPE.UI_METADATA,
@@ -226,6 +249,7 @@ describe("graph protocol: inbound operations", () => {
     assert.deepEqual(graph.node("node-1").metadata, { x: 10, y: 20 });
     server.handleFrame(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: "client-a",
         logicalClock: 4,
         opType: OP_TYPE.UI_METADATA,
@@ -241,6 +265,7 @@ describe("graph protocol: inbound operations", () => {
     const { server, transport } = await wiredServer();
     server.handleFrame(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: "client-a",
         logicalClock: 3,
         opType: OP_TYPE.UI_METADATA,
@@ -268,6 +293,7 @@ describe("graph protocol: inbound operations", () => {
     for (const clientId of ["client-a", "client-b", "client-c"]) {
       server.handleFrame(
         encodeCrdtUpdate({
+          planeId: null,
           clientId,
           logicalClock: 1,
           opType: OP_TYPE.INSERT_NODE,
@@ -287,6 +313,7 @@ describe("graph protocol: inbound operations", () => {
     const { server, graph } = await wiredServer();
     server.handleFrame(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: "client-a",
         logicalClock: 3,
         opType: OP_TYPE.INSERT_NODE,
@@ -304,15 +331,20 @@ describe("graph protocol: inbound operations", () => {
     assert.equal(graph.node("payload-id"), undefined);
   });
 
-  it("surfaces model rejections as protocol errors, not crashes", async () => {
+  it("emits 0x17 CMD_OP_REJECTED when the model rejects an op", async () => {
     const { server } = await wiredServer();
     /** @type {any[]} */
-    const errors = [];
-    server.addEventListener("error", (event) => errors.push(event.detail));
-    // Duplicate node id: the model rejects, the frame is malformed in
-    // context.
+    const sent = [];
+    const origSend = server.send.bind(server);
+    server.send = (bytes, context) => {
+      sent.push(bytes);
+      origSend(bytes, context);
+    };
+    // Duplicate node id: the model rejects, the runtime emits 0x17 so the
+    // client can revert its mirror (work document #4 update #34).
     server.handleFrame(
       encodeCrdtUpdate({
+        planeId: null,
         clientId: "client-a",
         logicalClock: 3,
         opType: OP_TYPE.INSERT_NODE,
@@ -321,8 +353,11 @@ describe("graph protocol: inbound operations", () => {
       }),
       "link-1",
     );
-    assert.equal(errors.length, 1);
-    assert.match(errors[0].error.message, /graph rejected operation/);
+    assert.equal(sent.length, 1);
+    const decoded = decodeOpRejected(sent[0]);
+    assert.equal(decoded.rejectedCmd, CMD_CRDT_UPDATE);
+    assert.equal(decoded.planeId, null);
+    assert.match(decoded.detail.reason, /already exists/);
   });
 });
 
@@ -421,5 +456,201 @@ describe("graph protocol: outbound operations", () => {
     assert.equal(unsupported.length, 1);
     assert.equal(unsupported[0].hook, "renameNode");
     assert.equal(transport.log.broadcast.length, 0);
+  });
+});
+
+/**
+ * A fake built network for subgraph-plane registration: `processes` maps
+ * node ids to instantiated components, exactly the surface the
+ * registration walk consults.
+ *
+ * @param {Record<string, { component: any, componentName?: string }>} processes
+ */
+function fakeNetwork(processes) {
+  return { processes };
+}
+
+/** A fake subgraph component wrapping an inner network. */
+function fakeSubgraph(inner) {
+  return { isSubgraph: () => true, network: inner };
+}
+
+describe("graph protocol: subgraph planes (update #42)", () => {
+  it("registers subgraph planes with their anchors, nested chains included", async () => {
+    const { server, protocol, transport } = await wiredServer();
+    protocol.registerSubgraphPlanes(
+      null,
+      fakeNetwork({
+        sub: {
+          component: fakeSubgraph(
+            fakeNetwork({
+              inner: {
+                component: fakeSubgraph(fakeNetwork({})),
+                componentName: "test/Deep",
+              },
+            }),
+          ),
+          componentName: "test/Sub",
+        },
+        plain: {
+          component: { isSubgraph: () => false },
+          componentName: "math/Add",
+        },
+      }),
+    );
+    server.handleFrame(encodePlaneList(), "link-1");
+    const sent = wire(transport);
+    const list = decodePlaneListRes(sent[sent.length - 1].bytes);
+    const subgraphPlanes = list.entries.filter((e) => e.kind === "subgraph");
+    assert.equal(subgraphPlanes.length, 2);
+    const outer = subgraphPlanes.find((e) => e.nodeId === "sub");
+    assert.equal(outer.planeId, "sg/main/sub");
+    assert.equal(outer.parentPlane, null);
+    assert.equal(outer.componentName, "test/Sub");
+    assert.equal(outer.name, "test/Sub");
+    const inner = subgraphPlanes.find((e) => e.nodeId === "inner");
+    assert.equal(inner.planeId, "sg/sg/main/sub/inner");
+    assert.equal(inner.parentPlane, "sg/main/sub");
+    assert.equal(inner.componentName, "test/Deep");
+  });
+
+  it("reconciles: a rebuilt network drops planes for departed components", async () => {
+    const { server, protocol, transport } = await wiredServer();
+    const withSub = fakeNetwork({
+      sub: {
+        component: fakeSubgraph(fakeNetwork({})),
+        componentName: "test/Sub",
+      },
+    });
+    protocol.registerSubgraphPlanes(null, withSub);
+    // Rebuild without the subgraph node
+    protocol.registerSubgraphPlanes(null, fakeNetwork({}));
+    server.handleFrame(encodePlaneList(), "link-1");
+    const sent = wire(transport);
+    const list = decodePlaneListRes(sent[sent.length - 1].bytes);
+    assert.equal(list.entries.filter((e) => e.kind === "subgraph").length, 0);
+  });
+
+  it("rejects ops and syncs minting the reserved sg/ plane prefix", async () => {
+    const { server, transport } = await wiredServer();
+    server.handleFrame(
+      encodeCrdtUpdate({
+        planeId: "sg/main/sub",
+        clientId: "client-a",
+        logicalClock: 1,
+        opType: OP_TYPE.INSERT_NODE,
+        entityId: "node-9",
+        payload: { component: "math/Add" },
+      }),
+      "link-1",
+    );
+    server.handleFrame(encodeCrdtSyncReq("sg/main/sub", 0, {}), "link-1");
+    const sent = wire(transport);
+    const rejections = sent
+      .map((entry) => {
+        try {
+          return decodeOpRejected(entry.bytes);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+    assert.equal(rejections.length, 2);
+    assert.equal(rejections[0].rejectedCmd, CMD_CRDT_UPDATE);
+    assert.equal(rejections[1].rejectedCmd, CMD_CRDT_SYNC_REQ);
+    for (const rejection of rejections) {
+      assert.equal(rejection.detail.reason, REASON.UNSUPPORTED);
+      assert.match(rejection.detail.message, /sg\//);
+    }
+  });
+
+  it("rejects dropping a subgraph plane with 0x17", async () => {
+    const { server, protocol, transport } = await wiredServer();
+    protocol.registerSubgraphPlanes(
+      null,
+      fakeNetwork({
+        sub: {
+          component: fakeSubgraph(fakeNetwork({})),
+          componentName: "test/Sub",
+        },
+      }),
+    );
+    server.handleFrame(encodePlaneDrop("sg/main/sub"), "link-1");
+    const sent = wire(transport);
+    const rejection = decodeOpRejected(sent[sent.length - 1].bytes);
+    assert.equal(rejection.rejectedCmd, CMD_PLANE_DROP);
+    assert.equal(rejection.planeId, "sg/main/sub");
+    assert.equal(rejection.detail.reason, REASON.UNSUPPORTED);
+    assert.match(rejection.detail.message, /presence in the graph/);
+    // The plane survived the refused drop
+    server.handleFrame(encodePlaneList(), "link-1");
+    const list = decodePlaneListRes(wire(transport).at(-1).bytes);
+    assert.ok(
+      list.entries.some((e) => e.planeId === "sg/main/sub"),
+      "the subgraph plane survives a refused drop",
+    );
+  });
+
+  it("cascades subgraph descendants when an ephemeral plane drops", async () => {
+    const { server, protocol, transport } = await wiredServer();
+    // Materialize an ephemeral plane via an op
+    server.handleFrame(
+      encodeCrdtUpdate({
+        planeId: "spec-1",
+        clientId: "spec-runner",
+        logicalClock: 1,
+        opType: OP_TYPE.INSERT_NODE,
+        entityId: "pass",
+        payload: { component: "test/Pass" },
+      }),
+      "link-1",
+    );
+    // Register a subgraph plane under it, then drop the host
+    protocol.registerSubgraphPlanes(
+      "spec-1",
+      fakeNetwork({
+        sub: {
+          component: fakeSubgraph(fakeNetwork({})),
+          componentName: "test/Sub",
+        },
+      }),
+    );
+    server.handleFrame(encodePlaneDrop("spec-1"), "link-1");
+    server.handleFrame(encodePlaneList(), "link-1");
+    const sent = wire(transport);
+    const list = decodePlaneListRes(sent[sent.length - 1].bytes);
+    assert.equal(
+      list.entries.filter(
+        (e) => e.planeId === "spec-1" || e.kind === "subgraph",
+      ).length,
+      0,
+      "the ephemeral plane and its subgraph descendants are gone",
+    );
+  });
+
+  it("resolves subgraph planes by anchor for telemetry attribution", async () => {
+    const { protocol } = await wiredServer();
+    protocol.registerSubgraphPlanes(
+      null,
+      fakeNetwork({
+        sub: {
+          component: fakeSubgraph(
+            fakeNetwork({
+              inner: {
+                component: fakeSubgraph(fakeNetwork({})),
+                componentName: "test/Deep",
+              },
+            }),
+          ),
+          componentName: "test/Sub",
+        },
+      }),
+    );
+    assert.equal(protocol.subgraphPlane(null, "sub"), "sg/main/sub");
+    assert.equal(
+      protocol.subgraphPlane("sg/main/sub", "inner"),
+      "sg/sg/main/sub/inner",
+    );
+    assert.equal(protocol.subgraphPlane(null, "missing"), null);
   });
 });

@@ -178,20 +178,35 @@ describe("telemetry: subscriptions", () => {
 });
 
 describe("telemetry: event mapping", () => {
-  it("maps data packets to DATA events with raw payloads", async () => {
+  it("maps data packets to DATA events with the §7 envelope (update #42)", async () => {
     const { server, telemetry, transport, host } = await wiredServer();
     subscribe(server);
-    host.emit("ip", { id: "DATA -> ECHO()", type: "data", data: 42 });
+    host.emit("ip", {
+      id: "OUT -> IN",
+      type: "data",
+      data: 42,
+      socket: {
+        from: { process: { id: "node-a" }, port: "out" },
+        to: { process: { id: "node-b" }, port: "in" },
+      },
+    });
+    host.emit("ip", { id: "IIP -> IN", type: "data", data: 1 });
     telemetry.flushAll();
     assert.equal(wire(transport).length, 1);
     const decoded = decodeFlowtraceChunk(wire(transport)[0].bytes);
     assert.equal(decoded.cmd, CMD_FLOWTRACE_CHUNK);
     assert.equal(decoded.subId, "sub-1");
     assert.equal(decoded.events[0].eventType, EVENT_TYPE.DATA);
-    assert.equal(decoded.events[0].payload, 42);
+    assert.deepEqual(decoded.events[0].payload, [
+      ["node-a", "out"],
+      ["node-b", "in"],
+      42,
+    ]);
+    // A socket without a source (an IIP): the src ref is nil, not wrong
+    assert.deepEqual(decoded.events[1].payload, [null, null, 1]);
   });
 
-  it("maps brackets to group boundaries", async () => {
+  it("maps brackets to wire bracket events", async () => {
     const { server, telemetry, transport, host } = await wiredServer();
     subscribe(server);
     host.emit("ip", { type: "openBracket", data: "math" });
@@ -201,11 +216,13 @@ describe("telemetry: event mapping", () => {
     const decoded = decodeFlowtraceChunk(wire(transport)[0].bytes);
     assert.deepEqual(
       decoded.events.map((event) => event.eventType),
-      [EVENT_TYPE.BEGIN_GROUP, EVENT_TYPE.DATA, EVENT_TYPE.END_GROUP],
+      [EVENT_TYPE.BEGIN_BRACKET, EVENT_TYPE.DATA, EVENT_TYPE.END_BRACKET],
     );
+    // Group events keep their plain string payloads (§7); DATA envelopes
+    assert.deepEqual(decoded.events[1].payload, [null, null, 1]);
     assert.deepEqual(
-      decoded.events.map((event) => event.payload),
-      ["math", 1, "math"],
+      [decoded.events[0].payload, decoded.events[2].payload],
+      ["math", "math"],
     );
   });
 
@@ -258,8 +275,13 @@ describe("telemetry: event mapping", () => {
     host.emit("ip", { type: "data", data: 7 });
     telemetry.flushAll();
     const decoded = decodeFlowtraceChunk(wire(transport)[0].bytes);
-    assert.equal(decoded.events[0].payload, "<unserializable object>");
-    assert.equal(decoded.events[1].payload, 7);
+    // The frugalized value rides inside the envelope's third slot
+    assert.deepEqual(decoded.events[0].payload, [
+      null,
+      null,
+      "<unserializable object>",
+    ]);
+    assert.deepEqual(decoded.events[1].payload, [null, null, 7]);
   });
 
   it("delivers chunks to the subscribing context only", async () => {
@@ -349,7 +371,8 @@ describe("telemetry: real-engine integration", () => {
     const started = events.find((e) => e.eventType === EVENT_TYPE.LIFECYCLE);
     assert.equal(started?.payload, LIFECYCLE_CODE.START);
     const data = events.find((e) => e.eventType === EVENT_TYPE.DATA);
-    assert.equal(data?.payload, "hello");
+    // An IIP has no source: src nil, the target ref joins the topology
+    assert.deepEqual(data?.payload, [null, ["echo", "input"], "hello"]);
 
     await host.stop();
     telemetry.flushAll();

@@ -42,6 +42,27 @@ Core design principles:
   (MsgPack) arrays. Keyed dictionaries (JSON-RPC style) are banned to
   preserve radio airtime.
 
+Frame interpretation rules — how any receiver handles what it does not
+know. The protocol evolves additively without version bumps, so meeting
+an unrecognized code is ordinary, not exceptional, and subset runtimes
+make it the common case:
+
+- A command frame whose opcode the receiver does not recognize MUST be
+  answered with `0x17` carrying `REASON.UNKNOWN_COMMAND` (or
+  `REASON.MALFORMED` when the frame is not structurally decodable). The
+  link MUST NOT be torn down, and the frame MUST NOT be speculatively
+  decoded beyond the msgpack value boundary.
+- A command known to the protocol generation but outside the receiver's
+  registered surface — including a runtime→client opcode sent by a
+  client — MUST be answered with `0x17` carrying `REASON.UNSUPPORTED`.
+- A flowtrace event whose `event_type` the receiver does not recognize
+  MUST be skipped by walking the payload's msgpack value boundary
+  structurally, without interpretation. Every event payload is exactly
+  one self-delimiting msgpack value, so skipping is mandatory and cheap.
+- Unknown op types in `0x14` and unknown entity kinds: skip on receive
+  (convergence integrity outranks interpretation); reject with `0x17`
+  when the receiver is authoritative for the state.
+
 ## 2. Protocol versioning
 
 The protocol generation is a single unsigned integer, `PROTOCOL_VERSION = 2`,
@@ -93,6 +114,10 @@ app_data = msgpack([ protocol_version, destination_hash_raw16, node_name ])
 - `node_name` is a MsgPack string. The whole payload stays far under the
   128-byte announce app_data limit.
 
+The array is exactly three elements — receivers MUST reject any other
+length, and the shape MUST NOT be extended: feature advertisement travels
+in the `0x02` handshake's `runtime_metadata` (§4), not the announce.
+
 The destination aspect is the discovery filter in RNS; app_data is opaque
 binary. The aspect name is NOT versioned (e.g. `fbp.conn.v2` was rejected):
 versioning the aspect would force re-announcing under a new name on every
@@ -111,10 +136,25 @@ secrets.
 
 **`0x02` CMD_AUTH_RESPONSE** — unilaterally sent by the runtime immediately
 after Reticulum fires the `link_established` event with a verified identity.
-The runtime maps the identity against its local DACAR capability store.
+The runtime maps the identity against its DACAR capability plane and filters
+the result through its advertised technical surface: the granted mask is
+what the peer may exercise, and the advertised mask is the ceiling —
+together they tell the client whether a denial is a permission issue or an
+unsupported feature.[^ext35]
 
-- Format: `[0x02, protocol_version, capability_mask, limitation_code]`
-- Types: `[uint8, uint8, uint8, uint8]`
+- Format: `[0x02, protocol_version, granted_mask, limitation_code, runtime_metadata, advertised_mask]`
+- `runtime_metadata` identifies the runtime (kind, label, version) and is
+  free-form: clients MUST ignore keys they do not know. Well-known keys —
+  a SHOULD-registry so constrained runtimes can advertise their profile
+  without new wire surface:
+
+  | Key           | Values                        | Meaning                                            |
+  | ------------- | ----------------------------- | -------------------------------------------------- |
+  | `planes`      | `"main"` or `"ephemeral"`     | the plane surface the runtime serves (§5)          |
+  | `value_model` | a declared profile name       | the packet value model the engine enforces (§8)    |
+  | `source`      | boolean                       | whether `0x26`/`0x25` component source read/write is served |
+- Types: `[uint8, uint8, uint8, uint8, map, uint8]` — `runtime_metadata` is a free-form map identifying the runtime kind (e.g. `{ type: "noflo-nodejs", label: "...", version: "..." }`), the `runtime:runtime` equivalent from 1.x.
+- The `granted_mask` is what this peer may exercise; `advertised_mask` is the runtime's full technical surface.
 
 Capability mask (bitwise):
 
@@ -146,18 +186,104 @@ directions — runtime-initiated graph changes converge to connected clients
 via the op log, so the 1.x limitation of runtime→UI commands being ignored
 is structurally absent.
 
+**Plane addressing.** Every command in this block carries a `plane_id` —
+an identifier for the graph instance the command targets. `nil` addresses
+the runtime's main graph. Client-minted ids open **ephemeral planes**:
+the runtime materializes a fresh graph model on first sync/op addressed
+to the id, and the plane exists until explicitly dropped with `0x15` or
+the runtime restarts. Ephemeral planes are the remote fbp-spec runner's
+fixture mechanism — one plane per suite, cases run inside it, dropped
+after. Subgraph instances are anchored to their node id in the parent
+plane and are materialized as planes at network build:[^u42] the
+runtime registers them with deterministic `sg/<parent>/<node_id>` ids
+(`main` standing in for the nil parent), reconciling per build so the
+plane tree follows the component's presence in the built graph. The
+`sg/` prefix is runtime-reserved: client-minted ephemeral ids using it
+are rejected with `0x17` — the namespaces cannot collide. Their tree
+position is derivable from the parent chain in the `0x16` listing;
+lifecycle commands never target subgraph planes — they follow the
+parent.[^u28] A drop addressed to one is
+refused with `0x17`, and dropping an ephemeral plane removes its
+subgraph descendants.
+
+Constrained runtimes MAY serve the main plane only. A runtime advertising
+`planes: "main"` (§4) MUST answer `0x16` with only the main plane, and
+MUST answer every command addressed to a non-main plane with `0x17`
+carrying `REASON.UNSUPPORTED` (or `REASON.PERMISSION_DENIED` when the
+peer lacked the capability anyway). `LIFECYCLE_CTRL` with a nil plane_id
+works normally.
+
 **`0x10` CMD_CRDT_SYNC_REQ** — client requests state sync:
-`[0x10, epoch_id, { "client_a": 15 }]` (map of client → logical clock).
+`[0x10, plane_id, epoch_id, { "client_a": 15 }]` (map of client → logical clock; `plane_id` nil = main).
 
 **`0x11` CMD_CRDT_UP_TO_DATE** — epochs match; no delta transfer needed:
-`[0x11]`.
+`[0x11, plane_id, epoch_id]`. The reply names the plane and its epoch so
+an up-to-date client learns what it is synced to.[^u26]
 
 **`0x12` CMD_CRDT_STALE_EPOCH** — forces the client to fetch a baseline
 snapshot via the Reticulum Resource API:
-`[0x12, new_epoch_id, rns_resource_hash]`.
+`[0x12, plane_id, new_epoch_id, rns_resource_hash]`. The plane id names
+the plane the stale epoch belongs to. For ephemeral planes the baseline
+is whatever state the plane's model holds — the client built it from ops.
+The `rns_resource_hash` is a sentinel (`"ephemeral"` or `"empty"`) for
+planes whose state was built from ops rather than a Resource fetch —
+clients that receive a sentinel hash SHOULD skip the baseline fetch and
+re-sync from their own op log instead.
 
 **`0x14` CMD_CRDT_UPDATE** — positional graph operation:
-`[0x14, client_id, logical_clock, op_type, entity_id, payload]`.
+`[0x14, plane_id, client_id, logical_clock, op_type, entity_id, payload]`.
+
+**`0x15` CMD_PLANE_DROP** — drop an ephemeral plane:
+`[0x15, plane_id]`. Stops the plane's network if one is running and discards its state
+wholesale — the fbp-spec runner's one-command fixture teardown. The
+main plane is not droppable: nil is rejected. Subgraph planes follow
+their component's presence in the graph and are never dropped via a
+lifecycle command — a drop addressed to one is answered with `0x17`,
+and dropping an ephemeral plane removes its subgraph descendants with
+it. The runtime acknowledges the drop by echoing the
+frame to the requesting context only — other clients learn through
+telemetry, but only if the plane was ever started. Requires
+`LIFECYCLE_CTRL`.
+
+**`0x16` CMD_PLANE_LIST** — list the runtime's graph planes:
+request `[0x16]`; the runtime answers on the same opcode with
+`[0x16, [[plane_id, kind, parent_plane, node_id, component_name, name], ...]]`.
+Every running graph instance is a plane — the main graph, each subgraph
+instance anchored to its node id, and client-minted ephemera. The
+component name resolves the plane to its catalog definition. Requires
+`GRAPH_READ`.
+
+**`0x17` CMD_OP_REJECTED** — the runtime's explicit "no":
+`[0x17, rejected_cmd, plane_id, detail]`. Permission denials per plane,
+Dacar-evaluation refusals, and structurally-rejected graph operations
+alike. For rejected `0x14` operations the detail carries
+`{ client_id, logical_clock, entity_id, reason }` (reason free-form) so
+the client can revert the op in its mirror and the changeset model
+holds. For every other refused command the detail carries
+`{ reason: <code>, message? }` — `reason` is a code from the registry
+below, `message` optional human text. Sent runtime → client whenever an
+operation is refused — silence never carries semantics (the `0x21`
+rationale, generalized). Always deliverable.
+
+Reason codes — why a command could not be served. Values mirror the
+`0x02` limitation codes where the semantics overlap; the registry is
+additive (new codes do not bump the protocol version), and clients MUST
+Treat unknown codes as `0x00 UNSPECIFIED`:
+
+| Code   | Reason                 | Meaning                                                             |
+| ------ | ---------------------- | ------------------------------------------------------------------- |
+| `0x00` | `UNSPECIFIED`          | fallback — discouraged                                              |
+| `0x01` | `HARDWARE_CONSTRAINED` | the hardware cannot serve this                                       |
+| `0x02` | `PERMISSION_DENIED`    | the capability grant does not cover this                             |
+| `0x03` | `LINK_SATURATED`       | link or runtime saturated                                            |
+| `0x04` | `CONCURRENCY_LOCK`     | another operation holds the runtime busy                             |
+| `0x05` | `UNSUPPORTED`          | known to the protocol generation but outside this runtime's declared surface |
+| `0x06` | `UNKNOWN_COMMAND`      | opcode not recognized by this runtime                                |
+| `0x07` | `MALFORMED`            | frame failed structural decode                                       |
+| `0x08` | `PAYLOAD_UNSUPPORTED`  | payload value outside the runtime's declared value model             |
+| `0x09` | `STUB`                 | the targeted component is a declared stub                            |
+| `0x0a` | `INVALID_STATE`        | valid command, runtime state cannot execute it                        |
+| `0x0b` | `UNKNOWN_TARGET`       | a referenced object does not exist                                   |
 
 Op types (`op_type`) — the mapped projection of the changeset reference
 model is total: every structural entity kind of the graph model has an
@@ -168,7 +294,7 @@ tombstone + insert:
 | ------ | -------------------------------------------------- | ------------------------------------------------------ |
 | `0x01` | Insert node                                         | `{ component, metadata? }`                              |
 | `0x02` | Insert edge                                         | `{ from, to, metadata? }` — port refs `{ node, port, index? }` |
-| `0x03` | Insert IIP                                          | `{ to, data, metadata? }`                               |
+| `0x03` | Insert IIP                                          | `{ to, data, metadata? }` (data is value-model-checked, §8) |
 | `0x04` | Tombstone                                           | nil — kind resolved from the entity's registration      |
 | `0x05` | UI metadata (dropped by constrained nodes)          | the metadata map; nil `entity_id` = graph-level         |
 | `0x06` | Insert export                                       | `{ direction, public, internal, metadata? }`            |
@@ -193,7 +319,7 @@ Edge-level high-water marks travel as edge metadata inside the `0x14`
 payload (the `highWaterMark` field of the native graph model's edge
 metadata), so inserts carry them and a change projects to tombstone +
 insert per the mapping above — modify stays a wire-level encoding detail,
-never the semantic unit (WD #4 update #8). The runtime-global high-water
+never the semantic unit.[^u8] The runtime-global high-water
 mark is runtime configuration, not graph state, and is set with `0x46
 CMD_HWM_SET` (§8).
 
@@ -247,6 +373,12 @@ bytes, clients SHOULD pass a Reticulum Resource hash instead of a raw string.
 A source write to a previously stub-only entry implements it while the
 signature stays unchanged — source and signature are orthogonal.
 
+**`0x26` CMD_COMP_SOURCE** — read a component's source from the runtime:
+request `[0x26, component_name]`; the runtime answers on the same opcode with
+`[0x26, component_name, source]` — nil source when the runtime holds none
+(native or hardware components). The read counterpart of `0x25`, serving
+embedded-device source pull and project sync-back.[^ext35] Requires `COMPONENT_READ`.
+
 **`0x27` CMD_COMP_INSTALL_REQ** — dynamic ES module injection via HTTP, npm,
 or RNS: `[0x27, package_uri]`. Third-party libraries MUST be compatible with
 EUPL-1.2. With the ecosystem component catalog (WD #26), the `package_uri`
@@ -275,10 +407,10 @@ work (WD #43 owns byte-stable canonical serialization; round-trip
 byte-identity is a hard test requirement there). A serialization change
 breaking byte-stability is protocol-visible.
 
-**Open** (before freeze): the encoding for stub-raised
-`StubNotImplementedError` — classifiable as unimplemented rather than
-indistinguishable from genuine component failures — whether as a convention
-on the `0x04 ERROR` payload or its own signal (WD #4 update #9).
+Stub-raised errors are classified, not string-matched: an engine-raised
+failure from a declared stub streams as `0x09 STUB_ERROR` (below), and a
+command refused because its target is a stub carries the `0x09 STUB`
+reason code (§5's `0x17` reason registry).[^u9]
 
 ## 7. Live streaming telemetry (0x30 – 0x3F)
 
@@ -295,19 +427,56 @@ flush interval is a request; the runtime's actual flush cadence is its
 physical-policy decision.
 
 **`0x32` CMD_FLOWTRACE_CHUNK** — buffered execution trace:
-`[0x32, sub_id, base_timestamp_ms, [trace_events_array]]`.
+`[0x32, sub_id, plane_id, base_timestamp_ms, [trace_events_array]]` — the
+plane_id attributes the whole chunk to the graph instance it was recorded
+on; nil for the main plane. Attribution uses compact ids, never
+names — the frugal-path rule.[^u32]
 
 Each item in `trace_events_array` is a tuple
 `[time_delta_ms, event_type, payload]`, where `time_delta_ms` is a `uint32`
-offset from `base_timestamp_ms`.
+
+**Clock provenance.** Timestamp fields in this protocol — `0x32`'s
+`base_timestamp_ms` with its per-event deltas, the LXMF drop `timestamp`
+(§9), and the tracefile snapshot `timestamp_ms` (§10) — carry the
+*recording runtime's* clock, and its provenance is runtime policy. A
+mesh-isolated microcontroller has no RTC and no NTP; monotonic-derived
+counters (for example a hybrid logical clock) are conforming. Consumers
+MUST NOT assume cross-runtime UTC alignment: timestamps from different
+runtimes are comparable only per runtime. `uptime_ms` in `0x48` (§8) is
+monotonic by definition.
+
+**DATA event payload envelope.** For `0x01 DATA` events, the payload is
+the positional tuple `[src, tgt, value]` — where each ref is
+`[node_id, port, index?]` or nil (an IIP has no source; an unconnected
+outport has no target). `node_id` is the graph model's entity id within
+the attributed plane — the exact identifier the `0x14` ops use, so
+consumers join events against the frame-1 topology without name
+resolution. The envelope is the payload on every producer path — live
+telemetry and tracefile alike.[^u42] Bracket events keep their
+plain label payloads — at the protocol level `0x02`/`0x03` are the
+bracket/stream boundary markers, produced from the engine's
+`openBracket`/`closeBracket` IPs (the flowtrace-lineage
+`begingroup`/`endgroup` naming lives only in the recorder's JSON input
+format).[^w23] Nested subgraph instances are their own planes
+(see updates #33/#42):[^u33u42] events sourced inside one are attributed to the
+subgraph's plane — the runtime resolves the engine's internal subgraph
+path through the plane registry, and that path never travels the wire.
+The chunk's plane_id anchors the tree position through the `0x16`
+parent chain, so no subgraph path arrays travel per event.
+
+**Connection framing.** `EVENT_TYPE` gains `0x0b CONNECTION_OPEN` and
+`0x0c CONNECTION_CLOSE` — the framing 1.x UIs animate edge activity with.
+Payload: `[src_node, src_port, tgt_node, tgt_port]`.
+Each item's `time_delta_ms` is a `uint32` offset from the chunk's
+`base_timestamp_ms`.
 
 Unified event types:
 
 | Code   | Event         | Payload                                   |
 | ------ | ------------- | ----------------------------------------- |
-| `0x01` | `DATA`        | raw value                                  |
-| `0x02` | `BEGIN_GROUP` | group string                               |
-| `0x03` | `END_GROUP`   | group string                               |
+| `0x01` | `DATA`        | `[src, tgt, value]` envelope               |
+| `0x02` | `BEGIN_BRACKET` | bracket label (stream opens)             |
+| `0x03` | `END_BRACKET` | bracket label (stream closes)              |
 | `0x04` | `ERROR`       | exception string                           |
 | `0x05` | `CONSOLE`     | `[stream_id, log_string]`                  |
 | `0x06` | `LIFECYCLE`   | transition code (uint8)                    |
@@ -327,7 +496,7 @@ Lifecycle transition codes (`0x06 LIFECYCLE` payloads):
 | `0x06` | Resumed            |
 
 A `FAILED` code encodes a *failed* transition — a rejected `start()` leaves
-the runtime an honest message to send (WD #4 update #1). UIs render the
+the runtime an honest message to send.[^u1] UIs render the
 transition as errored from the code itself, without parsing exception
 strings; the detail travels in an accompanying `0x04 ERROR` flowtrace event,
 frugalized per local policy.
@@ -343,8 +512,8 @@ A `STUB_ERROR` event is the canonical classification for errors raised by
 stub components — the `StubNotImplementedError` of the StubComponent
 contract (WD #19): the payload is the exception string, exactly as in
 `ERROR`, but the event type itself marks the error as *unimplemented*
-rather than a genuine component failure, with no string-parsing convention
-(WD #4 update #9). Runtimes MAY additionally record it in the LXMF
+rather than a genuine component failure, with no string-parsing convention.[^u9]
+Runtimes MAY additionally record it in the LXMF
 `[errors]` snapshot field (§9).
 
 Visual-state format types:
@@ -363,7 +532,7 @@ admitted in-flight packets and `desired_size` is the live remaining capacity
 subscription's flush cadence — the runtime's physical-policy decision — and
 the sample's delta places it at flush time. Backpressure is normal
 operation, not a fault: the event lives on the data channel, never an error
-channel (WD #4 update #9). The consumer is the noflo-ui high-water-mark
+channel.[^u9] The consumer is the noflo-ui high-water-mark
 visual vocabulary (route color/age).
 
 ## 8. Execution control & debugging (0x40 – 0x4F)
@@ -380,7 +549,9 @@ processing of queued events — in-flight packets complete and further
 packets keep buffering under the runtime's backpressure policy; buffering
 depth is physics, not protocol.
 
-**`0x40` CMD_RUN_CTRL** — run control: `[0x40, action]`.
+**`0x40` CMD_RUN_CTRL** — run control: `[0x40, action, plane_id?]`. The
+optional plane_id starts/stops an ephemeral plane's network — the program
+tree stays main-only, ephemera are not part of it;[^u28] nil addresses the main plane.
 
 | Code   | Action                                                  |
 | ------ | ------------------------------------------------------- |
@@ -395,7 +566,7 @@ paused; the step's own flowtrace events show what ran. Start and stop are
 the lifecycle control the `LIFECYCLE_CTRL` capability names: a start that
 the runtime rejects (component startup failure, graph error) surfaces as a
 `0x04 FAILED` lifecycle event with the detail in an accompanying `0x04
-ERROR` event (WD #4 update #1), not as silence.
+ERROR` event,[^u1] not as silence.
 **`0x41` CMD_BREAKPOINT_SET** — set a data breakpoint:
 `[0x41, breakpoint_id, node_id, port]`. The runtime pauses when a packet
 arrives at the node — at any triggering inport when `port` is nil,
@@ -427,7 +598,7 @@ process listing below.
 Each entry is the positional `[component, kind, state]` tuple: the component
 the node resolves to, that component's declared kind — the shared vocabulary
 of §6, so clients never infer stub-ness by joining component names against
-their own registries (WD #4 update #9) — and the node's execution state:
+their own registries[^u9] — and the node's execution state:
 
 | Code   | State     |
 | ------ | --------- |
@@ -448,6 +619,34 @@ live network; there is no ack frame, and clients observe the effective
 per-edge outcome through `0x0a EDGE_CAPACITY` samples (§7), which reflect
 the hierarchy's resolution. Runtime configuration, not graph state: it does
 not travel the CRDT op log.
+
+**`0x47` CMD_PACKET_SEND** — send one packet into a running network's
+inport: `[0x47, plane_id, port, payload]`. The plane addresses the graph
+instance (nil = main); the port is an inport name — an exported port of
+the main plane, or an inport of an ephemeral plane's fixture. One command
+serves interactive packet injection, the remote fbp-spec runner's
+sequenced case inputs, and the runtime-as-remote-component pattern.[^u36]
+Requires `LIFECYCLE_CTRL`.
+
+Payload fidelity — engines declare a value model, and clients MUST
+respect it. A packet value, IIP `data` value, or flowtrace `DATA` value
+outside the runtime's declared value model (§4 `runtime_metadata`
+`value_model`) MUST NOT crash the runtime or corrupt network state: a
+command context (`0x47`) MUST be answered with `0x17` carrying
+`REASON.PAYLOAD_UNSUPPORTED`, and a structurally-invalid IIP insert MUST
+be rejected the same way. Runtime-generated values are in-model by
+construction, so telemetry needs no gate. Example profile: a
+MicroFlo-class engine's value model is `bang, boolean, int, float,
+buffer, bracket` — no strings, objects, or arrays.
+
+**`0x48` CMD_GET_STATUS** — query the current run state: request
+`[0x48]`; the runtime answers on the same opcode with
+`[0x48, epoch_id, run_state, uptime_ms, advertised_mask]` — the main
+plane's epoch, the run state (`0x00` STOPPED, `0x01` RUNNING, `0x02`
+PAUSED, `0x03` FAILED), the network's uptime in milliseconds, and the
+runtime's full advertised capability surface. The `getstatus` equivalent
+— late subscribers and monitors ask instead of inferring from lifecycle
+events they never saw. Requires `GRAPH_READ`.
 
 ## 9. Offline LXMF store & forward
 
@@ -479,3 +678,81 @@ SHOULD expose a separate endpoint emitting standard Influx line protocol
 metrics. Tools like RNMon can scrape this over isolated Reticulum links,
 keeping host-level infrastructure data entirely separate from the FBP canvas
 telemetry.
+
+## 12. Deliberate omissions
+
+The following 1.x capabilities are deliberately absent from this protocol,
+with the design reasons:
+
+* **Multi-graph per destination** — the plane model (§5) replaces 1.x's
+  `graph_id`-on-everything: one plane per graph instance, addressed by the
+  additive `plane_id` fields. Multiple graphs per *process* are supported
+  through multiple runtime destinations sharing one Reticulum identity.
+* **Remote-subgraph packets** (1.x `runtime:packet` on subgraph exported
+  ports) — planned as a follow-on to `0x47 CMD_PACKET_SEND` (§8): the
+  runtime-as-remote-component pattern where packets flow through exported
+  ports. The plane-addressed injection and the telemetry envelope are the
+  prerequisites.
+* **`network:persist`** — superseded by CRDT convergence: the plane's state
+  is the authority, and persistence is a host-side application concern over
+  the converged state (the changeset-era autoSave work). There is nothing
+  for a wire command to flash that convergence does not already make local.
+* **Port schema URIs** — datatype/schema handling needs end-to-end design
+  from `noflo.BasePort` through the protocol's port definitions to
+  noflo-ui's rendering. The RNS resource-hash variant is one candidate
+  shape. The flat `values`/`default` port options are **not** carried on
+  the wire: they stay publish-time manifest data, superseded on the wire
+  by the schema design's inline enums.[^w37]
+* **`network:error.stack`** — the `0x04 ERROR` payload is the exception
+  string (frugalized per local policy); stack traces are not carried.
+* **`previewurl` output type** — visual output preview is UI territory,
+  not wire protocol.
+
+## Notes
+
+The normative content of this specification is self-contained above. These
+notes point into the design history on the noflo project board for readers
+who want the rationale and discussion behind a rule; nothing normative
+lives in them.
+
+[^ext35]: External review round, work document #4 update #35 — the
+  `allCapabilities` vs `capabilities` distinction; the `0x26` source read.
+
+[^u1]: Work document #4, update #1 — lifecycle transition codes and the
+  `FAILED` encoding with its accompanying `0x04 ERROR` detail event.
+
+[^u8]: Work document #4, update #8 — modify projects to tombstone + insert
+  at the wire level; modify is never the semantic unit.
+
+[^u9]: Work document #4, update #9 — stub-error classification
+  (`0x09 STUB_ERROR`), edge-capacity telemetry, the process-list declared
+  kinds, and the high-water-mark edge field.
+
+[^u26]: Work document #4, update #26 — the `0x11` reply names the plane and
+  epoch so up-to-date clients learn what they are synced to.
+
+[^u28]: Work document #4, update #28 — the plane lifecycle matrix: the
+  program tree stays main-only; ephemera are not part of it; subgraph
+  planes follow their component's presence in the graph.
+
+[^u32]: Work document #4, update #32 — plane attribution and the frugal
+  rule: compact ids per event, never names.
+
+[^u33u42]: Work document #4, updates #33 and #42 — one identifier per
+  graph instance (subgraph planes in the plane tree), and the runtime-side
+  subgraph plane registration with effective-plane telemetry attribution.
+
+[^u36]: Work document #4, update #36 — the runtime-as-remote-component
+  pattern behind `0x47`.
+
+[^u42]: Work document #4, update #42 — subgraph planes at the runtime;
+  effective-plane telemetry attribution; the DATA envelope on every
+  producer path; bracket-event vocabulary naming.
+
+[^w23]: Work document #23 — the flowtrace recorder JSON format (1.x
+  lineage); its `begingroup`/`endgroup` event names are input vocabulary to
+  the tracefile projection, not wire names.
+
+[^w37]: Work document #37 §3.4 — the end-to-end schema design (JSON
+  Schemas: ports, metadata, and forms) that supersedes the flat
+  `values`/`default` port options.

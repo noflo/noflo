@@ -78,6 +78,46 @@ export const LIMITATION = {
 };
 
 /**
+ * Reason codes for `0x17 CMD_OP_REJECTED` rejections: the per-command
+ * counterpart of the {@link LIMITATION} codes a link is initialized with.
+ * For rejected `0x14` operations the detail carries the op identity triple
+ * and a free-form reason; every other rejected command answers
+ * `detail: { reason: <REASON>, message?: string }` — `reason` required,
+ * `message` optional human text. Values mirror the limitation codes where
+ * the semantics overlap; the rest classify why a command could not be
+ * served by this runtime. Additive: new codes do not bump
+ * `PROTOCOL_VERSION`.
+ *
+ * @type {Record<string, number>}
+ */
+export const REASON = {
+  /** Fallback — discouraged: prefer a specific code. */
+  UNSPECIFIED: 0x00,
+  /** The runtime's hardware cannot serve this (same meaning as the `0x02` limitation code). */
+  HARDWARE_CONSTRAINED: 0x01,
+  /** The peer's capability grant does not cover this (same meaning as the `0x02` limitation code). */
+  PERMISSION_DENIED: 0x02,
+  /** The link or runtime is saturated (same meaning as the `0x02` limitation code). */
+  LINK_SATURATED: 0x03,
+  /** Another operation holds the runtime busy (same meaning as the `0x02` limitation code). */
+  CONCURRENCY_LOCK: 0x04,
+  /** Known to the protocol generation but outside this runtime's declared surface — e.g. no ephemeral planes, no component writes, a reserved identifier. */
+  UNSUPPORTED: 0x05,
+  /** The opcode is not recognized by this runtime. */
+  UNKNOWN_COMMAND: 0x06,
+  /** The frame failed structural decode. */
+  MALFORMED: 0x07,
+  /** A payload value sits outside the runtime's declared value model. */
+  PAYLOAD_UNSUPPORTED: 0x08,
+  /** The targeted component is a declared stub without implementation. */
+  STUB: 0x09,
+  /** The command is valid but the runtime's state cannot execute it — e.g. packet send before the plane's network is built. */
+  INVALID_STATE: 0x0a,
+  /** A referenced object does not exist — unknown plane, unknown exported port. */
+  UNKNOWN_TARGET: 0x0b,
+};
+
+/**
  * Compose a capability mask from {@link CAPABILITY} names. Unknown names
  * fail loudly: a typo'd capability would otherwise silently narrow the
  * advertised mask.
@@ -130,6 +170,63 @@ export const CMD_CRDT_STALE_EPOCH = 0x12;
  * @type {number}
  */
 export const CMD_CRDT_UPDATE = 0x14;
+
+/**
+ * Drop an ephemeral graph plane:
+ * `[0x15, plane_id]` (work document #4 update #27). Stops the plane's
+ * network if one is running and discards its state wholesale — the fbp-spec
+ * runner's one-command fixture teardown. The main plane is not droppable:
+ * nil is rejected, and subgraph planes follow their component's presence in
+ * the graph (update #28's lifecycle matrix). Requires `LIFECYCLE_CTRL`.
+ *
+ * @type {number}
+ */
+export const CMD_PLANE_DROP = 0x15;
+
+/**
+ * List the runtime's graph planes: request `[0x16]`; the runtime answers
+ * on the same opcode with
+ * `[0x16, [[plane_id, kind, parent_plane, node_id, component_name, name], ...]]`
+ * (work document #4 updates #30/#33). Every running graph instance is a
+ * plane — the main graph, each subgraph instance anchored to its node id,
+ * and client-minted ephemera — and this listing is the one map of the tree:
+ * `{ plane_id, kind, parent_plane, node_id, component_name, name }` tuples,
+ * with the component name resolving the plane to its catalog definition and
+ * `name` carrying the client-minted label for ephemera. Requires
+ * `GRAPH_READ`.
+ *
+ * @type {number}
+ */
+export const CMD_PLANE_LIST = 0x16;
+
+/**
+ * Reject a command or operation:
+ * `[0x17, rejected_cmd, plane_id, detail]` (work document #4 updates
+ * #34/#35). The runtime's explicit "no" — permission denials per plane,
+ * Dacar-evaluation rejections, and structurally-rejected graph operations
+ * alike, because silence never carries semantics (the `0x21` rationale).
+ * `detail` is a MsgPack value: for rejected `0x14` operations it carries
+ * `{ client_id, logical_clock, entity_id, reason }` so the client can
+ * revert the op in its mirror and the changeset model holds; for other
+ * commands it carries `{ reason, ... }`. Requires nothing: rejections are
+ * always deliverable.
+ *
+ * @type {number}
+ */
+export const CMD_OP_REJECTED = 0x17;
+
+/**
+ * Kinds of graph planes in the `0x16` listing (work document #4 update
+ * #28): the running main graph, subgraph instances anchored to their node
+ * ids, and client-minted ephemeral fixtures.
+ *
+ * @type {Record<string, string>}
+ */
+export const PLANE_KIND = {
+  MAIN: "main",
+  SUBGRAPH: "subgraph",
+  EPHEMERAL: "ephemeral",
+};
 
 /**
  * `0x14` op types. Per update #8 this block is an explicitly-mapped
@@ -233,6 +330,18 @@ export const CMD_COMP_WRITE = 0x25;
  *
  * @type {number}
  */
+/**
+ * Read a component's source from the runtime:
+ * request `[0x26, component_name]`; the runtime answers on the same opcode
+ * with `[0x26, component_name, source]` — nil source when the runtime holds
+ * no source for the component (external review, update #35: the read
+ * counterpart of `0x25`; pulls source from embedded devices, syncs a
+ * project back). Requires `COMPONENT_READ`.
+ *
+ * @type {number}
+ */
+export const CMD_COMP_SOURCE = 0x26;
+
 export const CMD_COMP_INSTALL_REQ = 0x27;
 
 /**
@@ -281,8 +390,8 @@ export const CMD_FLOWTRACE_CHUNK = 0x32;
  */
 export const EVENT_TYPE = {
   DATA: 0x01,
-  BEGIN_GROUP: 0x02,
-  END_GROUP: 0x03,
+  BEGIN_BRACKET: 0x02,
+  END_BRACKET: 0x03,
   ERROR: 0x04,
   CONSOLE: 0x05,
   LIFECYCLE: 0x06,
@@ -315,6 +424,18 @@ export const EVENT_TYPE = {
    * error (work document #4 update #9).
    */
   EDGE_CAPACITY: 0x0a,
+  /**
+   * A connection opened: packets may now flow on the edge — the framing
+   * 1.x UIs animate edge activity with (external review, update #35 point:
+   * connection events). The payload is the positional tuple
+   * `[src_node, src_port, tgt_node, tgt_port]`.
+   */
+  CONNECTION_OPEN: 0x0b,
+  /**
+   * A connection closed: the edge no longer carries packets. Payload as in
+   * `0x0b CONNECTION_OPEN`.
+   */
+  CONNECTION_CLOSE: 0x0c,
 };
 
 /**
@@ -469,6 +590,48 @@ export const EXECUTION_STATE = {
  * @type {number}
  */
 export const CMD_HWM_SET = 0x46;
+
+/**
+ * Send one packet into a running network's inport:
+ * `[0x47, plane_id, port, payload]`. The plane addresses the graph instance
+ * (nil = the main graph); the port is an inport name — an exported port of
+ * the main plane, or an inport of an ephemeral plane's fixture. The same
+ * command serves interactive packet injection and the remote fbp-spec
+ * runner's sequenced case inputs, and makes a runtime usable as a remote
+ * component in another network (work document #4 update #36). Requires
+ * `LIFECYCLE_CTRL`.
+ *
+ * @type {number}
+ */
+export const CMD_PACKET_SEND = 0x47;
+
+/**
+ * Query the runtime's current run state:
+ * request `[0x48]`; the runtime answers on the same opcode with
+ * `[0x48, epoch_id, run_state, uptime_ms, advertised_mask]` — the epoch of
+ * the main plane, the {@link RUN_STATE}, the network's uptime in
+ * milliseconds, and the runtime's full advertised capability surface (the
+ * ceiling the peer's `0x02` granted mask was filtered through; the
+ * external-review `allCapabilities` vs `capabilities` distinction).
+ * Requires `GRAPH_READ`.
+ *
+ * @type {number}
+ */
+export const CMD_GET_STATUS = 0x48;
+
+/**
+ * Run states of the `0x48` status reply, in `LIFECYCLE_CODE` vocabulary:
+ * a network that never started is `STOPPED`; a rejected start reports
+ * `FAILED` until the next attempt.
+ *
+ * @type {Record<string, number>}
+ */
+export const RUN_STATE = {
+  STOPPED: 0x00,
+  RUNNING: 0x01,
+  PAUSED: 0x02,
+  FAILED: 0x03,
+};
 
 // --- Streamable trace file format ---
 

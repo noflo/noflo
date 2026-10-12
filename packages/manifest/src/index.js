@@ -221,6 +221,8 @@ function harvestPorts(ports) {
       description: options.description ?? null,
       required: Boolean(options.required),
       control: Boolean(options.control),
+      values: Array.isArray(options.values) ? options.values : null,
+      default: options.default ?? null,
     };
   });
 }

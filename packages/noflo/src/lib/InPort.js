@@ -46,6 +46,27 @@ export default class InPort extends BasePort {
     if (opts.triggering == null) {
       opts.triggering = true;
     }
+    // Accepted-values enumeration: advisory metadata for tooling — noflo-ui
+    // renders value pickers, the manifest and the runtime protocol publish
+    // it. Structurally validated so a malformed declaration fails loudly at
+    // component load.
+    if (opts.values !== undefined && !Array.isArray(opts.values)) {
+      throw new Error(
+        "InPort option 'values' must be an array of accepted values",
+      );
+    }
+    // The default value the port carries when the graph leaves it
+    // unconfigured; when an enumeration is present, the default must be one
+    // of the accepted values.
+    if (
+      opts.values !== undefined &&
+      opts.default !== undefined &&
+      !opts.values.includes(opts.default)
+    ) {
+      throw new Error(
+        "InPort option 'default' must be one of the declared 'values'",
+      );
+    }
 
     super(opts);
 

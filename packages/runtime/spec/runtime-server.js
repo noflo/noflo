@@ -17,6 +17,7 @@ import {
   CMD_CRDT_UPDATE,
   CMD_RUN_CTRL,
   decodeAuthResponse,
+  decodeOpRejected,
   encodeAuthResponse,
   encodeCompInstallReq,
   encodeCompSyncReq,
@@ -26,8 +27,10 @@ import {
   LIMITATION,
   PROTOCOL_VERSION,
   ProtocolError,
+  REASON,
   RUN_ACTION,
 } from "@noflo/fbp-protocol";
+import { MsgPack } from "@reticulum/core";
 import { capabilitiesMask, RuntimeServer } from "../src/index.js";
 import { staticPolicy } from "./policy.js";
 
@@ -115,6 +118,8 @@ describe("RuntimeServer auth", () => {
           protocolVersion: PROTOCOL_VERSION,
           capabilityMask: 0xff,
           limitationCode: LIMITATION.FULL_ACCESS,
+          runtimeMetadata: server.runtimeMetadata,
+          advertisedMask: server.capabilityMask,
         }),
       ],
     );
@@ -264,7 +269,7 @@ describe("RuntimeServer frame routing", () => {
       seen.push({ decoded, context });
     });
     await server.authorize("link-1", "test-identity");
-    server.handleFrame(encodeCrdtSyncReq(1, { a: 1 }), "link-1");
+    server.handleFrame(encodeCrdtSyncReq(null, 1, { a: 1 }), "link-1");
     assert.equal(seen.length, 1);
     assert.equal(seen[0].decoded.cmd, CMD_CRDT_SYNC_REQ);
     assert.equal(seen[0].decoded.epochId, 1);
@@ -402,7 +407,7 @@ describe("RuntimeServer frame routing", () => {
       dropped.push(event.detail),
     );
     await server.authorize("denied-link", "test-identity");
-    server.handleFrame(encodeCrdtSyncReq("0000", {}), "denied-link");
+    server.handleFrame(encodeCrdtSyncReq(null, "0000", {}), "denied-link");
     assert.equal(handled.length, 0);
     assert.equal(dropped.length, 1);
     assert.equal(dropped[0].required, CAPABILITY.GRAPH_READ);
@@ -415,7 +420,7 @@ describe("RuntimeServer frame routing", () => {
     });
     open.registerHandler(CMD_CRDT_SYNC_REQ, (decoded) => handled.push(decoded));
     await open.authorize("reader-link", "reader-identity");
-    open.handleFrame(encodeCrdtSyncReq("0000", {}), "reader-link");
+    open.handleFrame(encodeCrdtSyncReq(null, "0000", {}), "reader-link");
     assert.equal(handled.length, 1);
   });
 
@@ -501,7 +506,7 @@ describe("RuntimeServer frame routing", () => {
       throw new Error("handler blew up");
     });
     await server.authorize("link-1", "test-identity");
-    server.handleFrame(encodeCrdtSyncReq(1, { a: 1 }), "link-1");
+    server.handleFrame(encodeCrdtSyncReq(null, 1, { a: 1 }), "link-1");
     assert.equal(errors.length, 1);
     assert.equal(errors[0].error.message, "handler blew up");
   });
@@ -515,6 +520,61 @@ describe("RuntimeServer frame routing", () => {
  * @returns {void}
  */
 function assertAuthFrameShape(bytes) {
-  assert.equal(bytes[0], 0x94); // fixarray(4)
+  assert.equal(bytes[0], 0x96); // fixarray(6)
   assert.equal(bytes[1], 0x02); // CMD_AUTH_RESPONSE
 }
+
+describe("frame interpretation rules (update #43)", () => {
+  /** A bare server with one registered handler and a capturing send. */
+  function wired() {
+    const log = { sent: [] };
+    const server = new RuntimeServer({
+      capabilityPolicy: staticPolicy(),
+      send: (bytes, context) => log.sent.push({ bytes, context }),
+    });
+    server.registerHandler(CMD_CRDT_SYNC_REQ, () => {});
+    return { server, log };
+  }
+
+  it("answers an unrecognized opcode with 0x17 UNKNOWN_COMMAND and keeps the link", async () => {
+    const { server, log } = wired();
+    await server.authorize("link-1", "test-identity");
+    // 0x7f is not a command code in this protocol generation
+    server.handleFrame(MsgPack.encode([0x7f, "payload"]), "link-1");
+    const rejection = decodeOpRejected(log.sent.at(-1).bytes);
+    assert.equal(rejection.rejectedCmd, 0x7f);
+    assert.equal(rejection.detail.reason, REASON.UNKNOWN_COMMAND);
+    // The link MUST NOT be torn down: the next valid frame is served.
+    server.handleFrame(encodeCrdtSyncReq(null, 1, {}), "link-1");
+    assert.ok(log.sent.length >= 2, "the link survives unknown opcodes");
+  });
+
+  it("answers a structurally-undecodable frame with 0x17 MALFORMED", async () => {
+    const { server, log } = wired();
+    await server.authorize("link-1", "test-identity");
+    // A fixint is a valid msgpack value but not a command frame
+    server.handleFrame(MsgPack.encode(0x2a), "link-1");
+    const rejection = decodeOpRejected(log.sent.at(-1).bytes);
+    assert.equal(rejection.rejectedCmd, 0);
+    assert.equal(rejection.detail.reason, REASON.MALFORMED);
+  });
+
+  it("answers a known runtime→client opcode sent by a client with 0x17 UNSUPPORTED", async () => {
+    const { server, log } = wired();
+    await server.authorize("link-1", "test-identity");
+    // 0x02 AUTH_RESPONSE travels runtime → client only; a client sending
+    // it is direction misuse, not an unknown command.
+    server.handleFrame(
+      encodeAuthResponse({
+        protocolVersion: PROTOCOL_VERSION,
+        capabilityMask: 0,
+        limitationCode: LIMITATION.FULL_ACCESS,
+        advertisedMask: 0,
+      }),
+      "link-1",
+    );
+    const rejection = decodeOpRejected(log.sent.at(-1).bytes);
+    assert.equal(rejection.rejectedCmd, 0x02);
+    assert.equal(rejection.detail.reason, REASON.UNSUPPORTED);
+  });
+});
