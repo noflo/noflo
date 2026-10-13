@@ -51,6 +51,7 @@ export {
   decodeCrdtStaleEpoch,
   decodeCrdtUpdate,
   decodeCrdtUpToDate,
+  decodeFlowtraceChunk,
   decodePlaneListRes,
   encodeCompManifest,
   encodeCompSyncReq,
@@ -60,10 +61,12 @@ export {
   encodeCrdtUpToDate,
   encodePlaneList,
   encodePlaneListRes,
+  encodePubsubSub,
   PROTOCOL_VERSION,
 } from "@noflo/fbp-protocol";
 export { ExecutionClient, PROCESS_ACTIONS, RUN_ACTIONS } from "./execution.js";
 export { RegistryCache } from "./registry-cache.js";
+export { TelemetryClient } from "./telemetry.js";
 
 /**
  * Subscribe to announce events on a Reticulum instance and resolve with
