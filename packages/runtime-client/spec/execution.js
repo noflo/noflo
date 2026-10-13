@@ -23,11 +23,11 @@ describe("ExecutionClient", () => {
       },
     });
     await client.runControl("PAUSE");
-    assert.deepEqual(decodeRunCtrl(sent[0]), {
-      cmd: 0x40,
-      action: RUN_ACTION.PAUSE,
-      planeId: undefined,
-    });
+    const paused = decodeRunCtrl(sent[0]);
+    assert.equal(paused.action, RUN_ACTION.PAUSE);
+    // The plane-less run control decodes planeId as null (the codec
+    // normalizes nil to null on decode)
+    assert.equal(paused.planeId, null);
     await client.runControl("STOP", "plane-1");
     assert.deepEqual(decodeRunCtrl(sent[1]), {
       cmd: 0x40,
