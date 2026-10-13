@@ -30,6 +30,7 @@ import {
   decodeCrdtUpdate,
   decodeCrdtUpToDate,
   decodePlaneListRes,
+  decodeProcessList,
   encodeCompManifest,
   encodeCompSyncReq,
   encodeCrdtStaleEpoch,
@@ -63,6 +64,7 @@ export {
   encodePlaneList,
   encodePlaneListRes,
   encodePubsubSub,
+  OP_TYPE,
   PROTOCOL_VERSION,
 } from "@noflo/fbp-protocol";
 export { ExecutionClient, PROCESS_ACTIONS, RUN_ACTIONS } from "./execution.js";
@@ -70,6 +72,7 @@ export { ExecutionClient, PROCESS_ACTIONS, RUN_ACTIONS } from "./execution.js";
 /** @typedef {import("./registry-cache.js").RegistryCatalog} RegistryCatalog */
 export { RegistryCache } from "./registry-cache.js";
 export { TelemetryClient } from "./telemetry.js";
+export { UiEventSurface } from "./ui-events.js";
 
 /**
  * Subscribe to announce events on a Reticulum instance and resolve with
@@ -229,7 +232,19 @@ export class RuntimeClient extends EventTarget {
           this.onGraphOp(op);
         }
       } catch {
-        // Not a 0x14 frame; surface as a generic frame event.
+        // Not a 0x14 frame; try the process listing.
+      }
+      try {
+        const listing = /** @type {any} */ (decodeProcessList(payload));
+        if (listing.cmd === 0x45) {
+          this.dispatchEvent(
+            new CustomEvent("processlist", {
+              detail: { epochId: listing.epochId, entries: listing.entries },
+            }),
+          );
+        }
+      } catch {
+        // Not a 0x45 frame; surface as a generic frame event.
       }
       this.dispatchEvent(new CustomEvent("frame", { detail: { payload } }));
       for (const waiter of this.waiters.splice(0)) {

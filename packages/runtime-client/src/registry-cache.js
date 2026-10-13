@@ -95,11 +95,8 @@ export class RegistryCache {
     let manifest;
     try {
       manifest = decodeCompManifest(reply);
-      console.log(
-        `[dbg] sync: manifest (hash ${manifest.newRegistryHash}, ${Object.keys(manifest.entries ?? {}).length} entries)`,
-      );
     } catch {
-      console.log("[dbg] sync: up-to-date reply, catalog stands");
+      // The runtime answered 0x22 up-to-date: the catalog stands.
       return this.#catalog;
     }
     this.#registryHash = manifest.newRegistryHash;
@@ -123,21 +120,11 @@ export class RegistryCache {
       }
     }
     this.#catalog = fresh;
-    console.log(
-      `[dbg] sync merged: hash=${this.#registryHash} needDetails=${JSON.stringify(needDetails)} catalog=${JSON.stringify(this.#catalog)}`,
-    );
 
-    console.log(`[dbg] sync: detail fetch for ${JSON.stringify(needDetails)}`);
     if (needDetails.length > 0) {
-      const reqBytes = encodeCompDetailReq(needDetails);
-      console.log(
-        `[dbg] detail req bytes: ${JSON.stringify(Array.from(reqBytes))}`,
+      const details = decodeCompDetailRes(
+        await this.#requestReply(encodeCompDetailReq(needDetails)),
       );
-      const replyBytes = await this.#requestReply(reqBytes);
-      console.log(
-        `[dbg] detail reply bytes: ${JSON.stringify(Array.from(replyBytes))}`,
-      );
-      const details = decodeCompDetailRes(replyBytes);
       for (const [name, signature] of Object.entries(
         details.components ?? {},
       )) {
