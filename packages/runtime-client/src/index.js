@@ -42,6 +42,7 @@ import {
 } from "@noflo/fbp-protocol";
 import { GraphModel, importFbpJson } from "@noflo/graph";
 import { Destination, Packet, PacketType } from "@reticulum/core";
+import { RegistryCache } from "./registry-cache.js";
 
 export {
   ANNOUNCE_ASPECT,
@@ -65,6 +66,8 @@ export {
   PROTOCOL_VERSION,
 } from "@noflo/fbp-protocol";
 export { ExecutionClient, PROCESS_ACTIONS, RUN_ACTIONS } from "./execution.js";
+/** @typedef {import("./registry-cache.js").CachedComponent} CachedComponent */
+/** @typedef {import("./registry-cache.js").RegistryCatalog} RegistryCatalog */
 export { RegistryCache } from "./registry-cache.js";
 export { TelemetryClient } from "./telemetry.js";
 
@@ -199,6 +202,22 @@ export class RuntimeClient extends EventTarget {
     this.pending = [];
     /** @type {Array<(value: any) => void>} */
     this.waiters = [];
+
+    /**
+     * The Two-Step Cache registry client (work document #29 phase 3):
+     * local-hash sync, sig-hash-keyed detail caching.
+     *
+     * @type {RegistryCache}
+     */
+    this.registry = new RegistryCache({
+      send: (payload) => this.send(payload),
+      requestReply: async (payload) => {
+        const reply = this.nextFrame();
+        await this.send(payload);
+        return reply;
+      },
+    });
+
     link.addEventListener("data", (/** @type {any} */ event) => {
       const payload = event.detail.packet.payload;
       try {
@@ -243,7 +262,6 @@ export class RuntimeClient extends EventTarget {
    * @returns {Promise<Uint8Array>}
    */
   nextFrame(timeoutMs = 15_000) {
-    console.log("[dbg] nextFrame armed");
     const existing = this.pending.shift();
     if (existing) {
       return Promise.resolve(existing);
@@ -259,7 +277,6 @@ export class RuntimeClient extends EventTarget {
       /** @type {(value: any) => void} */
       const waiter = (payload) => {
         clearTimeout(timer);
-        console.log("[dbg] waiter resolved");
         resolve(payload);
       };
       this.waiters.push(waiter);
@@ -279,6 +296,17 @@ export class RuntimeClient extends EventTarget {
     const reply = this.nextFrame();
     await this.send(encodeCompSyncReq(registryHash));
     return decodeCompManifest(await reply);
+  }
+
+  /**
+   * Run the Two-Step Cache sync: compute the local registry hash from
+   * the known catalog, request the manifest, fetch details for new or
+   * changed components, and return the full catalog with signatures.
+   *
+   * @returns {Promise<RegistryCatalog>}
+   */
+  syncComponents() {
+    return this.registry.sync();
   }
 
   /**
@@ -337,8 +365,7 @@ export class RuntimeClient extends EventTarget {
       let stale;
       try {
         stale = decodeCrdtStaleEpoch(frame);
-      } catch (err) {
-        console.log(`[dbg] stale decode skipped: ${err.message}`);
+      } catch {
         continue;
       }
       if (stale.cmd !== 0x12) {

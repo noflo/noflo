@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { decodeCompDetailReq, encodeCompDetailRes } from "@noflo/fbp-protocol";
 import {
   encodeCompManifest,
+  encodeCompSyncReq,
   encodeCrdtStaleEpoch,
   encodeCrdtSyncReq,
   encodeCrdtUpdate,
@@ -50,6 +52,41 @@ describe("RuntimeClient", () => {
     assert.equal(manifest.cmd, 0x22);
     assert.deepEqual(Object.keys(manifest.entries), ["math/Add"]);
     assert.equal(manifest.entries["math/Add"].sigHash, "a".repeat(64));
+  });
+
+  it("syncComponents runs the two-step registry flow", async () => {
+    const { link, client } = makeClient();
+    const pending = client.syncComponents();
+    // 1. The sync request: answer with a manifest
+    link.deliver(
+      encodeCompManifest("reg-hash-1", {
+        "math/Add": {
+          sigHash: "a".repeat(64),
+          type: "elementary",
+        },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    // 2. The detail request: answer with the signature
+    assert.deepEqual(
+      link.sent.length,
+      2,
+      "detail request follows the manifest",
+    );
+    const detailReq = decodeCompDetailReq(link.sent[1]);
+    assert.deepEqual(detailReq.names, ["math/Add"]);
+    link.deliver(
+      encodeCompDetailRes({
+        "math/Add": {
+          type: "elementary",
+          in: [{ id: "a", type: "number", required: true }],
+          out: [{ id: "sum", type: "number" }],
+        },
+      }),
+    );
+    const catalog = await pending;
+    assert.equal(catalog["math/Add"].sigHash, "a".repeat(64));
+    assert.ok(catalog["math/Add"].signature, "detail cached");
   });
 
   it("syncGraph fetches and imports the baseline on stale epoch", async () => {
