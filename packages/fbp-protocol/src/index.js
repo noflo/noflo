@@ -179,3 +179,16 @@ export {
   encodeAnnounceAppData,
   encodeAuthResponse,
 } from "./transport.js";
+export {
+  SCHEMA_DIGEST_HEX_LENGTH,
+  SCHEMA_URN_PREFIX,
+  canonicalizeJson,
+  collectSchemaRefs,
+  detectRefCycles,
+  digestSchema,
+  isValidSchemaId,
+  normalizeSchemaBody,
+  parseSchemaRef,
+  pinSchemaRefs,
+  schemaUrn,
+} from "./schema-identity.js";
