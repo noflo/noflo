@@ -16,27 +16,28 @@
  *   (`@reticulum/node` transports, process I/O).
  */
 
+import { toFBP } from "@noflo/fbp";
 import { RUN_STATE } from "@noflo/fbp-protocol";
 import {
-  connectRuntime,
-  discoverRuntime,
-  RUN_ACTIONS,
+	connectRuntime,
+	discoverRuntime,
+	RUN_ACTIONS,
 } from "@noflo/runtime-client";
 
 export {
-  RegistryCache,
-  RuntimeClient,
-  TelemetryClient,
-  UiEventSurface,
+	RegistryCache,
+	RuntimeClient,
+	TelemetryClient,
+	UiEventSurface,
 } from "@noflo/runtime-client";
 export { connectRuntime, discoverRuntime, RUN_ACTIONS };
 
 /** The human names for the `0x48` run-state vocabulary. @type {Record<number, string>} */
 export const RUN_STATE_NAMES = {
-  [RUN_STATE.STOPPED]: "stopped",
-  [RUN_STATE.RUNNING]: "running",
-  [RUN_STATE.PAUSED]: "paused",
-  [RUN_STATE.FAILED]: "failed",
+	[RUN_STATE.STOPPED]: "stopped",
+	[RUN_STATE.RUNNING]: "running",
+	[RUN_STATE.PAUSED]: "paused",
+	[RUN_STATE.FAILED]: "failed",
 };
 
 /**
@@ -61,23 +62,23 @@ export const RUN_STATE_NAMES = {
  * @returns {Promise<Session>}
  */
 export async function connectSession(options) {
-  const {
-    reticulum,
-    identity,
-    nodeName = null,
-    destinationHash,
-    timeoutMs,
-  } = options;
-  const discovered = destinationHash
-    ? { destinationHash, nodeName: nodeName ?? "unknown" }
-    : await discoverRuntime({ reticulum, nodeName, timeoutMs });
-  const { auth, client } = await connectRuntime({
-    reticulum,
-    destinationHash: discovered.destinationHash,
-    identity,
-    timeoutMs,
-  });
-  return { client, auth, nodeName: discovered.nodeName };
+	const {
+		reticulum,
+		identity,
+		nodeName = null,
+		destinationHash,
+		timeoutMs,
+	} = options;
+	const discovered = destinationHash
+		? { destinationHash, nodeName: nodeName ?? "unknown" }
+		: await discoverRuntime({ reticulum, nodeName, timeoutMs });
+	const { auth, client } = await connectRuntime({
+		reticulum,
+		destinationHash: discovered.destinationHash,
+		identity,
+		timeoutMs,
+	});
+	return { client, auth, nodeName: discovered.nodeName };
 }
 
 /**
@@ -88,14 +89,14 @@ export async function connectSession(options) {
  * @returns {Promise<{ epochId: number|string, runState: string, uptimeMs: number, advertisedMask: number, grantedMask: number }>}
  */
 export async function status(session) {
-  const reply = await session.client.status();
-  return {
-    epochId: reply.epochId,
-    runState: RUN_STATE_NAMES[reply.runState] ?? `unknown(${reply.runState})`,
-    uptimeMs: reply.uptimeMs,
-    advertisedMask: reply.advertisedMask,
-    grantedMask: session.auth.capabilityMask,
-  };
+	const reply = await session.client.status();
+	return {
+		epochId: reply.epochId,
+		runState: RUN_STATE_NAMES[reply.runState] ?? `unknown(${reply.runState})`,
+		uptimeMs: reply.uptimeMs,
+		advertisedMask: reply.advertisedMask,
+		grantedMask: session.auth.capabilityMask,
+	};
 }
 
 /**
@@ -105,25 +106,26 @@ export async function status(session) {
  * @returns {Promise<any[]>}
  */
 export async function planes(session) {
-  const reply = await session.client.planes();
-  return reply.entries ?? [];
+	const reply = await session.client.planes();
+	return reply.entries ?? [];
 }
 
 /**
- * `graph`: sync the mirror and return the canonical graph document.
+ * `graph`: sync the mirror and return the rendered graph document.
  *
  * @param {Session} session
  * @param {Object} [options]
- * @param {string} [options.format] - `json` (default; `fbp` and `dot` land with phase 5)
- * @returns {Promise<any>} The serialized graph document
+ * @param {string} [options.format] - `json` (canonical document, default) or `fbp` (DSL source); `dot` lands with a later phase
+ * @returns {Promise<string|any>} The serialized document, or the DSL source for the `fbp` format
  */
 export async function graph(session, options = {}) {
-  const { format = "json" } = options;
-  if (format !== "json") {
-    throw new Error(
-      `unsupported graph format '${format}' (fbp and dot land with wd #34 phase 5)`,
-    );
-  }
-  const sync = await session.client.syncGraph();
-  return sync.graph.serialize();
+	const { format = "json" } = options;
+	if (format !== "json" && format !== "fbp") {
+		throw new Error(
+			`unsupported graph format '${format}' (dot lands with a later wd #34 phase)`,
+		);
+	}
+	const sync = await session.client.syncGraph();
+	const canonical = sync.graph.serialize();
+	return format === "fbp" ? toFBP(canonical) : canonical;
 }

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- `toFBP()`: the `.fbp` writer — renders a canonical graph document (the `GraphModel.serialize()` shape) as `.fbp` DSL source, the inverse of `parse()` for nodes, edges with port indexes, IIPs, and exports. Groups have no DSL representation; metadata is limited to what the syntax carries (integer `x`/`y` coordinates and safe scalar strings). Deterministic output, verified by round-trip through `parse()`.
+
 ## [2.0.0-alpha.3] - 2026-10-10
 
 ## [2.0.0-alpha.1] - 2026-10-08

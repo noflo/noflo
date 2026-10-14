@@ -13,5 +13,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `connectSession()` — discovery through announce app_data plus link establishment and the `0x02` auth handshake
 - `status()` — `0x48` run state, uptime, epoch, and granted-vs-advertised capability masks
 - `planes()` — the `0x16` plane listing
-- `graph()` — the mirrored graph as a canonical JSON document (`fbp` and `dot` formats land with phase 5)
+- `graph()` — the mirrored graph as a canonical JSON document, or as `.fbp` DSL source via `graph --format fbp` (phase 5's `toFBP()` writer; `dot` lands with a later phase)
 - `fbp-client` binary with `scan`, `status`, `planes`, and `graph` subcommands, `--json` machine-readable output, and rnsd TCP interface wiring (`--interface host:port`)

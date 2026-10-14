@@ -20,3 +20,4 @@
 /* @ts-self-types="./index.d.ts" */
 
 export { parse, SyntaxError } from "./parse.js";
+export { toFBP } from "./toFbp.js";
