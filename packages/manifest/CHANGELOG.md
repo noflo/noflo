@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Added
+
+- Schema artifact support in the manifest (work document #37 phase 1): a `schemas` table (id → digest, path, computed `implements` closure), an `anonymousSchemas` digest-keyed section for hoisted inline port schemas, and a `foreignSchemas` section for references resolved through the dependency closure. The generator pins authoring-sugar `$ref`/`$id` forms into absolute `urn:noflo:` URNs (writing the published bytes back, idempotently), hoists inline port schemas into content-addressed `schemas/<digest>.json` entries, derives each port's in-band guard from its schema (or lints an explicit guard against the projection), and enforces the publish gate: closure resolvability, reserved-namespace ownership (`std`, `ui`, `runtime`, `noflo`, `assembly`), cross-document reference cycles, closed interfaces, meta-schema identity against the artifacts shipped from `@noflo/fbp-protocol`, and dependency digest mismatches. Manifest ports carry the final `schema` (id + digest) and `guard` fields
+
 ## [2.0.0-alpha.1] - 2026-10-10
 
 ### Added

@@ -32,7 +32,9 @@ const validTypes = [
  * @property {boolean} [addressable=false]
  * @property {boolean} [buffered=false]
  * @property {string} [datatype='all']
- * @property {string} [schema=null]
+ * @property {string|Object|null} [schema=null] - Schema artifact reference: a
+ *   `ns/name` id string or an inline JSON Schema object (work document #37
+ *   §3.1). URL and MIME schemas are retired.
  * @property {string} [type=null]
  * @property {boolean} [required=false]
  * @property {boolean} [scoped=true]
@@ -59,13 +61,21 @@ function handleOptions(options) {
     );
   }
 
-  // Ensure schema defined for the port is valid
+  // Ensure the schema reference is in the 2.x vocabulary: a `ns/name`
+  // schema artifact id or an inline JSON Schema object (work document #37
+  // §3.1, §3.5 — URL and MIME schemas are retired)
   const schema = options.schema || options.type;
 
-  if (schema && schema.indexOf("/") === -1) {
-    throw new Error(
-      `Invalid port schema '${schema}' specified. Should be URL or MIME type`,
-    );
+  if (schema !== null && schema !== undefined) {
+    const validSchema =
+      (typeof schema === "string" &&
+        /^[a-z][a-z0-9_-]*\/[A-Za-z0-9_][A-Za-z0-9_-]*$/.test(schema)) ||
+      (typeof schema === "object" && !Array.isArray(schema));
+    if (!validSchema) {
+      throw new Error(
+        `Invalid port schema '${typeof schema === "string" ? schema : "[complex]"}' specified. Use a ns/name schema artifact id or an inline JSON Schema object`,
+      );
+    }
   }
 
   // Scoping

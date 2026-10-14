@@ -91,7 +91,7 @@ describe("Inport Port", () => {
     it("should store all provided options in port, whether we expect it or not", () => {
       const options = {
         datatype: "string",
-        type: "http://schema.org/Person",
+        schema: "example/Person",
         description: "Person",
         required: true,
         weNeverExpectThis: "butWeStoreItAnyway",
@@ -120,12 +120,16 @@ describe("Inport Port", () => {
       });
     });
   });
-  describe("with TYPE (i.e. ontology) information", () => {
+  describe("with TYPE (i.e. schema) information", () => {
     const f = (type) => new noflo.InPort({ type });
-    it("should be a URL or MIME", () => {
-      assert.doesNotThrow(() => f("http://schema.org/Person"));
-      assert.doesNotThrow(() => f("text/javascript"));
-      assert.throws(() => f("neither-a-url-nor-mime"));
+    it("should be a schema artifact id or an inline JSON Schema object", () => {
+      assert.doesNotThrow(() => f("example/Person"));
+      assert.doesNotThrow(() => f({ type: "string" }));
+      assert.throws(() => f("http://schema.org/Person"));
+      // A bare type/subtype string is syntactically a valid ns/name id;
+      // unresolvable references fail at the publish gate, not here
+      assert.throws(() => f("application/vnd.foo+json"));
+      assert.throws(() => f("neither-an-id-nor-an-object"));
     });
   });
   describe("with accepted enumerated values", () => {

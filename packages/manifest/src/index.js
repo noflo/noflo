@@ -31,6 +31,7 @@ import { parse } from "@noflo/fbp";
 import { GraphModel, importFbpJson } from "@noflo/graph";
 import { createNodeModulesRegistry } from "@noflo/loader-node";
 import { ComponentLoader } from "@noflo/noflo";
+import { buildSchemaSet, finalizePortSchema } from "./schemas.js";
 
 /**
  * @typedef {Object} ManifestPort
@@ -40,6 +41,10 @@ import { ComponentLoader } from "@noflo/noflo";
  * @property {string|null} description
  * @property {boolean} required
  * @property {boolean} control
+ * @property {{ id?: string, digest: string }|null} schema - Schema artifact reference (work
+ *   document #37 §3.1): the id is compatibility vocabulary, the digest the integrity pin.
+ * @property {Record<string, any>|null} guard - In-band validation guard: the closed-vocabulary
+ *   projection of the schema's cheaply-checkable assertions (work document #37 §3.1).
  */
 
 /**
@@ -63,6 +68,22 @@ import { ComponentLoader } from "@noflo/noflo";
  */
 
 /**
+ * A schema table entry for a schema this package owns (work document #37 §4).
+ *
+ * @typedef {Object} ManifestSchemaEntry
+ * @property {string} digest - SHA-256 hex digest over the published body.
+ * @property {string} path - In-package path of the schema document.
+ * @property {string[]} [implements] - Computed interface-closure ids, when non-empty.
+ */
+
+/**
+ * A schema table entry for an anonymous (id-less) schema, keyed by digest.
+ *
+ * @typedef {Object} ManifestAnonymousSchemaEntry
+ * @property {string} path - In-package path: `schemas/<digest>.json`.
+ */
+
+/**
  * @typedef {Object} Manifest
  * @property {"noflo-manifest"} format
  * @property {number} version
@@ -75,6 +96,9 @@ import { ComponentLoader } from "@noflo/noflo";
  * @property {string|null} revision - Revision the manifest was generated from
  * @property {boolean} loader - Whether the package has a dynamic loader plugin
  * @property {Record<string, { npm: string }>} namespaces - Providing packages for referenced library namespaces
+ * @property {Record<string, ManifestSchemaEntry>} schemas - Named schema artifacts this package owns (work document #37 §4)
+ * @property {Record<string, ManifestAnonymousSchemaEntry>} anonymousSchemas - Hoisted inline schemas, keyed by digest
+ * @property {Record<string, { digest: string, providedBy: string|null }>} foreignSchemas - Foreign schema ids referenced by this package's ports
  * @property {ManifestComponent[]} components
  */
 
@@ -221,6 +245,11 @@ function harvestPorts(ports) {
       description: options.description ?? null,
       required: Boolean(options.required),
       control: Boolean(options.control),
+      // Raw markers: the schema/guard finalization pass resolves ids,
+      // hoists inline objects into content-addressed entries, and derives
+      // or lints the guard (work document #37 §3.1)
+      schema: options.schema ?? null,
+      guard: options.guard ?? null,
       values: Array.isArray(options.values) ? options.values : null,
       default: options.default ?? null,
     };
@@ -383,6 +412,8 @@ function resolveNamespaceProvider(baseDir, namespace) {
  * @param {import("@noflo/noflo").ComponentLoader} loader
  * @param {Map<string, ManifestComponent>} harvestedByName
  * @param {string} baseDir
+ * @param {import("./schemas.js").SchemaSet} [schemaSet] - Schema set for port schema
+ *   finalization in the loader fallback path.
  * @returns {Promise<{ signature: ManifestSignature, description: string|null, icon: string|null }>}
  */
 export async function deriveGraphSignature(
@@ -390,6 +421,7 @@ export async function deriveGraphSignature(
   loader,
   harvestedByName,
   baseDir,
+  schemaSet = null,
 ) {
   const graphMetadata = graph.graphMetadata?.() ?? {};
   /** @type {ManifestPort[]} */
@@ -462,11 +494,20 @@ export async function deriveGraphSignature(
         `Graph wires components that cannot be resolved: ${unresolvable.join(", ")}. No in-package signature, no published manifest, and not loadable (\`${detail}\`). Namespaces without an installed provider: ${[...namespaces].join(", ") || "none"}. Install the providing packages (npm:@noflo/<namespace> or noflo-<namespace>) before generating the manifest.`,
       );
     }
+    const fallbackSignature = {
+      inports: harvestPorts(instance.inPorts),
+      outports: harvestPorts(instance.outPorts),
+    };
+    if (schemaSet) {
+      await finalizeSignaturePorts(
+        fallbackSignature,
+        schemaSet,
+        baseDir,
+        "__manifest/__graph",
+      );
+    }
     return {
-      signature: {
-        inports: harvestPorts(instance.inPorts),
-        outports: harvestPorts(instance.outPorts),
-      },
+      signature: fallbackSignature,
       description: graphMetadata.description ?? instance.description ?? null,
       icon: graphMetadata.icon ?? instance.icon ?? null,
     };
@@ -553,6 +594,10 @@ export async function generateManifest(baseDir, options = {}) {
   const componentsDir = path.join(baseDir, "components");
   const graphsDir = path.join(baseDir, "graphs");
 
+  // The schema set is built before harvesting: the publish gate runs over
+  // the package's own documents, and port schema markers resolve against it
+  const schemaSet = await buildSchemaSet(baseDir, { npm: identity.npm });
+
   const loader = await createLoader(baseDir);
   /** @type {ManifestComponent[]} */
   const components = [];
@@ -580,8 +625,12 @@ export async function generateManifest(baseDir, options = {}) {
       }
       const { signature, description, icon } = harvestInstance(instance);
       const assembly = await detectAssembly(instance);
+      const entryName = identity.id
+        ? `${identity.id}/${componentName}`
+        : componentName;
+      await finalizeSignaturePorts(signature, schemaSet, baseDir, entryName);
       const entry = {
-        name: identity.id ? `${identity.id}/${componentName}` : componentName,
+        name: entryName,
         path: path.posix.join("components", file),
         type: /** @type {"elementary"} */ ("elementary"),
         description,
@@ -614,6 +663,7 @@ export async function generateManifest(baseDir, options = {}) {
         loader,
         harvestedByName,
         baseDir,
+        schemaSet,
       );
       const references = graphReferences(graph);
       // A graph runs wherever all of its wired components run. In-package
@@ -667,6 +717,13 @@ export async function generateManifest(baseDir, options = {}) {
     namespaces[namespace] = resolveNamespaceProvider(baseDir, namespace);
   }
 
+  const foreignSchemas = Object.fromEntries(
+    [...schemaSet.foreignReferenced.entries()].map(([id, entry]) => [
+      id,
+      { digest: entry.digest, providedBy: entry.providedBy },
+    ]),
+  );
+
   return {
     format: "noflo-manifest",
     version: 1,
@@ -679,6 +736,50 @@ export async function generateManifest(baseDir, options = {}) {
     revision: options.revision ?? gitRevision,
     loader: identity.loader,
     namespaces,
+    schemas: Object.fromEntries(
+      [...schemaSet.named.entries()].map(([id, entry]) => [
+        id,
+        entry.implements.length
+          ? {
+              digest: entry.digest,
+              path: entry.path,
+              implements: entry.implements,
+            }
+          : { digest: entry.digest, path: entry.path },
+      ]),
+    ),
+    anonymousSchemas: Object.fromEntries(
+      [...schemaSet.anonymous.values()].map((entry) => [
+        entry.digest,
+        { path: entry.path },
+      ]),
+    ),
+    foreignSchemas,
     components,
   };
+}
+
+/**
+ * Finalizes the schema references and guards of a harvested signature:
+ * raw port markers resolve against the schema set, inline objects hoist
+ * into content-addressed entries, and guards are derived or linted
+ * (work document #37 §3.1). The signature is updated in place.
+ *
+ * @param {ManifestSignature} signature
+ * @param {import("./schemas.js").SchemaSet} schemaSet
+ * @param {string} baseDir
+ * @param {string} where Error context (component name).
+ * @returns {Promise<void>}
+ */
+async function finalizeSignaturePorts(signature, schemaSet, baseDir, where) {
+  for (const side of ["inports", "outports"]) {
+    for (const port of signature[side]) {
+      await finalizePortSchema(
+        port,
+        schemaSet,
+        baseDir,
+        `${where} ${side === "inports" ? "inport" : "outport"} ${port.name}`,
+      );
+    }
+  }
 }
