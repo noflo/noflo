@@ -8,8 +8,10 @@ import {
   encodeCrdtSyncReq,
   encodeCrdtUpdate,
   encodeCrdtUpToDate,
+  encodeGetStatusRes,
   encodePlaneList,
   encodePlaneListRes,
+  RUN_STATE,
   RuntimeClient,
 } from "../src/index.js";
 import { FakeLink } from "./support/fake-link.js";
@@ -52,6 +54,27 @@ describe("RuntimeClient", () => {
     assert.equal(manifest.cmd, 0x22);
     assert.deepEqual(Object.keys(manifest.entries), ["math/Add"]);
     assert.equal(manifest.entries["math/Add"].sigHash, "a".repeat(64));
+  });
+
+  it("status sends 0x48 and decodes the reply", async () => {
+    const { link, client } = makeClient();
+    const pending = client.status();
+    setTimeout(
+      () =>
+        link.deliver(
+          encodeGetStatusRes({
+            epochId: "epoch-3",
+            runState: RUN_STATE.PAUSED,
+            uptimeMs: 12_345,
+            advertisedMask: 0x1f,
+          }),
+        ),
+      10,
+    );
+    const reply = await pending;
+    assert.equal(reply.runState, RUN_STATE.PAUSED);
+    assert.equal(reply.uptimeMs, 12_345);
+    assert.equal(reply.advertisedMask, 0x1f);
   });
 
   it("syncComponents runs the two-step registry flow", async () => {

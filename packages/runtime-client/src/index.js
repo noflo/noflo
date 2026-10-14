@@ -29,6 +29,7 @@ import {
   decodeCrdtStaleEpoch,
   decodeCrdtUpdate,
   decodeCrdtUpToDate,
+  decodeGetStatusRes,
   decodePlaneListRes,
   decodeProcessList,
   encodeCompManifest,
@@ -37,6 +38,7 @@ import {
   encodeCrdtSyncReq,
   encodeCrdtUpdate,
   encodeCrdtUpToDate,
+  encodeGetStatus,
   encodePlaneList,
   encodePlaneListRes,
   PROTOCOL_VERSION,
@@ -54,6 +56,7 @@ export {
   decodeCrdtUpdate,
   decodeCrdtUpToDate,
   decodeFlowtraceChunk,
+  decodeGetStatusRes,
   decodePlaneListRes,
   encodeCompManifest,
   encodeCompSyncReq,
@@ -61,11 +64,14 @@ export {
   encodeCrdtSyncReq,
   encodeCrdtUpdate,
   encodeCrdtUpToDate,
+  encodeGetStatus,
+  encodeGetStatusRes,
   encodePlaneList,
   encodePlaneListRes,
   encodePubsubSub,
   OP_TYPE,
   PROTOCOL_VERSION,
+  RUN_STATE,
 } from "@noflo/fbp-protocol";
 export { ExecutionClient, PROCESS_ACTIONS, RUN_ACTIONS } from "./execution.js";
 /** @typedef {import("./registry-cache.js").CachedComponent} CachedComponent */
@@ -333,6 +339,18 @@ export class RuntimeClient extends EventTarget {
     const reply = this.nextFrame();
     await this.send(encodePlaneList());
     return decodePlaneListRes(await reply);
+  }
+
+  /**
+   * Ask the runtime for its status (`0x48`): the main plane's epoch,
+   * run state, uptime, and the full advertised capability mask.
+   *
+   * @returns {Promise<{ cmd: number, epochId: number|string, runState: number, uptimeMs: number, advertisedMask: number }>}
+   */
+  async status() {
+    const reply = this.nextFrame();
+    await this.send(encodeGetStatus());
+    return decodeGetStatusRes(await reply);
   }
 
   /**
