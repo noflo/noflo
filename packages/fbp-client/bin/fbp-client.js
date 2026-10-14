@@ -27,7 +27,7 @@ import { homedir } from "node:os";
 import path from "node:path";
 import { EVENT_TYPE } from "@noflo/fbp-protocol";
 import { Identity, Reticulum } from "@reticulum/core";
-import { TCPClientInterface } from "@reticulum/node";
+import { FileStorageAdapter, TCPClientInterface } from "@reticulum/node";
 import {
   addEdge,
   addExport,
@@ -148,8 +148,14 @@ Options:
 }
 
 /** Build a Reticulum instance wired to the rnsd TCP interface. */
-async function instance(target) {
-  const rns = new Reticulum({ logLevel: "warning" });
+async function instance(target, stateDir) {
+  const rns = new Reticulum({
+    logLevel: "warning",
+    // Persist the transport state (node identity, learned destinations):
+    // announce echo is unreliable within a shared rnsd instance, so
+    // discovery after the first run works from the destination cache
+    storageAdapter: stateDir ? new FileStorageAdapter(stateDir) : null,
+  });
   const iface = new TCPClientInterface({
     name: "fbp-client",
     host: target.host,
@@ -218,23 +224,22 @@ function planeTarget(flags) {
 }
 
 /**
- * Render a modification result: the human line names the entity and the
- * new epoch; `--json` prints the whole result.
+ * Render a modification result: the human line names what was modified
+ * and the epoch it landed at; `--json` prints the label and the result.
  *
- * @param {any} result
- * @param {boolean} json
+ * @param {string} label - What was modified, for the human line
+ * @param {any} result - The ModifyResult from the library
  */
-function report(result) {
+function report(label, result) {
   if (jsonMode) {
-    console.log(JSON.stringify(result, null, 2));
+    console.log(JSON.stringify({ label, ...result }, null, 2));
     return;
   }
-  const target = result.entity ? result.entity.entity_id : "graph";
   if (result.applied) {
-    console.log(`${target} applied at epoch ${result.epochId}`);
+    console.log(`${label} applied at epoch ${result.epochId}`);
   } else {
     console.error(
-      `${target}: no change (the runtime's graph already converged)`,
+      `${label}: no change (the runtime's graph already converged)`,
     );
     process.exitCode = 1;
   }
@@ -280,7 +285,17 @@ async function main() {
     typeof flags.interface === "string" ? flags.interface : "127.0.0.1:4242",
   );
   const nodeName = typeof flags.name === "string" ? flags.name : null;
-  const rns = await instance(target);
+  // The identity path decides where the transport state lives, so it is
+  // resolved before the Reticulum instance comes up (scan included)
+  const identityPath =
+    typeof flags.identity === "string"
+      ? flags.identity
+      : (process.env.FBP_CLIENT_IDENTITY ??
+        path.join(homedir(), ".fbp-client", "identity.key"));
+  const rns = await instance(
+    target,
+    path.join(path.dirname(identityPath), "state"),
+  );
   try {
     if (command === "scan") {
       const found = await discoverRuntime({
@@ -313,11 +328,6 @@ async function main() {
     // load semantics: an identity IS the node's address, so a corrupt key
     // file must never be silently overwritten) and doubles as the CRDT
     // client id, so graph ops stay attributable across sessions.
-    const identityPath =
-      typeof flags.identity === "string"
-        ? flags.identity
-        : (process.env.FBP_CLIENT_IDENTITY ??
-          path.join(homedir(), ".fbp-client", "identity.key"));
     const identity = await Identity.loadOrGenerate(
       identityAdapter(identityPath),
     );
@@ -546,15 +556,13 @@ async function main() {
               "usage: fbp-client add-node <component> [--id <id>] [--metadata <json>]",
             );
           }
-          await report(
-            session,
-            await addNode(session, {
-              component: componentName,
-              id: typeof flags.id === "string" ? flags.id : undefined,
-              metadata: parseMetadata(flags.metadata),
-              planeId: planeTarget(flags),
-            }),
-          );
+          const nodeResult = await addNode(session, {
+            component: componentName,
+            id: typeof flags.id === "string" ? flags.id : undefined,
+            metadata: parseMetadata(flags.metadata),
+            planeId: planeTarget(flags),
+          });
+          report(nodeResult.entity?.entity_id ?? componentName, nodeResult);
           break;
         }
         case "add-edge": {
@@ -564,15 +572,16 @@ async function main() {
               "usage: fbp-client add-edge <fromNode> <fromPort> <toNode> <toPort>",
             );
           }
-          await report(
-            session,
-            await addEdge(session, {
-              from: { node: fromNode, port: fromPort },
-              to: { node: toNode, port: toPort },
-              id: typeof flags.id === "string" ? flags.id : undefined,
-              metadata: parseMetadata(flags.metadata),
-              planeId: planeTarget(flags),
-            }),
+          const edgeResult = await addEdge(session, {
+            from: { node: fromNode, port: fromPort },
+            to: { node: toNode, port: toPort },
+            id: typeof flags.id === "string" ? flags.id : undefined,
+            metadata: parseMetadata(flags.metadata),
+            planeId: planeTarget(flags),
+          });
+          report(
+            `edge ${fromNode}:${fromPort} -> ${toNode}:${toPort}`,
+            edgeResult,
           );
           break;
         }
@@ -581,16 +590,14 @@ async function main() {
           if (!node || !port || data === undefined) {
             throw new Error("usage: fbp-client add-iip <node> <port> <data>");
           }
-          await report(
-            session,
-            await addIip(session, {
-              to: { node, port },
-              data: parseData(data),
-              id: typeof flags.id === "string" ? flags.id : undefined,
-              metadata: parseMetadata(flags.metadata),
-              planeId: planeTarget(flags),
-            }),
-          );
+          const iipResult = await addIip(session, {
+            to: { node, port },
+            data: parseData(data),
+            id: typeof flags.id === "string" ? flags.id : undefined,
+            metadata: parseMetadata(flags.metadata),
+            planeId: planeTarget(flags),
+          });
+          report(`iip -> ${node}:${port}`, iipResult);
           break;
         }
         case "add-export": {
@@ -602,17 +609,15 @@ async function main() {
           }
           const direction =
             dir === "in" ? "inport" : dir === "out" ? "outport" : dir;
-          await report(
-            session,
-            await addExport(session, {
-              direction,
-              public: publicName,
-              internal: { node, port },
-              id: typeof flags.id === "string" ? flags.id : undefined,
-              metadata: parseMetadata(flags.metadata),
-              planeId: planeTarget(flags),
-            }),
-          );
+          const exportResult = await addExport(session, {
+            direction,
+            public: publicName,
+            internal: { node, port },
+            id: typeof flags.id === "string" ? flags.id : undefined,
+            metadata: parseMetadata(flags.metadata),
+            planeId: planeTarget(flags),
+          });
+          report(`export ${publicName}`, exportResult);
           break;
         }
         case "add-group": {
@@ -621,16 +626,14 @@ async function main() {
           if (!name || nodes.length === 0) {
             throw new Error("usage: fbp-client add-group <name> <node...>");
           }
-          await report(
-            session,
-            await addGroup(session, {
-              name,
-              nodes,
-              id: typeof flags.id === "string" ? flags.id : undefined,
-              metadata: parseMetadata(flags.metadata),
-              planeId: planeTarget(flags),
-            }),
-          );
+          const groupResult = await addGroup(session, {
+            name,
+            nodes,
+            id: typeof flags.id === "string" ? flags.id : undefined,
+            metadata: parseMetadata(flags.metadata),
+            planeId: planeTarget(flags),
+          });
+          report(`group ${name}`, groupResult);
           break;
         }
         case "remove": {
@@ -638,12 +641,10 @@ async function main() {
           if (!entityId) {
             throw new Error("usage: fbp-client remove <entityId>");
           }
-          await report(
-            session,
-            await removeEntity(session, entityId, {
-              planeId: planeTarget(flags),
-            }),
-          );
+          const removeResult = await removeEntity(session, entityId, {
+            planeId: planeTarget(flags),
+          });
+          report(entityId, removeResult);
           break;
         }
         case "set-metadata": {
@@ -654,15 +655,13 @@ async function main() {
               "usage: fbp-client set-metadata <entityId|graph> <json>",
             );
           }
-          await report(
+          const metaResult = await setMetadata(
             session,
-            await setMetadata(
-              session,
-              target === "graph" ? null : target,
-              parseMetadata(data),
-              { planeId: planeTarget(flags) },
-            ),
+            target === "graph" ? null : target,
+            parseMetadata(data),
+            { planeId: planeTarget(flags) },
           );
+          report(target, metaResult);
           break;
         }
         default:
@@ -673,6 +672,10 @@ async function main() {
       await session.client.close();
     }
   } finally {
+    // Flush the transport state before stopping: rns.stop() does not
+    // reliably resolve once the interfaces go away, and the debounced
+    // persistor write would be lost with the process
+    await rns.persistor?.flush?.().catch?.(() => {});
     await rns.stop().catch(() => {});
   }
 }

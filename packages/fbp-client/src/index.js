@@ -75,16 +75,62 @@ export async function connectSession(options) {
   const discovered = destinationHash
     ? { destinationHash, nodeName: nodeName ?? "unknown" }
     : await discoverRuntime({ reticulum, nodeName, timeoutMs });
-  const { auth, client } = await connectRuntime({
-    reticulum,
-    destinationHash: discovered.destinationHash,
-    identity,
-    timeoutMs,
-  });
-  if (clientId) {
-    client.clientId = clientId;
+  let session;
+  try {
+    session = await connectRuntime({
+      reticulum,
+      destinationHash: discovered.destinationHash,
+      identity,
+      timeoutMs,
+    });
+  } catch (error) {
+    if (destinationHash) {
+      throw error;
+    }
+    // The cached path turned out stale (the destination cache outlives
+    // runtime restarts): solicit a fresh announce and retry once
+    const fresh = await discoverRuntime({
+      reticulum,
+      nodeName,
+      timeoutMs,
+      solicit: true,
+    });
+    session = await connectRuntime({
+      reticulum,
+      destinationHash: fresh.destinationHash,
+      identity,
+      timeoutMs,
+    });
+    return finalize(session, fresh, clientId, reticulum);
   }
-  return { client, auth, nodeName: discovered.nodeName, clientId };
+  return finalize(session, discovered, clientId, reticulum);
+}
+
+/**
+ * Stamp the CRDT identity onto the connected client, mark the runtime
+ * destination contacted (so the transport persists it and future runs
+ * connect from the cache without waiting for an announce echo), and
+ * assemble the session.
+ *
+ * @param {{ client: import("@noflo/runtime-client").RuntimeClient, auth: any }} session
+ * @param {{ nodeName: string, destinationHash?: Uint8Array }} discovered
+ * @param {string|null} clientId
+ * @param {import("@reticulum/core").Reticulum} reticulum
+ * @returns {Session}
+ */
+function finalize(session, discovered, clientId, reticulum) {
+  if (clientId) {
+    session.client.clientId = clientId;
+  }
+  /** @type {any} */ (reticulum.transport)?.persistor?.markContacted?.(
+    discovered.destinationHash,
+  );
+  return {
+    client: session.client,
+    auth: session.auth,
+    nodeName: discovered.nodeName,
+    clientId,
+  };
 }
 
 /**
