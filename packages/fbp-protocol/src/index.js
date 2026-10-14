@@ -136,6 +136,16 @@ export {
   encodeLxmTelemetry,
 } from "./lxmf.js";
 export {
+  /**
+   * The pinned meta-schema bodies, keyed by id.
+   *
+   * @typedef {import("./meta-schemas.js").MetaSchemaId} MetaSchemaId
+   */
+  META_SCHEMAS,
+  metaSchemaBody,
+  metaSchemaDigest,
+} from "./meta-schemas.js";
+export {
   canonicalManifest,
   canonicalSignature,
   decodeCompDetailReq,
