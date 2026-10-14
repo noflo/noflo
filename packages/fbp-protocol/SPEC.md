@@ -367,6 +367,22 @@ signature, and a sidecar signature are the same data. The `type` field
 carries the component kind declared in the manifest; clients never infer
 kind from absence of source.
 
+Ports may additionally carry the schema layer (work document #37 §3.1):
+an optional `schema` reference — a map with the compact `ns/name` `id`
+(compatibility vocabulary) and/or the raw 32-byte SHA-256 digest
+(integrity pin) — and an optional `guard`, the closed-vocabulary in-band
+projection of the schema's cheaply-checkable assertions (`type` from the
+six-primitive vocabulary, bounded scalar `enum` at ≤64 entries, inclusive
+`min`/`max`, `required` key lists). The guard is checkable with
+comparisons alone: a runtime never loads a schema body to apply it, and
+violations are diagnostic-only — convergence integrity outranks schema
+enforcement. Both fields participate in the canonical signature and
+therefore in `sig_hash`: a changed schema digest re-fetches details
+through the ordinary Two-Step Cache. Phase-1 runtimes advertise
+references but cannot serve bodies (`0x28`/`0x29` are phase 2); remote
+clients degrade to the `std` mappings until then, and no compatibility
+semantics beyond the `datatype` floor exist yet.
+
 **`0x25` CMD_COMP_WRITE** — atomic full-source update:
 `[0x25, component_name, source_string_or_rns_hash]`. For sources over 500
 bytes, clients SHOULD pass a Reticulum Resource hash instead of a raw string.
@@ -697,12 +713,16 @@ with the design reasons:
   is the authority, and persistence is a host-side application concern over
   the converged state (the changeset-era autoSave work). There is nothing
   for a wire command to flash that convergence does not already make local.
-* **Port schema URIs** — datatype/schema handling needs end-to-end design
-  from `noflo.BasePort` through the protocol's port definitions to
-  noflo-ui's rendering. The RNS resource-hash variant is one candidate
-  shape. The flat `values`/`default` port options are **not** carried on
-  the wire: they stay publish-time manifest data, superseded on the wire
-  by the schema design's inline enums.[^w37]
+* **Port schema URIs** — superseded by the schema artifact design (work
+  document #37 §3.5): datatype/schema handling is end-to-end JSON Schema
+  2020-12, addressed as `ns/name` ids pinned by SHA-256 digests over RFC
+  8785 canonicalization; URL-based resolution and MIME-type schemas are
+  dead. Phase 1 ships the identity substrate, the port `schema`/`guard`
+  fields, the manifest schemas table with its publish gate, and the
+  pinned meta-schemas. The flat `values`/`default` port options are
+  **not** carried on the wire: they stay publish-time manifest data,
+  superseded on the wire by inline schemas (work document #37 §3.4 — the
+  option retirement proper ships with phase 2).[^w37]
 * **`network:error.stack`** — the `0x04 ERROR` payload is the exception
   string (frugalized per local policy); stack traces are not carried.
 * **`previewurl` output type** — visual output preview is UI territory,
