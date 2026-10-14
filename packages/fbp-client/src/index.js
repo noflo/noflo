@@ -19,25 +19,25 @@
 import { toFBP } from "@noflo/fbp";
 import { RUN_STATE } from "@noflo/fbp-protocol";
 import {
-	connectRuntime,
-	discoverRuntime,
-	RUN_ACTIONS,
+  connectRuntime,
+  discoverRuntime,
+  RUN_ACTIONS,
 } from "@noflo/runtime-client";
 
 export {
-	RegistryCache,
-	RuntimeClient,
-	TelemetryClient,
-	UiEventSurface,
+  RegistryCache,
+  RuntimeClient,
+  TelemetryClient,
+  UiEventSurface,
 } from "@noflo/runtime-client";
 export { connectRuntime, discoverRuntime, RUN_ACTIONS };
 
 /** The human names for the `0x48` run-state vocabulary. @type {Record<number, string>} */
 export const RUN_STATE_NAMES = {
-	[RUN_STATE.STOPPED]: "stopped",
-	[RUN_STATE.RUNNING]: "running",
-	[RUN_STATE.PAUSED]: "paused",
-	[RUN_STATE.FAILED]: "failed",
+  [RUN_STATE.STOPPED]: "stopped",
+  [RUN_STATE.RUNNING]: "running",
+  [RUN_STATE.PAUSED]: "paused",
+  [RUN_STATE.FAILED]: "failed",
 };
 
 /**
@@ -62,23 +62,23 @@ export const RUN_STATE_NAMES = {
  * @returns {Promise<Session>}
  */
 export async function connectSession(options) {
-	const {
-		reticulum,
-		identity,
-		nodeName = null,
-		destinationHash,
-		timeoutMs,
-	} = options;
-	const discovered = destinationHash
-		? { destinationHash, nodeName: nodeName ?? "unknown" }
-		: await discoverRuntime({ reticulum, nodeName, timeoutMs });
-	const { auth, client } = await connectRuntime({
-		reticulum,
-		destinationHash: discovered.destinationHash,
-		identity,
-		timeoutMs,
-	});
-	return { client, auth, nodeName: discovered.nodeName };
+  const {
+    reticulum,
+    identity,
+    nodeName = null,
+    destinationHash,
+    timeoutMs,
+  } = options;
+  const discovered = destinationHash
+    ? { destinationHash, nodeName: nodeName ?? "unknown" }
+    : await discoverRuntime({ reticulum, nodeName, timeoutMs });
+  const { auth, client } = await connectRuntime({
+    reticulum,
+    destinationHash: discovered.destinationHash,
+    identity,
+    timeoutMs,
+  });
+  return { client, auth, nodeName: discovered.nodeName };
 }
 
 /**
@@ -89,14 +89,14 @@ export async function connectSession(options) {
  * @returns {Promise<{ epochId: number|string, runState: string, uptimeMs: number, advertisedMask: number, grantedMask: number }>}
  */
 export async function status(session) {
-	const reply = await session.client.status();
-	return {
-		epochId: reply.epochId,
-		runState: RUN_STATE_NAMES[reply.runState] ?? `unknown(${reply.runState})`,
-		uptimeMs: reply.uptimeMs,
-		advertisedMask: reply.advertisedMask,
-		grantedMask: session.auth.capabilityMask,
-	};
+  const reply = await session.client.status();
+  return {
+    epochId: reply.epochId,
+    runState: RUN_STATE_NAMES[reply.runState] ?? `unknown(${reply.runState})`,
+    uptimeMs: reply.uptimeMs,
+    advertisedMask: reply.advertisedMask,
+    grantedMask: session.auth.capabilityMask,
+  };
 }
 
 /**
@@ -106,8 +106,8 @@ export async function status(session) {
  * @returns {Promise<any[]>}
  */
 export async function planes(session) {
-	const reply = await session.client.planes();
-	return reply.entries ?? [];
+  const reply = await session.client.planes();
+  return reply.entries ?? [];
 }
 
 /**
@@ -119,15 +119,15 @@ export async function planes(session) {
  * @returns {Promise<string|any>} The serialized document, or the DSL source for the `fbp` format
  */
 export async function graph(session, options = {}) {
-	const { format = "json" } = options;
-	if (format !== "json" && format !== "fbp") {
-		throw new Error(
-			`unsupported graph format '${format}' (dot lands with a later wd #34 phase)`,
-		);
-	}
-	const sync = await session.client.syncGraph();
-	const canonical = sync.graph.serialize();
-	return format === "fbp" ? toFBP(canonical) : canonical;
+  const { format = "json" } = options;
+  if (format !== "json" && format !== "fbp") {
+    throw new Error(
+      `unsupported graph format '${format}' (dot lands with a later wd #34 phase)`,
+    );
+  }
+  const sync = await session.client.syncGraph();
+  const canonical = sync.graph.serialize();
+  return format === "fbp" ? toFBP(canonical) : canonical;
 }
 
 /**
@@ -138,7 +138,7 @@ export async function graph(session, options = {}) {
  * @returns {Promise<import("@noflo/runtime-client").RegistryCatalog>}
  */
 export function components(session) {
-	return session.client.syncComponents();
+  return session.client.syncComponents();
 }
 
 /**
@@ -149,12 +149,12 @@ export function components(session) {
  * @returns {Promise<import("@noflo/runtime-client").CachedComponent>}
  */
 export async function component(session, name) {
-	const catalog = await session.client.syncComponents();
-	const entry = catalog[name];
-	if (!entry) {
-		throw new Error(`component "${name}" is not in the runtime's registry`);
-	}
-	return entry;
+  const catalog = await session.client.syncComponents();
+  const entry = catalog[name];
+  if (!entry) {
+    throw new Error(`component "${name}" is not in the runtime's registry`);
+  }
+  return entry;
 }
 
 /**
@@ -166,8 +166,8 @@ export async function component(session, name) {
  * @returns {Promise<string|null>}
  */
 export async function getSource(session, name) {
-	const reply = await session.client.getSource(name);
-	return reply.source;
+  const reply = await session.client.getSource(name);
+  return reply.source;
 }
 
 /**
@@ -181,7 +181,7 @@ export async function getSource(session, name) {
  * @returns {Promise<void>}
  */
 export function setSource(session, name, source) {
-	return session.client.setSource(name, source);
+  return session.client.setSource(name, source);
 }
 
 /**
@@ -193,7 +193,7 @@ export function setSource(session, name, source) {
  * @returns {Promise<void>}
  */
 export function runControl(session, action, planeId = null) {
-	return session.client.execution.runControl(action.toUpperCase(), planeId);
+  return session.client.execution.runControl(action.toUpperCase(), planeId);
 }
 
 /**
@@ -208,7 +208,7 @@ export function runControl(session, action, planeId = null) {
  * @returns {Promise<void>}
  */
 export function sendPacket(session, packet) {
-	return session.client.execution.injectPacket(packet);
+  return session.client.execution.injectPacket(packet);
 }
 
 /**
@@ -223,7 +223,7 @@ export function sendPacket(session, packet) {
  * @returns {Promise<void>}
  */
 export function setBreakpoint(session, bp) {
-	return session.client.execution.setBreakpoint(bp);
+  return session.client.execution.setBreakpoint(bp);
 }
 
 /**
@@ -235,7 +235,7 @@ export function setBreakpoint(session, bp) {
  * @returns {Promise<void>}
  */
 export function clearBreakpoints(session, breakpointId = null) {
-	return session.client.execution.clearBreakpoints(breakpointId);
+  return session.client.execution.clearBreakpoints(breakpointId);
 }
 
 /**
@@ -248,21 +248,21 @@ export function clearBreakpoints(session, breakpointId = null) {
  * @returns {Promise<Object<string, any>>} Node id to process entry
  */
 export function processes(session, options = {}) {
-	const { timeoutMs = 15_000 } = options;
-	return new Promise((resolve, reject) => {
-		const timer = setTimeout(() => {
-			session.client.removeEventListener("processlist", listener);
-			reject(new Error("timed out waiting for the process listing"));
-		}, timeoutMs);
-		/** @type {(event: any) => void} */
-		const listener = (event) => {
-			clearTimeout(timer);
-			session.client.removeEventListener("processlist", listener);
-			resolve(event.detail.entries ?? {});
-		};
-		session.client.addEventListener("processlist", listener);
-		session.client.execution.requestProcesses();
-	});
+  const { timeoutMs = 15_000 } = options;
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      session.client.removeEventListener("processlist", listener);
+      reject(new Error("timed out waiting for the process listing"));
+    }, timeoutMs);
+    /** @type {(event: any) => void} */
+    const listener = (event) => {
+      clearTimeout(timer);
+      session.client.removeEventListener("processlist", listener);
+      resolve(event.detail.entries ?? {});
+    };
+    session.client.addEventListener("processlist", listener);
+    session.client.execution.requestProcesses();
+  });
 }
 
 /**
@@ -275,7 +275,7 @@ export function processes(session, options = {}) {
  * @returns {Promise<void>}
  */
 export function setProcessState(session, nodeId, action) {
-	return session.client.execution.processControl(nodeId, action.toUpperCase());
+  return session.client.execution.processControl(nodeId, action.toUpperCase());
 }
 
 /**
@@ -287,7 +287,7 @@ export function setProcessState(session, nodeId, action) {
  * @returns {Promise<void>}
  */
 export function setHwm(session, highWaterMark) {
-	return session.client.execution.setHwm(highWaterMark);
+  return session.client.execution.setHwm(highWaterMark);
 }
 
 export { capture, replayTraceFile, watch } from "./trace.js";

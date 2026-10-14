@@ -12,9 +12,9 @@
  */
 
 import {
-	assembleTraceFile,
-	encodeFlowtraceChunk,
-	readTraceFile,
+  assembleTraceFile,
+  encodeFlowtraceChunk,
+  readTraceFile,
 } from "@noflo/fbp-protocol";
 import { TelemetryClient } from "@noflo/runtime-client";
 
@@ -47,28 +47,28 @@ import { TelemetryClient } from "@noflo/runtime-client";
  * @returns {Promise<{ stop: () => void, setOnChunk: (cb: (chunk: TelemetryChunk) => void) => void }>}
  */
 export async function watch(session, options = {}) {
-	const { onChunk, filtersTypes = [], subId } = options;
-	const telemetry = new TelemetryClient({
-		send: (payload) => session.client.send(payload),
-		subId,
-		filters: { types: filtersTypes },
-	});
-	if (onChunk) {
-		telemetry.onChunk(onChunk);
-	}
-	const listener = (/** @type {any} */ event) => {
-		telemetry.handleDecoded(event.detail);
-	};
-	session.client.addEventListener("telemetry", listener);
-	await telemetry.subscribe();
-	return {
-		stop() {
-			session.client.removeEventListener("telemetry", listener);
-		},
-		setOnChunk(cb) {
-			telemetry.onChunk(cb);
-		},
-	};
+  const { onChunk, filtersTypes = [], subId } = options;
+  const telemetry = new TelemetryClient({
+    send: (payload) => session.client.send(payload),
+    subId,
+    filters: { types: filtersTypes },
+  });
+  if (onChunk) {
+    telemetry.onChunk(onChunk);
+  }
+  const listener = (/** @type {any} */ event) => {
+    telemetry.handleDecoded(event.detail);
+  };
+  session.client.addEventListener("telemetry", listener);
+  await telemetry.subscribe();
+  return {
+    stop() {
+      session.client.removeEventListener("telemetry", listener);
+    },
+    setOnChunk(cb) {
+      telemetry.onChunk(cb);
+    },
+  };
 }
 
 /**
@@ -84,32 +84,32 @@ export async function watch(session, options = {}) {
  * @returns {Promise<Uint8Array>} The complete tracefile bytes
  */
 export async function capture(session, options = {}) {
-	const {
-		durationMs = 5_000,
-		filtersTypes = [],
-		runtimeMetadata = null,
-	} = options;
-	/** @type {Uint8Array[]} */
-	const chunks = [];
-	const handle = await watch(session, {
-		filtersTypes,
-		onChunk: (chunk) => {
-			// Re-encode the decoded chunk: the tracefile carries raw 0x32
-			// frames; re-encoding from the delta-applied shape keeps the file
-			// decodable by any readTraceFile consumer
-			chunks.push(reencodeChunk(chunk));
-		},
-	});
-	// The snapshot needs the canonical graph definition: sync the mirror
-	const sync = await session.client.syncGraph();
-	await new Promise((resolve) => setTimeout(resolve, durationMs));
-	handle.stop();
-	return assembleTraceFile({
-		runtimeMetadata,
-		graphDefinition: sync.graph.serialize(),
-		chunks,
-		timestampMs: Date.now() - durationMs,
-	});
+  const {
+    durationMs = 5_000,
+    filtersTypes = [],
+    runtimeMetadata = null,
+  } = options;
+  /** @type {Uint8Array[]} */
+  const chunks = [];
+  const handle = await watch(session, {
+    filtersTypes,
+    onChunk: (chunk) => {
+      // Re-encode the decoded chunk: the tracefile carries raw 0x32
+      // frames; re-encoding from the delta-applied shape keeps the file
+      // decodable by any readTraceFile consumer
+      chunks.push(reencodeChunk(chunk));
+    },
+  });
+  // The snapshot needs the canonical graph definition: sync the mirror
+  const sync = await session.client.syncGraph();
+  await new Promise((resolve) => setTimeout(resolve, durationMs));
+  handle.stop();
+  return assembleTraceFile({
+    runtimeMetadata,
+    graphDefinition: sync.graph.serialize(),
+    chunks,
+    timestampMs: Date.now() - durationMs,
+  });
 }
 
 /**
@@ -123,18 +123,18 @@ export async function capture(session, options = {}) {
  * @returns {{ snapshot: { formatVersion: number, timestampMs: number, runtimeMetadata: any, graphDefinition: any }, chunkCount: number }}
  */
 export function replayTraceFile(bytes, options = {}) {
-	const { onChunk } = options;
-	const file = readTraceFile(bytes);
-	const telemetry = new TelemetryClient({
-		send: async () => {},
-	});
-	if (onChunk) {
-		telemetry.onChunk(onChunk);
-	}
-	for (const chunk of file.chunks) {
-		telemetry.handleDecoded(chunk);
-	}
-	return { snapshot: file.snapshot, chunkCount: file.chunks.length };
+  const { onChunk } = options;
+  const file = readTraceFile(bytes);
+  const telemetry = new TelemetryClient({
+    send: async () => {},
+  });
+  if (onChunk) {
+    telemetry.onChunk(onChunk);
+  }
+  for (const chunk of file.chunks) {
+    telemetry.handleDecoded(chunk);
+  }
+  return { snapshot: file.snapshot, chunkCount: file.chunks.length };
 }
 
 /**
@@ -144,16 +144,16 @@ export function replayTraceFile(bytes, options = {}) {
  * @returns {Uint8Array}
  */
 function reencodeChunk(chunk) {
-	const base = chunk.baseTimestampMs;
-	const events = chunk.events.map((event) => ({
-		timeDeltaMs: event.timestampMs - base,
-		eventType: event.eventType,
-		payload: event.payload,
-	}));
-	return encodeFlowtraceChunk({
-		subId: chunk.subId,
-		planeId: chunk.planeId,
-		baseTimestampMs: base,
-		events,
-	});
+  const base = chunk.baseTimestampMs;
+  const events = chunk.events.map((event) => ({
+    timeDeltaMs: event.timestampMs - base,
+    eventType: event.eventType,
+    payload: event.payload,
+  }));
+  return encodeFlowtraceChunk({
+    subId: chunk.subId,
+    planeId: chunk.planeId,
+    baseTimestampMs: base,
+    events,
+  });
 }
