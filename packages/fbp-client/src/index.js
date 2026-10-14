@@ -48,6 +48,7 @@ export const RUN_STATE_NAMES = {
  * @property {import("@noflo/runtime-client").RuntimeClient} client
  * @property {{ protocolVersion: number, capabilityMask: number }} auth
  * @property {string} nodeName - The runtime's announced name
+ * @property {string|null} clientId - This client's CRDT identity, stamped on `0x14` ops
  */
 
 /**
@@ -58,6 +59,7 @@ export const RUN_STATE_NAMES = {
  * @param {import("@reticulum/core").Identity} options.identity - The client identity
  * @param {string} [options.nodeName] - Pin discovery to one runtime name
  * @param {Uint8Array} [options.destinationHash] - Skip discovery, connect straight to this announce hash
+ * @param {string} [options.clientId] - This client's CRDT identity for `0x14` ops (required for modification)
  * @param {number} [options.timeoutMs]
  * @returns {Promise<Session>}
  */
@@ -67,6 +69,7 @@ export async function connectSession(options) {
     identity,
     nodeName = null,
     destinationHash,
+    clientId = null,
     timeoutMs,
   } = options;
   const discovered = destinationHash
@@ -78,7 +81,10 @@ export async function connectSession(options) {
     identity,
     timeoutMs,
   });
-  return { client, auth, nodeName: discovered.nodeName };
+  if (clientId) {
+    client.clientId = clientId;
+  }
+  return { client, auth, nodeName: discovered.nodeName, clientId };
 }
 
 /**
@@ -290,4 +296,17 @@ export function setHwm(session, highWaterMark) {
   return session.client.execution.setHwm(highWaterMark);
 }
 
+export {
+  addEdge,
+  addExport,
+  addGroup,
+  addIip,
+  addNode,
+  applyGraphOp,
+  describeRejection,
+  OpRejectedError,
+  REASON_NAMES,
+  removeEntity,
+  setMetadata,
+} from "./modify.js";
 export { capture, replayTraceFile, watch } from "./trace.js";
