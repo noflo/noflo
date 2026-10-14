@@ -36,7 +36,7 @@ class CopyLike extends noflo.Component {
       description: "Copies a value from source to destination field",
       inPorts: {
         source: { datatype: "all", required: true },
-        encoding: { datatype: "string", control: true, default: "utf-8" },
+        encoding: { datatype: "string", control: true },
       },
       outPorts: {
         destination: { datatype: "all" },
@@ -335,7 +335,7 @@ class SlowCopy extends noflo.Component {
       description: "Copies with a per-value delay (out-of-order completion)",
       inPorts: {
         source: { datatype: "all", required: true },
-        encoding: { datatype: "string", control: true, default: "utf-8" },
+        encoding: { datatype: "string", control: true },
       },
       outPorts: {
         destination: { datatype: "all" },

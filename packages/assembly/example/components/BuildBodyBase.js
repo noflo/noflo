@@ -3,8 +3,8 @@ import { Component } from "../../src/index.js";
 class BuildBodyBase extends Component {
   constructor() {
     super({
-      description: 'Builds the base of car body',
-      validates: { id: 'num' },
+      description: "Builds the base of car body",
+      validates: { id: "num" },
     });
   }
 

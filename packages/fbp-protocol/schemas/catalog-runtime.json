@@ -9,9 +9,7 @@
         "minimum": 1
       },
       "class": "config",
-      "kinds": [
-        "edge"
-      ]
+      "kinds": ["edge"]
     }
   }
 }

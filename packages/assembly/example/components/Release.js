@@ -3,8 +3,8 @@ import { Component, failed } from "../../src/index.js";
 class Release extends Component {
   constructor() {
     super({
-      description: 'Release a car to the outer world',
-      validates: ['chassis.id', 'body.id'],
+      description: "Release a car to the outer world",
+      validates: ["chassis.id", "body.id"],
     });
   }
 
@@ -16,10 +16,17 @@ class Release extends Component {
       if (msg.parts) {
         delete msg.parts;
       }
-      console.log('A Car:', JSON.stringify({
-        chassis: msg.chassis,
-        body: msg.body,
-      }, null, 2));
+      console.log(
+        "A Car:",
+        JSON.stringify(
+          {
+            chassis: msg.chassis,
+            body: msg.body,
+          },
+          null,
+          2,
+        ),
+      );
     }
     output.sendDone(msg);
   }

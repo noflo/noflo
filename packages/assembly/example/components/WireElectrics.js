@@ -3,17 +3,19 @@ import { Component } from "../../src/index.js";
 class WireElectrics extends Component {
   constructor() {
     super({
-      description: 'Wires body electrics',
-      inPorts: ['main', 'aux'],
-      validates: ['body.id'],
+      description: "Wires body electrics",
+      inPorts: ["main", "aux"],
+      validates: ["body.id"],
     });
   }
 
   processMessage(input, output) {
-    if (!input.hasData('main', 'aux')) { return null; }
+    if (!input.hasData("main", "aux")) {
+      return null;
+    }
 
-    const main = input.getData('main');
-    const aux = input.getData('aux');
+    const main = input.getData("main");
+    const aux = input.getData("aux");
 
     // Validate each of message ports
     if (!this.validate(main)) {
@@ -23,7 +25,7 @@ class WireElectrics extends Component {
       return output.sendDone(aux);
     }
 
-    main.body.electrics = '~~~~~~~~~~~~~~~~';
+    main.body.electrics = "~~~~~~~~~~~~~~~~";
 
     return output.sendDone(main);
   }

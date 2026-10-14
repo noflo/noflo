@@ -8,40 +8,28 @@
         "type": "number"
       },
       "class": "positional",
-      "kinds": [
-        "node",
-        "export",
-        "iip"
-      ]
+      "kinds": ["node", "export", "iip"]
     },
     "ui.y": {
       "schema": {
         "type": "number"
       },
       "class": "positional",
-      "kinds": [
-        "node",
-        "export",
-        "iip"
-      ]
+      "kinds": ["node", "export", "iip"]
     },
     "ui.route": {
       "schema": {
         "type": "string"
       },
       "class": "positional",
-      "kinds": [
-        "edge"
-      ]
+      "kinds": ["edge"]
     },
     "ui.routePoints": {
       "schema": {
         "type": "array"
       },
       "class": "positional",
-      "kinds": [
-        "edge"
-      ]
+      "kinds": ["edge"]
     }
   }
 }

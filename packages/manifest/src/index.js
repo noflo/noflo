@@ -253,11 +253,12 @@ function harvestPorts(ports) {
       control: Boolean(options.control),
       // Raw markers: the schema/guard finalization pass resolves ids,
       // hoists inline objects into content-addressed entries, and derives
-      // or lints the guard (work document #37 §3.1)
+      // or lints the guard (work document #37 §3.1). The 1.x `values` and
+      // `default` port options are retired: `values` migrates to inline
+      // enum schemas, `default` to graph IIPs or control-port configuration
+      // (work document #37 §3.4)
       schema: options.schema ?? null,
       guard: options.guard ?? null,
-      values: Array.isArray(options.values) ? options.values : null,
-      default: options.default ?? null,
     };
   });
 }

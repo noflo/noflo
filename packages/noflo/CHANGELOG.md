@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Process errors now reach the trace: `Network` records `process-error` events as `0x04 ERROR` flowtrace events (the legacy recorder never captured them)
 ### Removed
 - The `flowtrace` devDependency — core's runtime dependencies are `@noflo/graph` alone
+- The 1.x `InPort` `values` and `default` port options (work document #37 §3.4): `values` is superseded by inline enum schemas (the publish pipeline derives the in-band guard automatically — the runtime keeps a diagnostic check, but the out-of-list throw is gone and components that must enforce inputs validate in their process function), and `default` is superseded by graph IIPs, control-port configuration, or internal state initialized at start. The port-default socket machinery (`Network.addDefaults`/`sendDefaults`, the inport data delegate) is gone with them — a 1.x default was re-readable on every activation, an IIP is consumed by its first read, so components that re-read defaults migrate per the migration guide's ports section
 
 ## [2.0.0-alpha.3] - 2026-10-10
 ### Fixed

@@ -3,8 +3,8 @@ import { Component } from "../../src/index.js";
 class BuildFrame extends Component {
   constructor() {
     super({
-      description: 'Builds car frame',
-      validates: { id: 'num' },
+      description: "Builds car frame",
+      validates: { id: "num" },
       // Port definition is not necessary
     });
   }
@@ -16,7 +16,7 @@ class BuildFrame extends Component {
   relay(msg, output) {
     msg.chassis = {
       id: msg.id,
-      frame: 'Steel Frame',
+      frame: "Steel Frame",
     };
     output.sendDone(msg);
   }

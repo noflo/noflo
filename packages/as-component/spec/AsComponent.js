@@ -185,9 +185,7 @@ describe("asComponent interface", () => {
             "error",
           ]);
           assert.equal(instance.inPorts.name.isRequired(), true);
-          assert.equal(instance.inPorts.name.hasDefault(), false);
           assert.equal(instance.inPorts.greeting.isRequired(), false);
-          assert.equal(instance.inPorts.greeting.hasDefault(), true);
           done();
         });
       });

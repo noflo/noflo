@@ -4,7 +4,7 @@ import { Component } from "../../src/index.js";
 class Order extends Component {
   constructor() {
     super({
-      description: 'Place an order of a new car production',
+      description: "Place an order of a new car production",
     });
     this.counter = 0;
   }
@@ -19,7 +19,7 @@ class Order extends Component {
       id: this.counter,
     };
     // TODO: Let's use noflo.IP.scope to isolate jobs
-    const ip = new IP('data', msg);
+    const ip = new IP("data", msg);
     output.sendDone(ip);
   }
 }

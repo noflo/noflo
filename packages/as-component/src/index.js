@@ -121,7 +121,11 @@ export function asComponent(func, options) {
     /** @type {PortOptions} */
     const portOptions = { required: true };
     if (typeof p.default !== "undefined") {
-      portOptions.default = p.default;
+      // A function parameter with a default is an optional port (work
+      // document #37 §3.4: port defaults are retired; the function's own
+      // default parameter is the process-function fallback — when the
+      // graph leaves the port unsupplied, the component passes
+      // `undefined` and the JS default applies)
       portOptions.required = false;
     }
     c.inPorts.add(p.param, portOptions);
@@ -140,11 +144,13 @@ export function asComponent(func, options) {
     if (params.length) {
       for (let i = 0; i < params.length; i += 1) {
         const p = params[i];
-        if (!input.hasData(p.param)) {
+        if (typeof p.default === "undefined" && !input.hasData(p.param)) {
           return;
         }
       }
-      values = params.map((p) => input.getData(p.param));
+      values = params.map((p) =>
+        input.hasData(p.param) ? input.getData(p.param) : undefined,
+      );
     } else {
       if (!input.hasData("in")) {
         return;

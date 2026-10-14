@@ -3,51 +3,53 @@ import { Component } from "../../src/index.js";
 class SupplyBodyParts extends Component {
   constructor() {
     super({
-      description: 'Example component with multiple ins and outs',
+      description: "Example component with multiple ins and outs",
       inPorts: {
         in: {
-          datatype: 'object',
-          description: 'Assembly',
+          datatype: "object",
+          description: "Assembly",
         },
         interior: {
-          datatype: 'string',
-          description: 'Complete interior',
+          datatype: "string",
+          description: "Complete interior",
           control: true,
         },
         doortype: {
-          datatype: 'string',
-          description: 'Door type/contents',
+          datatype: "string",
+          description: "Door type/contents",
           control: true,
         },
         doornum: {
-          datatype: 'int',
-          description: 'Number of doors',
+          datatype: "int",
+          description: "Number of doors",
           control: true,
         },
       },
       outPorts: {
         main: {
-          datatype: 'object',
-          description: 'Primary output',
+          datatype: "object",
+          description: "Primary output",
         },
         aux: {
-          datatype: 'object',
-          description: 'Secondary output',
+          datatype: "object",
+          description: "Secondary output",
         },
       },
       validates: {
-        body: 'obj',
-        'body.id': 'num',
+        body: "obj",
+        "body.id": "num",
       },
     });
   }
 
   processMessage(input, output) {
-    if (!input.hasData('in', 'interior', 'doortype', 'doornum')) { return null; }
-    const msg = input.getData('in');
-    const interior = input.getData('interior');
-    const doortype = input.getData('doortype');
-    const doornum = input.getData('doornum');
+    if (!input.hasData("in", "interior", "doortype", "doornum")) {
+      return null;
+    }
+    const msg = input.getData("in");
+    const interior = input.getData("interior");
+    const doortype = input.getData("doortype");
+    const doornum = input.getData("doornum");
 
     // Message validation is explicit if there are multiple inports
     if (!this.validate(msg)) {

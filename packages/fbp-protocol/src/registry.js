@@ -69,10 +69,10 @@ import { isValidSchemaId } from "./schema-identity.js";
  *   cheaply-checkable assertions, checkable by a runtime with comparisons
  *   alone. Diagnostic-only: violations are never structurally rejected.
  *   The field set is kept in lockstep with the publish-time manifest's
- *   harvest (`@noflo/manifest` `harvestPorts`) minus the `values` and
- *   `default` inport options, which are not carried on the wire: they
- *   stay publish-time manifest data pending the end-to-end schema design
- *   (work document #37 §3.4 — inline schemas supersede them on the wire).
+ *   harvest (`@noflo/manifest` `harvestPorts`). The 1.x `values` and
+ *   `default` inport options are retired from the core (work document
+ *   #37 §3.4): inline schemas supersede `values` on the wire, and port
+ *   defaults became graph IIPs or control-port configuration.
  */
 
 /**
