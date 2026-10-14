@@ -21,3 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `watch(session, options)` — subscribe to the telemetry stream and deliver decoded, filtered chunks; `capture(session, options)` — capture the `0x32` stream into a `0xF0` tracefile; `replayTraceFile(bytes, options)` — offline playback through the same decode path (phase 3)
 - `runControl(session, action, planeId)`, `sendPacket(session, packet)`, `setBreakpoint`/`clearBreakpoints`, `processes(session)`, `setProcessState(session, nodeId, action)`, `setHwm(session, highWaterMark)` — the execution-control command surface (phase 3)
 - `RuntimeClient` re-exports: the client now carries an `ExecutionClient` instance at `client.execution` and re-emits inbound `0x32` chunks as typed `telemetry` events
+- `RuntimeClient` gains a CRDT identity: a `clientId` (constructor option or property) and a `logicalClock` counter, stamped onto outgoing `0x14` ops by `sendGraphOp` — emitting semantic ops no longer requires touching CRDT bookkeeping
+- Inbound `0x17 CMD_OP_REJECTED` frames are decoded and re-emitted as `oprejected` events carrying `{ rejectedCmd, planeId, detail }` — the runtime's explicit "no" with its reason, per work document #4 updates #34/#35
+- `nextFrame()` waiters carry a `cancel()` so abandoned sync-loop waiters never reject into the void after their consumer left

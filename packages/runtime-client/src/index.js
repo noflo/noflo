@@ -19,10 +19,6 @@
 
 import {
   ANNOUNCE_ASPECT,
-  CMD_AUTH_RESPONSE,
-  CMD_COMP_MANIFEST,
-  CMD_CRDT_STALE_EPOCH,
-  CMD_CRDT_UP_TO_DATE,
   decodeAnnounceAppData,
   decodeAuthResponse,
   decodeCompManifest,
@@ -32,19 +28,16 @@ import {
   decodeCrdtUpToDate,
   decodeFlowtraceChunk,
   decodeGetStatusRes,
+  decodeOpRejected,
   decodePlaneListRes,
   decodeProcessList,
-  encodeCompManifest,
   encodeCompSourceReq,
   encodeCompSyncReq,
   encodeCompWrite,
-  encodeCrdtStaleEpoch,
   encodeCrdtSyncReq,
   encodeCrdtUpdate,
-  encodeCrdtUpToDate,
   encodeGetStatus,
   encodePlaneList,
-  encodePlaneListRes,
   PROTOCOL_VERSION,
 } from "@noflo/fbp-protocol";
 import { GraphModel, importFbpJson } from "@noflo/graph";
@@ -62,6 +55,7 @@ export {
   decodeCrdtUpToDate,
   decodeFlowtraceChunk,
   decodeGetStatusRes,
+  decodeOpRejected,
   decodePlaneListRes,
   encodeCompManifest,
   encodeCompSourceRes,
@@ -136,6 +130,19 @@ export function discoverRuntime(options) {
 }
 
 /**
+ * A decoded `0x17` rejection: the runtime's explicit "no" to a command
+ * (work document #4 updates #34/#35). For refused `0x14` operations the
+ * detail carries `{ client_id, logical_clock, entity_id, reason }` so the
+ * client can match the rejection to the op it sent and learn why it was
+ * refused; for other commands it carries `{ reason, message? }`.
+ *
+ * @typedef {Object} OpRejection
+ * @property {number} rejectedCmd - The command code that was refused
+ * @property {number|string|null} planeId - The plane the refused command targeted
+ * @property {any} detail - The rejection detail payload
+ */
+
+/**
  * Establish a protocol link to a discovered runtime: recall the announce
  * destination, create the link, identify with the client identity, and
  * wait for the runtime's unilateral `0x02` auth response (§4 of work
@@ -201,11 +208,30 @@ export class RuntimeClient extends EventTarget {
    * @param {Object} options
    * @param {import("@reticulum/core").Link} options.link - The established protocol link
    * @param {{ protocolVersion: number, capabilityMask: number }} options.auth - The decoded auth response
+   * @param {string} [options.clientId] - This client's identity in the CRDT op stream; required before `sendGraphOp`
    */
-  constructor({ link, auth }) {
+  constructor({ link, auth, clientId }) {
     super();
     this.link = link;
     this.auth = auth;
+    /**
+     * This client's identity in the CRDT op stream, stamped onto every
+     * outgoing `0x14` op. Set by the caller (work document #34 phase 4:
+     * the CLI derives it from its persisted Reticulum identity) — ops
+     * without a client id cannot be sent.
+     *
+     * @type {string|null}
+     */
+    this.clientId = clientId ?? null;
+    /**
+     * This client's logical clock, incremented per emitted op (work
+     * document #4 §5). Monotonic within the process; persisting it
+     * across sessions is not required — the runtime takes the max of
+     * learned clocks.
+     *
+     * @type {number}
+     */
+    this.logicalClock = 0;
     /** @type {GraphModel|undefined} The graph mirror for the main plane */
     this.graph = undefined;
     /** @type {number|string|undefined} The epoch the mirror was baselined at */
@@ -254,7 +280,23 @@ export class RuntimeClient extends EventTarget {
           this.onGraphOp(op);
         }
       } catch {
-        // Not a 0x14 frame; try the process listing.
+        // Not a 0x14 frame; try the rejection.
+      }
+      try {
+        const rejection = /** @type {any} */ (decodeOpRejected(payload));
+        if (rejection.cmd === 0x17) {
+          this.dispatchEvent(
+            new CustomEvent("oprejected", {
+              detail: {
+                rejectedCmd: rejection.rejectedCmd,
+                planeId: rejection.planeId,
+                detail: rejection.detail,
+              },
+            }),
+          );
+        }
+      } catch {
+        // Not a 0x17 frame; try the process listing.
       }
       try {
         const listing = /** @type {any} */ (decodeProcessList(payload));
@@ -305,31 +347,48 @@ export class RuntimeClient extends EventTarget {
   }
 
   /**
-   * Wait for the next inbound frame payload.
+   * Wait for the next inbound frame payload. The returned promise
+   * carries a `cancel()` — an abandoned waiter (the sync loop re-arms
+   * per frame) must never reject into the void after its consumer left.
    *
    * @param {number} [timeoutMs]
-   * @returns {Promise<Uint8Array>}
+   * @returns {Promise<Uint8Array> & { cancel: () => void }}
    */
   nextFrame(timeoutMs = 15_000) {
     const existing = this.pending.shift();
     if (existing) {
-      return Promise.resolve(existing);
+      const resolved = /** @type {any} */ (Promise.resolve(existing));
+      resolved.cancel = () => {};
+      return resolved;
     }
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        const i = this.waiters.indexOf(waiter);
-        if (i !== -1) {
-          this.waiters.splice(i, 1);
-        }
-        reject(new Error("timed out waiting for a frame"));
-      }, timeoutMs);
-      /** @type {(value: any) => void} */
-      const waiter = (payload) => {
-        clearTimeout(timer);
-        resolve(payload);
-      };
-      this.waiters.push(waiter);
-    });
+    /** @type {(value: any) => void} */
+    let waiter;
+    /** @type {ReturnType<typeof setTimeout>|undefined} */
+    let timer;
+    const promise = /** @type {any} */ (
+      new Promise((resolve, reject) => {
+        timer = setTimeout(() => {
+          const i = this.waiters.indexOf(waiter);
+          if (i !== -1) {
+            this.waiters.splice(i, 1);
+          }
+          reject(new Error("timed out waiting for a frame"));
+        }, timeoutMs);
+        waiter = (payload) => {
+          clearTimeout(timer);
+          resolve(payload);
+        };
+        this.waiters.push(waiter);
+      })
+    );
+    promise.cancel = () => {
+      clearTimeout(timer);
+      const i = this.waiters.indexOf(waiter);
+      if (i !== -1) {
+        this.waiters.splice(i, 1);
+      }
+    };
+    return promise;
   }
 
   /**
@@ -436,7 +495,6 @@ export class RuntimeClient extends EventTarget {
     for (;;) {
       const frame = await reply;
       deadline = Date.now() + timeoutMs;
-      reply = this.nextFrame(Math.max(1000, deadline - Date.now()));
       try {
         const upToDate = decodeCrdtUpToDate(frame);
         if (upToDate.cmd === 0x11 && upToDate.epochId === epochId) {
@@ -454,13 +512,22 @@ export class RuntimeClient extends EventTarget {
       try {
         stale = decodeCrdtStaleEpoch(frame);
       } catch {
+        // Neither an UP_TO_DATE nor a STALE_EPOCH frame: keep waiting
+        // for the handshake reply
+        reply = this.nextFrame(Math.max(1000, deadline - Date.now()));
         continue;
       }
       if (stale.cmd !== 0x12) {
+        reply = this.nextFrame(Math.max(1000, deadline - Date.now()));
         continue;
       }
       this.epoch = stale.newEpochId;
+      // Arm the receive path before the baseline fetch: frames may land
+      // while the resource transfer is in flight; cancel on return so
+      // the abandoned waiter never rejects into the void
+      const fetchWaiter = this.nextFrame(Math.max(1000, deadline - Date.now()));
       const baseline = await this.link.request(stale.rnsResourceHash);
+      fetchWaiter.cancel();
       const canonical = JSON.parse(new TextDecoder().decode(baseline));
       this.graph = importFbpJson(canonical);
       return {
@@ -472,19 +539,40 @@ export class RuntimeClient extends EventTarget {
   }
 
   /**
-   * Emit a `0x14` graph op to the runtime.
+   * Emit a `0x14` graph op to the runtime. The client id and logical
+   * clock default to the client's own (`clientId`, `logicalClock`
+   * incremented per emission) so callers send semantic ops without
+   * touching CRDT bookkeeping.
    *
    * @param {Object} op
    * @param {number|string} [op.planeId] - the plane id (per the codec d.ts, non-nil)
-   * @param {string} op.clientId
-   * @param {number} op.logicalClock
+   * @param {string} [op.clientId] - Defaults to the client's own id
+   * @param {number} [op.logicalClock] - Defaults to the next clock tick
    * @param {number} op.opType
    * @param {string} op.entityId
    * @param {any} op.payload
    * @returns {Promise<void>}
    */
   async sendGraphOp(op) {
-    await this.send(encodeCrdtUpdate({ ...op, planeId: op.planeId ?? null }));
+    const clientId = op.clientId ?? this.clientId;
+    if (!clientId) {
+      throw new Error(
+        "the client has no CRDT identity: set clientId before emitting graph ops",
+      );
+    }
+    let logicalClock = op.logicalClock;
+    if (logicalClock === undefined) {
+      this.logicalClock += 1;
+      logicalClock = this.logicalClock;
+    }
+    await this.send(
+      encodeCrdtUpdate({
+        ...op,
+        planeId: op.planeId ?? null,
+        clientId,
+        logicalClock,
+      }),
+    );
   }
 
   /**

@@ -1,16 +1,19 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { decodeCompDetailReq, encodeCompDetailRes } from "@noflo/fbp-protocol";
+import {
+  decodeCompDetailReq,
+  decodeCrdtUpdate,
+  encodeCompDetailRes,
+  encodeOpRejected,
+} from "@noflo/fbp-protocol";
 import {
   encodeCompManifest,
   encodeCompSourceRes,
-  encodeCompSyncReq,
   encodeCrdtStaleEpoch,
   encodeCrdtSyncReq,
   encodeCrdtUpdate,
   encodeCrdtUpToDate,
   encodeGetStatusRes,
-  encodePlaneList,
   encodePlaneListRes,
   RUN_STATE,
   RuntimeClient,
@@ -177,6 +180,60 @@ describe("RuntimeClient", () => {
     const result = await pending;
     assert.equal(result.upToDate, true);
     assert.equal(result.epochId, "epoch-9");
+  });
+
+  it("stamps sendGraphOp with the client id and the next clock", async () => {
+    const { link, client } = makeClient();
+    client.clientId = "cli-1";
+    await client.sendGraphOp({
+      opType: 1,
+      entityId: "node-1",
+      payload: { component: "math/Add" },
+    });
+    await client.sendGraphOp({
+      opType: 4,
+      entityId: "node-2",
+      payload: null,
+    });
+    assert.equal(link.sent.length, 2);
+    const first = decodeCrdtUpdate(link.sent[0]);
+    assert.equal(first.clientId, "cli-1");
+    assert.equal(first.logicalClock, 1);
+    const second = decodeCrdtUpdate(link.sent[1]);
+    assert.equal(second.logicalClock, 2);
+  });
+
+  it("refuses sendGraphOp without a client id", async () => {
+    const { link, client } = makeClient();
+    await assert.rejects(
+      client.sendGraphOp({ opType: 1, entityId: "n", payload: {} }),
+      /clientId/,
+    );
+    assert.equal(link.sent.length, 0);
+  });
+
+  it("re-emits 0x17 rejections as oprejected events", () => {
+    const { link, client } = makeClient();
+    /** @type {any[]} */
+    const rejections = [];
+    client.addEventListener("oprejected", (event) => {
+      rejections.push(event.detail);
+    });
+    link.deliver(
+      encodeOpRejected({
+        rejectedCmd: 0x14,
+        planeId: null,
+        detail: {
+          clientId: "cli-1",
+          logicalClock: 1,
+          entityId: "node-1",
+          reason: 'Node "node-1" already exists',
+        },
+      }),
+    );
+    assert.equal(rejections.length, 1);
+    assert.equal(rejections[0].rejectedCmd, 0x14);
+    assert.equal(rejections[0].detail.entityId, "node-1");
   });
 
   it("re-emits 0x14 ops as op events", async () => {
