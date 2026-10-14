@@ -1,0 +1,17 @@
+{
+  "$schema": "urn:noflo:noflo/meta-catalog@278e7057c1cce1a8f33fb75aab757450cbdcde7bb5135858d18ac0ca1bfe62c9",
+  "title": "The runtime metadata catalog",
+  "description": "Config-class runtime behavior (work document #37 §3.2): keys that change what the network does. They are graph state riding insert payloads, merge as one map per entity, and are never droppable. runtime.highWaterMark is the edge backpressure buffer size the field SPEC §5 already names (work document #46's inspector field); a config edit is a node/edge re-instantiation trigger.",
+  "entries": {
+    "runtime.highWaterMark": {
+      "schema": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "class": "config",
+      "kinds": [
+        "edge"
+      ]
+    }
+  }
+}

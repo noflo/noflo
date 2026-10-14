@@ -38,6 +38,17 @@
  */
 
 export {
+  /**
+   * The default catalog bodies, keyed by namespace (`std`, `ui`, `runtime`);
+   * digests via {@linkcode catalogDigest}.
+   *
+   * @typedef {import("./catalogs.js").CatalogNamespace} CatalogNamespace
+   */
+  CATALOGS,
+  catalogBody,
+  catalogDigest,
+} from "./catalogs.js";
+export {
   ANNOUNCE_ASPECT,
   CAPABILITY,
   CMD_AUTH_RESPONSE,

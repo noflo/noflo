@@ -1,0 +1,67 @@
+{
+  "title": "The std datatype catalog",
+  "description": "Maps the 13 core datatypes to form/validation behavior (work document #37 §3.3). Where a natural JSON Schema exists, one is given; where none exists, the mapping is the explicit marker opaque — no form is rendered, IIP validation is skipped, and UIs may still render non-form affordances. Opaque is a defined outcome, not a gap: non-JSON-able packets generally hit the same path, since validation and forms apply to JSON-able data only. all carries the empty schema: it accepts anything and renders a raw JSON editor.",
+  "types": {
+    "string": {
+      "schema": {
+        "type": "string"
+      }
+    },
+    "number": {
+      "schema": {
+        "type": "number"
+      }
+    },
+    "int": {
+      "schema": {
+        "type": "integer"
+      }
+    },
+    "boolean": {
+      "schema": {
+        "type": "boolean"
+      }
+    },
+    "array": {
+      "schema": {
+        "type": "array"
+      }
+    },
+    "object": {
+      "schema": {
+        "type": "object"
+      }
+    },
+    "color": {
+      "schema": {
+        "type": "string",
+        "format": "color"
+      }
+    },
+    "date": {
+      "schema": {
+        "type": "string",
+        "format": "date"
+      }
+    },
+    "all": {
+      "schema": {}
+    },
+    "bang": {
+      "opaque": true,
+      "description": "Unit packet — no payload to validate."
+    },
+    "buffer": {
+      "opaque": true,
+      "description": "Binary; MsgPack bin is not JSON. UIs may render a file picker backed by out-of-band transfer."
+    },
+    "function": {
+      "opaque": true,
+      "description": "Not serializable as data."
+    },
+    "stream": {
+      "opaque": true,
+      "description": "A delivery shape, not a value shape."
+    }
+  }
+}
