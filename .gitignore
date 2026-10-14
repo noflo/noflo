@@ -9,7 +9,6 @@ packages/*/coverage/
 packages/*/.nyc_output/
 packages/*/spec/result.xml
 packages/*/spec/runner.html
-packages/*/bin/*.js
 coverage/
 .nyc_output/
 dist/
