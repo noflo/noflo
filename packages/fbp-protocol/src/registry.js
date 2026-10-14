@@ -81,7 +81,11 @@ import { isValidSchemaId } from "./schema-identity.js";
  * implementation exists (stubs are valid state). Component-level
  * `description` and `icon` ride the detail (external review, update #35:
  * UIs render nodes with icons; decided before the signature freeze so the
- * canonical bytes settle once).
+ * canonical bytes settle once). The optional `metadata` field references
+ * the component's config catalog — the object-level schema of the metadata
+ * map `getComponent(metadata)` reads (work document #37 §3.2); node
+ * inspectors render exactly the declared keys, and undefined keys stay
+ * un-rejected (`additionalProperties` stays open).
  *
  * @typedef {object} ComponentDetail
  * @property {string} type One of {@link COMPONENT_TYPE}.
@@ -90,6 +94,8 @@ import { isValidSchemaId } from "./schema-identity.js";
  * @property {string} [description] What the component does.
  * @property {string} [icon] Icon name, in the vocabulary 1.x runtimes and
  *   noflo-ui render (FontAwesome names).
+ * @property {PortSchemaRef} [metadata] Reference to the component's config
+ *   catalog, same id+digest form as port schema references.
  */
 
 /**
@@ -471,6 +477,7 @@ export function canonicalSignature(signature) {
     json.description = signature.description;
   }
   if (signature.icon !== undefined) json.icon = signature.icon;
+  if (signature.metadata !== undefined) json.metadata = signature.metadata;
   return stableStringify(json);
 }
 
@@ -814,6 +821,13 @@ function assertDetail(detail, name, wireForm = false) {
       assertPort(port, where, side, wireForm);
     }
   }
+  assertPortSchemaRef(
+    detail.metadata,
+    where,
+    "component",
+    "metadata",
+    wireForm,
+  );
 }
 
 /**
@@ -933,6 +947,14 @@ function toWireDetails(components) {
       ...detail,
       in: detail.in.map(portToWire),
       out: detail.out.map(portToWire),
+      ...(detail.metadata?.digest !== undefined
+        ? {
+            metadata: {
+              ...detail.metadata,
+              digest: fromHex(detail.metadata.digest),
+            },
+          }
+        : {}),
     };
   }
   return wire;
@@ -948,10 +970,17 @@ function fromWireDetails(wire) {
   /** @type {Record<string, any>} */
   const components = {};
   for (const [name, detail] of Object.entries(wire)) {
+    const meta = detail.metadata;
     components[name] = {
       ...detail,
       in: detail.in.map(portFromWire),
       out: detail.out.map(portFromWire),
+      ...(meta !== undefined &&
+      meta !== null &&
+      typeof meta === "object" &&
+      meta.digest instanceof Uint8Array
+        ? { metadata: { ...meta, digest: toHex(meta.digest) } }
+        : {}),
     };
   }
   return /** @type {ComponentDetails} */ (components);

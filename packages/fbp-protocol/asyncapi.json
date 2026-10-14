@@ -452,7 +452,7 @@
       },
       "ComponentDetail": {
         "type": "object",
-        "description": "A component definition as carried by `0x24`. Valid with no implementation behind it (stubs).",
+        "description": "A component definition as carried by `0x24`. Valid with no implementation behind it (stubs). The optional `metadata` field references the component's config catalog — the object-level schema of the metadata map `getComponent(metadata)` reads; node inspectors render exactly the declared keys, and undefined keys stay un-rejected.",
         "properties": {
           "type": {
             "$ref": "#/components/schemas/ComponentKind"
@@ -467,6 +467,21 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Port"
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Reference to the component's config catalog; same form as the port `schema` reference. The digest travels as a raw 32-byte MsgPack bin on the wire.",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Bare `ns/name` schema id; absent for anonymous entries."
+              },
+              "digest": {
+                "type": "string",
+                "format": "binary",
+                "description": "Raw SHA-256 digest of the config catalog body."
+              }
             }
           }
         },
@@ -927,35 +942,31 @@
         "examples": [
           {
             "name": "decoded",
-            "payload": [
-              36,
-              {
-                "math/Add": {
-                  "type": "elementary",
-                  "in": [
-                    {
-                      "id": "a",
-                      "type": "number"
-                    },
-                    {
-                      "id": "b",
-                      "type": "number",
-                      "required": true
-                    }
-                  ],
-                  "out": [
-                    {
-                      "id": "sum",
-                      "type": "number"
-                    }
-                  ]
+            "payload": {
+              "assembly/ExtractField": {
+                "type": "elementary",
+                "in": [
+                  {
+                    "id": "msg",
+                    "type": "object"
+                  }
+                ],
+                "out": [
+                  {
+                    "id": "out",
+                    "type": "object"
+                  }
+                ],
+                "metadata": {
+                  "id": "assembly/extract-config",
+                  "digest": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqo="
                 }
               }
-            ]
+            }
           }
         ],
-        "x-msgpack-hex": "922481a86d6174682f41646483a474797065aa656c656d656e74617279a2696e9282a26964a161a474797065a66e756d62657283a26964a162a474797065a66e756d626572a87265717569726564c3a36f75749182a26964a373756da474797065a66e756d626572",
-        "x-verify": "frame"
+        "x-msgpack-hex": "922481b5617373656d626c792f457874726163744669656c6484a474797065aa656c656d656e74617279a2696e9182a26964a36d7367a474797065a66f626a656374a36f75749182a26964a36f7574a474797065a66f626a656374a86d6574616461746182a26964b7617373656d626c792f657874726163742d636f6e666967a6646967657374c420aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "x-verify": "frame-binary"
       },
       "compWrite": {
         "name": "compWrite",

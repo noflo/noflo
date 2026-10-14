@@ -378,10 +378,13 @@ comparisons alone: a runtime never loads a schema body to apply it, and
 violations are diagnostic-only — convergence integrity outranks schema
 enforcement. Both fields participate in the canonical signature and
 therefore in `sig_hash`: a changed schema digest re-fetches details
-through the ordinary Two-Step Cache. Phase-1 runtimes advertise
-references but cannot serve bodies (`0x28`/`0x29` are phase 2); remote
-clients degrade to the `std` mappings until then, and no compatibility
-semantics beyond the `datatype` floor exist yet.
+through the ordinary Two-Step Cache. The component object itself may
+carry an optional `metadata` reference to its config catalog in the same
+id+digest form (work document #37 §3.2) — the object-level schema of
+what `getComponent(metadata)` reads. Phase-1 runtimes advertise
+references but cannot serve bodies (`0x28`/`0x29` land in phase 2);
+remote clients degrade to the `std` mappings until then, and no
+compatibility semantics beyond the `datatype` floor exist yet.
 
 **`0x25` CMD_COMP_WRITE** — atomic full-source update:
 `[0x25, component_name, source_string_or_rns_hash]`. For sources over 500

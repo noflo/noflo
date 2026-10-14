@@ -136,3 +136,58 @@ describe("0x2a CMD_SCHEMA_WRITE", () => {
     assert.throws(() => encodeSchemaWrite(DIGEST_A, ""));
   });
 });
+
+describe("0x24 component config catalog reference", () => {
+  it("round-trips the metadata reference with a hex digest", async () => {
+    const { decodeCompDetailRes, encodeCompDetailRes, COMPONENT_TYPE } =
+      await import("../src/index.js");
+    const digest = "d".repeat(64);
+    const decoded = decodeCompDetailRes(
+      encodeCompDetailRes({
+        "assembly/ExtractField": {
+          type: COMPONENT_TYPE.ELEMENTARY,
+          in: [],
+          out: [],
+          metadata: { id: "assembly/extract-config", digest },
+        },
+      }),
+    );
+    assert.deepEqual(decoded.components["assembly/ExtractField"].metadata, {
+      id: "assembly/extract-config",
+      digest,
+    });
+  });
+
+  it("rides the canonical signature", async () => {
+    const { canonicalSignature, COMPONENT_TYPE } = await import(
+      "../src/index.js"
+    );
+    const digest = "e".repeat(64);
+    const canonical = canonicalSignature({
+      type: COMPONENT_TYPE.ELEMENTARY,
+      in: [],
+      out: [],
+      metadata: { id: "assembly/extract-config", digest },
+    });
+    assert.match(
+      canonical,
+      /"metadata":\{"digest":"e{64}","id":"assembly\/extract-config"\}/,
+    );
+  });
+
+  it("rejects a malformed metadata reference", async () => {
+    const { encodeCompDetailRes, COMPONENT_TYPE } = await import(
+      "../src/index.js"
+    );
+    assert.throws(() =>
+      encodeCompDetailRes({
+        X: {
+          type: COMPONENT_TYPE.ELEMENTARY,
+          in: [],
+          out: [],
+          metadata: { digest: "short" },
+        },
+      }),
+    );
+  });
+});
