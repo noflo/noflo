@@ -21,6 +21,7 @@ import { NetworkHost } from "./network-host.js";
 import { RegistryProtocol } from "./registry-protocol.js";
 import { DEFAULT_ASPECT, ReticulumBinding } from "./reticulum-binding.js";
 import { RuntimeServer } from "./runtime-server.js";
+import { SchemaProtocol } from "./schema-protocol.js";
 import { TelemetryProtocol } from "./telemetry-protocol.js";
 
 /**
@@ -31,6 +32,10 @@ import { TelemetryProtocol } from "./telemetry-protocol.js";
  * @property {GraphProtocol} graph
  * @property {TelemetryProtocol} telemetry
  * @property {ExecutionProtocol} execution
+ * @property {SchemaProtocol|null} schema The schema protocol, when a schema
+ *   table was provided (work document #37 phase 2); null when absent, and
+ *   `0x28`/`0x29` then answer all-nil while `0x2a` is unhandled (rejected
+ *   with UNSUPPORTED by the server core).
  */
 
 /**
@@ -71,6 +76,11 @@ import { TelemetryProtocol } from "./telemetry-protocol.js";
  *   provides one.
  * @param {(bytes: Uint8Array, exceptContext?: any) => void} [options.broadcast]
  *   Deliver a frame to every authorized client context.
+ * @param {import("./schema-protocol.js").SchemaTable} [options.schemaTable]
+ *   The runtime's schema table (work document #37 phase 2). When provided,
+ *   `0x28`/`0x29` serve bodies and `0x2a` accepts live writes; when absent,
+ *   reads answer all-nil and writes are unsupported. Hosts load installed
+ *   packages into the table themselves — persistence is runtime policy.
  * @returns {Promise<AssembledRuntime>}
  */
 export async function assembleRuntime(options) {
@@ -88,6 +98,9 @@ export async function assembleRuntime(options) {
     ...(options.flowtrace ? { flowtrace: options.flowtrace } : {}),
   });
   const registry = new RegistryProtocol({ catalog: options.catalog });
+  const schema = options.schemaTable
+    ? new SchemaProtocol({ table: options.schemaTable })
+    : null;
   const graph = new GraphProtocol({
     graph: options.graph,
     clientId: options.clientId,
@@ -99,6 +112,9 @@ export async function assembleRuntime(options) {
     graphProtocol: graph,
   });
   registry.register(server);
+  if (schema) {
+    schema.register(server);
+  }
   graph.register(server);
   telemetry.register(server);
   execution.register(server);
@@ -110,7 +126,7 @@ export async function assembleRuntime(options) {
     // (0x40 RUN_CTRL stop/start restarts it).
     await host.start();
   }
-  return { server, host, registry, graph, telemetry, execution };
+  return { server, host, registry, graph, telemetry, execution, schema };
 }
 
 /**

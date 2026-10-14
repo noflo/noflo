@@ -23,4 +23,5 @@ export { NetworkHost } from "./network-host.js";
 export { RegistryProtocol } from "./registry-protocol.js";
 export { DEFAULT_ASPECT, ReticulumBinding } from "./reticulum-binding.js";
 export { RuntimeServer } from "./runtime-server.js";
+export { SchemaProtocol, SchemaTable } from "./schema-protocol.js";
 export { TelemetryProtocol } from "./telemetry-protocol.js";
