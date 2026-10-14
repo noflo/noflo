@@ -10,35 +10,35 @@
  */
 
 import {
-  decodeProcessList,
-  encodeBreakpointClear,
-  encodeBreakpointSet,
-  encodeHwmSet,
-  encodePacketSend,
-  encodeProcessCtrl,
-  encodeProcessListReq,
-  encodeRunCtrl,
-  PROCESS_ACTION,
-  RUN_ACTION,
+	decodeProcessList,
+	encodeBreakpointClear,
+	encodeBreakpointSet,
+	encodeHwmSet,
+	encodePacketSend,
+	encodeProcessCtrl,
+	encodeProcessListReq,
+	encodeRunCtrl,
+	PROCESS_ACTION,
+	RUN_ACTION,
 } from "@noflo/fbp-protocol";
 
 export {
-  decodeBreakpointClear,
-  decodeBreakpointSet,
-  decodeHwmSet,
-  decodePacketSend,
-  decodeProcessCtrl,
-  decodeProcessList,
-  decodeRunCtrl,
-  encodeBreakpointClear,
-  encodeBreakpointSet,
-  encodeHwmSet,
-  encodePacketSend,
-  encodeProcessCtrl,
-  encodeProcessListReq,
-  encodeRunCtrl,
-  PROCESS_ACTION as PROCESS_ACTIONS,
-  RUN_ACTION as RUN_ACTIONS,
+	decodeBreakpointClear,
+	decodeBreakpointSet,
+	decodeHwmSet,
+	decodePacketSend,
+	decodeProcessCtrl,
+	decodeProcessList,
+	decodeRunCtrl,
+	encodeBreakpointClear,
+	encodeBreakpointSet,
+	encodeHwmSet,
+	encodePacketSend,
+	encodeProcessCtrl,
+	encodeProcessListReq,
+	encodeRunCtrl,
+	PROCESS_ACTION as PROCESS_ACTIONS,
+	RUN_ACTION as RUN_ACTIONS,
 } from "@noflo/fbp-protocol";
 
 /**
@@ -47,126 +47,126 @@ export {
  * arrive as lifecycle/telemetry events, not as replies.
  */
 export class ExecutionClient {
-  /** @type {(payload: Uint8Array) => Promise<void>} */
-  #send;
+	/** @type {(payload: Uint8Array) => Promise<void>} */
+	#send;
 
-  /** @type {((entries: any) => void)|undefined} */
-  #onProcesses;
+	/** @type {((entries: any) => void)|undefined} */
+	#onProcesses;
 
-  /**
-   * @param {Object} deps
-   * @param {(payload: Uint8Array) => Promise<void>} deps.send - Frame sender over the established link
-   */
-  constructor({ send }) {
-    this.#send = send;
-  }
+	/**
+	 * @param {Object} deps
+	 * @param {(payload: Uint8Array) => Promise<void>} deps.send - Frame sender over the established link
+	 */
+	constructor({ send }) {
+		this.#send = send;
+	}
 
-  /**
-   * Run control: pause, resume, step, start, or stop the network.
-   *
-   * @param {keyof typeof RUN_ACTION | number} action
-   * @param {number|string|null} [planeId] - nil addresses the main plane
-   * @returns {Promise<void>}
-   */
-  runControl(action, planeId = null) {
-    const resolved = typeof action === "string" ? RUN_ACTION[action] : action;
-    return this.#send(encodeRunCtrl(resolved, planeId));
-  }
+	/**
+	 * Run control: pause, resume, step, start, or stop the network.
+	 *
+	 * @param {keyof typeof RUN_ACTION | number} action
+	 * @param {number|string|null} [planeId] - nil addresses the main plane
+	 * @returns {Promise<void>}
+	 */
+	runControl(action, planeId = null) {
+		const resolved = typeof action === "string" ? RUN_ACTION[action] : action;
+		return this.#send(encodeRunCtrl(resolved, planeId));
+	}
 
-  /**
-   * Set a data breakpoint: the runtime pauses when a packet arrives at
-   * the node's triggering inport.
-   *
-   * @param {Object} bp
-   * @param {string} bp.breakpointId
-   * @param {string} bp.nodeId
-   * @param {string|null} [bp.port] - nil matches any port
-   * @returns {Promise<void>}
-   */
-  setBreakpoint({ breakpointId, nodeId, port = null }) {
-    return this.#send(encodeBreakpointSet({ breakpointId, nodeId, port }));
-  }
+	/**
+	 * Set a data breakpoint: the runtime pauses when a packet arrives at
+	 * the node's triggering inport.
+	 *
+	 * @param {Object} bp
+	 * @param {string} bp.breakpointId
+	 * @param {string} bp.nodeId
+	 * @param {string|null} [bp.port] - nil matches any port
+	 * @returns {Promise<void>}
+	 */
+	setBreakpoint({ breakpointId, nodeId, port = null }) {
+		return this.#send(encodeBreakpointSet({ breakpointId, nodeId, port }));
+	}
 
-  /**
-   * Clear one breakpoint, or all when no id is given.
-   *
-   * @param {string|null} [breakpointId] - nil clears every breakpoint
-   * @returns {Promise<void>}
-   */
-  clearBreakpoints(breakpointId = null) {
-    return this.#send(encodeBreakpointClear(breakpointId));
-  }
+	/**
+	 * Clear one breakpoint, or all when no id is given.
+	 *
+	 * @param {string|null} [breakpointId] - nil clears every breakpoint
+	 * @returns {Promise<void>}
+	 */
+	clearBreakpoints(breakpointId = null) {
+		return this.#send(encodeBreakpointClear(breakpointId));
+	}
 
-  /**
-   * Per-process execution control: a disabled node stops activating;
-   * queued packets are kept and resume when enabled.
-   *
-   * @param {string} nodeId
-   * @param {keyof typeof PROCESS_ACTION | number} action
-   * @returns {Promise<void>}
-   */
-  processControl(nodeId, action) {
-    const resolved =
-      typeof action === "string" ? PROCESS_ACTION[action] : action;
-    return this.#send(encodeProcessCtrl({ nodeId, action: resolved }));
-  }
+	/**
+	 * Per-process execution control: a disabled node stops activating;
+	 * queued packets are kept and resume when enabled.
+	 *
+	 * @param {string} nodeId
+	 * @param {keyof typeof PROCESS_ACTION | number} action
+	 * @returns {Promise<void>}
+	 */
+	processControl(nodeId, action) {
+		const resolved =
+			typeof action === "string" ? PROCESS_ACTION[action] : action;
+		return this.#send(encodeProcessCtrl({ nodeId, action: resolved }));
+	}
 
-  /**
-   * Request the live process listing (the authoritative view of the
-   * current graph epoch — clients never infer stub-ness by name
-   * matching). The listing arrives as an inbound `0x45` frame; route it
-   * through `handleProcessList`.
-   *
-   * @returns {Promise<void>}
-   */
-  requestProcesses() {
-    return this.#send(encodeProcessListReq());
-  }
+	/**
+	 * Request the live process listing (the authoritative view of the
+	 * current graph epoch — clients never infer stub-ness by name
+	 * matching). The listing arrives as an inbound `0x45` frame; route it
+	 * through `handleProcessList`.
+	 *
+	 * @returns {Promise<void>}
+	 */
+	requestProcesses() {
+		return this.#send(encodeProcessListReq());
+	}
 
-  /**
-   * Set the callback for inbound `0x45` process listings.
-   *
-   * @param {(entries: any) => void} onProcesses
-   */
-  onProcessList(onProcesses) {
-    this.#onProcesses = onProcesses;
-  }
+	/**
+	 * Set the callback for inbound `0x45` process listings.
+	 *
+	 * @param {(entries: any) => void} onProcesses
+	 */
+	onProcessList(onProcesses) {
+		this.#onProcesses = onProcesses;
+	}
 
-  /**
-   * Handle an inbound `0x45` process listing frame (wired by the client
-   * host to the link's frame events).
-   *
-   * @param {Uint8Array} frame
-   */
-  handleProcessList(frame) {
-    const decoded = decodeProcessList(frame);
-    if (this.#onProcesses) {
-      this.#onProcesses(decoded.entries ?? decoded);
-    }
-  }
+	/**
+	 * Handle an inbound `0x45` process listing frame (wired by the client
+	 * host to the link's frame events).
+	 *
+	 * @param {Uint8Array} frame
+	 */
+	handleProcessList(frame) {
+		const decoded = decodeProcessList(frame);
+		if (this.#onProcesses) {
+			this.#onProcesses(decoded.entries ?? decoded);
+		}
+	}
 
-  /**
-   * Set the default edge capacity (high-water mark) for the runtime.
-   *
-   * @param {number|null} highWaterMark
-   * @returns {Promise<void>}
-   */
-  setHwm(highWaterMark) {
-    return this.#send(encodeHwmSet(highWaterMark));
-  }
+	/**
+	 * Set the default edge capacity (high-water mark) for the runtime.
+	 *
+	 * @param {number|null} highWaterMark
+	 * @returns {Promise<void>}
+	 */
+	setHwm(highWaterMark) {
+		return this.#send(encodeHwmSet(highWaterMark));
+	}
 
-  /**
-   * Inject one packet into a running network's inport — the remote
-   * counterpart of feeding IIPs, and the fbp-spec runner's sequenced
-   * case-input mechanism.
-   *
-   * @param {Object} packet
-   * @param {number|string|null} [packet.planeId] - nil = main plane
-   * @param {string} packet.port - Inport name
-   * @param {any} packet.payload
-   * @returns {Promise<void>}
-   */
-  injectPacket({ planeId = null, port, payload }) {
-    return this.#send(encodePacketSend({ planeId, port, payload }));
-  }
+	/**
+	 * Inject one packet into a running network's inport — the remote
+	 * counterpart of feeding IIPs, and the fbp-spec runner's sequenced
+	 * case-input mechanism.
+	 *
+	 * @param {Object} packet
+	 * @param {number|string|null} [packet.planeId] - nil = main plane
+	 * @param {string} packet.port - Inport name
+	 * @param {any} packet.payload
+	 * @returns {Promise<void>}
+	 */
+	injectPacket({ planeId = null, port, payload }) {
+		return this.#send(encodePacketSend({ planeId, port, payload }));
+	}
 }

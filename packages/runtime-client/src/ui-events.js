@@ -69,136 +69,136 @@ import { TelemetryClient } from "./telemetry.js";
  * @extends EventTarget
  */
 export class UiEventSurface extends EventTarget {
-  /** @type {import("./index.js").RuntimeClient} */
-  #client;
+	/** @type {import("./index.js").RuntimeClient} */
+	#client;
 
-  /** @type {TelemetryClient} */
-  #telemetry;
+	/** @type {TelemetryClient} */
+	#telemetry;
 
-  /** @type {import("./execution.js").ExecutionClient} */
-  #execution;
+	/** @type {import("./execution.js").ExecutionClient} */
+	#execution;
 
-  /** @type {boolean} */
-  #wired = false;
+	/** @type {boolean} */
+	#wired = false;
 
-  /**
-   * @param {Object} options
-   * @param {import("./index.js").RuntimeClient} options.client - The established protocol client
-   * @param {import("./telemetry.js").TelemetryFilters} [options.filters] - Telemetry event-type filters
-   * @param {string} [options.telemetrySubId] - The telemetry subscription id
-   */
-  constructor({ client, filters = {}, telemetrySubId }) {
-    super();
-    this.#client = client;
-    this.#telemetry = new TelemetryClient({
-      send: (payload) => client.send(payload),
-      subId: telemetrySubId,
-      filters,
-    });
-    this.#telemetry.onChunk((chunk) => {
-      this.dispatchEvent(
-        new CustomEvent("packets", { detail: /** @type {any} */ (chunk) }),
-      );
-    });
-    this.#execution = new ExecutionClient({
-      send: (payload) => client.send(payload),
-    });
-    this.#execution.onProcessList((entries) => {
-      this.dispatchEvent(
-        new CustomEvent("processes", {
-          detail: /** @type {any} */ ({ entries }),
-        }),
-      );
-    });
-  }
+	/**
+	 * @param {Object} options
+	 * @param {import("./index.js").RuntimeClient} options.client - The established protocol client
+	 * @param {import("./telemetry.js").TelemetryFilters} [options.filters] - Telemetry event-type filters
+	 * @param {string} [options.telemetrySubId] - The telemetry subscription id
+	 */
+	constructor({ client, filters = {}, telemetrySubId }) {
+		super();
+		this.#client = client;
+		this.#telemetry = new TelemetryClient({
+			send: (payload) => client.send(payload),
+			subId: telemetrySubId,
+			filters,
+		});
+		this.#telemetry.onChunk((chunk) => {
+			this.dispatchEvent(
+				new CustomEvent("packets", { detail: /** @type {any} */ (chunk) }),
+			);
+		});
+		this.#execution = new ExecutionClient({
+			send: (payload) => client.send(payload),
+		});
+		this.#execution.onProcessList((entries) => {
+			this.dispatchEvent(
+				new CustomEvent("processes", {
+					detail: /** @type {any} */ ({ entries }),
+				}),
+			);
+		});
+	}
 
-  /**
-   * The wrapped protocol client.
-   *
-   * @returns {import("./index.js").RuntimeClient}
-   */
-  get client() {
-    return this.#client;
-  }
+	/**
+	 * The wrapped protocol client.
+	 *
+	 * @returns {import("./index.js").RuntimeClient}
+	 */
+	get client() {
+		return this.#client;
+	}
 
-  /**
-   * The telemetry consumer (for filter changes and direct chunk access).
-   *
-   * @returns {TelemetryClient}
-   */
-  get telemetry() {
-    return this.#telemetry;
-  }
+	/**
+	 * The telemetry consumer (for filter changes and direct chunk access).
+	 *
+	 * @returns {TelemetryClient}
+	 */
+	get telemetry() {
+		return this.#telemetry;
+	}
 
-  /**
-   * The execution-control sender (run control, breakpoints, process
-   * control, packet injection) over the same link.
-   *
-   * @returns {import("./execution.js").ExecutionClient}
-   */
-  get execution() {
-    return this.#execution;
-  }
+	/**
+	 * The execution-control sender (run control, breakpoints, process
+	 * control, packet injection) over the same link.
+	 *
+	 * @returns {import("./execution.js").ExecutionClient}
+	 */
+	get execution() {
+		return this.#execution;
+	}
 
-  /**
-   * Wire the surface to the client's frame stream: graph ops become
-   * `graphchanged` events, `0x45` process listings become `processes`
-   * events. Idempotent — the wiring happens once on the first `start`.
-   *
-   * @returns {void}
-   */
-  #wire() {
-    if (this.#wired) {
-      return;
-    }
-    this.#wired = true;
-    this.#client.addEventListener("op", (/** @type {any} */ event) => {
-      this.dispatchEvent(
-        new CustomEvent("graphchanged", { detail: event.detail }),
-      );
-    });
-    this.#client.addEventListener("processlist", (/** @type {any} */ event) => {
-      this.dispatchEvent(
-        new CustomEvent("processes", {
-          detail: /** @type {any} */ ({ entries: event.detail.entries }),
-        }),
-      );
-    });
-  }
+	/**
+	 * Wire the surface to the client's frame stream: graph ops become
+	 * `graphchanged` events, `0x45` process listings become `processes`
+	 * events. Idempotent — the wiring happens once on the first `start`.
+	 *
+	 * @returns {void}
+	 */
+	#wire() {
+		if (this.#wired) {
+			return;
+		}
+		this.#wired = true;
+		this.#client.addEventListener("op", (/** @type {any} */ event) => {
+			this.dispatchEvent(
+				new CustomEvent("graphchanged", { detail: event.detail }),
+			);
+		});
+		this.#client.addEventListener("processlist", (/** @type {any} */ event) => {
+			this.dispatchEvent(
+				new CustomEvent("processes", {
+					detail: /** @type {any} */ ({ entries: event.detail.entries }),
+				}),
+			);
+		});
+	}
 
-  /**
-   * Start the UI session: sync the graph mirror and the component
-   * registry (emitting `graph` and `components`), wire the frame
-   * stream, and subscribe to telemetry.
-   *
-   * @param {Object} [options]
-   * @param {boolean} [options.telemetry] - Subscribe to the telemetry stream (default true)
-   * @returns {Promise<void>}
-   */
-  async start(options = {}) {
-    const { telemetry = true } = options;
-    this.#wire();
-    const graphSync = this.#client.syncGraph().then((sync) => {
-      this.dispatchEvent(
-        new CustomEvent("graph", {
-          detail: /** @type {any} */ ({
-            epochId: sync.epochId,
-            graph: sync.graph,
-            upToDate: sync.upToDate,
-          }),
-        }),
-      );
-    });
-    const registrySync = this.#client.syncComponents().then((catalog) => {
-      this.dispatchEvent(
-        new CustomEvent("components", {
-          detail: /** @type {any} */ ({ catalog }),
-        }),
-      );
-    });
-    await Promise.all([graphSync, registrySync]);
-    if (telemetry) {
-      await this.#telemetry.subscribe();
-    }
-  }
+	/**
+	 * Start the UI session: sync the graph mirror and the component
+	 * registry (emitting `graph` and `components`), wire the frame
+	 * stream, and subscribe to telemetry.
+	 *
+	 * @param {Object} [options]
+	 * @param {boolean} [options.telemetry] - Subscribe to the telemetry stream (default true)
+	 * @returns {Promise<void>}
+	 */
+	async start(options = {}) {
+		const { telemetry = true } = options;
+		this.#wire();
+		const graphSync = this.#client.syncGraph().then((sync) => {
+			this.dispatchEvent(
+				new CustomEvent("graph", {
+					detail: /** @type {any} */ ({
+						epochId: sync.epochId,
+						graph: sync.graph,
+						upToDate: sync.upToDate,
+					}),
+				}),
+			);
+		});
+		const registrySync = this.#client.syncComponents().then((catalog) => {
+			this.dispatchEvent(
+				new CustomEvent("components", {
+					detail: /** @type {any} */ ({ catalog }),
+				}),
+			);
+		});
+		await Promise.all([graphSync, registrySync]);
+		if (telemetry) {
+			await this.#telemetry.subscribe();
+		}
+	}
 }

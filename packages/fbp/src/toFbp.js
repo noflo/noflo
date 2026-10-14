@@ -47,9 +47,9 @@ const SAFE_META_VALUE = /^[A-Za-z0-9/_.:-]+$/;
  * @returns {string}
  */
 function renderPort(portRef) {
-	return portRef.index === undefined
-		? portRef.port
-		: `${portRef.port}[${portRef.index}]`;
+  return portRef.index === undefined
+    ? portRef.port
+    : `${portRef.port}[${portRef.index}]`;
 }
 
 /**
@@ -63,12 +63,12 @@ function renderPort(portRef) {
  * @returns {string}
  */
 function renderComponent(nodes, declared, nodeId) {
-	const node = nodes.get(nodeId);
-	if (!node || declared.has(nodeId)) {
-		return "";
-	}
-	declared.add(nodeId);
-	return `(${node.component ?? ""}${renderMetadata(node.metadata)})`;
+  const node = nodes.get(nodeId);
+  if (!node || declared.has(nodeId)) {
+    return "";
+  }
+  declared.add(nodeId);
+  return `(${node.component ?? ""}${renderMetadata(node.metadata)})`;
 }
 
 /**
@@ -83,19 +83,19 @@ function renderComponent(nodes, declared, nodeId) {
  * @returns {string}
  */
 function renderMetadata(metadata) {
-	if (!metadata) {
-		return "";
-	}
-	const entries = Object.entries(metadata)
-		.filter(([key, value]) => {
-			if (key === "x" || key === "y") {
-				return typeof value === "number" && Number.isFinite(value);
-			}
-			return typeof value === "string" && SAFE_META_VALUE.test(value);
-		})
-		.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-		.map(([key, value]) => `${key}=${value}`);
-	return entries.length > 0 ? `:${entries.join(",")}` : "";
+  if (!metadata) {
+    return "";
+  }
+  const entries = Object.entries(metadata)
+    .filter(([key, value]) => {
+      if (key === "x" || key === "y") {
+        return typeof value === "number" && Number.isFinite(value);
+      }
+      return typeof value === "string" && SAFE_META_VALUE.test(value);
+    })
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([key, value]) => `${key}=${value}`);
+  return entries.length > 0 ? `:${entries.join(",")}` : "";
 }
 
 /**
@@ -106,16 +106,16 @@ function renderMetadata(metadata) {
  * @returns {string}
  */
 function renderIipData(data) {
-	if (typeof data === "string") {
-		return `'${data.replace(/'/g, "\\'")}'`;
-	}
-	const json = JSON.stringify(data);
-	if (json === undefined) {
-		throw new TypeError(
-			"IIP data must be JSON-able; cannot render it in the .fbp DSL",
-		);
-	}
-	return json;
+  if (typeof data === "string") {
+    return `'${data.replace(/'/g, "\\'")}'`;
+  }
+  const json = JSON.stringify(data);
+  if (json === undefined) {
+    throw new TypeError(
+      "IIP data must be JSON-able; cannot render it in the .fbp DSL",
+    );
+  }
+  return json;
 }
 
 /**
@@ -126,7 +126,7 @@ function renderIipData(data) {
  * @returns {number}
  */
 function byEntityId(a, b) {
-	return a.entity_id < b.entity_id ? -1 : a.entity_id > b.entity_id ? 1 : 0;
+  return a.entity_id < b.entity_id ? -1 : a.entity_id > b.entity_id ? 1 : 0;
 }
 
 /**
@@ -141,56 +141,56 @@ function byEntityId(a, b) {
  * @throws {TypeError} On IIP data that cannot be represented
  */
 export function toFBP(graph) {
-	/** @type {string[]} */
-	const lines = [];
-	/** @type {Map<string, CanonicalGraph["nodes"][number]>} */
-	const nodes = new Map((graph.nodes ?? []).map((n) => [n.entity_id, n]));
-	/** @type {Set<string>} */
-	const declared = new Set();
+  /** @type {string[]} */
+  const lines = [];
+  /** @type {Map<string, CanonicalGraph["nodes"][number]>} */
+  const nodes = new Map((graph.nodes ?? []).map((n) => [n.entity_id, n]));
+  /** @type {Set<string>} */
+  const declared = new Set();
 
-	// Exports first: INPORT/OUTPORT header lines
-	const sortedExports = [...(graph.exports ?? [])].sort(
-		(a, b) =>
-			(a.public < b.public ? -1 : a.public > b.public ? 1 : 0) ||
-			byEntityId(a, b),
-	);
-	for (const exp of sortedExports) {
-		lines.push(
-			`${exp.direction === "inport" ? "INPORT" : "OUTPORT"}=${exp.internal.node}.${renderPort(exp.internal)}:${exp.public}`,
-		);
-	}
+  // Exports first: INPORT/OUTPORT header lines
+  const sortedExports = [...(graph.exports ?? [])].sort(
+    (a, b) =>
+      (a.public < b.public ? -1 : a.public > b.public ? 1 : 0) ||
+      byEntityId(a, b),
+  );
+  for (const exp of sortedExports) {
+    lines.push(
+      `${exp.direction === "inport" ? "INPORT" : "OUTPORT"}=${exp.internal.node}.${renderPort(exp.internal)}:${exp.public}`,
+    );
+  }
 
-	// IIPs, one line each; the target's first mention carries the component
-	const sortedIips = [...(graph.iips ?? [])].sort(
-		(a, b) =>
-			(a.to.node < b.to.node ? -1 : a.to.node > b.to.node ? 1 : 0) ||
-			byEntityId(a, b),
-	);
-	for (const iip of sortedIips) {
-		lines.push(
-			`${renderIipData(iip.from.data)} -> ${renderPort(iip.to)} ${iip.to.node}${renderComponent(nodes, declared, iip.to.node)}`,
-		);
-	}
+  // IIPs, one line each; the target's first mention carries the component
+  const sortedIips = [...(graph.iips ?? [])].sort(
+    (a, b) =>
+      (a.to.node < b.to.node ? -1 : a.to.node > b.to.node ? 1 : 0) ||
+      byEntityId(a, b),
+  );
+  for (const iip of sortedIips) {
+    lines.push(
+      `${renderIipData(iip.from.data)} -> ${renderPort(iip.to)} ${iip.to.node}${renderComponent(nodes, declared, iip.to.node)}`,
+    );
+  }
 
-	// Edges, one line each; first mentions carry their components
-	const sortedEdges = [...(graph.edges ?? [])].sort((a, b) => {
-		const fromA = `${a.from.node}.${a.from.port}.${a.from.index ?? ""}`;
-		const fromB = `${b.from.node}.${b.from.port}.${b.from.index ?? ""}`;
-		return (fromA < fromB ? -1 : fromA > fromB ? 1 : 0) || byEntityId(a, b);
-	});
-	for (const edge of sortedEdges) {
-		lines.push(
-			`${edge.from.node}${renderComponent(nodes, declared, edge.from.node)} ${renderPort(edge.from)} -> ${renderPort(edge.to)} ${edge.to.node}${renderComponent(nodes, declared, edge.to.node)}`,
-		);
-	}
+  // Edges, one line each; first mentions carry their components
+  const sortedEdges = [...(graph.edges ?? [])].sort((a, b) => {
+    const fromA = `${a.from.node}.${a.from.port}.${a.from.index ?? ""}`;
+    const fromB = `${b.from.node}.${b.from.port}.${b.from.index ?? ""}`;
+    return (fromA < fromB ? -1 : fromA > fromB ? 1 : 0) || byEntityId(a, b);
+  });
+  for (const edge of sortedEdges) {
+    lines.push(
+      `${edge.from.node}${renderComponent(nodes, declared, edge.from.node)} ${renderPort(edge.from)} -> ${renderPort(edge.to)} ${edge.to.node}${renderComponent(nodes, declared, edge.to.node)}`,
+    );
+  }
 
-	// Nodes untouched by edges or IIPs, declared standalone
-	for (const nodeId of [...nodes.keys()].sort()) {
-		if (declared.has(nodeId)) {
-			continue;
-		}
-		lines.push(`${nodeId}${renderComponent(nodes, declared, nodeId)}`);
-	}
+  // Nodes untouched by edges or IIPs, declared standalone
+  for (const nodeId of [...nodes.keys()].sort()) {
+    if (declared.has(nodeId)) {
+      continue;
+    }
+    lines.push(`${nodeId}${renderComponent(nodes, declared, nodeId)}`);
+  }
 
-	return lines.length > 0 ? `${lines.join("\n")}\n` : "";
+  return lines.length > 0 ? `${lines.join("\n")}\n` : "";
 }

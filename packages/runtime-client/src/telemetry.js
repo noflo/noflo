@@ -43,103 +43,103 @@ export { decodeFlowtraceChunk, encodePubsubSub };
  * events with client-side type filtering.
  */
 export class TelemetryClient {
-  /** @type {(payload: Uint8Array) => Promise<void>} */
-  #send;
+	/** @type {(payload: Uint8Array) => Promise<void>} */
+	#send;
 
-  /** @type {((chunk: TelemetryChunk) => void)|undefined} */
-  #onChunk;
+	/** @type {((chunk: TelemetryChunk) => void)|undefined} */
+	#onChunk;
 
-  /** @type {TelemetryFilters} */
-  #filters;
+	/** @type {TelemetryFilters} */
+	#filters;
 
-  /** @type {string} */
-  #subId;
+	/** @type {string} */
+	#subId;
 
-  /** @type {string} */
-  #targetId;
+	/** @type {string} */
+	#targetId;
 
-  /**
-   * @param {Object} deps
-   * @param {(payload: Uint8Array) => Promise<void>} deps.send - Frame sender over the established link
-   * @param {string} [deps.subId] - Client-chosen subscription identifier
-   * @param {string} [deps.targetId] - The telemetry target (the runtime's main graph)
-   * @param {TelemetryFilters} [deps.filters] - Client-side event-type filters
-   */
-  constructor({
-    send,
-    subId = "noflo-client-telemetry",
-    targetId = "main",
-    filters = {},
-  }) {
-    this.#send = send;
-    this.#subId = subId;
-    this.#targetId = targetId;
-    this.#filters = filters;
-  }
+	/**
+	 * @param {Object} deps
+	 * @param {(payload: Uint8Array) => Promise<void>} deps.send - Frame sender over the established link
+	 * @param {string} [deps.subId] - Client-chosen subscription identifier
+	 * @param {string} [deps.targetId] - The telemetry target (the runtime's main graph)
+	 * @param {TelemetryFilters} [deps.filters] - Client-side event-type filters
+	 */
+	constructor({
+		send,
+		subId = "noflo-client-telemetry",
+		targetId = "main",
+		filters = {},
+	}) {
+		this.#send = send;
+		this.#subId = subId;
+		this.#targetId = targetId;
+		this.#filters = filters;
+	}
 
-  /**
-   * Subscribe to the runtime's telemetry stream (`0x30`).
-   *
-   * @param {Object} [options]
-   * @param {number} [options.flushIntervalMs] - Requested flush cadence (default 100ms)
-   * @returns {Promise<void>}
-   */
-  subscribe(options = {}) {
-    const { flushIntervalMs = 100 } = options ?? {};
-    return this.#send(
-      encodePubsubSub({
-        subId: this.#subId,
-        targetType: "graph",
-        targetId: this.#targetId,
-        requestedFlushIntervalMs: flushIntervalMs,
-      }),
-    );
-  }
+	/**
+	 * Subscribe to the runtime's telemetry stream (`0x30`).
+	 *
+	 * @param {Object} [options]
+	 * @param {number} [options.flushIntervalMs] - Requested flush cadence (default 100ms)
+	 * @returns {Promise<void>}
+	 */
+	subscribe(options = {}) {
+		const { flushIntervalMs = 100 } = options ?? {};
+		return this.#send(
+			encodePubsubSub({
+				subId: this.#subId,
+				targetType: "graph",
+				targetId: this.#targetId,
+				requestedFlushIntervalMs: flushIntervalMs,
+			}),
+		);
+	}
 
-  /**
-   * Set the callback for inbound `0x32` chunks.
-   *
-   * @param {(chunk: TelemetryChunk) => void} onChunk
-   */
-  onChunk(onChunk) {
-    this.#onChunk = onChunk;
-  }
+	/**
+	 * Set the callback for inbound `0x32` chunks.
+	 *
+	 * @param {(chunk: TelemetryChunk) => void} onChunk
+	 */
+	onChunk(onChunk) {
+		this.#onChunk = onChunk;
+	}
 
-  /**
-   * Handle an inbound `0x32` chunk frame (wired by the client host to
-   * the link's frame events): decodes the chunk, applies the deltas to
-   * absolute timestamps, filters by event type, and emits the result
-   * through the `onChunk` callback.
-   *
-   * @param {Uint8Array} frame
-   */
-  handleChunkFrame(frame) {
-    const decoded = decodeFlowtraceChunk(frame);
-    const filters = this.#filters;
-    const events = (decoded.events ?? [])
-      .map((event) => ({
-        timestampMs: decoded.baseTimestampMs + event.timeDeltaMs,
-        timeDeltaMs: event.timeDeltaMs,
-        eventType: event.eventType,
-        payload: event.payload,
-      }))
-      .filter((event) => {
-        if (
-          filters.types &&
-          filters.types.length > 0 &&
-          !filters.types.includes(event.eventType)
-        ) {
-          return false;
-        }
-        return true;
-      });
-    if (this.#onChunk) {
-      this.#onChunk({
-        subId: decoded.subId,
-        planeId: decoded.planeId,
-        baseTimestampMs: decoded.baseTimestampMs,
-        events,
-      });
-    }
-  }
+	/**
+	 * Handle an inbound `0x32` chunk frame (wired by the client host to
+	 * the link's frame events): decodes the chunk, applies the deltas to
+	 * absolute timestamps, filters by event type, and emits the result
+	 * through the `onChunk` callback.
+	 *
+	 * @param {Uint8Array} frame
+	 */
+	handleChunkFrame(frame) {
+		const decoded = decodeFlowtraceChunk(frame);
+		const filters = this.#filters;
+		const events = (decoded.events ?? [])
+			.map((event) => ({
+				timestampMs: decoded.baseTimestampMs + event.timeDeltaMs,
+				timeDeltaMs: event.timeDeltaMs,
+				eventType: event.eventType,
+				payload: event.payload,
+			}))
+			.filter((event) => {
+				if (
+					filters.types &&
+					filters.types.length > 0 &&
+					!filters.types.includes(event.eventType)
+				) {
+					return false;
+				}
+				return true;
+			});
+		if (this.#onChunk) {
+			this.#onChunk({
+				subId: decoded.subId,
+				planeId: decoded.planeId,
+				baseTimestampMs: decoded.baseTimestampMs,
+				events,
+			});
+		}
+	}
 }

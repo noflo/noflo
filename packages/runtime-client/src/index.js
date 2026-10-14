@@ -18,60 +18,64 @@
  */
 
 import {
-  ANNOUNCE_ASPECT,
-  CMD_AUTH_RESPONSE,
-  CMD_COMP_MANIFEST,
-  CMD_CRDT_STALE_EPOCH,
-  CMD_CRDT_UP_TO_DATE,
-  decodeAnnounceAppData,
-  decodeAuthResponse,
-  decodeCompManifest,
-  decodeCrdtStaleEpoch,
-  decodeCrdtUpdate,
-  decodeCrdtUpToDate,
-  decodeGetStatusRes,
-  decodePlaneListRes,
-  decodeProcessList,
-  encodeCompManifest,
-  encodeCompSyncReq,
-  encodeCrdtStaleEpoch,
-  encodeCrdtSyncReq,
-  encodeCrdtUpdate,
-  encodeCrdtUpToDate,
-  encodeGetStatus,
-  encodePlaneList,
-  encodePlaneListRes,
-  PROTOCOL_VERSION,
+	ANNOUNCE_ASPECT,
+	CMD_AUTH_RESPONSE,
+	CMD_COMP_MANIFEST,
+	CMD_CRDT_STALE_EPOCH,
+	CMD_CRDT_UP_TO_DATE,
+	decodeAnnounceAppData,
+	decodeAuthResponse,
+	decodeCompManifest,
+	decodeCompSourceRes,
+	decodeCrdtStaleEpoch,
+	decodeCrdtUpdate,
+	decodeCrdtUpToDate,
+	decodeGetStatusRes,
+	decodePlaneListRes,
+	decodeProcessList,
+	encodeCompManifest,
+	encodeCompSourceReq,
+	encodeCompSyncReq,
+	encodeCompWrite,
+	encodeCrdtStaleEpoch,
+	encodeCrdtSyncReq,
+	encodeCrdtUpdate,
+	encodeCrdtUpToDate,
+	encodeGetStatus,
+	encodePlaneList,
+	encodePlaneListRes,
+	PROTOCOL_VERSION,
 } from "@noflo/fbp-protocol";
 import { GraphModel, importFbpJson } from "@noflo/graph";
 import { Destination, Packet, PacketType } from "@reticulum/core";
 import { RegistryCache } from "./registry-cache.js";
 
 export {
-  ANNOUNCE_ASPECT,
-  decodeAnnounceAppData,
-  decodeAuthResponse,
-  decodeCompManifest,
-  decodeCrdtStaleEpoch,
-  decodeCrdtUpdate,
-  decodeCrdtUpToDate,
-  decodeFlowtraceChunk,
-  decodeGetStatusRes,
-  decodePlaneListRes,
-  encodeCompManifest,
-  encodeCompSyncReq,
-  encodeCrdtStaleEpoch,
-  encodeCrdtSyncReq,
-  encodeCrdtUpdate,
-  encodeCrdtUpToDate,
-  encodeGetStatus,
-  encodeGetStatusRes,
-  encodePlaneList,
-  encodePlaneListRes,
-  encodePubsubSub,
-  OP_TYPE,
-  PROTOCOL_VERSION,
-  RUN_STATE,
+	ANNOUNCE_ASPECT,
+	decodeAnnounceAppData,
+	decodeAuthResponse,
+	decodeCompManifest,
+	decodeCrdtStaleEpoch,
+	decodeCrdtUpdate,
+	decodeCrdtUpToDate,
+	decodeFlowtraceChunk,
+	decodeGetStatusRes,
+	decodePlaneListRes,
+	encodeCompManifest,
+	encodeCompSourceRes,
+	encodeCompSyncReq,
+	encodeCrdtStaleEpoch,
+	encodeCrdtSyncReq,
+	encodeCrdtUpdate,
+	encodeCrdtUpToDate,
+	encodeGetStatus,
+	encodeGetStatusRes,
+	encodePlaneList,
+	encodePlaneListRes,
+	encodePubsubSub,
+	OP_TYPE,
+	PROTOCOL_VERSION,
+	RUN_STATE,
 } from "@noflo/fbp-protocol";
 export { ExecutionClient, PROCESS_ACTIONS, RUN_ACTIONS } from "./execution.js";
 /** @typedef {import("./registry-cache.js").CachedComponent} CachedComponent */
@@ -92,41 +96,41 @@ export { UiEventSurface } from "./ui-events.js";
  * @returns {Promise<{ destinationHash: Uint8Array, nodeName: string }>} The discovered runtime
  */
 export function discoverRuntime(options) {
-  const { reticulum, timeoutMs = 30_000, nodeName = null } = options;
-  return new Promise((resolve, reject) => {
-    /** @type {ReturnType<typeof setTimeout>|undefined} */
-    let timer;
-    const listener = (/** @type {any} */ event) => {
-      if (!event.detail?.appData) {
-        return;
-      }
-      try {
-        const decoded = decodeAnnounceAppData(event.detail.appData);
-        if (decoded.protocolVersion !== PROTOCOL_VERSION) {
-          return;
-        }
-        if (nodeName && decoded.nodeName !== nodeName) {
-          return;
-        }
-        cleanup();
-        resolve({
-          destinationHash: decoded.destinationHash,
-          nodeName: decoded.nodeName,
-        });
-      } catch {
-        // Not an FBP announce; ignore.
-      }
-    };
-    function cleanup() {
-      clearTimeout(timer);
-      reticulum.transport.removeEventListener("announce", listener);
-    }
-    timer = setTimeout(() => {
-      cleanup();
-      reject(new Error("timed out waiting for a runtime announce"));
-    }, timeoutMs);
-    reticulum.transport.addEventListener("announce", listener);
-  });
+	const { reticulum, timeoutMs = 30_000, nodeName = null } = options;
+	return new Promise((resolve, reject) => {
+		/** @type {ReturnType<typeof setTimeout>|undefined} */
+		let timer;
+		const listener = (/** @type {any} */ event) => {
+			if (!event.detail?.appData) {
+				return;
+			}
+			try {
+				const decoded = decodeAnnounceAppData(event.detail.appData);
+				if (decoded.protocolVersion !== PROTOCOL_VERSION) {
+					return;
+				}
+				if (nodeName && decoded.nodeName !== nodeName) {
+					return;
+				}
+				cleanup();
+				resolve({
+					destinationHash: decoded.destinationHash,
+					nodeName: decoded.nodeName,
+				});
+			} catch {
+				// Not an FBP announce; ignore.
+			}
+		};
+		function cleanup() {
+			clearTimeout(timer);
+			reticulum.transport.removeEventListener("announce", listener);
+		}
+		timer = setTimeout(() => {
+			cleanup();
+			reject(new Error("timed out waiting for a runtime announce"));
+		}, timeoutMs);
+		reticulum.transport.addEventListener("announce", listener);
+	});
 }
 
 /**
@@ -143,40 +147,40 @@ export function discoverRuntime(options) {
  * @returns {Promise<{ link: import("@reticulum/core").Link, auth: { protocolVersion: number, capabilityMask: number }, client: RuntimeClient }>}
  */
 export async function connectRuntime(options) {
-  const { reticulum, destinationHash, identity, timeoutMs = 15_000 } = options;
-  const destination = await Destination.recalled(
-    ANNOUNCE_ASPECT,
-    destinationHash,
-    reticulum,
-  );
-  const link = await destination.createLink();
+	const { reticulum, destinationHash, identity, timeoutMs = 15_000 } = options;
+	const destination = await Destination.recalled(
+		ANNOUNCE_ASPECT,
+		destinationHash,
+		reticulum,
+	);
+	const link = await destination.createLink();
 
-  /** @type {Uint8Array[]} */
-  const frames = [];
-  const frameListener = (/** @type {any} */ event) => {
-    frames.push(event.detail.packet.payload);
-  };
-  link.addEventListener("data", frameListener);
+	/** @type {Uint8Array[]} */
+	const frames = [];
+	const frameListener = (/** @type {any} */ event) => {
+		frames.push(event.detail.packet.payload);
+	};
+	link.addEventListener("data", frameListener);
 
-  await link.identify(identity);
-  const deadline = Date.now() + timeoutMs;
-  while (frames.length === 0) {
-    if (Date.now() > deadline) {
-      link.removeEventListener("data", frameListener);
-      throw new Error("timed out waiting for the 0x02 auth response");
-    }
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
-  const auth = decodeAuthResponse(frames[0]);
-  if (auth.protocolVersion !== PROTOCOL_VERSION) {
-    link.removeEventListener("data", frameListener);
-    throw new Error(
-      `protocol version mismatch: runtime ${auth.protocolVersion}, client ${PROTOCOL_VERSION}`,
-    );
-  }
+	await link.identify(identity);
+	const deadline = Date.now() + timeoutMs;
+	while (frames.length === 0) {
+		if (Date.now() > deadline) {
+			link.removeEventListener("data", frameListener);
+			throw new Error("timed out waiting for the 0x02 auth response");
+		}
+		await new Promise((resolve) => setTimeout(resolve, 50));
+	}
+	const auth = decodeAuthResponse(frames[0]);
+	if (auth.protocolVersion !== PROTOCOL_VERSION) {
+		link.removeEventListener("data", frameListener);
+		throw new Error(
+			`protocol version mismatch: runtime ${auth.protocolVersion}, client ${PROTOCOL_VERSION}`,
+		);
+	}
 
-  const client = new RuntimeClient({ link, auth });
-  return { link, auth, client };
+	const client = new RuntimeClient({ link, auth });
+	return { link, auth, client };
 }
 
 /**
@@ -191,253 +195,280 @@ export async function connectRuntime(options) {
  * @extends EventTarget
  */
 export class RuntimeClient extends EventTarget {
-  /**
-   * @param {Object} options
-   * @param {import("@reticulum/core").Link} options.link - The established protocol link
-   * @param {{ protocolVersion: number, capabilityMask: number }} options.auth - The decoded auth response
-   */
-  constructor({ link, auth }) {
-    super();
-    this.link = link;
-    this.auth = auth;
-    /** @type {GraphModel|undefined} The graph mirror for the main plane */
-    this.graph = undefined;
-    /** @type {number|string|undefined} The epoch the mirror was baselined at */
-    this.epoch = undefined;
-    /** @type {(op: any) => void} Applied for each remote `0x14` op */
-    this.onGraphOp = () => {};
+	/**
+	 * @param {Object} options
+	 * @param {import("@reticulum/core").Link} options.link - The established protocol link
+	 * @param {{ protocolVersion: number, capabilityMask: number }} options.auth - The decoded auth response
+	 */
+	constructor({ link, auth }) {
+		super();
+		this.link = link;
+		this.auth = auth;
+		/** @type {GraphModel|undefined} The graph mirror for the main plane */
+		this.graph = undefined;
+		/** @type {number|string|undefined} The epoch the mirror was baselined at */
+		this.epoch = undefined;
+		/** @type {(op: any) => void} Applied for each remote `0x14` op */
+		this.onGraphOp = () => {};
 
-    /** @type {Uint8Array[]} */
-    this.pending = [];
-    /** @type {Array<(value: any) => void>} */
-    this.waiters = [];
+		/** @type {Uint8Array[]} */
+		this.pending = [];
+		/** @type {Array<(value: any) => void>} */
+		this.waiters = [];
 
-    /**
-     * The Two-Step Cache registry client (work document #29 phase 3):
-     * local-hash sync, sig-hash-keyed detail caching.
-     *
-     * @type {RegistryCache}
-     */
-    this.registry = new RegistryCache({
-      send: (payload) => this.send(payload),
-      requestReply: async (payload) => {
-        const reply = this.nextFrame();
-        await this.send(payload);
-        return reply;
-      },
-    });
+		/**
+		 * The Two-Step Cache registry client (work document #29 phase 3):
+		 * local-hash sync, sig-hash-keyed detail caching.
+		 *
+		 * @type {RegistryCache}
+		 */
+		this.registry = new RegistryCache({
+			send: (payload) => this.send(payload),
+			requestReply: async (payload) => {
+				const reply = this.nextFrame();
+				await this.send(payload);
+				return reply;
+			},
+		});
 
-    link.addEventListener("data", (/** @type {any} */ event) => {
-      const payload = event.detail.packet.payload;
-      try {
-        const op = /** @type {any} */ (decodeCrdtUpdate(payload));
-        if (op.cmd === 0x14) {
-          this.dispatchEvent(
-            new CustomEvent("op", { detail: { planeId: op.planeId, op } }),
-          );
-          this.onGraphOp(op);
-        }
-      } catch {
-        // Not a 0x14 frame; try the process listing.
-      }
-      try {
-        const listing = /** @type {any} */ (decodeProcessList(payload));
-        if (listing.cmd === 0x45) {
-          this.dispatchEvent(
-            new CustomEvent("processlist", {
-              detail: { epochId: listing.epochId, entries: listing.entries },
-            }),
-          );
-        }
-      } catch {
-        // Not a 0x45 frame; surface as a generic frame event.
-      }
-      this.dispatchEvent(new CustomEvent("frame", { detail: { payload } }));
-      for (const waiter of this.waiters.splice(0)) {
-        waiter(payload);
-      }
-    });
-  }
+		link.addEventListener("data", (/** @type {any} */ event) => {
+			const payload = event.detail.packet.payload;
+			try {
+				const op = /** @type {any} */ (decodeCrdtUpdate(payload));
+				if (op.cmd === 0x14) {
+					this.dispatchEvent(
+						new CustomEvent("op", { detail: { planeId: op.planeId, op } }),
+					);
+					this.onGraphOp(op);
+				}
+			} catch {
+				// Not a 0x14 frame; try the process listing.
+			}
+			try {
+				const listing = /** @type {any} */ (decodeProcessList(payload));
+				if (listing.cmd === 0x45) {
+					this.dispatchEvent(
+						new CustomEvent("processlist", {
+							detail: { epochId: listing.epochId, entries: listing.entries },
+						}),
+					);
+				}
+			} catch {
+				// Not a 0x45 frame; surface as a generic frame event.
+			}
+			this.dispatchEvent(new CustomEvent("frame", { detail: { payload } }));
+			for (const waiter of this.waiters.splice(0)) {
+				waiter(payload);
+			}
+		});
+	}
 
-  /**
-   * Send a raw protocol payload over the link.
-   *
-   * @param {Uint8Array} payload
-   * @returns {Promise<void>}
-   */
-  async send(payload) {
-    // The link is the packet's destination: a bare DATA datagram with no
-    // destination hash (the same shape the runtime's integration client
-    // uses over an established link)
-    const packet = new /** @type {any} */ (Packet)({
-      packetType: PacketType.DATA,
-      payload,
-    });
-    await this.link.send(packet);
-  }
+	/**
+	 * Send a raw protocol payload over the link.
+	 *
+	 * @param {Uint8Array} payload
+	 * @returns {Promise<void>}
+	 */
+	async send(payload) {
+		// The link is the packet's destination: a bare DATA datagram with no
+		// destination hash (the same shape the runtime's integration client
+		// uses over an established link)
+		const packet = new /** @type {any} */ (Packet)({
+			packetType: PacketType.DATA,
+			payload,
+		});
+		await this.link.send(packet);
+	}
 
-  /**
-   * Wait for the next inbound frame payload.
-   *
-   * @param {number} [timeoutMs]
-   * @returns {Promise<Uint8Array>}
-   */
-  nextFrame(timeoutMs = 15_000) {
-    const existing = this.pending.shift();
-    if (existing) {
-      return Promise.resolve(existing);
-    }
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        const i = this.waiters.indexOf(waiter);
-        if (i !== -1) {
-          this.waiters.splice(i, 1);
-        }
-        reject(new Error("timed out waiting for a frame"));
-      }, timeoutMs);
-      /** @type {(value: any) => void} */
-      const waiter = (payload) => {
-        clearTimeout(timer);
-        resolve(payload);
-      };
-      this.waiters.push(waiter);
-    });
-  }
+	/**
+	 * Wait for the next inbound frame payload.
+	 *
+	 * @param {number} [timeoutMs]
+	 * @returns {Promise<Uint8Array>}
+	 */
+	nextFrame(timeoutMs = 15_000) {
+		const existing = this.pending.shift();
+		if (existing) {
+			return Promise.resolve(existing);
+		}
+		return new Promise((resolve, reject) => {
+			const timer = setTimeout(() => {
+				const i = this.waiters.indexOf(waiter);
+				if (i !== -1) {
+					this.waiters.splice(i, 1);
+				}
+				reject(new Error("timed out waiting for a frame"));
+			}, timeoutMs);
+			/** @type {(value: any) => void} */
+			const waiter = (payload) => {
+				clearTimeout(timer);
+				resolve(payload);
+			};
+			this.waiters.push(waiter);
+		});
+	}
 
-  /**
-   * Registry Two-Step Cache, client side: request the manifest for a
-   * registry hash and return the decoded entry list.
-   *
-   * @param {string} [registryHash] - The locally computed registry hash ("stale" forces a full manifest)
-   * @returns {Promise<{ cmd: number, entries: Object<string, any> }>}
-   */
-  async syncRegistry(registryHash = "stale") {
-    // Arm the receive path before the request goes out: the reply may
-    // arrive in the same tick as the send
-    const reply = this.nextFrame();
-    await this.send(encodeCompSyncReq(registryHash));
-    return decodeCompManifest(await reply);
-  }
+	/**
+	 * Registry Two-Step Cache, client side: request the manifest for a
+	 * registry hash and return the decoded entry list.
+	 *
+	 * @param {string} [registryHash] - The locally computed registry hash ("stale" forces a full manifest)
+	 * @returns {Promise<{ cmd: number, entries: Object<string, any> }>}
+	 */
+	async syncRegistry(registryHash = "stale") {
+		// Arm the receive path before the request goes out: the reply may
+		// arrive in the same tick as the send
+		const reply = this.nextFrame();
+		await this.send(encodeCompSyncReq(registryHash));
+		return decodeCompManifest(await reply);
+	}
 
-  /**
-   * Run the Two-Step Cache sync: compute the local registry hash from
-   * the known catalog, request the manifest, fetch details for new or
-   * changed components, and return the full catalog with signatures.
-   *
-   * @returns {Promise<RegistryCatalog>}
-   */
-  syncComponents() {
-    return this.registry.sync();
-  }
+	/**
+	 * Run the Two-Step Cache sync: compute the local registry hash from
+	 * the known catalog, request the manifest, fetch details for new or
+	 * changed components, and return the full catalog with signatures.
+	 *
+	 * @returns {Promise<RegistryCatalog>}
+	 */
+	syncComponents() {
+		return this.registry.sync();
+	}
 
-  /**
-   * List the runtime's graph planes (`0x16`).
-   *
-   * @returns {Promise<{ cmd: number, entries: any[] }>}
-   */
-  async planes() {
-    const reply = this.nextFrame();
-    await this.send(encodePlaneList());
-    return decodePlaneListRes(await reply);
-  }
+	/**
+	 * List the runtime's graph planes (`0x16`).
+	 *
+	 * @returns {Promise<{ cmd: number, entries: any[] }>}
+	 */
+	async planes() {
+		const reply = this.nextFrame();
+		await this.send(encodePlaneList());
+		return decodePlaneListRes(await reply);
+	}
 
-  /**
-   * Ask the runtime for its status (`0x48`): the main plane's epoch,
-   * run state, uptime, and the full advertised capability mask.
-   *
-   * @returns {Promise<{ cmd: number, epochId: number|string, runState: number, uptimeMs: number, advertisedMask: number }>}
-   */
-  async status() {
-    const reply = this.nextFrame();
-    await this.send(encodeGetStatus());
-    return decodeGetStatusRes(await reply);
-  }
+	/**
+	 * Ask the runtime for its status (`0x48`): the main plane's epoch,
+	 * run state, uptime, and the full advertised capability mask.
+	 *
+	 * @returns {Promise<{ cmd: number, epochId: number|string, runState: number, uptimeMs: number, advertisedMask: number }>}
+	 */
+	async status() {
+		const reply = this.nextFrame();
+		await this.send(encodeGetStatus());
+		return decodeGetStatusRes(await reply);
+	}
 
-  /**
-   * The graph mirror sync (§5 of work document #28): run the epoch
-   * handshake for the main plane. On `0x11 UP_TO_DATE` the existing
-   * mirror stands; on `0x12 STALE_EPOCH` the canonical baseline is
-   * fetched via `link.request` and imported into the mirror.
-   *
-   * @param {Object} [options]
-   * @param {string} [options.planeId] - Plane id (nil = main graph)
-   * @param {string} [options.epochId] - The client's current epoch ("0000" = no mirror)
-   * @param {Object<string, number>} [options.clocks] - Per-client logical clocks
-   * @param {number} [options.timeoutMs] - Baseline fetch timeout
-   * @returns {Promise<{ upToDate: boolean, epochId: string, graph: GraphModel }>} The mirror after sync
-   */
-  async syncGraph(options = {}) {
-    /** @type {number|string|undefined} */
-    const currentEpoch = this.epoch;
-    const {
-      planeId = null,
-      epochId = currentEpoch ?? "0000",
-      clocks = {},
-      timeoutMs = 30_000,
-    } = options;
-    let deadline = Date.now() + timeoutMs;
-    let reply = this.nextFrame(Math.max(1000, deadline - Date.now()));
-    await this.send(encodeCrdtSyncReq(planeId, epochId, clocks));
-    for (;;) {
-      const frame = await reply;
-      deadline = Date.now() + timeoutMs;
-      reply = this.nextFrame(Math.max(1000, deadline - Date.now()));
-      try {
-        const upToDate = decodeCrdtUpToDate(frame);
-        if (upToDate.cmd === 0x11 && upToDate.epochId === epochId) {
-          this.epoch = epochId;
-          return {
-            upToDate: true,
-            epochId: /** @type {string} */ (epochId),
-            graph: /** @type {GraphModel} */ (this.graph ?? new GraphModel()),
-          };
-        }
-      } catch {
-        // Not an UP_TO_DATE frame; try STALE_EPOCH.
-      }
-      let stale;
-      try {
-        stale = decodeCrdtStaleEpoch(frame);
-      } catch {
-        continue;
-      }
-      if (stale.cmd !== 0x12) {
-        continue;
-      }
-      this.epoch = stale.newEpochId;
-      const baseline = await this.link.request(stale.rnsResourceHash);
-      const canonical = JSON.parse(new TextDecoder().decode(baseline));
-      this.graph = importFbpJson(canonical);
-      return {
-        upToDate: false,
-        epochId: /** @type {string} */ (stale.newEpochId),
-        graph: /** @type {GraphModel} */ (this.graph),
-      };
-    }
-  }
+	/**
+	 * Read a component's source from the runtime (`0x26`): nil when the
+	 * runtime holds no source for the component.
+	 *
+	 * @param {string} componentName - Library-namespaced component name
+	 * @returns {Promise<{ cmd: number, componentName: string, source: string|null }>}
+	 */
+	async getSource(componentName) {
+		const reply = this.nextFrame();
+		await this.send(encodeCompSourceReq(componentName));
+		return decodeCompSourceRes(await reply);
+	}
 
-  /**
-   * Emit a `0x14` graph op to the runtime.
-   *
-   * @param {Object} op
-   * @param {number|string} [op.planeId] - the plane id (per the codec d.ts, non-nil)
-   * @param {string} op.clientId
-   * @param {number} op.logicalClock
-   * @param {number} op.opType
-   * @param {string} op.entityId
-   * @param {any} op.payload
-   * @returns {Promise<void>}
-   */
-  async sendGraphOp(op) {
-    await this.send(encodeCrdtUpdate({ ...op, planeId: op.planeId ?? null }));
-  }
+	/**
+	 * Write a component's full source to the runtime (`0x25`, atomic):
+	 * for sources over 500 bytes callers SHOULD pass a Reticulum Resource
+	 * hash instead of the raw string. The registry hash changes; the next
+	 * Two-Step sync picks up the new signature.
+	 *
+	 * @param {string} componentName - Library-namespaced component name
+	 * @param {string} source - Full source string or RNS resource hash
+	 * @returns {Promise<void>}
+	 */
+	setSource(componentName, source) {
+		return this.send(encodeCompWrite(componentName, source));
+	}
 
-  /**
-   * Tear down the link.
-   *
-   * @returns {Promise<void>}
-   */
-  async close() {
-    await this.link.teardown();
-  }
+	/**
+	 * The graph mirror sync (§5 of work document #28): run the epoch
+	 * handshake for the main plane. On `0x11 UP_TO_DATE` the existing
+	 * mirror stands; on `0x12 STALE_EPOCH` the canonical baseline is
+	 * fetched via `link.request` and imported into the mirror.
+	 *
+	 * @param {Object} [options]
+	 * @param {string} [options.planeId] - Plane id (nil = main graph)
+	 * @param {string} [options.epochId] - The client's current epoch ("0000" = no mirror)
+	 * @param {Object<string, number>} [options.clocks] - Per-client logical clocks
+	 * @param {number} [options.timeoutMs] - Baseline fetch timeout
+	 * @returns {Promise<{ upToDate: boolean, epochId: string, graph: GraphModel }>} The mirror after sync
+	 */
+	async syncGraph(options = {}) {
+		/** @type {number|string|undefined} */
+		const currentEpoch = this.epoch;
+		const {
+			planeId = null,
+			epochId = currentEpoch ?? "0000",
+			clocks = {},
+			timeoutMs = 30_000,
+		} = options;
+		let deadline = Date.now() + timeoutMs;
+		let reply = this.nextFrame(Math.max(1000, deadline - Date.now()));
+		await this.send(encodeCrdtSyncReq(planeId, epochId, clocks));
+		for (;;) {
+			const frame = await reply;
+			deadline = Date.now() + timeoutMs;
+			reply = this.nextFrame(Math.max(1000, deadline - Date.now()));
+			try {
+				const upToDate = decodeCrdtUpToDate(frame);
+				if (upToDate.cmd === 0x11 && upToDate.epochId === epochId) {
+					this.epoch = epochId;
+					return {
+						upToDate: true,
+						epochId: /** @type {string} */ (epochId),
+						graph: /** @type {GraphModel} */ (this.graph ?? new GraphModel()),
+					};
+				}
+			} catch {
+				// Not an UP_TO_DATE frame; try STALE_EPOCH.
+			}
+			let stale;
+			try {
+				stale = decodeCrdtStaleEpoch(frame);
+			} catch {
+				continue;
+			}
+			if (stale.cmd !== 0x12) {
+				continue;
+			}
+			this.epoch = stale.newEpochId;
+			const baseline = await this.link.request(stale.rnsResourceHash);
+			const canonical = JSON.parse(new TextDecoder().decode(baseline));
+			this.graph = importFbpJson(canonical);
+			return {
+				upToDate: false,
+				epochId: /** @type {string} */ (stale.newEpochId),
+				graph: /** @type {GraphModel} */ (this.graph),
+			};
+		}
+	}
+
+	/**
+	 * Emit a `0x14` graph op to the runtime.
+	 *
+	 * @param {Object} op
+	 * @param {number|string} [op.planeId] - the plane id (per the codec d.ts, non-nil)
+	 * @param {string} op.clientId
+	 * @param {number} op.logicalClock
+	 * @param {number} op.opType
+	 * @param {string} op.entityId
+	 * @param {any} op.payload
+	 * @returns {Promise<void>}
+	 */
+	async sendGraphOp(op) {
+		await this.send(encodeCrdtUpdate({ ...op, planeId: op.planeId ?? null }));
+	}
+
+	/**
+	 * Tear down the link.
+	 *
+	 * @returns {Promise<void>}
+	 */
+	async close() {
+		await this.link.teardown();
+	}
 }

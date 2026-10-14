@@ -1,32 +1,32 @@
 {
-  "name": "@noflo/runtime-client",
-  "version": "2.0.0-alpha.3",
-  "description": "FBP Protocol 2.0 client library over Reticulum (work document #29)",
-  "type": "module",
-  "main": "./src/index.js",
-  "keywords": [
-    "noflo",
-    "fbp",
-    "fbp-protocol",
-    "reticulum"
-  ],
-  "author": "Henri Bergius <henri.bergius@iki.fi>",
-  "license": "EUPL-1.2",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/noflo/noflo.git"
-  },
-  "bugs": {
-    "url": "https://github.com/noflo/noflo/issues"
-  },
-  "homepage": "https://github.com/noflo/noflo#readme",
-  "dependencies": {
-    "@noflo/fbp-protocol": "^2.0.0-alpha.3",
-    "@noflo/graph": "^2.0.0-alpha.3",
-    "@reticulum/core": "^0.9.8"
-  },
-  "scripts": {
-    "test": "node --test --test-force-exit --test-timeout 60000 spec/*.js",
-    "types": "tsc --noEmit -p tsconfig.json"
-  }
+	"name": "@noflo/runtime-client",
+	"version": "2.0.0-alpha.3",
+	"description": "FBP Protocol 2.0 client library over Reticulum (work document #29)",
+	"type": "module",
+	"main": "./src/index.js",
+	"keywords": [
+		"noflo",
+		"fbp",
+		"fbp-protocol",
+		"reticulum"
+	],
+	"author": "Henri Bergius <henri.bergius@iki.fi>",
+	"license": "EUPL-1.2",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/noflo/noflo.git"
+	},
+	"bugs": {
+		"url": "https://github.com/noflo/noflo/issues"
+	},
+	"homepage": "https://github.com/noflo/noflo#readme",
+	"dependencies": {
+		"@noflo/fbp-protocol": "^2.0.0-alpha.3",
+		"@noflo/graph": "^2.0.0-alpha.3",
+		"@reticulum/core": "^0.9.8"
+	},
+	"scripts": {
+		"test": "node --test --test-force-exit --test-timeout 60000 spec/*.js",
+		"types": "tsc --noEmit -p tsconfig.json"
+	}
 }
