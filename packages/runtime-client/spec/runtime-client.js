@@ -3,10 +3,12 @@ import { describe, it } from "node:test";
 import {
   decodeCompDetailReq,
   decodeCrdtUpdate,
+  encodeAnnounceAppData,
   encodeCompDetailRes,
   encodeOpRejected,
 } from "@noflo/fbp-protocol";
 import {
+  discoverRuntime,
   encodeCompManifest,
   encodeCompSourceRes,
   encodeCrdtStaleEpoch,
@@ -269,5 +271,85 @@ describe("RuntimeClient", () => {
     const { link, client } = makeClient();
     await client.close();
     assert.equal(link.teardownCalls, 1);
+  });
+});
+
+describe("discoverRuntime", () => {
+  /** A transport double with a destination cache and announce events. */
+  function fakeReticulum({ cache = [], livePath = false }) {
+    const listeners = [];
+    const knownDestinations = new Map(cache);
+    const reticulum = {
+      transport: {
+        caches: { knownDestinations },
+        nextHop: () => (livePath ? new Uint8Array(16) : null),
+        addEventListener: (type, listener) => {
+          if (type === "announce") {
+            listeners.push(listener);
+          }
+        },
+        removeEventListener: (type, listener) => {
+          const i = listeners.indexOf(listener);
+          if (i !== -1) {
+            listeners.splice(i, 1);
+          }
+        },
+        requestPath: async () => {},
+      },
+      /** Deliver an announce event to the transport listeners. */
+      announce(appData) {
+        for (const listener of [...listeners]) {
+          listener({
+            detail: { destinationHash: new Uint8Array(16), appData },
+          });
+        }
+      },
+    };
+    return reticulum;
+  }
+
+  const destinationHash = new Uint8Array(16).fill(0xab);
+  const appData = encodeAnnounceAppData({
+    destinationHash,
+    nodeName: "hello-runtime",
+  });
+
+  it("recalls a known runtime with a live path without waiting", async () => {
+    const rns = fakeReticulum({
+      cache: [[Buffer.from(destinationHash).toString("hex"), { appData }]],
+      livePath: true,
+    });
+    const found = await discoverRuntime({ reticulum: rns, timeoutMs: 1_000 });
+    assert.equal(found.nodeName, "hello-runtime");
+    assert.deepEqual(new Uint8Array(found.destinationHash), destinationHash);
+  });
+
+  it("solicits a path request for a known runtime on a stale path", async () => {
+    const rns = fakeReticulum({
+      cache: [[Buffer.from(destinationHash).toString("hex"), { appData }]],
+      livePath: false,
+    });
+    /** @type {Uint8Array[]} */
+    const requested = [];
+    rns.transport.requestPath = async (hash) => {
+      requested.push(hash);
+    };
+    const pending = discoverRuntime({ reticulum: rns, timeoutMs: 5_000 });
+    setTimeout(() => rns.announce(appData), 20);
+    const found = await pending;
+    assert.equal(requested.length, 1);
+    assert.deepEqual(new Uint8Array(requested[0]), destinationHash);
+    assert.equal(found.nodeName, "hello-runtime");
+  });
+
+  it("ignores cache entries that are not FBP runtimes", async () => {
+    const rns = fakeReticulum({
+      cache: [
+        ["ff".repeat(16), { appData: new TextEncoder().encode("garbage") }],
+      ],
+      livePath: true,
+    });
+    const pending = discoverRuntime({ reticulum: rns, timeoutMs: 200 });
+    await assert.rejects(pending, /announce/);
   });
 });

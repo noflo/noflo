@@ -81,18 +81,82 @@ export { TelemetryClient } from "./telemetry.js";
 export { UiEventSurface } from "./ui-events.js";
 
 /**
+ * Recall a previously learned runtime from the transport's known-destination
+ * cache: announces do not reliably echo to late-joining clients within a
+ * shared rnsd instance, so a client whose transport state persists (a
+ * storage adapter) must be able to rediscover without waiting for the next
+ * announce. The cache entries carry the announce app_data.
+ *
+ * @param {import("@reticulum/core").Reticulum} reticulum
+ * @param {string|null} nodeName - Pin to one runtime name; nil accepts the first FBP runtime
+ * @returns {{ destinationHash: Uint8Array, nodeName: string }|null}
+ */
+function recallRuntimeFromCache(reticulum, nodeName) {
+  const cache = /** @type {any} */ (reticulum.transport)?.caches
+    ?.knownDestinations;
+  if (!cache) {
+    return null;
+  }
+  /** @type {{ destinationHash: Uint8Array, nodeName: string }|null} */
+  let firstMatch = null;
+  for (const [hashHex, entry] of /** @type {any} */ (cache).entries()) {
+    if (!entry?.appData) {
+      continue;
+    }
+    try {
+      const decoded = decodeAnnounceAppData(new Uint8Array(entry.appData));
+      if (decoded.protocolVersion !== PROTOCOL_VERSION) {
+        continue;
+      }
+      if (nodeName && decoded.nodeName !== nodeName) {
+        continue;
+      }
+      const destinationHash = /** @type {any} */ (Uint8Array).fromHex(hashHex);
+      // Prefer a destination whose path is still live: the cache may hold
+      // several runs of the same runtime name under different identities,
+      // and a dead one would waste the connect attempt
+      if (reticulum.transport.nextHop?.(destinationHash)) {
+        return { destinationHash, nodeName: decoded.nodeName };
+      }
+      firstMatch ??= { destinationHash, nodeName: decoded.nodeName };
+    } catch {
+      // Not an FBP announce; ignore.
+    }
+  }
+  return firstMatch;
+}
+
+/**
  * Subscribe to announce events on a Reticulum instance and resolve with
  * the first FBP Protocol 2.0 runtime announcement (the §3 app_data decode
- * of work document #28).
+ * of work document #28). A runtime already known to the transport's
+ * destination cache resolves immediately without waiting for an announce
+ * echo — within a shared rnsd instance those do not reliably reach
+ * late-joining clients.
  *
  * @param {Object} options
  * @param {import("@reticulum/core").Reticulum} options.reticulum - The local Reticulum instance
  * @param {number} [options.timeoutMs] - Reject after this long without a matching announce (default 30s)
  * @param {string} [options.nodeName] - Optionally pin the discovery to one runtime name
+ * @param {boolean} [options.solicit] - Skip the cache and solicit a fresh announce (path
+ *   request when the destination is known) — used when a cached path turned out stale
  * @returns {Promise<{ destinationHash: Uint8Array, nodeName: string }>} The discovered runtime
  */
-export function discoverRuntime(options) {
-  const { reticulum, timeoutMs = 30_000, nodeName = null } = options;
+export async function discoverRuntime(options) {
+  const {
+    reticulum,
+    timeoutMs = 30_000,
+    nodeName = null,
+    solicit = false,
+  } = options;
+  // The destination cache hydrates asynchronously from the storage
+  // adapter: recall only after the load promise settles
+  await /** @type {any} */ (reticulum).persistorLoadPromise?.catch?.(() => {});
+  const cached = solicit ? null : recallRuntimeFromCache(reticulum, nodeName);
+  if (cached && reticulum.transport.nextHop?.(cached.destinationHash)) {
+    // Known destination with a live path: connect straight away
+    return cached;
+  }
   return new Promise((resolve, reject) => {
     /** @type {ReturnType<typeof setTimeout>|undefined} */
     let timer;
@@ -126,6 +190,14 @@ export function discoverRuntime(options) {
       reject(new Error("timed out waiting for a runtime announce"));
     }, timeoutMs);
     reticulum.transport.addEventListener("announce", listener);
+    if (cached) {
+      // Known destination on a stale path: solicit a fresh announce via
+      // a path request — the transport node answers with the runtime's
+      // current announce, which the listener above catches
+      reticulum.transport.requestPath(cached.destinationHash).catch(() => {
+        // Best effort: a periodic announce may still arrive
+      });
+    }
   });
 }
 
