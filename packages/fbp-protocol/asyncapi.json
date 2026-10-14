@@ -331,6 +331,36 @@
         }
       },
       "x-capability": "COMPONENT_READ (0x10)"
+    },
+    "cmd/0x28": {
+      "description": "Client → runtime: request unknown schema/catalog bodies by raw digest, with closure bundling requested by the boolean. The runtime answers on 0x29; a runtime without any schema table answers all-nil rather than staying silent.",
+      "publish": {
+        "operationId": "schemaReq",
+        "message": {
+          "$ref": "#/components/messages/schemaReq"
+        }
+      },
+      "x-capability": "COMPONENT_READ (0x10)"
+    },
+    "cmd/0x29": {
+      "description": "Runtime → client: schema bodies as [raw_digest, entry] tuples — inline documents, RNS resource hashes for bodies over the inline cap, or nil for not held. Bundled entries are bounded by the protocol-stated maximum.",
+      "subscribe": {
+        "operationId": "schemaRes",
+        "message": {
+          "$ref": "#/components/messages/schemaRes"
+        }
+      },
+      "x-capability": "COMPONENT_READ (0x10)"
+    },
+    "cmd/0x2a": {
+      "description": "Client → runtime: write a schema or catalog body (live programming), inline or as an RNS resource hash. The write is content-addressed and idempotent; two clients writing different schemas concurrently both succeed. Editors save bodies before re-pinning references via signature sync, so other clients never observe a dangling reference.",
+      "publish": {
+        "operationId": "schemaWrite",
+        "message": {
+          "$ref": "#/components/messages/schemaWrite"
+        }
+      },
+      "x-capability": "COMPONENT_WRITE (0x20)"
     }
   },
   "components": {
@@ -1795,6 +1825,216 @@
         ],
         "x-msgpack-hex": "9326b26d792d70726f6a6563742f5265706c616365d9266578706f72742066756e6374696f6e20676574436f6d706f6e656e742829207b202e2e2e207d",
         "x-verify": "frame"
+      },
+      "schemaReq": {
+        "name": "schemaReq",
+        "title": "0x28 CMD_SCHEMA_REQ",
+        "summary": "Request schema bodies by raw digest, optionally bundled with their transitive $ref closures.",
+        "payload": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": [
+            {
+              "type": "integer",
+              "const": 40,
+              "description": "CMD_SCHEMA_REQ"
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "format": "binary",
+                "description": "Raw 32-byte SHA-256 digest of a schema body."
+              }
+            },
+            {
+              "type": "boolean",
+              "description": "Request closure-bundled responses."
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              40,
+              [
+                "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqo=",
+                "u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7s="
+              ],
+              true
+            ]
+          }
+        ],
+        "x-msgpack-hex": "932892c420aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac420bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc3",
+        "x-verify": "frame-binary"
+      },
+      "schemaRes": {
+        "name": "schemaRes",
+        "title": "0x29 CMD_SCHEMA_RES",
+        "summary": "Answer schema bodies as [digest, entry] tuples — inline document, RNS resource hash, or nil; all-nil is the legitimate no-table answer.",
+        "payload": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": [
+            {
+              "type": "integer",
+              "const": 41,
+              "description": "CMD_SCHEMA_RES"
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "description": "[raw_digest, entry] tuples; entries are inline documents, RNS resource hashes, or nil.",
+              "items": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": [
+                  {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Raw 32-byte SHA-256 digest of a schema body."
+                  },
+                  {
+                    "description": "Inline MsgPack document, an RNS resource hash string for bodies over the inline cap, or nil for not held.",
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "description": "Inline schema body."
+                      },
+                      {
+                        "type": "string",
+                        "description": "RNS resource hash."
+                      },
+                      {
+                        "type": "null",
+                        "description": "Not held — protocol-legitimate absence."
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              41,
+              [
+                [
+                  "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqo=",
+                  {
+                    "$id": "canvas/point",
+                    "type": "object",
+                    "required": ["x"]
+                  }
+                ],
+                ["u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7s=", null]
+              ]
+            ]
+          }
+        ],
+        "x-msgpack-hex": "92299292c420aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa83a3246964ac63616e7661732f706f696e74a474797065a66f626a656374a8726571756972656491a17892c420bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc0",
+        "x-verify": "frame-binary"
+      },
+      "schemaWrite": {
+        "name": "schemaWrite",
+        "title": "0x2a CMD_SCHEMA_WRITE",
+        "summary": "Write a schema body, inline or as an RNS resource hash; the digest rides every write and the write is content-addressed and idempotent.",
+        "payload": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": [
+            {
+              "type": "integer",
+              "const": 42,
+              "description": "CMD_SCHEMA_WRITE"
+            },
+            {
+              "type": "string",
+              "format": "binary",
+              "description": "Raw 32-byte SHA-256 digest of a schema body."
+            },
+            {
+              "description": "Inline MsgPack document, an RNS resource hash string for bodies over the inline cap, or nil for not held.",
+              "oneOf": [
+                {
+                  "type": "object",
+                  "description": "Inline schema body."
+                },
+                {
+                  "type": "string",
+                  "description": "RNS resource hash."
+                },
+                {
+                  "type": "null",
+                  "description": "Not held — protocol-legitimate absence."
+                }
+              ]
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              42,
+              "zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMw=",
+              {
+                "$id": "std/count",
+                "type": "string",
+                "enum": ["a", "b"]
+              }
+            ]
+          }
+        ],
+        "x-msgpack-hex": "932ac420cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc83a3246964a97374642f636f756e74a474797065a6737472696e67a4656e756d92a161a162",
+        "x-verify": "frame-binary"
+      },
+      "schemaWriteRef": {
+        "name": "schemaWriteRef",
+        "title": "0x2a CMD_SCHEMA_WRITE (resource form)",
+        "summary": "Write a schema body as an RNS resource hash — the mandatory form for bodies over the inline cap.",
+        "payload": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": [
+            {
+              "type": "integer",
+              "const": 42,
+              "description": "CMD_SCHEMA_WRITE"
+            },
+            {
+              "type": "string",
+              "format": "binary",
+              "description": "Raw 32-byte SHA-256 digest of a schema body."
+            },
+            {
+              "type": "string",
+              "description": "RNS resource hash."
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [
+              42,
+              "u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7s=",
+              "rns:resourcehash"
+            ]
+          }
+        ],
+        "x-msgpack-hex": "932ac420bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb0726e733a7265736f7572636568617368",
+        "x-verify": "frame-binary"
       }
     }
   }

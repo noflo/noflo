@@ -45,6 +45,9 @@ import {
   CMD_PROCESS_LIST_REQ,
   CMD_PUBSUB_SUB,
   CMD_RUN_CTRL,
+  CMD_SCHEMA_REQ,
+  CMD_SCHEMA_RES,
+  CMD_SCHEMA_WRITE,
   decodeAnnounceAppData,
   decodeFrame,
   decodeLxmTelemetry,
@@ -71,6 +74,9 @@ import {
   encodeProcessListReq,
   encodePubsubSub,
   encodeRunCtrl,
+  encodeSchemaReq,
+  encodeSchemaRes,
+  encodeSchemaWrite,
   readTraceFile,
   TRACE_SNAPSHOT,
 } from "../src/index.js";
@@ -116,6 +122,13 @@ const frameEncoders = {
     encodeCompManifest(decoded.newRegistryHash, decoded.entries),
   [CMD_COMP_DETAIL_REQ]: (decoded) => encodeCompDetailReq(decoded.names),
   [CMD_COMP_DETAIL_RES]: (decoded) => encodeCompDetailRes(decoded.components),
+  [CMD_SCHEMA_REQ]: (decoded) =>
+    encodeSchemaReq(decoded.digests, decoded.bundle),
+  [CMD_SCHEMA_RES]: (decoded) => encodeSchemaRes(decoded.bodies),
+  [CMD_SCHEMA_WRITE]: (decoded) =>
+    decoded.ref !== undefined
+      ? encodeSchemaWrite(decoded.digest, decoded.ref)
+      : encodeSchemaWrite(decoded.digest, decoded.body),
   [CMD_COMP_WRITE]: (decoded) =>
     encodeCompWrite(decoded.componentName, decoded.source),
   [CMD_COMP_SOURCE]: (decoded) =>
@@ -301,9 +314,14 @@ describe("wire examples round-trip through the codecs", () => {
         assert.equal(message.payload.minItems, frame.length);
         assert.equal(message.payload.maxItems, frame.length);
         assert.deepEqual(normalize(frame), message.examples[0].payload);
-        // The documented payload, encoded on its own, must reproduce the
-        // documented wire bytes.
-        assertBytesEqual(MsgPack.encode(message.examples[0].payload), bytes);
+        if (role !== "frame-binary") {
+          // The documented payload, encoded on its own, must reproduce the
+          // documented wire bytes. The frame-binary role skips this: its
+          // examples carry raw 32-byte digests, which JSON renders as
+          // base64 and MsgPack cannot re-encode to the raw bins — the
+          // decode and encoder round-trips above carry the guarantee.
+          assertBytesEqual(MsgPack.encode(message.examples[0].payload), bytes);
+        }
       } else if (role === "announce") {
         const decoded = decodeAnnounceAppData(bytes);
         assertBytesEqual(
@@ -344,7 +362,7 @@ describe("wire examples round-trip through the codecs", () => {
           }),
           bytes,
         );
-      } else {
+      } else if (role !== "frame-binary") {
         assert.fail(`message ${name} declares an unknown x-verify role`);
       }
     });

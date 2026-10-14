@@ -345,6 +345,48 @@ export const CMD_COMP_SOURCE = 0x26;
 export const CMD_COMP_INSTALL_REQ = 0x27;
 
 /**
+ * Schema body retrieval request (work document #37 §6):
+ * `[0x28, [raw_digest…], bundle]` — the client requests unknown
+ * schema/catalog bodies by raw 32-byte SHA-256 digest, with a boolean
+ * requesting closure-bundled responses (default on): each requested digest
+ * returns not only its own body but the bodies of its transitive `$ref`
+ * closure, saving one mesh round trip per hop. Digests only, never ids or
+ * URLs. Requires `COMPONENT_READ`.
+ *
+ * @type {number}
+ */
+export const CMD_SCHEMA_REQ = 0x28;
+
+/**
+ * Schema body retrieval response (work document #37 §6):
+ * `[0x29, { <raw_digest>: body | resource_hash | nil }]`. Each entry is the
+ * inline MsgPack document, an RNS resource digest for bodies too large for
+ * comfortable frames (the `0x25` source precedent), or nil for "not held".
+ * Nil is protocol-legitimate absence, and a runtime without any schema
+ * table answers all-nil rather than staying silent — silence never carries
+ * semantics. Bundled entries are bounded by the protocol-stated maximum.
+ * Requires `COMPONENT_READ`.
+ *
+ * @type {number}
+ */
+export const CMD_SCHEMA_RES = 0x29;
+
+/**
+ * Schema body write (work document #37 §6, live programming):
+ * `[0x2a, raw_digest, body_or_ref]` — writes a schema or catalog body into
+ * the runtime's table, inline or as an RNS resource hash (the same forms as
+ * `0x29`). The digest rides every write: the runtime verifies an inline
+ * body against it (decode → RFC 8785 canonicalize → SHA-256, which also
+ * pins the `$id`), and a resource-backed entry is verifiable when fetched.
+ * Content-addressed and idempotent: two clients writing different schemas
+ * concurrently both succeed, because the store is grow-only. Requires
+ * `COMPONENT_WRITE`.
+ *
+ * @type {number}
+ */
+export const CMD_SCHEMA_WRITE = 0x2a;
+
+/**
  * Component kinds shared across the publish-time manifests (work document
  * #25), the loader's sidecar declarations (#24), and this protocol's
  * registry entries, detail responses, and process listings (#4 updates #9
@@ -360,6 +402,24 @@ export const COMPONENT_TYPE = {
   SUBGRAPH: "subgraph",
   STUB: "stub",
 };
+
+/**
+ * The maximum size of an inline schema body on the `0x29`/`0x2a` paths,
+ * in canonical JSON bytes (work document #37 §6): over the cap, the RNS
+ * resource form is mandatory. The cap keeps closure bundles inside
+ * comfortable frame sizes on constrained links.
+ *
+ * @type {number}
+ */
+export const SCHEMA_INLINE_LIMIT = 4096;
+
+/**
+ * The protocol-stated maximum for closure bundles (work document #37 §6):
+ * a responder may bundle fewer entries (its own policy), never more.
+ *
+ * @type {number}
+ */
+export const SCHEMA_BUNDLE_MAX_ENTRIES = 32;
 
 // --- Live streaming telemetry (0x30 - 0x3F) ---
 
