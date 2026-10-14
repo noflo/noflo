@@ -73,8 +73,9 @@ function renderComponent(nodes, declared, nodeId) {
 
 /**
  * Render the `:key=value` metadata suffix inside a node declaration.
- * Only expressible values survive: integer `x`/`y` coordinates and scalar
- * strings from the safe character set; everything else is dropped (the
+ * Only expressible values survive: finite `x`/`y` coordinates (the 2.x
+ * grammar extension accepts floats) and scalar strings from the safe
+ * character set; everything else is dropped (the
  * DSL round-trips through `parse` with identical semantics, minus the
  * unrepresentable values).
  *
@@ -88,7 +89,7 @@ function renderMetadata(metadata) {
 	const entries = Object.entries(metadata)
 		.filter(([key, value]) => {
 			if (key === "x" || key === "y") {
-				return typeof value === "number" && Number.isInteger(value);
+				return typeof value === "number" && Number.isFinite(value);
 			}
 			return typeof value === "string" && SAFE_META_VALUE.test(value);
 		})

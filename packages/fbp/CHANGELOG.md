@@ -4,7 +4,15 @@
 
 ### Added
 
-- `toFBP()`: the `.fbp` writer — renders a canonical graph document (the `GraphModel.serialize()` shape) as `.fbp` DSL source, the inverse of `parse()` for nodes, edges with port indexes, IIPs, and exports. Groups have no DSL representation; metadata is limited to what the syntax carries (integer `x`/`y` coordinates and safe scalar strings). Deterministic output, verified by round-trip through `parse()`.
+- `.fbp` grammar extension (2.x): metadata values may carry `.` and `-` — float and negative coordinates (`Node(Comp:x=10.5,y=-22.5)`), which the reference `fbp` parser rejects. Documented divergence: for every input the reference accepts, `parse` behaves identically; the extension only widens acceptance.
+
+### Fixed
+
+- The component metadata grammar now matches the reference parser's acceptance exactly for non-extended inputs, and `toFBP()` emits float coordinates instead of dropping them
+
+### Added
+
+- `toFBP()`: the `.fbp` writer — renders a canonical graph document (the `GraphModel.serialize()` shape) as `.fbp` DSL source, the inverse of `parse()` for nodes, edges with port indexes, IIPs, and exports. Groups have no DSL representation; metadata is limited to what the syntax carries (finite `x`/`y` coordinates and safe scalar strings). Deterministic output, verified by round-trip through `parse()`.
 
 ## [2.0.0-alpha.3] - 2026-10-10
 

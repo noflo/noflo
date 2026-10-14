@@ -5,8 +5,10 @@
  *
  * Hand-written recursive-descent parser producing the FBP graph JSON format.
  * Semantically compatible with the reference `fbp` parser, including its
- * acceptance behavior: the same inputs are accepted and rejected, and accepted
- * inputs yield the same graph JSON.
+ * acceptance behavior: for every input the reference accepts, the same graph
+ * JSON is produced, and reference-rejected inputs are rejected. One deliberate
+ * 2.x extension goes beyond the reference: metadata values may carry `.` and
+ * `-` (float and negative coordinates), which the reference grammar rejects.
  *
  * @module
  */
@@ -100,7 +102,7 @@ export class SyntaxError extends Error {
 const NODE_NAME_RE = /[a-zA-Z_][a-zA-Z0-9_-]*/y;
 const PORT_NAME_RE = /[a-zA-Z_][a-zA-Z.0-9_]*/y;
 const PORT_INDEX_RE = /\[([0-9]+)\]/y;
-const COMPONENT_RE = /\(([a-zA-Z/\-0-9_]*)(?::([a-zA-Z/=_,0-9]+))?\)/y;
+const COMPONENT_RE = /\(([a-zA-Z/\-0-9_]*)(?::([a-zA-Z/=_,.0-9-]+))?\)/y;
 const ANNOTATION_KEY_RE = /[a-zA-Z0-9\-_]+/y;
 const ANNOTATION_VALUE_RE = /[a-zA-Z0-9\-_ .]+/y;
 

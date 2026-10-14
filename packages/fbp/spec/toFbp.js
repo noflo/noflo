@@ -141,20 +141,22 @@ describe("toFBP", () => {
 		});
 	});
 
-	it("drops float coordinates the DSL cannot represent", () => {
+	it("round-trips float coordinates through the extended grammar", () => {
 		const source = toFBP({
 			nodes: [
 				{
 					entity_id: "N",
 					component: "Comp",
-					metadata: { x: 10.5 },
+					metadata: { x: 10.5, y: -22.5 },
 				},
 			],
 			edges: [],
 			iips: [],
 			exports: [],
 		});
-		assert.equal(source.trim(), "N(Comp)");
+		assert.equal(source.trim(), "N(Comp:x=10.5,y=-22.5)");
+		const parsed = parse(source);
+		assert.deepEqual(parsed.processes.N.metadata, { x: 10.5, y: -22.5 });
 	});
 
 	it("renders deterministically", () => {
