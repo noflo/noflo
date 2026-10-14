@@ -37,6 +37,7 @@ import {
   RUN_ACTION,
   RUN_STATE,
 } from "@noflo/fbp-protocol";
+import { checkPacketGuard } from "./guards.js";
 
 /**
  * @typedef {object} EngineGap
@@ -68,6 +69,21 @@ export class ExecutionProtocol {
     this.telemetry = options.telemetry;
     /** The graph protocol, for access to the plane registry. */
     this.graphProtocol = options.graphProtocol ?? null;
+    /**
+     * Tier A guard diagnostics (work document #37 §6): the signature
+     * resolver for comparison-only packet checks at `0x47`; null when the
+     * runtime has no catalog hook.
+     *
+     * @type {import("./guards.js").SignatureResolver|null}
+     */
+    this.signatureResolver = options.signatureResolver ?? null;
+    /**
+     * Host-side sink for guard violations; diagnostic-only, the packet is
+     * delivered regardless.
+     *
+     * @type {((detail: { opType: number, entityId: string|null, detail: string }) => void)|null}
+     */
+    this.onGuardViolation = options.onGuardViolation ?? null;
   }
   /**
    * Register the `0x40`–`0x46` handlers on a runtime server. Requires the
@@ -169,6 +185,25 @@ export class ExecutionProtocol {
           context,
         );
         return;
+      }
+      // Tier A guard diagnostics: comparison-only, diagnostic-only — the
+      // packet is delivered regardless (work document #37 §6)
+      const guardVerdict = checkPacketGuard({
+        resolveSignature: this.signatureResolver,
+        component: isMain
+          ? (this.host.graph.node(target.node)?.component ?? "")
+          : (this.graphProtocol?.getPlane(planeId)?.model?.node(target.node)
+              ?.component ?? ""),
+        port: target.port,
+        isInport: true,
+        value: decoded.payload,
+      });
+      if (guardVerdict.checked && !guardVerdict.ok) {
+        this.onGuardViolation?.({
+          opType: CMD_PACKET_SEND,
+          entityId: null,
+          detail: guardVerdict.detail ?? "value fails the port's guard",
+        });
       }
       network
         .addInitial({

@@ -34,6 +34,7 @@ import {
   REASON,
 } from "@noflo/fbp-protocol";
 import { GraphModelError } from "@noflo/graph";
+import { checkPacketGuard } from "./guards.js";
 
 /**
  * Serve baseline snapshots for stale clients: the provider receives the
@@ -62,10 +63,33 @@ export class GraphProtocol {
    *   clock map. Clocks arrive from the wire with attacker-chosen client
    *   ids, so the map is capped: once full, the oldest-learned client is
    *   evicted. Defaults to 1024.
+   * @param {import("./guards.js").SignatureResolver} [options.signatureResolver]
+   *   Tier A guard diagnostics (work document #37 §6): the catalog lookup
+   *   for comparison-only packet checks; guards go unchecked when absent.
+   * @param {(detail: { opType: number, entityId: string|null, detail: string }) => void} [options.onGuardViolation]
+   *   Host-side sink for guard violations; diagnostic-only, the op is
+   *   applied regardless.
    */
   constructor(options) {
     this.graph = options.graph;
     this.clientId = options.clientId ?? "runtime";
+    /**
+     * Signature resolver for Tier A guard diagnostics (work document #37
+     * §6): resolves a component's wire signature by name; null when the
+     * runtime has no catalog hook, in which case guards go unchecked.
+     *
+     * @type {import("./guards.js").SignatureResolver|null}
+     */
+    this.signatureResolver = options.signatureResolver ?? null;
+    /**
+     * Host-side sink for guard violations (work document #37 §6): the
+     * runtime records them — telemetry `0x04 ERROR` flowtrace events or
+     * LXMF `[errors]`, per local policy. Diagnostic-only; the op is
+     * applied regardless.
+     *
+     * @type {((detail: { opType: number, entityId: string|null, detail: string }) => void)|null}
+     */
+    this.onGuardViolation = options.onGuardViolation ?? null;
     this.resourceProvider = options.resourceProvider ?? null;
     this.maxKnownClocks = options.maxKnownClocks ?? 1024;
     /** @type {number} Logical clock of the runtime's own operations. */
@@ -404,9 +428,28 @@ export class GraphProtocol {
         case OP_TYPE.INSERT_EDGE:
           graph.addEdge(definition);
           break;
-        case OP_TYPE.INSERT_IIP:
+        case OP_TYPE.INSERT_IIP: {
+          // Tier A guard diagnostics: check the IIP's data against the
+          // target port's in-band guard, comparison-only. Diagnostic-only —
+          // the op is applied regardless; convergence integrity outranks
+          // schema enforcement (work document #37 §6)
+          const verdict = checkPacketGuard({
+            resolveSignature: this.signatureResolver,
+            component: this.graph.node(definition.to.node)?.component ?? "",
+            port: definition.to.port,
+            isInport: true,
+            value: definition.data,
+          });
+          if (verdict.checked && !verdict.ok) {
+            this.onGuardViolation?.({
+              opType,
+              entityId: definition.entity_id ?? null,
+              detail: verdict.detail ?? "value fails the port's guard",
+            });
+          }
           graph.addIIP(definition);
           break;
+        }
         case OP_TYPE.INSERT_EXPORT:
           graph.addExport(definition);
           break;

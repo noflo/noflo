@@ -39,6 +39,23 @@ import { TelemetryProtocol } from "./telemetry-protocol.js";
  */
 
 /**
+ * Wrap a catalog's `signatures()` snapshot into the guard resolver shape:
+ * a synchronous lookup over the catalog's last-refreshed state.
+ *
+ * @param {import("./registry-protocol.js").RuntimeCatalog} catalog
+ * @returns {import("./guards.js").SignatureResolver}
+ */
+function catalogSignatureResolver(catalog) {
+  const snapshot = catalog.signatures();
+  return (component, port, isInport) => {
+    const detail = snapshot[component];
+    if (!detail) return null;
+    const side = isInport ? detail.in : detail.out;
+    return side.find((/** @type {any} */ p) => p.id === port) ?? null;
+  };
+}
+
+/**
  * Wire the full protocol stack. The returned parts are plain objects —
  * applications can hold on to any of them (e.g. `host` to restart the
  * network, `telemetry` to flush) — and every handler is already registered
@@ -104,12 +121,18 @@ export async function assembleRuntime(options) {
   const graph = new GraphProtocol({
     graph: options.graph,
     clientId: options.clientId,
+    ...(options.catalog
+      ? { signatureResolver: catalogSignatureResolver(options.catalog) }
+      : {}),
   });
   const telemetry = new TelemetryProtocol({ host, graphProtocol: graph });
   const execution = new ExecutionProtocol({
     host,
     telemetry,
     graphProtocol: graph,
+    ...(options.catalog
+      ? { signatureResolver: catalogSignatureResolver(options.catalog) }
+      : {}),
   });
   registry.register(server);
   if (schema) {
