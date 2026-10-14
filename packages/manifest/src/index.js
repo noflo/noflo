@@ -31,7 +31,11 @@ import { parse } from "@noflo/fbp";
 import { GraphModel, importFbpJson } from "@noflo/graph";
 import { createNodeModulesRegistry } from "@noflo/loader-node";
 import { ComponentLoader } from "@noflo/noflo";
-import { buildSchemaSet, finalizePortSchema } from "./schemas.js";
+import {
+  buildSchemaSet,
+  finalizePortSchema,
+  verifyRevisionAcceptance,
+} from "./schemas.js";
 
 /**
  * @typedef {Object} ManifestPort
@@ -74,6 +78,8 @@ import { buildSchemaSet, finalizePortSchema } from "./schemas.js";
  * @property {string} digest - SHA-256 hex digest over the published body.
  * @property {string} path - In-package path of the schema document.
  * @property {string[]} [implements] - Computed interface-closure ids, when non-empty.
+ * @property {Array<any>} [examples] - The body's `examples`, publish-side data for the
+ *   revision-acceptance backstop (work document #37 §2).
  */
 
 /**
@@ -597,6 +603,10 @@ export async function generateManifest(baseDir, options = {}) {
   // The schema set is built before harvesting: the publish gate runs over
   // the package's own documents, and port schema markers resolve against it
   const schemaSet = await buildSchemaSet(baseDir, { npm: identity.npm });
+  // The revision-acceptance backstop compares against the previously
+  // generated manifest — the prior revision's `examples` survive there
+  const priorManifest = readPriorManifest(baseDir);
+  await verifyRevisionAcceptance(schemaSet, priorManifest);
 
   const loader = await createLoader(baseDir);
   /** @type {ManifestComponent[]} */
@@ -737,16 +747,19 @@ export async function generateManifest(baseDir, options = {}) {
     loader: identity.loader,
     namespaces,
     schemas: Object.fromEntries(
-      [...schemaSet.named.entries()].map(([id, entry]) => [
-        id,
-        entry.implements.length
-          ? {
-              digest: entry.digest,
-              path: entry.path,
-              implements: entry.implements,
-            }
-          : { digest: entry.digest, path: entry.path },
-      ]),
+      [...schemaSet.named.entries()].map(([id, entry]) => {
+        const tableEntry = {
+          digest: entry.digest,
+          path: entry.path,
+        };
+        if (entry.implements.length) {
+          tableEntry.implements = entry.implements;
+        }
+        if (Array.isArray(entry.body.examples)) {
+          tableEntry.examples = entry.body.examples;
+        }
+        return [id, tableEntry];
+      }),
     ),
     anonymousSchemas: Object.fromEntries(
       [...schemaSet.anonymous.values()].map((entry) => [
@@ -757,6 +770,27 @@ export async function generateManifest(baseDir, options = {}) {
     foreignSchemas,
     components,
   };
+}
+
+/**
+ * Reads the previously generated manifest, when one exists: the revision
+ * the publish gate compares against.
+ *
+ * @param {string} baseDir
+ * @returns {import("./index.js").Manifest|null}
+ */
+function readPriorManifest(baseDir) {
+  const priorPath = path.join(baseDir, "noflo.json");
+  if (!fs.existsSync(priorPath)) {
+    return null;
+  }
+  try {
+    return JSON.parse(fs.readFileSync(priorPath, "utf8"));
+  } catch {
+    // A corrupt prior manifest is not a publish stopper: the gate runs
+    // against what it can read
+    return null;
+  }
 }
 
 /**

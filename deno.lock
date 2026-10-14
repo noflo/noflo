@@ -8,6 +8,7 @@
     "npm:@reticulum/lxmf@~0.9.8": "0.9.8",
     "npm:@reticulum/node@~0.9.8": "0.9.8",
     "npm:@types/node@24": "24.19.1",
+    "npm:ajv@^8.20.0": "8.20.0",
     "npm:fbp@^1.8.0": "1.8.0",
     "npm:get-function-params@^2.0.6": "2.0.7",
     "npm:jsonpath-plus@^11.2.0": "11.2.1",
@@ -145,6 +146,21 @@
         "undici-types@8.9.0"
       ]
     },
+    "ajv@8.20.0": {
+      "integrity": "sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==",
+      "dependencies": [
+        "fast-deep-equal",
+        "fast-uri",
+        "json-schema-traverse",
+        "require-from-string"
+      ]
+    },
+    "fast-deep-equal@3.1.3": {
+      "integrity": "sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q=="
+    },
+    "fast-uri@3.1.8": {
+      "integrity": "sha512-GZMtZUTNRpOVIECoXwLNZS5xUGE+mVNbTB8h/7Rwh2TFWcBQiPzTgyZi05BF9UMZKkLJv8XBRJTlU7zg8+ZfMg=="
+    },
     "fbp@1.8.0": {
       "integrity": "sha512-AqkOwbO/4CVFJa/LRp3XA5btZ2qrwANWCX0Gc0rsyvkeWJDduXdd2SpCykV19RtbPurKgIHrLxOQr057Ksleqw==",
       "bin": true
@@ -155,6 +171,9 @@
     "jsep@1.6.0": {
       "integrity": "sha512-Y8Tr54CX7B5YGAwo7/n8eumidEX3Opx98RyyQVnlHqUaZcPA8uUzL2v1rshr9ypW9Q6hNjfJtg3sL+8kaNE7TA=="
     },
+    "json-schema-traverse@1.0.0": {
+      "integrity": "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug=="
+    },
     "jsonpath-plus@11.2.1": {
       "integrity": "sha512-5wqNYFuGzdMAY7VqDSQMtMBShVl7rFGj72koz+m5hrYpKeL9R3vIV29ekZxbP6/3OUCPfvFJoEjhtNP9Z4OEGA==",
       "dependencies": [
@@ -163,6 +182,9 @@
         "jsep"
       ],
       "bin": true
+    },
+    "require-from-string@2.0.2": {
+      "integrity": "sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw=="
     },
     "typescript@4.9.5": {
       "integrity": "sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==",
@@ -259,11 +281,13 @@
           "dependencies": [
             "npm:@biomejs/biome@2",
             "npm:@noflo/assembly@^2.0.0-alpha.3",
+            "npm:@noflo/fbp-protocol@^2.0.0-alpha.3",
             "npm:@noflo/fbp@^2.0.0-alpha.3",
             "npm:@noflo/graph@^2.0.0-alpha.3",
             "npm:@noflo/loader-node@^2.0.0-alpha.3",
             "npm:@noflo/noflo@^2.0.0-alpha.3",
             "npm:@types/node@24",
+            "npm:ajv@^8.20.0",
             "npm:typescript@5"
           ]
         }

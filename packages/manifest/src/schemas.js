@@ -15,6 +15,7 @@
 /* @ts-self-types="./schemas.d.ts" */
 
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import {
   canonicalizeJson,
@@ -25,8 +26,16 @@ import {
   parseSchemaRef,
   pinSchemaRefs,
   projectGuard,
+  schemaUrn,
   validateGuard,
 } from "@noflo/fbp-protocol";
+
+// Ajv ships CommonJS; the named class export is the cleanly-typed import
+// path under Node's ESM/CJS interop
+const require = createRequire(import.meta.url);
+
+/** @type {typeof import("ajv/dist/2020.js").Ajv2020} */
+const Ajv2020 = require("ajv/dist/2020");
 
 /**
  * Reserved namespace ids and their owning packages (work document #37 §4).
@@ -762,4 +771,104 @@ export async function finalizePortSchema(port, schemaSet, baseDir, where) {
       `${where}: the declared guard does not equal the projection of its schema. Guards must equal the schema's projection (work document #37 §3.1); either drop the explicit guard or fix the schema: declared ${explicit}, projected ${derived}`,
     );
   }
+}
+
+/**
+ * The revision-acceptance backstop (work document #37 §2, §11): a schema
+ * revision that no longer accepts a prior revision's `examples` fails
+ * publish. The prior examples come from the previously generated manifest —
+ * the publish artifact is where the prior revision's acceptance data
+ * survives, so the check stays offline and self-contained.
+ *
+ * Validation runs on the Tier B side: full JSON Schema 2020-12 through the
+ * validator dependency, with every reference resolved from the local
+ * closure only — no network, per the retriever rule. The NoFlo extension
+ * keywords ride the lenient path: the validator ignores unknown keywords,
+ * which is exactly what the optional `$vocabulary` declaration promises.
+ *
+ * Dependency-class constraint: ajv is a regular dependency of this package,
+ * which is itself only ever a devDependency of publishing libraries. Nothing
+ * in the runtime dependency graph may depend on `@noflo/manifest` — runtime
+ * code consumes `noflo.json` as data, never as a package.
+ *
+ * @param {SchemaSet} schemaSet
+ * @param {import("./index.js").Manifest|null} priorManifest The previously
+ *   generated manifest, when one exists.
+ * @returns {Promise<void>}
+ */
+export async function verifyRevisionAcceptance(schemaSet, priorManifest) {
+  const ajv = createValidator(schemaSet);
+  for (const [id, prior] of Object.entries(priorManifest?.schemas ?? {})) {
+    const current = schemaSet.named.get(id);
+    if (!current || current.digest === prior.digest) {
+      // Unchanged revision: acceptance is carried over
+      continue;
+    }
+    const examples = prior.examples ?? [];
+    if (!examples.length) {
+      // No acceptance data recorded for the prior revision
+      continue;
+    }
+    const validate = /** @type {any} */ (ajv.getSchema(id));
+    for (const example of examples) {
+      if (!validate(example)) {
+        throw new Error(
+          `Schema revision acceptance failed for '${id}': the new revision no longer accepts a prior example. Every revision under one id is additive-only; breaking changes mint a new id. Failing example: ${canonicalizeJson(example)} — ${ajv.errorsText(validate.errors)}`,
+        );
+      }
+    }
+  }
+  // Publish-side sanity: a body whose own declared examples do not validate
+  // is an authoring error, caught here rather than by a consumer
+  for (const [id, entry] of schemaSet.named) {
+    const examples = entry.body.examples;
+    if (!Array.isArray(examples)) continue;
+    const validate = /** @type {any} */ (ajv.getSchema(id));
+    for (const example of examples) {
+      if (!validate(example)) {
+        throw new Error(
+          `Schema '${id}' declares an example its own schema rejects: ${canonicalizeJson(example)} — ${ajv.errorsText(validate.errors)}`,
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Build the Tier B validator over the closure: every body is registered
+ * under its bare `$id` and its `urn:noflo:id@digest` published alias, so
+ * pinned references resolve locally. `$schema` is stripped before
+ * registration — meta-schema identity is this gate's own check, not the
+ * validator's.
+ *
+ * @param {SchemaSet} schemaSet
+ * @returns {InstanceType<typeof Ajv2020>}
+ */
+function createValidator(schemaSet) {
+  const ajv = new Ajv2020({
+    // Lenient on our dialect: unknown keywords are ignored, which is what
+    // the optional $vocabulary declaration promises; refs resolve only
+    // through explicitly registered schemas, never the network
+    strict: false,
+  });
+  const register = (
+    /** @type {Record<string, any>} */ body,
+    /** @type {string} */ id,
+    /** @type {string} */ digest,
+  ) => {
+    const { $schema, ...clean } = body;
+    ajv.addSchema(clean);
+    // The published alias carries no $id: Ajv treats a second registration
+    // of the same id as a conflicting schema, and the URN key resolves
+    // refs on its own
+    const { $id, ...alias } = clean;
+    ajv.addSchema(alias, schemaUrn(id, digest));
+  };
+  for (const [id, entry] of schemaSet.named) {
+    register(entry.body, id, entry.digest);
+  }
+  for (const [id, foreign] of schemaSet.foreign) {
+    if (foreign.body) register(foreign.body, id, foreign.digest);
+  }
+  return ajv;
 }

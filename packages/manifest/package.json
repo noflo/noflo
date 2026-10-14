@@ -16,7 +16,8 @@
     "@noflo/fbp-protocol": "^2.0.0-alpha.3",
     "@noflo/graph": "^2.0.0-alpha.3",
     "@noflo/loader-node": "^2.0.0-alpha.3",
-    "@noflo/noflo": "^2.0.0-alpha.3"
+    "@noflo/noflo": "^2.0.0-alpha.3",
+    "ajv": "^8.20.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",

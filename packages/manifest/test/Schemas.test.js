@@ -308,6 +308,108 @@ export function getComponent() {
     const manifest = await generateManifest(baseDir);
     assert.ok(manifest.schemas["canvas/point"]);
   });
+
+  it("records examples in the schemas table", async () => {
+    fs.writeFileSync(
+      path.join(baseDir, "schemas", "canvas", "point.json"),
+      JSON.stringify({
+        $id: "canvas/point",
+        type: "object",
+        required: ["x"],
+        examples: [{ x: 1 }],
+      }),
+    );
+    const manifest = await generateManifest(baseDir);
+    assert.deepEqual(manifest.schemas["canvas/point"].examples, [{ x: 1 }]);
+  });
+
+  it("rejects a revision that no longer accepts a prior example", async () => {
+    fs.writeFileSync(
+      path.join(baseDir, "schemas", "canvas", "point.json"),
+      JSON.stringify({ $id: "canvas/point", type: "object", required: ["x"] }),
+    );
+    const manifest = await generateManifest(baseDir);
+    // Simulate the previously generated manifest carrying the prior
+    // revision's acceptance data
+    fs.writeFileSync(
+      path.join(baseDir, "noflo.json"),
+      JSON.stringify({
+        ...manifest,
+        schemas: {
+          ...manifest.schemas,
+          "canvas/point": {
+            digest: "0".repeat(64),
+            path: "schemas/canvas/point.json",
+            examples: [{ x: 1 }, { x: 2 }],
+          },
+        },
+      }),
+    );
+    // The new revision narrows `x` to strings: prior numeric examples fail
+    fs.writeFileSync(
+      path.join(baseDir, "schemas", "canvas", "point.json"),
+      JSON.stringify({
+        $id: "canvas/point",
+        type: "object",
+        required: ["x"],
+        properties: { x: { type: "string" } },
+      }),
+    );
+    await assert.rejects(
+      () => generateManifest(baseDir),
+      /revision acceptance failed for 'canvas\/point'.*breaking changes mint a new id/,
+    );
+  });
+
+  it("accepts a revision that still accepts the prior examples", async () => {
+    fs.writeFileSync(
+      path.join(baseDir, "schemas", "canvas", "point.json"),
+      JSON.stringify({ $id: "canvas/point", type: "object", required: ["x"] }),
+    );
+    const manifest = await generateManifest(baseDir);
+    fs.writeFileSync(
+      path.join(baseDir, "noflo.json"),
+      JSON.stringify({
+        ...manifest,
+        schemas: {
+          ...manifest.schemas,
+          "canvas/point": {
+            digest: "0".repeat(64),
+            path: "schemas/canvas/point.json",
+            examples: [{ x: 1 }, { x: 2, y: 2 }],
+          },
+        },
+      }),
+    );
+    // Additive revision: an optional property joins, prior examples stay valid
+    fs.writeFileSync(
+      path.join(baseDir, "schemas", "canvas", "point.json"),
+      JSON.stringify({
+        $id: "canvas/point",
+        type: "object",
+        required: ["x"],
+        properties: { y: { type: "number" } },
+      }),
+    );
+    const regenerated = await generateManifest(baseDir);
+    assert.ok(regenerated.schemas["canvas/point"]);
+  });
+
+  it("rejects a body whose own declared examples do not validate", async () => {
+    fs.writeFileSync(
+      path.join(baseDir, "schemas", "canvas", "point.json"),
+      JSON.stringify({
+        $id: "canvas/point",
+        type: "object",
+        required: ["x"],
+        examples: [{ y: 1 }],
+      }),
+    );
+    await assert.rejects(
+      () => generateManifest(baseDir),
+      /declares an example its own schema rejects/,
+    );
+  });
 });
 
 describe("schema-less packages", () => {
