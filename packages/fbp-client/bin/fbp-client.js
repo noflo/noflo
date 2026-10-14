@@ -26,7 +26,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 import { EVENT_TYPE } from "@noflo/fbp-protocol";
-import { Identity, Reticulum } from "@reticulum/core";
+import { Identity, Reticulum, toHex } from "@reticulum/core";
 import { FileStorageAdapter, TCPClientInterface } from "@reticulum/node";
 import {
   addEdge,
@@ -76,7 +76,13 @@ function parseTarget(value) {
   return { host, port: port ? Number(port) : 4242 };
 }
 
-/** Minimal argument walker: flags and `--flag value` pairs. */
+/**
+ * Minimal argument walker: flags and `--flag value` pairs. The stdlib
+ * `node:util.parseArgs` does not fit this CLI's grammar: data positionals
+ * (`add-iip <node> <port> <data>`, `send <port> <data>`) may legitimately
+ * start with `-` (negative numbers, raw strings), which parseArgs either
+ * rejects (strict) or silently consumes as short-option flags (lenient).
+ */
 function parseArgs(argv) {
   /** @type {string[]} */
   const positional = [];
@@ -308,18 +314,14 @@ async function main() {
           JSON.stringify(
             {
               nodeName: found.nodeName,
-              destinationHash: Buffer.from(found.destinationHash).toString(
-                "hex",
-              ),
+              destinationHash: toHex(found.destinationHash),
             },
             null,
             2,
           ),
         );
       } else {
-        console.log(
-          `${found.nodeName} ${Buffer.from(found.destinationHash).toString("hex")}`,
-        );
+        console.log(`${found.nodeName} ${toHex(found.destinationHash)}`);
       }
       return;
     }
@@ -331,7 +333,7 @@ async function main() {
     const identity = await Identity.loadOrGenerate(
       identityAdapter(identityPath),
     );
-    const clientId = Buffer.from(identity.identityHash).toString("hex");
+    const clientId = toHex(identity.identityHash);
     const session = await connectSession({
       reticulum: rns,
       identity,
@@ -697,12 +699,12 @@ main()
     setTimeout(() => process.exit(code), 50).unref?.();
   })
   .catch((err) => {
-  if (err instanceof OpRejectedError) {
-    // Rejection UX is first-class (work document #34): surface why the
-    // runtime refused the command, not just that it did
-    console.error(`fbp-client: ${describeRejection(err.rejection)}`);
+    if (err instanceof OpRejectedError) {
+      // Rejection UX is first-class (work document #34): surface why the
+      // runtime refused the command, not just that it did
+      console.error(`fbp-client: ${describeRejection(err.rejection)}`);
+      process.exit(1);
+    }
+    console.error(`fbp-client: ${err.message}`);
     process.exit(1);
-  }
-  console.error(`fbp-client: ${err.message}`);
-  process.exit(1);
-});
+  });

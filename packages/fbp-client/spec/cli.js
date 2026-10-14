@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 import {
   encodeCompDetailRes,
   encodeCompManifest,
@@ -211,7 +212,10 @@ function runCli(args) {
   return new Promise((resolve, reject) => {
     const child = spawn(
       process.execPath,
-      [new URL("../bin/fbp-client.js", import.meta.url).pathname, ...args],
+      [
+        fileURLToPath(new URL("../bin/fbp-client.js", import.meta.url)),
+        ...args,
+      ],
       { timeout: 30_000 },
     );
     /** @type {Buffer[]} */

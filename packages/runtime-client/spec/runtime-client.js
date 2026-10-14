@@ -303,7 +303,7 @@ describe("discoverRuntime", () => {
     const reticulum = {
       transport: {
         caches: { knownDestinations },
-        nextHop: () => (livePath ? new Uint8Array(16) : null),
+        hasPath: () => livePath,
         addEventListener: (type, listener) => {
           if (type === "announce") {
             listeners.push(listener);
@@ -316,6 +316,9 @@ describe("discoverRuntime", () => {
           }
         },
         requestPath: async () => {},
+        requestPathAuto: async function (hash) {
+          return this.requestPath(hash);
+        },
       },
       /** Deliver an announce event to the transport listeners. */
       announce(appData) {
@@ -345,14 +348,14 @@ describe("discoverRuntime", () => {
     assert.deepEqual(new Uint8Array(found.destinationHash), destinationHash);
   });
 
-  it("solicits a path request for a known runtime on a stale path", async () => {
+  it("solicits via the transport's auto path request on a stale path", async () => {
     const rns = fakeReticulum({
       cache: [[Buffer.from(destinationHash).toString("hex"), { appData }]],
       livePath: false,
     });
     /** @type {Uint8Array[]} */
     const requested = [];
-    rns.transport.requestPath = async (hash) => {
+    rns.transport.requestPathAuto = async (hash) => {
       requested.push(hash);
     };
     const pending = discoverRuntime({ reticulum: rns, timeoutMs: 5_000 });
@@ -360,6 +363,27 @@ describe("discoverRuntime", () => {
     const found = await pending;
     assert.equal(requested.length, 1);
     assert.deepEqual(new Uint8Array(requested[0]), destinationHash);
+    assert.equal(found.nodeName, "hello-runtime");
+  });
+
+  it("a forced solicit requests the path unconditionally", async () => {
+    const rns = fakeReticulum({
+      cache: [[Buffer.from(destinationHash).toString("hex"), { appData }]],
+      livePath: true,
+    });
+    /** @type {Uint8Array[]} */
+    const requested = [];
+    rns.transport.requestPath = async (hash) => {
+      requested.push(hash);
+    };
+    const pending = discoverRuntime({
+      reticulum: rns,
+      timeoutMs: 5_000,
+      solicit: true,
+    });
+    setTimeout(() => rns.announce(appData), 20);
+    const found = await pending;
+    assert.equal(requested.length, 1, "forced solicit issues a path request");
     assert.equal(found.nodeName, "hello-runtime");
   });
 

@@ -10,7 +10,6 @@
  */
 
 import {
-  decodeProcessList,
   encodeBreakpointClear,
   encodeBreakpointSet,
   encodeHwmSet,
@@ -23,20 +22,6 @@ import {
 } from "@noflo/fbp-protocol";
 
 export {
-  decodeBreakpointClear,
-  decodeBreakpointSet,
-  decodeHwmSet,
-  decodePacketSend,
-  decodeProcessCtrl,
-  decodeProcessList,
-  decodeRunCtrl,
-  encodeBreakpointClear,
-  encodeBreakpointSet,
-  encodeHwmSet,
-  encodePacketSend,
-  encodeProcessCtrl,
-  encodeProcessListReq,
-  encodeRunCtrl,
   PROCESS_ACTION as PROCESS_ACTIONS,
   RUN_ACTION as RUN_ACTIONS,
 } from "@noflo/fbp-protocol";
@@ -49,9 +34,6 @@ export {
 export class ExecutionClient {
   /** @type {(payload: Uint8Array) => Promise<void>} */
   #send;
-
-  /** @type {((entries: any) => void)|undefined} */
-  #onProcesses;
 
   /**
    * @param {Object} deps
@@ -114,35 +96,13 @@ export class ExecutionClient {
   /**
    * Request the live process listing (the authoritative view of the
    * current graph epoch — clients never infer stub-ness by name
-   * matching). The listing arrives as an inbound `0x45` frame; route it
-   * through `handleProcessList`.
+   * matching). The listing arrives as an inbound `0x45` frame, re-emitted
+   * by the client as a typed `processlist` event.
    *
    * @returns {Promise<void>}
    */
   requestProcesses() {
     return this.#send(encodeProcessListReq());
-  }
-
-  /**
-   * Set the callback for inbound `0x45` process listings.
-   *
-   * @param {(entries: any) => void} onProcesses
-   */
-  onProcessList(onProcesses) {
-    this.#onProcesses = onProcesses;
-  }
-
-  /**
-   * Handle an inbound `0x45` process listing frame (wired by the client
-   * host to the link's frame events).
-   *
-   * @param {Uint8Array} frame
-   */
-  handleProcessList(frame) {
-    const decoded = decodeProcessList(frame);
-    if (this.#onProcesses) {
-      this.#onProcesses(decoded.entries ?? decoded);
-    }
   }
 
   /**

@@ -31,6 +31,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 import { CAPABILITY } from "@noflo/fbp-protocol";
 import { GraphModel } from "@noflo/graph";
 import { Component, ComponentLoader } from "@noflo/noflo";
@@ -114,7 +115,7 @@ describe("fbp-client hello-world session over a live runtime", () => {
     const child = spawn(
       process.execPath,
       [
-        new URL("../bin/fbp-client.js", import.meta.url).pathname,
+        fileURLToPath(new URL("../bin/fbp-client.js", import.meta.url)),
         "--identity",
         path.join(stateDir, "client.key"),
         "--interface",
@@ -282,7 +283,7 @@ describe("fbp-client hello-world session over a live runtime", () => {
       const watch = spawn(
         process.execPath,
         [
-          new URL("../bin/fbp-client.js", import.meta.url).pathname,
+          fileURLToPath(new URL("../bin/fbp-client.js", import.meta.url)),
           "--identity",
           path.join(stateDir, "client.key"),
           "--interface",

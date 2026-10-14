@@ -21,23 +21,23 @@ import {
   ANNOUNCE_ASPECT,
   CMD_BREAKPOINT_CLEAR,
   CMD_BREAKPOINT_SET,
+  CMD_CRDT_UPDATE,
+  CMD_FLOWTRACE_CHUNK,
   CMD_HWM_SET,
+  CMD_OP_REJECTED,
   CMD_PACKET_SEND,
   CMD_PROCESS_CTRL,
+  CMD_PROCESS_LIST,
   CMD_RUN_CTRL,
   decodeAnnounceAppData,
   decodeAuthResponse,
   decodeCompManifest,
   decodeCompSourceRes,
   decodeCrdtStaleEpoch,
-  decodeCrdtUpdate,
   decodeCrdtUpToDate,
-  decodeFlowtraceChunk,
   decodeFrame,
   decodeGetStatusRes,
-  decodeOpRejected,
   decodePlaneListRes,
-  decodeProcessList,
   encodeCompSourceReq,
   encodeCompSyncReq,
   encodeCompWrite,
@@ -82,22 +82,6 @@ export {
 } from "@noflo/fbp-protocol";
 export { ExecutionClient, PROCESS_ACTIONS, RUN_ACTIONS } from "./execution.js";
 
-/**
- * The execution-control commands (`0x40`–`0x47`) the runtime may push to
- * clients; inbound frames of this family are re-emitted as typed
- * `execution` events.
- *
- * @type {Set<number>}
- */
-const EXECUTION_CMDS = new Set([
-  CMD_RUN_CTRL,
-  CMD_BREAKPOINT_SET,
-  CMD_BREAKPOINT_CLEAR,
-  CMD_PROCESS_CTRL,
-  CMD_HWM_SET,
-  CMD_PACKET_SEND,
-]);
-
 /** @typedef {import("./registry-cache.js").CachedComponent} CachedComponent */
 /** @typedef {import("./registry-cache.js").RegistryCatalog} RegistryCatalog */
 export { RegistryCache } from "./registry-cache.js";
@@ -139,7 +123,7 @@ function recallRuntimeFromCache(reticulum, nodeName) {
       // Prefer a destination whose path is still live: the cache may hold
       // several runs of the same runtime name under different identities,
       // and a dead one would waste the connect attempt
-      if (reticulum.transport.nextHop?.(destinationHash)) {
+      if (reticulum.transport.hasPath(destinationHash)) {
         return { destinationHash, nodeName: decoded.nodeName };
       }
       firstMatch ??= { destinationHash, nodeName: decoded.nodeName };
@@ -162,8 +146,9 @@ function recallRuntimeFromCache(reticulum, nodeName) {
  * @param {import("@reticulum/core").Reticulum} options.reticulum - The local Reticulum instance
  * @param {number} [options.timeoutMs] - Reject after this long without a matching announce (default 30s)
  * @param {string} [options.nodeName] - Optionally pin the discovery to one runtime name
- * @param {boolean} [options.solicit] - Skip the cache and solicit a fresh announce (path
- *   request when the destination is known) — used when a cached path turned out stale
+ * @param {boolean} [options.solicit] - Do not trust the cached entry: solicit a fresh
+ *   announce (a forced path request when the destination is known) and only
+ *   resolve on a live announce — used when a cached path turned out stale
  * @returns {Promise<{ destinationHash: Uint8Array, nodeName: string }>} The discovered runtime
  */
 export async function discoverRuntime(options) {
@@ -176,8 +161,9 @@ export async function discoverRuntime(options) {
   // The destination cache hydrates asynchronously from the storage
   // adapter: recall only after the load promise settles
   await /** @type {any} */ (reticulum).persistorLoadPromise?.catch?.(() => {});
-  const cached = solicit ? null : recallRuntimeFromCache(reticulum, nodeName);
-  if (cached && reticulum.transport.nextHop?.(cached.destinationHash)) {
+  const transport = reticulum.transport;
+  const cached = recallRuntimeFromCache(reticulum, nodeName);
+  if (!solicit && cached && transport.hasPath(cached.destinationHash)) {
     // Known destination with a live path: connect straight away
     return cached;
   }
@@ -215,10 +201,16 @@ export async function discoverRuntime(options) {
     }, timeoutMs);
     reticulum.transport.addEventListener("announce", listener);
     if (cached) {
-      // Known destination on a stale path: solicit a fresh announce via
-      // a path request — the transport node answers with the runtime's
-      // current announce, which the listener above catches
-      reticulum.transport.requestPath(cached.destinationHash).catch(() => {
+      // Known destination on a stale path: solicit a fresh announce — the
+      // transport node answers with the runtime's current announce, which
+      // the listener above catches. The transport applies its own
+      // solicitation discipline (rate limiting, unresponsive-route
+      // marking) via `requestPathAuto`; a forced solicit after a failed
+      // link requests unconditionally
+      const solicited = solicit
+        ? transport.requestPath(cached.destinationHash)
+        : transport.requestPathAuto(cached.destinationHash);
+      solicited?.catch(() => {
         // Best effort: a periodic announce may still arrive
       });
     }
@@ -367,68 +359,60 @@ export class RuntimeClient extends EventTarget {
 
     link.addEventListener("data", (/** @type {any} */ event) => {
       const payload = event.detail.packet.payload;
+      // The protocol package's dispatcher decodes every known frame;
+      // re-emit the client-relevant commands as typed events. The
+      // DecodedFrame union is not discriminable by `cmd`, so the decoded
+      // frame is read untyped here
+      let decoded = null;
       try {
-        const op = /** @type {any} */ (decodeCrdtUpdate(payload));
-        if (op.cmd === 0x14) {
-          this.dispatchEvent(
-            new CustomEvent("op", { detail: { planeId: op.planeId, op } }),
-          );
-          this.onGraphOp(op);
-        }
-      } catch {
-        // Not a 0x14 frame; try the rejection.
-      }
-      try {
-        const rejection = /** @type {any} */ (decodeOpRejected(payload));
-        if (rejection.cmd === 0x17) {
-          this.dispatchEvent(
-            new CustomEvent("oprejected", {
-              detail: {
-                rejectedCmd: rejection.rejectedCmd,
-                planeId: rejection.planeId,
-                detail: rejection.detail,
-              },
-            }),
-          );
-        }
-      } catch {
-        // Not a 0x17 frame; try the process listing.
-      }
-      try {
-        const listing = /** @type {any} */ (decodeProcessList(payload));
-        if (listing.cmd === 0x45) {
-          this.dispatchEvent(
-            new CustomEvent("processlist", {
-              detail: { epochId: listing.epochId, entries: listing.entries },
-            }),
-          );
-        }
-      } catch {
-        // Not a 0x45 frame; try the telemetry chunk.
-      }
-      try {
-        const chunk = decodeFlowtraceChunk(payload);
-        if (chunk.cmd === 0x32) {
-          this.dispatchEvent(
-            new CustomEvent("telemetry", {
-              detail: /** @type {any} */ (chunk),
-            }),
-          );
-        }
-      } catch {
-        // Not a 0x32 frame; try the execution-control family.
-      }
-      try {
-        const execution = decodeFrame(payload);
-        if (EXECUTION_CMDS.has(execution.cmd)) {
-          this.dispatchEvent(
-            new CustomEvent("execution", {
-              detail: /** @type {any} */ (execution),
-            }),
-          );
-        }
+        decoded = /** @type {any} */ (decodeFrame(payload));
       } catch {
         // Not a decodable frame; surface as a generic frame event.
+      }
+      if (decoded) {
+        switch (decoded.cmd) {
+          case CMD_CRDT_UPDATE:
+            this.dispatchEvent(
+              new CustomEvent("op", {
+                detail: { planeId: decoded.planeId, op: decoded },
+              }),
+            );
+            this.onGraphOp(decoded);
+            break;
+          case CMD_OP_REJECTED:
+            this.dispatchEvent(
+              new CustomEvent("oprejected", {
+                detail: {
+                  rejectedCmd: decoded.rejectedCmd,
+                  planeId: decoded.planeId,
+                  detail: decoded.detail,
+                },
+              }),
+            );
+            break;
+          case CMD_PROCESS_LIST:
+            this.dispatchEvent(
+              new CustomEvent("processlist", {
+                detail: { epochId: decoded.epochId, entries: decoded.entries },
+              }),
+            );
+            break;
+          case CMD_FLOWTRACE_CHUNK:
+            this.dispatchEvent(
+              new CustomEvent("telemetry", { detail: decoded }),
+            );
+            break;
+          case CMD_RUN_CTRL:
+          case CMD_BREAKPOINT_SET:
+          case CMD_BREAKPOINT_CLEAR:
+          case CMD_PROCESS_CTRL:
+          case CMD_HWM_SET:
+          case CMD_PACKET_SEND:
+            this.dispatchEvent(
+              new CustomEvent("execution", { detail: decoded }),
+            );
+            break;
+        }
       }
       this.dispatchEvent(new CustomEvent("frame", { detail: { payload } }));
       // Reply queue: each frame goes to exactly one waiter, in arrival
