@@ -38,7 +38,7 @@ export class ToField extends Component {
         },
       },
     });
-    this.field = metadata?.field;
+    this.field = metadata?.["assembly.field"];
   }
 
   processMessage(input, output) {

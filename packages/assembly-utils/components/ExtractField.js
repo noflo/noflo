@@ -11,7 +11,8 @@ import Component from "@noflo/assembly";
  * inport-side adapter the `asAssembly` generated graphs wire between the
  * message fanout and the inner component's inports.
  *
- * The field name comes from the graph node's `field` metadata, which the
+ * The field name comes from the graph node's `assembly.field` metadata
+ * (the assembly catalog's config key), which the
  * loader passes to `getComponent`.
  */
 export class ExtractField extends Component {
@@ -36,7 +37,7 @@ export class ExtractField extends Component {
         },
       },
     });
-    this.field = metadata?.field;
+    this.field = metadata?.["assembly.field"];
   }
 
   processMessage(input, output) {

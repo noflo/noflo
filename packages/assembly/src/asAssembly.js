@@ -222,7 +222,7 @@ export function asAssembly(inner, options) {
     graph.addNode({
       entity_id: extractNode,
       component: "assembly-utils/ExtractField",
-      metadata: { field },
+      metadata: { "assembly.field": field },
     });
     graph.addEdge({
       from: { node: "fanout", port: "out", index: mergeIndex },

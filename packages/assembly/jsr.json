@@ -6,6 +6,14 @@
     ".": "./src/index.js"
   },
   "publish": {
-    "include": ["src/", "package.json", "jsr.json", "CHANGELOG.md", "README.md"]
+    "include": [
+      "src/",
+      "schemas/",
+      "src/schemas/",
+      "package.json",
+      "jsr.json",
+      "CHANGELOG.md",
+      "README.md"
+    ]
   }
 }
