@@ -17,30 +17,42 @@
  *     fbp-client planes [--json]
  *     fbp-client graph [--format json|fbp|dot] [--json]
  *
- *   The client identity is ephemeral for now; persisted identities land
- *   with the modification phase.
+ *   The client identity persists under `~/.fbp-client/identity.key`
+ *   (override: `--identity <file>` or `FBP_CLIENT_IDENTITY`) so the CRDT
+ *   client id derived from it stays stable across sessions.
  */
 
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import path from "node:path";
 import { EVENT_TYPE } from "@noflo/fbp-protocol";
 import { Identity, Reticulum } from "@reticulum/core";
 import { TCPClientInterface } from "@reticulum/node";
 import {
+  addEdge,
+  addExport,
+  addGroup,
+  addIip,
+  addNode,
   capture,
   clearBreakpoints,
   component,
   components,
   connectSession,
+  describeRejection,
   discoverRuntime,
   getSource,
   graph,
+  OpRejectedError,
   planes,
   processes,
+  removeEntity,
   replayTraceFile,
   runControl,
   sendPacket,
   setBreakpoint,
   setHwm,
+  setMetadata,
   setProcessState,
   setSource,
   status,
@@ -113,10 +125,24 @@ Commands:
   enable|disable <id>  Per-process control (0x43)
   hwm <n|nil>          Default edge capacity (0x46)
 
+Graph modification (0x14 ops):
+  add-node <component> [--id <id>] [--metadata <json>]
+  add-edge <fromNode> <fromPort> <toNode> <toPort>
+  add-iip <node> <port> <data>
+  add-export <in|out> <public> <node> <port>
+  add-group <name> <node...>
+  remove <entityId>
+  set-metadata <entityId|graph> <json>
+
 Options:
   --name <name>        Pin discovery to one runtime name
   --interface <h:p>    rnsd TCP interface (default 127.0.0.1:4242)
   --format <fmt>       Output format for graph: json or fbp (dot: later phase)
+  --plane <id>         Target plane for modification (default: main)
+  --id <id>            Entity id for add-* commands (default: fresh id)
+  --metadata <json>    Metadata object for add-* commands
+  --identity <file>    Client identity key (default ~/.fbp-client/identity.key,
+                       env FBP_CLIENT_IDENTITY)
   --json               Machine-readable JSON output
   --help               This help`);
 }
@@ -134,6 +160,84 @@ async function instance(target) {
   // (LRPROOFs, responses) when no path entry exists yet
   rns.addInterface(iface, true);
   return rns;
+}
+
+/**
+ * The identity file adapter: `Identity.loadOrGenerate` semantics — nil
+ * only for a genuinely absent key, every other read error fails loud.
+ *
+ * @param {string} file
+ * @returns {{ loadKey: () => Promise<Uint8Array|null>, saveKey: (bytes: Uint8Array) => Promise<void> }}
+ */
+function identityAdapter(file) {
+  return {
+    async loadKey() {
+      try {
+        return await readFile(file);
+      } catch (error) {
+        if (/** @type {NodeJS.ErrnoException} */ (error).code === "ENOENT") {
+          return null;
+        }
+        throw error;
+      }
+    },
+    async saveKey(bytes) {
+      await mkdir(path.dirname(file), { recursive: true });
+      await writeFile(file, bytes);
+    },
+  };
+}
+
+/** Parse a `--metadata` JSON flag into an object. */
+function parseMetadata(value) {
+  if (value === undefined || value === true) {
+    return undefined;
+  }
+  const parsed = JSON.parse(value);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("--metadata must be a JSON object");
+  }
+  return parsed;
+}
+
+/** Parse one data argument: JSON when it parses, the raw string otherwise. */
+function parseData(value) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+/** Set for the session-scoped commands: `--json` output. */
+let jsonMode = false;
+
+/** The `--plane` flag as an op target (nil = main graph). */
+function planeTarget(flags) {
+  return typeof flags.plane === "string" ? flags.plane : null;
+}
+
+/**
+ * Render a modification result: the human line names the entity and the
+ * new epoch; `--json` prints the whole result.
+ *
+ * @param {any} result
+ * @param {boolean} json
+ */
+function report(result) {
+  if (jsonMode) {
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+  const target = result.entity ? result.entity.entity_id : "graph";
+  if (result.applied) {
+    console.log(`${target} applied at epoch ${result.epochId}`);
+  } else {
+    console.error(
+      `${target}: no change (the runtime's graph already converged)`,
+    );
+    process.exitCode = 1;
+  }
 }
 
 async function main() {
@@ -171,6 +275,7 @@ async function main() {
   }
 
   const json = Boolean(flags.json);
+  jsonMode = json;
   const target = parseTarget(
     typeof flags.interface === "string" ? flags.interface : "127.0.0.1:4242",
   );
@@ -204,12 +309,24 @@ async function main() {
       return;
     }
 
-    // Everything below needs a session
-    const identity = await Identity.generate();
+    // Everything below needs a session. The identity persists (fail-loud
+    // load semantics: an identity IS the node's address, so a corrupt key
+    // file must never be silently overwritten) and doubles as the CRDT
+    // client id, so graph ops stay attributable across sessions.
+    const identityPath =
+      typeof flags.identity === "string"
+        ? flags.identity
+        : (process.env.FBP_CLIENT_IDENTITY ??
+          path.join(homedir(), ".fbp-client", "identity.key"));
+    const identity = await Identity.loadOrGenerate(
+      identityAdapter(identityPath),
+    );
+    const clientId = Buffer.from(identity.identityHash).toString("hex");
     const session = await connectSession({
       reticulum: rns,
       identity,
       nodeName,
+      clientId,
       timeoutMs: 15_000,
     });
     try {
@@ -422,6 +539,132 @@ async function main() {
           await setHwm(session, value === "nil" ? null : Number(value));
           break;
         }
+        case "add-node": {
+          const componentName = positional[1];
+          if (!componentName) {
+            throw new Error(
+              "usage: fbp-client add-node <component> [--id <id>] [--metadata <json>]",
+            );
+          }
+          await report(
+            session,
+            await addNode(session, {
+              component: componentName,
+              id: typeof flags.id === "string" ? flags.id : undefined,
+              metadata: parseMetadata(flags.metadata),
+              planeId: planeTarget(flags),
+            }),
+          );
+          break;
+        }
+        case "add-edge": {
+          const [fromNode, fromPort, toNode, toPort] = positional.slice(1);
+          if (!fromNode || !fromPort || !toNode || !toPort) {
+            throw new Error(
+              "usage: fbp-client add-edge <fromNode> <fromPort> <toNode> <toPort>",
+            );
+          }
+          await report(
+            session,
+            await addEdge(session, {
+              from: { node: fromNode, port: fromPort },
+              to: { node: toNode, port: toPort },
+              id: typeof flags.id === "string" ? flags.id : undefined,
+              metadata: parseMetadata(flags.metadata),
+              planeId: planeTarget(flags),
+            }),
+          );
+          break;
+        }
+        case "add-iip": {
+          const [node, port, data] = positional.slice(1);
+          if (!node || !port || data === undefined) {
+            throw new Error("usage: fbp-client add-iip <node> <port> <data>");
+          }
+          await report(
+            session,
+            await addIip(session, {
+              to: { node, port },
+              data: parseData(data),
+              id: typeof flags.id === "string" ? flags.id : undefined,
+              metadata: parseMetadata(flags.metadata),
+              planeId: planeTarget(flags),
+            }),
+          );
+          break;
+        }
+        case "add-export": {
+          const [dir, publicName, node, port] = positional.slice(1);
+          if (!dir || !publicName || !node || !port) {
+            throw new Error(
+              "usage: fbp-client add-export <in|out> <public> <node> <port>",
+            );
+          }
+          const direction =
+            dir === "in" ? "inport" : dir === "out" ? "outport" : dir;
+          await report(
+            session,
+            await addExport(session, {
+              direction,
+              public: publicName,
+              internal: { node, port },
+              id: typeof flags.id === "string" ? flags.id : undefined,
+              metadata: parseMetadata(flags.metadata),
+              planeId: planeTarget(flags),
+            }),
+          );
+          break;
+        }
+        case "add-group": {
+          const name = positional[1];
+          const nodes = positional.slice(2);
+          if (!name || nodes.length === 0) {
+            throw new Error("usage: fbp-client add-group <name> <node...>");
+          }
+          await report(
+            session,
+            await addGroup(session, {
+              name,
+              nodes,
+              id: typeof flags.id === "string" ? flags.id : undefined,
+              metadata: parseMetadata(flags.metadata),
+              planeId: planeTarget(flags),
+            }),
+          );
+          break;
+        }
+        case "remove": {
+          const entityId = positional[1];
+          if (!entityId) {
+            throw new Error("usage: fbp-client remove <entityId>");
+          }
+          await report(
+            session,
+            await removeEntity(session, entityId, {
+              planeId: planeTarget(flags),
+            }),
+          );
+          break;
+        }
+        case "set-metadata": {
+          const target = positional[1];
+          const data = positional[2];
+          if (!target || data === undefined) {
+            throw new Error(
+              "usage: fbp-client set-metadata <entityId|graph> <json>",
+            );
+          }
+          await report(
+            session,
+            await setMetadata(
+              session,
+              target === "graph" ? null : target,
+              parseMetadata(data),
+              { planeId: planeTarget(flags) },
+            ),
+          );
+          break;
+        }
         default:
           usage();
           process.exitCode = 1;
@@ -435,6 +678,12 @@ async function main() {
 }
 
 main().catch((err) => {
+  if (err instanceof OpRejectedError) {
+    // Rejection UX is first-class (work document #34): surface why the
+    // runtime refused the command, not just that it did
+    console.error(`fbp-client: ${describeRejection(err.rejection)}`);
+    process.exit(1);
+  }
   console.error(`fbp-client: ${err.message}`);
   process.exit(1);
 });
