@@ -50,6 +50,29 @@ function portInfos(ports, isInport) {
     if (isInport && options.control) {
       info.control = true;
     }
+    // Schema reference and in-band guard ride through when the component
+    // declares them in the pinned form (work document #37 §3.1): the
+    // publish-time generator hoists inline schemas into digested entries,
+    // and manifests serve the pinned refs data-first. Unpinned inline
+    // objects stay harvest-silent — the digest pinning is publish work
+    const schemaRef = options.schema;
+    if (
+      schemaRef !== null &&
+      typeof schemaRef === "object" &&
+      !Array.isArray(schemaRef) &&
+      (typeof schemaRef.id === "string" || typeof schemaRef.digest === "string")
+    ) {
+      info.schema = /** @type {any} */ (
+        schemaRef.id === undefined
+          ? { digest: schemaRef.digest }
+          : schemaRef.digest === undefined
+            ? { id: schemaRef.id }
+            : { id: schemaRef.id, digest: schemaRef.digest }
+      );
+    }
+    if (options.guard !== null && typeof options.guard === "object") {
+      info.guard = /** @type {any} */ (options.guard);
+    }
     // The `values` and `default` inport options are not emitted: they
     // stay publish-time manifest data pending the schema design
     // (work document #37 §3.4)

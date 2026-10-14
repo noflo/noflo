@@ -160,6 +160,26 @@ export {
   sigHash,
 } from "./registry.js";
 export {
+  checkGuard,
+  GUARD_ENUM_LIMIT,
+  GUARD_TYPES,
+  projectGuard,
+  validateGuard,
+} from "./schema-guards.js";
+export {
+  canonicalizeJson,
+  collectSchemaRefs,
+  detectRefCycles,
+  digestSchema,
+  isValidSchemaId,
+  normalizeSchemaBody,
+  parseSchemaRef,
+  pinSchemaRefs,
+  SCHEMA_DIGEST_HEX_LENGTH,
+  SCHEMA_URN_PREFIX,
+  schemaUrn,
+} from "./schema-identity.js";
+export {
   dataEventEnvelope,
   decodeFlowtraceChunk,
   decodePubsubSub,
@@ -179,23 +199,3 @@ export {
   encodeAnnounceAppData,
   encodeAuthResponse,
 } from "./transport.js";
-export {
-  SCHEMA_DIGEST_HEX_LENGTH,
-  SCHEMA_URN_PREFIX,
-  canonicalizeJson,
-  collectSchemaRefs,
-  detectRefCycles,
-  digestSchema,
-  isValidSchemaId,
-  normalizeSchemaBody,
-  parseSchemaRef,
-  pinSchemaRefs,
-  schemaUrn,
-} from "./schema-identity.js";
-export {
-  GUARD_ENUM_LIMIT,
-  GUARD_TYPES,
-  checkGuard,
-  projectGuard,
-  validateGuard,
-} from "./schema-guards.js";

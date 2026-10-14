@@ -16,7 +16,7 @@
  */
 /* @ts-self-types="./registry.d.ts" */
 
-import { MsgPack } from "@reticulum/core";
+import { fromHex, MsgPack, toHex } from "@reticulum/core";
 import {
   CMD_COMP_DETAIL_REQ,
   CMD_COMP_DETAIL_RES,
@@ -29,6 +29,20 @@ import {
   COMPONENT_TYPE,
 } from "./constants.js";
 import { ProtocolError } from "./errors.js";
+import { validateGuard } from "./schema-guards.js";
+import { isValidSchemaId } from "./schema-identity.js";
+
+/**
+ * A port schema reference: id plus digest. The id is compatibility
+ * vocabulary, the digest the integrity pin (work document #37 §3.1);
+ * either may be present. In JS structures the digest is a 64-character hex
+ * string; the `0x24` codecs convert to and from the raw 32-byte form the
+ * wire carries.
+ *
+ * @typedef {object} PortSchemaRef
+ * @property {string} [id] Bare `ns/name` schema id. Absent for anonymous entries.
+ * @property {string} [digest] SHA-256 hex digest of the schema body.
+ */
 
 /**
  * A port in a component signature. Wire field names follow the FBP runtime
@@ -43,6 +57,13 @@ import { ProtocolError } from "./errors.js";
  * @property {string} [description] Longer textual description of the port.
  * @property {boolean} [required] Whether the port must be connected.
  * @property {boolean} [control] Control-port identification (inports only, noflo-ui WD #40).
+ * @property {PortSchemaRef} [schema] Schema artifact reference (work document #37 §3.1):
+ *   refines the coarse datatype, never replaces it. Participates in the
+ *   canonical signature and therefore in `sig_hash`.
+ * @property {import("./schema-guards.js").Guard} [guard] In-band validation guard (work
+ *   document #37 §3.1): the closed-vocabulary projection of the schema's
+ *   cheaply-checkable assertions, checkable by a runtime with comparisons
+ *   alone. Diagnostic-only: violations are never structurally rejected.
  *   The field set is kept in lockstep with the publish-time manifest's
  *   harvest (`@noflo/manifest` `harvestPorts`) minus the `values` and
  *   `default` inport options, which are not carried on the wire: they
@@ -217,7 +238,8 @@ export function decodeCompDetailReq(bytes) {
  */
 export function encodeCompDetailRes(components) {
   assertDetails(components);
-  return MsgPack.encode([CMD_COMP_DETAIL_RES, components]);
+  const wire = toWireDetails(components);
+  return MsgPack.encode([CMD_COMP_DETAIL_RES, wire]);
 }
 
 /**
@@ -229,8 +251,8 @@ export function encodeCompDetailRes(components) {
 export function decodeCompDetailRes(bytes) {
   const frame = MsgPack.decode(bytes);
   expectFrame(frame, CMD_COMP_DETAIL_RES, 2);
-  assertDetails(frame[1]);
-  return { cmd: CMD_COMP_DETAIL_RES, components: frame[1] };
+  assertWireDetails(frame[1]);
+  return { cmd: CMD_COMP_DETAIL_RES, components: fromWireDetails(frame[1]) };
 }
 
 /**
@@ -469,6 +491,12 @@ function portJson(port) {
   if (port.description !== undefined) json.description = port.description;
   if (port.required !== undefined) json.required = port.required;
   if (port.control !== undefined) json.control = port.control;
+  // The schema reference and guard ride the canonical form in their
+  // JSON-able (hex) shape: sig_hash changes when a referenced schema
+  // digest changes, which is the Two-Step Cache re-fetch trigger (work
+  // document #37 §3.1)
+  if (port.schema !== undefined) json.schema = port.schema;
+  if (port.guard !== undefined) json.guard = port.guard;
   return json;
 }
 
@@ -618,7 +646,7 @@ function assertWireEntries(entries) {
  * @param {ComponentDetails} components
  * @returns {void}
  */
-function assertDetails(components) {
+function assertDetails(components, wireForm = false) {
   if (
     components === null ||
     typeof components !== "object" ||
@@ -631,8 +659,16 @@ function assertDetails(components) {
   }
   for (const [name, detail] of Object.entries(components)) {
     assertName(name, CMD_COMP_DETAIL_RES, "component name");
-    assertDetail(detail, name);
+    assertDetail(detail, name, wireForm);
   }
+}
+
+/**
+ * @param {Record<string, any>} components Wire-form component details.
+ * @returns {void}
+ */
+function assertWireDetails(components) {
+  assertDetails(components, true);
 }
 
 /**
@@ -640,7 +676,7 @@ function assertDetails(components) {
  * @param {string|null} name Component name for error context, when known.
  * @returns {void}
  */
-function assertDetail(detail, name) {
+function assertDetail(detail, name, wireForm = false) {
   const where = name === null ? "component detail" : `component ${name}`;
   if (detail === null || typeof detail !== "object" || Array.isArray(detail)) {
     throw new ProtocolError(`${where} must be a map`, CMD_COMP_DETAIL_RES);
@@ -659,7 +695,7 @@ function assertDetail(detail, name) {
       );
     }
     for (const port of detail[side]) {
-      assertPort(port, where, side);
+      assertPort(port, where, side, wireForm);
     }
   }
 }
@@ -670,7 +706,7 @@ function assertDetail(detail, name) {
  * @param {string} side
  * @returns {void}
  */
-function assertPort(port, where, side) {
+function assertPort(port, where, side, wireForm = false) {
   if (port === null || typeof port !== "object" || Array.isArray(port)) {
     throw new ProtocolError(
       `${where} ${side}port must be a map`,
@@ -697,4 +733,145 @@ function assertPort(port, where, side) {
       );
     }
   }
+  assertPortSchemaRef(port.schema, where, side, port.id, wireForm);
+  if (port.guard !== undefined) {
+    try {
+      validateGuard(port.guard);
+    } catch (error) {
+      throw new ProtocolError(
+        `${where} ${side}port ${port.id} guard must stay within the closed vocabulary: ${error instanceof Error ? error.message : String(error)}`,
+        CMD_COMP_DETAIL_RES,
+      );
+    }
+  }
+}
+
+/**
+ * Validate a port schema reference in its JS (hex) form.
+ *
+ * @param {PortSchemaRef|undefined} ref
+ * @param {string} where
+ * @param {string} side
+ * @param {string} portId
+ * @returns {void}
+ */
+function assertPortSchemaRef(ref, where, side, portId, wireForm = false) {
+  if (ref === undefined) return;
+  if (ref === null || typeof ref !== "object" || Array.isArray(ref)) {
+    throw new ProtocolError(
+      `${where} ${side}port ${portId} schema must be a map with id and digest`,
+      CMD_COMP_DETAIL_RES,
+    );
+  }
+  for (const key of Object.keys(ref)) {
+    if (key !== "id" && key !== "digest") {
+      throw new ProtocolError(
+        `${where} ${side}port ${portId} schema carries the unknown field '${key}'`,
+        CMD_COMP_DETAIL_RES,
+      );
+    }
+  }
+  if (ref.id !== undefined) {
+    if (typeof ref.id !== "string" || !isValidSchemaId(ref.id)) {
+      throw new ProtocolError(
+        `${where} ${side}port ${portId} schema id must be a bare ns/name id`,
+        CMD_COMP_DETAIL_RES,
+      );
+    }
+  }
+  if (ref.digest !== undefined) {
+    const digest = /** @type {any} */ (ref.digest);
+    const digestOk = wireForm
+      ? digest instanceof Uint8Array && digest.length === 32
+      : typeof digest === "string" && /^[0-9a-f]{64}$/.test(digest);
+    if (!digestOk) {
+      throw new ProtocolError(
+        wireForm
+          ? `${where} ${side}port ${portId} schema digest must be a raw 32-byte digest on the wire`
+          : `${where} ${side}port ${portId} schema digest must be a 64-character hex string`,
+        CMD_COMP_DETAIL_RES,
+      );
+    }
+  }
+  if (ref.id === undefined && ref.digest === undefined) {
+    throw new ProtocolError(
+      `${where} ${side}port ${portId} schema must carry an id or a digest`,
+      CMD_COMP_DETAIL_RES,
+    );
+  }
+}
+
+/**
+ * Convert JS-side component details to wire form: schema digests become
+ * raw 32-byte MsgPack bins (the wire carries raw digests, work document
+ * #37 §1). The input is not mutated.
+ *
+ * @param {ComponentDetails} components
+ * @returns {Record<string, any>}
+ */
+function toWireDetails(components) {
+  /** @type {Record<string, any>} */
+  const wire = {};
+  for (const [name, detail] of Object.entries(components)) {
+    wire[name] = {
+      ...detail,
+      in: detail.in.map(portToWire),
+      out: detail.out.map(portToWire),
+    };
+  }
+  return wire;
+}
+
+/**
+ * Convert wire-form component details back to the JS (hex) shape.
+ *
+ * @param {Record<string, any>} wire
+ * @returns {ComponentDetails}
+ */
+function fromWireDetails(wire) {
+  /** @type {Record<string, any>} */
+  const components = {};
+  for (const [name, detail] of Object.entries(wire)) {
+    components[name] = {
+      ...detail,
+      in: detail.in.map(portFromWire),
+      out: detail.out.map(portFromWire),
+    };
+  }
+  return /** @type {ComponentDetails} */ (components);
+}
+
+/**
+ * @param {PortInfo} port
+ * @returns {Record<string, any>}
+ */
+function portToWire(port) {
+  if (port.schema?.digest === undefined) return { ...port };
+  return {
+    ...port,
+    schema: {
+      ...port.schema,
+      digest: fromHex(/** @type {string} */ (port.schema.digest)),
+    },
+  };
+}
+
+/**
+ * @param {Record<string, any>} port
+ * @returns {Record<string, any>}
+ */
+function portFromWire(port) {
+  const ref = port.schema;
+  if (
+    ref === undefined ||
+    ref === null ||
+    typeof ref !== "object" ||
+    !(ref.digest instanceof Uint8Array)
+  ) {
+    return { ...port };
+  }
+  return {
+    ...port,
+    schema: { ...ref, digest: toHex(ref.digest) },
+  };
 }

@@ -124,6 +124,9 @@ describe("RFC 8785 canonicalization", () => {
     assert.equal(canonicalizeJson(1e21), "1e+21");
     assert.equal(canonicalizeJson(1e-7), "1e-7");
     assert.equal(canonicalizeJson(0.000001), "0.000001");
+    // Precision loss at parse time is the point: the literal denotes the
+    // nearest IEEE-754 double, and its canonical form must match
+    // biome-ignore lint/correctness/noPrecisionLoss: RFC 8785 test vector
     assert.equal(canonicalizeJson(333333333.33333329), "333333333.3333333");
   });
 
