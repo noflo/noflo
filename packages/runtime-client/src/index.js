@@ -48,7 +48,7 @@ import {
   PROTOCOL_VERSION,
 } from "@noflo/fbp-protocol";
 import { GraphModel } from "@noflo/graph";
-import { Destination, Packet, PacketType } from "@reticulum/core";
+import { Destination, fromHex, Packet, PacketType } from "@reticulum/core";
 import { ExecutionClient } from "./execution.js";
 import { RegistryCache } from "./registry-cache.js";
 
@@ -135,7 +135,7 @@ function recallRuntimeFromCache(reticulum, nodeName) {
       if (nodeName && decoded.nodeName !== nodeName) {
         continue;
       }
-      const destinationHash = /** @type {any} */ (Uint8Array).fromHex(hashHex);
+      const destinationHash = fromHex(hashHex);
       // Prefer a destination whose path is still live: the cache may hold
       // several runs of the same runtime name under different identities,
       // and a dead one would waste the connect attempt

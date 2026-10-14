@@ -669,18 +669,34 @@ async function main() {
           process.exitCode = 1;
       }
     } finally {
-      await session.client.close();
+      // Bound the link teardown: it may never settle against some
+      // runtimes (observed under a Bun-hosted runtime). The runtime
+      // treats a vanished link as EOL, so abandoning the wait is safe
+      await Promise.race([
+        session.client.close().catch(() => {}),
+        new Promise((resolve) => setTimeout(resolve, 1_000).unref?.()),
+      ]);
     }
   } finally {
-    // Flush the transport state before stopping: rns.stop() does not
-    // reliably resolve once the interfaces go away, and the debounced
-    // persistor write would be lost with the process
+    // Flush the transport state before exiting: the debounced persistor
+    // write would be lost with the process. `rns.stop()` is fired but
+    // never awaited — it does not reliably resolve once the interfaces
+    // go away, and nothing that must survive depends on it
     await rns.persistor?.flush?.().catch?.(() => {});
-    await rns.stop().catch(() => {});
+    rns.stop().catch(() => {});
   }
 }
 
-main().catch((err) => {
+main()
+  .then(() => {
+    // Deterministic exit: everything that must survive is flushed by the
+    // finally above, so a pending teardown must not hold the process
+    // open (under Bun it never settles once a link was established).
+    // The short delay lets piped stdout/stderr drain first
+    const code = process.exitCode ?? 0;
+    setTimeout(() => process.exit(code), 50).unref?.();
+  })
+  .catch((err) => {
   if (err instanceof OpRejectedError) {
     // Rejection UX is first-class (work document #34): surface why the
     // runtime refused the command, not just that it did

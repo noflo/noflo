@@ -10,6 +10,7 @@
     "npm:@types/node@24": "24.19.1",
     "npm:fbp@^1.8.0": "1.8.0",
     "npm:get-function-params@^2.0.6": "2.0.7",
+    "npm:jsonpath-plus@^11.2.0": "11.2.1",
     "npm:typescript@5": "5.9.3",
     "npm:typescript@^4.0.2": "4.9.5"
   },
@@ -67,6 +68,18 @@
       "integrity": "sha512-yAzh4UqEImV6Hcy0zjUqNfJAsUhoD64FBQCdTG8Md/Z2wQeVP/ZmJ3XRYAs1g8J9fjTFyl2fCtc5FB5til47+g==",
       "os": ["win32"],
       "cpu": ["x64"]
+    },
+    "@jsep-plugin/assignment@1.4.0_jsep@1.6.0": {
+      "integrity": "sha512-nw2Px23Eirx0PFTVoPrb3FEq9Wkmg6vxcDtt38MtBCf1G0tjLCB9cK+3seOXyiw+6+aalgYhvJabQbWwMVKlEQ==",
+      "dependencies": [
+        "jsep"
+      ]
+    },
+    "@jsep-plugin/regex@1.1.0_jsep@1.6.0": {
+      "integrity": "sha512-2Vkbda+XRjK6VTI6Lrh0sNBuMT8mZ51EhqMvO+V2rSdmqjs7NAGssxPZfkL23EFzYfSrvxyd1ZjOdqPQMM50og==",
+      "dependencies": [
+        "jsep"
+      ]
     },
     "@noflo/core@2.0.0-alpha.1": {
       "integrity": "sha512-sr+9Oq8DODhUVsIgYO6qJpwFwknfAsYWg+mQBFoLA8887iEKEPzz5g7UJU5o45rfzpVqJnjKK88wSVolybafQQ==",
@@ -139,6 +152,18 @@
     "get-function-params@2.0.7": {
       "integrity": "sha512-fxmaws3IONmtzz6grq3XHywp0jkJs4hDc6+9Gk0P4ehN/2c9drIdo5sEoYZ+YnbH9YidwWa7OO6rtV32VdOC/Q=="
     },
+    "jsep@1.6.0": {
+      "integrity": "sha512-Y8Tr54CX7B5YGAwo7/n8eumidEX3Opx98RyyQVnlHqUaZcPA8uUzL2v1rshr9ypW9Q6hNjfJtg3sL+8kaNE7TA=="
+    },
+    "jsonpath-plus@11.2.1": {
+      "integrity": "sha512-5wqNYFuGzdMAY7VqDSQMtMBShVl7rFGj72koz+m5hrYpKeL9R3vIV29ekZxbP6/3OUCPfvFJoEjhtNP9Z4OEGA==",
+      "dependencies": [
+        "@jsep-plugin/assignment",
+        "@jsep-plugin/regex",
+        "jsep"
+      ],
+      "bin": true
+    },
     "typescript@4.9.5": {
       "integrity": "sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==",
       "bin": true
@@ -179,7 +204,7 @@
         "packageJson": {
           "dependencies": [
             "npm:@noflo/fbp-spec-runner@*",
-            "npm:jsonpath@^1.1.1"
+            "npm:jsonpath-plus@^11.2.0"
           ]
         }
       },
@@ -188,6 +213,17 @@
           "dependencies": [
             "npm:@types/node@24",
             "npm:fbp@^1.8.0"
+          ]
+        }
+      },
+      "packages/fbp-client": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@noflo/fbp-protocol@^2.0.0-alpha.3",
+            "npm:@noflo/graph@^2.0.0-alpha.3",
+            "npm:@noflo/runtime-client@^2.0.0-alpha.3",
+            "npm:@reticulum/core@~0.9.8",
+            "npm:@reticulum/node@~0.9.8"
           ]
         }
       },
@@ -204,7 +240,8 @@
             "npm:@noflo/fbp@^2.0.0-alpha.3",
             "npm:@noflo/loader-node@^2.0.0-alpha.3",
             "npm:@noflo/noflo@^2.0.0-alpha.3",
-            "npm:@types/node@24"
+            "npm:@types/node@24",
+            "npm:jsonpath-plus@^11.2.0"
           ]
         }
       },
@@ -267,6 +304,15 @@
             "npm:@reticulum/dacar@^1.6.1",
             "npm:@reticulum/lxmf@~0.9.8",
             "npm:@reticulum/node@~0.9.8"
+          ]
+        }
+      },
+      "packages/runtime-client": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@noflo/fbp-protocol@^2.0.0-alpha.3",
+            "npm:@noflo/graph@^2.0.0-alpha.3",
+            "npm:@reticulum/core@~0.9.8"
           ]
         }
       }
