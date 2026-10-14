@@ -6,8 +6,11 @@
  * Produces FBP graph JSON from `.fbp` DSL source. Zero dependencies, standard
  * JavaScript only: runs on Node.js, Deno, Bun, and browsers.
  *
- * Semantically compatible with the reference `fbp` parser: the same inputs are
- * accepted and rejected, and accepted inputs produce the same graph JSON.
+ * Semantically compatible with the reference `fbp` parser: for every input the
+ * reference accepts, the same graph JSON is produced, and reference-rejected
+ * inputs are rejected. One deliberate 2.x extension goes beyond the reference:
+ * metadata values may carry `.` and `-` (float and negative coordinates, e.g.
+ * `Node(Comp:x=10.5,y=-22.5)`), which the reference grammar rejects.
  * Unlike the reference parser this package defaults to `caseSensitive: true`
  * and tolerates being called without an options argument.
  *
@@ -20,3 +23,4 @@
 /* @ts-self-types="./index.d.ts" */
 
 export { parse, SyntaxError } from "./parse.js";
+export { toFBP } from "./toFbp.js";

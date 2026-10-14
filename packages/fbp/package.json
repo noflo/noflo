@@ -1,42 +1,42 @@
 {
-  "name": "@noflo/fbp",
-  "description": "Parser for the .fbp flow definition language",
-  "keywords": [
-    "fbp",
-    "flowbased",
-    "noflo",
-    "parser",
-    "dsl"
-  ],
-  "author": "Henri Bergius <henri.bergius@iki.fi>",
-  "version": "2.0.0-alpha.3",
-  "license": "EUPL-1.2",
-  "type": "module",
-  "engines": {
-    "node": ">= 22"
-  },
-  "main": "./src/index.js",
-  "module": "./src/index.js",
-  "exports": {
-    ".": "./src/index.js"
-  },
-  "files": [
-    "src",
-    "CHANGELOG.md"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/noflo/noflo.git"
-  },
-  "scripts": {
-    "test": "node --test spec/*.js",
-    "lint": "npx @biomejs/biome check --use-editorconfig=true src/ spec/",
-    "types": "find src -name '*.d.ts' -delete && tsc -p tsconfig.json",
-    "test:deno": "deno test --allow-all --no-check spec/*.js",
-    "test:bun": "bun test ./spec/*.js"
-  },
-  "devDependencies": {
-    "@types/node": "^24.0.0",
-    "fbp": "^1.8.0"
-  }
+	"name": "@noflo/fbp",
+	"description": "Parser for the .fbp flow definition language",
+	"keywords": [
+		"fbp",
+		"flowbased",
+		"noflo",
+		"parser",
+		"dsl"
+	],
+	"author": "Henri Bergius <henri.bergius@iki.fi>",
+	"version": "2.0.0-alpha.3",
+	"license": "EUPL-1.2",
+	"type": "module",
+	"engines": {
+		"node": ">= 22"
+	},
+	"main": "./src/index.js",
+	"module": "./src/index.js",
+	"exports": {
+		".": "./src/index.js"
+	},
+	"files": [
+		"src",
+		"CHANGELOG.md"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git://github.com/noflo/noflo.git"
+	},
+	"scripts": {
+		"test": "node --test spec/*.js",
+		"lint": "npx @biomejs/biome check --use-editorconfig=true src/ spec/",
+		"types": "find src -name '*.d.ts' -delete && tsc -p tsconfig.json",
+		"test:deno": "deno test --allow-all --no-check spec/*.js",
+		"test:bun": "bun test ./spec/*.js"
+	},
+	"devDependencies": {
+		"@types/node": "^24.0.0",
+		"fbp": "^1.8.0"
+	}
 }
