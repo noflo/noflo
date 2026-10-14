@@ -192,3 +192,10 @@ export {
   pinSchemaRefs,
   schemaUrn,
 } from "./schema-identity.js";
+export {
+  GUARD_ENUM_LIMIT,
+  GUARD_TYPES,
+  checkGuard,
+  projectGuard,
+  validateGuard,
+} from "./schema-guards.js";
