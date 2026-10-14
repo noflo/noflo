@@ -8,8 +8,12 @@ import {
   encodeCrdtUpdate,
   encodeCrdtUpToDate,
   encodeFlowtraceChunkFromTimestamps,
+  encodeOpRejected,
   encodeProcessList,
+  encodeRunCtrl,
   OP_TYPE,
+  REASON,
+  RUN_ACTION,
 } from "@noflo/fbp-protocol";
 import { RuntimeClient } from "../src/index.js";
 import { UiEventSurface } from "../src/ui-events.js";
@@ -101,6 +105,36 @@ describe("UiEventSurface", () => {
         state: 0x01,
       },
     });
+  });
+
+  it("re-emits oprejected and execution-control frames", () => {
+    const link = new FakeLink();
+    const client = new RuntimeClient({
+      link,
+      auth: { protocolVersion: 2, capabilityMask: 0x01 },
+    });
+    const surface = new UiEventSurface({ client });
+    /** @type {any[]} */
+    const rejections = [];
+    /** @type {any[]} */
+    const execution = [];
+    surface.addEventListener("oprejected", (e) => rejections.push(e.detail));
+    surface.addEventListener("execution", (e) => execution.push(e.detail));
+
+    link.deliver(
+      encodeOpRejected({
+        rejectedCmd: 0x14,
+        planeId: null,
+        detail: { reason: REASON.UNKNOWN_TARGET, message: "unknown node" },
+      }),
+    );
+    link.deliver(encodeRunCtrl(RUN_ACTION.PAUSE, null));
+
+    assert.equal(rejections.length, 1);
+    assert.equal(rejections[0].rejectedCmd, 0x14);
+    assert.equal(execution.length, 1);
+    assert.equal(execution[0].cmd, 0x40);
+    assert.equal(execution[0].action, RUN_ACTION.PAUSE);
   });
 
   it("subscribes to telemetry on start by default", async () => {

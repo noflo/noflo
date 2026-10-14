@@ -19,6 +19,12 @@
 
 import {
   ANNOUNCE_ASPECT,
+  CMD_BREAKPOINT_CLEAR,
+  CMD_BREAKPOINT_SET,
+  CMD_HWM_SET,
+  CMD_PACKET_SEND,
+  CMD_PROCESS_CTRL,
+  CMD_RUN_CTRL,
   decodeAnnounceAppData,
   decodeAuthResponse,
   decodeCompManifest,
@@ -27,6 +33,7 @@ import {
   decodeCrdtUpdate,
   decodeCrdtUpToDate,
   decodeFlowtraceChunk,
+  decodeFrame,
   decodeGetStatusRes,
   decodeOpRejected,
   decodePlaneListRes,
@@ -74,6 +81,23 @@ export {
   RUN_STATE,
 } from "@noflo/fbp-protocol";
 export { ExecutionClient, PROCESS_ACTIONS, RUN_ACTIONS } from "./execution.js";
+
+/**
+ * The execution-control commands (`0x40`–`0x47`) the runtime may push to
+ * clients; inbound frames of this family are re-emitted as typed
+ * `execution` events.
+ *
+ * @type {Set<number>}
+ */
+const EXECUTION_CMDS = new Set([
+  CMD_RUN_CTRL,
+  CMD_BREAKPOINT_SET,
+  CMD_BREAKPOINT_CLEAR,
+  CMD_PROCESS_CTRL,
+  CMD_HWM_SET,
+  CMD_PACKET_SEND,
+]);
+
 /** @typedef {import("./registry-cache.js").CachedComponent} CachedComponent */
 /** @typedef {import("./registry-cache.js").RegistryCatalog} RegistryCatalog */
 export { RegistryCache } from "./registry-cache.js";
@@ -271,7 +295,8 @@ export async function connectRuntime(options) {
  *
  * Extends EventTarget and re-emits every decoded `0x14` graph op as an
  * `op` event ({ planeId, op }) so mirror consumers can apply remote
- * changes incrementally.
+ * changes incrementally; inbound execution-control frames (`0x40`–`0x47`
+ * family) as typed `execution` events.
  *
  * @extends EventTarget
  */
@@ -323,7 +348,6 @@ export class RuntimeClient extends EventTarget {
      * @type {RegistryCache}
      */
     this.registry = new RegistryCache({
-      send: (payload) => this.send(payload),
       requestReply: async (payload) => {
         const reply = this.nextFrame();
         await this.send(payload);
@@ -392,11 +416,34 @@ export class RuntimeClient extends EventTarget {
           );
         }
       } catch {
-        // Not a 0x32 frame; surface as a generic frame event.
+        // Not a 0x32 frame; try the execution-control family.
+      }
+      try {
+        const execution = decodeFrame(payload);
+        if (EXECUTION_CMDS.has(execution.cmd)) {
+          this.dispatchEvent(
+            new CustomEvent("execution", {
+              detail: /** @type {any} */ (execution),
+            }),
+          );
+        }
+      } catch {
+        // Not a decodable frame; surface as a generic frame event.
       }
       this.dispatchEvent(new CustomEvent("frame", { detail: { payload } }));
-      for (const waiter of this.waiters.splice(0)) {
+      // Reply queue: each frame goes to exactly one waiter, in arrival
+      // order — concurrent requesters (the UI surface's parallel graph
+      // and registry syncs) each get the reply addressed to them
+      const waiter = this.waiters.shift();
+      if (waiter) {
         waiter(payload);
+      } else {
+        // No waiter armed: buffer the frame for a later `nextFrame()`.
+        // Bounded so an unread stream cannot grow without limit
+        this.pending.push(payload);
+        if (this.pending.length > 256) {
+          this.pending.shift();
+        }
       }
     });
   }
@@ -419,9 +466,12 @@ export class RuntimeClient extends EventTarget {
   }
 
   /**
-   * Wait for the next inbound frame payload. The returned promise
-   * carries a `cancel()` — an abandoned waiter (the sync loop re-arms
-   * per frame) must never reject into the void after its consumer left.
+   * Take the next inbound frame payload: a FIFO reply queue where each
+   * frame is delivered to exactly one waiter, in arrival order. Frames
+   * that arrived while no waiter was armed are served from the buffer.
+   * The returned promise carries a `cancel()` — an abandoned waiter (the
+   * sync loop re-arms per frame) must never reject into the void after
+   * its consumer left.
    *
    * @param {number} [timeoutMs]
    * @returns {Promise<Uint8Array> & { cancel: () => void }}
@@ -594,12 +644,9 @@ export class RuntimeClient extends EventTarget {
         continue;
       }
       this.epoch = stale.newEpochId;
-      // Arm the receive path before the baseline fetch: frames may land
-      // while the resource transfer is in flight; cancel on return so
-      // the abandoned waiter never rejects into the void
-      const fetchWaiter = this.nextFrame(Math.max(1000, deadline - Date.now()));
+      // Fetch the baseline; frames landing while the resource transfer is
+      // in flight buffer in `pending` for the next `nextFrame()` caller
       const baseline = await this.link.request(stale.rnsResourceHash);
-      fetchWaiter.cancel();
       // The runtime serves the canonical serialization (the epoch is its
       // content hash), not FBP JSON
       const canonical = JSON.parse(new TextDecoder().decode(baseline));

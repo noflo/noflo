@@ -2,21 +2,15 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   EVENT_TYPE,
-  encodeCompManifest,
   encodeCrdtStaleEpoch,
-  encodeCrdtUpToDate,
   encodeFlowtraceChunkFromTimestamps,
-  encodeGetStatusRes,
   encodePlaneListRes,
   encodeProcessList,
-  RUN_STATE,
 } from "@noflo/fbp-protocol";
 import { RuntimeClient } from "@noflo/runtime-client";
 import {
   capture,
   clearBreakpoints,
-  getSource,
-  planes,
   processes,
   replayTraceFile,
   runControl,
@@ -24,8 +18,6 @@ import {
   setBreakpoint,
   setHwm,
   setProcessState,
-  setSource,
-  status,
   watch,
 } from "../src/index.js";
 import { FakeLink } from "./support/fake-link.js";

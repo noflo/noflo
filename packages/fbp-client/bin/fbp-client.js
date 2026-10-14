@@ -253,6 +253,8 @@ async function main() {
     process.exitCode = command ? 1 : 0;
     return;
   }
+  const json = Boolean(flags.json);
+  jsonMode = json;
   // Offline command: replay needs no runtime connection
   if (command === "replay") {
     const file = positional[1];
@@ -279,8 +281,6 @@ async function main() {
     return;
   }
 
-  const json = Boolean(flags.json);
-  jsonMode = json;
   const target = parseTarget(
     typeof flags.interface === "string" ? flags.interface : "127.0.0.1:4242",
   );

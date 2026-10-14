@@ -19,11 +19,13 @@
  *   | `graph:changed`     | `graphchanged` (detail.op applied) |
  *   | `component`         | `components` (full catalog)        |
  *   | `packets`           | `packets` (chunk events)           |
- *   | `execution` (status)| `execution` (run action)           |
+ *   | `execution` (status)| `execution` (0x40–0x47 family)     |
  *
  *   DOM `CustomEvent.type` cannot carry colons for `graph:changed`, so
  *   the colon-free form is used; consumers `addEventListener` with the
- *   names above and read `event.detail`.
+ *   names above and read `event.detail`. New in 2.0, the surface also
+ *   re-emits `oprejected` — the runtime's explicit `0x17` refusal with
+ *   its reason — which the legacy client had no equivalent for.
  */
 
 import { ExecutionClient } from "./execution.js";
@@ -64,7 +66,8 @@ import { TelemetryClient } from "./telemetry.js";
  * The UI-facing event surface over an established client. Wraps the
  * graph-mirror sync, the registry Two-Step Cache, and the telemetry
  * stream into one EventTarget whose events are the UI protocol
- * vocabulary.
+ * vocabulary: `graph`, `graphchanged`, `components`, `packets`,
+ * `processes`, `execution`, and `oprejected`.
  *
  * @extends EventTarget
  */
@@ -101,6 +104,19 @@ export class UiEventSurface extends EventTarget {
     // event; the consumer decodes, delta-applies, and filters them
     client.addEventListener("telemetry", (/** @type {any} */ event) => {
       this.#telemetry.handleDecoded(event.detail);
+    });
+    // Passive re-emissions, wired at construction so a consumer holding
+    // the surface sees rejections and execution-control commands from
+    // the first frame on
+    client.addEventListener("oprejected", (/** @type {any} */ event) => {
+      this.dispatchEvent(
+        new CustomEvent("oprejected", { detail: event.detail }),
+      );
+    });
+    client.addEventListener("execution", (/** @type {any} */ event) => {
+      this.dispatchEvent(
+        new CustomEvent("execution", { detail: event.detail }),
+      );
     });
   }
 

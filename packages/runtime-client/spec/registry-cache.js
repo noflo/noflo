@@ -6,10 +6,8 @@ import {
   encodeCompDetailRes,
   encodeCompManifest,
   encodeCompUpToDate,
-  registryHash,
 } from "@noflo/fbp-protocol";
 import { RegistryCache } from "../src/registry-cache.js";
-import { FakeLink } from "./support/fake-link.js";
 
 describe("RegistryCache", () => {
   it("syncs with stale and fetches details for new entries", async () => {
@@ -105,6 +103,14 @@ describe("RegistryCache", () => {
     const localHash = await cache.computeLocalHash();
     const second = await cache.sync(localHash);
     assert.equal(second["math/Add"].signature, firstSignature);
+  });
+
+  it("rejects a reply that is neither up-to-date nor a manifest", async () => {
+    const cache = new RegistryCache({
+      requestReply: async () => new Uint8Array([0x05]),
+    });
+    // A malformed reply is a protocol error, never a silent "up-to-date"
+    await assert.rejects(() => cache.sync("stale"));
   });
 
   it("computes the local registry hash", async () => {

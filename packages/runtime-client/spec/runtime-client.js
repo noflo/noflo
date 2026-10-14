@@ -6,6 +6,8 @@ import {
   encodeAnnounceAppData,
   encodeCompDetailRes,
   encodeOpRejected,
+  encodeRunCtrl,
+  RUN_ACTION,
 } from "@noflo/fbp-protocol";
 import {
   discoverRuntime,
@@ -267,6 +269,25 @@ describe("RuntimeClient", () => {
     assert.deepEqual(res.entries, []);
   });
 
+  it("serves a buffered frame to a waiter armed after arrival", async () => {
+    const { link, client } = makeClient();
+    // No waiter is armed when the frame arrives
+    link.deliver(encodePlaneListRes([]));
+    const frame = await client.nextFrame(100);
+    assert.deepEqual(frame, encodePlaneListRes([]));
+  });
+
+  it("re-emits inbound execution-control frames as execution events", () => {
+    const { link, client } = makeClient();
+    /** @type {any[]} */
+    const events = [];
+    client.addEventListener("execution", (e) => events.push(e.detail));
+    link.deliver(encodeRunCtrl(RUN_ACTION.START, null));
+    assert.equal(events.length, 1);
+    assert.equal(events[0].cmd, 0x40);
+    assert.equal(events[0].action, RUN_ACTION.START);
+  });
+
   it("tears down the link on close", async () => {
     const { link, client } = makeClient();
     await client.close();
@@ -288,7 +309,7 @@ describe("discoverRuntime", () => {
             listeners.push(listener);
           }
         },
-        removeEventListener: (type, listener) => {
+        removeEventListener: (_type, listener) => {
           const i = listeners.indexOf(listener);
           if (i !== -1) {
             listeners.splice(i, 1);

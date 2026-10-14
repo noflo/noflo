@@ -20,7 +20,6 @@ import {
   encodeCompSyncReq,
   registryHash,
 } from "@noflo/fbp-protocol";
-
 /**
  * A cached component signature: the manifest wire entry plus the full
  * detail once requested.
@@ -38,9 +37,6 @@ import {
  * The Two-Step Cache client state over an established link.
  */
 export class RegistryCache {
-  /** @type {(payload: Uint8Array) => Promise<void>} */
-  #send;
-
   /** @type {(payload: Uint8Array) => Promise<Uint8Array>} */
   #requestReply;
 
@@ -52,11 +48,9 @@ export class RegistryCache {
 
   /**
    * @param {Object} deps
-   * @param {(payload: Uint8Array) => Promise<void>} deps.send - Frame sender over the established link
    * @param {(payload: Uint8Array) => Promise<Uint8Array>} deps.requestReply - Send and await the next inbound frame
    */
-  constructor({ send, requestReply }) {
-    this.#send = send;
+  constructor({ requestReply }) {
     this.#requestReply = requestReply;
   }
 
@@ -92,13 +86,16 @@ export class RegistryCache {
     const reply = await this.#requestReply(
       encodeCompSyncReq(localRegistryHash),
     );
-    let manifest;
+    // The runtime answers `0x21` up-to-date when the client's hash
+    // matches; anything that decodes as neither that nor a manifest is a
+    // protocol error, not a healthy registry
     try {
-      manifest = decodeCompManifest(reply);
-    } catch {
-      // The runtime answered 0x22 up-to-date: the catalog stands.
+      decodeCompUpToDate(reply);
       return this.#catalog;
+    } catch {
+      // Not an up-to-date reply; expect a manifest.
     }
+    const manifest = decodeCompManifest(reply);
     this.#registryHash = manifest.newRegistryHash;
 
     /** @type {RegistryCatalog} */

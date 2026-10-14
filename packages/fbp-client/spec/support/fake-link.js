@@ -23,7 +23,7 @@ export class FakeLink {
     }
   }
 
-  removeEventListener(type, listener) {
+  removeEventListener(_type, listener) {
     const i = this.dataListeners.indexOf(listener);
     if (i !== -1) {
       this.dataListeners.splice(i, 1);
