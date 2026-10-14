@@ -183,3 +183,111 @@ export async function getSource(session, name) {
 export function setSource(session, name, source) {
 	return session.client.setSource(name, source);
 }
+
+/**
+ * `run`/`pause`/`step`/`stop`: run control over the network (`0x40`).
+ *
+ * @param {Session} session
+ * @param {"start"|"pause"|"resume"|"step"|"stop"} action
+ * @param {number|string|null} [planeId] - nil addresses the main plane
+ * @returns {Promise<void>}
+ */
+export function runControl(session, action, planeId = null) {
+	return session.client.execution.runControl(action.toUpperCase(), planeId);
+}
+
+/**
+ * `send`: inject one packet into a running network's inport (`0x47`) —
+ * the remote counterpart of feeding IIPs.
+ *
+ * @param {Session} session
+ * @param {Object} packet
+ * @param {number|string|null} [packet.planeId] - nil = main plane
+ * @param {string} packet.port - Inport name
+ * @param {any} packet.payload
+ * @returns {Promise<void>}
+ */
+export function sendPacket(session, packet) {
+	return session.client.execution.injectPacket(packet);
+}
+
+/**
+ * `breakpoint set`: pause the network when a packet arrives at the
+ * node's triggering inport (`0x41`).
+ *
+ * @param {Session} session
+ * @param {Object} bp
+ * @param {string} bp.breakpointId
+ * @param {string} bp.nodeId
+ * @param {string|null} [bp.port] - nil matches any port
+ * @returns {Promise<void>}
+ */
+export function setBreakpoint(session, bp) {
+	return session.client.execution.setBreakpoint(bp);
+}
+
+/**
+ * `breakpoint clear`: clear one breakpoint, or all when no id is given
+ * (`0x42`).
+ *
+ * @param {Session} session
+ * @param {string|null} [breakpointId] - nil clears every breakpoint
+ * @returns {Promise<void>}
+ */
+export function clearBreakpoints(session, breakpointId = null) {
+	return session.client.execution.clearBreakpoints(breakpointId);
+}
+
+/**
+ * `processes`: request the live process listing (`0x44`) and await the
+ * runtime's `0x45` reply.
+ *
+ * @param {Session} session
+ * @param {Object} [options]
+ * @param {number} [options.timeoutMs]
+ * @returns {Promise<Object<string, any>>} Node id to process entry
+ */
+export function processes(session, options = {}) {
+	const { timeoutMs = 15_000 } = options;
+	return new Promise((resolve, reject) => {
+		const timer = setTimeout(() => {
+			session.client.removeEventListener("processlist", listener);
+			reject(new Error("timed out waiting for the process listing"));
+		}, timeoutMs);
+		/** @type {(event: any) => void} */
+		const listener = (event) => {
+			clearTimeout(timer);
+			session.client.removeEventListener("processlist", listener);
+			resolve(event.detail.entries ?? {});
+		};
+		session.client.addEventListener("processlist", listener);
+		session.client.execution.requestProcesses();
+	});
+}
+
+/**
+ * `enable`/`disable`: per-process execution control (`0x43`) — a
+ * disabled node stops activating; queued packets are kept.
+ *
+ * @param {Session} session
+ * @param {string} nodeId
+ * @param {"enable"|"disable"} action
+ * @returns {Promise<void>}
+ */
+export function setProcessState(session, nodeId, action) {
+	return session.client.execution.processControl(nodeId, action.toUpperCase());
+}
+
+/**
+ * `hwm`: set the default edge capacity (high-water mark) for the
+ * runtime (`0x46`) — the global default in the backpressure hierarchy.
+ *
+ * @param {Session} session
+ * @param {number|null} highWaterMark - `0` synchronous, `n` up to `n` admitted in-flight packets, nil unbounded
+ * @returns {Promise<void>}
+ */
+export function setHwm(session, highWaterMark) {
+	return session.client.execution.setHwm(highWaterMark);
+}
+
+export { capture, replayTraceFile, watch } from "./trace.js";

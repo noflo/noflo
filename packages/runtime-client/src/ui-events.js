@@ -75,9 +75,6 @@ export class UiEventSurface extends EventTarget {
 	/** @type {TelemetryClient} */
 	#telemetry;
 
-	/** @type {import("./execution.js").ExecutionClient} */
-	#execution;
-
 	/** @type {boolean} */
 	#wired = false;
 
@@ -100,15 +97,10 @@ export class UiEventSurface extends EventTarget {
 				new CustomEvent("packets", { detail: /** @type {any} */ (chunk) }),
 			);
 		});
-		this.#execution = new ExecutionClient({
-			send: (payload) => client.send(payload),
-		});
-		this.#execution.onProcessList((entries) => {
-			this.dispatchEvent(
-				new CustomEvent("processes", {
-					detail: /** @type {any} */ ({ entries }),
-				}),
-			);
+		// Inbound 0x32 chunks arrive as the client's typed `telemetry`
+		// event; the consumer decodes, delta-applies, and filters them
+		client.addEventListener("telemetry", (/** @type {any} */ event) => {
+			this.#telemetry.handleDecoded(event.detail);
 		});
 	}
 
@@ -137,7 +129,7 @@ export class UiEventSurface extends EventTarget {
 	 * @returns {import("./execution.js").ExecutionClient}
 	 */
 	get execution() {
-		return this.#execution;
+		return this.#client.execution;
 	}
 
 	/**

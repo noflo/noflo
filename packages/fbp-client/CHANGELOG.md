@@ -17,3 +17,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `components()` / `component(name)` — the Two-Step Cache registry catalog and single entries with cached signatures (phase 2)
 - `getSource(name)` / `setSource(name, source)` — the `0x26`/`0x25` component source read and atomic write (phase 2)
 - `fbp-client` binary with `scan`, `status`, `planes`, `graph`, `components`, `component`, and `source get|set` subcommands, `--json` machine-readable output, and rnsd TCP interface wiring (`--interface host:port`)
+- Phase 3: `watch` (live decoded telemetry stream with `--types` filtering), `trace <file>` (0xF0 tracefile capture, `--duration` window), offline `replay <file>` (no runtime connection needed), `run`/`pause`/`step`/`stop`, `send <port> <data>` (JSON payload injection), `breakpoint set|clear`, `processes`, `enable|disable <id>`, and `hwm <n|nil>` subcommands

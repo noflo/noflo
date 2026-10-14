@@ -7,6 +7,7 @@ import {
 	encodeCompManifest,
 	encodeCrdtUpdate,
 	encodeCrdtUpToDate,
+	encodeFlowtraceChunkFromTimestamps,
 	encodeProcessList,
 	OP_TYPE,
 } from "@noflo/fbp-protocol";
@@ -132,5 +133,50 @@ describe("UiEventSurface", () => {
 		const last = link.sent[link.sent.length - 1];
 		assert.equal(last[0], 0x95, "msgpack fixarray header");
 		assert.equal(last[1], 0x30, "pubsub sub opcode");
+	});
+});
+
+describe("UiEventSurface telemetry", () => {
+	it("re-emits inbound 0x32 chunks as packets events", async () => {
+		const link = new FakeLink();
+		const client = new RuntimeClient({
+			link,
+			auth: { protocolVersion: 2, capabilityMask: 0x01 },
+		});
+		const surface = new UiEventSurface({ client });
+		const started = surface.start();
+		link.deliver(encodeCrdtUpToDate(null, "0000"));
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		link.deliver(
+			encodeCompManifest("reg-hash-1", {
+				"math/Add": { sigHash: "a".repeat(64), type: "elementary" },
+			}),
+		);
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		link.deliver(
+			encodeCompDetailRes({
+				"math/Add": {
+					type: "elementary",
+					in: [{ id: "a", type: "number", required: true }],
+					out: [{ id: "sum", type: "number" }],
+				},
+			}),
+		);
+		await started;
+
+		/** @type {any[]} */
+		const packets = [];
+		surface.addEventListener("packets", (e) => packets.push(e.detail));
+		link.deliver(
+			encodeFlowtraceChunkFromTimestamps({
+				subId: "noflo-client-telemetry",
+				planeId: null,
+				events: [{ timestampMs: 100, eventType: 1, payload: { node: "a" } }],
+			}),
+		);
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		assert.equal(packets.length, 1);
+		assert.equal(packets[0].events.length, 1);
+		assert.equal(packets[0].events[0].payload.node, "a");
 	});
 });

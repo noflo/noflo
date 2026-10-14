@@ -30,6 +30,7 @@ import {
 	decodeCrdtStaleEpoch,
 	decodeCrdtUpdate,
 	decodeCrdtUpToDate,
+	decodeFlowtraceChunk,
 	decodeGetStatusRes,
 	decodePlaneListRes,
 	decodeProcessList,
@@ -48,6 +49,7 @@ import {
 } from "@noflo/fbp-protocol";
 import { GraphModel, importFbpJson } from "@noflo/graph";
 import { Destination, Packet, PacketType } from "@reticulum/core";
+import { ExecutionClient } from "./execution.js";
 import { RegistryCache } from "./registry-cache.js";
 
 export {
@@ -231,6 +233,16 @@ export class RuntimeClient extends EventTarget {
 			},
 		});
 
+		/**
+		 * The execution-control sender (work document #29 phase 4):
+		 * run control, breakpoints, process control, packet injection.
+		 *
+		 * @type {import("./execution.js").ExecutionClient}
+		 */
+		this.execution = new ExecutionClient({
+			send: (payload) => this.send(payload),
+		});
+
 		link.addEventListener("data", (/** @type {any} */ event) => {
 			const payload = event.detail.packet.payload;
 			try {
@@ -254,7 +266,19 @@ export class RuntimeClient extends EventTarget {
 					);
 				}
 			} catch {
-				// Not a 0x45 frame; surface as a generic frame event.
+				// Not a 0x45 frame; try the telemetry chunk.
+			}
+			try {
+				const chunk = decodeFlowtraceChunk(payload);
+				if (chunk.cmd === 0x32) {
+					this.dispatchEvent(
+						new CustomEvent("telemetry", {
+							detail: /** @type {any} */ (chunk),
+						}),
+					);
+				}
+			} catch {
+				// Not a 0x32 frame; surface as a generic frame event.
 			}
 			this.dispatchEvent(new CustomEvent("frame", { detail: { payload } }));
 			for (const waiter of this.waiters.splice(0)) {

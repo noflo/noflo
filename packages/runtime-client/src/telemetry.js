@@ -107,14 +107,24 @@ export class TelemetryClient {
 
 	/**
 	 * Handle an inbound `0x32` chunk frame (wired by the client host to
-	 * the link's frame events): decodes the chunk, applies the deltas to
-	 * absolute timestamps, filters by event type, and emits the result
-	 * through the `onChunk` callback.
+	 * the link's frame events): decodes the chunk and hands it to the
+	 * decoded handler.
 	 *
 	 * @param {Uint8Array} frame
 	 */
 	handleChunkFrame(frame) {
-		const decoded = decodeFlowtraceChunk(frame);
+		this.handleDecoded(decodeFlowtraceChunk(frame));
+	}
+
+	/**
+	 * Handle an already-decoded chunk (wired to the client's typed
+	 * `telemetry` event): applies the deltas to absolute timestamps,
+	 * filters by event type, and emits the result through the `onChunk`
+	 * callback.
+	 *
+	 * @param {{ subId: string|number, planeId: number|string|null, baseTimestampMs: number, events?: Array<{ timeDeltaMs: number, eventType: number, payload: any }> }} decoded
+	 */
+	handleDecoded(decoded) {
 		const filters = this.#filters;
 		const events = (decoded.events ?? [])
 			.map((event) => ({
