@@ -65,7 +65,7 @@ describe("fbp-client modification", () => {
     const { link, session } = makeSession();
     const baseline = {
       name: "main",
-      nodes: [{ id: "node-1", component: "math/Add" }],
+      nodes: [{ entity_id: "node-1", component: "math/Add" }],
     };
     serveBaseline(link, "res-1", baseline);
     const pending = addNode(session, {

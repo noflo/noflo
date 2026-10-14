@@ -40,7 +40,7 @@ import {
   encodePlaneList,
   PROTOCOL_VERSION,
 } from "@noflo/fbp-protocol";
-import { GraphModel, importFbpJson } from "@noflo/graph";
+import { GraphModel } from "@noflo/graph";
 import { Destination, Packet, PacketType } from "@reticulum/core";
 import { ExecutionClient } from "./execution.js";
 import { RegistryCache } from "./registry-cache.js";
@@ -528,8 +528,10 @@ export class RuntimeClient extends EventTarget {
       const fetchWaiter = this.nextFrame(Math.max(1000, deadline - Date.now()));
       const baseline = await this.link.request(stale.rnsResourceHash);
       fetchWaiter.cancel();
+      // The runtime serves the canonical serialization (the epoch is its
+      // content hash), not FBP JSON
       const canonical = JSON.parse(new TextDecoder().decode(baseline));
-      this.graph = importFbpJson(canonical);
+      this.graph = GraphModel.fromCanonical(canonical);
       return {
         upToDate: false,
         epochId: /** @type {string} */ (stale.newEpochId),

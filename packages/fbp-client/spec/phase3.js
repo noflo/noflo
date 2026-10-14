@@ -145,7 +145,7 @@ describe("fbp-client trace commands", () => {
     const { link, session } = makeSession();
     const canonical = {
       name: "main",
-      nodes: [{ id: "node-1", component: "math/Add" }],
+      nodes: [{ entity_id: "node-1", component: "math/Add" }],
     };
     link.resources.set(
       "res-hash-1",
