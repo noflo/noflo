@@ -295,6 +295,20 @@ describe("detectRefCycles", () => {
     assert.equal(cycle[0], cycle[cycle.length - 1]);
     assert.deepEqual(cycle.slice(0, -1).sort(), ["a/one", "a/three", "a/two"]);
   });
+
+  it("reports a cycle that does not pass through the walk root", () => {
+    // The cycle lives among descendants; a memoization that marks
+    // reached-but-not-root nodes as done would miss it
+    const documents = [
+      { id: "a/root", body: { $ref: "b/mid" } },
+      { id: "b/mid", body: { $ref: "c/leaf" } },
+      { id: "c/leaf", body: { $ref: "b/mid" } },
+    ];
+    const cycle = detectRefCycles(documents);
+    assert.ok(cycle);
+    assert.equal(cycle[0], cycle[cycle.length - 1]);
+    assert.deepEqual(cycle.slice(0, -1).sort(), ["b/mid", "c/leaf"]);
+  });
 });
 
 describe("normalizeSchemaBody", () => {

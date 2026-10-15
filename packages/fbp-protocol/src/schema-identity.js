@@ -283,45 +283,39 @@ export function detectRefCycles(documents) {
     );
     edges.set(id, targets);
   }
-  /** @type {Set<string>} */
-  const done = new Set();
-  /** @type {(start: string) => string[]|null} */
-  const walkFrom = (start) => {
+  // Three-color DFS: an edge to a gray (on-stack) node is a cycle, and
+  // black nodes are proven acyclic and never rewalked — linear in the
+  // reference graph, unlike a per-root restart
+  /** @type {Map<string, number>} */
+  const color = new Map();
+  const GRAY = 1;
+  const BLACK = 2;
+  for (const start of edges.keys()) {
+    if (color.get(start) === BLACK) continue;
     /** @type {string[]} */
     const path = [start];
-    /** @type {Set<string>} */
-    const onPath = new Set([start]);
-    /** @type {(current: string) => string[]|null} */
-    const visit = (current) => {
-      for (const next of edges.get(current) ?? []) {
-        if (next === start) return [...path, start];
-        if (onPath.has(next) || done.has(next)) continue;
-        path.push(next);
-        onPath.add(next);
-        const found = visit(next);
-        if (found) return found;
+    color.set(start, GRAY);
+    /** @type {Array<[string, string[]]>} */
+    const stack = [[start, [...(edges.get(start) ?? [])]]];
+    while (stack.length > 0) {
+      const top = stack[stack.length - 1];
+      const [current, targets] = top;
+      const next = targets.pop();
+      if (next === undefined) {
+        color.set(current, BLACK);
+        stack.pop();
         path.pop();
-        onPath.delete(next);
+        continue;
       }
-      return null;
-    };
-    return visit(start);
-  };
-  for (const id of edges.keys()) {
-    if (done.has(id)) continue;
-    const cycle = walkFrom(id);
-    if (cycle) return cycle;
-    // Mark everything reachable from this root as done: they were walked
-    // without finding a cycle through `start`
-    const reachable = new Set([id]);
-    const stack = [id];
-    while (stack.length) {
-      const current = /** @type {string} */ (stack.pop());
-      if (reachable.has(current)) continue;
-      reachable.add(current);
-      for (const next of edges.get(current) ?? []) stack.push(next);
+      const nextColor = color.get(next) ?? 0;
+      if (nextColor === GRAY) {
+        return [...path.slice(path.indexOf(next)), next];
+      }
+      if (nextColor === BLACK) continue;
+      color.set(next, GRAY);
+      path.push(next);
+      stack.push([next, [...(edges.get(next) ?? [])]]);
     }
-    for (const node of reachable) done.add(node);
   }
   return null;
 }
