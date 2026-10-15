@@ -17,7 +17,7 @@
  */
 
 import { toFBP } from "@noflo/fbp";
-import { RUN_STATE } from "@noflo/fbp-protocol";
+import { checkGuard, RUN_STATE } from "@noflo/fbp-protocol";
 import {
   connectRuntime,
   discoverRuntime,
@@ -230,6 +230,64 @@ export async function schemas(session) {
     if (id) out[digest].id = id;
   }
   return out;
+}
+
+/**
+ * The guard advisory for a value entering an inport (work document #37
+ * §3.1): the signature's in-band guard, comparison-only, advisory-only —
+ * the CLI tells the author before the value ships, and the runtime records
+ * violations diagnostic-only either way. Resolves the node's component
+ * through the graph mirror (syncing it when the session has not yet) and
+ * the port's guard through the Two-Step catalog.
+ *
+ * @param {Session} session
+ * @param {Object} spec
+ * @param {string} [spec.node] The target node (for a direct inport).
+ * @param {string} [spec.exportName] The exported inport name (for `0x47`).
+ * @param {string} [spec.port] The inport name; defaults to the export's internal port.
+ * @param {any} spec.value The value about to be sent.
+ * @returns {Promise<string|null>} The advisory message, or null when no guard applies.
+ */
+export async function guardAdvisory(
+  session,
+  { node, exportName, port, value },
+) {
+  const client = session.client;
+  if (Object.keys(client.registry.catalog()).length === 0) {
+    await client.syncComponents();
+  }
+  let graph = client.graph;
+  if (!graph) {
+    graph = (await client.syncGraph()).graph;
+  }
+  let componentName = null;
+  let portName = port ?? null;
+  if (exportName !== undefined) {
+    const exp = graph
+      .exports()
+      .find((e) => e.direction === "inport" && e.public === exportName);
+    if (!exp) {
+      return null;
+    }
+    componentName = graph.node(exp.internal.node)?.component ?? null;
+    portName = portName ?? exp.internal.port;
+  } else if (node !== undefined) {
+    componentName = graph.node(node)?.component ?? null;
+  }
+  if (!componentName || !portName) {
+    return null;
+  }
+  const signature = /** @type {any} */ (
+    client.registry.catalog()[componentName]
+  )?.signature;
+  const guard = signature?.in?.find((p) => p.id === portName)?.guard;
+  if (!guard) {
+    return null;
+  }
+  if (checkGuard(guard, value)) {
+    return null;
+  }
+  return `value for ${componentName}.${portName} fails the port's in-band guard ${JSON.stringify(guard)} — sending anyway; the runtime records this diagnostic-only`;
 }
 
 /**

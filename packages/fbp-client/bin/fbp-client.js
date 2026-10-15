@@ -43,6 +43,7 @@ import {
   discoverRuntime,
   getSource,
   graph,
+  guardAdvisory,
   OpRejectedError,
   planes,
   processes,
@@ -523,6 +524,13 @@ async function main() {
           if (!port || data === undefined) {
             throw new Error("usage: fbp-client send <port> <data>");
           }
+          const advisory = await guardAdvisory(session, {
+            exportName: port,
+            value: JSON.parse(data),
+          });
+          if (advisory) {
+            console.error(`fbp-client: warning: ${advisory}`);
+          }
           await sendPacket(session, { port, payload: JSON.parse(data) });
           break;
         }
@@ -611,6 +619,14 @@ async function main() {
           const [node, port, data] = positional.slice(1);
           if (!node || !port || data === undefined) {
             throw new Error("usage: fbp-client add-iip <node> <port> <data>");
+          }
+          const advisory = await guardAdvisory(session, {
+            node,
+            port,
+            value: parseData(data),
+          });
+          if (advisory) {
+            console.error(`fbp-client: warning: ${advisory}`);
           }
           const iipResult = await addIip(session, {
             to: { node, port },
