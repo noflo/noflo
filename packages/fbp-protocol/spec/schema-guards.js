@@ -27,6 +27,15 @@ describe("validateGuard", () => {
     validateGuard({});
   });
 
+  it("accepts string and boolean enum entries — the 1.x values path", () => {
+    // The primary authoring shape (work document #37 §3.4): a values list
+    // migrates to an inline enum schema, whose guard projection is a
+    // scalar string enum. All scalar kinds must validate.
+    validateGuard({ enum: ["green", "blue"] });
+    validateGuard({ enum: [true, false] });
+    validateGuard({ type: "string", enum: ["a", 2, false] });
+  });
+
   it("rejects unknown keys and malformed fields", () => {
     assert.throws(() => validateGuard(/** @type {any} */ ({ pattern: "^a" })));
     assert.throws(() => validateGuard(/** @type {any} */ ({ type: "null" })));

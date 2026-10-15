@@ -92,7 +92,7 @@ export function validateGuard(guard) {
         (typeof entry !== "string" &&
           typeof entry !== "number" &&
           typeof entry !== "boolean") ||
-        !Number.isFinite(entry)
+        (typeof entry === "number" && !Number.isFinite(entry))
       ) {
         throw new TypeError("guard enum entries must be scalars");
       }

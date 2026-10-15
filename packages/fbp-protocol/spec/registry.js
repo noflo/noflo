@@ -198,6 +198,29 @@ describe("0x23/0x24 detail request and response", () => {
     assert.deepEqual(ports[1].guard, { type: "number", min: 0 });
   });
 
+  it("carries string-enum guards on ports — the 1.x values upgrade path", () => {
+    // A values list migrates to an inline enum schema; the derived guard
+    // is a scalar string enum and must survive the 0x24 wire round trip
+    const decoded = decodeCompDetailRes(
+      encodeCompDetailRes({
+        "process/Pick": {
+          type: COMPONENT_TYPE.ELEMENTARY,
+          in: [
+            {
+              id: "in",
+              type: "string",
+              guard: { enum: ["green", "blue"] },
+            },
+          ],
+          out: [],
+        },
+      }),
+    );
+    assert.deepEqual(decoded.components["process/Pick"].in[0].guard, {
+      enum: ["green", "blue"],
+    });
+  });
+
   it("carries schema digests as raw 32-byte bins on the wire", () => {
     const digest = "b".repeat(64);
     const frame = MsgPack.decode(
