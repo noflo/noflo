@@ -152,3 +152,48 @@ describe("graph protocol guard diagnostics", () => {
     assert.notEqual(hash, without);
   });
 });
+
+describe("assembleRuntime guard sink", () => {
+  it("records violations as 0x04 ERROR flowtrace events", async () => {
+    const { GraphModel } = await import("@noflo/graph");
+    const { assembleRuntime } = await import("../src/index.js");
+    const noflo = await import("@noflo/noflo");
+    const { EVENT_TYPE } = noflo;
+    const flowtrace = new noflo.Flowtrace();
+    const graph = new GraphModel({ name: "main" });
+    flowtrace.addGraph("main", graph.serialize(), true);
+    graph.addNode({ entity_id: "adder", component: "math/Add" });
+    const runtime = await assembleRuntime({
+      graph,
+      catalog: {
+        signatures: () => ({
+          "math/Add": {
+            type: COMPONENT_TYPE.ELEMENTARY,
+            in: [
+              { id: "a", type: "number", guard: { type: "number", min: 0 } },
+            ],
+            out: [],
+          },
+        }),
+      },
+      capabilityPolicy: (await import("./policy.js")).staticPolicy(),
+      send() {},
+      broadcast() {},
+      flowtrace,
+    });
+    // An out-of-guard IIP insert through the wire: applied, and recorded
+    const applied = runtime.graph.applyOp({
+      opType: OP_TYPE.INSERT_IIP,
+      entityId: "iip-bad",
+      payload: { to: { node: "adder", port: "a" }, data: -5 },
+    });
+    assert.equal(applied, true);
+    const json = flowtrace.toJSON();
+    const errors = json.chunks.filter(
+      (/** @type {any} */ chunk) => chunk[1] === EVENT_TYPE.ERROR,
+    );
+    assert.equal(errors.length, 1);
+    assert.match(errors[0][2], /Guard violation/);
+    await runtime.host.stop?.();
+  });
+});

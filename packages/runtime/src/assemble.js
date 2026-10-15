@@ -118,12 +118,26 @@ export async function assembleRuntime(options) {
   const schema = options.schemaTable
     ? new SchemaProtocol({ table: options.schemaTable })
     : null;
+  // Tier A guard diagnostics (work document #37 §6): the default sink
+  // records violations as `0x04 ERROR` flowtrace events when a trace
+  // recorder is present — the runtime records them, per local policy, and
+  // the op is applied regardless
+  /** @type {((detail: { opType: number, entityId: string|null, detail: string }) => void)|null} */
+  const guardSink = options.flowtrace
+    ? (detail) => {
+        options.flowtrace?.addNetworkError(
+          options.flowtrace.mainGraph,
+          `Guard violation: ${detail.detail}`,
+        );
+      }
+    : null;
   const graph = new GraphProtocol({
     graph: options.graph,
     clientId: options.clientId,
     ...(options.catalog
       ? { signatureResolver: catalogSignatureResolver(options.catalog) }
       : {}),
+    ...(guardSink ? { onGuardViolation: guardSink } : {}),
   });
   const telemetry = new TelemetryProtocol({ host, graphProtocol: graph });
   const execution = new ExecutionProtocol({
@@ -133,6 +147,7 @@ export async function assembleRuntime(options) {
     ...(options.catalog
       ? { signatureResolver: catalogSignatureResolver(options.catalog) }
       : {}),
+    ...(guardSink ? { onGuardViolation: guardSink } : {}),
   });
   registry.register(server);
   if (schema) {
