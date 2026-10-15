@@ -403,10 +403,10 @@ async function main() {
           break;
         }
         case "schemas": {
-          const schemas = await schemas(session);
-          const entries = Object.entries(schemas).sort();
+          const list = await schemas(session);
+          const entries = Object.entries(list).sort();
           if (json) {
-            console.log(JSON.stringify(schemas, null, 2));
+            console.log(JSON.stringify(list, null, 2));
           } else {
             for (const [digest, entry] of entries) {
               console.log(`${digest}\t${entry.id ?? "(anonymous)"}`);
