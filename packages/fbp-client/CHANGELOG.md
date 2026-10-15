@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- `fbp-client schemas`: the schema bodies the synced catalog's details reference, fetched over `0x28`/`0x29` and digest-verified (work document #37 phase 2); each entry carries the reference id, when one exists, and the verified body. A runtime without a schema table answers all-nil and the listing stays empty
 
 - Initial package: `@noflo/fbp-client`, the command-line tool and scriptable front for FBP Protocol 2.0 runtimes (work document #34 phases 1–2)
 - `connectSession()` — discovery through announce app_data plus link establishment and the `0x02` auth handshake

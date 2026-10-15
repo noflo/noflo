@@ -194,6 +194,45 @@ export function components(session) {
 }
 
 /**
+ * `schemas`: the schema bodies the synced catalog references, fetched over
+ * `0x28`/`0x29` and digest-verified (work document #37 phase 2). A runtime
+ * without a schema table answers all-nil and the map stays empty — the
+ * degradation ladder, not an error. Each entry carries the id, when the
+ * catalog's references name one, and the verified body.
+ *
+ * @param {Session} session
+ * @returns {Promise<Record<string, { id?: string, body: Record<string, any> }>>}
+ */
+export async function schemas(session) {
+  const catalog = await session.client.syncComponents();
+  await session.client.syncSchemaBodies(catalog);
+  /** @type {Map<string, string>} */
+  const ids = new Map();
+  for (const entry of Object.values(catalog)) {
+    const signature = /** @type {any} */ (entry).signature;
+    if (!signature) continue;
+    for (const side of ["in", "out"]) {
+      for (const port of signature[side] ?? []) {
+        if (port.schema?.id && port.schema?.digest) {
+          ids.set(port.schema.digest, port.schema.id);
+        }
+      }
+    }
+    if (signature.metadata?.id && signature.metadata?.digest) {
+      ids.set(signature.metadata.digest, signature.metadata.id);
+    }
+  }
+  /** @type {Record<string, { id?: string, body: Record<string, any> }>} */
+  const out = {};
+  for (const [digest, body] of session.client.schemas.bodies()) {
+    out[digest] = { body };
+    const id = ids.get(digest);
+    if (id) out[digest].id = id;
+  }
+  return out;
+}
+
+/**
  * `component <name>`: one catalog entry with its cached signature.
  *
  * @param {Session} session

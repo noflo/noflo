@@ -11,6 +11,7 @@ import {
   encodeCrdtUpToDate,
   encodeGetStatusRes,
   encodePlaneListRes,
+  encodeSchemaRes,
   PLANE_KIND,
   RUN_STATE,
 } from "@noflo/fbp-protocol";
@@ -22,6 +23,7 @@ import {
   graph,
   planes,
   RUN_STATE_NAMES,
+  schemas,
   setSource,
   status,
 } from "../src/index.js";
@@ -236,3 +238,61 @@ function runCli(args) {
     child.on("error", reject);
   });
 }
+
+describe("schemas command", () => {
+  it("lists the digest-verified bodies the catalog references", async () => {
+    const { link, session } = makeSession();
+    const body = { $id: "std/count", type: "integer", minimum: 0 };
+    const digest = await import("@noflo/fbp-protocol").then((m) =>
+      m.digestSchema(body),
+    );
+    const pending = schemas(session);
+    link.deliver(
+      encodeCompManifest("reg-hash-1", {
+        "math/Add": { sigHash: "a".repeat(64), type: "elementary" },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    link.deliver(
+      encodeCompDetailRes({
+        "math/Add": {
+          type: "elementary",
+          in: [
+            { id: "a", type: "number", schema: { id: "std/count", digest } },
+          ],
+          out: [],
+        },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    link.deliver(encodeSchemaRes({ [digest]: body }));
+    const result = await pending;
+    assert.equal(result[digest].id, "std/count");
+    assert.deepEqual(result[digest].body, body);
+  });
+
+  it("stays empty when the runtime serves all-nil", async () => {
+    const { link, session } = makeSession();
+    const digest = "b".repeat(64);
+    const pending = schemas(session);
+    link.deliver(
+      encodeCompManifest("reg-hash-1", {
+        "math/Add": { sigHash: "a".repeat(64), type: "elementary" },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    link.deliver(
+      encodeCompDetailRes({
+        "math/Add": {
+          type: "elementary",
+          in: [{ id: "a", type: "number", schema: { digest } }],
+          out: [],
+        },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    link.deliver(encodeSchemaRes({ [digest]: null }));
+    const result = await pending;
+    assert.deepEqual(result, {});
+  });
+});

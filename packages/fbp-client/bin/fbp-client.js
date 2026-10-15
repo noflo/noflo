@@ -49,6 +49,7 @@ import {
   removeEntity,
   replayTraceFile,
   runControl,
+  schemas,
   sendPacket,
   setBreakpoint,
   setHwm,
@@ -118,6 +119,7 @@ Commands:
   planes               List the runtime's graph planes (0x16)
   graph                Render the mirrored graph (default: json)
   components           List the registry catalog (Two-Step Cache)
+  schemas              List the schema bodies the catalog references (digest-verified)
   component <name>     One registry entry with its signature
   source get <name>    Read a component's source (0x26)
   source set <name> <file>  Write a component's source (0x25)
@@ -395,6 +397,24 @@ async function main() {
               console.log(
                 `${name}\t${entry.type}${entry.signature ? "\t(detailed)" : ""}`,
               );
+            }
+          }
+          break;
+        }
+        case "schemas": {
+          const schemas = await schemas(session);
+          const entries = Object.entries(schemas).sort();
+          if (json) {
+            console.log(JSON.stringify(schemas, null, 2));
+          } else {
+            for (const [digest, entry] of entries) {
+              console.log(`${digest}\t${entry.id ?? "(anonymous)"}`);
+            }
+            if (entries.length === 0) {
+              console.error(
+                "fbp-client: the runtime holds no schema bodies for the catalog's references",
+              );
+              process.exitCode = 1;
             }
           }
           break;
