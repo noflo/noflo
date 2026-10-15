@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "canvas/point",
+  "title": "Canvas point",
+  "type": "object",
+  "required": ["x", "y"],
+  "properties": {
+    "x": { "type": "number" },
+    "y": { "type": "number" },
+    "label": { "type": "string", "maxLength": 64 }
+  },
+  "examples": [{ "x": 0, "y": 0 }]
+}

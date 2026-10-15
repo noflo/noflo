@@ -8,6 +8,8 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
 
+import { MsgPack } from "@reticulum/core";
+
 import {
   canonicalizeJson,
   collectSchemaRefs,
@@ -147,16 +149,24 @@ describe("RFC 8785 canonicalization", () => {
     assert.throws(() => canonicalizeJson(/** @type {any} */ (10n)));
   });
 
-  it("produces the RFC 8785 test vector bytes", () => {
-    // From the JCS test suite: the expected canonical form of the input
-    // document in RFC 8785 Appendix B, abbreviated to the number/string
-    // edge cases this module must match
-    const input = JSON.parse(
-      '{"numbers":[333333333.33333329,1E30,4.50,2e-3,-0.000000000000000000000000001],"string":"\\u20ac\\t\\n\\u000b\\f\\r \\"\\\\"}',
+  it("produces the RFC 8785 Appendix B vectors verbatim", () => {
+    // The two normative test documents from RFC 8785 Appendix B: every
+    // conforming JCS implementation in any language emits exactly these
+    // bytes, which is what makes the digest definition implementable
+    // across producers (work document #37 §11)
+    const sorting = JSON.parse(
+      '{"\\r":"Carriage Return","1":"One","\u0080":"Control","ö":"Latin Small Letter O With Diaeresis","€":"Euro Sign","😀":"Emoji: Grinning Face","\ufb33":"Hebrew Letter Dalet With Dagesh"}',
     );
     assert.equal(
-      canonicalizeJson(input),
-      '{"numbers":[333333333.3333333,1e+30,4.5,0.002,-1e-27],"string":"€\\t\\n\\u000b\\f\\r \\"\\\\"}',
+      canonicalizeJson(sorting),
+      '{"\\r":"Carriage Return","1":"One","\u0080":"Control","ö":"Latin Small Letter O With Diaeresis","€":"Euro Sign","😀":"Emoji: Grinning Face","\ufb33":"Hebrew Letter Dalet With Dagesh"}',
+    );
+    const document = JSON.parse(
+      '{"numbers":[333333333.33333329,1E30,4.50,2e-3,-0.000000000000000000000000001],"string":"\\u20ac\\t\\n\\u000b\\f\\r \\"\\\\/","literals":[null,true,false]}',
+    );
+    assert.equal(
+      canonicalizeJson(document),
+      '{"literals":[null,true,false],"numbers":[333333333.3333333,1e+30,4.5,0.002,-1e-27],"string":"€\\t\\n\\u000b\\f\\r \\"\\\\/"}',
     );
   });
 });
@@ -304,5 +314,70 @@ describe("normalizeSchemaBody", () => {
     assert.throws(() =>
       normalizeSchemaBody({ $id: `urn:noflo:canvas/point@${"0".repeat(64)}` }),
     );
+  });
+});
+
+describe("golden digest fixture", () => {
+  // The canonical form below is hand-derived from the JCS rules — sorted
+  // keys ($ < letters), ECMAScript numbers, minimal escaping — not copied
+  // from the implementation. Its SHA-256 is computed by the system's
+  // OpenSSL (shasum), independently of the WebCrypto call the module
+  // makes: two independent hash implementations over an independently
+  // derived canonical form.
+  const canonical =
+    '{"$id":"canvas/point","$schema":"https://json-schema.org/draft/2020-12/schema","examples":[{"x":0,"y":0}],"properties":{"label":{"maxLength":64,"type":"string"},"x":{"type":"number"},"y":{"type":"number"}},"required":["x","y"],"title":"Canvas point","type":"object"}';
+  const golden =
+    "d2f0fb8fbc7beb6ca58435084d7e10ec1a335d2377cad38979de316dbb21f127";
+
+  it("reproduces the hand-derived canonical form byte-for-byte", async () => {
+    const { readFileSync } = await import("node:fs");
+    const body = JSON.parse(
+      readFileSync(
+        new URL("./fixtures/schema-golden.json", import.meta.url),
+        "utf8",
+      ),
+    );
+    assert.equal(canonicalizeJson(normalizeSchemaBody(body)), canonical);
+  });
+
+  it("matches the OpenSSL-computed digest of the canonical form", async () => {
+    const { readFileSync } = await import("node:fs");
+    const body = JSON.parse(
+      readFileSync(
+        new URL("./fixtures/schema-golden.json", import.meta.url),
+        "utf8",
+      ),
+    );
+    assert.equal(await digestSchema(body), golden);
+  });
+
+  it("erases the MsgPack int/float divergence at the digest", async () => {
+    // MsgPack encodes `1` (int) and `1.0` (float64) differently on the
+    // wire; two producers shipping "the same" body produce different
+    // frames. Verification is decode → canonicalize → hash, so both must
+    // yield the same digest: the float64 1.0 encoding is crafted by hand
+    // and decoded through the real MsgPack decoder
+    const intDigest = await digestSchema({ const: 1 });
+    const floatFrame = new Uint8Array([
+      0x81, // fixmap(1)
+      0xa5,
+      0x63,
+      0x6f,
+      0x6e,
+      0x73,
+      0x74, // "const"
+      0xcb,
+      0x3f,
+      0xf0,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00, // float64 1.0
+    ]);
+    const decoded = MsgPack.decode(floatFrame);
+    assert.equal(decoded.const, 1);
+    assert.equal(await digestSchema(decoded), intDigest);
   });
 });
