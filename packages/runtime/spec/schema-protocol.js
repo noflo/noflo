@@ -197,6 +197,27 @@ describe("schema table", () => {
     assert.ok(bare.has(lineDigest));
     assert.ok(!bare.has(pointDigest));
   });
+
+  it("bundles the digest-pinned revision when two revisions of one id are held", async () => {
+    const table = new SchemaTable();
+    const v1 = { $id: "canvas/point", type: "string", v: 1 };
+    const v2 = { $id: "canvas/point", type: "string", v: 2 };
+    const d1 = await digestSchema(v1);
+    const d2 = await digestSchema(v2);
+    await table.write(d1, { body: v1, ref: null });
+    // The project-written revision wins the id index — but the published
+    // $ref pins v1, and closure bundling must serve the pin
+    await table.write(d2, { body: v2, ref: null });
+    const root = {
+      $id: "canvas/root",
+      $ref: `urn:noflo:canvas/point@${d1}`,
+    };
+    const rootDigest = await digestSchema(root);
+    await table.write(rootDigest, { body: root, ref: null });
+    const answer = table.request([rootDigest], true);
+    assert.deepEqual(answer.get(d1)?.body, v1);
+    assert.ok(!answer.has(d2), "the unpinned revision is not served");
+  });
 });
 
 describe("schema protocol", () => {

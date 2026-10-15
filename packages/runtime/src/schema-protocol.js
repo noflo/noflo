@@ -144,8 +144,11 @@ export class SchemaTable {
   #bundleClosure(body, answer) {
     for (const ref of collectSchemaRefs(body)) {
       if (answer.size >= SCHEMA_BUNDLE_MAX_ENTRIES) return;
-      const id = parseSchemaRef(ref).id;
-      const digest = this.#idIndex.get(id);
+      // The published ref pins the digest: serve the pinned revision when
+      // the table holds it, since the client's closure check matches on
+      // the pin. The id index is the fallback for authoring-sugar refs
+      const parsed = parseSchemaRef(ref);
+      const digest = parsed.digest ?? this.#idIndex.get(parsed.id);
       if (!digest || answer.has(digest)) continue;
       const entry = this.entry(digest);
       if (!entry) continue;
