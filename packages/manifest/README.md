@@ -25,6 +25,21 @@ code.
   is not exhaustive)
 - **`namespaces` map**: every referenced library namespace resolved to
   its providing npm package
+- **Schema artifacts** (work document #37): a `schemas` table keyed by
+  `ns/name` id — each entry carries the SHA-256 digest of the published
+  body (RFC 8785 canonicalization), its in-package path, the computed
+  `implements` interface-closure ids, and the body's `examples` (kept
+  publish-side for the revision-acceptance backstop); an
+  `anonymousSchemas` section for inline port schemas hoisted into
+  content-addressed `schemas/<digest>.json` entries; and a
+  `foreignSchemas` section for references resolved through the
+  dependency closure. Ports carry the resolved `schema` reference (id +
+  digest) and the derived in-band `guard`. Publishing enforces the gate:
+  closure resolvability, reserved-namespace ownership (`std`, `ui`,
+  `runtime`, `noflo`, `assembly`), cross-document reference cycles,
+  closed interfaces, meta-schema identity against the artifacts shipped
+  from `@noflo/fbp-protocol`, dependency digest matches, and revision
+  acceptance of the prior manifest's `examples`
 
 Elementary signatures are harvested at publish time by calling each
 module's `getComponent()` — the author's own code on the author's
