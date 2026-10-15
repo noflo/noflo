@@ -3,15 +3,17 @@ import { Component, fork } from "../../src/index.js";
 class SplitAssemblies extends Component {
   constructor() {
     super({
-      description: 'Split production into concurrent lines',
-      outPorts: ['b', 'c'],
-      validates: { id: 'num' },
+      description: "Split production into concurrent lines",
+      outPorts: ["b", "c"],
+      validates: { id: "num" },
     });
   }
 
   processMessage(input, output) {
-    if (!input.hasData('in')) { return null; }
-    const msg = input.getData('in');
+    if (!input.hasData("in")) {
+      return null;
+    }
+    const msg = input.getData("in");
     // We have to call error check and validation manually
     // if ports are different from IN -> [ ] -> OUT
     if (!this.validate(msg)) {

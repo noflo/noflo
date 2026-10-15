@@ -6,12 +6,6 @@
     ".": "./src/lib/NoFlo.js"
   },
   "publish": {
-    "include": [
-      "src/",
-      "README.md",
-      "CHANGELOG.md",
-      "package.json",
-      "jsr.json"
-    ]
+    "include": ["src/", "README.md", "CHANGELOG.md", "package.json", "jsr.json"]
   }
 }

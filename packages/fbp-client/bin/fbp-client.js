@@ -43,12 +43,14 @@ import {
   discoverRuntime,
   getSource,
   graph,
+  guardAdvisory,
   OpRejectedError,
   planes,
   processes,
   removeEntity,
   replayTraceFile,
   runControl,
+  schemas,
   sendPacket,
   setBreakpoint,
   setHwm,
@@ -118,6 +120,7 @@ Commands:
   planes               List the runtime's graph planes (0x16)
   graph                Render the mirrored graph (default: json)
   components           List the registry catalog (Two-Step Cache)
+  schemas              List the schema bodies the catalog references (digest-verified)
   component <name>     One registry entry with its signature
   source get <name>    Read a component's source (0x26)
   source set <name> <file>  Write a component's source (0x25)
@@ -399,6 +402,24 @@ async function main() {
           }
           break;
         }
+        case "schemas": {
+          const list = await schemas(session);
+          const entries = Object.entries(list).sort();
+          if (json) {
+            console.log(JSON.stringify(list, null, 2));
+          } else {
+            for (const [digest, entry] of entries) {
+              console.log(`${digest}\t${entry.id ?? "(anonymous)"}`);
+            }
+            if (entries.length === 0) {
+              console.error(
+                "fbp-client: the runtime holds no schema bodies for the catalog's references",
+              );
+              process.exitCode = 1;
+            }
+          }
+          break;
+        }
         case "component": {
           const name = positional[1];
           if (!name) {
@@ -503,6 +524,13 @@ async function main() {
           if (!port || data === undefined) {
             throw new Error("usage: fbp-client send <port> <data>");
           }
+          const advisory = await guardAdvisory(session, {
+            exportName: port,
+            value: JSON.parse(data),
+          });
+          if (advisory) {
+            console.error(`fbp-client: warning: ${advisory}`);
+          }
           await sendPacket(session, { port, payload: JSON.parse(data) });
           break;
         }
@@ -591,6 +619,14 @@ async function main() {
           const [node, port, data] = positional.slice(1);
           if (!node || !port || data === undefined) {
             throw new Error("usage: fbp-client add-iip <node> <port> <data>");
+          }
+          const advisory = await guardAdvisory(session, {
+            node,
+            port,
+            value: parseData(data),
+          });
+          if (advisory) {
+            console.error(`fbp-client: warning: ${advisory}`);
           }
           const iipResult = await addIip(session, {
             to: { node, port },

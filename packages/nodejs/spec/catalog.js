@@ -48,8 +48,8 @@ const registry = {
 
 describe("catalog", () => {
   describe("componentDetail", () => {
-    it("derives the wire signature from an instantiated component", () => {
-      const detail = componentDetail(new Forward());
+    it("derives the wire signature from an instantiated component", async () => {
+      const detail = await componentDetail(new Forward());
       assert.equal(detail.type, "elementary");
       assert.deepEqual(
         detail.in.map((p) => p.id),
@@ -64,6 +64,56 @@ describe("catalog", () => {
         ["out"],
       );
       assert.equal(detail.out[0].type, "string");
+    });
+
+    it("advertises schema references and derived guards from source", async () => {
+      const { Component: Base } = await import("@noflo/noflo");
+      class Typed extends Base {
+        constructor() {
+          super({
+            inPorts: {
+              count: { datatype: "string", schema: { enum: ["a", "b"] } },
+              named: { datatype: "object", schema: "example/thing" },
+              pinned: {
+                datatype: "object",
+                schema: { id: "example/thing", digest: "c".repeat(64) },
+              },
+              guarded: {
+                datatype: "number",
+                guard: { type: "number", min: 0 },
+              },
+            },
+            outPorts: { out: { datatype: "all" } },
+          });
+          this.process(() => {});
+        }
+      }
+      const detail = await componentDetail(new Typed());
+      const byId = Object.fromEntries(detail.in.map((p) => [p.id, p]));
+      assert.deepEqual(byId.count.guard, { enum: ["a", "b"] });
+      assert.match(byId.count.schema.digest, /^[0-9a-f]{64}$/);
+      assert.deepEqual(byId.named.schema, { id: "example/thing" });
+      assert.deepEqual(byId.pinned.schema, {
+        id: "example/thing",
+        digest: "c".repeat(64),
+      });
+      assert.deepEqual(byId.guarded.guard, { type: "number", min: 0 });
+    });
+
+    it("fails loudly on a guard outside the closed vocabulary", async () => {
+      const { Component: Base } = await import("@noflo/noflo");
+      class Bad extends Base {
+        constructor() {
+          super({
+            inPorts: {
+              x: { datatype: "all", guard: { pattern: "^a" } },
+            },
+            outPorts: { out: { datatype: "all" } },
+          });
+          this.process(() => {});
+        }
+      }
+      await assert.rejects(() => componentDetail(new Bad()), /vocabulary/);
     });
   });
 

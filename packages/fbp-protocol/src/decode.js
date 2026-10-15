@@ -40,6 +40,9 @@ import {
   CMD_PROCESS_LIST_REQ,
   CMD_PUBSUB_SUB,
   CMD_RUN_CTRL,
+  CMD_SCHEMA_REQ,
+  CMD_SCHEMA_RES,
+  CMD_SCHEMA_WRITE,
   REASON,
 } from "./constants.js";
 import {
@@ -75,6 +78,9 @@ import {
   decodeCompSyncReq,
   decodeCompUpToDate,
   decodeCompWrite,
+  decodeSchemaReq,
+  decodeSchemaRes,
+  decodeSchemaWrite,
 } from "./registry.js";
 import { decodeFlowtraceChunk, decodePubsubSub } from "./telemetry.js";
 import { decodeAuthResponse } from "./transport.js";
@@ -143,6 +149,12 @@ export function decodeFrame(bytes) {
         : decodeCompSourceRes(bytes);
     case CMD_COMP_INSTALL_REQ:
       return decodeCompInstallReq(bytes);
+    case CMD_SCHEMA_REQ:
+      return decodeSchemaReq(bytes);
+    case CMD_SCHEMA_RES:
+      return decodeSchemaRes(bytes);
+    case CMD_SCHEMA_WRITE:
+      return decodeSchemaWrite(bytes);
     case CMD_PUBSUB_SUB:
       return decodePubsubSub(bytes);
     case CMD_FLOWTRACE_CHUNK:

@@ -197,10 +197,15 @@ export class UiEventSurface extends EventTarget {
         }),
       );
     });
-    const registrySync = this.#client.syncComponents().then((catalog) => {
+    const registrySync = this.#client.syncComponents().then(async (catalog) => {
+      // The schema bodies the details reference (work document #37 phase
+      // 2): fetched with closure bundling, digest-verified, cached. A
+      // runtime without a schema table answers all-nil and the store
+      // stays empty — the degradation ladder, not an error
+      const schemaBodies = await this.#client.syncSchemaBodies(catalog);
       this.dispatchEvent(
         new CustomEvent("components", {
-          detail: /** @type {any} */ ({ catalog }),
+          detail: /** @type {any} */ ({ catalog, schemaBodies }),
         }),
       );
     });

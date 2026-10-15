@@ -21,6 +21,7 @@ import { NetworkHost } from "./network-host.js";
 import { RegistryProtocol } from "./registry-protocol.js";
 import { DEFAULT_ASPECT, ReticulumBinding } from "./reticulum-binding.js";
 import { RuntimeServer } from "./runtime-server.js";
+import { SchemaProtocol } from "./schema-protocol.js";
 import { TelemetryProtocol } from "./telemetry-protocol.js";
 
 /**
@@ -31,7 +32,28 @@ import { TelemetryProtocol } from "./telemetry-protocol.js";
  * @property {GraphProtocol} graph
  * @property {TelemetryProtocol} telemetry
  * @property {ExecutionProtocol} execution
+ * @property {SchemaProtocol|null} schema The schema protocol, when a schema
+ *   table was provided (work document #37 phase 2); null when absent, and
+ *   `0x28`/`0x29` then answer all-nil while `0x2a` is unhandled (rejected
+ *   with UNSUPPORTED by the server core).
  */
+
+/**
+ * Wrap a catalog's `signatures()` snapshot into the guard resolver shape:
+ * a synchronous lookup over the catalog's last-refreshed state.
+ *
+ * @param {import("./registry-protocol.js").RuntimeCatalog} catalog
+ * @returns {import("./guards.js").SignatureResolver}
+ */
+function catalogSignatureResolver(catalog) {
+  const snapshot = catalog.signatures();
+  return (component, port, isInport) => {
+    const detail = snapshot[component];
+    if (!detail) return null;
+    const side = isInport ? detail.in : detail.out;
+    return side.find((/** @type {any} */ p) => p.id === port) ?? null;
+  };
+}
 
 /**
  * Wire the full protocol stack. The returned parts are plain objects —
@@ -71,6 +93,11 @@ import { TelemetryProtocol } from "./telemetry-protocol.js";
  *   provides one.
  * @param {(bytes: Uint8Array, exceptContext?: any) => void} [options.broadcast]
  *   Deliver a frame to every authorized client context.
+ * @param {import("./schema-protocol.js").SchemaTable} [options.schemaTable]
+ *   The runtime's schema table (work document #37 phase 2). When provided,
+ *   `0x28`/`0x29` serve bodies and `0x2a` accepts live writes; when absent,
+ *   reads answer all-nil and writes are unsupported. Hosts load installed
+ *   packages into the table themselves — persistence is runtime policy.
  * @returns {Promise<AssembledRuntime>}
  */
 export async function assembleRuntime(options) {
@@ -88,17 +115,44 @@ export async function assembleRuntime(options) {
     ...(options.flowtrace ? { flowtrace: options.flowtrace } : {}),
   });
   const registry = new RegistryProtocol({ catalog: options.catalog });
+  const schema = options.schemaTable
+    ? new SchemaProtocol({ table: options.schemaTable })
+    : null;
+  // Tier A guard diagnostics (work document #37 §6): the default sink
+  // records violations as `0x04 ERROR` flowtrace events when a trace
+  // recorder is present — the runtime records them, per local policy, and
+  // the op is applied regardless
+  /** @type {((detail: { opType: number, entityId: string|null, detail: string }) => void)|null} */
+  const guardSink = options.flowtrace
+    ? (detail) => {
+        options.flowtrace?.addNetworkError(
+          options.flowtrace.mainGraph,
+          `Guard violation: ${detail.detail}`,
+        );
+      }
+    : null;
   const graph = new GraphProtocol({
     graph: options.graph,
     clientId: options.clientId,
+    ...(options.catalog
+      ? { signatureResolver: catalogSignatureResolver(options.catalog) }
+      : {}),
+    ...(guardSink ? { onGuardViolation: guardSink } : {}),
   });
   const telemetry = new TelemetryProtocol({ host, graphProtocol: graph });
   const execution = new ExecutionProtocol({
     host,
     telemetry,
     graphProtocol: graph,
+    ...(options.catalog
+      ? { signatureResolver: catalogSignatureResolver(options.catalog) }
+      : {}),
+    ...(guardSink ? { onGuardViolation: guardSink } : {}),
   });
   registry.register(server);
+  if (schema) {
+    schema.register(server);
+  }
   graph.register(server);
   telemetry.register(server);
   execution.register(server);
@@ -110,7 +164,7 @@ export async function assembleRuntime(options) {
     // (0x40 RUN_CTRL stop/start restarts it).
     await host.start();
   }
-  return { server, host, registry, graph, telemetry, execution };
+  return { server, host, registry, graph, telemetry, execution, schema };
 }
 
 /**

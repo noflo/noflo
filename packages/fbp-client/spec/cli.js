@@ -11,6 +11,7 @@ import {
   encodeCrdtUpToDate,
   encodeGetStatusRes,
   encodePlaneListRes,
+  encodeSchemaRes,
   PLANE_KIND,
   RUN_STATE,
 } from "@noflo/fbp-protocol";
@@ -20,8 +21,10 @@ import {
   components,
   getSource,
   graph,
+  guardAdvisory,
   planes,
   RUN_STATE_NAMES,
+  schemas,
   setSource,
   status,
 } from "../src/index.js";
@@ -236,3 +239,165 @@ function runCli(args) {
     child.on("error", reject);
   });
 }
+
+describe("schemas command", () => {
+  it("lists the digest-verified bodies the catalog references", async () => {
+    const { link, session } = makeSession();
+    const body = { $id: "std/count", type: "integer", minimum: 0 };
+    const digest = await import("@noflo/fbp-protocol").then((m) =>
+      m.digestSchema(body),
+    );
+    const pending = schemas(session);
+    link.deliver(
+      encodeCompManifest("reg-hash-1", {
+        "math/Add": { sigHash: "a".repeat(64), type: "elementary" },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    link.deliver(
+      encodeCompDetailRes({
+        "math/Add": {
+          type: "elementary",
+          in: [
+            { id: "a", type: "number", schema: { id: "std/count", digest } },
+          ],
+          out: [],
+        },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    link.deliver(encodeSchemaRes({ [digest]: body }));
+    const result = await pending;
+    assert.equal(result[digest].id, "std/count");
+    assert.deepEqual(result[digest].body, body);
+  });
+
+  it("stays empty when the runtime serves all-nil", async () => {
+    const { link, session } = makeSession();
+    const digest = "b".repeat(64);
+    const pending = schemas(session);
+    link.deliver(
+      encodeCompManifest("reg-hash-1", {
+        "math/Add": { sigHash: "a".repeat(64), type: "elementary" },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    link.deliver(
+      encodeCompDetailRes({
+        "math/Add": {
+          type: "elementary",
+          in: [{ id: "a", type: "number", schema: { digest } }],
+          out: [],
+        },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    link.deliver(encodeSchemaRes({ [digest]: null }));
+    const result = await pending;
+    assert.deepEqual(result, {});
+  });
+});
+
+describe("guardAdvisory", () => {
+  it("warns when the value fails the signature's in-band guard", async () => {
+    const { link, session } = makeSession();
+    // The graph mirror primes without a wire round trip
+    const { GraphModel } = await import("@noflo/graph");
+    session.client.graph = GraphModel.fromCanonical({
+      name: "main",
+      nodes: [{ entity_id: "adder", component: "math/Add" }],
+    });
+    const pending = guardAdvisory(session, {
+      node: "adder",
+      port: "a",
+      value: -5,
+    });
+    link.deliver(
+      encodeCompManifest("reg-hash-1", {
+        "math/Add": { sigHash: "a".repeat(64), type: "elementary" },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    link.deliver(
+      encodeCompDetailRes({
+        "math/Add": {
+          type: "elementary",
+          in: [{ id: "a", type: "number", guard: { type: "number", min: 0 } }],
+          out: [],
+        },
+      }),
+    );
+    const advisory = await pending;
+    assert.ok(advisory);
+    assert.match(advisory, /in-band guard/);
+    assert.match(advisory, /sending anyway/);
+  });
+
+  it("stays silent for in-guard values and unguarded ports", async () => {
+    const { link, session } = makeSession();
+    const { GraphModel } = await import("@noflo/graph");
+    session.client.graph = GraphModel.fromCanonical({
+      name: "main",
+      nodes: [{ entity_id: "adder", component: "math/Add" }],
+    });
+    const inGuard = guardAdvisory(session, {
+      node: "adder",
+      port: "a",
+      value: 5,
+    });
+    link.deliver(
+      encodeCompManifest("reg-hash-1", {
+        "math/Add": { sigHash: "a".repeat(64), type: "elementary" },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    link.deliver(
+      encodeCompDetailRes({
+        "math/Add": {
+          type: "elementary",
+          in: [{ id: "a", type: "number", guard: { type: "number", min: 0 } }],
+          out: [],
+        },
+      }),
+    );
+    assert.equal(await inGuard, null);
+  });
+
+  it("resolves exported inports through the graph mirror", async () => {
+    const { link, session } = makeSession();
+    const { GraphModel } = await import("@noflo/graph");
+    session.client.graph = GraphModel.fromCanonical({
+      name: "main",
+      nodes: [{ entity_id: "adder", component: "math/Add" }],
+      exports: [
+        {
+          direction: "inport",
+          public: "in",
+          internal: { node: "adder", port: "a" },
+        },
+      ],
+    });
+    const pending = guardAdvisory(session, {
+      exportName: "in",
+      value: -5,
+    });
+    link.deliver(
+      encodeCompManifest("reg-hash-1", {
+        "math/Add": { sigHash: "a".repeat(64), type: "elementary" },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    link.deliver(
+      encodeCompDetailRes({
+        "math/Add": {
+          type: "elementary",
+          in: [{ id: "a", type: "number", guard: { type: "number", min: 0 } }],
+          out: [],
+        },
+      }),
+    );
+    const advisory = await pending;
+    assert.ok(advisory);
+    assert.match(advisory, /math\/Add\.a/);
+  });
+});

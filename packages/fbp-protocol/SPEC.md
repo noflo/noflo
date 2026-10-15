@@ -367,6 +367,25 @@ signature, and a sidecar signature are the same data. The `type` field
 carries the component kind declared in the manifest; clients never infer
 kind from absence of source.
 
+Ports may additionally carry the schema layer (work document #37 §3.1):
+an optional `schema` reference — a map with the compact `ns/name` `id`
+(compatibility vocabulary) and/or the raw 32-byte SHA-256 digest
+(integrity pin) — and an optional `guard`, the closed-vocabulary in-band
+projection of the schema's cheaply-checkable assertions (`type` from the
+six-primitive vocabulary, bounded scalar `enum` at ≤64 entries, inclusive
+`min`/`max`, `required` key lists). The guard is checkable with
+comparisons alone: a runtime never loads a schema body to apply it, and
+violations are diagnostic-only — convergence integrity outranks schema
+enforcement. Both fields participate in the canonical signature and
+therefore in `sig_hash`: a changed schema digest re-fetches details
+through the ordinary Two-Step Cache. The component object itself may
+carry an optional `metadata` reference to its config catalog in the same
+id+digest form (work document #37 §3.2) — the object-level schema of
+what `getComponent(metadata)` reads. Phase-1 runtimes advertise
+references but cannot serve bodies (`0x28`/`0x29` land in phase 2);
+remote clients degrade to the `std` mappings until then, and no
+compatibility semantics beyond the `datatype` floor exist yet.
+
 **`0x25` CMD_COMP_WRITE** — atomic full-source update:
 `[0x25, component_name, source_string_or_rns_hash]`. For sources over 500
 bytes, clients SHOULD pass a Reticulum Resource hash instead of a raw string.
@@ -385,6 +404,67 @@ EUPL-1.2. With the ecosystem component catalog (WD #26), the `package_uri`
 resolves through the catalog's npm/JSR/version/hash provenance fields, so a
 runtime-installed library records the same package/version/hash the catalog
 and the client's project state carry.
+
+**`0x28` CMD_SCHEMA_REQ** — schema body retrieval (work document #37 §6):
+`[0x28, [raw_digest…], bundle]`. The client requests unknown schema and
+catalog bodies by raw 32-byte SHA-256 digest — digests only, never ids or
+URLs — with a boolean requesting closure-bundled responses (default on):
+each requested digest returns not only its own body but the bodies of its
+transitive `$ref` closure, saving one mesh round trip per hop. Requires
+`COMPONENT_READ`.
+
+**`0x29` CMD_SCHEMA_RES** — schema bodies:
+`[0x29, [[raw_digest, body | resource_hash | nil], …]]`. Each entry is the
+inline MsgPack document, an RNS resource digest for bodies over the
+protocol-stated inline cap (`0x25` source precedent; the cap is
+`SCHEMA_INLINE_LIMIT`, 4096 MsgPack wire bytes — over it, the resource form
+is mandatory), or nil for "not held". Nil is protocol-legitimate absence,
+and a runtime without any schema table answers **all-nil rather than
+staying silent** — silence never carries semantics. Bundling is capped
+responder-side at the protocol-stated maximum; over cap, the responder
+returns what fits and the client iterates. Digest verification is
+mandatory client-side: every returned body is verified against the digest
+that requested it (bundled entries against their `$id` digest); a
+mismatch is discarded and treated as absent. Closure completeness is
+client-checked — a fetched root is usable only when every `$ref` digest
+in its body, and transitively in the bundle, is present locally; missing
+entries are requested before use, never assumed. With the schema layer's
+`schema`/`metadata` references on `0x24` details, the digest the client
+sees is what it requests — the ordinary Two-Step Cache, flowing live.
+
+**`0x2a` CMD_SCHEMA_WRITE** — live schema authoring (work document #37
+§6): `[0x2a, raw_digest, body_or_ref]` writes a schema or catalog body
+into the runtime's table, inline or as an RNS resource hash (the same
+forms as `0x29`), under `COMPONENT_WRITE`. The digest rides every write:
+the runtime verifies an inline body against it (decode → RFC 8785
+canonicalize → SHA-256, which also pins the `$id`), and a resource-backed
+entry is verifiable when fetched. The write is content-addressed and
+idempotent — two clients writing different schemas concurrently both
+succeed, because a CAS store is grow-only; there is nothing to merge at
+the body level, and the only place conflict can live is the reference,
+which converges through signature sync. Write ordering is bodies-first:
+an editor saving a schema change writes the new body before re-pinning
+references via signature sync, so other clients never observe a dangling
+reference. Writing a body with dangling `$ref`s is accepted (a CAS store
+cannot know); the closure-completeness check catches it at first use. No
+reply: writes are confirmed by the client's own verification on first
+use, the same fire-and-forget shape as `0x25`. Runtime table hygiene —
+reachability-based garbage collection, storage quotas — is runtime
+policy, not protocol.
+
+**Tier A validation semantics.** Runtimes never load schema bodies on the
+data path and never run validator code. Port signatures carry the
+in-band `guard` (§3.1 of work document #37): the closed-vocabulary
+projection of the schema's cheaply-checkable assertions, checkable with
+comparisons alone. Packets entering over the wire — IIP inserts and
+`0x47` packet sends — MAY be checked against the target port's guard;
+violations are diagnostic-only, recorded via telemetry (`0x04 ERROR`
+flowtrace events or LXMF `[errors]`, per local policy), and never
+structurally rejected: convergence integrity outranks schema
+enforcement. A Node-class runtime MAY additionally opt into full
+validation as local policy; nothing in the protocol assumes it, and
+clients never assume the runtime checked. Editors and publish pipelines
+run full validation (Tier B) — validator dependencies live only there.
 
 **Component kind vocabulary.** One enum on every surface — publish-time
 manifests (WD #25), loader sidecar declarations, `0x20`/`0x22` manifest
@@ -697,12 +777,16 @@ with the design reasons:
   is the authority, and persistence is a host-side application concern over
   the converged state (the changeset-era autoSave work). There is nothing
   for a wire command to flash that convergence does not already make local.
-* **Port schema URIs** — datatype/schema handling needs end-to-end design
-  from `noflo.BasePort` through the protocol's port definitions to
-  noflo-ui's rendering. The RNS resource-hash variant is one candidate
-  shape. The flat `values`/`default` port options are **not** carried on
-  the wire: they stay publish-time manifest data, superseded on the wire
-  by the schema design's inline enums.[^w37]
+* **Port schema URIs** — superseded by the schema artifact design (work
+  document #37 §3.5): datatype/schema handling is end-to-end JSON Schema
+  2020-12, addressed as `ns/name` ids pinned by SHA-256 digests over RFC
+  8785 canonicalization; URL-based resolution and MIME-type schemas are
+  dead. Phase 1 ships the identity substrate, the port `schema`/`guard`
+  fields, the manifest schemas table with its publish gate, and the
+  pinned meta-schemas. The flat `values`/`default` port options are
+  **not** carried on the wire: they stay publish-time manifest data,
+  superseded on the wire by inline schemas (work document #37 §3.4 — the
+  option retirement proper ships with phase 2).[^w37]
 * **`network:error.stack`** — the `0x04 ERROR` payload is the exception
   string (frugalized per local policy); stack traces are not carried.
 * **`previewurl` output type** — visual output preview is UI territory,

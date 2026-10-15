@@ -173,6 +173,102 @@ describe("0x23/0x24 detail request and response", () => {
     assert.deepEqual(decoded.names, ["math/Add", "strings/Replace"]);
   });
 
+  it("carries schema references and guards on ports (work document #37)", () => {
+    const digest = "a".repeat(64);
+    const decoded = decodeCompDetailRes(
+      encodeCompDetailRes({
+        "math/Add": {
+          type: COMPONENT_TYPE.ELEMENTARY,
+          in: [
+            { id: "a", type: "number", schema: { id: "std/count", digest } },
+            {
+              id: "b",
+              type: "number",
+              schema: { digest },
+              guard: { type: "number", min: 0 },
+            },
+          ],
+          out: [{ id: "sum", type: "number" }],
+        },
+      }),
+    );
+    const ports = decoded.components["math/Add"].in;
+    assert.deepEqual(ports[0].schema, { id: "std/count", digest });
+    assert.deepEqual(ports[1].schema, { digest });
+    assert.deepEqual(ports[1].guard, { type: "number", min: 0 });
+  });
+
+  it("carries string-enum guards on ports — the 1.x values upgrade path", () => {
+    // A values list migrates to an inline enum schema; the derived guard
+    // is a scalar string enum and must survive the 0x24 wire round trip
+    const decoded = decodeCompDetailRes(
+      encodeCompDetailRes({
+        "process/Pick": {
+          type: COMPONENT_TYPE.ELEMENTARY,
+          in: [
+            {
+              id: "in",
+              type: "string",
+              guard: { enum: ["green", "blue"] },
+            },
+          ],
+          out: [],
+        },
+      }),
+    );
+    assert.deepEqual(decoded.components["process/Pick"].in[0].guard, {
+      enum: ["green", "blue"],
+    });
+  });
+
+  it("carries schema digests as raw 32-byte bins on the wire", () => {
+    const digest = "b".repeat(64);
+    const frame = MsgPack.decode(
+      encodeCompDetailRes({
+        "math/Add": {
+          type: COMPONENT_TYPE.ELEMENTARY,
+          in: [{ id: "a", type: "number", schema: { digest } }],
+          out: [],
+        },
+      }),
+    );
+    const ref = frame[1]["math/Add"].in[0].schema;
+    assert.ok(ref.digest instanceof Uint8Array);
+    assert.equal(ref.digest.length, 32);
+  });
+
+  it("rejects malformed schema references and guards", () => {
+    const detail = () => ({
+      type: COMPONENT_TYPE.ELEMENTARY,
+      in: [],
+      out: [],
+    });
+    assert.throws(() =>
+      encodeCompDetailRes({
+        X: {
+          ...detail(),
+          in: [{ id: "a", type: "all", schema: { id: "https://x.example" } }],
+        },
+      }),
+    );
+    assert.throws(() =>
+      encodeCompDetailRes({
+        X: {
+          ...detail(),
+          in: [{ id: "a", type: "all", schema: { digest: "short" } }],
+        },
+      }),
+    );
+    assert.throws(() =>
+      encodeCompDetailRes({
+        X: {
+          ...detail(),
+          in: [{ id: "a", type: "all", guard: { pattern: "^x" } }],
+        },
+      }),
+    );
+  });
+
   it("carries the full #25 port field set and the declared kind", () => {
     const decoded = decodeCompDetailRes(
       encodeCompDetailRes({
@@ -338,6 +434,27 @@ describe("canonical signature and sig_hash", () => {
       await sigHash(withDescription),
       await sigHash(addSignature),
     );
+  });
+
+  it("rides schema references and guards in the canonical form", async () => {
+    const digest = "c".repeat(64);
+    const withSchema = {
+      ...addSignature,
+      in: [
+        {
+          ...addSignature.in[0],
+          schema: { id: "std/count", digest },
+          guard: { type: "number" },
+        },
+        ...addSignature.in.slice(1),
+      ],
+    };
+    assert.match(
+      canonicalSignature(withSchema),
+      /"schema":\{"digest":"c{64}","id":"std\/count"\}/,
+    );
+    assert.match(canonicalSignature(withSchema), /"guard":\{"type":"number"\}/);
+    assert.notEqual(await sigHash(withSchema), await sigHash(addSignature));
   });
 
   it("computes a stable sha-256 hex digest", async () => {

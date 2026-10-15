@@ -366,7 +366,6 @@ describe("NoFlo Subgraph component", () => {
       c.inPorts.add("in", {
         required: true,
         datatype: "string",
-        default: "default-value",
       });
       c.outPorts.add("out", { datatype: "string" });
       c.process((input, output) => {
@@ -399,20 +398,6 @@ describe("NoFlo Subgraph component", () => {
       cl.components.Initials = grInitials;
     });
 
-    it("should send defaults", async () => {
-      const inst = await cl.load("Defaults");
-      const o = noflo.internalSocket.createSocket();
-      inst.outPorts.out.attach(o);
-      const data = new Promise((resolve) => {
-        listenDataOnce(o, (data) => {
-          assert.strictEqual(data, "default-value");
-          resolve();
-        });
-      });
-      await inst.start();
-      await data;
-    });
-
     it("should send initials", async () => {
       const inst = await cl.load("Initials");
       const o = noflo.internalSocket.createSocket();
@@ -424,23 +409,6 @@ describe("NoFlo Subgraph component", () => {
         });
       });
       await inst.start();
-      await data;
-    });
-
-    it("should not send defaults when an inport is attached externally", async () => {
-      const inst = await cl.load("Defaults");
-      const i = noflo.internalSocket.createSocket();
-      const o = noflo.internalSocket.createSocket();
-      inst.inPorts.in.attach(i);
-      inst.outPorts.out.attach(o);
-      const data = new Promise((resolve) => {
-        listenDataOnce(o, (data) => {
-          assert.strictEqual(data, "Foo");
-          resolve();
-        });
-      });
-      await inst.start();
-      i.send("Foo");
       await data;
     });
 
@@ -566,7 +534,7 @@ describe("NoFlo Subgraph component", () => {
       // Parent-style explicit start must not stop/restart the network
       await inst.start();
       assert.strictEqual(inst.network.isStarted(), true);
-      // The default was delivered once, not again after the restart
+      // The packet was delivered once, not again after the restart
       const received = [];
       listen(o, "ip", (ip) => {
         if (ip.type === "data") {

@@ -2,9 +2,7 @@
   "compilerOptions": {
     "module": "nodenext",
     "target": "esnext",
-    "types": [
-      "node"
-    ],
+    "types": ["node"],
     "checkJs": true,
     "skipLibCheck": true,
     "noEmit": false,
@@ -15,12 +13,6 @@
     "rootDir": "src",
     "outDir": "src"
   },
-  "include": [
-    "src/**/*.js"
-  ],
-  "exclude": [
-    "node_modules",
-    "spec",
-    "src/**/*.d.ts"
-  ]
+  "include": ["src/**/*.js"],
+  "exclude": ["node_modules", "spec", "src/**/*.d.ts"]
 }

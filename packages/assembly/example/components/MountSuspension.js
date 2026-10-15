@@ -4,9 +4,9 @@ class MountSuspension extends Component {
   // Can skip constructor
   relay(msg, output) {
     msg.chassis.suspension = {
-      levers: '> | | <',
-      shocks: ['I', 'I', 'i', 'i'],
-      coils: ['Z', 'Z', 'z', 'z'],
+      levers: "> | | <",
+      shocks: ["I", "I", "i", "i"],
+      coils: ["Z", "Z", "z", "z"],
     };
     output.sendDone(msg);
   }
@@ -14,6 +14,6 @@ class MountSuspension extends Component {
 
 export function getComponent() {
   return new MountSuspension({
-  description: 'Mounts suspension',
-});
+    description: "Mounts suspension",
+  });
 }

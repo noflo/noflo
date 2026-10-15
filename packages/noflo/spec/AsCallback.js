@@ -27,18 +27,6 @@ describe("asCallback interface", () => {
       output.done(new Error(`Received ${data}`));
     });
   };
-  const processValues = () => {
-    const c = new noflo.Component();
-    c.inPorts.add("in", {
-      datatype: "string",
-      values: ["green", "blue"],
-    });
-    c.outPorts.add("out", { datatype: "string" });
-    return c.process((input, output) => {
-      const data = input.getData("in");
-      output.sendDone(data);
-    });
-  };
   const neverSend = () => {
     const c = new noflo.Component();
     c.inPorts.add("in", { datatype: "string" });
@@ -72,7 +60,6 @@ describe("asCallback interface", () => {
     loader = new noflo.ComponentLoader({});
     loader.registerComponent("process", "Async", processAsync);
     loader.registerComponent("process", "Error", processError);
-    loader.registerComponent("process", "Values", processValues);
     loader.registerComponent("process", "NeverSend", neverSend);
     loader.registerComponent("process", "Streamify", streamify);
   });
@@ -221,56 +208,6 @@ describe("asCallback interface", () => {
       });
     });
   });
-  describe("with a component supporting only certain values", () => {
-    let wrapped = null;
-    before(() => {
-      wrapped = noflo.asCallback("process/Values", { loader });
-    });
-    it("should execute network with input map and provide output map", (_t, done) => {
-      const expected = "blue";
-      wrapped({ in: expected }, (err, out) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.deepStrictEqual(out.out, expected);
-        done();
-      });
-    });
-    it("should execute network with simple input and provide simple output", (_t, done) => {
-      const expected = "blue";
-      wrapped(expected, (err, out) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.deepStrictEqual(out, expected);
-        done();
-      });
-    });
-    it("should execute network with wrong map and provide error", (_t, done) => {
-      wrapped({ in: "red" }, (err) => {
-        assert.ok(Error.isError(err));
-        assert.ok(
-          err.message.includes(
-            "Invalid data='red' received, not in [green,blue]",
-          ),
-        );
-        done();
-      });
-    });
-    it("should execute network with wrong input and provide error", (_t, done) => {
-      wrapped("red", (err) => {
-        assert.ok(Error.isError(err));
-        assert.ok(
-          err.message.includes(
-            "Invalid data='red' received, not in [green,blue]",
-          ),
-        );
-        done();
-      });
-    });
-  });
   describe("with a component sending streams", () => {
     let wrapped = null;
     before(() => {
@@ -353,58 +290,6 @@ describe("asCallback interface", () => {
           ["h", "e", "l", "l", "o"],
           ["t", "h", "e", "r", "e"],
         ]);
-        done();
-      });
-    });
-  });
-  describe("with a graph containing a component supporting only certain values", () => {
-    let graph = null;
-    let wrapped = null;
-    before(async () => {
-      graph = loadJsonGraphFixture("ascallback-values");
-      wrapped = noflo.asCallback(graph, { loader });
-    });
-    it("should execute network with input map and provide output map", (_t, done) => {
-      const expected = "blue";
-      wrapped({ in: expected }, (err, out) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.deepStrictEqual(out.out, expected);
-        done();
-      });
-    });
-    it("should execute network with simple input and provide simple output", (_t, done) => {
-      const expected = "blue";
-      wrapped(expected, (err, out) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        assert.deepStrictEqual(out, expected);
-        done();
-      });
-    });
-    it("should execute network with wrong map and provide error", (_t, done) => {
-      wrapped({ in: "red" }, (err) => {
-        assert.ok(Error.isError(err));
-        assert.ok(
-          err.message.includes(
-            "Invalid data='red' received, not in [green,blue]",
-          ),
-        );
-        done();
-      });
-    });
-    it("should execute network with wrong input and provide error", (_t, done) => {
-      wrapped("red", (err) => {
-        assert.ok(Error.isError(err));
-        assert.ok(
-          err.message.includes(
-            "Invalid data='red' received, not in [green,blue]",
-          ),
-        );
         done();
       });
     });

@@ -3,13 +3,13 @@ import { Component } from "../../src/index.js";
 class MountPanels extends Component {
   constructor() {
     super({
-      description: 'Mounts body panels',
-      validates: ['body.id'],
+      description: "Mounts body panels",
+      validates: ["body.id"],
     });
   }
 
   relay(msg, output) {
-    msg.body.panels = 'Steel Panels';
+    msg.body.panels = "Steel Panels";
     output.sendDone(msg);
   }
 }

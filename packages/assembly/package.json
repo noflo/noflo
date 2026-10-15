@@ -26,6 +26,8 @@
   },
   "files": [
     "src",
+    "src/schemas",
+    "schemas",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"
@@ -52,6 +54,7 @@
     "@noflo/loader-node": "^2.0.0-alpha.3",
     "@noflo/noflo": "^2.0.0-alpha.3",
     "@types/node": "^24.0.0",
+    "ajv": "^8.20.0",
     "typescript": "^5.0.0"
   }
 }

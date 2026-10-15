@@ -38,6 +38,17 @@
  */
 
 export {
+  /**
+   * The default catalog bodies, keyed by namespace (`std`, `ui`, `runtime`);
+   * digests via {@linkcode catalogDigest}.
+   *
+   * @typedef {import("./catalogs.js").CatalogNamespace} CatalogNamespace
+   */
+  CATALOGS,
+  catalogBody,
+  catalogDigest,
+} from "./catalogs.js";
+export {
   ANNOUNCE_ASPECT,
   CAPABILITY,
   CMD_AUTH_RESPONSE,
@@ -67,6 +78,9 @@ export {
   CMD_PROCESS_LIST_REQ,
   CMD_PUBSUB_SUB,
   CMD_RUN_CTRL,
+  CMD_SCHEMA_REQ,
+  CMD_SCHEMA_RES,
+  CMD_SCHEMA_WRITE,
   COMPONENT_TYPE,
   capabilitiesMask,
   EVENT_TYPE,
@@ -80,6 +94,8 @@ export {
   REASON,
   RUN_ACTION,
   RUN_STATE,
+  SCHEMA_BUNDLE_MAX_ENTRIES,
+  SCHEMA_INLINE_LIMIT,
   TRACE_SNAPSHOT,
   VISUAL_FORMAT,
 } from "./constants.js";
@@ -136,6 +152,16 @@ export {
   encodeLxmTelemetry,
 } from "./lxmf.js";
 export {
+  /**
+   * The pinned meta-schema bodies, keyed by id.
+   *
+   * @typedef {import("./meta-schemas.js").MetaSchemaId} MetaSchemaId
+   */
+  META_SCHEMAS,
+  metaSchemaBody,
+  metaSchemaDigest,
+} from "./meta-schemas.js";
+export {
   canonicalManifest,
   canonicalSignature,
   decodeCompDetailReq,
@@ -147,6 +173,9 @@ export {
   decodeCompSyncReq,
   decodeCompUpToDate,
   decodeCompWrite,
+  decodeSchemaReq,
+  decodeSchemaRes,
+  decodeSchemaWrite,
   encodeCompDetailReq,
   encodeCompDetailRes,
   encodeCompInstallReq,
@@ -156,9 +185,32 @@ export {
   encodeCompSyncReq,
   encodeCompUpToDate,
   encodeCompWrite,
+  encodeSchemaReq,
+  encodeSchemaRes,
+  encodeSchemaWrite,
   registryHash,
   sigHash,
 } from "./registry.js";
+export {
+  checkGuard,
+  GUARD_ENUM_LIMIT,
+  GUARD_TYPES,
+  projectGuard,
+  validateGuard,
+} from "./schema-guards.js";
+export {
+  canonicalizeJson,
+  collectSchemaRefs,
+  detectRefCycles,
+  digestSchema,
+  isValidSchemaId,
+  normalizeSchemaBody,
+  parseSchemaRef,
+  pinSchemaRefs,
+  SCHEMA_DIGEST_HEX_LENGTH,
+  SCHEMA_URN_PREFIX,
+  schemaUrn,
+} from "./schema-identity.js";
 export {
   dataEventEnvelope,
   decodeFlowtraceChunk,

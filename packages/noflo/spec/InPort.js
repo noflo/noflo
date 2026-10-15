@@ -56,42 +56,11 @@ describe("Inport Port", () => {
       s.send("some-data");
     });
   });
-  describe("with default value", () => {
-    let p = null;
-    let s = null;
-    beforeEach(() => {
-      p = new noflo.InPort({ default: "default-value" });
-      s = new noflo.internalSocket.InternalSocket();
-      p.attach(s);
-    });
-    it("should send the default value as a packet, though on next tick after initialization", (_t, done) => {
-      listen(p, "ip", (ip) => {
-        assert.strictEqual(ip.type, "data");
-        assert.strictEqual(ip.data, "default-value");
-        done();
-      });
-      s.send();
-    });
-    it("should send the default value before IIP", (_t, done) => {
-      const received = ["default-value", "some-iip"];
-      listen(p, "ip", (ip) => {
-        assert.strictEqual(ip.type, "data");
-        assert.strictEqual(ip.data, received.shift());
-        if (received.length === 0) {
-          done();
-        }
-      });
-      setTimeout(() => {
-        s.send();
-        s.send("some-iip");
-      }, 0);
-    });
-  });
   describe("with options stored in port", () => {
     it("should store all provided options in port, whether we expect it or not", () => {
       const options = {
         datatype: "string",
-        type: "http://schema.org/Person",
+        schema: "example/Person",
         description: "Person",
         required: true,
         weNeverExpectThis: "butWeStoreItAnyway",
@@ -120,38 +89,16 @@ describe("Inport Port", () => {
       });
     });
   });
-  describe("with TYPE (i.e. ontology) information", () => {
+  describe("with TYPE (i.e. schema) information", () => {
     const f = (type) => new noflo.InPort({ type });
-    it("should be a URL or MIME", () => {
-      assert.doesNotThrow(() => f("http://schema.org/Person"));
-      assert.doesNotThrow(() => f("text/javascript"));
-      assert.throws(() => f("neither-a-url-nor-mime"));
-    });
-  });
-  describe("with accepted enumerated values", () => {
-    it("should accept certain values", (_t, done) => {
-      const p = new noflo.InPort({ values: "noflo is awesome".split(" ") });
-      const s = new noflo.internalSocket.InternalSocket();
-      p.attach(s);
-      listen(p, "ip", (ip) => {
-        assert.strictEqual(ip.type, "data");
-        assert.strictEqual(ip.data, "awesome");
-        done();
-      });
-      s.send("awesome");
-    });
-    it("should throw an error if value is not accepted", () => {
-      const p = new noflo.InPort({ values: "noflo is awesome".split(" ") });
-      const s = new noflo.internalSocket.InternalSocket();
-      p.attach(s);
-      listen(p, "ip", (ip) => {
-        if (ip.type !== "data") {
-          return;
-        }
-        // Fail the test, we shouldn't have received anything
-        assert.fail("Received an unexpected data packet");
-      });
-      assert.throws(() => s.send("terrific"));
+    it("should be a schema artifact id or an inline JSON Schema object", () => {
+      assert.doesNotThrow(() => f("example/Person"));
+      assert.doesNotThrow(() => f({ type: "string" }));
+      assert.throws(() => f("http://schema.org/Person"));
+      // A bare type/subtype string is syntactically a valid ns/name id;
+      // unresolvable references fail at the publish gate, not here
+      assert.throws(() => f("application/vnd.foo+json"));
+      assert.throws(() => f("neither-an-id-nor-an-object"));
     });
   });
   describe("with processing shorthand", () => {

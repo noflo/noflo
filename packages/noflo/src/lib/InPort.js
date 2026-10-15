@@ -7,8 +7,6 @@ import BasePort from "./BasePort.js";
 
 /**
  * @typedef InPortOptions
- * @property {any} [default]
- * @property {Array<any>} [values]
  * @property {boolean} [control]
  * @property {boolean} [triggering]
  */
@@ -46,28 +44,6 @@ export default class InPort extends BasePort {
     if (opts.triggering == null) {
       opts.triggering = true;
     }
-    // Accepted-values enumeration: advisory metadata for tooling — noflo-ui
-    // renders value pickers, the manifest and the runtime protocol publish
-    // it. Structurally validated so a malformed declaration fails loudly at
-    // component load.
-    if (opts.values !== undefined && !Array.isArray(opts.values)) {
-      throw new Error(
-        "InPort option 'values' must be an array of accepted values",
-      );
-    }
-    // The default value the port carries when the graph leaves it
-    // unconfigured; when an enumeration is present, the default must be one
-    // of the accepted values.
-    if (
-      opts.values !== undefined &&
-      opts.default !== undefined &&
-      !opts.values.includes(opts.default)
-    ) {
-      throw new Error(
-        "InPort option 'default' must be one of the declared 'values'",
-      );
-    }
-
     super(opts);
 
     /**
@@ -88,18 +64,12 @@ export default class InPort extends BasePort {
 
   /**
    * Subscribe the port to a socket and forward its events into the port's
-   * buffers and lifecycle events. Installs the default-value data delegate
-   * when the port has one.
+   * buffers and lifecycle events.
    *
    * @param {import("./InternalSocket.js").InternalSocket} socket
    * @param {number|null} [localId]
    */
   attachSocket(socket, localId = null) {
-    // have a default value.
-    if (this.hasDefault()) {
-      socket.setDataDelegate(() => this.options.default);
-    }
-
     // Connection framing stays a port-level event (consumed for example by
     // subgraphs starting their internal network on first data); packets are
     // delivered through the `ip` event only.
@@ -123,18 +93,14 @@ export default class InPort extends BasePort {
   }
 
   /**
-   * Receive an Information Packet from a socket: validate it against the
-   * port's `values` list, stamp it with ownership, index, and port
-   * datatype/schema, buffer it, and emit the `ip` event.
+   * Receive an Information Packet from a socket: stamp it with ownership,
+   * index, and port datatype/schema, buffer it, and emit the `ip` event.
    *
    * @param {import("./IP.js").default} packet
    * @param {number|null} [index]
    */
   handleIP(packet, index = null) {
     const ip = packet;
-    if (ip.type === "data") {
-      this.validateData(ip.data);
-    }
     ip.owner = this.nodeInstance;
     if (this.isAddressable()) {
       ip.index = index;
@@ -165,16 +131,6 @@ export default class InPort extends BasePort {
     }
     buf.push(ip);
     this.dispatchLifecycleEvent("ip", ip);
-  }
-
-  /**
-   * Check whether the port has a default value to send when no packet
-   * arrives.
-   *
-   * @returns {boolean}
-   */
-  hasDefault() {
-    return this.options.default !== undefined;
   }
 
   /**
@@ -263,24 +219,6 @@ export default class InPort extends BasePort {
       return this.iipBuffer;
     }
     return this.buffer;
-  }
-
-  /**
-   * Validate incoming data against the port's `values` list, when one is
-   * configured. Throws on values outside the list.
-   *
-   * @param {any} data
-   * @returns {void}
-   */
-  validateData(data) {
-    if (!this.options.values) {
-      return;
-    }
-    if (this.options.values.indexOf(data) === -1) {
-      throw new Error(
-        `Invalid data='${data}' received, not in [${this.options.values}]`,
-      );
-    }
   }
 
   /**

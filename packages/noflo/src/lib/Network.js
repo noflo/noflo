@@ -153,7 +153,6 @@ export class Network extends EventBase {
     /** Sockets that will be sending default data
      * @type {Array<import("./InternalSocket.js").InternalSocket>}
      */
-    this.defaults = [];
     /** The native `@noflo/graph` model this network is instantiated with, and the target of live-edit mirroring
      * @type {import("@noflo/graph").GraphModel}
      */
@@ -540,7 +539,6 @@ export class Network extends EventBase {
       .then(() => handleAll(this.graph.nodes(), "addNode"))
       .then(() => handleAll(this.graph.edges(), "addEdge"))
       .then(() => handleAll(this.graph.iips(), "addInitial"))
-      .then(() => handleAll(this.graph.nodes(), "addDefaults"))
       .then(() => this);
     return promise;
   }
@@ -855,47 +853,6 @@ export class Network extends EventBase {
   }
 
   /**
-   * Attach default-value sockets to any ports with defaults that are not
-   * already attached. Called during connect for every node.
-   *
-   * @protected
-   * @param {import("@noflo/graph").GraphNode} node
-   * @returns {Promise<void>}
-   */
-  addDefaults(node) {
-    return this.ensureNode(node.entity_id, "inbound")
-      .then((process) =>
-        Promise.all(
-          Object.keys(process.component.inPorts.ports).map((key) => {
-            // Attach a socket to any defaulted inPorts as long as they aren't already attached.
-            const port = process.component.inPorts.ports[key];
-            if (!port.hasDefault() || port.isAttached()) {
-              return Promise.resolve();
-            }
-            const socket = internalSocket.createSocket(
-              {},
-              {
-                debug: this.debug,
-                async: this.asyncDelivery,
-              },
-            );
-
-            // Subscribe to events from the socket
-            this.subscribeSocket(socket);
-
-            return connectPort(socket, process, key, undefined, true).then(
-              () => {
-                this.connections.push(socket);
-                this.defaults.push(socket);
-              },
-            );
-          }),
-        ),
-      )
-      .then(() => {});
-  }
-
-  /**
    * Add an initial Information Packet to the network: create and attach its
    * socket, queue the packet, and register the IIP with the current graph.
    * When the network is running, the IIP is sent immediately.
@@ -1125,36 +1082,8 @@ export class Network extends EventBase {
   }
 
   /**
-   * Send default values to any inports that have them but no connection or
-   * IIP supplying data.
-   *
-   * @protected
-   * @returns Promise<void>
-   */
-  sendDefaults() {
-    return Promise.all(
-      this.defaults.map((socket) => {
-        // Don't send defaults if more than one socket is present on the port.
-        // This case should only happen when a subgraph is created as a component
-        // as its network is instantiated and its inputs are serialized before
-        // a socket is attached from the "parent" graph.
-        if (
-          socket.to.process.component.inPorts[socket.to.port].sockets.length !==
-          1
-        ) {
-          return Promise.resolve();
-        }
-        socket.connect();
-        socket.send();
-        socket.disconnect();
-        return Promise.resolve();
-      }),
-    ).then(() => {});
-  }
-
-  /**
    * Start the network: start all components, send the initial Information
-   * Packets, and then send port defaults. Starting an already-started
+   * Packets. Starting an already-started
    * network stops it first.
    *
    * @returns {Promise<this>}
@@ -1171,7 +1100,6 @@ export class Network extends EventBase {
     this.eventBuffer = [];
     return this.startComponents()
       .then(() => this.sendInitials())
-      .then(() => this.sendDefaults())
       .then(() => {
         this.setStarted(true);
         return Promise.resolve(this);

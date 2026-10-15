@@ -51,6 +51,7 @@ import { GraphModel } from "@noflo/graph";
 import { Destination, fromHex, Packet, PacketType } from "@reticulum/core";
 import { ExecutionClient } from "./execution.js";
 import { RegistryCache } from "./registry-cache.js";
+import { SchemaCache } from "./schema-cache.js";
 
 export {
   ANNOUNCE_ASPECT,
@@ -85,6 +86,7 @@ export { ExecutionClient, PROCESS_ACTIONS, RUN_ACTIONS } from "./execution.js";
 /** @typedef {import("./registry-cache.js").CachedComponent} CachedComponent */
 /** @typedef {import("./registry-cache.js").RegistryCatalog} RegistryCatalog */
 export { RegistryCache } from "./registry-cache.js";
+export { SchemaCache } from "./schema-cache.js";
 export { TelemetryClient } from "./telemetry.js";
 export { UiEventSurface } from "./ui-events.js";
 
@@ -348,6 +350,20 @@ export class RuntimeClient extends EventTarget {
     });
 
     /**
+     * The client-side schema store (work document #37 phase 2): bodies
+     * fetched over `0x28`/`0x29`, digest-verified, closure-complete.
+     *
+     * @type {SchemaCache}
+     */
+    this.schemas = new SchemaCache({
+      requestReply: async (payload) => {
+        const reply = this.nextFrame();
+        await this.send(payload);
+        return reply;
+      },
+    });
+
+    /**
      * The execution-control sender (work document #29 phase 4):
      * run control, breakpoints, process control, packet injection.
      *
@@ -521,6 +537,38 @@ export class RuntimeClient extends EventTarget {
    */
   syncComponents() {
     return this.registry.sync();
+  }
+
+  /**
+   * Fetch the schema bodies the synced catalog references (work document
+   * #37 phase 2): every port schema digest and component config-catalog
+   * digest in the catalog's cached details is requested when not held
+   * locally, with closure bundling; every arriving body is digest-verified
+   * before it enters the store. A runtime without a schema table answers
+   * all-nil and the store stays empty — the degradation ladder, not an
+   * error.
+   *
+   * @param {RegistryCatalog} [catalog] Defaults to the last synced catalog.
+   * @returns {Promise<Map<string, Record<string, any>>>} The verified bodies this round fetched.
+   */
+  async syncSchemaBodies(catalog = this.registry.catalog()) {
+    /** @type {Set<string>} */
+    const digests = new Set();
+    for (const entry of Object.values(catalog)) {
+      const signature = /** @type {any} */ (entry).signature;
+      if (!signature) continue;
+      for (const side of ["in", "out"]) {
+        for (const port of signature[side] ?? []) {
+          if (port.schema?.digest) digests.add(port.schema.digest);
+        }
+      }
+      if (signature.metadata?.digest) digests.add(signature.metadata.digest);
+    }
+    const missing = this.schemas.missing([...digests]);
+    if (missing.length === 0) {
+      return new Map();
+    }
+    return this.schemas.fetch(missing, { bundle: true });
   }
 
   /**

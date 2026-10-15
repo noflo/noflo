@@ -40,6 +40,7 @@ import {
 import { catalogFromLoader } from "./catalog.js";
 import { addDebug } from "./debug.js";
 import { loadOrCreateIdentity } from "./identity.js";
+import { schemaTableFromNodeModules } from "./schema-table.js";
 import { writeTrace } from "./trace.js";
 
 /**
@@ -118,6 +119,9 @@ async function createReticulum(options) {
  * @param {boolean} [options.cache] Read the component catalog from the
  *   manifest cache
  * @param {boolean} [options.trace] Record a flowtrace of the execution
+ * @param {boolean} [options.schemaTables=true] Load the runtime's schema
+ *   table from installed packages' `noflo.json` schemas tables (work
+ *   document #37 phase 2); `false` skips the load and serves all-nil
  * @param {{ default?: string[], identities?: Record<string, string[]> }} [options.permissions]
  *   DACAR capability grants
  * @param {string} [options.rnsHost] rnsd uplink hostname
@@ -235,6 +239,14 @@ export async function createHost(options = {}) {
     graph,
     catalog: await catalogFromLoader(loader),
     componentLoader: loader,
+    // The schema table loads from installed packages' manifests: the
+    // manifest-first rung of the WD #24 ladder applied to schema bodies
+    // (work document #37 phase 2). Every loaded body is digest-verified
+    // against its manifest pin at startup
+    schemaTable:
+      options.schemaTables === false
+        ? undefined
+        : await schemaTableFromNodeModules(options.baseDir),
     autostart: false,
     // Always Dacar: a deny-closed policy stands in when no store exists,
     // so the host still boots (and serves nothing) without one.
