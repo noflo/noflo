@@ -218,6 +218,42 @@ describe("schema table", () => {
     assert.deepEqual(answer.get(d1)?.body, v1);
     assert.ok(!answer.has(d2), "the unpinned revision is not served");
   });
+
+  it("degrades an over-cap package body instead of throwing at encode time", async () => {
+    const table = new SchemaTable();
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "noflo-schema-cap-"));
+    try {
+      const overcap = {
+        $id: "big/thing",
+        type: "object",
+        description: "x".repeat(6000),
+      };
+      const digest = await digestSchema(overcap);
+      fs.mkdirSync(path.join(dir, "schemas"), { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, "schemas", "big-thing.json"),
+        `${JSON.stringify(overcap, null, 2)}\n`,
+      );
+      fs.writeFileSync(
+        path.join(dir, "noflo.json"),
+        JSON.stringify({
+          schemas: {
+            "big/thing": {
+              digest,
+              path: "schemas/big-thing.json",
+            },
+          },
+        }),
+      );
+      await table.loadPackage(dir);
+      // Serving the body inline would make encodeSchemaRes throw and
+      // leave the 0x28 request unanswered — degrade to nil instead
+      const answer = table.request([digest], false);
+      assert.equal(answer.get(digest), null);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("schema protocol", () => {

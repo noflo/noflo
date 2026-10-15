@@ -28,7 +28,9 @@ import {
   encodeSchemaRes,
   parseSchemaRef,
   SCHEMA_BUNDLE_MAX_ENTRIES,
+  SCHEMA_INLINE_LIMIT,
 } from "@noflo/fbp-protocol";
+import { MsgPack } from "@reticulum/core";
 
 /**
  * A resolved schema entry: an inline body or a resource-backed reference.
@@ -122,7 +124,7 @@ export class SchemaTable {
     /** @type {Map<string, SchemaEntry|null>} */
     const answer = new Map();
     for (const digest of digests) {
-      answer.set(digest, this.entry(digest));
+      answer.set(digest, this.servable(digest));
     }
     if (!bundle) {
       return answer;
@@ -134,6 +136,28 @@ export class SchemaTable {
       if (answer.size >= SCHEMA_BUNDLE_MAX_ENTRIES) break;
     }
     return answer;
+  }
+
+  /**
+   * The servable form of an entry: a body over the protocol's inline cap
+   * cannot ride `0x29` inline (the codec rejects it), so it degrades to
+   * its resource ref when one exists and to nil otherwise — degraded
+   * service, never a silenced handler. Over-cap bodies should not occur
+   * (publish policy), but serving one would throw in `encodeSchemaRes`
+   * and leave the request unanswered, which the all-nil rule forbids.
+   *
+   * @param {string} digest Hex digest.
+   * @returns {SchemaEntry|null}
+   */
+  servable(digest) {
+    const entry = this.entry(digest);
+    if (
+      entry?.body &&
+      MsgPack.encode(entry.body).length > SCHEMA_INLINE_LIMIT
+    ) {
+      return entry.ref ? { ref: entry.ref } : null;
+    }
+    return entry;
   }
 
   /**
@@ -150,7 +174,7 @@ export class SchemaTable {
       const parsed = parseSchemaRef(ref);
       const digest = parsed.digest ?? this.#idIndex.get(parsed.id);
       if (!digest || answer.has(digest)) continue;
-      const entry = this.entry(digest);
+      const entry = this.servable(digest);
       if (!entry) continue;
       answer.set(digest, entry);
       if (entry.body) this.#bundleClosure(entry.body, answer);
