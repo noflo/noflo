@@ -80,12 +80,10 @@ export class SchemaCache {
     const out = new Set();
     /** @type {(digest: string) => void} */
     const walk = (digest) => {
+      // An unheld digest is requested; its own refs become known — and
+      // checked — only once its body arrives
       if (out.has(digest) || this.#bodies.has(digest)) return;
       out.add(digest);
-      const body = this.#bodies.get(digest);
-      if (body) {
-        for (const ref of refsOf(body)) walk(ref);
-      }
     };
     for (const digest of digests) {
       walk(digest);
@@ -121,8 +119,12 @@ export class SchemaCache {
    * @param {string[]} digests Hex digests to fetch.
    * @param {Object} [options]
    * @param {boolean} [options.bundle] Request closure-bundled responses (default on).
-   * @returns {Promise<Map<string, Record<string, any>>>} The verified bodies, keyed by hex digest.
-   * @throws {Error} When the runtime answers with none of the requested digests held.
+   * @returns {Promise<Map<string, Record<string, any>>>} The verified bodies this round fetched.
+   *   A nil or resource-ref entry is treated as absent; the returned map
+   *   may be empty when the runtime holds none of the requested digests —
+   *   degradation, never an error. A closure left incomplete by the
+   *   bundle cap or by nil entries is the caller's signal to iterate with
+   *   further requests.
    */
   async fetch(digests, options = {}) {
     const { bundle = true } = options;
