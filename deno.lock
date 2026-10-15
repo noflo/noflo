@@ -218,6 +218,7 @@
             "npm:@noflo/loader-node@^2.0.0-alpha.3",
             "npm:@noflo/noflo@^2.0.0-alpha.3",
             "npm:@types/node@24",
+            "npm:ajv@^8.20.0",
             "npm:typescript@5"
           ]
         }
