@@ -7,6 +7,7 @@ import {
   encodeCompDetailRes,
   encodeOpRejected,
   encodeRunCtrl,
+  encodeSchemaRes,
   RUN_ACTION,
 } from "@noflo/fbp-protocol";
 import {
@@ -396,5 +397,44 @@ describe("discoverRuntime", () => {
     });
     const pending = discoverRuntime({ reticulum: rns, timeoutMs: 200 });
     await assert.rejects(pending, /announce/);
+  });
+});
+
+describe("syncSchemaBodies", () => {
+  it("fetches the digests the synced details reference", async () => {
+    const { link, client } = makeClient();
+    const { digestSchema } = await import("@noflo/fbp-protocol");
+    const body = { $id: "std/count", type: "integer", minimum: 0 };
+    const digest = await digestSchema(body);
+    const pending = client.syncComponents();
+    link.deliver(
+      encodeCompManifest("reg-hash-1", {
+        "math/Add": { sigHash: "a".repeat(64), type: "elementary" },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    link.deliver(
+      encodeCompDetailRes({
+        "math/Add": {
+          type: "elementary",
+          in: [{ id: "a", type: "number", schema: { digest } }],
+          out: [],
+          metadata: { id: "std/count", digest },
+        },
+      }),
+    );
+    await pending;
+    const schemaPending = client.syncSchemaBodies();
+    link.deliver(encodeSchemaRes({ [digest]: body }));
+    const bodies = await schemaPending;
+    assert.deepEqual(bodies.get(digest), body);
+    assert.ok(client.schemas.has(digest));
+  });
+
+  it("makes no request when the catalog carries no schema digests", async () => {
+    const { link, client } = makeClient();
+    const bodies = await client.syncSchemaBodies();
+    assert.equal(bodies.size, 0);
+    assert.equal(link.sent.length, 0);
   });
 });

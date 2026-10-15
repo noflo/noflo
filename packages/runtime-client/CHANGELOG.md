@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- The client-side schema store (work document #37 phase 2): `SchemaCache` fetches bodies over `0x28`/`0x29` and verifies every body against its digest before caching — a poisoned body is discarded and treated as absent. Closure completeness is client-checked against the local cache: a fetched root is unusable while any referenced digest is missing, and follow-up requests target only the missing digests. `RuntimeClient.syncSchemaBodies()` collects the schema digests the synced catalog's details reference and fetches the missing ones with closure bundling; the `UiEventSurface`'s `components` event now carries `schemaBodies` alongside the catalog. A runtime without a schema table answers all-nil and the store stays empty — the degradation ladder, not an error
 
 - Initial package: `@noflo/runtime-client`, the FBP Protocol 2.0 client library over Reticulum (work document #29 phases 1–5)
 - `discoverRuntime()` — announce-based runtime discovery through the §3 app_data decode
