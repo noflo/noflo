@@ -1127,6 +1127,11 @@ export function encodeSchemaWrite(digest, bodyOrRef) {
       "body must be an inline document or a resource ref string",
       CMD_SCHEMA_WRITE,
     );
+  } else if (MsgPack.encode(bodyOrRef).length > SCHEMA_INLINE_LIMIT) {
+    throw new ProtocolError(
+      `inline schema bodies must stay within the ${SCHEMA_INLINE_LIMIT}-byte cap; use the resource form`,
+      CMD_SCHEMA_WRITE,
+    );
   }
   return MsgPack.encode([CMD_SCHEMA_WRITE, fromHex(digest), bodyOrRef]);
 }
@@ -1165,6 +1170,12 @@ export function decodeSchemaWrite(bytes) {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new ProtocolError(
       "body must be an inline document or a resource ref string",
+      CMD_SCHEMA_WRITE,
+    );
+  }
+  if (MsgPack.encode(value).length > SCHEMA_INLINE_LIMIT) {
+    throw new ProtocolError(
+      `inline schema bodies must stay within the ${SCHEMA_INLINE_LIMIT}-byte cap; use the resource form`,
       CMD_SCHEMA_WRITE,
     );
   }

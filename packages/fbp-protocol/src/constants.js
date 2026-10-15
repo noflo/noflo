@@ -405,9 +405,10 @@ export const COMPONENT_TYPE = {
 
 /**
  * The maximum size of an inline schema body on the `0x29`/`0x2a` paths,
- * in canonical JSON bytes (work document #37 §6): over the cap, the RNS
+ * in MsgPack wire bytes (work document #37 §6): over the cap, the RNS
  * resource form is mandatory. The cap keeps closure bundles inside
- * comfortable frame sizes on constrained links.
+ * comfortable frame sizes on constrained links; MsgPack bytes are what
+ * the frame actually carries, so they are what the cap measures.
  *
  * @type {number}
  */

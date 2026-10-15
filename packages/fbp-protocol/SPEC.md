@@ -417,7 +417,7 @@ transitive `$ref` closure, saving one mesh round trip per hop. Requires
 `[0x29, [[raw_digest, body | resource_hash | nil], …]]`. Each entry is the
 inline MsgPack document, an RNS resource digest for bodies over the
 protocol-stated inline cap (`0x25` source precedent; the cap is
-`SCHEMA_INLINE_LIMIT`, 4096 canonical bytes — over it, the resource form
+`SCHEMA_INLINE_LIMIT`, 4096 MsgPack wire bytes — over it, the resource form
 is mandatory), or nil for "not held". Nil is protocol-legitimate absence,
 and a runtime without any schema table answers **all-nil rather than
 staying silent** — silence never carries semantics. Bundling is capped

@@ -130,6 +130,26 @@ describe("0x2a CMD_SCHEMA_WRITE", () => {
     assert.equal(frame[1].length, 32);
   });
 
+  it("rejects an inline body over the size cap", () => {
+    const oversized = {
+      type: "object",
+      description: "x".repeat(SCHEMA_INLINE_LIMIT),
+    };
+    assert.throws(
+      () => encodeSchemaWrite(DIGEST_A, oversized),
+      /resource form/,
+    );
+    // The decode side enforces the same cap, so a hostile or buggy peer
+    // cannot poison the runtime's table with a body that would later
+    // silence 0x28 requests for its digest
+    const frame = MsgPack.encode([
+      CMD_SCHEMA_WRITE,
+      fromHex(DIGEST_A),
+      oversized,
+    ]);
+    assert.throws(() => decodeSchemaWrite(frame), /resource form/);
+  });
+
   it("rejects malformed writes", () => {
     assert.throws(() => encodeSchemaWrite("short", { type: "string" }));
     assert.throws(() => encodeSchemaWrite(DIGEST_A, null));
