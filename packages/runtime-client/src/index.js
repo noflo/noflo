@@ -85,6 +85,7 @@ export { ExecutionClient, PROCESS_ACTIONS, RUN_ACTIONS } from "./execution.js";
 /** @typedef {import("./registry-cache.js").CachedComponent} CachedComponent */
 /** @typedef {import("./registry-cache.js").RegistryCatalog} RegistryCatalog */
 export { RegistryCache } from "./registry-cache.js";
+export { SchemaCache } from "./schema-cache.js";
 export { TelemetryClient } from "./telemetry.js";
 export { UiEventSurface } from "./ui-events.js";
 
