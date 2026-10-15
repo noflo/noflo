@@ -617,9 +617,13 @@ export async function generateManifest(baseDir, options = {}) {
 
   // Elementary components
   if (fs.existsSync(componentsDir)) {
+    // Sorted: directory read order is runtime-dependent (Node and Deno
+    // disagree), and the manifest's component order must be deterministic
+    // for reproducible publishes
     const moduleFiles = fs
       .readdirSync(componentsDir)
-      .filter((file) => file.endsWith(".js") && !file.endsWith(".d.ts"));
+      .filter((file) => file.endsWith(".js") && !file.endsWith(".d.ts"))
+      .sort();
     for (const file of moduleFiles) {
       const modulePath = path.join(componentsDir, file);
       const nameOverride = readNameOverride(modulePath);
@@ -660,7 +664,8 @@ export async function generateManifest(baseDir, options = {}) {
   if (fs.existsSync(graphsDir)) {
     const graphFiles = fs
       .readdirSync(graphsDir)
-      .filter((file) => file.endsWith(".fbp") || file.endsWith(".json"));
+      .filter((file) => file.endsWith(".fbp") || file.endsWith(".json"))
+      .sort();
     for (const file of graphFiles) {
       const graphPath = path.join(graphsDir, file);
       const source = fs.readFileSync(graphPath, "utf8");

@@ -211,7 +211,11 @@ function listJsonFiles(dir) {
   /** @type {string[]} */
   const files = [];
   const walk = (/** @type {string} */ current) => {
-    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+    // Sorted: read order is runtime-dependent and the schemas table's
+    // insertion order must be deterministic
+    for (const entry of fs
+      .readdirSync(current, { withFileTypes: true })
+      .sort((a, b) => a.name.localeCompare(b.name))) {
       const entryPath = path.join(current, entry.name);
       if (entry.isDirectory()) {
         walk(entryPath);
