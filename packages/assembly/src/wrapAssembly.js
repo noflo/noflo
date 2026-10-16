@@ -107,7 +107,7 @@ export function wrapAssembly(
         mapping: library.mapping?.[componentName],
       });
       const wrappedName = `${name}Assembly`;
-      if (registry.get(wrappedName) !== undefined) {
+      if (registry.list()[wrappedName] !== undefined) {
         throw new Error(
           `wrapAssembly: the wrapped name '${wrappedName}' collides with an existing component`,
         );
