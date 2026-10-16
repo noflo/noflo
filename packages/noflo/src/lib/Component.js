@@ -889,7 +889,7 @@ export class Component extends EventBase {
           return;
         }
         context.ports.forEach((port) => {
-          const ipClone = context.closeIp.clone();
+          const ipClone = context.closeIp.envelope();
           this.addToResult(res, port, ipClone, true);
           this.getBracketContext("out", port, ipClone.scope).pop();
         });
@@ -936,7 +936,7 @@ export class Component extends EventBase {
                   debugBrackets(
                     `${this.nodeId} openBracket from '${inport}' to '${portIdentifier}': '${ctx.ip.data}'`,
                   );
-                  const ipClone = ctx.ip.clone();
+                  const ipClone = ctx.ip.envelope();
                   ipClone.index = parseInt(idx, 10);
                   forwardedOpens.push(ipClone);
                   ctx.ports.push(portIdentifier);
@@ -968,7 +968,7 @@ export class Component extends EventBase {
               debugBrackets(
                 `${this.nodeId} openBracket from '${inport}' to '${outport}': '${ctx.ip.data}'`,
               );
-              forwardedOpens.push(ctx.ip.clone());
+              forwardedOpens.push(ctx.ip.envelope());
               ctx.ports.push(outport);
               this.getBracketContext("out", outport, ctx.ip.scope).push(ctx);
             });
@@ -993,7 +993,7 @@ export class Component extends EventBase {
           return;
         }
         context.ports.forEach((port) => {
-          const ipClone = context.closeIp.clone();
+          const ipClone = context.closeIp.envelope();
           this.addToResult(res, port, ipClone, false);
           this.getBracketContext("out", port, ipClone.scope).pop();
         });

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
-import { listen, listenData, listenDataOnce } from "./utils/events.js";
+import { listen, listenData } from "./utils/events.js";
 
 describe("Outport Port", () => {
   describe("with addressable ports", () => {
@@ -74,64 +74,6 @@ describe("Outport Port", () => {
       p.detach(s3);
     });
   });
-  describe("with caching ports", () => {
-    let s1 = null;
-    let s2 = null;
-    let s3 = null;
-    beforeEach(() => {
-      s1 = new noflo.internalSocket.InternalSocket();
-      s2 = new noflo.internalSocket.InternalSocket();
-      s3 = new noflo.internalSocket.InternalSocket();
-    });
-    it("should repeat the previously sent value on attach event", (_t, done) => {
-      const p = new noflo.OutPort({ caching: true });
-
-      listenDataOnce(s1, (data) => {
-        assert.strictEqual(data, "foo");
-      });
-      listenDataOnce(s2, (data) => {
-        assert.strictEqual(data, "foo");
-        // Next value should be different
-        listenDataOnce(s2, (data) => {
-          assert.strictEqual(data, "bar");
-          done();
-        });
-      });
-      p.attach(s1);
-      p.send("foo");
-      p.disconnect();
-
-      p.attach(s2);
-
-      p.send("bar");
-      p.disconnect();
-    });
-    it("should support addressable ports", (_t, done) => {
-      const p = new noflo.OutPort({
-        addressable: true,
-        caching: true,
-      });
-
-      p.attach(s1);
-      p.attach(s2);
-
-      listenData(s1, () => {
-        assert.strictEqual(true, false);
-      });
-      listenData(s2, (data) => {
-        assert.strictEqual(data, "some-data");
-      });
-      listenData(s3, (data) => {
-        assert.strictEqual(data, "some-data");
-        done();
-      });
-
-      p.send("some-data", 1);
-      p.disconnect(1);
-      p.detach(s2);
-      p.attach(s3, 1);
-    });
-  });
   describe("with IP objects", () => {
     let s1 = null;
     let s2 = null;
@@ -160,7 +102,7 @@ describe("Outport Port", () => {
       p.data("my-data");
       p.openBracket().data("my-data").closeBracket();
     });
-    it("should send non-clonable objects by reference", (_t, done) => {
+    it("should deliver fresh envelopes with copied payloads on fan-out by default", (_t, done) => {
       const p = new noflo.OutPort();
       p.attach(s1);
       p.attach(s2);
@@ -171,70 +113,152 @@ describe("Outport Port", () => {
         bar: {
           boo: "baz",
         },
+      };
+      const received = [];
+      const receive = (socket) => {
+        listen(socket, "ip", (ip) => {
+          received.push(ip);
+          if (received.length < 3) {
+            return;
+          }
+          // Every edge gets its own IP envelope
+          assert.notEqual(received[0], received[1]);
+          assert.notEqual(received[0], received[2]);
+          assert.notEqual(received[1], received[2]);
+          // Clonable by default: every edge gets its own payload copy
+          assert.notEqual(received[0].data, obj);
+          assert.notEqual(received[1].data, obj);
+          assert.notEqual(received[2].data, obj);
+          assert.notEqual(received[1].data, received[2].data);
+          assert.deepStrictEqual(received[1].data, obj);
+          assert.deepStrictEqual(received[2].data, obj);
+          done();
+        });
+      };
+      receive(s1);
+      receive(s2);
+      receive(s3);
+
+      p.data(obj);
+    });
+    it("should copy payloads with structuredClone fidelity on fan-out", (_t, done) => {
+      const p = new noflo.OutPort();
+      p.attach(s1);
+      p.attach(s2);
+
+      const payload = {
+        when: new Date(1234567890),
+        bytes: new Uint8Array([1, 2, 3]),
+      };
+      payload.self = payload;
+
+      const received = [];
+      const receive = (socket) => {
+        listen(socket, "ip", (ip) => {
+          received.push(ip);
+          if (received.length < 2) {
+            return;
+          }
+          const copy = received[1].data;
+          // Payloads the 1.x JSON copy silently corrupted survive intact:
+          // the copy is a fresh object with its own cyclic reference
+          assert.notEqual(copy, payload);
+          assert.strictEqual(copy.self, copy);
+          assert.ok(copy.when instanceof Date);
+          assert.strictEqual(copy.when.getTime(), 1234567890);
+          assert.ok(copy.bytes instanceof Uint8Array);
+          assert.deepEqual([...copy.bytes], [1, 2, 3]);
+          done();
+        });
+      };
+      receive(s1);
+      receive(s2);
+
+      p.data(payload);
+    });
+    it("should throw when a payload cannot be copied on fan-out", () => {
+      const p = new noflo.OutPort();
+      p.attach(s1);
+      p.attach(s2);
+
+      assert.throws(() => p.data({ func() {} }), /not clonable/);
+    });
+    it("should send non-clonable payloads by reference to a single connection", (_t, done) => {
+      const p = new noflo.OutPort();
+      p.attach(s1);
+
+      const obj = {
+        foo: 123,
         func() {
           this.foo = 456;
           return this.foo;
         },
       };
 
-      listen(s1, "ip", (data) => {
-        assert.strictEqual(typeof data, "object");
-        assert.strictEqual(data.data, obj);
-        assert.strictEqual(typeof data.data.func, "function");
-        listen(s2, "ip", (data) => {
-          assert.strictEqual(typeof data, "object");
-          assert.strictEqual(data.data, obj);
-          assert.strictEqual(typeof data.data.func, "function");
-          listen(s3, "ip", (data) => {
-            assert.strictEqual(typeof data, "object");
-            assert.strictEqual(data.data, obj);
-            assert.strictEqual(typeof data.data.func, "function");
-            done();
-          });
-        });
+      listen(s1, "ip", (ip) => {
+        assert.strictEqual(typeof ip, "object");
+        assert.strictEqual(ip.data, obj);
+        assert.strictEqual(typeof ip.data.func, "function");
+        done();
       });
 
-      p.data(obj, { clonable: false }); // default
+      p.data(obj, { clonable: false });
     });
-    it("should clone clonable objects on fan-out", (_t, done) => {
+    it("should throw when a non-clonable IP is sent to a fan-out", () => {
       const p = new noflo.OutPort();
       p.attach(s1);
       p.attach(s2);
       p.attach(s3);
 
-      const obj = {
-        foo: 123,
-        bar: {
-          boo: "baz",
-        },
-        func() {
-          this.foo = 456;
-        },
-      };
+      assert.throws(
+        () => p.data({ hidden: "state" }, { clonable: false }),
+        /fan-out to 3 connections of an IP marked clonable: false/,
+      );
+      assert.throws(
+        () => p.data({ hidden: "state" }, { clonable: false }),
+        /fanoutRefs/,
+      );
+    });
+    it("should share the payload reference across envelopes on a fanoutRefs outport", (_t, done) => {
+      const p = new noflo.OutPort({ fanoutRefs: true });
+      p.attach(s1);
+      p.attach(s2);
+      p.attach(s3);
 
-      listen(s1, "ip", (data) => {
-        assert.strictEqual(typeof data, "object");
-        // First send is non-cloning
-        assert.strictEqual(data.data, obj);
-        assert.strictEqual(typeof data.data.func, "function");
-        listen(s2, "ip", (data) => {
-          assert.strictEqual(typeof data, "object");
-          assert.notEqual(data.data, obj);
-          assert.strictEqual(data.data.foo, obj.foo);
-          assert.deepStrictEqual(data.data.bar, obj.bar);
-          assert.strictEqual(data.data.func, undefined);
-          listen(s3, "ip", (data) => {
-            assert.strictEqual(typeof data, "object");
-            assert.notEqual(data.data, obj);
-            assert.strictEqual(data.data.foo, obj.foo);
-            assert.deepStrictEqual(data.data.bar, obj.bar);
-            assert.strictEqual(data.data.func, undefined);
-            done();
-          });
+      // A shared mutable resource, the canonical fanoutRefs use case
+      const canvas = { kind: "canvas", pixels: new Uint8Array([1, 2, 3]) };
+      const received = [];
+      const receive = (socket) => {
+        listen(socket, "ip", (ip) => {
+          received.push(ip);
+          if (received.length < 3) {
+            return;
+          }
+          // Every edge gets its own IP envelope
+          assert.notEqual(received[0], received[1]);
+          assert.notEqual(received[0], received[2]);
+          assert.notEqual(received[1], received[2]);
+          // The payload reference is shared across the envelopes
+          assert.strictEqual(received[0].data, canvas);
+          assert.strictEqual(received[1].data, canvas);
+          assert.strictEqual(received[2].data, canvas);
+          done();
         });
-      });
+      };
+      receive(s1);
+      receive(s2);
+      receive(s3);
 
-      p.data(obj, { clonable: true });
+      p.data(canvas, { clonable: false });
+    });
+    it("should release IP ownership on send", () => {
+      const p = new noflo.OutPort();
+      p.attach(s1);
+
+      const ip = new noflo.IP("data", "token");
+      ip.owner = "somebody";
+      p.sendIP(ip);
+      assert.strictEqual(ip.owner, null);
     });
     it("should stamp an IP object with the port's datatype", (_t, done) => {
       const p = new noflo.OutPort({ datatype: "string" });

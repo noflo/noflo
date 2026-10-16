@@ -15,7 +15,6 @@ describe("Inport Port", () => {
     it("should not be addressable", () => {
       assert.equal(p.isAddressable(), false);
     });
-    it("should not be buffered", () => assert.equal(p.isBuffered(), false));
   });
   describe("with custom type", () => {
     const p = new noflo.InPort({
