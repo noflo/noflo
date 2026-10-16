@@ -272,6 +272,19 @@ export function compileChangelog({
     const original = readFileSync(path, "utf8");
     const next = stampPackage(original, version, date);
     if (next === null) {
+      // A bracketless `## Unreleased` header is the known silent-skip
+      // failure mode (ingested libraries shipped it; five packages missed
+      // releases because of it): the package clearly has pending changes,
+      // so skip-with-a-gap would hide them from the compiled root forever
+      if (
+        parseDoc(original).sections.some((s) =>
+          /^## Unreleased\b/.test(s.header),
+        )
+      ) {
+        throw new Error(
+          `${pkg}/CHANGELOG.md has a bracketless "## Unreleased" header — rename it to "## [Unreleased]" so the release compiler can stamp it`,
+        );
+      }
       skipped.push({ pkg, reason: "no [Unreleased] section" });
       log(`  skip  ${pkg} (no [Unreleased]; leaving a version gap)`);
       continue;
