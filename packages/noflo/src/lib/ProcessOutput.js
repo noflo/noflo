@@ -32,7 +32,6 @@ export default class ProcessOutput {
     this.ports = ports;
     this.context = context;
     this.nodeInstance = this.context.nodeInstance;
-    this.ip = this.context.ip;
     this.result = this.context.result;
     this.scope = this.context.scope;
   }
@@ -182,25 +181,6 @@ export default class ProcessOutput {
   // Makes a map-style component pass a result value to `out`
   // keeping all IP metadata received from `in`,
   // or modifying it if `options` is provided
-  /**
-   * @param {any} data
-   * @param {Object<string, any>} [options]
-   */
-  pass(data, options = {}) {
-    if (!("out" in this.ports)) {
-      throw new Error('output.pass() requires port "out" to be present');
-    }
-    Object.keys(options).forEach((key) => {
-      const val = options[key];
-      this.ip[key] = val;
-    });
-    this.ip.data = data;
-    const sent = this.sendIP("out", this.ip);
-    this.done();
-    return sent;
-  }
-
-  // Finishes process activation gracefully
   /**
    * @param {Error|Array<Error>} [error]
    */

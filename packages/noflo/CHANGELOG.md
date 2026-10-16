@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `InPort.length()` and `InPort.ready()`: buffer introspection without a consumer; use `has()` or `ProcessInput` buffer checks instead
 - `ComponentLoader.registerLoader()` and `ComponentLoader.clear()`: the 1.x plugin hook and catalog reset. Plugin modules are driven by registry implementations (`@noflo/loader-node`'s `registerLoaderPlugin`), not core; a new `ComponentLoader` instance replaces `clear()`
 - The `asCallback` callback-style embedding helper: the 1.x "wrap a graph as a Node.js-style function" story had no consumers in the monorepo or the migrated ecosystem. `asPromise` remains as the promise-based embedding and testing helper for running a component or graph with an input map and awaiting the collected outputs
+- `ProcessOutput.pass()`: a pre-Process-API pass-through helper that hard-wired a port named `out` and reused the received IP envelope; `sendIP`/`sendDone` express the same intent without the magic port name
 
 ## [2.0.0-alpha.5] - 2026-10-16
 
