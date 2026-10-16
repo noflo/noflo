@@ -35,12 +35,18 @@
     "test": "node --test --test-force-exit --test-timeout 60000 spec/*.js",
     "test:deno": "deno test --allow-all --no-check spec/*.js",
     "test:bun": "bun test ./spec/*.js",
-    "types": "tsc --noEmit -p tsconfig.json"
+    "types": "find src -name '*.d.ts' -delete && tsc -p tsconfig.json"
   },
   "files": [
     "bin",
     "src",
     "CHANGELOG.md",
     "README.md"
-  ]
+  ],
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "engines": {
+    "node": ">= 22"
+  }
 }

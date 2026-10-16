@@ -1,8 +1,7 @@
-//     @noflo/runtime-client - FBP Protocol 2.0 client over Reticulum
-//     SPDX-License-Identifier: EUPL-1.2
-
 /**
- * @file index module
+ * (c) 2021-2026 Henri Bergius
+ * SPDX-License-Identifier: EUPL-1.2
+ * @module @noflo/runtime-client
  * @description The client side of FBP Protocol 2.0 (work document #29):
  *   discovery through announce app_data, zero-trust link establishment,
  *   the graph mirror (epoch handshake, baseline fetch, `0x14` op
@@ -16,6 +15,8 @@
  *   Seeded from the runtime's `spec/integration-rnsd.js` hand-rolled
  *   client (work document #28).
  */
+
+/* @ts-self-types="./index.d.ts" */
 
 import {
   ANNOUNCE_ASPECT,

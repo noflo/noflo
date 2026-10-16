@@ -1,8 +1,7 @@
-//     @noflo/fbp-client - Command-line tool for FBP Protocol 2.0
-//     SPDX-License-Identifier: EUPL-1.2
-
 /**
- * @file index module
+ * (c) 2021-2026 Henri Bergius
+ * SPDX-License-Identifier: EUPL-1.2
+ * @module @noflo/fbp-client
  * @description The scriptable front for FBP Protocol 2.0 runtimes (work
  *   document #34): thin command functions over `@noflo/runtime-client`
  *   that return plain data — the same functions the `fbp-client` binary
@@ -15,6 +14,8 @@
  *   (`bin/fbp-client.js`) is a leaf entry that owns the platform wiring
  *   (`@reticulum/node` transports, process I/O).
  */
+
+/* @ts-self-types="./index.d.ts" */
 
 import { toFBP } from "@noflo/fbp";
 import { checkGuard, RUN_STATE } from "@noflo/fbp-protocol";
