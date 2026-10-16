@@ -144,6 +144,7 @@ export async function assembleRuntime(options) {
     host,
     telemetry,
     graphProtocol: graph,
+    componentDetails: () => registry.state.details,
     ...(options.catalog
       ? { signatureResolver: catalogSignatureResolver(options.catalog) }
       : {}),

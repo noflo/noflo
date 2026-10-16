@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- The `0x44 CMD_PROCESS_LIST_REQ` handler — the §8 process listing of the main graph's current epoch. Component kinds are declared data from the registry catalog (a node whose component the catalog does not know lists as `stub`, the unimplemented marker), and the execution state is network-scoped (enabled while the network runs) until per-process disable (`0x43`) is more than an engine gap. Placeholder nodes — no component, no process — are skipped, so one of them can never take the listing into wire silence
 
 ## [2.0.0-alpha.5] - 2026-10-16
 

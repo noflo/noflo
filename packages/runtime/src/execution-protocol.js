@@ -28,10 +28,14 @@ import {
   CMD_HWM_SET,
   CMD_PACKET_SEND,
   CMD_PROCESS_CTRL,
+  CMD_PROCESS_LIST_REQ,
   CMD_RUN_CTRL,
+  COMPONENT_TYPE,
   EVENT_TYPE,
+  EXECUTION_STATE,
   encodeGetStatusRes,
   encodeOpRejected,
+  encodeProcessList,
   LIFECYCLE_CODE,
   REASON,
   RUN_ACTION,
@@ -84,6 +88,15 @@ export class ExecutionProtocol {
      * @type {((detail: { opType: number, entityId: string|null, detail: string }) => void)|null}
      */
     this.onGuardViolation = options.onGuardViolation ?? null;
+    /**
+     * The declared component kinds (work document #4 update #11): a
+     * snapshot getter over the registry's details, so the process listing
+     * reports declared data, never inferred kinds. Null when the runtime
+     * has no catalog.
+     *
+     * @type {(() => Record<string, import("@noflo/fbp-protocol").ComponentDetail>) | null}
+     */
+    this.componentDetails = options.componentDetails ?? null;
   }
   /**
    * Register the `0x40`–`0x46` handlers on a runtime server. Requires the
@@ -243,6 +256,37 @@ export class ExecutionProtocol {
         }),
         context,
       );
+    });
+    server.registerHandler(CMD_PROCESS_LIST_REQ, async (_decoded, context) => {
+      // §8: the listing is the authoritative runtime view of the main
+      // graph's current epoch. The kinds are declared data from the
+      // catalog — a node whose component the catalog does not know lists
+      // as `stub`, the unimplemented marker — and the execution state is
+      // network-scoped until per-process disable (`0x43`) is more than an
+      // engine gap.
+      const details = this.componentDetails?.() ?? {};
+      /** @type {Record<string, { component: string, type: string, state: number }>} */
+      const entries = {};
+      for (const node of this.host.graph.nodes()) {
+        // Placeholder nodes have no component and no process to list —
+        // they reach clients through graph sync. Skipping keeps the
+        // listing answerable: encoding an empty component name would
+        // throw and leave the request in wire silence (silence never
+        // carries semantics).
+        const component = node.component;
+        if (!component) continue;
+        entries[node.entity_id] = {
+          component,
+          type: details[component]?.type ?? COMPONENT_TYPE.STUB,
+          state: this.host.running
+            ? EXECUTION_STATE.ENABLED
+            : EXECUTION_STATE.DISABLED,
+        };
+      }
+      const epoch = this.graphProtocol
+        ? await this.graphProtocol.epoch()
+        : (this.host.graph?.name ?? "main");
+      server.send(encodeProcessList(epoch, entries), context);
     });
     server.addEventListener("planedrop", (/** @type {any} */ event) => {
       const planeHost = this.#planeHosts.get(event.detail.planeId);
