@@ -4,7 +4,7 @@
   "description": "Publish-time component manifest generator for NoFlo libraries",
   "type": "module",
   "bin": {
-    "noflo-manifest": "./bin/noflo-manifest.js"
+    "noflo-manifest": "bin/noflo-manifest.js"
   },
   "main": "./src/index.js",
   "exports": {

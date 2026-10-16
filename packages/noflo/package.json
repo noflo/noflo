@@ -27,7 +27,7 @@
   },
   "types": "./src/lib/NoFlo.d.ts",
   "bin": {
-    "noflo": "./bin/noflo"
+    "noflo": "bin/noflo"
   },
   "homepage": "http://noflojs.org/",
   "repository": {

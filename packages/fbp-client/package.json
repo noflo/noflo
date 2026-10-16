@@ -5,7 +5,7 @@
   "type": "module",
   "main": "./src/index.js",
   "bin": {
-    "fbp-client": "./bin/fbp-client.js"
+    "fbp-client": "bin/fbp-client.js"
   },
   "keywords": [
     "noflo",

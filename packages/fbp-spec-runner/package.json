@@ -25,7 +25,7 @@
     "jsonpath-plus": "^11.2.0"
   },
   "bin": {
-    "fbp-spec-runner": "./src/cli.js"
+    "fbp-spec-runner": "src/cli.js"
   },
   "files": [
     "src",
