@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ComponentLoader.registerLoader()` and `ComponentLoader.clear()`: the 1.x plugin hook and catalog reset. Plugin modules are driven by registry implementations (`@noflo/loader-node`'s `registerLoaderPlugin`), not core; a new `ComponentLoader` instance replaces `clear()`
 - The `asCallback` callback-style embedding helper: the 1.x "wrap a graph as a Node.js-style function" story had no consumers in the monorepo or the migrated ecosystem. `asPromise` remains as the promise-based embedding and testing helper for running a component or graph with an input map and awaiting the collected outputs
 - `ProcessOutput.pass()`: a pre-Process-API pass-through helper that hard-wired a port named `out` and reused the received IP envelope; `sendIP`/`sendDone` express the same intent without the magic port name
+- The optional `groups`, `errorPort`, and `scope` arguments of `Component.error()`: no caller anywhere used them, and `groups` is retired 0.x bracket terminology; `error(e)` sends the error IP to the component's `error` outport as before
 
 ## [2.0.0-alpha.5] - 2026-10-16
 

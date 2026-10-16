@@ -274,24 +274,15 @@ export class Component extends EventBase {
 
   /**
    * Report an error from the component. If the component has an `error`
-   * outport that is connected, errors are sent as IP objects there. If the
-   * port is not connected and not optional, errors are thrown.
+   * outport that is connected, the error is sent there as an IP object. If
+   * the port is not connected and not optional, the error is thrown.
    *
    * @param {Error} e
-   * @param {Array<string>} [groups]
-   * @param {string} [errorPort]
-   * @param {string | null} [scope]
    */
-  error(e, groups = [], errorPort = "error", scope = null) {
-    const outPort = /** @type {OutPort} */ (this.outPorts.ports[errorPort]);
+  error(e) {
+    const outPort = /** @type {OutPort} */ (this.outPorts.ports.error);
     if (outPort && (outPort.isAttached() || !outPort.isRequired())) {
-      groups.forEach((group) => {
-        outPort.openBracket(group, { scope });
-      });
-      outPort.data(e, { scope });
-      groups.forEach((group) => {
-        outPort.closeBracket(group, { scope });
-      });
+      outPort.data(e, {});
       return;
     }
     throw e;
