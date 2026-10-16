@@ -486,47 +486,4 @@ export class ComponentLoader {
   registerGraph(packageId, name, gPath) {
     return this.registerComponent(packageId, name, gPath);
   }
-
-  /**
-   * Register a custom component loader plugin. The plugin is invoked
-   * immediately with the loader, and can register components, graphs, and
-   * library icons. The plugin performs its asynchronous work before
-   * resolving the Promise it returns; a rejection (or a synchronous throw)
-   * fails the registration. Registry implementations like
-   * `@noflo/loader-node` drive this hook for `noflo.loader` plugin modules
-   * discovered in package manifests; core accepts plugins, it never
-   * discovers them.
-   *
-   * @callback CustomLoader
-   * @param {ComponentLoader} loader
-   * @returns {Promise<void>|void}
-   */
-
-  /**
-   * Register a custom component loader plugin.
-   *
-   * @param {CustomLoader} loader
-   * @returns {Promise<void>}
-   */
-  registerLoader(loader) {
-    return Promise.resolve()
-      .then(() => loader(this))
-      .then(() => {});
-  }
-
-  /**
-   * Empty the component catalog and re-read the registry catalog, if one is
-   * configured.
-   *
-   * @returns {void}
-   */
-  clear() {
-    this.components = {};
-    if (this.registry && typeof this.registry.list === "function") {
-      const list = this.registry.list();
-      Object.keys(list || {}).forEach((name) => {
-        this.components[name] = list[name];
-      });
-    }
-  }
 }

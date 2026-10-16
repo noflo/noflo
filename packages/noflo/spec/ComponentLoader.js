@@ -191,20 +191,6 @@ describe("ComponentLoader", () => {
         /Component my-project\/Missing not available/,
       );
     });
-
-    it("clear resets to the construction state", async () => {
-      const registry = {
-        list: () => ({
-          "registry/Split": splitModule(),
-        }),
-      };
-      const loader = new noflo.ComponentLoader({ registry });
-      loader.registerComponent("extra", "Split", splitModule());
-      assert.ok(Object.keys(loader.components).includes("extra/Split"));
-      loader.clear();
-      assert.ok(Object.keys(loader.components).includes("registry/Split"));
-      assert.ok(!Object.keys(loader.components).includes("extra/Split"));
-    });
   });
 
   describe("normalizing names", () => {
@@ -491,48 +477,6 @@ describe("ComponentLoader", () => {
       const instance = await l.load("my-project/Sub");
       assert.ok(instance instanceof Subgraph);
     });
-
-    it("supports the registerLoader plugin hook", async () => {
-      const l2 = new noflo.ComponentLoader({});
-      await l2.registerLoader((loader) => {
-        loader.registerComponent("plugin", "Split", splitModule());
-      });
-      const instance = await l2.load("plugin/Split");
-      assert.ok(instance.inPorts.ports.in);
-    });
-
-    it("awaits the Promise a plugin returns", async () => {
-      const l2 = new noflo.ComponentLoader({});
-      let registered = false;
-      await l2.registerLoader(async (loader) => {
-        await new Promise((resolve) => {
-          setTimeout(resolve, 1);
-        });
-        loader.registerComponent("plugin", "Split", splitModule());
-        registered = true;
-      });
-      assert.strictEqual(registered, true);
-      const instance = await l2.load("plugin/Split");
-      assert.ok(instance.inPorts.ports.in);
-    });
-
-    it("rejects when the plugin hook fails", async () => {
-      const l2 = new noflo.ComponentLoader({});
-      await assert.rejects(
-        l2.registerLoader(() => Promise.reject(new Error("Plugin failed"))),
-        /Plugin failed/,
-      );
-    });
-
-    it("rejects when the plugin hook throws", async () => {
-      const l2 = new noflo.ComponentLoader({});
-      await assert.rejects(
-        l2.registerLoader(() => {
-          throw new Error("Plugin failed");
-        }),
-        /Plugin failed/,
-      );
-    });
   });
 
   describe("Promise-only API (work document #8)", () => {
@@ -566,17 +510,6 @@ describe("ComponentLoader", () => {
       const components = await l.listComponents();
       assert.ok(components["my-project/Split2"]);
       assert.ok(components["my-project/Sub2"]);
-    });
-
-    it("registerLoader settles with the plugin completion", async () => {
-      let done = false;
-      await l.registerLoader(async () => {
-        await new Promise((resolve) => {
-          setTimeout(resolve, 1);
-        });
-        done = true;
-      });
-      assert.strictEqual(done, true);
     });
   });
 });
