@@ -61,10 +61,6 @@ import { exportFbpJson, GraphModel, importFbpJson } from "@noflo/graph";
 // * `asyncDelivery`: (default: FALSE) Whether Information Packets should be
 //   delivered asynchronously.
 //
-// Options can be passed as a second argument before the callback:
-//
-//     noflo.createNetwork(someGraph, options, callback);
-//
 // The options object can also be used for setting ComponentLoader options in this
 // network.
 import { Network } from "./Network.js";
