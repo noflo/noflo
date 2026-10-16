@@ -749,7 +749,7 @@ export class Network extends EventBase {
     );
     Object.keys(instance.inPorts.ports).forEach((portName) => {
       instance.inPorts.ports[portName].addEventListener("disconnect", () => {
-        // A boundary input reaching end-of-stream (the sender's terminal
+        // A boundary input reaching end of transmission (the sender's terminal
         // disconnect) can complete the network's end predicate
         this.checkIfFinished();
       });
@@ -1243,7 +1243,7 @@ export class Network extends EventBase {
   }
 
   /**
-   * End the network when its boundary inputs are all at end-of-stream and
+   * End the network when its boundary inputs are all at end of transmission and
    * the network is quiescent (work document #45): no open activation, no
    * buffered deliverable data, no packet in flight on any edge. The
    * boundary owns end-of-transmission — a network's own inports (exported

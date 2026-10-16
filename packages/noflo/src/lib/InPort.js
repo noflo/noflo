@@ -60,16 +60,16 @@ export default class InPort extends BasePort {
     this.nodeInstance = null;
 
     /**
-     * Whether the input is at end-of-stream: every attached socket has
+     * Whether the input is at end of transmission: every attached socket has
      * been terminally closed by its sender (or none are attached at all,
-     * so nothing can arrive). EOF is not scoped — it is a fact about the
+     * so nothing can arrive). EOT is not scoped — it is a fact about the
      * sender ("there will be nothing more coming from it"), and a new
      * transmission (connect) re-opens the input (work document #40 update
      * #5, #45).
      *
      * @type {boolean}
      */
-    this.eof = true;
+    this.eot = true;
 
     this.prepareBuffer();
   }
@@ -87,8 +87,8 @@ export default class InPort extends BasePort {
     // delivered through the `ip` event only.
     socket.addEventListener("connect", () => {
       // A connect is the beginning of transmission: the input is no longer
-      // at EOF
-      this.#setEof(false);
+      // at EOT
+      this.#setEot(false);
       if (this.isAddressable()) {
         this.dispatchLifecycleEvent("connect", [socket, localId]);
         return;
@@ -96,10 +96,10 @@ export default class InPort extends BasePort {
       this.dispatchLifecycleEvent("connect", socket);
     });
     socket.addEventListener("disconnect", () => {
-      // Refresh the EOF state before the lifecycle dispatch: the
-      // disconnect is the sender's terminal EOF, and the listeners must
+      // Refresh the EOT state before the lifecycle dispatch: the
+      // disconnect is the sender's terminal close, and the listeners must
       // see the post-refresh state
-      this.#refreshEof();
+      this.#refreshEot();
       if (this.isAddressable()) {
         this.dispatchLifecycleEvent("disconnect", [socket, localId]);
       } else {
@@ -110,33 +110,33 @@ export default class InPort extends BasePort {
       this.handleIP(event.detail, localId),
     );
     // A newly attached edge is a live sender: the input is no longer at
-    // EOF until that sender closes it
-    this.#refreshEof();
+    // EOT until that sender closes it
+    this.#refreshEot();
   }
 
   /**
-   * Whether the input is at end-of-stream: every attached socket has been
+   * Whether the input is at end of transmission: every attached socket has been
    * terminally closed by its sender, or none are attached (nothing can
    * arrive). A later `connect` or `attach` re-opens the input.
    *
    * @returns {boolean}
    */
-  isEof() {
-    return this.eof;
+  isEot() {
+    return this.eot;
   }
 
   /**
    * @param {boolean} value
    * @returns {void}
    */
-  #setEof(value) {
-    this.eof = value;
+  #setEot(value) {
+    this.eot = value;
   }
 
   /**
    * @returns {void}
    */
-  #refreshEof() {
+  #refreshEot() {
     let live = false;
     for (const socket of this.sockets) {
       if (!socket) {
@@ -144,26 +144,26 @@ export default class InPort extends BasePort {
       }
       if (!socket.isTerminal()) {
         // A sender edge that has not terminally closed may still deliver
-        this.#setEof(false);
+        this.#setEot(false);
         return;
       }
       live = true;
     }
     // Every attached socket is terminally closed (or none are attached:
     // nothing can arrive)
-    this.#setEof(true);
+    this.#setEot(true);
   }
 
   /**
    * Remove a socket from the port. The remaining attached sockets
-   * re-determine the port's EOF state.
+   * re-determine the port's EOT state.
    *
    * @param {import("./InternalSocket.js").InternalSocket} socket
    * @returns {void}
    */
   detach(socket) {
     super.detach(socket);
-    this.#refreshEof();
+    this.#refreshEot();
   }
 
   /**

@@ -165,7 +165,7 @@ export class Component extends EventBase {
      */
     this.load = 0;
     /**
-     * Whether the component has closed down: every input is at EOF, no
+     * Whether the component has closed down: every input is at EOT, no
      * activation is open, and nothing buffered remains to deliver — the
      * sender-side half of drain-based network closing (work document #45).
      * A closed-down component has terminally disconnected its outports.
@@ -521,7 +521,7 @@ export class Component extends EventBase {
       }
       port.addEventListener("ip", (event) => this.handleIP(event.detail, port));
       // The port's connect/disconnect lifecycle events carry transmission
-      // semantics: disconnect is the sender's terminal EOF, connect a new
+      // semantics: disconnect is the sender's terminal close, connect a new
       // transmission re-opening the input (work document #40 update #5)
       port.addEventListener("disconnect", () =>
         this.#handleInputStateChange(),
@@ -540,7 +540,7 @@ export class Component extends EventBase {
       // A socket attaching to a closed-down sender's outport goes terminal
       // immediately: the sender is done, so nothing will ever come from it
       // — a late-attached edge must not leave the receiving port waiting
-      // for an EOF that will never fire (work document #45, jekyll #1092
+      // for an EOT that will never fire (work document #45, jekyll #1092
       // bug 3)
       port.addEventListener("attach", () => {
         if (this.closedDown) {
@@ -1186,7 +1186,7 @@ export class Component extends EventBase {
   }
 
   /**
-   * Whether the component has closed down: every input at EOF, no open
+   * Whether the component has closed down: every input at EOT, no open
    * activation, nothing buffered left to deliver. Its outports have been
    * terminally disconnected — downstream sees end-of-input.
    *
@@ -1198,19 +1198,19 @@ export class Component extends EventBase {
 
   /**
    * Evaluate the classical cascading-closedown rule (work document #45):
-   * a component closes down when every input is at EOF, no activation is
+   * a component closes down when every input is at EOT, no activation is
    * open, and no buffered deliverable data remains (control ports are
    * excluded — their standing values are legitimate at quiescence). On
    * closedown the outports are terminally disconnected, so downstream
    * ports see end-of-input and the rule recurses. Runs on every state
-   * transition that can complete the condition: port EOF and activation
+   * transition that can complete the condition: port EOT and activation
    * close.
    *
    * @returns {void}
    */
   #handleInputStateChange() {
     // Subgraph wrappers share their inner processes' port objects, so a
-    // shared-port EOF reflects the deepest sender's state, not the
+    // shared-port EOT reflects the deepest sender's state, not the
     // wrapper's own completion — a wrapper closes down when its inner
     // network ends (see Subgraph#subscribeNetwork)
     if (typeof this.isSubgraph === "function" && this.isSubgraph()) {
@@ -1220,7 +1220,7 @@ export class Component extends EventBase {
     // closed-down component: it is live again and may process
     if (this.closedDown) {
       const reopened = Object.keys(this.inPorts.ports).some(
-        (name) => !this.inPorts.ports[name].isEof(),
+        (name) => !this.inPorts.ports[name].isEot(),
       );
       if (reopened) {
         this.closedDown = false;
@@ -1239,10 +1239,10 @@ export class Component extends EventBase {
     const portNames = Object.keys(this.inPorts.ports);
     for (const name of portNames) {
       const port = /** @type {InPort} */ (this.inPorts.ports[name]);
-      if (!port.isEof()) {
+      if (!port.isEot()) {
         return;
       }
-      // Buffered data on an end-of-stream port is stranded by definition —
+      // Buffered data on an end of transmission port is stranded by definition —
       // no arrival can complete a waiting context once every input is at
       // EOF — so it does not block closing. It surfaces loudly: the trace
       // shows the last activation, and the shutdown diagnostics report the
