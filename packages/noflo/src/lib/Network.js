@@ -150,9 +150,6 @@ export class Network extends EventBase {
      * @type {Array<NetworkIIP>}
      */
     this.nextInitials = [];
-    /** Sockets that will be sending default data
-     * @type {Array<import("./InternalSocket.js").InternalSocket>}
-     */
     /** The native `@noflo/graph` model this network is instantiated with, and the target of live-edit mirroring
      * @type {import("@noflo/graph").GraphModel}
      */
@@ -572,7 +569,10 @@ export class Network extends EventBase {
     }
 
     instance.network.setDebug(this.debug);
-    instance.network.setAsyncDelivery(this.asyncDelivery);
+    instance.network.asyncDelivery = this.asyncDelivery;
+    instance.network.connections.forEach((socket) => {
+      socket.async = this.asyncDelivery;
+    });
     if (this.flowtrace) {
       instance.network.setFlowtrace(this.flowtrace, node.componentName, false);
     }
@@ -1248,37 +1248,6 @@ export class Network extends EventBase {
             instance
           );
         inst.network.setDebug(active);
-      }
-    });
-  }
-
-  /**
-   * Enable or disable asynchronous packet delivery, propagating the setting
-   * to all sockets and subgraph networks.
-   *
-   * @param {boolean} active
-   */
-  setAsyncDelivery(active) {
-    if (active === this.asyncDelivery) {
-      return;
-    }
-    this.asyncDelivery = active;
-
-    this.connections.forEach((socket) => {
-      socket.async = this.asyncDelivery;
-    });
-    Object.keys(this.processes).forEach((processId) => {
-      const process = this.processes[processId];
-      if (!process.component) {
-        return;
-      }
-      const instance = process.component;
-      if (instance.isSubgraph()) {
-        const inst =
-          /** @type {import("../components/Subgraph.js").Subgraph} */ (
-            instance
-          );
-        inst.network.setAsyncDelivery(active);
       }
     });
   }
