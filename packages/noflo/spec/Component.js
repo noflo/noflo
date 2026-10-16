@@ -3569,6 +3569,108 @@ describe("control port firing (#607)", () => {
   });
 });
 
+describe("control-dependent firing patterns", () => {
+  // The hang shape behind work document #36's collector bug: a component
+  // whose activation needs both a data packet and a control value. The
+  // control read itself is safe — control ports read non-consumingly — but
+  // the ORDER of has/get decides whether the pattern can complete.
+  it("a standing control value survives successive activations", () => {
+    const c = new noflo.Component({
+      inPorts: {
+        in: { datatype: "int" },
+        encoding: { datatype: "string", control: true },
+      },
+      outPorts: { out: { datatype: "string" } },
+    });
+    const received = [];
+    c.process((input, output) => {
+      if (!input.hasData("in") || !input.hasData("encoding")) {
+        return;
+      }
+      const value = input.getData("in");
+      output.sendDone({ out: `${value}:${input.getData("encoding")}` });
+    });
+    const sin = fixtureSocket();
+    const scontrol = fixtureSocket();
+    const sout = fixtureSocket();
+    c.inPorts.in.attach(sin);
+    c.inPorts.encoding.attach(scontrol);
+    c.outPorts.out.attach(sout);
+    listen(sout, "ip", (ip) => {
+      if (ip.type === "data") {
+        received.push(ip.data);
+      }
+    });
+
+    scontrol.post(new noflo.IP("data", "utf-8"));
+    sin.post(new noflo.IP("data", 1));
+    sin.post(new noflo.IP("data", 2));
+
+    assert.deepEqual(received, ["1:utf-8", "2:utf-8"]);
+    assert.equal(
+      c.inPorts.ports.encoding.buffer.length,
+      1,
+      "the control value stays buffered across activations",
+    );
+    assert.equal(c.load, 0, "no activation left pending");
+  });
+
+  it("consuming data before checking control loses the message and pends forever", () => {
+    // The documented has/get-order footgun (the shutdown diagnostic spells
+    // it out): new arrivals fire fresh contexts — an IP consumed by a
+    // waiting activation never comes back, so a control-dependent pattern
+    // must has-check the complete precondition set before any get.
+    const c = new noflo.Component({
+      inPorts: {
+        in: { datatype: "int" },
+        encoding: { datatype: "string", control: true },
+      },
+      outPorts: { out: { datatype: "string" } },
+    });
+    const received = [];
+    c.process((input, output) => {
+      // Wrong order: consume the data leg, then check the control
+      if (!input.hasData("in")) {
+        return;
+      }
+      const value = input.getData("in");
+      if (!input.hasData("encoding")) {
+        return;
+      }
+      output.sendDone({ out: `${value}:${input.getData("encoding")}` });
+    });
+    const sin = fixtureSocket();
+    const scontrol = fixtureSocket();
+    const sout = fixtureSocket();
+    c.inPorts.in.attach(sin);
+    c.inPorts.encoding.attach(scontrol);
+    c.outPorts.out.attach(sout);
+    listen(sout, "ip", (ip) => {
+      if (ip.type === "data") {
+        received.push(ip.data);
+      }
+    });
+
+    sin.post(new noflo.IP("data", 1));
+    assert.deepEqual(received, [], "nothing sent while control is missing");
+    // The control arrival fires a fresh context — the consumed data IP is
+    // gone from the buffer, so the pattern can never complete
+    scontrol.post(new noflo.IP("data", "utf-8"));
+    assert.deepEqual(received, [], "the consumed message never comes back");
+    assert.equal(
+      c.inPorts.ports.in.buffer.length,
+      0,
+      "the data IP was consumed by the waiting activation",
+    );
+    assert.equal(
+      c.inPorts.ports.encoding.buffer.length,
+      1,
+      "the control value itself stays buffered (non-consuming read)",
+    );
+    assert.equal(c.load, 1, "the first activation stays pending forever");
+  });
+});
+
 describe("control port streams", () => {
   let c = null;
   let sin = null;
