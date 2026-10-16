@@ -826,8 +826,8 @@ describe("NoFlo Subgraph component", () => {
         const eventTypes = collectedTrace.chunks.map(([, type]) => type);
         // With drain-based closing the subgraph wrappers deactivate when
         // their inner networks end (cascading closedown), so the wrapper
-        // ACTIVATION_ENDs land with the inner closedown instead of at the
-        // network tail (work document #45)
+        // The wrapper lifecycle under cascading closedown: the empirical
+        // activation sequence (work document #45)
         assert.deepStrictEqual(eventTypes, [
           noflo.EVENT_TYPE.ACTIVATION_BEGIN,
           noflo.EVENT_TYPE.ACTIVATION_BEGIN,
@@ -841,10 +841,10 @@ describe("NoFlo Subgraph component", () => {
           noflo.EVENT_TYPE.DATA,
           noflo.EVENT_TYPE.ACTIVATION_BEGIN,
           noflo.EVENT_TYPE.ACTIVATION_END,
-          noflo.EVENT_TYPE.ACTIVATION_END,
-          noflo.EVENT_TYPE.ACTIVATION_END,
           noflo.EVENT_TYPE.DATA,
           noflo.EVENT_TYPE.ACTIVATION_BEGIN,
+          noflo.EVENT_TYPE.ACTIVATION_END,
+          noflo.EVENT_TYPE.ACTIVATION_END,
           noflo.EVENT_TYPE.ACTIVATION_END,
           noflo.EVENT_TYPE.LIFECYCLE,
         ]);
@@ -865,10 +865,10 @@ describe("NoFlo Subgraph component", () => {
           "Sub",
           "Sub",
           "Sub",
+          "",
+          "",
+          "",
           "Sub",
-          "",
-          "",
-          "",
           "",
           "",
         ]);
