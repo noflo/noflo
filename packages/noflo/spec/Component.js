@@ -324,6 +324,77 @@ describe("Component", () => {
       c.inPorts.in.attach(sin1);
       sin1.send("hello");
     });
+    it("should throw an error when getting a non-existing port (#1041)", (_t, done) => {
+      const c = getComponent();
+      c.process((input) => {
+        try {
+          input.get("foo");
+        } catch (e) {
+          assert.strictEqual(Error.isError(e), true);
+          assert.match(e.message, /has no port 'foo'/);
+          assert.match(e.message, /available ports: 'in'/);
+          done();
+          return;
+        }
+        done(new Error("Expected a throw"));
+      });
+      const sin1 = noflo.internalSocket.createSocket();
+      c.inPorts.in.attach(sin1);
+      sin1.send("hello");
+    });
+    it("should throw an error when getting data from a non-existing port (#1041)", (_t, done) => {
+      const c = getComponent();
+      c.process((input) => {
+        try {
+          input.getData("foo");
+        } catch (e) {
+          assert.strictEqual(Error.isError(e), true);
+          assert.match(e.message, /has no port 'foo'/);
+          assert.match(e.message, /available ports: 'in'/);
+          done();
+          return;
+        }
+        done(new Error("Expected a throw"));
+      });
+      const sin1 = noflo.internalSocket.createSocket();
+      c.inPorts.in.attach(sin1);
+      sin1.send("hello");
+    });
+    it("should throw an error when getting a stream from a non-existing port (#1041)", (_t, done) => {
+      const c = getComponent();
+      c.process((input) => {
+        try {
+          input.getStream("foo");
+        } catch (e) {
+          assert.strictEqual(Error.isError(e), true);
+          assert.match(e.message, /has no port 'foo'/);
+          assert.match(e.message, /available ports: 'in'/);
+          done();
+          return;
+        }
+        done(new Error("Expected a throw"));
+      });
+      const sin1 = noflo.internalSocket.createSocket();
+      c.inPorts.in.attach(sin1);
+      sin1.send("hello");
+    });
+    it("should throw an error when getting a non-existing addressable port (#1041)", (_t, done) => {
+      const c = getComponent();
+      c.process((input) => {
+        try {
+          input.get(["foo", 0]);
+        } catch (e) {
+          assert.strictEqual(Error.isError(e), true);
+          assert.match(e.message, /has no port 'foo'/);
+          done();
+          return;
+        }
+        done(new Error("Expected a throw"));
+      });
+      const sin1 = noflo.internalSocket.createSocket();
+      c.inPorts.in.attach(sin1);
+      sin1.send("hello");
+    });
   });
   describe("starting a component", () => {
     it("should flag the component as started", () => {
