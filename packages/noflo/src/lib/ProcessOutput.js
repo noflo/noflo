@@ -147,6 +147,12 @@ export default class ProcessOutput {
       throw new Error("Port must be specified for sending output");
     }
 
+    if (outputMap == null) {
+      throw new Error(
+        `${this.nodeInstance.nodeId}: send() requires a value or an output map — call done() to finish without sending`,
+      );
+    }
+
     /** @type {Array<Promise<void>|void>} */
     const writes = [];
     Object.keys(outputMap).forEach((port) => {
@@ -161,18 +167,14 @@ export default class ProcessOutput {
   }
 
   // Sends the argument via `send()` and marks activation as `done()`.
-  // A null/undefined outputMap (e.g. a `return output.done()` chain
-  // resolving with nothing) marks done without sending a null packet.
+  // Every argument is sent — a null becomes a null-payload data IP; a
+  // component that wants to finish without sending calls `done()`.
   /**
-   * @param {Error|Array<Error>|Object<string, any>|null|undefined} outputMap
+   * @param {Error|Array<Error>|Object<string, any>|any} outputMap
    * @returns {Promise<void>|void} Resolves when sent packets have been
    *   admitted and the activation has been marked done
    */
   sendDone(outputMap) {
-    if (outputMap == null) {
-      this.done();
-      return;
-    }
     const sent = this.send(outputMap);
     this.done();
     return sent;

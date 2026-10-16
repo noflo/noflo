@@ -3251,6 +3251,95 @@ describe("Process API backpressure via awaitable output.send()", () => {
   });
 });
 
+describe("sendDone always sends its argument", () => {
+  it("sends a null payload as a data IP", async () => {
+    const c = new noflo.Component({
+      inPorts: { in: { datatype: "all" } },
+      outPorts: { out: { datatype: "all" } },
+      process(input, output) {
+        input.getData("in");
+        output.sendDone(null);
+      },
+    });
+    const sin = noflo.internalSocket.createSocket();
+    const sout = noflo.internalSocket.createSocket();
+    c.inPorts.in.attach(sin);
+    c.outPorts.out.attach(sout);
+    const received = [];
+    listen(sout, "ip", (ip) => received.push(ip));
+    sin.post(new noflo.IP("data", "go"));
+    await settle();
+    assert.equal(received.length, 1);
+    assert.equal(received[0].type, "data");
+    assert.strictEqual(received[0].data, null);
+  });
+
+  it("rejects a bare value on a multi-outport component", async () => {
+    const c = new noflo.Component({
+      inPorts: { in: { datatype: "all" } },
+      outPorts: { a: { datatype: "all" }, b: { datatype: "all" } },
+      process(input, output) {
+        input.getData("in");
+        assert.throws(
+          () => output.sendDone(null),
+          /Port must be specified for sending output/,
+        );
+        output.done();
+      },
+    });
+    const sin = noflo.internalSocket.createSocket();
+    c.inPorts.in.attach(sin);
+    sin.post(new noflo.IP("data", "go"));
+    await settle();
+  });
+
+  it("rejects a bare value with no sendable outport, with guidance", async () => {
+    const c = new noflo.Component({
+      inPorts: { in: { datatype: "all" } },
+      outPorts: { error: { datatype: "object" } },
+      process(input, output) {
+        input.getData("in");
+        assert.throws(
+          () => output.sendDone(null),
+          /call done\(\) to finish without sending/,
+        );
+        output.done();
+      },
+    });
+    const sin = noflo.internalSocket.createSocket();
+    c.inPorts.in.attach(sin);
+    sin.post(new noflo.IP("data", "go"));
+    await settle();
+  });
+
+  it("async process: null resolution sends a packet, void resolution sends none", async () => {
+    const c = new noflo.Component({
+      inPorts: { in: { datatype: "all" } },
+      outPorts: { out: { datatype: "all" } },
+      process(input) {
+        const value = input.getData("in");
+        if (value === "null-case") {
+          return Promise.resolve(null);
+        }
+        return Promise.resolve(undefined);
+      },
+    });
+    const sin = noflo.internalSocket.createSocket();
+    const sout = noflo.internalSocket.createSocket();
+    c.inPorts.in.attach(sin);
+    c.outPorts.out.attach(sout);
+    const received = [];
+    listen(sout, "ip", (ip) => received.push(ip));
+    sin.post(new noflo.IP("data", "null-case"));
+    await settle();
+    assert.equal(received.length, 1);
+    assert.strictEqual(received[0].data, null);
+    sin.post(new noflo.IP("data", "void-case"));
+    await settle();
+    assert.equal(received.length, 1, "void resolution sends nothing");
+  });
+});
+
 describe("control port firing (#607)", () => {
   let c = null;
   let sin = null;
