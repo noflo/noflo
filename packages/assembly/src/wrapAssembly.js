@@ -106,7 +106,13 @@ export function wrapAssembly(
         target: name,
         mapping: library.mapping?.[componentName],
       });
-      wrapped[name] = graph;
+      const wrappedName = `${name}Assembly`;
+      if (registry.get(wrappedName) !== undefined) {
+        throw new Error(
+          `wrapAssembly: the wrapped name '${wrappedName}' collides with an existing component`,
+        );
+      }
+      wrapped[wrappedName] = graph;
     } catch (err) {
       skips.push({
         name,
