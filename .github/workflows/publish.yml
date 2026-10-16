@@ -138,7 +138,13 @@ jobs:
           done
           exit "$real_failures"
 
+      # Independent of the npm step: a registry-publisher failure on one
+      # side must not skip the other. The gates above (tag check, tests)
+      # still gate both — `success() || failure()` runs this step when
+      # prior steps passed or when only the npm step failed, and skips it
+      # on cancellation.
       - name: Publish all to JSR
+        if: success() || failure()
         run: |
           set -uo pipefail
           real_failures=0
