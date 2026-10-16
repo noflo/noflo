@@ -88,16 +88,11 @@ describe("Inport Port", () => {
       });
     });
   });
-  describe("with TYPE (i.e. schema) information", () => {
-    const f = (type) => new noflo.InPort({ type });
-    it("should be a schema artifact id or an inline JSON Schema object", () => {
-      assert.doesNotThrow(() => f("example/Person"));
-      assert.doesNotThrow(() => f({ type: "string" }));
-      assert.throws(() => f("http://schema.org/Person"));
-      // A bare type/subtype string is syntactically a valid ns/name id;
-      // unresolvable references fail at the publish gate, not here
-      assert.throws(() => f("application/vnd.foo+json"));
-      assert.throws(() => f("neither-an-id-nor-an-object"));
+  describe("with the retired 'type' option", () => {
+    it("is ignored in favor of datatype and schema", () => {
+      const p = new noflo.InPort({ type: "example/Person" });
+      assert.strictEqual(p.getSchema(), null);
+      assert.strictEqual(p.getDataType(), "all");
     });
   });
   describe("with processing shorthand", () => {

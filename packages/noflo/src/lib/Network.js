@@ -18,7 +18,6 @@ import { EventBase } from "./EventBase.js";
 import * as internalSocket from "./InternalSocket.js";
 import IP from "./IP.js";
 import { makeAsync } from "./Platform.js";
-import { debounce } from "./Utils.js";
 
 /**
  * @typedef NetworkProcess
@@ -150,9 +149,6 @@ export class Network extends EventBase {
      * @type {Array<NetworkIIP>}
      */
     this.nextInitials = [];
-    /** Sockets that will be sending default data
-     * @type {Array<import("./InternalSocket.js").InternalSocket>}
-     */
     /** The native `@noflo/graph` model this network is instantiated with, and the target of live-edit mirroring
      * @type {import("@noflo/graph").GraphModel}
      */
@@ -173,6 +169,10 @@ export class Network extends EventBase {
      * @type {boolean}
      */
     this.asyncDelivery = options.asyncDelivery || false;
+    /** Pending network-end check timer; deactivation bursts coalesce into one
+     * @type { ReturnType<typeof setTimeout> | null }
+     */
+    this.endCheckTimer = null;
     /** Events buffered while the network is not yet started, flushed on start
      * @type {Array<NetworkEvent>}
      */
@@ -572,7 +572,10 @@ export class Network extends EventBase {
     }
 
     instance.network.setDebug(this.debug);
-    instance.network.setAsyncDelivery(this.asyncDelivery);
+    instance.network.asyncDelivery = this.asyncDelivery;
+    instance.network.connections.forEach((socket) => {
+      socket.async = this.asyncDelivery;
+    });
     if (this.flowtrace) {
       instance.network.setFlowtrace(this.flowtrace, node.componentName, false);
     }
@@ -683,9 +686,7 @@ export class Network extends EventBase {
       node.component
     );
     instance.addEventListener("activate", () => {
-      if (this.debouncedEnd) {
-        this.abortDebounce = true;
-      }
+      this.#abortEndCheck();
     });
     instance.addEventListener(
       "deactivate",
@@ -1089,9 +1090,7 @@ export class Network extends EventBase {
    * @returns {Promise<this>}
    */
   start() {
-    if (this.debouncedEnd) {
-      this.abortDebounce = true;
-    }
+    this.#abortEndCheck();
 
     if (this.started) {
       return this.stop().then(() => this.start());
@@ -1113,9 +1112,7 @@ export class Network extends EventBase {
    * @returns {Promise<this>}
    */
   stop() {
-    if (this.debouncedEnd) {
-      this.abortDebounce = true;
-    }
+    this.#abortEndCheck();
 
     if (!this.started) {
       this.stopped = true;
@@ -1187,8 +1184,10 @@ export class Network extends EventBase {
   }
 
   /**
-   * End the network (emit `end`) once no process is active anymore, debounced
-   * so that bursts of deactivations do not produce premature ends.
+   * End the network (emit `end`) once no process is active anymore. The
+   * check is coalesced: bursts of deactivations within the quiet window
+   * produce a single check, and a new activation or a start/stop cancels
+   * the pending check explicitly.
    *
    * @protected
    * @returns {void}
@@ -1197,19 +1196,28 @@ export class Network extends EventBase {
     if (this.isRunning()) {
       return;
     }
-    delete this.abortDebounce;
-    if (!this.debouncedEnd) {
-      this.debouncedEnd = debounce(() => {
-        if (this.abortDebounce) {
-          return;
-        }
-        if (this.isRunning()) {
-          return;
-        }
-        this.setStarted(false);
-      }, 50);
+    if (this.endCheckTimer != null) {
+      clearTimeout(this.endCheckTimer);
     }
-    this.debouncedEnd();
+    this.endCheckTimer = setTimeout(() => {
+      this.endCheckTimer = null;
+      if (this.isRunning()) {
+        return;
+      }
+      this.setStarted(false);
+    }, 50);
+  }
+
+  /**
+   * Cancel a pending network-end check.
+   *
+   * @returns {void}
+   */
+  #abortEndCheck() {
+    if (this.endCheckTimer != null) {
+      clearTimeout(this.endCheckTimer);
+      this.endCheckTimer = null;
+    }
   }
 
   /**
@@ -1248,37 +1256,6 @@ export class Network extends EventBase {
             instance
           );
         inst.network.setDebug(active);
-      }
-    });
-  }
-
-  /**
-   * Enable or disable asynchronous packet delivery, propagating the setting
-   * to all sockets and subgraph networks.
-   *
-   * @param {boolean} active
-   */
-  setAsyncDelivery(active) {
-    if (active === this.asyncDelivery) {
-      return;
-    }
-    this.asyncDelivery = active;
-
-    this.connections.forEach((socket) => {
-      socket.async = this.asyncDelivery;
-    });
-    Object.keys(this.processes).forEach((processId) => {
-      const process = this.processes[processId];
-      if (!process.component) {
-        return;
-      }
-      const instance = process.component;
-      if (instance.isSubgraph()) {
-        const inst =
-          /** @type {import("../components/Subgraph.js").Subgraph} */ (
-            instance
-          );
-        inst.network.setAsyncDelivery(active);
       }
     });
   }

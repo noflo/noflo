@@ -29,7 +29,6 @@ import getParams from "get-function-params";
  * @property {string} [description='']
  * @property {string} [datatype='all']
  * @property {string} [schema=null]
- * @property {string} [type=null]
  * @property {boolean} [required=false]
  * @property {boolean} [scoped=true]
  * @property {any} [default]

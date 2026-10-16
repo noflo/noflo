@@ -2,7 +2,7 @@
 //     (c) 2021-2026 Henri Bergius
 //     (c) 2017-2018 Flowhub UG
 //     NoFlo may be freely distributed under the MIT license
-/* @ts-self-types="./AsCallback.d.ts" */
+/* @ts-self-types="./AsPromise.d.ts" */
 
 /* eslint-disable
     no-param-reassign,
@@ -14,34 +14,34 @@ import * as internalSocket from "./InternalSocket.js";
 import IP from "./IP.js";
 import { Network } from "./Network.js";
 
-// ## asCallback embedding API
+// ## asPromise embedding API
 //
-// asCallback is a helper for embedding NoFlo components or
+// asPromise is a helper for embedding NoFlo components or
 // graphs in other JavaScript programs.
 //
-// By using the `noflo.asCallback` function, you can turn any
-// NoFlo component or NoFlo Graph instance into a regular,
-// Node.js-style JavaScript function.
+// By using the `noflo.asPromise` function, you can turn any
+// NoFlo component or NoFlo Graph instance into a regular
+// JavaScript function returning a Promise.
 //
 // Each call to that function starts a new NoFlo network where
 // the given input arguments are sent as IP objects to matching
-// inports. Once the network finishes, the IP objects received
-// from the network will be sent to the callback function.
+// inports. Once the network finishes, the Promise resolves
+// with the IP objects received from the network.
 //
-// If there was anything sent to an `error` outport, this will
-// be provided as the error argument to the callback.
+// If there was anything sent to an `error` outport, the Promise
+// rejects with that error.
 
 // ### Option normalization
 //
-// Here we handle the input valus given to the `asCallback`
+// Here we handle the input valus given to the `asPromise`
 // function. This allows passing things like a pre-initialized
 // NoFlo ComponentLoader, or a component registry to construct
 // one from.
 /**
- * @typedef {import("@noflo/graph").GraphModel | string} AsCallbackComponent
+ * @typedef {import("@noflo/graph").GraphModel | string} AsPromiseComponent
  */
 /**
- * @typedef {Object} AsCallbackOptions
+ * @typedef {Object} AsPromiseOptions
  * @property {string} [name] - Name for the wrapped network
  * @property {ComponentLoader} [loader] - Component loader instance to use, if any
  * @property {import("./ComponentLoader.js").ComponentRegistry} [registry] - Component registry, used to construct a loader when no loader is given
@@ -59,9 +59,9 @@ import { Network } from "./Network.js";
  */
 
 /**
- * @param {AsCallbackOptions} options
- * @param {AsCallbackComponent} component
- * @returns {AsCallbackOptions}
+ * @param {AsPromiseOptions} options
+ * @param {AsPromiseComponent} component
+ * @returns {AsPromiseOptions}
  */
 function normalizeOptions(options, component) {
   if (!options) {
@@ -86,12 +86,12 @@ function normalizeOptions(options, component) {
 
 // ### Network preparation
 //
-// Each invocation of the asCallback-wrapped NoFlo graph
+// Each invocation of the asPromise-wrapped NoFlo graph
 // creates a new network. This way we can isolate multiple
 // executions of the function in their own contexts.
 /**
- * @param {AsCallbackComponent} component
- * @param {AsCallbackOptions} options
+ * @param {AsPromiseComponent} component
+ * @param {AsPromiseOptions} options
  * @returns {Promise<Network>}
  */
 function prepareNetwork(component, options) {
@@ -115,7 +115,7 @@ function prepareNetwork(component, options) {
     const graph = new GraphModel(
       options.name === undefined ? {} : { name: options.name },
     );
-    const nodeName = options.name || "AsCallback";
+    const nodeName = options.name || "AsPromise";
     graph.addNode({ entity_id: nodeName, component });
     // Expose ports
     const inPorts = instance.inPorts.ports;
@@ -377,7 +377,7 @@ function prepareInputMap(inputs, inputType, network) {
 
 /**
  * @param {Array<IP>} values
- * @param {AsCallbackOptions} options
+ * @param {AsPromiseOptions} options
  * @returns {Array<any>}
  */
 function normalizeOutput(values, options) {
@@ -410,7 +410,7 @@ function normalizeOutput(values, options) {
 /**
  * @param {OutputMap} outputs
  * @param {string} resultType
- * @param {AsCallbackOptions} options
+ * @param {AsPromiseOptions} options
  */
 function sendOutputMap(outputs, resultType, options) {
   // First check if the output sequence contains errors
@@ -476,20 +476,6 @@ function sendOutputMap(outputs, resultType, options) {
 }
 
 /**
- * @callback ResultCallback
- * @param {Error | null} err
- * @param {any} [output]
- * @returns {void}
- */
-
-/**
- * @callback NetworkAsCallback
- * @param {any} input
- * @param {ResultCallback} callback
- * @returns void
- */
-
-/**
  * @callback NetworkAsPromise
  * @param {any} input
  * @returns {Promise<any>}
@@ -532,22 +518,4 @@ export function asPromise(component, options) {
         sendOutputMap(outputMap, resultType, options),
       );
     });
-}
-
-/**
- * Wrap a component or graph into a callback-style function: each call runs a
- * fresh network with the given input map and hands the collected output map
- * to the callback.
- *
- * @param {AsCallbackComponent} component - Graph or component to load
- * @param {AsCallbackOptions} options
- * @returns {NetworkAsCallback}
- */
-export function asCallback(component, options) {
-  const promised = asPromise(component, options);
-  return (inputs, callback) => {
-    promised(inputs).then((output) => {
-      callback(null, output);
-    }, callback);
-  };
 }

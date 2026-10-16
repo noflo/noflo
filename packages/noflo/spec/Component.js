@@ -1698,7 +1698,7 @@ describe("Component", () => {
             output.sendDone(new Error("Input is not string"));
             return;
           }
-          output.pass(str.toUpperCase());
+          output.sendDone({ out: str.toUpperCase() });
         },
       });
 
@@ -2141,7 +2141,7 @@ describe("Component", () => {
               output.sendDone(new Error("Input is not string"));
               return;
             }
-            output.pass(str.toUpperCase());
+            output.sendDone({ out: str.toUpperCase() });
           }, 10);
         },
       });
@@ -2201,7 +2201,7 @@ describe("Component", () => {
               output.sendDone(new Error("Input is not string"));
               return;
             }
-            output.pass(str.toUpperCase());
+            output.sendDone({ out: str.toUpperCase() });
           }, 10);
         },
       });
@@ -2611,12 +2611,13 @@ describe("Component", () => {
           },
         },
         process(input, output) {
-          const str = input.getData();
-          if (typeof str !== "string") {
+          const ip = input.get();
+          if (typeof ip.data !== "string") {
             output.sendDone(new Error("Input is not string"));
             return;
           }
-          output.pass(str.toUpperCase());
+          ip.data = ip.data.toUpperCase();
+          output.sendDone({ out: ip });
         },
       });
 
@@ -2636,11 +2637,6 @@ describe("Component", () => {
         if (count === source.length) {
           done();
         }
-      });
-
-      listen(sout2, "ip", (ip) => {
-        console.log("Unexpected error", ip);
-        done(ip.data);
       });
 
       let n = 0;
@@ -2701,7 +2697,6 @@ describe("Component", () => {
             err: { datatype: "object" },
           },
           ordered: true,
-          activateOnInput: false,
           process(input, output) {
             if (!input.has("foo", "bar")) {
               return;

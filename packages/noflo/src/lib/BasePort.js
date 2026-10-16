@@ -4,6 +4,9 @@
 //     NoFlo may be freely distributed under the MIT license
 /* @ts-self-types="./BasePort.d.ts" */
 import { EventBase } from "./EventBase.js";
+import { createDebug } from "./logger.js";
+
+const debugPort = createDebug("noflo:ports");
 
 // ## NoFlo Port Base class
 //
@@ -34,7 +37,6 @@ const validTypes = [
  * @property {string|Object|null} [schema=null] - Schema artifact reference: a
  *   `ns/name` id string or an inline JSON Schema object (work document #37
  *   §3.1). URL and MIME schemas are retired.
- * @property {string} [type=null]
  * @property {boolean} [required=false]
  * @property {boolean} [scoped=true]
  * @property {number|null} [highWaterMark] - Backpressure buffer size for edges from this port; null = unbounded
@@ -63,7 +65,15 @@ function handleOptions(options) {
   // Ensure the schema reference is in the 2.x vocabulary: a `ns/name`
   // schema artifact id or an inline JSON Schema object (work document #37
   // §3.1, §3.5 — URL and MIME schemas are retired)
-  const schema = options.schema || options.type;
+  const schema = options.schema || null;
+  if (/** @type {Record<string, any>} */ (options).type !== undefined) {
+    // The 1.x-era `type` alias for schema is retired: using it now is
+    // almost certainly a typo for `datatype` (its 0.x meaning) — warn so
+    // the mistake is visible, and ignore the value
+    debugPort(
+      `port option 'type' is retired: use 'datatype' for the payload datatype or 'schema' for a schema artifact reference — the value is ignored`,
+    );
+  }
 
   if (schema !== null && schema !== undefined) {
     const validSchema =

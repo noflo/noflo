@@ -349,7 +349,7 @@ describe("Server component", () => {
 });
 ```
 
-- Use the EventTarget API (`addEventListener`) on internal sockets; the legacy EventEmitter surface (`once`, `on`) still works but emits deprecation warnings, and native listeners receive a CustomEvent whose payload is in `.detail`.
+- Use the EventTarget API (`addEventListener`) on internal sockets; the legacy EventEmitter surface (`on`, `once`, `emit`) was removed in 2.0 (work document #8), and native listeners receive a CustomEvent whose payload is in `.detail`.
 - Always clean up generator components in a `finally` (`await c.shutdown()` must resolve) — leaked servers fail CI runs nondeterministically.
 - Prefer OS-assigned ports (0) over fixed ports to avoid flakiness; have the component emit the assigned port (see 6.3).
 - Bound every async wait with a timeout (`AbortSignal.timeout`, `node:assert/strict`'s `rejects` with timers, or test-level `timeout`); a hanging test is a migration bug to fix, not to mask with long timeouts.

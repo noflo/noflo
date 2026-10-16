@@ -14,6 +14,62 @@ if (
 } else {
   isBrowser = true;
 }
+
+/**
+ * Test-only replacement for the removed `noflo.asCallback` helper: load a
+ * component by name, attach sockets to every port, and return a JS function
+ * that sends the given input (a scalar goes to the sole inport, an object is
+ * keyed by port name) and delivers the first output — or error — to the
+ * callback.
+ *
+ * @param {import("@noflo/noflo").ComponentLoader} loader
+ * @param {string} name
+ * @returns {(input: any, callback: (err: Error|null, res: any) => void) => void}
+ */
+function wrapForTest(loader, name) {
+  return (input, callback) => {
+    loader.load(name).then((instance) => {
+      const inSockets = {};
+      Object.keys(instance.inPorts.ports).forEach((port) => {
+        const socket = noflo.internalSocket.createSocket();
+        instance.inPorts.ports[port].attach(socket);
+        inSockets[port] = socket;
+      });
+      const outSocket = noflo.internalSocket.createSocket();
+      const errSocket = noflo.internalSocket.createSocket();
+      instance.outPorts.out.attach(outSocket);
+      instance.outPorts.error.attach(errSocket);
+      let settled = false;
+      const settle = (err, res) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        callback(err, res);
+      };
+      listenOnce(errSocket, "ip", (ip) => settle(ip.data, null));
+      listenOnce(outSocket, "ip", (ip) => settle(null, ip.data));
+      // A component that sends nothing (e.g. a null return, which
+      // sendDone(null) marks done without a packet) resolves with null:
+      // after the activation deactivates and the delivery microtasks
+      // have drained, no output means no output
+      instance.addEventListener("deactivate", () => {
+        setImmediate(() => {
+          settle(null, null);
+        });
+      });
+      if (typeof input === "object" && input !== null) {
+        Object.keys(input).forEach((port) => {
+          inSockets[port].send(input[port]);
+        });
+        return;
+      }
+      const [sole] = Object.keys(inSockets);
+      inSockets[sole].send(input);
+    });
+  };
+}
+
 describe("asComponent interface", () => {
   let loader = null;
   before(() => {
@@ -40,7 +96,7 @@ describe("asComponent interface", () => {
         });
       });
       it("should send to OUT port", (_t, done) => {
-        const wrapped = noflo.asCallback("ascomponent/sync-one", { loader });
+        const wrapped = wrapForTest(loader, "ascomponent/sync-one");
         wrapped("World", (err, res) => {
           if (err) {
             done(err);
@@ -66,7 +122,7 @@ describe("asComponent interface", () => {
             "data Hello Baz",
             "closeBracket a",
           ];
-          listenOnce(error, "data", (data) => done(data));
+          listenOnce(error, "ip", (ip) => done(ip.data));
           listen(out, "ip", (ip) => {
             received.push(`${ip.type} ${ip.data}`);
             if (received.length !== expected.length) {
@@ -90,7 +146,7 @@ describe("asComponent interface", () => {
         await loader.registerComponent("ascomponent", "sync-null", component);
       });
       it("should send to OUT port", (_t, done) => {
-        const wrapped = noflo.asCallback("ascomponent/sync-null", { loader });
+        const wrapped = wrapForTest(loader, "ascomponent/sync-null");
         wrapped("World", (err, res) => {
           if (err) {
             done(err);
@@ -110,7 +166,7 @@ describe("asComponent interface", () => {
         await loader.registerComponent("ascomponent", "sync-throw", component);
       });
       it("should send to ERROR port", (_t, done) => {
-        const wrapped = noflo.asCallback("ascomponent/sync-throw", { loader });
+        const wrapped = wrapForTest(loader, "ascomponent/sync-throw");
         wrapped("Error", (err) => {
           assert.strictEqual(Error.isError(err), true);
           assert.strictEqual(err.message, "Hello Error");
@@ -141,7 +197,7 @@ describe("asComponent interface", () => {
         });
       });
       it("should send to OUT port", (_t, done) => {
-        const wrapped = noflo.asCallback("ascomponent/sync-two", { loader });
+        const wrapped = wrapForTest(loader, "ascomponent/sync-two");
         wrapped(
           {
             greeting: "Hei",
@@ -152,7 +208,7 @@ describe("asComponent interface", () => {
               done(err);
               return;
             }
-            assert.deepStrictEqual(res, { out: "Hei Maailma" });
+            assert.strictEqual(res, "Hei Maailma");
             done();
           },
         );
@@ -190,15 +246,13 @@ describe("asComponent interface", () => {
         });
       });
       it("should send to OUT port", (_t, done) => {
-        const wrapped = noflo.asCallback("ascomponent/sync-default", {
-          loader,
-        });
+        const wrapped = wrapForTest(loader, "ascomponent/sync-default");
         wrapped({ name: "Maailma" }, (err, res) => {
           if (err) {
             done(err);
             return;
           }
-          assert.deepStrictEqual(res, { out: "Hello Maailma" });
+          assert.strictEqual(res, "Hello Maailma");
           done();
         });
       });
@@ -222,7 +276,7 @@ describe("asComponent interface", () => {
         await loader.registerComponent("ascomponent", "promise-one", component);
       });
       it("should send to OUT port", (_t, done) => {
-        const wrapped = noflo.asCallback("ascomponent/promise-one", { loader });
+        const wrapped = wrapForTest(loader, "ascomponent/promise-one");
         wrapped("World", (err, res) => {
           if (err) {
             done(err);
@@ -250,7 +304,7 @@ describe("asComponent interface", () => {
         await loader.registerComponent("ascomponent", "sync-throw", component);
       });
       it("should send to ERROR port", (_t, done) => {
-        const wrapped = noflo.asCallback("ascomponent/sync-throw", { loader });
+        const wrapped = wrapForTest(loader, "ascomponent/sync-throw");
         wrapped("Error", (err) => {
           assert.strictEqual(Error.isError(err), true);
           assert.strictEqual(err.message, "Hello Error");
@@ -277,7 +331,7 @@ describe("asComponent interface", () => {
         });
       });
       it("should send to OUT port", (_t, done) => {
-        const wrapped = noflo.asCallback("ascomponent/sync-zero", { loader });
+        const wrapped = wrapForTest(loader, "ascomponent/sync-zero");
         wrapped("bang", (err, res) => {
           if (err) {
             done(err);
@@ -304,7 +358,7 @@ describe("asComponent interface", () => {
         });
       });
       it("should send to OUT port", (_t, done) => {
-        const wrapped = noflo.asCallback("ascomponent/sync-zero", { loader });
+        const wrapped = wrapForTest(loader, "ascomponent/sync-zero");
         wrapped("bang", (err, res) => {
           if (err) {
             done(err);
@@ -337,7 +391,7 @@ describe("asComponent interface", () => {
         });
       });
       it("should send to OUT port", (_t, done) => {
-        const wrapped = noflo.asCallback("ascomponent/async-one", { loader });
+        const wrapped = wrapForTest(loader, "ascomponent/async-one");
         wrapped("World", (err, res) => {
           if (err) {
             done(err);
@@ -357,7 +411,7 @@ describe("asComponent interface", () => {
         await loader.registerComponent("ascomponent", "async-throw", component);
       });
       it("should send to ERROR port", (_t, done) => {
-        const wrapped = noflo.asCallback("ascomponent/async-throw", { loader });
+        const wrapped = wrapForTest(loader, "ascomponent/async-throw");
         wrapped("Error", (err) => {
           assert.strictEqual(Error.isError(err), true);
           assert.strictEqual(err.message, "Hello Error");

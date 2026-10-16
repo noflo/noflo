@@ -15,6 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - The `disconnect` event no longer overtakes in-flight packets on bounded edges: `InternalSocket.disconnect()` waits until every IP written before the disconnect has been delivered through the edge, restoring the disconnect-after-data ordering the synchronous unbounded path provided implicitly — including the same-tick auto-disconnect of `post()` and `OutPort` sends, whose delivery slot is reserved synchronously by the edge
 - Delivery-handler exceptions on bounded edges now escalate through the edge's registered error handler (or `Edge.lastError` without one), matching the synchronous throw the unbounded fast path propagates to the sender. Previously the rejection was swallowed into `lastError` and never surfaced
+### Removed
+- The `activateOnInput` component option: the field was assigned but never read by the engine — activation is driven by `input.activate()` and the firing gates, so the option did nothing
+- `InPort.length()` and `InPort.ready()`: buffer introspection without a consumer; use `has()` or `ProcessInput` buffer checks instead
+- `ComponentLoader.registerLoader()` and `ComponentLoader.clear()`: the 1.x plugin hook and catalog reset. Plugin modules are driven by registry implementations (`@noflo/loader-node`'s `registerLoaderPlugin`), not core; a new `ComponentLoader` instance replaces `clear()`
+- The `asCallback` callback-style embedding helper: the 1.x "wrap a graph as a Node.js-style function" story had no consumers in the monorepo or the migrated ecosystem. `asPromise` remains as the promise-based embedding and testing helper for running a component or graph with an input map and awaiting the collected outputs
+- `ProcessOutput.pass()`: a pre-Process-API pass-through helper that hard-wired a port named `out` and reused the received IP envelope; `sendIP`/`sendDone` express the same intent without the magic port name
+- The optional `groups`, `errorPort`, and `scope` arguments of `Component.error()`: no caller anywhere used them, and `groups` is retired 0.x bracket terminology; `error(e)` sends the error IP to the component's `error` outport as before
+- The 1.x-era port option `type` no longer aliases `schema`: ports declare `datatype` and the 2.x `schema` option only. A use of the retired key is ignored with a debug-level warning (it was silently being reinterpreted as a schema reference, which read like a datatype typo)
+- `Network.setAsyncDelivery()`: the post-construction mutating setter had no callers. The `asyncDelivery` network option stays and is still relayed to subgraph networks when they wire up
+- The `Utils.js` module (an Underscore.js-derived `debounce` with a single consumer): the network-end check is now an explicit `Network` timer, cancelled by clearing it instead of an after-the-fact abort flag
 
 ## [2.0.0-alpha.5] - 2026-10-16
 
