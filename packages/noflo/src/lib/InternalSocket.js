@@ -207,17 +207,18 @@ export class InternalSocket extends EventBase {
   // can be constructed with more flexibility, as file buffers or
   // message queues can be used as additional packet relay mechanisms.
   send(data) {
-    return this.post(new IP("data", data), false);
+    return this.post(new IP("data", data));
   }
 
   // ## Sending information packets without open bracket
   //
-  // As _connect_ event is considered as open bracket, it needs to be followed
-  // by a _disconnect_ event or a closing bracket. In the new simplified
-  // sending semantics single IP objects can be sent without open/close brackets.
+  // Single IP objects can be sent without open/close brackets; the
+  // connection stays open after the send. Ending a transmission is a
+  // sender decision — `disconnect()` — not an automatic side effect of
+  // sending (work document #40 update #5: disconnect is sender-terminal
+  // EOF, not per-burst framing).
   /**
    * @param {IP} packet
-   * @param {boolean} [autoDisconnect]
    * @returns {Promise<void>|void} Resolves when the packet has been
    *   admitted by the edge per its high-water mark, and rejects on send
    *   errors — which also escalate through the socket error path
@@ -227,7 +228,7 @@ export class InternalSocket extends EventBase {
    *   internal handling keeps ignored rejections off the unhandled
    *   channel.
    */
-  post(packet, autoDisconnect = true) {
+  post(packet) {
     const ip = packet;
     // Connect before sending when there is no open bracket framing
     if (!this.isConnected() && this.brackets.length === 0) {
@@ -268,9 +269,6 @@ export class InternalSocket extends EventBase {
           metadata: this.metadata,
         });
       });
-    }
-    if (autoDisconnect && this.isConnected() && this.brackets.length === 0) {
-      this.disconnect();
     }
     return write;
   }

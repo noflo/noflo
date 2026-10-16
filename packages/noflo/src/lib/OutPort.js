@@ -124,9 +124,8 @@ export default class OutPort extends BasePort {
    * @param {any} [data]
    * @param {import("./IP.js").IPOptions} [options]
    * @param {number|null} [index]
-   * @param {boolean} [autoConnect]
    */
-  sendIP(type, data, options, index = null, autoConnect = true) {
+  sendIP(type, data, options, index = null) {
     /** @type {IP} */
     let ip;
     let idx = index;
@@ -176,7 +175,7 @@ export default class OutPort extends BasePort {
       if (fanout) {
         outgoing = this.isFanoutRefs() ? ip.envelope() : ip.clone();
       }
-      writes.push(socket.post(outgoing, autoConnect));
+      writes.push(socket.post(outgoing));
     });
     // Admission promise for the most recent send. The noop catch keeps
     // fire-and-forget callers off the unhandled-rejection channel —

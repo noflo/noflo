@@ -286,7 +286,7 @@ describe("InternalSocket delegating transport to Edge", () => {
     );
   });
 
-  it("emits the auto-disconnect after delivery on the bounded default", async () => {
+  it("keeps the connection open after a posted packet on the bounded default", async () => {
     const socket = internalSocket.createSocket();
     const events = [];
     listen(socket, "ip", () => {
@@ -298,14 +298,20 @@ describe("InternalSocket delegating transport to Edge", () => {
     listen(socket, "disconnect", () => {
       events.push("disconnect");
     });
-    // post's autoDisconnect runs in the same tick as the write; the
-    // disconnect event must still come after the packet it follows
-    const write = socket.post(new IP("data", "first"), true);
+    // Sending no longer disconnects: ending a transmission is the
+    // sender's explicit decision (work document #40 update #5)
+    const write = socket.post(new IP("data", "first"));
     // Nothing delivered synchronously on a bounded edge
     assert.deepEqual(events, ["connect"]);
     await write;
     await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(events, ["connect", "ip"]);
+    assert.equal(socket.isConnected(), true, "still connected after the send");
+    // The explicit sender-terminal disconnect drains first
+    const drained = socket.disconnect();
+    await new Promise((resolve) => setImmediate(resolve));
     assert.deepEqual(events, ["connect", "ip", "disconnect"]);
+    await drained;
   });
 
   it("emits a same-tick explicit disconnect after delivery on the bounded default", async () => {
@@ -318,7 +324,7 @@ describe("InternalSocket delegating transport to Edge", () => {
       events.push("disconnect");
     });
     socket.connect();
-    socket.post(new IP("data", "first"), false);
+    socket.post(new IP("data", "first"));
     socket.disconnect();
     await new Promise((resolve) => setImmediate(resolve));
     assert.deepEqual(events, ["ip", "disconnect"]);
@@ -333,8 +339,10 @@ describe("InternalSocket delegating transport to Edge", () => {
     listen(socket, "disconnect", () => {
       events.push("disconnect");
     });
-    socket.post(new IP("data", "first"), true);
+    socket.post(new IP("data", "first"));
     // No awaiting: unbounded edges keep the 1.x synchronous ordering
+    assert.deepEqual(events, ["ip"]);
+    socket.disconnect();
     assert.deepEqual(events, ["ip", "disconnect"]);
   });
 
