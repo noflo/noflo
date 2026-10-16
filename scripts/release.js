@@ -26,7 +26,7 @@
  *     7. commit/tag  — one "release v<version>" commit + tag v<version>
  *     8. pack        — regenerate declarations (gitignored, adjacent .d.ts)
  *                      then npm pack --workspaces --pack-destination dist
- *     9. push        — git push origin HEAD:refs/heads/<branch> --tags,
+ *     9. push        — git push origin <branch> --tags,
  *                      pushing the current branch under an explicit refspec
  *                      (rngit refuses to create a release for a tag that
  *                      isn't in its git source repo yet, and rejects bare
@@ -510,9 +510,11 @@ export function runRelease({
   //    happen *before* `rngit release create`.
   // Push the current branch whatever it is called (master, main, a release
   // branch) — a hardcoded branch name breaks on every repo that differs. The
-  // refspec must be explicit (`HEAD:refs/heads/<branch>`): the rngit git
-  // source rejects source-only refspecs like bare `HEAD` with
-  // "Missing ref specification".
+  // rngit git source rejects `HEAD` as a *source* ref in any form (bare, and
+  // as `HEAD:refs/heads/<branch>` — see the v2.0.0-alpha.4 run) with
+  // "Missing ref specification"; a real branch name as a plain source-only
+  // refspec is the form that works (the reticulum.js release script has
+  // pushed `git push origin main --tags` this way for every release).
   const branch = currentBranch(root);
   if (!branch) {
     throw new Error(
@@ -522,7 +524,7 @@ export function runRelease({
   if (dryRun || noPublish) {
     console.log("── Publish (run manually) ──");
     console.log(
-      `  git push origin HEAD:refs/heads/${branch} --tags     # push tag to rngit git source first`,
+      `  git push origin ${branch} --tags     # push tag to rngit git source first`,
     );
     console.log(
       `  rngit release ${repo} create ${tag}:dist   # canonical (mesh)`,
@@ -534,9 +536,7 @@ export function runRelease({
   }
 
   console.log("Pushing release commit + tag to origin (rngit git source)...");
-  // Push the current branch whatever it is called (master, main, a release
-  // branch) — a hardcoded branch name breaks on every repo that differs.
-  run(`git push origin HEAD:refs/heads/${branch} --tags`, {
+  run(`git push origin ${branch} --tags`, {
     cwd: root,
     stdio: "inherit",
   });
