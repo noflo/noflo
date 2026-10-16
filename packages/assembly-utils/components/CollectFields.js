@@ -63,19 +63,28 @@ export class CollectFields extends Component {
     if (!input.hasData("msg", "fields")) {
       return;
     }
-    const msg = input.getData("msg");
-    const fieldNames = JSON.parse(input.getData("fields"));
 
     const indexes = /** @type {number[]} */ (input.attached("data"));
     const complete = indexes.filter((idx) => input.hasStream(["data", idx]));
     const errorStream = input.hasStream("error");
 
-    // Fire when every mapped field delivered, or when the inner
-    // signalled an error instead of delivering
+    // Fire only when the message can be consumed together with its inner
+    // outputs (or the inner signalled failure). Has-check everything before
+    // any get: consuming the message in an activation that then waits for
+    // the inner leg would lose it — new arrivals fire fresh contexts, and
+    // an IP consumed by a waiting activation never comes back (the has/get
+    // order discipline, work documents #21 and #36). Leaving the message
+    // buffered keeps it readable by the activation that fires once every
+    // field has delivered.
     if (complete.length < indexes.length && !errorStream) {
       return;
     }
 
+    const msg = input.getData("msg");
+    const fieldNames = JSON.parse(input.getData("fields"));
+
+    // Fire when every mapped field delivered, or when the inner
+    // signalled an error instead of delivering
     const result = { ...msg };
     /** @type {unknown[]} */
     const errors = Array.isArray(msg.errors) ? [...msg.errors] : [];

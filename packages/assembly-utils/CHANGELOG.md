@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- `assembly-utils/CollectFields` firing pattern: the collector consumed the originating message in an activation that then waited for the inner component's outputs — new arrivals fire fresh contexts, so a relay split across activations lost the message and hung the network (the activation pended forever with the inner output buffered). The collector now has-checks the complete precondition set — the message, the fields config, and every mapped inner output stream (or the error stream) — before consuming anything, so the message stays buffered until the collector can fire with both. Found via a flowtrace of a wrapped component running inside a network (work document #36 update #11)
+
 ### Added
 
 - Initial 2.x line: `noflo-assembly-utils` ingested into the monorepo as `@noflo/assembly-utils` (work document #36), preserving history and authorship
