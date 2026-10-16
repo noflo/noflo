@@ -63,6 +63,32 @@ describe("asPromise interface", () => {
     loader.registerComponent("process", "NeverSend", neverSend);
     loader.registerComponent("process", "Streamify", streamify);
   });
+  describe("with a stateful component (#608)", () => {
+    let constructed = 0;
+    before(() => {
+      loader.registerComponent("process", "Counting", () => {
+        constructed += 1;
+        const c = new noflo.Component();
+        c.inPorts.add("in", { datatype: "string" });
+        c.outPorts.add("out", { datatype: "string" });
+        c.process((input, output) => {
+          output.sendDone(input.getData("in"));
+        });
+        return c;
+      });
+    });
+    it("constructs the component factory exactly once per invocation", async () => {
+      constructed = 0;
+      const wrapped = noflo.asPromise("process/Counting", { loader });
+      const res = await wrapped("World");
+      assert.equal(res, "World");
+      assert.equal(
+        constructed,
+        1,
+        "the introspection load must be reused by the network, not followed by a second construction",
+      );
+    });
+  });
   describe("with a non-existing component", () => {
     let wrapped = null;
     before(() => {

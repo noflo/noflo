@@ -26,6 +26,48 @@ export default class ProcessInput {
     this.scope = this.context.scope;
   }
 
+  /**
+   * Error message for accessing a port the component does not have: names
+   * the component, the requested port, and the ports that exist (#1041).
+   *
+   * @param {string} portname
+   * @returns {string}
+   */
+  #missingPortMessage(portname) {
+    const available = Object.keys(this.ports.ports);
+    const listing = available.length
+      ? `available ports: '${available.join("', '")}'`
+      : "no ports are defined";
+    return `Node ${this.nodeInstance.nodeId} has no port '${portname}' — ${listing}`;
+  }
+
+  /**
+   * Fetch a port implementation for buffered access, throwing a descriptive
+   * error when the port does not exist (the misspelled-port crash of
+   * #1041) or when the access form does not match the port kind.
+   *
+   * @param {string} portname
+   * @param {boolean} addressable - Whether the access form expects an addressable port
+   * @returns {import("./InPort.js").default}
+   */
+  #validatedPort(portname, addressable) {
+    const portImpl = this.ports.ports[portname];
+    if (!portImpl) {
+      throw new Error(this.#missingPortMessage(portname));
+    }
+    if (addressable && !portImpl.isAddressable()) {
+      throw new Error(
+        "Non-addressable ports, access must be with string portname",
+      );
+    }
+    if (!addressable && portImpl.isAddressable()) {
+      throw new Error(
+        `For addressable ports, access must be with array [${portname}, idx]`,
+      );
+    }
+    return portImpl;
+  }
+
   // When preconditions are met, set component state to `activated`
   activate() {
     if (this.context.activated) {
@@ -116,7 +158,7 @@ export default class ProcessInput {
         );
         if (!portImpl) {
           throw new Error(
-            `Node ${this.nodeInstance.nodeId} has no port '${port[0]}'`,
+            this.#missingPortMessage(/** @type {string} */ (port[0])),
           );
         }
         if (!portImpl.isAddressable()) {
@@ -134,9 +176,7 @@ export default class ProcessInput {
           this.ports.ports[port]
         );
         if (!portImpl) {
-          throw new Error(
-            `Node ${this.nodeInstance.nodeId} has no port '${port}'`,
-          );
+          throw new Error(this.#missingPortMessage(port));
         }
         if (portImpl.isAddressable()) {
           throw new Error(
@@ -259,20 +299,13 @@ export default class ProcessInput {
       let idx;
       let ip;
       let portname;
+      let portImpl;
       if (Array.isArray(port)) {
         [portname, idx] = Array.from(port);
-        if (!this.ports.ports[portname].isAddressable()) {
-          throw new Error(
-            "Non-addressable ports, access must be with string portname",
-          );
-        }
+        portImpl = this.#validatedPort(/** @type {string} */ (portname), true);
       } else {
         portname = port;
-        if (this.ports.ports[portname].isAddressable()) {
-          throw new Error(
-            "For addressable ports, access must be with array [portname, idx]",
-          );
-        }
+        portImpl = this.#validatedPort(/** @type {string} */ (portname), false);
       }
       const name = /** @type {string} */ (portname);
       const idxName = /** @type {number} */ (idx);
@@ -280,9 +313,6 @@ export default class ProcessInput {
         ip = this.__getForForwarding(name, idxName);
         res.push(ip);
       } else {
-        const portImpl = /** @type {import("./InPort.js").default} */ (
-          this.ports.ports[name]
-        );
         ip = portImpl.get(this.scope, idxName);
         res.push(ip);
       }

@@ -98,6 +98,7 @@ function connectPort(socket, process, port, index, inbound) {
  * @property {import("./Flowtrace.js").Flowtrace} [flowtrace] - Flowtrace instance to use for tracing this network run
  * @property {boolean} [asyncDelivery] - Make Information Packet delivery asynchronous
  * @property {number|null} [highWaterMark] - Default backpressure buffer size for all edges in this network; null = unbounded
+ * @property {Object<string, import("./Component.js").Component>} [instances] - Pre-built component instances to use instead of loading the node's component through the loader, keyed by node id. For embedding APIs that need the instance for port introspection before the network builds: the component is constructed once, not once for introspection and once again in the network (GitHub issue #608)
  */
 
 /**
@@ -393,8 +394,16 @@ export class Network extends EventBase {
         this.processes[process.id] = process;
         promise = Promise.resolve(process);
       } else {
+        // A pre-built instance from the network options is used as-is; the
+        // loader is not consulted, so the component factory runs exactly
+        // once for embedding callers that introspected ports up front
+        const preloaded = this.options.instances?.[node.entity_id];
         // Load the component for the process.
-        promise = this.load(node.component, node.metadata).then((instance) => {
+        promise = (
+          preloaded
+            ? Promise.resolve(preloaded)
+            : this.load(node.component, node.metadata)
+        ).then((instance) => {
           instance.nodeId = node.entity_id;
           process.component = instance;
           process.componentName = node.component;

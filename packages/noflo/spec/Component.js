@@ -229,6 +229,71 @@ describe("Component", () => {
       assert.throws(shorthand);
     });
   });
+  describe("bracket forwarding rule validation (#540)", () => {
+    it("throws when an explicit rule references a non-existing inport", () => {
+      const shorthand = () =>
+        new noflo.Component({
+          inPorts: { in: {} },
+          outPorts: { out: {} },
+          forwardBrackets: { typo: ["out"] },
+          process(input, output) {
+            output.sendDone(input.getData("in"));
+          },
+        });
+      assert.throws(
+        shorthand,
+        /forwardBrackets references inport 'typo' which the component does not have/,
+      );
+    });
+    it("throws when an explicit rule references a non-existing outport", () => {
+      const shorthand = () =>
+        new noflo.Component({
+          inPorts: { in: {} },
+          outPorts: { out: {} },
+          forwardBrackets: { in: ["out", "misspelled"] },
+          process(input, output) {
+            output.sendDone(input.getData("in"));
+          },
+        });
+      assert.throws(
+        shorthand,
+        /references outport 'misspelled' which the component does not have/,
+      );
+    });
+    it("throws when a rule assigned before process() names a non-existing port", () => {
+      const c = new noflo.Component();
+      c.inPorts.add("in");
+      c.outPorts.add("out");
+      c.forwardBrackets = { in: ["out", "typo"] };
+      assert.throws(
+        () => c.process(() => {}),
+        /references outport 'typo' which the component does not have/,
+      );
+    });
+    it("keeps the built-in default adaptive to the ports the component has", () => {
+      // A component without `out`/`error` ports is correct usage: the
+      // default rule silently adapts instead of erroring
+      const c = new noflo.Component({
+        inPorts: { in: { datatype: "all" } },
+        outPorts: { error: { datatype: "object" } },
+        process(input, output) {
+          output.done();
+        },
+      });
+      assert.deepEqual(c.forwardBrackets, { in: ["error"] });
+    });
+    it("accepts an empty explicit rule map", () => {
+      const c = new noflo.Component({
+        inPorts: { in: {} },
+        outPorts: { out: {} },
+        forwardBrackets: {},
+        process(input, output) {
+          output.sendDone(input.getData("in"));
+        },
+      });
+      assert.deepEqual(c.forwardBrackets, {});
+    });
+  });
   describe("with non-existing ports", () => {
     const getComponent = () =>
       new noflo.Component({
@@ -315,6 +380,77 @@ describe("Component", () => {
         } catch (e) {
           assert.strictEqual(Error.isError(e), true);
           assert.ok(e.message.includes("foo"));
+          done();
+          return;
+        }
+        done(new Error("Expected a throw"));
+      });
+      const sin1 = noflo.internalSocket.createSocket();
+      c.inPorts.in.attach(sin1);
+      sin1.send("hello");
+    });
+    it("should throw an error when getting a non-existing port (#1041)", (_t, done) => {
+      const c = getComponent();
+      c.process((input) => {
+        try {
+          input.get("foo");
+        } catch (e) {
+          assert.strictEqual(Error.isError(e), true);
+          assert.match(e.message, /has no port 'foo'/);
+          assert.match(e.message, /available ports: 'in'/);
+          done();
+          return;
+        }
+        done(new Error("Expected a throw"));
+      });
+      const sin1 = noflo.internalSocket.createSocket();
+      c.inPorts.in.attach(sin1);
+      sin1.send("hello");
+    });
+    it("should throw an error when getting data from a non-existing port (#1041)", (_t, done) => {
+      const c = getComponent();
+      c.process((input) => {
+        try {
+          input.getData("foo");
+        } catch (e) {
+          assert.strictEqual(Error.isError(e), true);
+          assert.match(e.message, /has no port 'foo'/);
+          assert.match(e.message, /available ports: 'in'/);
+          done();
+          return;
+        }
+        done(new Error("Expected a throw"));
+      });
+      const sin1 = noflo.internalSocket.createSocket();
+      c.inPorts.in.attach(sin1);
+      sin1.send("hello");
+    });
+    it("should throw an error when getting a stream from a non-existing port (#1041)", (_t, done) => {
+      const c = getComponent();
+      c.process((input) => {
+        try {
+          input.getStream("foo");
+        } catch (e) {
+          assert.strictEqual(Error.isError(e), true);
+          assert.match(e.message, /has no port 'foo'/);
+          assert.match(e.message, /available ports: 'in'/);
+          done();
+          return;
+        }
+        done(new Error("Expected a throw"));
+      });
+      const sin1 = noflo.internalSocket.createSocket();
+      c.inPorts.in.attach(sin1);
+      sin1.send("hello");
+    });
+    it("should throw an error when getting a non-existing addressable port (#1041)", (_t, done) => {
+      const c = getComponent();
+      c.process((input) => {
+        try {
+          input.get(["foo", 0]);
+        } catch (e) {
+          assert.strictEqual(Error.isError(e), true);
+          assert.match(e.message, /has no port 'foo'/);
           done();
           return;
         }

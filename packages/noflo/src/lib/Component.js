@@ -61,6 +61,10 @@ const debugSend = createDebug("noflo:component:send");
  * NoFlo components.
  */
 export class Component extends EventBase {
+  /** Identity of the built-in forwarding default, when in effect; null once the component declares its own rules
+   * @type {Object<string, string[]> | null}
+   */
+  #defaultForwarding = null;
   /**
    * Create a component. Ports, icon, description, ordering behavior, and the
    * process function can all be provided via options, or set up imperatively
@@ -194,6 +198,13 @@ export class Component extends EventBase {
     // brackets from `in` port to `out` and `error` ports.
     if (!opts.forwardBrackets) {
       opts.forwardBrackets = { in: ["out", "error"] };
+      // The built-in default adapts silently to the ports the component
+      // actually has; forwarding rules declared by the component must
+      // name real ports and are validated in prepareForwarding (#540)
+      /** @type {Object<string, string[]> | null} */
+      this.#defaultForwarding = opts.forwardBrackets;
+    } else {
+      this.#defaultForwarding = null;
     }
     /**
      * Map of inport name to the outports its brackets forward to
@@ -431,9 +442,21 @@ export class Component extends EventBase {
    * @returns {void}
    */
   prepareForwarding() {
+    // Rules the component declared itself must name real ports: silent
+    // deletion turned typos into dead config (#540). The built-in default
+    // keeps adapting silently — components without `out`/`error` ports
+    // are correct usage
+    const defaulted =
+      this.#defaultForwarding != null &&
+      this.forwardBrackets === this.#defaultForwarding;
     Object.keys(this.forwardBrackets).forEach((inPort) => {
       const outPorts = this.forwardBrackets[inPort];
       if (!(inPort in this.inPorts.ports)) {
+        if (!defaulted) {
+          throw new Error(
+            `forwardBrackets references inport '${inPort}' which the component does not have — declared forwarding rules must name existing ports`,
+          );
+        }
         delete this.forwardBrackets[inPort];
         return;
       }
@@ -442,6 +465,12 @@ export class Component extends EventBase {
       outPorts.forEach((outPort) => {
         if (outPort in this.outPorts.ports) {
           tmp.push(outPort);
+          return;
+        }
+        if (!defaulted) {
+          throw new Error(
+            `forwardBrackets rule for inport '${inPort}' references outport '${outPort}' which the component does not have — declared forwarding rules must name existing ports`,
+          );
         }
       });
       if (tmp.length === 0) {
