@@ -18,9 +18,16 @@ const processAsync = () => {
 
   c.process((input, output) => {
     const data = input.getData("in");
-    setTimeout(() => {
-      output.sendDone(data + c.nodeId);
-    }, 1);
+    // Deferred sends hold the activation: a void resolution means "the
+    // process already sent", so an async send after the activation
+    // closed races drain-based closing and re-opens a closed-down
+    // downstream (work document #45)
+    // Resolve with the value; the bridge sends it in-activation — calling
+    // sendDone before resolving would double-done and re-activate a
+    // deactivated context (work document #45)
+    return new Promise((resolve) => {
+      setTimeout(() => resolve(data + c.nodeId), 1);
+    });
   });
   return c;
 };

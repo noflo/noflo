@@ -455,6 +455,10 @@ describe("NoFlo Subgraph component", () => {
       });
       await inst.start();
       i.send("Foo");
+      // Per-burst EOF: the driver is the boundary — without the disconnect
+      // the subgraph network stays open under drain-based closing (work
+      // document #45)
+      i.disconnect();
       await done;
       assert.deepStrictEqual(received, expected);
     });
@@ -593,6 +597,11 @@ describe("NoFlo Subgraph component", () => {
         for (const d of sends) {
           i.post(new noflo.IP("data", d));
         }
+        // Per-burst EOF: the driver is the boundary, and each burst is its
+        // own transmission — without the disconnect the subgraph network
+        // stays open across bursts under drain-based closing (work
+        // document #45)
+        i.disconnect();
       };
       const done = new Promise((resolve) => {
         listen(o, "ip", (ip) => {
@@ -789,8 +798,19 @@ describe("NoFlo Subgraph component", () => {
         await done;
       });
       it("should finish", async () => {
-        await new Promise((resolve) => {
-          listenOnce(network, "end", () => {
+        // With drain-based closing the network ends deterministically at
+        // the last closedown event — whose arrival may trail the previous
+        // test's data flow — so await it unless it already fired
+        if (!network.isStarted()) {
+          return;
+        }
+        await new Promise((resolve, reject) => {
+          const timer = setTimeout(
+            () => reject(new Error("the network did not finish")),
+            5000,
+          );
+          network.addEventListener("end", () => {
+            clearTimeout(timer);
             resolve();
           });
         });
@@ -804,6 +824,10 @@ describe("NoFlo Subgraph component", () => {
         );
         assert.strictEqual(collectedTrace.snapshot.main, "main");
         const eventTypes = collectedTrace.chunks.map(([, type]) => type);
+        // With drain-based closing the subgraph wrappers deactivate when
+        // their inner networks end (cascading closedown), so the wrapper
+        // ACTIVATION_ENDs land with the inner closedown instead of at the
+        // network tail (work document #45)
         assert.deepStrictEqual(eventTypes, [
           noflo.EVENT_TYPE.ACTIVATION_BEGIN,
           noflo.EVENT_TYPE.ACTIVATION_BEGIN,
@@ -817,10 +841,10 @@ describe("NoFlo Subgraph component", () => {
           noflo.EVENT_TYPE.DATA,
           noflo.EVENT_TYPE.ACTIVATION_BEGIN,
           noflo.EVENT_TYPE.ACTIVATION_END,
+          noflo.EVENT_TYPE.ACTIVATION_END,
+          noflo.EVENT_TYPE.ACTIVATION_END,
           noflo.EVENT_TYPE.DATA,
           noflo.EVENT_TYPE.ACTIVATION_BEGIN,
-          noflo.EVENT_TYPE.ACTIVATION_END,
-          noflo.EVENT_TYPE.ACTIVATION_END,
           noflo.EVENT_TYPE.ACTIVATION_END,
           noflo.EVENT_TYPE.LIFECYCLE,
         ]);
@@ -841,10 +865,10 @@ describe("NoFlo Subgraph component", () => {
           "Sub",
           "Sub",
           "Sub",
-          "",
-          "",
-          "",
           "Sub",
+          "",
+          "",
+          "",
           "",
           "",
         ]);
