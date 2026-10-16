@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The optional `groups`, `errorPort`, and `scope` arguments of `Component.error()`: no caller anywhere used them, and `groups` is retired 0.x bracket terminology; `error(e)` sends the error IP to the component's `error` outport as before
 - The 1.x-era port option `type` no longer aliases `schema`: ports declare `datatype` and the 2.x `schema` option only. A use of the retired key is ignored with a debug-level warning (it was silently being reinterpreted as a schema reference, which read like a datatype typo)
 - `Network.setAsyncDelivery()`: the post-construction mutating setter had no callers. The `asyncDelivery` network option stays and is still relayed to subgraph networks when they wire up
+- The `Utils.js` module (an Underscore.js-derived `debounce` with a single consumer): the network-end check is now an explicit `Network` timer, cancelled by clearing it instead of an after-the-fact abort flag
 
 ## [2.0.0-alpha.5] - 2026-10-16
 
