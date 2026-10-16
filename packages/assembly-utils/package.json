@@ -35,5 +35,10 @@
   },
   "dependencies": {
     "jsonpath-plus": "^11.2.0"
-  }
+  },
+  "files": [
+    "components",
+    "README.md",
+    "CHANGELOG.md"
+  ]
 }

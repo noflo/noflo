@@ -36,5 +36,11 @@
     "test:deno": "deno test --allow-all --no-check spec/*.js",
     "test:bun": "bun test ./spec/*.js",
     "types": "tsc --noEmit -p tsconfig.json"
-  }
+  },
+  "files": [
+    "bin",
+    "src",
+    "CHANGELOG.md",
+    "README.md"
+  ]
 }
