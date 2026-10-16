@@ -369,22 +369,32 @@ describe("process listing (0x44 CMD_PROCESS_LIST_REQ)", () => {
   }
 
   /** The 0x45 reply to a 0x44 request, decoded. A started network's
-   * lifecycle telemetry may interleave; the listing is the one 0x45. */
+   * lifecycle telemetry may interleave; the listing is the one 0x45.
+   *
+   * The listing handler awaits the graph epoch hash — a WebCrypto digest
+   * resolving on its own event-loop turn — so the reply's arrival time is
+   * not one tick. Poll until a decodable reply shows up instead of
+   * assuming one macrotask (this was a CI flake under load). */
   async function requestListing(server, transport) {
     const before = transport.log.sent.length;
     server.handleFrame(encodeProcessListReq(), "link-1");
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    const replies = transport.log.sent
-      .slice(before)
-      .map((sent) => {
-        try {
-          return decodeProcessList(sent.bytes);
-        } catch {
-          return null;
-        }
-      })
-      .filter(Boolean);
-    return replies[0];
+    for (let attempts = 0; attempts < 100; attempts += 1) {
+      const replies = transport.log.sent
+        .slice(before)
+        .map((sent) => {
+          try {
+            return decodeProcessList(sent.bytes);
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean);
+      if (replies.length > 0) {
+        return replies[0];
+      }
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    throw new Error("No PROCESS_LIST reply arrived");
   }
 
   it("lists the graph's nodes with declared kinds and the stopped state", async () => {
