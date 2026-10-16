@@ -139,6 +139,86 @@ describe("drain-based network closing", () => {
     ]);
   });
 
+  it("ends a feedback graph whose cycle targets an exported inport", async () => {
+    // The review finding (PR #1092): an internal edge (B.out -> A.in)
+    // targeting an exported inport shares the boundary port. Its socket
+    // can only go terminal when its sender closes down, and the sender
+    // waits on the boundary component's closedown — the old
+    // every-socket-must-be-terminal check deadlocked the cycle through
+    // the boundary gate. The gate now requires terminal state only from
+    // external (driver and IIP) sockets; internal edges are covered by
+    // quiescence.
+    const graph = new noflo.GraphModel({ name: "feedback" });
+    graph.addNode({ entity_id: "A", component: "closing/Once" });
+    graph.addNode({ entity_id: "B", component: "closing/Pass" });
+    graph.addExport({
+      direction: "inport",
+      public: "in",
+      internal: { node: "A", port: "in" },
+    });
+    graph.addEdge({
+      entity_id: "e1",
+      from: { node: "A", port: "out" },
+      to: { node: "B", port: "in" },
+    });
+    graph.addEdge({
+      entity_id: "e2",
+      from: { node: "B", port: "out" },
+      to: { node: "A", port: "in" },
+    });
+    const loader = new noflo.ComponentLoader({});
+    loader.registerComponent("closing", "Once", () => {
+      const c = new noflo.Component();
+      c.inPorts.add("in", { datatype: "all" });
+      c.outPorts.add("out", { datatype: "all" });
+      let sent = false;
+      c.process((input, output) => {
+        if (!input.hasData("in")) {
+          return;
+        }
+        const data = input.getData("in");
+        if (sent) {
+          // The feedback echo: consume without re-sending
+          output.done();
+          return;
+        }
+        sent = true;
+        output.sendDone({ out: data });
+      });
+      return c;
+    });
+    loader.registerComponent("closing", "Pass", () => {
+      const c = new noflo.Component();
+      c.inPorts.add("in", { datatype: "all" });
+      c.outPorts.add("out", { datatype: "all" });
+      c.process((input, output) => {
+        if (!input.hasData("in")) {
+          return;
+        }
+        output.sendDone({ out: input.getData("in") });
+      });
+      return c;
+    });
+    const network = await noflo.createNetwork(graph, {
+      componentLoader: loader,
+      delay: true,
+    });
+    await network.connect();
+    const socket = noflo.internalSocket.createSocket();
+    network.getNode("A").component.inPorts.ports.in.attach(socket);
+    await network.start();
+    socket.post(new noflo.IP("data", "x"));
+    socket.disconnect();
+    await new Promise((resolve) => {
+      const timer = setTimeout(resolve, 3000);
+      network.addEventListener("end", () => {
+        clearTimeout(timer);
+        resolve();
+      });
+    });
+    assert.equal(network.isStarted(), false, "the cycle network ended");
+  });
+
   it("orders nested closing: inner end, wrapper closedown, outer end", async () => {
     // A subgraph whose inner network closes down: the inner network's end
     // precedes the wrapper's closedown event, which precedes the outer

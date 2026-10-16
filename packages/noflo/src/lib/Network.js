@@ -181,9 +181,6 @@ export class Network extends EventBase {
      * @type {boolean}
      */
     this.asyncDelivery = options.asyncDelivery || false;
-    /** Pending network-end check timer; deactivation bursts coalesce into one
-     * @type { ReturnType<typeof setTimeout> | null }
-     */
     /** Events buffered while the network is not yet started, flushed on start
      * @type {Array<NetworkEvent>}
      */
@@ -1292,8 +1289,14 @@ export class Network extends EventBase {
       return;
     }
     // Boundary inputs: the targets of the graph's inport exports. A
-    // boundary input is at EOF when it has attached sockets and every one
-    // of them is terminally closed — a boundary input with no sockets has
+    // boundary input is at EOF when it has at least one external socket
+    // (a driver-attached or IIP socket — this network's sources) and every
+    // external socket is terminally closed. Internal edges targeting the
+    // same port are skipped: an edge whose both endpoints belong to this
+    // network's processes is cycle territory, and its terminal state is
+    // already covered by the quiescence check below — requiring it would
+    // deadlock feedback graphs through the boundary check (work document
+    // #45 review, PR #1092). A boundary input with no external sockets has
     // not spoken yet (its driver may still attach and transmit), so the
     // network stays open.
     const exports = this.graph.exports().filter(
@@ -1307,20 +1310,31 @@ export class Network extends EventBase {
       if (!port) {
         return;
       }
-      let live = 0;
+      let external = 0;
       let terminal = 0;
       for (const socket of port.sockets) {
         if (!socket) {
           continue;
         }
-        live += 1;
+        // Internal edge: both endpoints are this network's processes.
+        // An IIP socket has no source process; a driver socket has no
+        // source at all — both are this network's boundary sources and
+        // gate the end.
+        const fromInternal =
+          socket.from?.process && this.processes[socket.from.process.id];
+        const toInternal =
+          socket.to?.process && this.processes[socket.to.process.id];
+        if (fromInternal && toInternal) {
+          continue;
+        }
+        external += 1;
         if (socket.isTerminal()) {
           terminal += 1;
         }
       }
-      // A boundary input is at EOF when it has attached sockets and every
+      // A boundary input is at EOF when it has external sockets and every
       // one of them is terminally closed
-      if (live === 0 || terminal !== live) {
+      if (external === 0 || terminal !== external) {
         return;
       }
     }
