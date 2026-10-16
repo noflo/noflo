@@ -1272,12 +1272,14 @@ export class Network extends EventBase {
       return;
     }
     this.closingCheckScheduled = true;
-    const timer = setTimeout(() => {
+    // The timer is intentionally ref'd: the closing evaluation is the
+    // pending work keeping the event loop alive while the network drains —
+    // unref'ing it (a no-op under Node's test runner, effective under
+    // Deno) would let the loop drain before the evaluation runs
+    setTimeout(() => {
       this.closingCheckScheduled = false;
       this.#evaluateClosing();
     }, this.closingDebounceMs);
-    // The closing check must not hold a process alive on its own
-    timer.unref?.();
   }
 
   /**

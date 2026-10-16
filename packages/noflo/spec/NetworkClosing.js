@@ -197,13 +197,8 @@ describe("drain-based network closing", () => {
       log.push("outer end");
     });
     await network.start();
-    const innerSocket = inner.getNode?.("Node")?.component?.outPorts?.ports?.out?.sockets?.[0];
-    console.log('[dbg] inner network started:', inner.isStarted(), '| node sockets:', innerSocket ? innerSocket.isTerminal() : 'n/a');
     socket.post(new noflo.IP("data", "a"));
     socket.disconnect();
-    setTimeout(() => {
-      console.log('[dbg] T+3s: inner started:', inner.isStarted(), '| wrapper closedDown:', network.getNode("Inner").component.isClosedDown(), '| node closedDown:', inner?.processes?.Node?.component?.isClosedDown?.(), '| node eof:', Object.keys(inner?.processes?.Node?.component?.inPorts.ports ?? {}).map((n) => inner.processes.Node.component.inPorts.ports[n].isEof()).join(','));
-    }, 2500);
     await new Promise((resolve) => {
       const timer = setTimeout(resolve, 3000);
       network.addEventListener("end", () => {
