@@ -153,6 +153,25 @@ function rejections(transport) {
     .filter(Boolean);
 }
 
+/**
+ * Wait until the predicate holds, polling on the macrotask queue. Fixed
+ * sleeps race real async work — component loading, WebCrypto digests,
+ * CI load — so conditions are waited on, not timed.
+ *
+ * @param {() => boolean} predicate
+ * @param {string} what
+ * @returns {Promise<void>}
+ */
+async function waitFor(predicate, what) {
+  for (let attempts = 0; attempts < 200; attempts += 1) {
+    if (predicate()) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error(`Timed out waiting for ${what}`);
+}
+
 describe("execution protocol: start and stop", () => {
   it("starts and stops the network for real", async () => {
     const { server, telemetry, transport, host } = await wiredServer(
@@ -167,26 +186,32 @@ describe("execution protocol: start and stop", () => {
       },
     );
     server.handleFrame(encodeRunCtrl(RUN_ACTION.START), "link-1");
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    assert.equal(host.running, true);
-    telemetry.flushAll();
-    const started = drain(transport).find(
-      (e) =>
-        e.eventType === EVENT_TYPE.LIFECYCLE &&
-        e.payload === LIFECYCLE_CODE.START,
-    );
-    assert.ok(started, "a START lifecycle event reaches subscribers");
+    // The START lifecycle record lands on the wire at flush time, so the
+    // wait covers both the transition and its telemetry
+    await waitFor(() => {
+      telemetry.flushAll();
+      return (
+        host.running &&
+        drain(transport).some(
+          (e) =>
+            e.eventType === EVENT_TYPE.LIFECYCLE &&
+            e.payload === LIFECYCLE_CODE.START,
+        )
+      );
+    }, "the network to start and report START");
 
     server.handleFrame(encodeRunCtrl(RUN_ACTION.STOP), "link-1");
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    assert.equal(host.started, false);
-    telemetry.flushAll();
-    const stopped = drain(transport).find(
-      (e) =>
-        e.eventType === EVENT_TYPE.LIFECYCLE &&
-        e.payload === LIFECYCLE_CODE.STOP,
-    );
-    assert.ok(stopped, "a STOP lifecycle event reaches subscribers");
+    await waitFor(() => {
+      telemetry.flushAll();
+      return (
+        !host.started &&
+        drain(transport).some(
+          (e) =>
+            e.eventType === EVENT_TYPE.LIFECYCLE &&
+            e.payload === LIFECYCLE_CODE.STOP,
+        )
+      );
+    }, "the network to stop and report STOP");
   });
 
   it("reports a rejected start as a FAILED transition with detail", async () => {
@@ -194,16 +219,15 @@ describe("execution protocol: start and stop", () => {
       graph.addNode({ entity_id: "broken", component: "nothere/Missing" });
     });
     server.handleFrame(encodeRunCtrl(RUN_ACTION.START), "link-1");
-    // Let the rejected start settle.
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    telemetry.flushAll();
+    await waitFor(() => {
+      telemetry.flushAll();
+      return drain(transport).some(
+        (e) =>
+          e.eventType === EVENT_TYPE.LIFECYCLE &&
+          e.payload === LIFECYCLE_CODE.FAILED,
+      );
+    }, "the FAILED lifecycle event");
     const events = drain(transport);
-    const failed = events.find(
-      (e) =>
-        e.eventType === EVENT_TYPE.LIFECYCLE &&
-        e.payload === LIFECYCLE_CODE.FAILED,
-    );
-    assert.ok(failed, "a FAILED lifecycle event reaches subscribers");
     const error = events.find((e) => e.eventType === EVENT_TYPE.ERROR);
     assert.match(error?.payload ?? "", /start failed/);
   });
@@ -293,11 +317,14 @@ describe("execution protocol: high-water mark", () => {
   });
 
   it("signals deferral when the network already runs", async () => {
-    const { server, telemetry, transport } = await wiredServer((graph) =>
+    const { server, telemetry, transport, host } = await wiredServer((graph) =>
       graph.addNode({ entity_id: "echo", component: "runtime/Echo" }),
     );
     server.handleFrame(encodeRunCtrl(RUN_ACTION.START), "link-1");
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    // The deferral is signaled when a network has been built — the host
+    // defers high-water-mark changes to the next build once a network
+    // exists, whether or not processes are active
+    await waitFor(() => host.network != null, "the network to build");
     server.handleFrame(encodeHwmSet(16), "link-1");
     await new Promise((resolve) => setTimeout(resolve, 0));
     telemetry.flushAll();
