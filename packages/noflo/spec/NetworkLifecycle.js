@@ -149,10 +149,15 @@ const processGenerator = () => {
         cleanUp();
       }
       input.getData("start");
-      c.timer = context;
-      c.timer.interval = setInterval(() => {
-        output.send({ out: true });
-      }, 100);
+      // Hold the activation: every tick sends within it, and cleanUp
+      // completes it on stop or teardown
+      c.timer = {
+        interval: setInterval(() => {
+          output.send({ out: true });
+        }, 100),
+        deactivate: () => output.done(),
+      };
+      return;
     }
     if (input.hasData("stop")) {
       input.getData("stop");

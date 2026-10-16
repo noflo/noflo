@@ -39,7 +39,6 @@ const debugSend = createDebug("noflo:component:send");
  * @property {string} [icon]
  * @property {string} [description]
  * @property {ProcessingFunction} [options.process] - Component processsing function
- * @property {boolean} [generator] - Whether the component is self-driven: it activates from its own clock or external events, so input EOF must not close it down (its outputs end only on explicit finish or runtime stop)
  * @property {boolean} [ordered] - Whether component should send
  * packets in same order it received them
  * @property {boolean} [autoOrdering]
@@ -90,7 +89,6 @@ export class Component extends EventBase {
       "process",
       "ordered",
       "autoOrdering",
-      "generator",
       "forwardBrackets",
     ];
     Object.keys(opts).forEach((key) => {
@@ -194,14 +192,6 @@ export class Component extends EventBase {
      */
     this.autoOrdering = opts.autoOrdering != null ? opts.autoOrdering : null;
 
-    /**
-     * Whether the component is self-driven: it activates from its own clock
-     * or external events rather than from input arrivals, so input EOF must
-     * not close it down — its outputs end only when it finishes explicitly
-     * or the runtime stops it (work documents #40, #45: generators).
-     * @type {boolean}
-     */
-    this.generator = opts.generator != null ? opts.generator : false;
 
     // Queue for handling ordered output packets
     /**
@@ -1240,7 +1230,7 @@ export class Component extends EventBase {
   }
 
   #evaluateClosedown() {
-    if (this.closedDown || this.generator) {
+    if (this.closedDown) {
       return;
     }
     if (typeof this.isSubgraph === "function" && this.isSubgraph()) {

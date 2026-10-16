@@ -3280,20 +3280,28 @@ describe("Component", () => {
             input.get("start");
             const interval = parseInt(input.getData("interval"), 10);
             if (this.timer) {
-              clearInterval(this.timer);
+              clearInterval(this.timer.interval);
+              this.timer.deactivate();
             }
-            this.timer = setInterval(() => {
-              context.activate();
-              setTimeout(() => {
+            // The hold-the-context generator idiom: the start activation
+            // stays open, and every tick sends within it. The context
+            // completes on the stop packet or at teardown
+            this.timer = {
+              interval: setInterval(() => {
                 output.ports.out.sendIP(new noflo.IP("data", true));
-                context.deactivate();
-              }, 5); // delay of 3 to test async
-            }, interval);
+              }, interval),
+              deactivate: () => output.done(),
+            };
+            // Hold the activation: the context completes on the stop
+            // packet or at teardown
+            return;
           }
           if (input.has("stop")) {
             input.get("stop");
             if (this.timer) {
-              clearInterval(this.timer);
+              clearInterval(this.timer.interval);
+              this.timer.deactivate();
+              this.timer = null;
             }
           }
           output.done();
@@ -3319,22 +3327,41 @@ describe("Component", () => {
       });
       c.start().catch(done);
     });
-    it("should emit activate/deactivate event on every tick", (_t, done) => {
+    it("should hold one activation across ticks and close it on stop", async () => {
+      // The interval port is triggering by default: its arrival fires a
+      // no-op context (no start yet), so the assertions track the BALANCE
+      // of open activations rather than raw event counts
       let count = 0;
       let dcount = 0;
+      let ticks = 0;
       listen(c, "activate", () => {
         count++;
       });
-      listen(c, "deactivate", () => {
-        dcount++;
-        // Stop when the stack of processes grows
-        if (count === 3 && dcount === 3) {
-          sin3.post(new noflo.IP("data", true));
-          done();
+      listen(sout1, "ip", (ip) => {
+        if (ip.type === "data") {
+          ticks += 1;
         }
       });
+      listen(c, "deactivate", () => {
+        dcount++;
+      });
+      const waitFor = async (check) => {
+        for (let i = 0; i < 100; i += 1) {
+          if (check()) {
+            return;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 5));
+        }
+        throw new Error("condition not reached");
+      };
       sin1.post(new noflo.IP("data", 2));
       sin2.post(new noflo.IP("data", true));
+      await waitFor(() => ticks >= 3);
+      assert.strictEqual(count - dcount, 1, "one activation held across ticks");
+      sin3.post(new noflo.IP("data", true));
+      await waitFor(() => count === dcount);
+      assert.ok(ticks >= 3, "the ticks emitted");
+      assert.strictEqual(count - dcount, 0, "the held activation closed on stop");
     });
     it("should emit end event when stopped and no activate after it", (_t, done) => {
       listen(c, "end", () => {
