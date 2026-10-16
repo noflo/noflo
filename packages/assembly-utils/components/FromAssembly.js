@@ -6,6 +6,9 @@
 /* @ts-self-types="./FromAssembly.d.ts" */
 import noflo from "@noflo/noflo";
 
+/**
+ * FromAssembly component factory.
+ */
 export function getComponent() {
   const c = new noflo.Component();
   c.description = "Convert an assembly message to a regular NoFlo packet";

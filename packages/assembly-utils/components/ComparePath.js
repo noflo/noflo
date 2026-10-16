@@ -8,6 +8,11 @@
 import Component, { fail } from "@noflo/assembly";
 import { JSONPath } from "jsonpath-plus";
 
+/**
+ * ComparePath — the Assembly Line base class for components whose message
+ * handling is driven by comparing paths: subclasses implement `relay` and
+ * the base class routes per-path streams, scopes, and error handling.
+ */
 export class ComparePath extends Component {
   constructor() {
     super({
@@ -127,6 +132,9 @@ export class ComparePath extends Component {
   }
 }
 
+/**
+ * ComparePath component factory.
+ */
 export function getComponent() {
   return new ComparePath();
 }

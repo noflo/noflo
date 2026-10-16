@@ -105,4 +105,12 @@ export class CollectFields extends Component {
   }
 }
 
-export const getComponent = () => new CollectFields();
+/**
+ * CollectFields component factory: the loader instantiates the component
+ * for a graph node.
+ *
+ * @returns {CollectFields} The component instance.
+ */
+export function getComponent() {
+  return new CollectFields();
+}

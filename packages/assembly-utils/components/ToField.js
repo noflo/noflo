@@ -56,5 +56,13 @@ export class ToField extends Component {
   }
 }
 
-export const getComponent = (/** @type {{ field?: string }} */ metadata) =>
-  new ToField(metadata);
+/**
+ * ToField component factory: the loader instantiates the component for a
+ * graph node, passing the node's `assembly.field` metadata through.
+ *
+ * @param {{ field?: string }} [metadata] The node's `assembly.field` metadata.
+ * @returns {ToField} The component instance.
+ */
+export function getComponent(metadata) {
+  return new ToField(metadata);
+}

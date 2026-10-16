@@ -56,5 +56,13 @@ export class ExtractField extends Component {
   }
 }
 
-export const getComponent = (/** @type {{ field?: string }} */ metadata) =>
-  new ExtractField(metadata);
+/**
+ * ExtractField component factory: the loader instantiates the component
+ * for a graph node, passing the node's `assembly.field` metadata through.
+ *
+ * @param {{ field?: string }} [metadata] The node's `assembly.field` metadata.
+ * @returns {ExtractField} The component instance.
+ */
+export function getComponent(metadata) {
+  return new ExtractField(metadata);
+}

@@ -8,6 +8,9 @@
 import { merge } from "@noflo/assembly";
 import noflo from "@noflo/noflo";
 
+/**
+ * Merge component factory.
+ */
 export function getComponent() {
   const c = new noflo.Component();
   c.description = "Merge assembly message from all connections";

@@ -18,6 +18,9 @@
 import { parse as parseFbp } from "@noflo/fbp";
 
 /**
+ * A suite fixture's graph: fbp-spec suites carry the graph either as a
+ * JSON document or as `.fbp` source.
+ *
  * @typedef {object} Fixture
  * @property {"json" | "fbp"} type - Fixture graph format
  * @property {string} data - Fixture graph source

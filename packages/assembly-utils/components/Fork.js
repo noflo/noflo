@@ -8,6 +8,9 @@
 import { fork } from "@noflo/assembly";
 import noflo from "@noflo/noflo";
 
+/**
+ * Fork component factory.
+ */
 export function getComponent() {
   const c = new noflo.Component();
   c.description = "Fork assembly message to all connections";

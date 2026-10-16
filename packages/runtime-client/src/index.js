@@ -84,8 +84,19 @@ export {
 } from "@noflo/fbp-protocol";
 export { ExecutionClient, PROCESS_ACTIONS, RUN_ACTIONS } from "./execution.js";
 
-/** @typedef {import("./registry-cache.js").CachedComponent} CachedComponent */
-/** @typedef {import("./registry-cache.js").RegistryCatalog} RegistryCatalog */
+/**
+ * One registry catalog entry: the manifest's `sigHash` and declared kind,
+ * plus the full wire signature once the detail was fetched.
+ *
+ * @typedef {import("./registry-cache.js").CachedComponent} CachedComponent
+ */
+
+/**
+ * The component registry as the client knows it: component name to
+ * {@linkcode CachedComponent}, after the latest Two-Step Cache sync.
+ *
+ * @typedef {import("./registry-cache.js").RegistryCatalog} RegistryCatalog
+ */
 export { RegistryCache } from "./registry-cache.js";
 export { SchemaCache } from "./schema-cache.js";
 export { TelemetryClient } from "./telemetry.js";

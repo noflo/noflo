@@ -323,14 +323,6 @@ export const CMD_COMP_DETAIL_RES = 0x24;
 export const CMD_COMP_WRITE = 0x25;
 
 /**
- * Dynamic ES module injection via HTTP, npm, or RNS: `[0x27, package_uri]`.
- * Third-party libraries MUST be compatible with EUPL-1.2. With the ecosystem
- * catalog (work document #26) the URI resolves through the catalog's
- * npm/JSR/version/hash provenance fields (update #10 item 3).
- *
- * @type {number}
- */
-/**
  * Read a component's source from the runtime:
  * request `[0x26, component_name]`; the runtime answers on the same opcode
  * with `[0x26, component_name, source]` — nil source when the runtime holds
@@ -342,6 +334,16 @@ export const CMD_COMP_WRITE = 0x25;
  */
 export const CMD_COMP_SOURCE = 0x26;
 
+/**
+ * Dynamic ES module injection via HTTP, npm, or RNS: `[0x27, package_uri]`.
+ * Third-party libraries MUST be compatible with EUPL-1.2. With the ecosystem
+ * component catalog (work document #26) the URI resolves through the catalog's
+ * npm/JSR/version/hash provenance fields, so a runtime-installed library
+ * records the same package/version/hash the catalog and the client's project
+ * state carry (update #10 item 3).
+ *
+ * @type {number}
+ */
 export const CMD_COMP_INSTALL_REQ = 0x27;
 
 /**

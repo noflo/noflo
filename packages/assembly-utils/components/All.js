@@ -6,6 +6,9 @@
 /* @ts-self-types="./All.d.ts" */
 import noflo from "@noflo/noflo";
 
+/**
+ * All component factory.
+ */
 export function getComponent() {
   const c = new noflo.Component();
   c.description =

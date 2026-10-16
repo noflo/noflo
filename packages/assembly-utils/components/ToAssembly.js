@@ -6,6 +6,9 @@
 /* @ts-self-types="./ToAssembly.d.ts" */
 import noflo from "@noflo/noflo";
 
+/**
+ * ToAssembly component factory.
+ */
 export function getComponent() {
   const c = new noflo.Component();
   c.description = "Convert regular NoFlo data to an assembly message";
