@@ -716,13 +716,18 @@ export class Network extends EventBase {
       node.component
     );
     instance.addEventListener("activate", () => {
-      this.#abortEndCheck();
       this.bufferedEmit("activation", {
         id: node.id,
         load: instance.load,
         ended: false,
       });
     });
+    instance.addEventListener(
+      "closedown",
+      () => {
+        this.checkIfFinished();
+      },
+    );
     instance.addEventListener(
       "deactivate",
       /** @param {Event & { detail: number }} event */ (event) => {
@@ -731,10 +736,9 @@ export class Network extends EventBase {
           load: instance.load,
           ended: true,
         });
-        if (event.detail > 0) {
-          return;
-        }
-        this.checkIfFinished();
+        // The network-end check runs on closedown events only: they fire
+        // after the terminal disconnects have drained, so the end cannot
+        // race in-flight delivery (work document #45)
       },
     );
     if (!instance.getIcon) {
@@ -1136,8 +1140,6 @@ export class Network extends EventBase {
    * @returns {Promise<this>}
    */
   start() {
-    this.#abortEndCheck();
-
     if (this.started) {
       return this.stop().then(() => this.start());
     }
@@ -1158,8 +1160,6 @@ export class Network extends EventBase {
    * @returns {Promise<this>}
    */
   stop() {
-    this.#abortEndCheck();
-
     if (!this.started) {
       this.stopped = true;
       return Promise.resolve(this);
@@ -1230,40 +1230,39 @@ export class Network extends EventBase {
   }
 
   /**
-   * End the network (emit `end`) once no process is active anymore. The
-   * check is coalesced: bursts of deactivations within the quiet window
-   * produce a single check, and a new activation or a start/stop cancels
-   * the pending check explicitly.
+   * End the network once every process has closed down (work document
+   * #45): every input at EOF, no open activation, nothing buffered left
+   * to deliver. The evaluation is a pure predicate over per-component
+   * closedown transitions — EOF arrivals, activation closes, buffer
+   * drains — with no quiet-window timer: a genuinely quiescent network
+   * ends exactly when its last process closes down, and a network whose
+   * boundary inputs never close (long-running graphs) never ends.
    *
    * @protected
    * @returns {void}
    */
   checkIfFinished() {
+    const allClosed = Object.keys(this.processes).every((name) => {
+      const component = this.processes[name]?.component;
+      return component?.isClosedDown() && component.closedownEmitted;
+    });
     if (this.isRunning()) {
       return;
     }
-    if (this.endCheckTimer != null) {
-      clearTimeout(this.endCheckTimer);
-    }
-    this.endCheckTimer = setTimeout(() => {
-      this.endCheckTimer = null;
-      if (this.isRunning()) {
+    const names = Object.keys(this.processes);
+    for (const name of names) {
+      const component = this.processes[name]?.component;
+      // closedownEmitted guarantees the terminal disconnects have drained:
+      // in-flight outputs delivered before the network may end
+      if (
+        !component ||
+        !component.isClosedDown() ||
+        !component.closedownEmitted
+      ) {
         return;
       }
-      this.setStarted(false);
-    }, 50);
-  }
-
-  /**
-   * Cancel a pending network-end check.
-   *
-   * @returns {void}
-   */
-  #abortEndCheck() {
-    if (this.endCheckTimer != null) {
-      clearTimeout(this.endCheckTimer);
-      this.endCheckTimer = null;
     }
+    this.setStarted(false);
   }
 
   /**
