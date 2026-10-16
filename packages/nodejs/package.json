@@ -53,7 +53,6 @@
     "@reticulum/node": "^0.9.8"
   },
   "devDependencies": {
-    "@noflo/core": "^2.0.0-alpha.1",
     "@types/node": "^24.0.0",
     "typescript": "^5.0.0"
   }

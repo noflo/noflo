@@ -5,7 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-### Added
+### Removed
+- The vestigial `@noflo/core` devDependency: nothing in the host imported it and no fixture wired a `core/` component. Under the 2.x dependency model (work document #25) applications declare their component dependencies — graphs wiring `core/*` resolve the essentials library from the application's own closure
 - The runtime's schema table loads from installed packages' `noflo.json` schemas tables at host startup (work document #37 phase 2): `schemaTableFromNodeModules(baseDir)` walks the project's own manifest plus its installed dependencies, digest-verifying every body against its manifest pin; `createHost` wires it by default (`schemaTables: false` opts out). Manifests are consumed as data, never as package dependencies
 ### Changed
 - Ingested into the `noflo/noflo` monorepo as `@noflo/nodejs` (work document #31): package renamed and versioned in the monorepo lockstep, git history preserved via `git filter-repo`. The 1.x runtime stack — `noflo-runtime-base`/`-websocket`/`-webrtc` over the fbp-protocol 1.x wire, WebSocket/WebRTC serving, secret-based auth, flowhub-registry pings, mDNS advertisement — is not carried forward. The modernized host re-architects around `@noflo/runtime` and FBP Protocol 2.0 over Reticulum
