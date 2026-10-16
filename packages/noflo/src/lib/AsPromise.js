@@ -134,10 +134,14 @@ function prepareNetwork(component, options) {
         internal: { node: nodeName, port },
       });
     });
-    // Prepare network
+    // Prepare network. The introspected instance is handed to the network
+    // so the component factory runs exactly once per invocation — without
+    // this the network would load the same name again, constructing
+    // stateful components a second time (GitHub issue #608)
     const network = new Network(graph, {
       ...options,
       componentLoader: options.loader,
+      instances: { [nodeName]: instance },
     });
     // Wire the network up and start execution
     return network.connect();
