@@ -102,9 +102,12 @@ async function createReticulum(options) {
       rns.addInterface(tcp, true);
     }
   }
-  // Wait for persistor hydration and background services before touching
-  // storage or the transport.
-  await rns.ready();
+  // The persistor hydration gates storage access. The discovery's start
+  // promise must not gate the program: on hosts without usable multicast
+  // connectivity (CI containers) the AutoInterface never settles its start
+  // (upstream @reticulum/core), and the network must still run — it just
+  // announces to nobody.
+  await rns.persistorLoadPromise;
   return rns;
 }
 
