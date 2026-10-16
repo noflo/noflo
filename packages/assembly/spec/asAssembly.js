@@ -261,9 +261,9 @@ describe("wrapAssembly", () => {
       ),
       "expected an already-assembly skip report",
     );
-    // Regular components still wrap
+    // Regular components wrap under the Assembly suffix
     assert.equal(
-      decoratedCatalog["test/CopyLike"].constructor.name,
+      decoratedCatalog["test/CopyLikeAssembly"].constructor.name,
       "GraphModel",
     );
   });
