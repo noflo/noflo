@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+## [2.0.0-alpha.4] - 2026-10-16
 ### Changed
 
 - Function parameters with defaults map to optional ports (work document #37 §3.4: the 1.x port-`default` option is retired from the core): the component passes `undefined` when the graph leaves the port unsupplied, and the function's own default parameter — the process-function fallback — applies

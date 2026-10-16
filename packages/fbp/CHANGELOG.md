@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+## [2.0.0-alpha.4] - 2026-10-16
 ### Added
 
 - `.fbp` grammar extension (2.x): metadata values may carry `.` and `-` — float and negative coordinates (`Node(Comp:x=10.5,y=-22.5)`), which the reference `fbp` parser rejects. Documented divergence: for every input the reference accepts, `parse` behaves identically; the extension only widens acceptance.

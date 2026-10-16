@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [2.0.0-alpha.4] - 2026-10-16
 ### Changed
 - **The static permissions store is removed** — capability resolution always goes through the `capabilityPolicy` (DACAR is the native implementation), which is now required at construction. The advertised capability surface is enforced as the ceiling of every grant (granted ∩ advertised)
 - `ReticulumBinding` loses `authorizeUnidentified`: an unidentified peer has no identity for the plane to evaluate

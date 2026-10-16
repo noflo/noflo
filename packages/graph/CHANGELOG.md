@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.0.0-alpha.4] - 2026-10-16
+
 ## [2.0.0-alpha.3] - 2026-10-10
 ### Added
 - The entity type vocabulary (`GraphPortRef`, `GraphNode`, `GraphEdge`, `GraphIIP`, `GraphExport`, `GraphGroup`, `EntityKind`) is now re-exported from the package root as documented types

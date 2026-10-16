@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.0.0-alpha.4] - 2026-10-16
 ### Added
 - Debug-mode lifecycle diagnostics (WD 11 update #4): at shutdown, a warning when an inport buffer still holds unconsumed IPs (either data no activation ever consumed, or the has/get-order footgun where a pending activation never re-invokes), and a warning when a `forwardBrackets" port still holds unattached open brackets that never attached to a send. Control ports are excluded from the unconsumed report — they buffer their latest stream non-consumingly by design, so a configured control port holding its value at shutdown is correct usage. All diagnostics are visible only with the DEBUG environment variable enabled
 - A warning when a Component constructor receives an option key that case-insensitively matches a known option but differs in casing (e.g. the 1.x-era lowercase `forwardbrackets`) — unknown options are otherwise silently ignored

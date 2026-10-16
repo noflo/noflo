@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.0.0-alpha.4] - 2026-10-16
 ### Removed
 - The vestigial `@noflo/core` devDependency: nothing in the host imported it and no fixture wired a `core/` component. Under the 2.x dependency model (work document #25) applications declare their component dependencies — graphs wiring `core/*` resolve the essentials library from the application's own closure
 - The runtime's schema table loads from installed packages' `noflo.json` schemas tables at host startup (work document #37 phase 2): `schemaTableFromNodeModules(baseDir)` walks the project's own manifest plus its installed dependencies, digest-verifying every body against its manifest pin; `createHost` wires it by default (`schemaTables: false` opts out). Manifests are consumed as data, never as package dependencies
@@ -20,79 +22,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `README.md` rewritten for the 2.x host: configuration reference, mesh attachment, the Dacar grant workflow (granting access on the admin machine and delivering deltas to the runtime machine), signals, and the 1.x migration notes
 
 ## noflo-nodejs 0.15.3 (12-01-2024)
-
 * Now using the community version of NoFlo UI by default
 
 ## noflo-nodejs 0.15.2 (29-12-2022)
-
 * Options are now passed to the preStart callback when used as a library
 
 ## noflo-nodejs 0.15.1 (14-01-2021)
-
 * Fixed graph properties when auto-saving
 
 ## noflo-nodejs 0.15.0 (14-12-2020)
-
 * Updated to the new Promise-based NoFlo 1.4 APIs
 
 ## noflo-nodejs 0.14.0 (25-11-2020)
-
 * Updated to the new built-in Flowtrace functionality in NoFlo 1.3.0
 
 ## noflo-nodejs 0.13.1 (16-11-2020)
-
 * Compatibility with the TypeScript version of fbp-graph
 
 ## noflo-nodejs 0.13.0 (02-10-2020)
-
 * Added support for WebRTC protocol as an alternative to WebSockets
 
 ## noflo-nodejs 0.12.5 (24-09-2020)
-
 * Graphs created by fbp-spec for test execution purposes no longer get auto-saved
 
 ## noflo-nodejs 0.12.4 (23-09-2020)
-
 * Specs sent by IDE via `setSource` are no also auto-saved
 
 ## noflo-nodejs 0.12.3 (23-09-2020)
-
 * Graph names are used without namespace when auto-saving
 
 ## noflo-nodejs 0.12.2 (17-09-2020)
-
 * Added auto-saving support for components written in TypeScript
 
 ## noflo-nodejs 0.12.1 (02-09-2020)
-
 * Modified SSL warnings to be written to STDOUT instead of STDERR to improve operation with fbp-spec
 
 ## noflo-nodejs 0.12.0 (02-09-2020)
-
 * Switched to the NoFlo 1.2 "network drives graph" mode for more accurate error handling
 * Added support for discovering the noflo-nodejs runtime via mDNS
 
 ## noflo-nodejs 0.11.1 (26-02-2019)
-
 Bugfixes:
 
 * noflo-nodejs library mode also subscribes to runtime now, so that `autoSave` mode works
 
 ## noflo-nodejs 0.11.0 (25-02-2019)
-
 New features:
 
 * noflo-nodejs is now much easier to embed in existing Node.js applications as a library
 * Added `--auto-save` option to enable saving edited graphs and components to disk automatically
 
 ## noflo-nodejs 0.10.1 (23-03-2018)
-
 New features:
 
 * Added `--open` option to control whether to open the runtime in user's IDE when started. Defaults to `true`.
 
 ## noflo-nodejs 0.10.0 (22-03-2018)
-
 New features:
 
 * Changed  configuration file `flowhub.json` to be automatically saved from command-line arguments, persisting settings like runtime ID and secret between runs
@@ -114,11 +99,9 @@ Internal changes:
 * Ported noflo-nodejs from CoffeeScript to ES6
 
 ## noflo-nodejs 0.9.0 (05-11-2017)
-
 * Compatibility with NoFlo 1.x
 
 ## noflo-nodejs 0.8.3 (12-05-2017)
-
 Deprecations
 
 * `noflo-nodejs --register` is **deprecated**, in favor of `flowhub-registry-register` or accessing the live URL.
@@ -143,20 +126,16 @@ Bugfixes:
 * Fixed --permissions not having effect on commandline
 
 ## noflo-nodejs 0.8.1 (2017-03-01)
-
 * Updated to **NoFlo 0.8.x**
 
 ## noflo-nodejs 0.7.0 (2016-03-31)
-
 * Updated to **NoFlo 0.7.x**
 
 ## noflo-nodejs 0.6.1
-
 * Support for [Flowtrace](https://github.com/flowbased/flowtrace) when using `--trace` option.
 * For long-running programs, flowtrace dumps can be triggered via `SIGUSR2` Unix signal
 
 ## noflo-nodejs 0.5.0
-
 * Implements FBP protocol version 0.5. Use of a runtime `secret` is now enforced
 * Support for `--debug`, `--verbose` and `--capture-exception` flags to tune logging behavior.
 * Support for `--host` and `--port` options, with defaults. Port also respects PORT envvar.
@@ -166,5 +145,4 @@ Bugfixes:
 * Registration with Flowhub registry is optional, just warning
 
 ## noflo-nodejs 0.0.6
-
 * ...
