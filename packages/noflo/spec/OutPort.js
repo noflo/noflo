@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
-import { listen, listenData, listenDataOnce } from "./utils/events.js";
+import { listen, listenData } from "./utils/events.js";
 
 describe("Outport Port", () => {
   describe("with addressable ports", () => {
@@ -72,64 +72,6 @@ describe("Outport Port", () => {
       });
       p.detach(s2);
       p.detach(s3);
-    });
-  });
-  describe("with caching ports", () => {
-    let s1 = null;
-    let s2 = null;
-    let s3 = null;
-    beforeEach(() => {
-      s1 = new noflo.internalSocket.InternalSocket();
-      s2 = new noflo.internalSocket.InternalSocket();
-      s3 = new noflo.internalSocket.InternalSocket();
-    });
-    it("should repeat the previously sent value on attach event", (_t, done) => {
-      const p = new noflo.OutPort({ caching: true });
-
-      listenDataOnce(s1, (data) => {
-        assert.strictEqual(data, "foo");
-      });
-      listenDataOnce(s2, (data) => {
-        assert.strictEqual(data, "foo");
-        // Next value should be different
-        listenDataOnce(s2, (data) => {
-          assert.strictEqual(data, "bar");
-          done();
-        });
-      });
-      p.attach(s1);
-      p.send("foo");
-      p.disconnect();
-
-      p.attach(s2);
-
-      p.send("bar");
-      p.disconnect();
-    });
-    it("should support addressable ports", (_t, done) => {
-      const p = new noflo.OutPort({
-        addressable: true,
-        caching: true,
-      });
-
-      p.attach(s1);
-      p.attach(s2);
-
-      listenData(s1, () => {
-        assert.strictEqual(true, false);
-      });
-      listenData(s2, (data) => {
-        assert.strictEqual(data, "some-data");
-      });
-      listenData(s3, (data) => {
-        assert.strictEqual(data, "some-data");
-        done();
-      });
-
-      p.send("some-data", 1);
-      p.disconnect(1);
-      p.detach(s2);
-      p.attach(s3, 1);
     });
   });
   describe("with IP objects", () => {
@@ -276,24 +218,6 @@ describe("Outport Port", () => {
         () => p.data({ hidden: "state" }, { clonable: false }),
         /fanoutRefs/,
       );
-    });
-    it("should not cache an IP rejected by the fan-out policy", async () => {
-      const p = new noflo.OutPort({ caching: true });
-      p.attach(s1);
-      p.attach(s2);
-
-      assert.throws(
-        () => p.data({ hidden: "state" }, { clonable: false }),
-        /fan-out to 2 connections/,
-      );
-      // The never-delivered IP must not be resent to later attachments
-      const resent = [];
-      listen(s3, "ip", (ip) => {
-        resent.push(ip);
-      });
-      p.attach(s3);
-      await new Promise((resolve) => setImmediate(resolve));
-      assert.deepEqual(resent, []);
     });
     it("should share the payload reference across envelopes on a fanoutRefs outport", (_t, done) => {
       const p = new noflo.OutPort({ fanoutRefs: true });

@@ -8,7 +8,6 @@ import IP from "./IP.js";
 
 /**
  * @typedef OutPortOptions
- * @property {boolean} [caching]
  * @property {boolean} [fanoutRefs] - When true, fan-out of an IP marked
  *   `clonable: false` is allowed on this port: each attached edge receives
  *   a fresh IP envelope carrying the same payload reference, instead of
@@ -26,8 +25,7 @@ import IP from "./IP.js";
  */
 export default class OutPort extends BasePort {
   /**
-   * Create an output port. Ports are scoped by default; caching (resending
-   * the latest data to newly attached sockets) is off unless requested.
+   * Create an output port. Ports are scoped by default.
    *
    * @param {PortOptions} options - Options for the outport
    */
@@ -36,23 +34,14 @@ export default class OutPort extends BasePort {
     if (opts.scoped == null) {
       opts.scoped = true;
     }
-    if (typeof opts.caching !== "boolean") {
-      opts.caching = false;
-    }
     super(opts);
 
     /**
-     * Port configuration, including datatype, schema, scoping, and caching behavior
+     * Port configuration, including datatype, schema, and scoping behavior
      * @type {PortOptions}
      */
     const baseOptions = this.options;
     this.options = /** @type {PortOptions} */ (baseOptions);
-
-    /**
-     * Latest cached data IP per addressable slot, resent on new connections when caching is enabled
-     * @type {Object<string, IP>}
-     */
-    this.cache = {};
 
     /**
      * Admission promise for the most recent send: resolves when all
@@ -65,30 +54,13 @@ export default class OutPort extends BasePort {
   }
 
   /**
-   * Attach a socket to the port. With caching enabled, the cached value for
-   * the slot is sent to the new socket immediately. Cached IP objects are
-   * posted as themselves; cached raw values go through the regular send
-   * path.
+   * Attach a socket to the port.
    *
    * @param {import("./InternalSocket.js").InternalSocket} socket
    * @param {number|null} [index]
    */
   attach(socket, index = null) {
     super.attach(socket, index);
-    const cached = this.cache[`${index}`];
-    if (this.isCaching() && cached != null) {
-      if (IP.isIP(cached)) {
-        // The cached envelope was already delivered to another edge;
-        // resend a fresh envelope, copying the payload when the sender
-        // declared it clonable
-        socket.post(
-          cached.clonable ? cached.clone() : cached.envelope(),
-          false,
-        );
-      } else {
-        this.send(cached, index);
-      }
-    }
   }
 
   /**
@@ -110,8 +82,7 @@ export default class OutPort extends BasePort {
   }
 
   /**
-   * Send a data packet to the port's socket(s). With caching enabled the
-   * value is kept for resend on new connections.
+   * Send a data packet to the port's socket(s).
    *
    * @param {any} data
    * @param {number|null} [index]
@@ -119,9 +90,6 @@ export default class OutPort extends BasePort {
   send(data, index = null) {
     const sockets = this.getSockets(index);
     this.checkRequired(sockets);
-    if (this.isCaching() && data !== this.cache[`${index}`]) {
-      this.cache[`${index}`] = data;
-    }
     sockets.forEach((socket) => {
       if (!socket) {
         return;
@@ -148,10 +116,9 @@ export default class OutPort extends BasePort {
 
   /**
    * Send an Information Packet to the port's socket(s), stamping it with the
-   * port's datatype and schema, updating the cache, and returning `this`.
-   * The admission Promise for the send is available on
-   * {@link OutPort#lastWrite}; it resolves once every receiving edge has
-   * admitted the packet per its high-water mark.
+   * port's datatype and schema, and returning `this`. The admission Promise
+   * for the send is available on {@link OutPort#lastWrite}; it resolves once
+   * every receiving edge has admitted the packet per its high-water mark.
    *
    * @param {string|IP} type
    * @param {any} [data]
@@ -189,14 +156,6 @@ export default class OutPort extends BasePort {
       throw new Error(
         `${this.getId()}: fan-out to ${targets.length} connections of an IP marked clonable: false — enable the fanoutRefs option on this outport to share the payload reference, or route the packet through a splitter component`,
       );
-    }
-    // Cache only after the send is known to be deliverable: a fan-out
-    // rejection must not leave a never-sent IP in the cache for a later
-    // attach() to resend
-    const cachedData =
-      this.cache[`${idx}`] != null ? this.cache[`${idx}`].data : undefined;
-    if (this.isCaching() && data !== cachedData) {
-      this.cache[`${idx}`] = ip;
     }
     // The IP leaves the sending process: release ownership while it is in
     // transport. The receiving buffer stamps the consumer; a consuming read
@@ -310,19 +269,6 @@ export default class OutPort extends BasePort {
    */
   isFanoutRefs() {
     if (this.options.fanoutRefs) {
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Check whether the port resends its latest value to newly attached
-   * sockets.
-   *
-   * @returns {boolean}
-   */
-  isCaching() {
-    if (this.options.caching) {
       return true;
     }
     return false;

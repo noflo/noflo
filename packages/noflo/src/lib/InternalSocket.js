@@ -76,7 +76,6 @@ export class InternalSocket extends EventBase {
     this.metadata = metadata;
     this.brackets = [];
     this.connected = false;
-    this.dataDelegate = null;
     this.debug = options.debug || false;
     this.async = options.async || false;
     this.from = null;
@@ -208,9 +207,6 @@ export class InternalSocket extends EventBase {
   // can be constructed with more flexibility, as file buffers or
   // message queues can be used as additional packet relay mechanisms.
   send(data) {
-    if (data === undefined && typeof this.dataDelegate === "function") {
-      data = this.dataDelegate();
-    }
     return this.post(new IP("data", data), false);
   }
 
@@ -232,10 +228,7 @@ export class InternalSocket extends EventBase {
    *   channel.
    */
   post(packet, autoDisconnect = true) {
-    let ip = packet;
-    if (ip === undefined && typeof this.dataDelegate === "function") {
-      ip = this.dataDelegate();
-    }
+    const ip = packet;
     // Connect before sending when there is no open bracket framing
     if (!this.isConnected() && this.brackets.length === 0) {
       this.connect();
@@ -300,18 +293,6 @@ export class InternalSocket extends EventBase {
   // forward them onward if the data structures remain intact through
   // the component's processing — a stream that arrives grouped should
   // leave grouped.
-
-  // ## Socket data delegation
-  //
-  // Sockets have the option to receive data from a delegate function
-  // should the `send` method receive undefined for `data`.  This
-  // helps in the case of defaulting values.
-  setDataDelegate(delegate) {
-    if (typeof delegate !== "function") {
-      throw Error("A data delegate must be a function.");
-    }
-    this.dataDelegate = delegate;
-  }
 
   // ## Socket debug mode
   //

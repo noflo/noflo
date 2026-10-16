@@ -30,7 +30,6 @@ const validTypes = [
  * @typedef {Object} BaseOptions - Options for configuring all types of ports
  * @property {string} [description='']
  * @property {boolean} [addressable=false]
- * @property {boolean} [buffered=false]
  * @property {string} [datatype='all']
  * @property {string|Object|null} [schema=null] - Schema artifact reference: a
  *   `ns/name` id string or an inline JSON Schema object (work document #37
@@ -181,13 +180,6 @@ export default class BasePort extends EventBase {
 
   isAddressable() {
     if (this.options.addressable) {
-      return true;
-    }
-    return false;
-  }
-
-  isBuffered() {
-    if (this.options.buffered) {
       return true;
     }
     return false;
