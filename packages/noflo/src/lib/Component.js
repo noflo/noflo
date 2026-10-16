@@ -39,6 +39,7 @@ const debugSend = createDebug("noflo:component:send");
  * @property {string} [icon]
  * @property {string} [description]
  * @property {ProcessingFunction} [options.process] - Component processsing function
+ * @property {boolean} [generator] - Whether the component is self-driven: it activates from its own clock or external events, so input EOF must not close it down (its outputs end only on explicit finish or runtime stop)
  * @property {boolean} [ordered] - Whether component should send
  * packets in same order it received them
  * @property {boolean} [autoOrdering]
@@ -1191,7 +1192,6 @@ export class Component extends EventBase {
    * transition that can complete the condition: port EOF and activation
    * close.
    *
-   * @private
    * @returns {void}
    */
   #handleInputStateChange() {

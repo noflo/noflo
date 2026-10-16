@@ -125,7 +125,6 @@ export default class InPort extends BasePort {
   }
 
   /**
-   * @private
    * @param {boolean} value
    * @returns {void}
    */
@@ -142,7 +141,6 @@ export default class InPort extends BasePort {
   }
 
   /**
-   * @private
    * @returns {void}
    */
   #refreshEof() {
@@ -167,7 +165,7 @@ export default class InPort extends BasePort {
    * Remove a socket from the port. The remaining attached sockets
    * re-determine the port's EOF state.
    *
-   * @param {import("./InternalSocket.js").default} socket
+   * @param {import("./InternalSocket.js").InternalSocket} socket
    * @returns {void}
    */
   detach(socket) {
