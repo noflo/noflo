@@ -9,6 +9,14 @@ on:
   push:
     tags:
       - "v*"
+  # The mesh-to-GitHub mirror may create tag refs without a push event
+  # (e.g. via the API when its git push path errors — see the
+  # v2.0.0-alpha.4 release, where the tag existed on GitHub but no
+  # workflow ran). The `create` event fires for those; the job guard
+  # keeps non-tag branches out. `workflow_dispatch` is the manual
+  # escape hatch: dispatch with `ref` set to the tag.
+  create:
+  workflow_dispatch:
 
 permissions:
   id-token: write  # Required for OIDC trusted publishing
@@ -21,6 +29,10 @@ concurrency:
 
 jobs:
   publish:
+    # `create` fires for branch creations too — only tag refs on the v*
+    # vocabulary publish; the guard also keeps `workflow_dispatch` runs
+    # pointed at a branch from publishing the wrong ref
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
