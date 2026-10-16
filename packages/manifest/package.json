@@ -1,6 +1,6 @@
 {
   "name": "@noflo/manifest",
-  "version": "2.0.0-alpha.5",
+  "version": "2.0.0-alpha.6",
   "description": "Publish-time component manifest generator for NoFlo libraries",
   "type": "module",
   "bin": {
@@ -11,12 +11,12 @@
     ".": "./src/index.js"
   },
   "dependencies": {
-    "@noflo/assembly": "^2.0.0-alpha.5",
-    "@noflo/fbp": "^2.0.0-alpha.5",
-    "@noflo/fbp-protocol": "^2.0.0-alpha.5",
-    "@noflo/graph": "^2.0.0-alpha.5",
-    "@noflo/loader-node": "^2.0.0-alpha.5",
-    "@noflo/noflo": "^2.0.0-alpha.5",
+    "@noflo/assembly": "^2.0.0-alpha.6",
+    "@noflo/fbp": "^2.0.0-alpha.6",
+    "@noflo/fbp-protocol": "^2.0.0-alpha.6",
+    "@noflo/graph": "^2.0.0-alpha.6",
+    "@noflo/loader-node": "^2.0.0-alpha.6",
+    "@noflo/noflo": "^2.0.0-alpha.6",
     "ajv": "^8.20.0"
   },
   "devDependencies": {

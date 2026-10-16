@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.0.0-alpha.6] - 2026-10-16
 ### Changed
 - `output.sendDone()` now always sends its argument: a `null` (or a bare value against a single-outport component) becomes a null-payload data IP, and a call without a sendable target fails loudly instead of silently finishing. Finishing without a packet is `output.done()`. The async-`process` implicit-Promise bridge follows: a void resolution (the process already sent) completes the activation without a packet, while a `null` resolution now sends the null packet
 - The unused `caching` outport option (added 2014 for #151's Origami-style interactive circuits) and the `OutPort.isCaching()` method are removed: newly attached edges receive only new packets. The 1.x feature had no consumers in the monorepo or known ecosystem, and its latest-value replay contradicts enforced IP ownership — a consumed IP must not be resurrected for a late-joining edge. Components needing latest-value semantics for late subscribers should use an explicit snapshot/state component, or control ports on the receiving side
