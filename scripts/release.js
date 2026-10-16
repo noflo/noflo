@@ -309,10 +309,38 @@ export function runRelease({
   const versions = new Set(metas.map((m) => m.json.version));
   if (versions.size !== 1) {
     throw new Error(
-      `Packages are not at one version (lockstep broken): ${metas.map((m) => `${m.name}@${m.json.version}`).join(", ")}`,
+      `Packages are not at one version (lockstep broken): ${metas.map((m) => `${m.json.name}@${m.json.version}`).join(", ")}`,
     );
   }
   const current = [...versions][0];
+  // The lockstep contract extends past the version fields: a jsr.json
+  // carrying a stale version ships a JSR package under the wrong number,
+  // and a stale internal dependency range ships referencing an older
+  // release than the tag carries
+  const lockstepProblems = metas
+    .filter((m) => m.jsrJson && m.jsrJson.version !== current)
+    .map((m) => `${m.json.name} jsr.json is at ${m.jsrJson.version}`);
+  const currentRange = `^${current}`;
+  for (const m of metas) {
+    for (const section of [
+      "dependencies",
+      "devDependencies",
+      "peerDependencies",
+    ]) {
+      for (const [dep, range] of Object.entries(m.json[section] ?? {})) {
+        if (internalPackages.includes(dep) && range !== currentRange) {
+          lockstepProblems.push(
+            `${m.json.name} ${section}.${dep} is '${range}', expected '${currentRange}'`,
+          );
+        }
+      }
+    }
+  }
+  if (lockstepProblems.length > 0) {
+    throw new Error(
+      `Lockstep broken (expected ${current} / ${currentRange}):\n  ${lockstepProblems.join("\n  ")}`,
+    );
+  }
   if (current === version) {
     throw new Error(
       `Version ${version} == current ${current}; nothing to release`,
