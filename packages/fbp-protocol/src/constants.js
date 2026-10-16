@@ -499,6 +499,20 @@ export const EVENT_TYPE = {
    * `0x0b CONNECTION_OPEN`.
    */
   CONNECTION_CLOSE: 0x0c,
+  /**
+   * A process context activated: the component started executing a
+   * delivery. The payload is the positional tuple `[node_id, load]` —
+   * the node's load *after* the increment, so concurrent activations on
+   * one node are visible in the stream (work document #43).
+   */
+  ACTIVATION_BEGIN: 0x0d,
+  /**
+   * A process context deactivated: the component finished executing a
+   * delivery. The payload is the positional tuple `[node_id, load]` —
+   * the load *after* the decrement; `0` marks the node going idle, its
+   * last open activation closed (work document #43).
+   */
+  ACTIVATION_END: 0x0e,
 };
 
 /**

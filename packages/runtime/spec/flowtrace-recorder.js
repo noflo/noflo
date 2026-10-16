@@ -87,6 +87,12 @@ describe("Flowtrace recorder <-> trace file round trip", () => {
     );
     trace.addNetworkError("main", new Error("boom"));
     trace.addNetworkOutput("main", { stream: "output", message: "log line" });
+    // Process activation events (work document #43): begin carries the load
+    // after the increment, end the load after the decrement (0 = idle).
+    trace.addNetworkActivation("main", "a", 1);
+    trace.addNetworkActivation("main", "a", 2);
+    trace.addNetworkDeactivation("main", "a", 1);
+    trace.addNetworkDeactivation("main", "a", 0, ["Sub"]);
     trace.addNetworkStopped("main");
 
     const state = trace.toJSON();
@@ -139,6 +145,34 @@ describe("Flowtrace recorder <-> trace file round trip", () => {
             ]
           : payload;
       assert.deepEqual(event.payload, expected, `payload ${index}`);
+    });
+    // Activation payloads pass through the binary projection unchanged:
+    // [node_id, load], with the load walk showing open activation spans
+    // and concurrency.
+    const activationPayloads = state.chunks
+      .filter(([, type]) => type === RECORDER_EVENT_TYPE.ACTIVATION_BEGIN)
+      .map(([, , payload]) => payload);
+    assert.deepEqual(activationPayloads, [
+      ["a", 1],
+      ["a", 2],
+    ]);
+    const deactivationPayloads = state.chunks
+      .filter(([, type]) => type === RECORDER_EVENT_TYPE.ACTIVATION_END)
+      .map(([, , payload]) => payload);
+    assert.deepEqual(deactivationPayloads, [
+      ["a", 1],
+      ["a", 0],
+    ]);
+    const lastActivationEnd =
+      state.chunks[
+        state.chunks
+          .map(([, type]) => type)
+          .lastIndexOf(RECORDER_EVENT_TYPE.ACTIVATION_END)
+      ];
+    assert.deepEqual(lastActivationEnd[2], ["a", 0]);
+    assert.deepEqual(lastActivationEnd[3], {
+      graph: "main",
+      subgraph: ["Sub"],
     });
   });
 

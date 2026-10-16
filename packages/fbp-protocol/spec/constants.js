@@ -220,6 +220,10 @@ describe("flowtrace event types", () => {
     assert.equal(EVENT_TYPE.BREAKPOINT_HIT, 0x08);
     assert.equal(EVENT_TYPE.STUB_ERROR, 0x09);
     assert.equal(EVENT_TYPE.EDGE_CAPACITY, 0x0a);
+    assert.equal(EVENT_TYPE.CONNECTION_OPEN, 0x0b);
+    assert.equal(EVENT_TYPE.CONNECTION_CLOSE, 0x0c);
+    assert.equal(EVENT_TYPE.ACTIVATION_BEGIN, 0x0d);
+    assert.equal(EVENT_TYPE.ACTIVATION_END, 0x0e);
   });
 });
 

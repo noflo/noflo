@@ -545,10 +545,11 @@ The chunk's plane_id anchors the tree position through the `0x16`
 parent chain, so no subgraph path arrays travel per event.
 
 **Connection framing.** `EVENT_TYPE` gains `0x0b CONNECTION_OPEN` and
-`0x0c CONNECTION_CLOSE` — the framing 1.x UIs animate edge activity with.
-Payload: `[src_node, src_port, tgt_node, tgt_port]`.
+`0x0c CONNECTION_CLOSE` — the framing 1.x UIs animate edge activity with. Payload: `[src_node, src_port, tgt_node, tgt_port]`.
 Each item's `time_delta_ms` is a `uint32` offset from the chunk's
 `base_timestamp_ms`.
+
+**Process activation.** `EVENT_TYPE` gains `0x0d ACTIVATION_BEGIN` and `0x0e ACTIVATION_END` (work document #43) — the process-activation lifecycle a hung network's trace must show: the last activation that never deactivated is the hung process. Payload: the positional tuple `[node_id, load]` — for `BEGIN`, the node's load *after* the increment; for `END`, the load *after* the decrement, `0` marking the node going idle. Per node the payload walk is the previous value ± 1, so consumers reconstruct the open-activation spans and their concurrency (multiple simultaneous activations on one node) from the stream alone.
 
 Unified event types:
 

@@ -387,9 +387,13 @@ describe("asPromise interface", () => {
         assert.deepStrictEqual(eventTypes, [
           noflo.EVENT_TYPE.LIFECYCLE,
           noflo.EVENT_TYPE.DATA,
+          noflo.EVENT_TYPE.ACTIVATION_BEGIN,
+          noflo.EVENT_TYPE.ACTIVATION_END,
           noflo.EVENT_TYPE.DATA,
           noflo.EVENT_TYPE.LIFECYCLE,
         ]);
+        // The async process function schedules its send via setTimeout, so
+        // the activation closes before the output packet (work document #43).
         assert.strictEqual(collectedTrace.chunks[1][2], "hello");
         assert.deepStrictEqual(collectedTrace.chunks[1][3], {
           graph: "process/Async",
@@ -402,8 +406,20 @@ describe("asPromise interface", () => {
           datatype: null,
           schema: null,
         });
-        assert.strictEqual(collectedTrace.chunks[2][2], "hello");
+        assert.deepStrictEqual(collectedTrace.chunks[2][2], [
+          "process/Async",
+          1,
+        ]);
         assert.deepStrictEqual(collectedTrace.chunks[2][3], {
+          graph: "process/Async",
+          subgraph: null,
+        });
+        assert.deepStrictEqual(collectedTrace.chunks[3][2], [
+          "process/Async",
+          0,
+        ]);
+        assert.strictEqual(collectedTrace.chunks[4][2], "hello");
+        assert.deepStrictEqual(collectedTrace.chunks[4][3], {
           graph: "process/Async",
           subgraph: null,
           src: {

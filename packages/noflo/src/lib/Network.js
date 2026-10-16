@@ -316,6 +316,24 @@ export class Network extends EventBase {
         );
         break;
       }
+      case "activation": {
+        if (payload.ended) {
+          this.flowtrace.addNetworkDeactivation(
+            this.flowtraceName,
+            payload.id,
+            payload.load,
+            payload.subgraph ?? null,
+          );
+          break;
+        }
+        this.flowtrace.addNetworkActivation(
+          this.flowtraceName,
+          payload.id,
+          payload.load,
+          payload.subgraph ?? null,
+        );
+        break;
+      }
       default: {
         // No default handler
       }
@@ -629,6 +647,9 @@ export class Network extends EventBase {
     instance.network.addEventListener("process-error", (event) => {
       emitSub("process-error", event.detail);
     });
+    instance.network.addEventListener("activation", (event) => {
+      emitSub("activation", event.detail);
+    });
   }
 
   /**
@@ -683,7 +704,7 @@ export class Network extends EventBase {
 
   /**
    * Subscribe to a component's lifecycle events: activation counts for
-   * end-detection, and icon changes.
+   * end-detection, activation state for trace recording, and icon changes.
    *
    * @param {NetworkProcess} node
    */
@@ -696,10 +717,20 @@ export class Network extends EventBase {
     );
     instance.addEventListener("activate", () => {
       this.#abortEndCheck();
+      this.bufferedEmit("activation", {
+        id: node.id,
+        load: instance.load,
+        ended: false,
+      });
     });
     instance.addEventListener(
       "deactivate",
       /** @param {Event & { detail: number }} event */ (event) => {
+        this.bufferedEmit("activation", {
+          id: node.id,
+          load: instance.load,
+          ended: true,
+        });
         if (event.detail > 0) {
           return;
         }

@@ -805,18 +805,63 @@ describe("NoFlo Subgraph component", () => {
         assert.strictEqual(collectedTrace.snapshot.main, "main");
         const eventTypes = collectedTrace.chunks.map(([, type]) => type);
         assert.deepStrictEqual(eventTypes, [
+          noflo.EVENT_TYPE.ACTIVATION_BEGIN,
+          noflo.EVENT_TYPE.ACTIVATION_BEGIN,
           noflo.EVENT_TYPE.LIFECYCLE,
           noflo.EVENT_TYPE.DATA,
+          noflo.EVENT_TYPE.ACTIVATION_BEGIN,
+          noflo.EVENT_TYPE.ACTIVATION_END,
           noflo.EVENT_TYPE.DATA,
+          noflo.EVENT_TYPE.ACTIVATION_BEGIN,
+          noflo.EVENT_TYPE.ACTIVATION_END,
           noflo.EVENT_TYPE.DATA,
+          noflo.EVENT_TYPE.ACTIVATION_BEGIN,
+          noflo.EVENT_TYPE.ACTIVATION_END,
           noflo.EVENT_TYPE.DATA,
+          noflo.EVENT_TYPE.ACTIVATION_BEGIN,
+          noflo.EVENT_TYPE.ACTIVATION_END,
+          noflo.EVENT_TYPE.ACTIVATION_END,
+          noflo.EVENT_TYPE.ACTIVATION_END,
           noflo.EVENT_TYPE.LIFECYCLE,
         ]);
         const subgraphs = collectedTrace.chunks.map((chunk) => {
           const subgraph = chunk[3]?.subgraph;
           return subgraph ? subgraph.join(":") : "";
         });
-        assert.deepStrictEqual(subgraphs, ["", "", "Sub:A", "Sub", "", ""]);
+        assert.deepStrictEqual(subgraphs, [
+          "",
+          "Sub",
+          "",
+          "",
+          "Sub:A",
+          "Sub:A",
+          "Sub:A",
+          "Sub:A",
+          "Sub:A",
+          "Sub",
+          "Sub",
+          "Sub",
+          "",
+          "",
+          "",
+          "Sub",
+          "",
+          "",
+        ]);
+        // Activation payloads are [node_id, load] (work document #43): the
+        // subgraph wrappers open before their data flows and close after —
+        // their spans cover the whole inner execution.
+        const activations = collectedTrace.chunks
+          .filter(([, type]) => type === noflo.EVENT_TYPE.ACTIVATION_BEGIN)
+          .map(([, , payload]) => payload);
+        assert.deepStrictEqual(activations, [
+          ["Sub", 1],
+          ["A", 1],
+          ["A", 1],
+          ["B", 1],
+          ["B", 1],
+          ["Split", 1],
+        ]);
       });
     });
   });

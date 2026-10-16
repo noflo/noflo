@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- `ACTIVATION_BEGIN` (`0x0d`) and `ACTIVATION_END` (`0x0e`) flowtrace event types (work document #43): the process-activation lifecycle, payload the positional `[node_id, load]` tuple (load after the change; `0` on `END` marks the node going idle). SPEC §7 gains the normative paragraph; recorded by the `@noflo/noflo` trace recorder per the round-trip pin
 
 ## [2.0.0-alpha.6] - 2026-10-16
 

@@ -32,7 +32,11 @@
  * pinned to equality by the round-trip spec in `@noflo/runtime`, so the two
  * definitions cannot drift. `VISUAL_STATE` and the execution-control event
  * types (`BREAKPOINT_HIT`, `STUB_ERROR`, `EDGE_CAPACITY`) are protocol/UI
- * territory and are not recorded by the engine-side recorder.
+ * territory and are not recorded by the engine-side recorder. Process
+ * activation events (`ACTIVATION_BEGIN`, `ACTIVATION_END`) *are* recorded
+ * (work document #43): they are what makes trace replay answer "why didn't
+ * the network finish" — the last activation that never deactivated is the
+ * hung process.
  *
  * @type {Record<string, number>}
  */
@@ -43,6 +47,8 @@ export const EVENT_TYPE = {
   ERROR: 0x04,
   CONSOLE: 0x05,
   LIFECYCLE: 0x06,
+  ACTIVATION_BEGIN: 0x0d,
+  ACTIVATION_END: 0x0e,
 };
 
 /**
@@ -81,7 +87,8 @@ export const TRACE_FORMAT_VERSION = 1;
  * Metadata envelope carried as the optional fourth element of a JSON event
  * tuple. The binary `0x32` projection (payload = raw value) drops it; the
  * JSON state keeps the full fidelity needed for sequence charts and
- * subgraph-aware replay. IP events carry all keys; other event kinds carry
+ * subgraph-aware replay. IP events carry all keys; activation events carry
+ * `graph` and `subgraph` (work document #43); other event kinds carry
  * `graph` only.
  *
  * @typedef {Object} FlowtraceEventMeta
@@ -286,6 +293,42 @@ export class Flowtrace {
         : String(payload?.message ?? "");
     this.#record(EVENT_TYPE.CONSOLE, [payload?.stream ?? "output", message], {
       graph,
+    });
+  }
+
+  /**
+   * Record a process activation as an `0x0d ACTIVATION_BEGIN` event. The
+   * payload is the positional tuple `[node_id, load]` — the load after the
+   * increment (work document #43).
+   *
+   * @param {string} graph
+   * @param {string} nodeId
+   * @param {number} load
+   * @param {string[]|null} [subgraph] Subgraph path of the event.
+   * @returns {void}
+   */
+  addNetworkActivation(graph, nodeId, load, subgraph = null) {
+    this.#record(EVENT_TYPE.ACTIVATION_BEGIN, [nodeId, load], {
+      graph,
+      subgraph: subgraph ?? null,
+    });
+  }
+
+  /**
+   * Record a process deactivation as an `0x0e ACTIVATION_END` event. The
+   * payload is the positional tuple `[node_id, load]` — the load after the
+   * decrement; `0` marks the node going idle (work document #43).
+   *
+   * @param {string} graph
+   * @param {string} nodeId
+   * @param {number} load
+   * @param {string[]|null} [subgraph] Subgraph path of the event.
+   * @returns {void}
+   */
+  addNetworkDeactivation(graph, nodeId, load, subgraph = null) {
+    this.#record(EVENT_TYPE.ACTIVATION_END, [nodeId, load], {
+      graph,
+      subgraph: subgraph ?? null,
     });
   }
 
