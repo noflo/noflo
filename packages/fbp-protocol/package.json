@@ -1,6 +1,6 @@
 {
   "name": "@noflo/fbp-protocol",
-  "version": "2.0.0-alpha.4",
+  "version": "2.0.0-alpha.5",
   "description": "FBP Protocol 2.0 over Reticulum: wire-format constants and codecs for the runtime protocol",
   "keywords": [
     "fbp",

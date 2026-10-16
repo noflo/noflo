@@ -1,6 +1,6 @@
 {
   "name": "@noflo/runtime-client",
-  "version": "2.0.0-alpha.4",
+  "version": "2.0.0-alpha.5",
   "description": "FBP Protocol 2.0 client library over Reticulum (work document #29)",
   "type": "module",
   "main": "./src/index.js",
@@ -21,8 +21,8 @@
   },
   "homepage": "https://github.com/noflo/noflo#readme",
   "dependencies": {
-    "@noflo/fbp-protocol": "^2.0.0-alpha.4",
-    "@noflo/graph": "^2.0.0-alpha.4",
+    "@noflo/fbp-protocol": "^2.0.0-alpha.5",
+    "@noflo/graph": "^2.0.0-alpha.5",
     "@reticulum/core": "^0.9.8"
   },
   "scripts": {

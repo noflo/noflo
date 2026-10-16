@@ -1,6 +1,6 @@
 {
   "name": "@noflo/assembly-utils",
-  "version": "2.0.0-alpha.4",
+  "version": "2.0.0-alpha.5",
   "description": "Utility components for NoFlo Assembly programs",
   "type": "module",
   "keywords": [
@@ -19,11 +19,11 @@
   },
   "homepage": "https://github.com/noflo/noflo#readme",
   "peerDependencies": {
-    "@noflo/assembly": "^2.0.0-alpha.4",
-    "@noflo/noflo": "^2.0.0-alpha.4"
+    "@noflo/assembly": "^2.0.0-alpha.5",
+    "@noflo/noflo": "^2.0.0-alpha.5"
   },
   "devDependencies": {
-    "@noflo/fbp-spec-runner": "^2.0.0-alpha.4"
+    "@noflo/fbp-spec-runner": "^2.0.0-alpha.5"
   },
   "scripts": {
     "test": "node --test --test-force-exit --test-timeout 60000 spec/*.js",

@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-alpha.5] - 2026-10-16
+
 ## [2.0.0-alpha.4] - 2026-10-16
 ### Removed
 - The vestigial `@noflo/core` devDependency: nothing in the host imported it and no fixture wired a `core/` component. Under the 2.x dependency model (work document #25) applications declare their component dependencies — graphs wiring `core/*` resolve the essentials library from the application's own closure

@@ -1,6 +1,6 @@
 {
   "name": "@noflo/as-component",
-  "version": "2.0.0-alpha.4",
+  "version": "2.0.0-alpha.5",
   "license": "EUPL-1.2",
   "exports": {
     ".": "./src/index.js"

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.0.0-alpha.5] - 2026-10-16
+
 ## [2.0.0-alpha.4] - 2026-10-16
 ### Changed
 - `REASON` registry for `0x17 CMD_OP_REJECTED` (work document #4 update #43, from the MicroFlo constrained-runtime port): non-`0x14` rejections answer `detail: { reason: <code>, message? }` — a normative uint8 code vocabulary (`0x00 UNSPECIFIED` … `0x0b UNKNOWN_TARGET`) mirroring the `0x02` limitation codes where semantics overlap, so clients can programmatically distinguish "may not" from "cannot" from "malformed". Additive; closes SPEC §6's open stub-error item (`0x09 STUB` on rejections, `0x09 STUB_ERROR` telemetry for engine-raised)
