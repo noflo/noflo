@@ -210,12 +210,16 @@ describe("wrapAssembly", () => {
 
     const decoratedCatalog = decorated.list();
     assert.ok(
-      decoratedCatalog["test/CopyLike"],
-      "wrappable component decorated",
+      decoratedCatalog["test/CopyLikeAssembly"],
+      "wrappable component decorated under the Assembly suffix",
     );
     assert.equal(
-      decoratedCatalog["test/CopyLike"].constructor.name,
+      decoratedCatalog["test/CopyLikeAssembly"].constructor.name,
       "GraphModel",
+    );
+    assert.ok(
+      decoratedCatalog["test/CopyLike"],
+      "the original stays native under the unsuffixed name",
     );
     assert.ok(decoratedCatalog["test/Addressable"], "unwrappable stays native");
     assert.equal(decoratedCatalog["test/Addressable"], Addressable);
@@ -257,9 +261,9 @@ describe("wrapAssembly", () => {
       ),
       "expected an already-assembly skip report",
     );
-    // Regular components still wrap
+    // Regular components wrap under the Assembly suffix
     assert.equal(
-      decoratedCatalog["test/CopyLike"].constructor.name,
+      decoratedCatalog["test/CopyLikeAssembly"].constructor.name,
       "GraphModel",
     );
   });
