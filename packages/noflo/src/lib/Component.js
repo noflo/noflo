@@ -180,7 +180,6 @@ export class Component extends EventBase {
      * what makes the network-end predicate safe (work document #45)
      * @type {boolean}
      */
-    this.closedownEmitted = false;
 
     // Whether the component should keep send packets
     // out in the order they were received
@@ -363,7 +362,6 @@ export class Component extends EventBase {
       .then(() => {
         this.started = true;
         this.closedDown = false;
-        this.closedownEmitted = false;
         this.dispatchLifecycleEvent("start");
       });
   }
@@ -532,7 +530,33 @@ export class Component extends EventBase {
         port.name = name;
       }
       port.addEventListener("ip", (event) => this.handleIP(event.detail, port));
-      port.addEventListener("eof", () => this.#handleInputStateChange());
+      // The port's connect/disconnect lifecycle events carry transmission
+      // semantics: disconnect is the sender's terminal EOF, connect a new
+      // transmission re-opening the input (work document #40 update #5)
+      port.addEventListener("disconnect", () =>
+        this.#handleInputStateChange(),
+      );
+      port.addEventListener("connect", () =>
+        this.#handleInputStateChange(),
+      );
+    });
+    Object.keys(this.outPorts.ports).forEach((name) => {
+      const port = /** @type {import("./OutPort.js").default} */ (
+        this.outPorts.ports[name]
+      );
+      if (!port.name) {
+        port.name = name;
+      }
+      // A socket attaching to a closed-down sender's outport goes terminal
+      // immediately: the sender is done, so nothing will ever come from it
+      // — a late-attached edge must not leave the receiving port waiting
+      // for an EOF that will never fire (work document #45, jekyll #1092
+      // bug 3)
+      port.addEventListener("attach", () => {
+        if (this.closedDown) {
+          port.disconnectAll();
+        }
+      });
     });
     return this;
   }
@@ -1228,12 +1252,11 @@ export class Component extends EventBase {
       if (!port.isEof()) {
         return;
       }
-      if (port.countBuffered() > 0) {
-        // Unconsumed data on an end-of-stream port is pending work: the
-        // network stays open (and a stranded buffer surfaces as a loud,
-        // diagnosable stall — work document #45)
-        return;
-      }
+      // Buffered data on an end-of-stream port is stranded by definition —
+      // no arrival can complete a waiting context once every input is at
+      // EOF — so it does not block closing. It surfaces loudly: the trace
+      // shows the last activation, and the shutdown diagnostics report the
+      // unconsumed buffers (work document #45)
     }
     if (this.load !== 0) {
       return;
@@ -1260,7 +1283,6 @@ export class Component extends EventBase {
     // triggers) must not fire ahead of them
     Promise.all(disconnects)
       .then(() => {
-        this.closedownEmitted = true;
         this.dispatchLifecycleEvent("closedown", this);
       })
       .catch(() => {});

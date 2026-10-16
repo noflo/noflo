@@ -96,14 +96,15 @@ export default class InPort extends BasePort {
       this.dispatchLifecycleEvent("connect", socket);
     });
     socket.addEventListener("disconnect", () => {
+      // Refresh the EOF state before the lifecycle dispatch: the
+      // disconnect is the sender's terminal EOF, and the listeners must
+      // see the post-refresh state
+      this.#refreshEof();
       if (this.isAddressable()) {
         this.dispatchLifecycleEvent("disconnect", [socket, localId]);
       } else {
         this.dispatchLifecycleEvent("disconnect", socket);
       }
-      // With per-burst disconnect gone, every disconnect is terminal: the
-      // sender is done. Re-evaluate the port's EOF state.
-      this.#refreshEof();
     });
     socket.addEventListener("ip", (event) =>
       this.handleIP(event.detail, localId),
@@ -129,15 +130,7 @@ export default class InPort extends BasePort {
    * @returns {void}
    */
   #setEof(value) {
-    if (value === this.eof) {
-      return;
-    }
     this.eof = value;
-    // The event fires on both transitions: entering EOF (the sender is
-    // done) and leaving it (a new transmission re-opened the input) —
-    // the component revives a closed-down state on the latter (work
-    // document #45)
-    this.dispatchLifecycleEvent("eof", this);
   }
 
   /**
@@ -521,4 +514,5 @@ export default class InPort extends BasePort {
     count += (this.buffer ?? []).length;
     return count;
   }
+
 }
