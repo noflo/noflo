@@ -480,6 +480,19 @@ export function runRelease({
     } else {
       console.log("  ok");
     }
+    // deno.lock tracks the workspace packages' npm: dependency specifiers —
+    // after a version bump it goes stale exactly like package-lock.json,
+    // and a stale lock left uncommitted dirties every later deno run
+    // (see the v2.0.0-alpha.4 residue)
+    if (tryRun("deno --version", { cwd: root, stdio: "ignore" }) !== null) {
+      if (tryRun("deno install", { cwd: root, stdio: "ignore" }) === null) {
+        console.log(
+          "  ⚠ deno install failed — update deno.lock manually.",
+        );
+      } else {
+        console.log("  deno.lock ok");
+      }
+    }
     console.log();
   }
 
