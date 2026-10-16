@@ -8,6 +8,20 @@ import noflo from "@noflo/noflo";
 
 /**
  * All component factory.
+ *
+ * Firing pattern: a barrier — the process fires only when every attached
+ * `in` connection holds a complete stream (closed bracket stream or
+ * unbracketed packet), and all streams are consumed together. The
+ * has-check covers every connection before any get, so no leg is ever
+ * consumed by an activation that then waits (the has/get-order discipline,
+ * work documents #21 and #36).
+ *
+ * Concurrency contract (work document #36): messages that are in flight
+ * concurrently through this component must carry scopes — the barrier
+ * resolves per scope, so interleaved scoped streams assemble correctly.
+ * Unscoped concurrent in-flight messages pair positionally per connection
+ * and cross; unscoped traffic is only correct when delivery is in-order
+ * and synchronous.
  */
 export function getComponent() {
   const c = new noflo.Component();
