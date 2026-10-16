@@ -29,4 +29,5 @@ Any greenfield work (new packages) will be EUPL-1.2. Exception: `@noflo/graph` i
 In addition to the global boundaries:
 
 - ✅ **Always**: document major changes in the per-package `CHANGELOG.md` (Unreleased segment)
+- ✅ **Always**: keep the npm `files` list in `package.json` updated whenever a change adds, removes, or relocates paths that ship in the package — a stale list means the tarball silently misses or leaks files; verify with `npm pack --dry-run` when unsure
 - 🚫 **Never**: update the root-level `CHANGELOG.md` — that is done as part of the release process

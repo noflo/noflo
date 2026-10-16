@@ -40,5 +40,11 @@
     "components",
     "README.md",
     "CHANGELOG.md"
-  ]
+  ],
+  "exports": {
+    "./components/*": "./components/*"
+  },
+  "engines": {
+    "node": ">= 22"
+  }
 }
