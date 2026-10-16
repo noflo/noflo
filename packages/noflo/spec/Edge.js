@@ -2,7 +2,11 @@
 
 import assert from "node:assert/strict";
 import { before, describe, it } from "node:test";
-import { Edge, resolveHighWaterMark } from "../src/lib/Edge.js";
+import {
+  DEFAULT_HIGH_WATER_MARK,
+  Edge,
+  resolveHighWaterMark,
+} from "../src/lib/Edge.js";
 import * as internalSocket from "../src/lib/InternalSocket.js";
 import IP from "../src/lib/IP.js";
 import * as noflo from "../src/lib/NoFlo.js";
@@ -27,13 +31,17 @@ describe("high-water mark resolution", () => {
   it("runtime default applies when nothing more specific is set", () => {
     assert.equal(resolveHighWaterMark(undefined, undefined, 32), 32);
   });
-  it("absent everywhere means unbounded (1.x behavior, TODO: 2.0 default)", () => {
-    assert.equal(resolveHighWaterMark(undefined, undefined, undefined), null);
-    assert.equal(resolveHighWaterMark({}, null, null), null);
+  it("absent everywhere resolves to the bounded default", () => {
+    assert.equal(
+      resolveHighWaterMark(undefined, undefined, undefined),
+      DEFAULT_HIGH_WATER_MARK,
+    );
   });
-  it("explicit null at a higher level falls through to lower levels", () => {
-    // null is an explicit unbounded choice, not a fall-through marker
-    assert.equal(resolveHighWaterMark({ highWaterMark: null }, 16, 32), 16);
+  it("explicit null opts out of backpressure as unbounded", () => {
+    assert.equal(resolveHighWaterMark({ highWaterMark: null }, 16, 32), null);
+    assert.equal(resolveHighWaterMark(undefined, null, 32), null);
+    assert.equal(resolveHighWaterMark(undefined, undefined, null), null);
+    assert.equal(resolveHighWaterMark({}, null, null), null);
   });
   it("zero is a valid synchronous configuration", () => {
     assert.equal(resolveHighWaterMark({ highWaterMark: 0 }, 16, 32), 0);
@@ -202,6 +210,39 @@ describe("Edge data transport", () => {
     assert.equal(settled, true);
   });
 
+  it("escalates delivery-handler throws through the error handler on bounded edges", async () => {
+    const edge = new Edge({ highWaterMark: 1 });
+    const escalated = [];
+    edge.onErrorDelivery((error) => escalated.push(error));
+    let delivered = 0;
+    edge.onDelivery((ip) => {
+      delivered += 1;
+      if (ip.data === "boom") {
+        throw new Error("listener exploded");
+      }
+    });
+    await edge.write(new IP("data", "ok"));
+    await edge.write(new IP("data", "boom"));
+    await new Promise((resolve) => setImmediate(resolve));
+    // Both writes were delivered; the second's throw was escalated
+    assert.equal(delivered, 2);
+    assert.equal(escalated.length, 1);
+    assert.match(escalated[0].message, /listener exploded/);
+    // Bookkeeping stayed consistent: the edge still admits further writes
+    await edge.write(new IP("data", "after"));
+    assert.equal(delivered, 3);
+  });
+
+  it("records delivery-handler throws as lastError without an error handler", async () => {
+    const edge = new Edge({ highWaterMark: 1 });
+    edge.onDelivery(() => {
+      throw new Error("no handler for this");
+    });
+    await edge.write(new IP("data", "x"));
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.match(edge.lastError.message, /no handler for this/);
+  });
+
   it("close ends the stream for writing", async () => {
     const edge = new Edge();
     edge.onDelivery(() => {});
@@ -212,8 +253,8 @@ describe("Edge data transport", () => {
 });
 
 describe("InternalSocket delegating transport to Edge", () => {
-  it("delivers posted IPs synchronously by default (1.x semantics)", () => {
-    const socket = internalSocket.createSocket();
+  it("delivers posted IPs synchronously when the edge is unbounded", () => {
+    const socket = internalSocket.createSocket({}, { highWaterMark: null });
     const received = [];
     listen(socket, "ip", (ip) => {
       received.push(ip);
@@ -227,8 +268,26 @@ describe("InternalSocket delegating transport to Edge", () => {
     );
   });
 
-  it("emits only ip events for bracketed packets", () => {
+  it("delivers posted IPs one microtask late on the bounded default", async () => {
     const socket = internalSocket.createSocket();
+    assert.equal(socket.edge.highWaterMark, DEFAULT_HIGH_WATER_MARK);
+    const received = [];
+    listen(socket, "ip", (ip) => {
+      received.push(ip);
+    });
+    socket.post(new IP("data", "first"));
+    // Not synchronous like unbounded edges: delivery is deferred
+    assert.deepEqual(received, []);
+    await socket.lastWrite;
+    await Promise.resolve();
+    assert.deepEqual(
+      received.map((ip) => ip.data),
+      ["first"],
+    );
+  });
+
+  it("emits only ip events for bracketed packets", async () => {
+    const socket = internalSocket.createSocket({}, { highWaterMark: null });
     const events = [];
     listen(socket, "ip", (ip) => {
       events.push(`ip:${ip.type}`);
@@ -330,7 +389,7 @@ describe("hierarchical high-water mark wiring through networks", () => {
     assert.equal(socket.edge.highWaterMark, 8);
   });
 
-  it("absent everywhere stays unbounded (1.x behavior)", async () => {
+  it("absent everywhere resolves to the bounded default", async () => {
     const g = nativeGraph();
     g.addNode("A", "hwm/Plain");
     g.addNode("B", "hwm/Plain");
@@ -338,6 +397,20 @@ describe("hierarchical high-water mark wiring through networks", () => {
     const nw = await noflo.createNetwork(g, {
       delay: true,
       componentLoader: loader,
+    });
+    await nw.connect();
+    const socket = nw.connections[0];
+    assert.equal(socket.edge.highWaterMark, DEFAULT_HIGH_WATER_MARK);
+  });
+  it("network-level null opts out as unbounded", async () => {
+    const g = nativeGraph();
+    g.addNode("A", "hwm/Plain");
+    g.addNode("B", "hwm/Plain");
+    g.addEdge("A", "out", "B", "in");
+    const nw = await noflo.createNetwork(g, {
+      delay: true,
+      componentLoader: loader,
+      highWaterMark: null,
     });
     await nw.connect();
     const socket = nw.connections[0];

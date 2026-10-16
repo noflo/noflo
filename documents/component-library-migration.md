@@ -149,6 +149,7 @@ export function getComponent() {
 - Firing inports trigger `process`; control ports (`control: true`) carry configuration, do not trigger processing, and are typically fed by IIPs. Reading a control port does not consume the packet. Control ports buffer the latest stream: brackets are kept, a new stream (openBracket or unbracketed data IP) discards the previously buffered one, `has()`/`hasData()` report whether a data IP is present in the buffered stream, and `getStream()` reads the buffered stream — so multi-value configuration streams can be read from control ports. Because delivery timing of IIPs versus data is not guaranteed within one activation, guard reads: check `input.hasData("pattern")` before `input.getData("pattern")` and keep a local fallback.
 - Mark ports the component cannot work without as `required: true`.
 - Declare an `error` outport (`datatype: "object"`) on every component that can fail (see 3.5).
+- **IP ownership and fan-out** (work document #38 §3.2): an IP is owned by exactly one process at a time — `ip.owner` is stamped by the receiving buffer, moved onto the consuming component when it reads, and released on send. On fan-out (one outport, several attached edges) every edge receives its own IP envelope; IP identities are never shared between edges. The payload reference is declared per IP with `clonable` (default `true`): fan-out deep-copies the payload per edge via `structuredClone`. Mark a payload that must not be copied — a shared canvas, a function, a resource handle — with `clonable: false`; sending such an IP to a port with several attached edges throws unless the outport declares `fanoutRefs: true`, in which case each edge receives a fresh envelope carrying the same payload reference (the pattern `core/Split`-style pass-throughs adopt). Components that forwarded IPs to several edges while relying on the 1.x shared-reference fan-out either declare their payloads' true clonability or enable `fanoutRefs` on the outport.
 
 ### 3.3 Process function
 
@@ -190,6 +191,8 @@ A Promise returned from the `process` function is interpreted by NoFlo as an imp
 ### 3.7 Backpressure
 
 2.x edges apply consumer-paced backpressure via high-water marks. `output.send`/`sendDone` return Promises that resolve when the receiving edges admitted the packet(s). Fire-and-forget is safe for single packets; sending errors escalate through the socket error path.
+
+- **Bounded by default** (work document #38 §3.3): an edge whose high-water mark is absent at every level resolves to the bounded default (`DEFAULT_HIGH_WATER_MARK`, 16) instead of the 1.x unbounded behavior. To keep 1.x fire-and-forget semantics for a specific edge, port, or whole network, set `highWaterMark: null` explicitly at that level (edge metadata, port option, or network option). Timing shifts with the flip: bounded edges deliver one microtask after the write call, while unbounded edges deliver synchronously inside it — code that assumes same-tick delivery after a send must await the admission Promise (or the microtask) instead.
 
 - For fan-out loops (splitting one input into many outputs), await admission inside an inner async function:
 

@@ -18,8 +18,11 @@
  *   - positive integer `n` — the first `n` in-flight writes resolve
  *     immediately; further writes wait until earlier packets have been
  *     delivered (consumed by the receiving side)
- *   - `null` (or absent) — unbounded, fire-and-forget writes matching
- *     1.x behavior exactly
+ *   - `null` — explicit opt-out: unbounded, fire-and-forget writes matching
+ *     1.x behavior
+ *
+ *   When no level configures a value, the resolved default is bounded
+ *   (`DEFAULT_HIGH_WATER_MARK`), so backpressure is on by default in 2.x.
  *
  *   The write side is a Web Streams `WritableStream`, so writers observe
  *   the same backpressure semantics as any stream consumer. Delivery is
@@ -35,13 +38,17 @@
 /* @ts-self-types="./Edge.d.ts" */
 
 /**
- * Validate a configured high-water mark value.
+ * Validate a configured high-water mark value. Explicit `null` is valid and
+ * means unbounded (the 1.x behavior opt-out).
  *
  * @param {any} value
  * @param {string} source - For error messages
- * @returns {number}
+ * @returns {number|null}
  */
 function validateHighWaterMark(value, source) {
+  if (value === null) {
+    return null;
+  }
   if (!Number.isInteger(value) || value < 0) {
     throw new TypeError(
       `Edge highWaterMark from ${source} must be a non-negative integer or null, got ${value}`,
@@ -51,9 +58,19 @@ function validateHighWaterMark(value, source) {
 }
 
 /**
+ * The resolved default for edges whose configuration leaves the
+ * high-water mark absent at every level. Small enough to keep latency
+ * low, large enough to let synchronous producer/consumer chains proceed
+ * without per-packet rendezvous.
+ */
+export const DEFAULT_HIGH_WATER_MARK = 16;
+
+/**
  * Resolve the high-water mark for an edge, hierarchically: edge metadata
  * wins over the component-level default, which wins over the runtime
- * global. `null`/absent everywhere means unbounded.
+ * global. An explicit `null` at any level opts that edge out of
+ * backpressure (unbounded); only absence at every level resolves to the
+ * bounded default.
  *
  * @param {Record<string, any>|undefined} [metadata] - Graph edge metadata
  * @param {number|null|undefined} [componentDefault] - Port/component default
@@ -66,21 +83,16 @@ export function resolveHighWaterMark(
   runtimeDefault,
 ) {
   const fromMetadata = metadata ? metadata.highWaterMark : undefined;
-  if (fromMetadata !== undefined && fromMetadata !== null) {
+  if (fromMetadata !== undefined) {
     return validateHighWaterMark(fromMetadata, "edge metadata");
   }
-  if (componentDefault !== undefined && componentDefault !== null) {
+  if (componentDefault !== undefined) {
     return validateHighWaterMark(componentDefault, "component default");
   }
-  if (runtimeDefault !== undefined && runtimeDefault !== null) {
+  if (runtimeDefault !== undefined) {
     return validateHighWaterMark(runtimeDefault, "runtime default");
   }
-  // TODO(noflo 2.0): flip the absent-everywhere default from unbounded to a
-  // small bounded value (e.g. 16) so backpressure is on by default, per the
-  // decision recorded in work document #1 ("Transitioning Dataflow to Web
-  // Streams", update #2). Graphs relying on unbounded buffering must then
-  // opt out explicitly with `highWaterMark: null`.
-  return null;
+  return DEFAULT_HIGH_WATER_MARK;
 }
 
 /**
@@ -111,6 +123,10 @@ export class Edge {
     /** Writers parked waiting for delivery capacity */
     /** @type {{ resolve: () => void, reject: (err: Error) => void }[]} */
     this.waitingWriters = [];
+    /** IPs written but not yet handed to the delivery handler */
+    this.pendingDeliveries = 0;
+    /** @type {(() => void)[]} */
+    this.drainResolvers = [];
 
     const self = this;
     if (this.highWaterMark !== null) {
@@ -126,9 +142,25 @@ export class Edge {
         write(ip) {
           return Promise.resolve().then(() => {
             let release = null;
-            if (self.deliver) {
-              release = self.deliver(ip);
+            try {
+              if (self.deliver) {
+                release = self.deliver(ip);
+              }
+            } catch (error) {
+              // Delivery-handler exceptions escalate through the registered
+              // error handler — the bounded-path equivalent of the
+              // synchronous throw the unbounded fast path propagates to
+              // the sender. Bookkeeping stays consistent either way.
+              self.#markDelivered();
+              self.#released();
+              if (self.onError) {
+                self.onError(error);
+                return;
+              }
+              self.lastError = error;
+              return;
             }
+            self.#markDelivered();
             const finish = () => {
               self.#released();
             };
@@ -150,6 +182,37 @@ export class Edge {
 
       this.writer = this.writableStream.getWriter();
     }
+  }
+
+  /**
+   * Mark one IP as handed to the delivery handler: decrement the pending
+   * count and resolve any drain waiters once the edge is fully drained.
+   */
+  #markDelivered() {
+    this.pendingDeliveries -= 1;
+    if (this.pendingDeliveries > 0) {
+      return;
+    }
+    const resolvers = this.drainResolvers;
+    this.drainResolvers = [];
+    for (const resolver of resolvers) {
+      resolver();
+    }
+  }
+
+  /**
+   * Resolve once every IP written to the edge has been handed to the
+   * delivery handler. Resolves immediately when nothing is pending.
+   *
+   * @returns {Promise<void>}
+   */
+  whenDrained() {
+    if (this.pendingDeliveries <= 0) {
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+      this.drainResolvers.push(resolve);
+    });
   }
 
   /**
@@ -321,6 +384,7 @@ export class Edge {
       // Bounded edges with capacity: resolve the writer on admission;
       // delivery completion is tracked separately. Unbounded resolves
       // immediately; zero resolves on delivery.
+      this.pendingDeliveries += 1;
       if (this.highWaterMark !== null && this.highWaterMark > 0) {
         this.writer.write(ip).then(null, (error) => {
           this.lastError = error;

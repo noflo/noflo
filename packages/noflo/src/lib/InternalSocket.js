@@ -165,12 +165,31 @@ export class InternalSocket extends EventBase {
     this.emitEvent("connect", null);
   }
 
+  /**
+   * Disconnect the socket. The `disconnect` event is emitted once every
+   * IP posted before the disconnect has been delivered through the edge,
+   * so receiving ends never observe a disconnect overtaking data. On an
+   * unbounded edge (synchronous delivery) this resolves immediately and
+   * the event fires synchronously, matching 1.x timing. The connection
+   * state flips synchronously either way.
+   *
+   * @returns {Promise<void>} Resolves when the disconnect event has been
+   *   emitted
+   */
   disconnect() {
     if (!this.connected) {
-      return;
+      return Promise.resolve();
     }
     this.connected = false;
-    this.emitEvent("disconnect", null);
+    const drained = this.edge.whenDrained();
+    if (this.edge.pendingDeliveries <= 0) {
+      // Synchronous fast path: nothing in flight, emit immediately
+      this.emitEvent("disconnect", null);
+      return drained;
+    }
+    return drained.then(() => {
+      this.emitEvent("disconnect", null);
+    });
   }
 
   isConnected() {

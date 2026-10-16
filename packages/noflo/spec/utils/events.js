@@ -1,6 +1,6 @@
-import IP from "../../src/lib/IP.js";
-
 // (c) 2021-2026 Henri Bergius
+import { InternalSocket } from "../../src/lib/InternalSocket.js";
+import IP from "../../src/lib/IP.js";
 /**
  * Spec helper bridging the legacy EventEmitter-style listener contract
  * (handler receives the payload) onto the native EventTarget API, which
@@ -148,4 +148,29 @@ export function listenIPSequence(socket, received) {
       received.push(`DATA ${event.data}`);
     }
   });
+}
+
+/**
+ * Drain the microtask queue so bounded-edge delivery (deferred one
+ * microtask after the write call) and the activations it triggers have
+ * settled. Unbounded edges (`highWaterMark: null`) deliver synchronously
+ * and do not need this.
+ *
+ * @returns {Promise<void>}
+ */
+export function settle() {
+  return new Promise((resolve) => setImmediate(resolve));
+}
+
+/**
+ * Create a raw InternalSocket fixture with the bounded-default backpressure
+ * opted out (`highWaterMark: null`). Component-spec tests exercise Process
+ * API semantics against socket plumbing; synchronous 1.x-style delivery
+ * keeps their assertions deterministic. Bounded-edge delivery timing is
+ * pinned in the Edge and Network specs.
+ *
+ * @returns {import("../../src/lib/InternalSocket.js").InternalSocket}
+ */
+export function fixtureSocket() {
+  return new InternalSocket({}, { highWaterMark: null });
 }

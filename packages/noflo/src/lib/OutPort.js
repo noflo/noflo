@@ -9,6 +9,10 @@ import IP from "./IP.js";
 /**
  * @typedef OutPortOptions
  * @property {boolean} [caching]
+ * @property {boolean} [fanoutRefs] - When true, fan-out of an IP marked
+ *   `clonable: false` is allowed on this port: each attached edge receives
+ *   a fresh IP envelope carrying the same payload reference, instead of
+ *   the send throwing.
  */
 /**
  * @typedef {import("./BasePort.js").BaseOptions & OutPortOptions} PortOptions
@@ -62,15 +66,28 @@ export default class OutPort extends BasePort {
 
   /**
    * Attach a socket to the port. With caching enabled, the cached value for
-   * the slot is sent to the new socket immediately.
+   * the slot is sent to the new socket immediately. Cached IP objects are
+   * posted as themselves; cached raw values go through the regular send
+   * path.
    *
    * @param {import("./InternalSocket.js").InternalSocket} socket
    * @param {number|null} [index]
    */
   attach(socket, index = null) {
     super.attach(socket, index);
-    if (this.isCaching() && this.cache[`${index}`] != null) {
-      this.send(this.cache[`${index}`], index);
+    const cached = this.cache[`${index}`];
+    if (this.isCaching() && cached != null) {
+      if (IP.isIP(cached)) {
+        // The cached envelope was already delivered to another edge;
+        // resend a fresh envelope, copying the payload when the sender
+        // declared it clonable
+        socket.post(
+          cached.clonable ? cached.clone() : cached.envelope(),
+          false,
+        );
+      } else {
+        this.send(cached, index);
+      }
     }
   }
 
@@ -171,22 +188,33 @@ export default class OutPort extends BasePort {
     if (this.isCaching() && data !== cachedData) {
       this.cache[`${idx}`] = ip;
     }
-    let pristine = true;
+    const targets = sockets.filter((socket) => socket);
+    const fanout = targets.length > 1;
+    if (fanout && !ip.clonable && !this.isFanoutRefs()) {
+      throw new Error(
+        `${this.getId()}: fan-out to ${targets.length} connections of an IP marked clonable: false — enable the fanoutRefs option on this outport to share the payload reference, or route the packet through a splitter component`,
+      );
+    }
+    // The IP leaves the sending process: release ownership while it is in
+    // transport. The receiving buffer stamps the consumer; a consuming read
+    // moves it onto the consuming component.
+    ip.owner = null;
+    // Fan-out is automatic, and the multiplication is observable: every
+    // attached edge receives its own IP envelope carrying its own owner,
+    // admission slot, and — per the sender's `clonable` declaration — its
+    // own deep-copied payload. A `fanoutRefs` outport shares the payload
+    // reference across the envelopes instead of copying it.
     /** @type {Array<Promise<void>|void>} */
     const writes = [];
     sockets.forEach((socket) => {
       if (!socket) {
         return;
       }
-      if (pristine) {
-        writes.push(socket.post(ip, autoConnect));
-        pristine = false;
-      } else {
-        if (ip.clonable) {
-          ip = ip.clone();
-        }
-        writes.push(socket.post(ip, autoConnect));
+      let outgoing = ip;
+      if (fanout) {
+        outgoing = this.isFanoutRefs() ? ip.envelope() : ip.clone();
       }
+      writes.push(socket.post(outgoing, autoConnect));
     });
     // Admission promise for the most recent send. The noop catch keeps
     // fire-and-forget callers off the unhandled-rejection channel —
@@ -269,6 +297,19 @@ export default class OutPort extends BasePort {
     }
     // Regular sockets affect all outbound connections
     return this.sockets;
+  }
+
+  /**
+   * Check whether this port opts into reference-sharing fan-out for IPs
+   * marked `clonable: false`.
+   *
+   * @returns {boolean}
+   */
+  isFanoutRefs() {
+    if (this.options.fanoutRefs) {
+      return true;
+    }
+    return false;
   }
 
   /**

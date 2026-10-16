@@ -3,16 +3,18 @@ import { before, beforeEach, describe, it } from "node:test";
 import * as noflo from "../src/lib/NoFlo.js";
 import {
   closeBracket,
+  fixtureSocket,
   listen,
   listenOnce,
   openBracket,
   sendData,
+  settle,
 } from "./utils/events.js";
 
 describe("Component", () => {
   describe("with required ports", () => {
     it("should throw an error upon sending packet to an unattached required port", () => {
-      const s2 = new noflo.internalSocket.InternalSocket();
+      const s2 = fixtureSocket();
       const c = new noflo.Component({
         outPorts: {
           required_port: {
@@ -25,8 +27,8 @@ describe("Component", () => {
       assert.throws(() => c.outPorts.required_port.send("foo"));
     });
     it("should be cool with an attached port", () => {
-      const s1 = new noflo.internalSocket.InternalSocket();
-      const s2 = new noflo.internalSocket.InternalSocket();
+      const s1 = fixtureSocket();
+      const s2 = fixtureSocket();
       const c = new noflo.Component({
         inPorts: {
           required_port: {
@@ -71,10 +73,10 @@ describe("Component", () => {
         },
       });
 
-      const s1 = new noflo.internalSocket.InternalSocket();
+      const s1 = fixtureSocket();
       c.inPorts.in.attach(s1);
       c.inPorts.in.nodeInstance = c;
-      const s2 = new noflo.internalSocket.InternalSocket();
+      const s2 = fixtureSocket();
       c.inPorts.just_processor.attach(s1);
       c.inPorts.just_processor.nodeInstance = c;
       s1.send("some-data");
@@ -96,7 +98,7 @@ describe("Component", () => {
         },
       });
 
-      const s1 = new noflo.internalSocket.InternalSocket();
+      const s1 = fixtureSocket();
       c.inPorts.in.attach(s1);
       c.inPorts.in.nodeInstance = c;
       s1.send("some-data");
@@ -123,7 +125,7 @@ describe("Component", () => {
         },
       });
 
-      const s1 = new noflo.internalSocket.InternalSocket();
+      const s1 = fixtureSocket();
       c.inPorts.in.attach(s1);
       c.inPorts.in.nodeInstance = c;
       s1.send("some-data");
@@ -149,7 +151,7 @@ describe("Component", () => {
         },
       });
 
-      const s1 = new noflo.internalSocket.InternalSocket();
+      const s1 = fixtureSocket();
       c.inPorts.in.attach(s1);
       c.inPorts.in.nodeInstance = c;
       s1.send("some-data");
@@ -177,8 +179,8 @@ describe("Component", () => {
         },
       });
 
-      const s1 = new noflo.internalSocket.InternalSocket();
-      const s2 = new noflo.internalSocket.InternalSocket();
+      const s1 = fixtureSocket();
+      const s2 = fixtureSocket();
       const groups = ["foo", "bar"];
       listen(s2, "ip", (ip) => {
         if (ip.type === "openBracket") {
@@ -333,7 +335,7 @@ describe("Component", () => {
           },
         },
       });
-      const i = new noflo.internalSocket.InternalSocket();
+      const i = fixtureSocket();
       c.inPorts.in.attach(i);
       return c.start().then(() => {
         assert.strictEqual(c.started, true);
@@ -351,7 +353,7 @@ describe("Component", () => {
           },
         },
       });
-      const i = new noflo.internalSocket.InternalSocket();
+      const i = fixtureSocket();
       c.inPorts.in.attach(i);
       await c.start();
       assert.equal(c.isStarted(), true);
@@ -378,8 +380,8 @@ describe("Component", () => {
         },
       });
 
-      const s1 = new noflo.internalSocket.InternalSocket();
-      const s2 = new noflo.internalSocket.InternalSocket();
+      const s1 = fixtureSocket();
+      const s2 = fixtureSocket();
 
       listen(s2, "ip", (ip) => {
         console.log(ip);
@@ -465,9 +467,9 @@ describe("Component", () => {
         },
       });
 
-      const s1 = new noflo.internalSocket.InternalSocket();
-      const s2 = new noflo.internalSocket.InternalSocket();
-      const s3 = new noflo.internalSocket.InternalSocket();
+      const s1 = fixtureSocket();
+      const s2 = fixtureSocket();
+      const s3 = fixtureSocket();
 
       listen(s3, "ip", (ip) => {
         assert.strictEqual(typeof ip, "object");
@@ -496,14 +498,14 @@ describe("Component", () => {
     let sout2 = null;
 
     beforeEach(() => {
-      sin1 = new noflo.internalSocket.InternalSocket();
-      sin2 = new noflo.internalSocket.InternalSocket();
-      sin3 = new noflo.internalSocket.InternalSocket();
-      sout1 = new noflo.internalSocket.InternalSocket();
-      sout2 = new noflo.internalSocket.InternalSocket();
+      sin1 = fixtureSocket();
+      sin2 = fixtureSocket();
+      sin3 = fixtureSocket();
+      sout1 = fixtureSocket();
+      sout2 = fixtureSocket();
     });
 
-    it("should trigger on IPs", (_t, done) => {
+    it("should trigger on IPs", async (_t) => {
       let hadIPs = [];
       c = new noflo.Component({
         inPorts: {
@@ -529,22 +531,19 @@ describe("Component", () => {
       c.inPorts.bar.attach(sin2);
       c.outPorts.baz.attach(sout1);
 
-      let count = 0;
+      const firedWith = [];
       listen(sout1, "ip", () => {
-        count++;
-        if (count === 1) {
-          assert.deepStrictEqual(hadIPs, ["foo"]);
-        }
-        if (count === 2) {
-          assert.deepStrictEqual(hadIPs, ["foo", "bar"]);
-          done();
-        }
+        firedWith.push([...hadIPs]);
       });
 
       sin1.post(new noflo.IP("data", "first"));
+      await settle();
       sin2.post(new noflo.IP("data", "second"));
+      await settle();
+      // Each activation saw exactly the packets delivered so far
+      assert.deepStrictEqual(firedWith, [["foo"], ["foo", "bar"]]);
     });
-    it("should trigger on IPs to addressable ports", (_t, done) => {
+    it("should trigger on IPs to addressable ports", async (_t) => {
       const receivedIndexes = [];
       c = new noflo.Component({
         inPorts: {
@@ -581,33 +580,33 @@ describe("Component", () => {
       c.inPorts.foo.attach(sin2, 0);
       c.outPorts.baz.attach(sout1);
 
-      let count = 0;
+      const firedWith = [];
       listen(sout1, "ip", () => {
-        count++;
-        if (count === 1) {
-          assert.deepStrictEqual(receivedIndexes, [
-            {
-              idx: 1,
-              payload: "first",
-            },
-          ]);
-        }
-        if (count === 2) {
-          assert.deepStrictEqual(receivedIndexes, [
-            {
-              idx: 1,
-              payload: "first",
-            },
-            {
-              idx: 0,
-              payload: "second",
-            },
-          ]);
-          done();
-        }
+        firedWith.push(receivedIndexes.map((entry) => ({ ...entry })));
       });
       sin1.post(new noflo.IP("data", "first"));
+      await settle();
       sin2.post(new noflo.IP("data", "second"));
+      await settle();
+      // Each activation saw exactly the packets delivered so far
+      assert.deepStrictEqual(firedWith, [
+        [
+          {
+            idx: 1,
+            payload: "first",
+          },
+        ],
+        [
+          {
+            idx: 1,
+            payload: "first",
+          },
+          {
+            idx: 0,
+            payload: "second",
+          },
+        ],
+      ]);
     });
     it("should be able to send IPs to addressable connections", (_t, done) => {
       const expected = [
@@ -770,7 +769,7 @@ describe("Component", () => {
       });
       sin1.post(new noflo.IP("data", "first"));
     });
-    it("should trigger from non-triggering ports when other ports hold buffered data (#607)", (_t, done) => {
+    it("should trigger from non-triggering ports when other ports hold buffered data (#607)", async (_t) => {
       const triggered = [];
       c = new noflo.Component({
         inPorts: {
@@ -793,25 +792,22 @@ describe("Component", () => {
       c.inPorts.bar.attach(sin2);
       c.outPorts.baz.attach(sout1);
 
-      let count = 0;
-      listen(sout1, "ip", () => {
-        count++;
-        if (count === 1) {
-          assert.deepStrictEqual(triggered, ["bar"]);
-        }
-        if (count === 2) {
-          assert.deepStrictEqual(triggered, ["bar", "foo"]);
-        }
-        if (count === 3) {
-          assert.deepStrictEqual(triggered, ["bar", "foo", "bar"]);
-          done();
-        }
-      });
-
       sin1.post(new noflo.IP("data", "first"));
+      await settle();
+      assert.deepStrictEqual(
+        triggered,
+        [],
+        "non-triggering port does not fire alone",
+      );
       sin2.post(new noflo.IP("data", "second"));
+      await settle();
+      assert.deepStrictEqual(triggered, ["bar"], "first firing");
       sin1.post(new noflo.IP("data", "first"));
+      await settle();
+      assert.deepStrictEqual(triggered, ["bar", "foo"], "second firing");
       sin2.post(new noflo.IP("data", "second"));
+      await settle();
+      assert.deepStrictEqual(triggered, ["bar", "foo", "bar"], "third firing");
     });
     it("should fetch undefined for premature data", (_t, done) => {
       c = new noflo.Component({
@@ -3173,11 +3169,11 @@ describe("Component", () => {
         },
       });
 
-      sin1 = new noflo.internalSocket.InternalSocket();
-      sin2 = new noflo.internalSocket.InternalSocket();
-      sin3 = new noflo.internalSocket.InternalSocket();
-      sout1 = new noflo.internalSocket.InternalSocket();
-      sout2 = new noflo.internalSocket.InternalSocket();
+      sin1 = fixtureSocket();
+      sin2 = fixtureSocket();
+      sin3 = fixtureSocket();
+      sout1 = fixtureSocket();
+      sout2 = fixtureSocket();
       c.inPorts.interval.attach(sin1);
       c.inPorts.start.attach(sin2);
       c.inPorts.stop.attach(sin3);
@@ -3286,9 +3282,9 @@ describe("control port firing (#607)", () => {
       const data = input.getData("in");
       output.sendDone({ out: data });
     });
-    sin = new noflo.internalSocket.InternalSocket();
-    scontrol = new noflo.internalSocket.InternalSocket();
-    sout = new noflo.internalSocket.InternalSocket();
+    sin = fixtureSocket();
+    scontrol = fixtureSocket();
+    sout = fixtureSocket();
     c.inPorts.in.attach(sin);
     c.inPorts.control.attach(scontrol);
     c.outPorts.out.attach(sout);
@@ -3382,9 +3378,9 @@ describe("control port streams", () => {
       const data = input.getData("in");
       output.sendDone({ out: keys.map((key) => data[key]) });
     });
-    sin = new noflo.internalSocket.InternalSocket();
-    scontrol = new noflo.internalSocket.InternalSocket();
-    sout = new noflo.internalSocket.InternalSocket();
+    sin = fixtureSocket();
+    scontrol = fixtureSocket();
+    sout = fixtureSocket();
     c.inPorts.in.attach(sin);
     c.inPorts.key.attach(scontrol);
     c.outPorts.out.attach(sout);
@@ -3448,9 +3444,9 @@ describe("control port has() consistency", () => {
         output.sendDone({ baz: { foo, bar } });
       },
     });
-    const sin1 = new noflo.internalSocket.InternalSocket();
-    const sin2 = new noflo.internalSocket.InternalSocket();
-    const sout = new noflo.internalSocket.InternalSocket();
+    const sin1 = fixtureSocket();
+    const sin2 = fixtureSocket();
+    const sout = fixtureSocket();
     c.inPorts.foo.attach(sin1);
     c.inPorts.bar.attach(sin2);
     c.outPorts.baz.attach(sout);

@@ -16,12 +16,20 @@
  * stream (`openBracket`, `closeBracket`).
  *
  * The component currently holding an IP object is identified with the
- * `owner` key.
+ * `owner` key. An IP is owned by exactly one process at a time: it starts
+ * unowned while in transport, is stamped with the receiving component when
+ * buffered, and transfers to the consuming component when read. Fan-out
+ * (one outport, multiple attached edges) delivers a distinct IP envelope
+ * to every edge — IP identities are never shared between edges.
  *
- * By default, IP objects may be sent to multiple components. If they're set
- * to be clonable, each component will receive its own clone of the IP. This
- * should be enabled for any IP object working with data that is safe to
- * clone.
+ * The payload reference is a separate concern from packet ownership,
+ * declared by the sender with the `clonable` boolean. IPs are clonable by
+ * default: on fan-out each edge's envelope carries its own deep-copied
+ * payload. Setting `clonable: false` marks a payload that must not be
+ * copied (a shared canvas, a function, a resource handle): fan-out of such
+ * an IP throws unless the outport opts into reference-sharing with the
+ * `fanoutRefs` option, in which case each edge's envelope carries the same
+ * payload reference.
  *
  * It is also possible to carry metadata with an IP object. For example, the
  * `datatype` and `schema` of the sending port is transmitted with the IP
@@ -73,10 +81,14 @@ export default class IP {
      */
     this.owner = null; // packet owner process
     /**
-     * Whether the IP must be cloned before sending to additional sockets
+     * Whether the payload may be copied when the IP is delivered to
+     * multiple edges. `true` (default) gives each edge's envelope its own
+     * deep-copied payload; `false` marks a payload that must not be
+     * copied — fan-out of such an IP throws unless the outport opts into
+     * reference sharing via its `fanoutRefs` option.
      * @type {boolean}
      */
-    this.clonable = false; // cloning safety flag
+    this.clonable = true; // payload-copy declaration
     /**
      * Slot index the packet targets on an addressable port
      * @type {number|null}
@@ -105,8 +117,35 @@ export default class IP {
   }
 
   /**
+   * Create a fresh IP envelope carrying the same payload by reference.
+   * This is the always-safe clone used for fan-out: the new envelope has
+   * its own identity (and no owner), while `data` and the other metadata
+   * are shared with the original. The `clonable` declaration carries
+   * over, so a further fan-out of the envelope behaves like the original.
+   *
+   * @returns {IP}
+   */
+  envelope() {
+    const ip = new IP(this.type);
+    Object.keys(this).forEach((key) => {
+      if (key === "owner") {
+        return;
+      }
+      ip[key] = this[key];
+    });
+    return ip;
+  }
+
+  /**
    * Create a new IP copying its contents by value, not reference. The owner
    * is not copied.
+   *
+   * The payload is deep-copied with `structuredClone`, which round-trips
+   * typed arrays, `Map`s, `Set`s, `Date`s, and cyclic references that the
+   * 1.x JSON-based copy silently corrupted. Payloads the structured clone
+   * algorithm cannot copy (functions, symbols) throw; send such payloads
+   * with `clonable: false` and let fan-out share the reference, or deliver
+   * them to a single edge.
    *
    * @returns {IP}
    */
@@ -121,7 +160,13 @@ export default class IP {
         return;
       }
       if (typeof val === "object") {
-        ip[key] = JSON.parse(JSON.stringify(val));
+        try {
+          ip[key] = structuredClone(val);
+        } catch (error) {
+          throw new Error(
+            `IP property '${key}' is not clonable: ${/** @type {Error} */ (error).message}`,
+          );
+        }
       } else {
         ip[key] = val;
       }

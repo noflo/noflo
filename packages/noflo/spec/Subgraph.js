@@ -206,8 +206,14 @@ describe("NoFlo Subgraph component", () => {
         ],
       });
       listenOnce(c, "ready", () => {
-        const ins = noflo.internalSocket.createSocket();
-        const out = noflo.internalSocket.createSocket();
+        const ins = noflo.internalSocket.createSocket(
+          {},
+          { highWaterMark: null },
+        );
+        const out = noflo.internalSocket.createSocket(
+          {},
+          { highWaterMark: null },
+        );
         c.inPorts.in.attach(ins);
         c.outPorts.out.attach(out);
         listenData(out, (data) => {
@@ -270,8 +276,14 @@ describe("NoFlo Subgraph component", () => {
       c = new Subgraph(gr);
       let doned = false;
       listenOnce(c, "ready", () => {
-        const ins = noflo.internalSocket.createSocket();
-        const out = noflo.internalSocket.createSocket();
+        const ins = noflo.internalSocket.createSocket(
+          {},
+          { highWaterMark: null },
+        );
+        const out = noflo.internalSocket.createSocket(
+          {},
+          { highWaterMark: null },
+        );
         c.inPorts.in.attach(ins);
         c.outPorts.out.attach(out);
         listenData(out, (data) => {
@@ -334,8 +346,14 @@ describe("NoFlo Subgraph component", () => {
     it("should be able to run the graph", (_t, done) => {
       c = new Subgraph(fbpJson);
       listenOnce(c, "ready", () => {
-        const ins = noflo.internalSocket.createSocket();
-        const out = noflo.internalSocket.createSocket();
+        const ins = noflo.internalSocket.createSocket(
+          {},
+          { highWaterMark: null },
+        );
+        const out = noflo.internalSocket.createSocket(
+          {},
+          { highWaterMark: null },
+        );
         c.inPorts.in.attach(ins);
         c.outPorts.out.attach(out);
         let received = false;
@@ -400,7 +418,7 @@ describe("NoFlo Subgraph component", () => {
 
     it("should send initials", async () => {
       const inst = await cl.load("Initials");
-      const o = noflo.internalSocket.createSocket();
+      const o = noflo.internalSocket.createSocket({}, { highWaterMark: null });
       inst.outPorts.out.attach(o);
       const data = new Promise((resolve) => {
         listenDataOnce(o, (data) => {
@@ -414,8 +432,8 @@ describe("NoFlo Subgraph component", () => {
 
     it("should deactivate after processing is complete", async () => {
       const inst = await cl.load("Defaults");
-      const i = noflo.internalSocket.createSocket();
-      const o = noflo.internalSocket.createSocket();
+      const i = noflo.internalSocket.createSocket({}, { highWaterMark: null });
+      const o = noflo.internalSocket.createSocket({}, { highWaterMark: null });
       inst.inPorts.in.attach(i);
       inst.outPorts.out.attach(o);
       const expected = ["ACTIVATE 1", "data Foo", "DEACTIVATE 0"];
@@ -443,8 +461,8 @@ describe("NoFlo Subgraph component", () => {
 
     it.skip("should activate automatically when receiving data", async () => {
       const inst = await cl.load("Defaults");
-      const i = noflo.internalSocket.createSocket();
-      const o = noflo.internalSocket.createSocket();
+      const i = noflo.internalSocket.createSocket({}, { highWaterMark: null });
+      const o = noflo.internalSocket.createSocket({}, { highWaterMark: null });
       inst.inPorts.in.attach(i);
       inst.outPorts.out.attach(o);
       const expected = ["ACTIVATE 1", "data Foo", "DEACTIVATE 0"];
@@ -479,8 +497,8 @@ describe("NoFlo Subgraph component", () => {
         componentLoader: cl,
       });
       const child = network.processes.Child.component;
-      const i = noflo.internalSocket.createSocket();
-      const o = noflo.internalSocket.createSocket();
+      const i = noflo.internalSocket.createSocket({}, { highWaterMark: null });
+      const o = noflo.internalSocket.createSocket({}, { highWaterMark: null });
       // Sockets attach before start so the IIP-driven emission is seen
       child.inPorts.in.attach(i);
       child.outPorts.out.attach(o);
@@ -501,8 +519,8 @@ describe("NoFlo Subgraph component", () => {
 
     it("should apply internal IIPs to data sent after an explicit component start", async () => {
       const inst = await cl.load("Initials");
-      const i = noflo.internalSocket.createSocket();
-      const o = noflo.internalSocket.createSocket();
+      const i = noflo.internalSocket.createSocket({}, { highWaterMark: null });
+      const o = noflo.internalSocket.createSocket({}, { highWaterMark: null });
       inst.inPorts.in.attach(i);
       inst.outPorts.out.attach(o);
       const received = [];
@@ -523,8 +541,8 @@ describe("NoFlo Subgraph component", () => {
       // triggering the exported inport connect) must not get torn down
       // and restarted when the parent network later starts the component
       const inst = await cl.load("Defaults");
-      const i = noflo.internalSocket.createSocket();
-      const o = noflo.internalSocket.createSocket();
+      const i = noflo.internalSocket.createSocket({}, { highWaterMark: null });
+      const o = noflo.internalSocket.createSocket({}, { highWaterMark: null });
       inst.inPorts.in.attach(i);
       inst.outPorts.out.attach(o);
       // Implicit start via data before any explicit start
@@ -549,8 +567,8 @@ describe("NoFlo Subgraph component", () => {
 
     it("should reactivate when receiving new data packets", async () => {
       const inst = await cl.load("Defaults");
-      const i = noflo.internalSocket.createSocket();
-      const o = noflo.internalSocket.createSocket();
+      const i = noflo.internalSocket.createSocket({}, { highWaterMark: null });
+      const o = noflo.internalSocket.createSocket({}, { highWaterMark: null });
       inst.inPorts.in.attach(i);
       inst.outPorts.out.attach(o);
       const expected = [

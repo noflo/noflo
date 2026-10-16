@@ -272,7 +272,7 @@ export default class InPort extends BasePort {
    * @param {string|null} scope
    * @param {number|null} index
    * @param {boolean} [initial]
-   * @returns {import("./IP.js").default|void}
+   * @returns {import("./IP.js").default|undefined}
    */
   getFromBuffer(scope, index, initial = false) {
     const buf = this.getBuffer(scope, index, initial);
@@ -300,10 +300,20 @@ export default class InPort extends BasePort {
   get(scope, index = null) {
     const res = this.getFromBuffer(scope, index);
     if (res !== undefined) {
+      // Consuming read: ownership of the IP transfers from the buffer to
+      // this component. Control ports read non-consumingly — the buffered
+      // IP stays in the buffer, so its ownership does not move.
+      if (!this.options.control) {
+        res.move(this.nodeInstance);
+      }
       return res;
     }
-    // Try to find an IIP instead
-    return this.getFromBuffer(null, index, true);
+    // Try to find an IIP instead; IIPs are always consumed
+    const iip = this.getFromBuffer(null, index, true);
+    if (iip !== undefined) {
+      iip.move(this.nodeInstance);
+    }
+    return iip;
   }
 
   /**

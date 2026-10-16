@@ -5,6 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Classical FBP IP ownership enforced on the data plane (work document #38 §3.2): `OutPort` fan-out (one outport, several attached edges) now delivers a fresh IP envelope to every attached edge instead of sharing one IP object — each envelope carries its own identity, `owner` (stamped by the receiving buffer, moved onto the consuming component via `IP.move()` on a consuming read, released on send), and admission slot. IP ownership is single at every moment; the Morrison "same bottle through two machines" critique no longer applies at the packet level
+- The payload reference is sender-declared via `IP.clonable`, which now defaults to `true`: fan-out deep-copies the payload per edge with `structuredClone` (round-trips typed arrays, `Map`/`Set`, `Date`, cyclic references the 1.x JSON copy silently corrupted). Setting `clonable: false` marks a payload that must not be copied (shared canvas, function, resource handle); fan-out of such an IP throws with the port, the marking, and the remedies, unless the outport opts into reference sharing with the new `fanoutRefs` option — then each edge receives a fresh envelope carrying the same payload reference. This is the pattern `core/Split`-style pass-throughs adopt
+- Bracket forwarding in the component machinery now constructs per-edge envelope clones (`IP.envelope()`) instead of deep payload copies
+- Bounded backpressure is on by default (work document #38 §3.3, carrying the flip reserved in work document #1): an edge whose high-water mark is absent at every level resolves to the new bounded default `DEFAULT_HIGH_WATER_MARK` (16) instead of unbounded. An explicit `null` at any level of the hierarchy (edge metadata, port option, network option) opts out as unbounded. Bounded edges deliver one microtask after the write call (unbounded edges keep the synchronous 1.x timing), so every graph shifts delivery timing with this flip
+### Fixed
+- The `disconnect` event no longer overtakes in-flight packets on bounded edges: `InternalSocket.disconnect()` waits until every IP written before the disconnect has been delivered through the edge, restoring the disconnect-after-data ordering the synchronous unbounded path provided implicitly
+- Delivery-handler exceptions on bounded edges now escalate through the edge's registered error handler (or `Edge.lastError` without one), matching the synchronous throw the unbounded fast path propagates to the sender. Previously the rejection was swallowed into `lastError` and never surfaced
+- Caching `OutPort` resends no longer wrap a cached IP object inside a second IP (`new IP("data", ip)`); cached IP envelopes are re-posted as themselves, with a fresh envelope per resend
 
 ## [2.0.0-alpha.5] - 2026-10-16
 
