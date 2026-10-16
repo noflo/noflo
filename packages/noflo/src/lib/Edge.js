@@ -185,8 +185,10 @@ export class Edge {
   }
 
   /**
-   * Mark one IP as handed to the delivery handler: decrement the pending
-   * count and resolve any drain waiters once the edge is fully drained.
+   * Settle one reserved delivery slot: decrement the pending count and
+   * resolve any drain waiters once the edge is fully drained. Called when
+   * an IP has been handed to the delivery handler, and on the rejection
+   * paths of a write that never delivers.
    */
   #markDelivered() {
     this.pendingDeliveries -= 1;
@@ -375,6 +377,16 @@ export class Edge {
       });
     }
 
+    // Reserve the delivery slot synchronously: a disconnect() in the
+    // same tick as the write (e.g. post's autoDisconnect) must observe
+    // the packet as in flight and defer its event until after delivery.
+    // Every rejection path releases the reservation — a write that never
+    // delivers must not wedge whenDrained().
+    this.pendingDeliveries += 1;
+    const unreserve = () => {
+      this.#markDelivered();
+    };
+
     const observers = this.observers;
     /**
      * @param {() => void} resolve
@@ -382,12 +394,12 @@ export class Edge {
      */
     const admitted = (resolve, reject) => {
       // Bounded edges with capacity: resolve the writer on admission;
-      // delivery completion is tracked separately. Unbounded resolves
-      // immediately; zero resolves on delivery.
-      this.pendingDeliveries += 1;
-      if (this.highWaterMark !== null && this.highWaterMark > 0) {
+      // delivery completion is tracked separately. Zero resolves on
+      // delivery. Write rejections release the reservation.
+      if (this.highWaterMark > 0) {
         this.writer.write(ip).then(null, (error) => {
           this.lastError = error;
+          unreserve();
         });
         resolve();
         return;
@@ -396,32 +408,36 @@ export class Edge {
         () => resolve(),
         (error) => {
           this.lastError = error;
+          unreserve();
           reject(error);
         },
       );
     };
 
-    if (!observers.length) {
-      return this.#admission().then(
-        () => new Promise(admitted),
-        (error) => Promise.reject(error),
-      );
-    }
+    /**
+     * @param {() => void} resolve
+     * @param {(err: Error) => void} reject
+     */
+    const admittedThroughObservers = (resolve, reject) => {
+      /**
+       * @param {number} index
+       */
+      const runObserver = (index) => {
+        if (index >= observers.length) {
+          admitted(resolve, reject);
+          return;
+        }
+        observers[index](ip, () => runObserver(index + 1));
+      };
+      runObserver(0);
+    };
+
     return this.#admission().then(
-      () =>
-        new Promise((resolve, reject) => {
-          /**
-           * @param {number} index
-           */
-          const runObserver = (index) => {
-            if (index >= observers.length) {
-              admitted(resolve, reject);
-              return;
-            }
-            observers[index](ip, () => runObserver(index + 1));
-          };
-          runObserver(0);
-        }),
+      () => new Promise(observers.length ? admittedThroughObservers : admitted),
+      (error) => {
+        unreserve();
+        return Promise.reject(error);
+      },
     );
   }
 

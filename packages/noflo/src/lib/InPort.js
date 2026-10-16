@@ -308,9 +308,12 @@ export default class InPort extends BasePort {
       }
       return res;
     }
-    // Try to find an IIP instead; IIPs are always consumed
+    // Try to find an IIP instead. On regular ports the IIP is consumed by
+    // the read, so ownership transfers with it; control ports read their
+    // IIP buffer non-consumingly like the regular buffer, so the buffered
+    // IP keeps its buffer-stamped ownership
     const iip = this.getFromBuffer(null, index, true);
-    if (iip !== undefined) {
+    if (iip !== undefined && !this.options.control) {
       iip.move(this.nodeInstance);
     }
     return iip;

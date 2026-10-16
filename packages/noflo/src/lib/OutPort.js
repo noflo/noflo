@@ -183,17 +183,20 @@ export default class OutPort extends BasePort {
       ip.schema = this.getSchema();
     }
 
-    const cachedData =
-      this.cache[`${idx}`] != null ? this.cache[`${idx}`].data : undefined;
-    if (this.isCaching() && data !== cachedData) {
-      this.cache[`${idx}`] = ip;
-    }
     const targets = sockets.filter((socket) => socket);
     const fanout = targets.length > 1;
     if (fanout && !ip.clonable && !this.isFanoutRefs()) {
       throw new Error(
         `${this.getId()}: fan-out to ${targets.length} connections of an IP marked clonable: false — enable the fanoutRefs option on this outport to share the payload reference, or route the packet through a splitter component`,
       );
+    }
+    // Cache only after the send is known to be deliverable: a fan-out
+    // rejection must not leave a never-sent IP in the cache for a later
+    // attach() to resend
+    const cachedData =
+      this.cache[`${idx}`] != null ? this.cache[`${idx}`].data : undefined;
+    if (this.isCaching() && data !== cachedData) {
+      this.cache[`${idx}`] = ip;
     }
     // The IP leaves the sending process: release ownership while it is in
     // transport. The receiving buffer stamps the consumer; a consuming read

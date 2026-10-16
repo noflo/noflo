@@ -277,6 +277,24 @@ describe("Outport Port", () => {
         /fanoutRefs/,
       );
     });
+    it("should not cache an IP rejected by the fan-out policy", async () => {
+      const p = new noflo.OutPort({ caching: true });
+      p.attach(s1);
+      p.attach(s2);
+
+      assert.throws(
+        () => p.data({ hidden: "state" }, { clonable: false }),
+        /fan-out to 2 connections/,
+      );
+      // The never-delivered IP must not be resent to later attachments
+      const resent = [];
+      listen(s3, "ip", (ip) => {
+        resent.push(ip);
+      });
+      p.attach(s3);
+      await new Promise((resolve) => setImmediate(resolve));
+      assert.deepEqual(resent, []);
+    });
     it("should share the payload reference across envelopes on a fanoutRefs outport", (_t, done) => {
       const p = new noflo.OutPort({ fanoutRefs: true });
       p.attach(s1);

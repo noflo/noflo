@@ -286,6 +286,58 @@ describe("InternalSocket delegating transport to Edge", () => {
     );
   });
 
+  it("emits the auto-disconnect after delivery on the bounded default", async () => {
+    const socket = internalSocket.createSocket();
+    const events = [];
+    listen(socket, "ip", () => {
+      events.push("ip");
+    });
+    listen(socket, "connect", () => {
+      events.push("connect");
+    });
+    listen(socket, "disconnect", () => {
+      events.push("disconnect");
+    });
+    // post's autoDisconnect runs in the same tick as the write; the
+    // disconnect event must still come after the packet it follows
+    const write = socket.post(new IP("data", "first"), true);
+    // Nothing delivered synchronously on a bounded edge
+    assert.deepEqual(events, ["connect"]);
+    await write;
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(events, ["connect", "ip", "disconnect"]);
+  });
+
+  it("emits a same-tick explicit disconnect after delivery on the bounded default", async () => {
+    const socket = internalSocket.createSocket();
+    const events = [];
+    listen(socket, "ip", () => {
+      events.push("ip");
+    });
+    listen(socket, "disconnect", () => {
+      events.push("disconnect");
+    });
+    socket.connect();
+    socket.post(new IP("data", "first"), false);
+    socket.disconnect();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(events, ["ip", "disconnect"]);
+  });
+
+  it("emits disconnect synchronously after data on unbounded edges", () => {
+    const socket = internalSocket.createSocket({}, { highWaterMark: null });
+    const events = [];
+    listen(socket, "ip", () => {
+      events.push("ip");
+    });
+    listen(socket, "disconnect", () => {
+      events.push("disconnect");
+    });
+    socket.post(new IP("data", "first"), true);
+    // No awaiting: unbounded edges keep the 1.x synchronous ordering
+    assert.deepEqual(events, ["ip", "disconnect"]);
+  });
+
   it("emits only ip events for bracketed packets", async () => {
     const socket = internalSocket.createSocket({}, { highWaterMark: null });
     const events = [];
