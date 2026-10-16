@@ -45,7 +45,7 @@
   "dependencies": {
     "@noflo/fbp-protocol": "^2.0.0-alpha.3",
     "@noflo/graph": "^2.0.0-alpha.3",
-    "@noflo/loader-node": "^2.0.0-alpha.1",
+    "@noflo/loader-node": "^2.0.0-alpha.3",
     "@noflo/noflo": "^2.0.0-alpha.3",
     "@noflo/runtime": "^2.0.0-alpha.3",
     "@reticulum/core": "^0.9.8",
