@@ -113,17 +113,26 @@ jobs:
               *) dist_tag=() ;;
             esac
             echo "::group::npm publish $name"
-            # Publishing a tag whose versions already went out manually
-            # (first release of a package, where OIDC trusted publishing
-            # cannot create it) is a no-op, not a failure.
+            # A package that does not exist on the registry yet cannot be
+            # published via OIDC (no trusted publisher can be registered for
+            # a package that has no first version) — that bootstrap is a
+            # manual step, reported as a warning with the follow-up command,
+            # not a job failure. A package that DOES exist but fails to
+            # publish is a real error.
             if out=$(npm publish "$dir" --access public "${dist_tag[@]}" 2>&1); then
               echo "published $name"
             elif grep -q "previously published" <<<"$out"; then
               echo "$name already published — skipping"
-            else
-              echo "::error::$name failed to publish"
+            elif npm view "$name" version &>/dev/null; then
+              echo "::error::$name exists on npm but failed to publish"
               printf '%s\n' "$out"
               real_failures=$((real_failures+1))
+            else
+              echo "::warning::$name is not on npm yet (new package, no trusted publisher for OIDC). Publish it manually once, then register the trusted publisher."
+              {
+                echo "### Manual follow-up"
+                echo "- NPM: \`cd $dir && npm publish --access public\`, then register the GitHub Actions trusted publisher for it on npmjs.com"
+              } >> "$GITHUB_STEP_SUMMARY"
             fi
             echo "::endgroup::"
           done
@@ -144,10 +153,16 @@ jobs:
               echo "published $name"
             elif grep -qi "already exists" <<<"$out"; then
               echo "$name already published — skipping"
-            else
-              echo "::error::$name failed to publish to JSR"
+            elif curl -fsS -o /dev/null "https://jsr.io/$name/meta.json"; then
+              echo "::error::$name exists on JSR but failed to publish"
               printf '%s\n' "$out"
               real_failures=$((real_failures+1))
+            else
+              echo "::warning::$name is not on JSR yet (new package, no trusted publisher for OIDC). Publish it manually once, then register the trusted publisher."
+              {
+                echo "### Manual follow-up"
+                echo "- JSR: \`cd $dir && deno publish\` (OIDC authenticates once the trusted publisher is registered on jsr.io)"
+              } >> "$GITHUB_STEP_SUMMARY"
             fi
             echo "::endgroup::"
           done
