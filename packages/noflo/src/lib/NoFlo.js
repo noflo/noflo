@@ -159,24 +159,9 @@ export function createNetwork(graphInstance, options = {}) {
   return promise;
 }
 
-// ## Embedding NoFlo in existing JavaScript code
-//
-// The `asCallback` helper provides an interface to wrap NoFlo components
-// or graphs into existing JavaScript code.
-//
-//     // Produce an asynchronous function wrapping a NoFlo graph
-//     var wrapped = noflo.asCallback('myproject/MyGraph');
-//
-//     // Call the function, providing input data and a callback for output data
-//     wrapped({
-//       in: 'data'
-//     }, function (err, results) {
-//       // Do something with results
-//     });
-//
-export { asCallback, asPromise } from "./AsCallback.js";
+export { asPromise } from "./AsPromise.js";
 
-import { asCallback, asPromise } from "./AsCallback.js";
+import { asPromise } from "./AsPromise.js";
 
 export default {
   GraphModel,
@@ -191,6 +176,5 @@ export default {
   internalSocket,
   IP,
   createNetwork,
-  asCallback,
   asPromise,
 };
