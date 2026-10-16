@@ -319,21 +319,9 @@ export async function createHost(options = {}) {
     });
   }
 
-  await runtime.host.start();
-
-  if (ended) {
-    // The graph finished while the mesh was being attached: the batch
-    // handler already stopped and flushed everything.
-    return {
-      runtime,
-      binding: null,
-      reticulum: null,
-      flowtrace,
-      network: runtime.host.network,
-      stop,
-    };
-  }
-
+  // The mesh attach precedes the network start: a graph that finishes
+  // immediately (drain-based closing ends runs at quiescence) must not
+  // exit the process before the runtime has announced on the mesh
   reticulum = await createReticulum({
     rnsHost: options.rnsHost,
     rnsPort: options.rnsPort,
@@ -346,6 +334,8 @@ export async function createHost(options = {}) {
     identity,
     nodeName: options.name ?? "noflo-nodejs",
   });
+
+  await runtime.host.start();
 
   return {
     runtime,
