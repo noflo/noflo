@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.0.0-alpha.7] - 2026-10-16
 ### Added
 
 - The `assembly` metadata catalog (work document #37 phase 2): the config-class `assembly.field` key, declared in the digest-addressed `schemas/catalog.json` artifact (pinned to the `@noflo/fbp-protocol` meta-catalog's shipped digest) with a dependency-free `src` mirror. `asAssembly`-generated adapter nodes now carry the namespaced key, and the adapter components read it via `getComponent(metadata)` — the declared form of the configuration mechanism work document #36 exercised. A §5.1 proof-of-concept suite validates every metadata map in a generated adapter graph against the catalog, round-trips the graph through FBP JSON, encodes the metadata through `0x14` insert ops unchanged, and re-instantiates the adapters identically
@@ -19,7 +20,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Package aligned with the monorepo conventions: lockstep version `2.0.0-alpha.2`, repository and issue URLs pointing at `noflo/noflo`, tests under `spec/`, shared `tsconfig` template, and a `jsr.json` for dual-registry publishing. `@noflo/noflo` is now a peer dependency, matching the base-class library convention used by `@noflo/as-component`. Legacy 1.x tooling remnants (Babel, ESLint, package-local lockfile and workflows) were removed
 
 ## [2.0.0-alpha.1] - 2026-10-09
-
 ### Added
 
 - The package is renamed to `@noflo/assembly`

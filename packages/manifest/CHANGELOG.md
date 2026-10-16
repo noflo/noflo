@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.0.0-alpha.7] - 2026-10-16
 ### Fixed
 - The manifest generation is deterministic across runtimes: `readdirSync` order differs between Node and Deno, which made the generated component/graph order — and therefore the `noflo.json` bytes — depend on the runtime that produced them. Component files, graph files, and the `schemas/` walk are now sorted before processing
 
@@ -13,7 +14,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The revision-acceptance backstop (work document #37 §2, §11): a schema revision that no longer accepts a prior revision's `examples` fails publish — the prior examples ride the previously generated `noflo.json`, so the check stays offline and self-contained. Full JSON Schema 2020-12 validation via `ajv`, with references resolved from the local closure only (never the network) and the extension keywords riding the lenient path. Dependency-class constraint: `ajv` is a regular dependency of this package because the gate must run wherever the generator runs — which is acceptable only because `@noflo/manifest` is itself publish tooling, always a devDependency of publishing libraries, and must never become a runtime dependency of any package; runtime code consumes `noflo.json` as data, never as a package
 
 ## [2.0.0-alpha.1] - 2026-10-10
-
 ### Added
 
 - Initial release: publish-time component manifest generation for NoFlo

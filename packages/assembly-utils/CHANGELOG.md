@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.0.0-alpha.7] - 2026-10-16
 ### Fixed
 
 - `assembly-utils/CollectFields` firing pattern: the collector consumed the originating message in an activation that then waited for the inner component's outputs — new arrivals fire fresh contexts, so a relay split across activations lost the message and hung the network (the activation pended forever with the inner output buffered). The collector now has-checks the complete precondition set — the message, the fields config, and every mapped inner output stream (or the error stream) — before consuming anything, so the message stays buffered until the collector can fire with both. Found via a flowtrace of a wrapped component running inside a network (work document #36 update #11)
@@ -22,4 +23,3 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `ComparePath` renames its `handle` hook to `processMessage` per the `@noflo/assembly` 2.x API decision (work document #27 update #3)
 - fbp-spec suites run through the in-process `@noflo/fbp-spec-runner` on a `node:test` harness; the YAML sources stay unchanged
 - `assembly-utils/ComparePath` now uses `jsonpath-plus` instead of the `jsonpath` package, dropping the esprima/static-eval expression-evaluation stack from the dependency tree. Semantic difference: jsonpath-plus resolves syntactically invalid paths to `undefined` instead of throwing, so an unresolvable path routes the message to FAIL without accumulating an error. The dependency is declared to JSR via the `imports` mapping (`npm:jsonpath-plus`). The comparison keeps the 1.x loose-equality semantics: the JSONPath-resolved value is compared with `==`/`!=` against the `comparison` control, so string `"42"` compares equal to number `42`
-

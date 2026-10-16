@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.0.0-alpha.7] - 2026-10-16
 ### Added
 - Process activation events in the trace stream (work document #43): `Network` emits an `activation` event with `{ id, load, ended }` payload on every component activation and deactivation (the same signal end-detection already consumed internally), subgraph networks forward their inner activations with the subgraph path prepended, and the `Flowtrace` recorder records them as `ACTIVATION_BEGIN` (`0x0d`) and `ACTIVATION_END` (`0x0e`) flowtrace events with the positional `[node_id, load]` payload — load after the change, `0` marking a node going idle. Trace replay can now answer "why didn't the network finish": the last activation that never deactivated is the hung process, with `load` showing concurrent activations. The vocabulary mirrors `@noflo/fbp-protocol` per the round-trip pin
 

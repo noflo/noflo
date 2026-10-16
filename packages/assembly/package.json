@@ -1,6 +1,6 @@
 {
   "name": "@noflo/assembly",
-  "version": "2.0.0-alpha.6",
+  "version": "2.0.0-alpha.7",
   "description": "Message relay conventions for NoFlo",
   "keywords": [
     "noflo",
@@ -47,12 +47,12 @@
     "test:bun": "bun test ./spec/*.js"
   },
   "peerDependencies": {
-    "@noflo/noflo": "^2.0.0-alpha.6"
+    "@noflo/noflo": "^2.0.0-alpha.7"
   },
   "devDependencies": {
-    "@noflo/fbp": "^2.0.0-alpha.6",
-    "@noflo/loader-node": "^2.0.0-alpha.6",
-    "@noflo/noflo": "^2.0.0-alpha.6",
+    "@noflo/fbp": "^2.0.0-alpha.7",
+    "@noflo/loader-node": "^2.0.0-alpha.7",
+    "@noflo/noflo": "^2.0.0-alpha.7",
     "@types/node": "^24.0.0",
     "ajv": "^8.20.0",
     "typescript": "^5.0.0"

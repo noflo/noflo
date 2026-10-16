@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+## [2.0.0-alpha.7] - 2026-10-16
 ### Fixed
 
 - Fixture graphs with addressable exported ports now honor the declared port index when the runner attaches its sockets: previously the index was dropped and exports bound in iteration order, making multi-connection fixtures order-dependent (found by the `@noflo/assembly-utils` Merge fixtures)
