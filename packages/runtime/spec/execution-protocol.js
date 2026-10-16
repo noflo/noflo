@@ -15,13 +15,18 @@ import { describe, it } from "node:test";
 import { asComponent } from "@noflo/as-component";
 import {
   CMD_AUTH_RESPONSE,
+  CMD_PROCESS_LIST,
+  COMPONENT_TYPE,
   decodeFlowtraceChunk,
   decodeOpRejected,
+  decodeProcessList,
   EVENT_TYPE,
+  EXECUTION_STATE,
   encodeBreakpointClear,
   encodeBreakpointSet,
   encodeHwmSet,
   encodeProcessCtrl,
+  encodeProcessListReq,
   encodePubsubSub,
   encodeRunCtrl,
   LIFECYCLE_CODE,
@@ -32,6 +37,7 @@ import { GraphModel } from "@noflo/graph";
 import { ComponentLoader } from "@noflo/noflo";
 import {
   ExecutionProtocol,
+  GraphProtocol,
   NetworkHost,
   RuntimeServer,
   TelemetryProtocol,
@@ -301,5 +307,113 @@ describe("execution protocol: high-water mark", () => {
         /high-water mark/.test(e.payload ?? ""),
     );
     assert.equal(deferred.length, 1);
+  });
+});
+
+describe("process listing (0x44 CMD_PROCESS_LIST_REQ)", () => {
+  /**
+   * A runtime wired with the graph protocol and a declared catalog, so the
+   * listing reports the catalog's kinds. The graph carries a
+   * catalog-declared component, plus one the catalog does not know unless
+   * `withUnknown` is false — an unresolvable component cannot build a
+   * network, so the running-state test omits it — and a placeholder node
+   * unless `withPlaceholder` is false, whose absence of component must not
+   * take the listing down.
+   *
+   * @param {boolean} [withUnknown]
+   * @param {boolean} [withPlaceholder]
+   */
+  async function listingServer(withUnknown = true, withPlaceholder = true) {
+    const transport = capture();
+    const server = new RuntimeServer({
+      capabilityPolicy: staticPolicy(),
+      send: transport.send,
+      capabilities: ["GRAPH_READ", "LIFECYCLE_CTRL", "TELEMETRY_READ"],
+    });
+    const graph = new GraphModel({ name: "main" });
+    graph.addNode({ entity_id: "known", component: "runtime/Wait" });
+    // The Wait process stays in-flight only once an IP activates it: the
+    // IIP is what keeps the started network running
+    graph.addIIP({
+      entity_id: "iip-1",
+      data: "go",
+      to: { node: "known", port: "input" },
+    });
+    if (withUnknown) {
+      graph.addNode({ entity_id: "unknown", component: "missing/Thing" });
+    }
+    if (withPlaceholder) {
+      // Placeholder nodes carry no component (entities.js): the listing
+      // must stay answerable with one present — wire silence over a
+      // sketched node would be the failure mode the protocol forbids
+      graph.addNode({ entity_id: "placeholder" });
+    }
+    const loader = new ComponentLoader();
+    await registerWaitComponent(loader);
+    const host = new NetworkHost({ graph, componentLoader: loader });
+    const telemetry = new TelemetryProtocol({ host, flushFloorMs: 0 });
+    const graphProtocol = new GraphProtocol({ graph, clientId: "runtime" });
+    const execution = new ExecutionProtocol({
+      host,
+      telemetry,
+      graphProtocol,
+      componentDetails: () => ({
+        "runtime/Wait": { type: "elementary", in: [], out: [] },
+      }),
+    });
+    telemetry.register(server);
+    graphProtocol.register(server);
+    execution.register(server);
+    await server.authorize("link-1", "test-identity");
+    return { server, transport, host, graph, graphProtocol };
+  }
+
+  /** The 0x45 reply to a 0x44 request, decoded. A started network's
+   * lifecycle telemetry may interleave; the listing is the one 0x45. */
+  async function requestListing(server, transport) {
+    const before = transport.log.sent.length;
+    server.handleFrame(encodeProcessListReq(), "link-1");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const replies = transport.log.sent
+      .slice(before)
+      .map((sent) => {
+        try {
+          return decodeProcessList(sent.bytes);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+    return replies[0];
+  }
+
+  it("lists the graph's nodes with declared kinds and the stopped state", async () => {
+    const { server, transport, graphProtocol } = await listingServer();
+    const listing = await requestListing(server, transport);
+    assert.equal(listing.cmd, CMD_PROCESS_LIST);
+    assert.equal(listing.epochId, await graphProtocol.epoch());
+    assert.deepEqual(listing.entries.known, {
+      component: "runtime/Wait",
+      type: COMPONENT_TYPE.ELEMENTARY,
+      state: EXECUTION_STATE.DISABLED,
+    });
+    // A component the catalog does not know lists as the unimplemented
+    // marker: the kind vocabulary is declared data, never inferred
+    assert.equal(listing.entries.unknown.type, COMPONENT_TYPE.STUB);
+    // A placeholder node has no process to list: it is skipped, and the
+    // listing still answers — one component-less node must not take the
+    // whole listing into wire silence
+    assert.equal(listing.entries.placeholder, undefined);
+  });
+
+  it("reports the enabled state once the network runs", async () => {
+    const { server, transport, host } = await listingServer(false);
+    await host.start();
+    try {
+      const listing = await requestListing(server, transport);
+      assert.equal(listing.entries.known.state, EXECUTION_STATE.ENABLED);
+    } finally {
+      await host.stop();
+    }
   });
 });
