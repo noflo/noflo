@@ -89,6 +89,7 @@ export class Component extends EventBase {
       "process",
       "ordered",
       "autoOrdering",
+      "generator",
       "forwardBrackets",
     ];
     Object.keys(opts).forEach((key) => {
@@ -164,6 +165,21 @@ export class Component extends EventBase {
      * @type {number}
      */
     this.load = 0;
+    /**
+     * Whether the component has closed down: every input is at EOF, no
+     * activation is open, and nothing buffered remains to deliver — the
+     * sender-side half of drain-based network closing (work document #45).
+     * A closed-down component has terminally disconnected its outports.
+     * @type {boolean}
+     */
+    this.closedDown = false;
+    /**
+     * Whether the component's post-drain closedown event has fired: the
+     * flag is set when the terminal disconnects have drained, which is
+     * what makes the network-end predicate safe (work document #45)
+     * @type {boolean}
+     */
+    this.closedownEmitted = false;
 
     // Whether the component should keep send packets
     // out in the order they were received
@@ -177,6 +193,15 @@ export class Component extends EventBase {
      * @type {boolean|null}
      */
     this.autoOrdering = opts.autoOrdering != null ? opts.autoOrdering : null;
+
+    /**
+     * Whether the component is self-driven: it activates from its own clock
+     * or external events rather than from input arrivals, so input EOF must
+     * not close it down — its outputs end only when it finishes explicitly
+     * or the runtime stops it (work documents #40, #45: generators).
+     * @type {boolean}
+     */
+    this.generator = opts.generator != null ? opts.generator : false;
 
     // Queue for handling ordered output packets
     /**
@@ -336,6 +361,8 @@ export class Component extends EventBase {
       .then(() => this.setUp())
       .then(() => {
         this.started = true;
+        this.closedDown = false;
+        this.closedownEmitted = false;
         this.dispatchLifecycleEvent("start");
       });
   }
@@ -504,6 +531,7 @@ export class Component extends EventBase {
         port.name = name;
       }
       port.addEventListener("ip", (event) => this.handleIP(event.detail, port));
+      port.addEventListener("eof", () => this.#handleInputStateChange());
     });
     return this;
   }
@@ -1139,6 +1167,103 @@ export class Component extends EventBase {
     }
     this.load -= 1;
     this.dispatchLifecycleEvent("deactivate", this.load);
+    this.#evaluateClosedown();
+  }
+
+  /**
+   * Whether the component has closed down: every input at EOF, no open
+   * activation, nothing buffered left to deliver. Its outports have been
+   * terminally disconnected — downstream sees end-of-input.
+   *
+   * @returns {boolean}
+   */
+  isClosedDown() {
+    return this.closedDown;
+  }
+
+  /**
+   * Evaluate the classical cascading-closedown rule (work document #45):
+   * a component closes down when every input is at EOF, no activation is
+   * open, and no buffered deliverable data remains (control ports are
+   * excluded — their standing values are legitimate at quiescence). On
+   * closedown the outports are terminally disconnected, so downstream
+   * ports see end-of-input and the rule recurses. Runs on every state
+   * transition that can complete the condition: port EOF and activation
+   * close.
+   *
+   * @private
+   * @returns {void}
+   */
+  #handleInputStateChange() {
+    // Subgraph wrappers share their inner processes' port objects, so a
+    // shared-port EOF reflects the deepest sender's state, not the
+    // wrapper's own completion — a wrapper closes down when its inner
+    // network ends (see Subgraph#subscribeNetwork)
+    if (typeof this.isSubgraph === "function" && this.isSubgraph()) {
+      return;
+    }
+    // An input re-opening (a connect began a new transmission) revives a
+    // closed-down component: it is live again and may process
+    if (this.closedDown) {
+      const reopened = Object.keys(this.inPorts.ports).some(
+        (name) => !this.inPorts.ports[name].isEof(),
+      );
+      if (reopened) {
+        this.closedDown = false;
+      }
+    }
+    this.#evaluateClosedown();
+  }
+
+  #evaluateClosedown() {
+    if (this.closedDown || this.generator) {
+      return;
+    }
+    if (typeof this.isSubgraph === "function" && this.isSubgraph()) {
+      return;
+    }
+    const portNames = Object.keys(this.inPorts.ports);
+    for (const name of portNames) {
+      const port = /** @type {InPort} */ (this.inPorts.ports[name]);
+      if (!port.isEof()) {
+        return;
+      }
+      if (port.countBuffered() > 0) {
+        // Unconsumed data on an end-of-stream port is pending work: the
+        // network stays open (and a stranded buffer surfaces as a loud,
+        // diagnosable stall — work document #45)
+        return;
+      }
+    }
+    if (this.load !== 0) {
+      return;
+    }
+    if (this.isOrdered() && this.outputQ.length > 0) {
+      return;
+    }
+    this.closedDown = true;
+    const disconnects = [];
+    Object.keys(this.outPorts.ports).forEach((name) => {
+      const port = /** @type {import("./OutPort.js").default} */ (
+        this.outPorts.ports[name]
+      );
+      port.sockets.forEach((socket) => {
+        if (!socket) {
+          return;
+        }
+        disconnects.push(socket.disconnect());
+      });
+    });
+    // The closedown completes only when the terminal disconnects have
+    // drained — in-flight outputs deliver before downstream sees
+    // end-of-input, and the network-end predicate (which this event
+    // triggers) must not fire ahead of them
+    Promise.all(disconnects)
+      .then(() => {
+        this.closedownEmitted = true;
+        this.dispatchLifecycleEvent("closedown", this);
+      })
+      .catch(() => {});
   }
 }
 Component.description = "";

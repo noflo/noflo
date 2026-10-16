@@ -149,6 +149,12 @@ export class Subgraph extends Component {
         return;
       }
       this.deactivate(ctx);
+      // The wrapper closes down with its inner network: every inner
+      // process closed down, so the wrapper's outputs are done — the
+      // shared-port EOF evaluation cannot drive this, because the shared
+      // ports reflect the deepest sender's state (work document #45)
+      this.closedDown = true;
+      this.dispatchLifecycleEvent("closedown", this);
     });
   }
 

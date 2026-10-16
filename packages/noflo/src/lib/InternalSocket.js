@@ -76,6 +76,7 @@ export class InternalSocket extends EventBase {
     this.metadata = metadata;
     this.brackets = [];
     this.connected = false;
+    this.terminal = false;
     this.debug = options.debug || false;
     this.async = options.async || false;
     this.from = null;
@@ -161,22 +162,33 @@ export class InternalSocket extends EventBase {
       return;
     }
     this.connected = true;
+    // A new transmission re-opens a terminally closed socket: connect is
+    // the beginning of transmission (work document #40 update #5)
+    this.terminal = false;
     this.emitEvent("connect", null);
   }
 
   /**
-   * Disconnect the socket. The `disconnect` event is emitted once every
-   * IP posted before the disconnect has been delivered through the edge,
-   * so receiving ends never observe a disconnect overtaking data. On an
-   * unbounded edge (synchronous delivery) this resolves immediately and
-   * the event fires synchronously, matching 1.x timing. The connection
-   * state flips synchronously either way.
+   * Disconnect the socket. With per-burst auto-disconnect removed, every
+   * disconnect is terminal: the sender is done — nothing more will come
+   * from it (work document #40 update #5). The `disconnect` event is
+   * emitted once every IP posted before the disconnect has been delivered
+   * through the edge, so receiving ends never observe a disconnect
+   * overtaking data; on an unbounded edge (synchronous delivery) it
+   * resolves immediately. A socket that never connected also closes: a
+   * sender that finishes without ever transmitting still signals EOF
+   * downstream.
    *
    * @returns {Promise<void>} Resolves when the disconnect event has been
    *   emitted
    */
   disconnect() {
+    if (this.terminal) {
+      return Promise.resolve();
+    }
+    this.terminal = true;
     if (!this.connected) {
+      this.emitEvent("disconnect", null);
       return Promise.resolve();
     }
     this.connected = false;
@@ -189,6 +201,16 @@ export class InternalSocket extends EventBase {
     return drained.then(() => {
       this.emitEvent("disconnect", null);
     });
+  }
+
+  /**
+   * Whether the socket has been terminally closed by its sender: nothing
+   * more will arrive through it until a new transmission re-opens it.
+   *
+   * @returns {boolean}
+   */
+  isTerminal() {
+    return this.terminal;
   }
 
   isConnected() {

@@ -59,6 +59,18 @@ export default class InPort extends BasePort {
      */
     this.nodeInstance = null;
 
+    /**
+     * Whether the input is at end-of-stream: every attached socket has
+     * been terminally closed by its sender (or none are attached at all,
+     * so nothing can arrive). EOF is not scoped — it is a fact about the
+     * sender ("there will be nothing more coming from it"), and a new
+     * transmission (connect) re-opens the input (work document #40 update
+     * #5, #45).
+     *
+     * @type {boolean}
+     */
+    this.eof = true;
+
     this.prepareBuffer();
   }
 
@@ -74,6 +86,9 @@ export default class InPort extends BasePort {
     // subgraphs starting their internal network on first data); packets are
     // delivered through the `ip` event only.
     socket.addEventListener("connect", () => {
+      // A connect is the beginning of transmission: the input is no longer
+      // at EOF
+      this.#setEof(false);
       if (this.isAddressable()) {
         this.dispatchLifecycleEvent("connect", [socket, localId]);
         return;
@@ -83,13 +98,81 @@ export default class InPort extends BasePort {
     socket.addEventListener("disconnect", () => {
       if (this.isAddressable()) {
         this.dispatchLifecycleEvent("disconnect", [socket, localId]);
-        return;
+      } else {
+        this.dispatchLifecycleEvent("disconnect", socket);
       }
-      this.dispatchLifecycleEvent("disconnect", socket);
+      // With per-burst disconnect gone, every disconnect is terminal: the
+      // sender is done. Re-evaluate the port's EOF state.
+      this.#refreshEof();
     });
     socket.addEventListener("ip", (event) =>
       this.handleIP(event.detail, localId),
     );
+    // A newly attached edge is a live sender: the input is no longer at
+    // EOF until that sender closes it
+    this.#refreshEof();
+  }
+
+  /**
+   * Whether the input is at end-of-stream: every attached socket has been
+   * terminally closed by its sender, or none are attached (nothing can
+   * arrive). A later `connect` or `attach` re-opens the input.
+   *
+   * @returns {boolean}
+   */
+  isEof() {
+    return this.eof;
+  }
+
+  /**
+   * @private
+   * @param {boolean} value
+   * @returns {void}
+   */
+  #setEof(value) {
+    if (value === this.eof) {
+      return;
+    }
+    this.eof = value;
+    // The event fires on both transitions: entering EOF (the sender is
+    // done) and leaving it (a new transmission re-opened the input) —
+    // the component revives a closed-down state on the latter (work
+    // document #45)
+    this.dispatchLifecycleEvent("eof", this);
+  }
+
+  /**
+   * @private
+   * @returns {void}
+   */
+  #refreshEof() {
+    let live = false;
+    for (const socket of this.sockets) {
+      if (!socket) {
+        continue;
+      }
+      if (!socket.isTerminal()) {
+        // A sender edge that has not terminally closed may still deliver
+        this.#setEof(false);
+        return;
+      }
+      live = true;
+    }
+    // Every attached socket is terminally closed (or none are attached:
+    // nothing can arrive)
+    this.#setEof(true);
+  }
+
+  /**
+   * Remove a socket from the port. The remaining attached sockets
+   * re-determine the port's EOF state.
+   *
+   * @param {import("./InternalSocket.js").default} socket
+   * @returns {void}
+   */
+  detach(socket) {
+    super.detach(socket);
+    this.#refreshEof();
   }
 
   /**

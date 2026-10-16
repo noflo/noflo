@@ -115,6 +115,23 @@ export default class OutPort extends BasePort {
   }
 
   /**
+   * Terminally disconnect every attached socket, without the required-port
+   * check: closing down a component must not fail on an unconnected
+   * outport. Each disconnect drains first, so downstream sees
+   * end-of-input after the in-flight packets (work document #45).
+   *
+   * @returns {void}
+   */
+  disconnectAll() {
+    this.sockets.forEach((socket) => {
+      if (!socket) {
+        return;
+      }
+      socket.disconnect();
+    });
+  }
+
+  /**
    * Send an Information Packet to the port's socket(s), stamping it with the
    * port's datatype and schema, and returning `this`. The admission Promise
    * for the send is available on {@link OutPort#lastWrite}; it resolves once
