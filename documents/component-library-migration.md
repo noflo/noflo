@@ -163,12 +163,12 @@ export function getComponent() {
 
 ### 3.4 Async/await trap
 
-A Promise returned from the `process` function is interpreted by NoFlo as an implicit `output.sendDone(resolvedValue)` (rejection becomes `done(err)`). Therefore:
+A Promise returned from the `process` function is interpreted by NoFlo as an implicit `output.sendDone(resolvedValue)` (rejection becomes `done(err)`; a void resolution — the process already sent its output — completes the activation without a packet). Therefore:
 
 - Never declare `process` itself `async`.
 - Pick one style per component:
-  - **Promise-pure**: perform async work and return the Promise; resolve with the output map (or nothing), never calling `send`/`done` inside. The `output` parameter is then unused and can be omitted from the callback signature.
-  - **Explicit**: call `output.send`/`output.sendDone`/`output.done` yourself and return nothing from `process`.
+  - **Promise-pure**: perform async work and return the Promise; resolve with the output map, or with nothing (`undefined`) when the component produces no packet. A `null` resolution sends a null-payload data IP — `null` is a value, not the absence of one. The `output` parameter is then unused and can be omitted from the callback signature.
+  - **Explicit**: call `output.send`/`output.sendDone`/`output.done` yourself and return nothing from `process`. `sendDone` always sends its argument — finish without a packet with `done()`.
   - Mixing the two styles corrupts the activation lifecycle.
 - For multi-packet fan-out with backpressure (below) the explicit style with an inner async function is the pattern; call it fire-and-forget with a `.catch((err) => output.done(err))` and do not return its Promise.
 

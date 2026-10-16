@@ -714,9 +714,17 @@ export class Component extends EventBase {
       const res = this.handle(input, output, context);
       // biome-ignore  lint/complexity/useOptionalChain: We need to support both promisified and classic processing functions
       if (res && res.then) {
-        // Processing function returned a Promise
+        // Processing function returned a Promise. A void resolution means
+        // the process sent its output explicitly; any other resolved value
+        // — null included — is the output and is sent as-is
         res.then(
-          (data) => output.sendDone(data),
+          (data) => {
+            if (data === undefined) {
+              output.done();
+              return;
+            }
+            output.sendDone(data);
+          },
           (err) => output.done(err),
         );
       }
