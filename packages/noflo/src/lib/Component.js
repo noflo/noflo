@@ -1285,7 +1285,14 @@ export class Component extends EventBase {
       .then(() => {
         this.dispatchLifecycleEvent("closedown", this);
       })
-      .catch(() => {});
+      .catch((err) => {
+        // A rejected terminal disconnect must not skip the closedown
+        // event silently: the network can still end via other triggers,
+        // but the failure is diagnosable only if it is logged
+        debugComponent(
+          `${this.nodeId} terminal disconnect failed during closedown: ${err?.message ?? err}`,
+        );
+      });
   }
 }
 Component.description = "";

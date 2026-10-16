@@ -514,5 +514,4 @@ export default class InPort extends BasePort {
     count += (this.buffer ?? []).length;
     return count;
   }
-
 }
