@@ -12,6 +12,8 @@
  *   re-requested only when a manifest entry's signature hash changes.
  */
 
+/* @ts-self-types="./registry-cache.d.ts" */
+
 import {
   decodeCompDetailRes,
   decodeCompManifest,

@@ -9,6 +9,8 @@
  *   payloads for UI consumption.
  */
 
+/* @ts-self-types="./telemetry.d.ts" */
+
 import { decodeFlowtraceChunk, encodePubsubSub } from "@noflo/fbp-protocol";
 
 export { decodeFlowtraceChunk, encodePubsubSub };

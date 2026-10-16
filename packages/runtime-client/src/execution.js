@@ -9,6 +9,8 @@
  *   (`0x46`), and packet injection (`0x47`).
  */
 
+/* @ts-self-types="./execution.d.ts" */
+
 import {
   encodeBreakpointClear,
   encodeBreakpointSet,

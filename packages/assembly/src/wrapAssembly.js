@@ -10,6 +10,8 @@
  *   names and reasons reported.
  */
 
+/* @ts-self-types="./wrapAssembly.d.ts" */
+
 import { asAssembly } from "./asAssembly.js";
 
 /**

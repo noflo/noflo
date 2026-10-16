@@ -12,6 +12,8 @@
  *   loader runs and the graph `getSource` reports are the same object.
  */
 
+/* @ts-self-types="./asAssembly.d.ts" */
+
 import { GraphModel } from "@noflo/graph";
 
 import { Component } from "./index.js";

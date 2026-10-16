@@ -30,6 +30,8 @@
  *   silence means the op stands.
  */
 
+/* @ts-self-types="./modify.d.ts" */
+
 import { CMD_CRDT_UPDATE, OP_TYPE, REASON } from "@noflo/fbp-protocol";
 
 /**

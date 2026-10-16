@@ -11,6 +11,8 @@
  *   runtime required.
  */
 
+/* @ts-self-types="./trace.d.ts" */
+
 import {
   assembleTraceFile,
   encodeFlowtraceChunk,

@@ -76,7 +76,7 @@ jobs:
       # equivalent local helper.
       - name: Expose generated declarations to JSR
         run: |
-          printf '\n!packages/*/src/**/*.d.ts\n' >> .gitignore
+          printf '\n!packages/*/src/**/*.d.ts\n!packages/assembly-utils/components/*.d.ts\n' >> .gitignore
 
       # Publish every package independently: one failing package must not
       # block the rest — the loop below continues past failures and only

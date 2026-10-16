@@ -28,6 +28,8 @@
  *   its reason — which the legacy client had no equivalent for.
  */
 
+/* @ts-self-types="./ui-events.d.ts" */
+
 import { ExecutionClient } from "./execution.js";
 import { TelemetryClient } from "./telemetry.js";
 
