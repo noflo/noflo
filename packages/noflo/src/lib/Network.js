@@ -1061,7 +1061,13 @@ export class Network extends EventBase {
                   initial: true,
                 }),
               );
-              return Promise.resolve();
+              // An IIP edge is a single-packet stream: once the packet
+              // has been delivered, the sender is done — disconnect so
+              // the receiving port sees end-of-input (work document #45:
+              // the runtime performs the sender's disconnect on exhausted
+              // IIP edges). The disconnect drains first, so the packet
+              // never overtakes its own EOF.
+              return initial.socket.disconnect();
             }),
           Promise.resolve(),
         ),
