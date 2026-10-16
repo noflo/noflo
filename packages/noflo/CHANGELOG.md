@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - The `disconnect` event no longer overtakes in-flight packets on bounded edges: `InternalSocket.disconnect()` waits until every IP written before the disconnect has been delivered through the edge, restoring the disconnect-after-data ordering the synchronous unbounded path provided implicitly — including the same-tick auto-disconnect of `post()` and `OutPort` sends, whose delivery slot is reserved synchronously by the edge
 - Delivery-handler exceptions on bounded edges now escalate through the edge's registered error handler (or `Edge.lastError` without one), matching the synchronous throw the unbounded fast path propagates to the sender. Previously the rejection was swallowed into `lastError` and never surfaced
+### Removed
+- The `activateOnInput` component option: the field was assigned but never read by the engine — activation is driven by `input.activate()` and the firing gates, so the option did nothing
+- `InPort.length()` and `InPort.ready()`: buffer introspection without a consumer; use `has()` or `ProcessInput` buffer checks instead
 
 ## [2.0.0-alpha.5] - 2026-10-16
 

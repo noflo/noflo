@@ -382,28 +382,6 @@ export default class InPort extends BasePort {
   }
 
   /**
-   * Returns the number of data packets in an inport
-   * @param {string|null} scope
-   * @param {number|null} [index]
-   * @returns {number}
-   */
-  length(scope, index = null) {
-    const buf = this.getBuffer(scope, index);
-    if (!buf) {
-      return 0;
-    }
-    return buf.length;
-  }
-
-  /**
-   * Tells if buffer has packets or not
-   * @param {string|null} scope
-   */
-  ready(scope) {
-    return this.length(scope) > 0;
-  }
-
-  /**
    * Clear all inport buffers, resetting the port to an empty state.
    *
    * @returns {void}

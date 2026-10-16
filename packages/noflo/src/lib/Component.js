@@ -42,8 +42,6 @@ const debugSend = createDebug("noflo:component:send");
  * @property {boolean} [ordered] - Whether component should send
  * packets in same order it received them
  * @property {boolean} [autoOrdering]
- * @property {boolean} [activateOnInput] - Whether component should
- * activate when it receives packets
  * @property {Object<string, Array<string>>} [forwardBrackets] - Mappings of forwarding ports
  */
 
@@ -87,7 +85,6 @@ export class Component extends EventBase {
       "process",
       "ordered",
       "autoOrdering",
-      "activateOnInput",
       "forwardBrackets",
     ];
     Object.keys(opts).forEach((key) => {
@@ -192,15 +189,6 @@ export class Component extends EventBase {
       in: {},
       out: {},
     };
-
-    // Whether the component should activate when it
-    // receives packets
-    /**
-     * Whether incoming packets should activate the process function (only `false` for components driven manually)
-     * @type {boolean}
-     */
-    this.activateOnInput =
-      opts.activateOnInput != null ? opts.activateOnInput : true;
 
     // Bracket forwarding rules. By default we forward
     // brackets from `in` port to `out` and `error` ports.

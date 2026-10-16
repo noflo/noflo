@@ -2701,7 +2701,6 @@ describe("Component", () => {
             err: { datatype: "object" },
           },
           ordered: true,
-          activateOnInput: false,
           process(input, output) {
             if (!input.has("foo", "bar")) {
               return;
