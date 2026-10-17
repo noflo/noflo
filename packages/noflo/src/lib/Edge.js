@@ -378,10 +378,10 @@ export class Edge {
     }
 
     // Reserve the delivery slot synchronously: a disconnect() in the
-    // same tick as the write (e.g. post's autoDisconnect) must observe
-    // the packet as in flight and defer its event until after delivery.
-    // Every rejection path releases the reservation — a write that never
-    // delivers must not wedge whenDrained().
+    // same tick as the write must observe the packet as in flight and
+    // defer its event until after delivery. Every rejection path
+    // releases the reservation — a write that never delivers must not
+    // wedge whenDrained().
     this.pendingDeliveries += 1;
     const unreserve = () => {
       this.#markDelivered();

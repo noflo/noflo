@@ -233,6 +233,8 @@ describe("Scope isolation", () => {
       in1.post(new noflo.IP("openBracket", 1, { scope: "x" }));
       in1.post(new noflo.IP("data", "one", { scope: "x" }));
       in1.post(new noflo.IP("closeBracket", 1, { scope: "x" }));
+      in1.disconnect();
+      in2.disconnect();
     });
     it("should not forward when scopes don't match", (_t, done) => {
       listen(out, "ip", (ip) => {
@@ -245,6 +247,8 @@ describe("Scope isolation", () => {
       in1.post(new noflo.IP("openBracket", 1, { scope: 1 }));
       in1.post(new noflo.IP("data", "one", { scope: 1 }));
       in1.post(new noflo.IP("closeBracket", 1, { scope: 1 }));
+      in1.disconnect();
+      in2.disconnect();
     });
   });
   describe("Process API with IIPs and scopes", () => {
@@ -301,6 +305,7 @@ describe("Scope isolation", () => {
       in1.post(new noflo.IP("openBracket", 1, { scope: "x" }));
       in1.post(new noflo.IP("data", "one", { scope: "x" }));
       in1.post(new noflo.IP("closeBracket", 1, { scope: "x" }));
+      in1.disconnect();
     });
   });
   describe("Process API with unscoped inport and scopes", () => {
@@ -363,6 +368,8 @@ describe("Scope isolation", () => {
       in2.post(new noflo.IP("openBracket", 1, { scope: "x" }));
       in2.post(new noflo.IP("data", "two", { scope: "x" }));
       in2.post(new noflo.IP("closeBracket", 1, { scope: "x" }));
+      in1.disconnect();
+      in2.disconnect();
     });
     it("should forward packets without scopes", (done) => {
       const expected = [

@@ -102,9 +102,12 @@ async function createReticulum(options) {
       rns.addInterface(tcp, true);
     }
   }
-  // Wait for persistor hydration and background services before touching
-  // storage or the transport.
-  await rns.ready();
+  // The persistor hydration gates storage access. The discovery's start
+  // promise must not gate the program: on hosts without usable multicast
+  // connectivity (CI containers) the AutoInterface never settles its start
+  // (upstream @reticulum/core), and the network must still run — it just
+  // announces to nobody.
+  await rns.persistorLoadPromise;
   return rns;
 }
 
@@ -319,21 +322,9 @@ export async function createHost(options = {}) {
     });
   }
 
-  await runtime.host.start();
-
-  if (ended) {
-    // The graph finished while the mesh was being attached: the batch
-    // handler already stopped and flushed everything.
-    return {
-      runtime,
-      binding: null,
-      reticulum: null,
-      flowtrace,
-      network: runtime.host.network,
-      stop,
-    };
-  }
-
+  // The mesh attach precedes the network start: a graph that finishes
+  // immediately (drain-based closing ends runs at quiescence) must not
+  // exit the process before the runtime has announced on the mesh
   reticulum = await createReticulum({
     rnsHost: options.rnsHost,
     rnsPort: options.rnsPort,
@@ -346,6 +337,8 @@ export async function createHost(options = {}) {
     identity,
     nodeName: options.name ?? "noflo-nodejs",
   });
+
+  await runtime.host.start();
 
   return {
     runtime,

@@ -5,6 +5,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Drain-based network closing (work document #45): the quiet-window timer is replaced by boundary-owned end-of-transmission. A network ends when every boundary input is at end-of-stream and the network is quiescent — no open activations, no packet in flight on any edge. Internal edges and cycles need no closedown: a quiescent network with all sources finished is absorbing (no future event can occur inside it). Networks with live boundary drivers — long-running graphs, remote subgraphs, generators — never end from internal quiet; the boundary owns end-of-transmission
+- Sending no longer disconnects: `InternalSocket.post` auto-connects but never auto-disconnects — per-burst disconnect framing is superseded by in-band brackets, and `disconnect()` is sender-terminal end-of-transmission (the 0.x intent). Components that ended a transmission by disconnecting must call `disconnect()` explicitly, or rely on drain-based closing
+- The activation contract is load-bearing: a void `process()` resolution means "the process already sent" — deferred sends must hold the activation open (resolve the promise with the value; the bridge sends in-activation). An out-of-activation send races drain-based closing and re-opens a closed-down downstream that can never trust end-of-stream again. Self-driven generators hold their activation across emissions (as the migrated generator components already do), so they are never closed down mid-generation
+- `OutPort.sendIP()` drops the `autoConnect` parameter: sending auto-connects; disconnecting is the sender's explicit decision
+### Added
+- `Network#closingDebounceMs` option: the coalescing window for the closing evaluation (default 10ms). Scheduling only — the closing predicate is evaluated at most once per window, and the end fires at the first evaluation after the state completes
+- `Component#isClosedDown()` and the `closedown` lifecycle event: the cascading-closedown state (every input at EOF, no open activation, nothing buffered to deliver) with terminally disconnected outports. Subgraph wrappers close down with their inner networks
+- `InPort#isEof()`: whether the input is at end-of-stream — every attached socket terminally closed by its sender. EOF is unscoped by definition: it is a fact about the sender, not about a stream or scope
+- `spec/NetworkClosing.js` pinning the closing sequencing: every closedown event before the network end, a revived component's second closedown gating the end, the nested order (inner end, wrapper closedown, outer end), and feedback cycles targeting exported inports ending instead of deadlocking
+### Fixed
+- A feedback edge targeting an exported inport no longer deadlocks the network end: the closing predicate's boundary check counts only external sockets (driver-attached and IIP); internal edges targeting the same port are covered by quiescence
+- A socket attaching to a closed-down component's outport goes terminal immediately — a late-attached edge no longer leaves its receiving port waiting for an EOF that will never fire
+- Subgraph wrappers mark end-of-stream with their inner networks: the shared-port EOF state reflects the deepest sender's condition, not the wrapper's completion
+### Removed
+- The closing check no longer runs per delivered packet on every event-loop turn: the evaluation is debounced per `closingDebounceMs`, keeping the 10k-node stress network at ~1.4s
 
 ## [2.0.0-alpha.7] - 2026-10-16
 ### Added

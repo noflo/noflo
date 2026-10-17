@@ -76,6 +76,7 @@ export class InternalSocket extends EventBase {
     this.metadata = metadata;
     this.brackets = [];
     this.connected = false;
+    this.terminal = false;
     this.debug = options.debug || false;
     this.async = options.async || false;
     this.from = null;
@@ -161,22 +162,33 @@ export class InternalSocket extends EventBase {
       return;
     }
     this.connected = true;
+    // A new transmission re-opens a terminally closed socket: connect is
+    // the beginning of transmission (work document #40 update #5)
+    this.terminal = false;
     this.emitEvent("connect", null);
   }
 
   /**
-   * Disconnect the socket. The `disconnect` event is emitted once every
-   * IP posted before the disconnect has been delivered through the edge,
-   * so receiving ends never observe a disconnect overtaking data. On an
-   * unbounded edge (synchronous delivery) this resolves immediately and
-   * the event fires synchronously, matching 1.x timing. The connection
-   * state flips synchronously either way.
+   * Disconnect the socket. With per-burst auto-disconnect removed, every
+   * disconnect is terminal: the sender is done — nothing more will come
+   * from it (work document #40 update #5). The `disconnect` event is
+   * emitted once every IP posted before the disconnect has been delivered
+   * through the edge, so receiving ends never observe a disconnect
+   * overtaking data; on an unbounded edge (synchronous delivery) it
+   * resolves immediately. A socket that never connected also closes: a
+   * sender that finishes without ever transmitting still signals EOT
+   * downstream.
    *
    * @returns {Promise<void>} Resolves when the disconnect event has been
    *   emitted
    */
   disconnect() {
+    if (this.terminal) {
+      return Promise.resolve();
+    }
+    this.terminal = true;
     if (!this.connected) {
+      this.emitEvent("disconnect", null);
       return Promise.resolve();
     }
     this.connected = false;
@@ -189,6 +201,16 @@ export class InternalSocket extends EventBase {
     return drained.then(() => {
       this.emitEvent("disconnect", null);
     });
+  }
+
+  /**
+   * Whether the socket has been terminally closed by its sender: nothing
+   * more will arrive through it until a new transmission re-opens it.
+   *
+   * @returns {boolean}
+   */
+  isTerminal() {
+    return this.terminal;
   }
 
   isConnected() {
@@ -207,17 +229,18 @@ export class InternalSocket extends EventBase {
   // can be constructed with more flexibility, as file buffers or
   // message queues can be used as additional packet relay mechanisms.
   send(data) {
-    return this.post(new IP("data", data), false);
+    return this.post(new IP("data", data));
   }
 
   // ## Sending information packets without open bracket
   //
-  // As _connect_ event is considered as open bracket, it needs to be followed
-  // by a _disconnect_ event or a closing bracket. In the new simplified
-  // sending semantics single IP objects can be sent without open/close brackets.
+  // Single IP objects can be sent without open/close brackets; the
+  // connection stays open after the send. Ending a transmission is a
+  // sender decision — `disconnect()` — not an automatic side effect of
+  // sending (work document #40 update #5: disconnect is sender-terminal
+  // EOT, not per-burst framing).
   /**
    * @param {IP} packet
-   * @param {boolean} [autoDisconnect]
    * @returns {Promise<void>|void} Resolves when the packet has been
    *   admitted by the edge per its high-water mark, and rejects on send
    *   errors — which also escalate through the socket error path
@@ -227,7 +250,7 @@ export class InternalSocket extends EventBase {
    *   internal handling keeps ignored rejections off the unhandled
    *   channel.
    */
-  post(packet, autoDisconnect = true) {
+  post(packet) {
     const ip = packet;
     // Connect before sending when there is no open bracket framing
     if (!this.isConnected() && this.brackets.length === 0) {
@@ -268,9 +291,6 @@ export class InternalSocket extends EventBase {
           metadata: this.metadata,
         });
       });
-    }
-    if (autoDisconnect && this.isConnected() && this.brackets.length === 0) {
-      this.disconnect();
     }
     return write;
   }

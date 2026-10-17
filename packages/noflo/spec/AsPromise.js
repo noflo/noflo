@@ -14,7 +14,14 @@ describe("asPromise interface", () => {
 
     return c.process((input, output) => {
       const data = input.getData("in");
-      setTimeout(() => output.sendDone(data), 1);
+      // Deferred sends must hold the activation open: a void resolution
+      // means "the process already sent", so an async send that happens
+      // after the activation closed races the network's drain-based
+      // closing (work document #45)
+      // Resolve with the value; the bridge sends it in-activation
+      return new Promise((resolve) => {
+        setTimeout(() => resolve(data), 1);
+      });
     });
   };
   const processError = () => {

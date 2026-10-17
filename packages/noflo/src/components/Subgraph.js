@@ -149,6 +149,15 @@ export class Subgraph extends Component {
         return;
       }
       this.deactivate(ctx);
+      // The wrapper closes down with its inner network: every inner
+      // process closed down, so the wrapper's outputs are done — the
+      // shared-port EOT evaluation cannot drive this, because the shared
+      // ports reflect the deepest sender's state (work document #45). The
+      // wrapper has no disconnects left to drain (the inner closedowns
+      // already terminally closed the shared outports), so the post-drain
+      // emitted flag sets with the marking.
+      this.closedDown = true;
+      this.dispatchLifecycleEvent("closedown", this);
     });
   }
 

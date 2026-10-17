@@ -18,9 +18,16 @@ const processAsync = () => {
 
   c.process((input, output) => {
     const data = input.getData("in");
-    setTimeout(() => {
-      output.sendDone(data + c.nodeId);
-    }, 1);
+    // Deferred sends hold the activation: a void resolution means "the
+    // process already sent", so an async send after the activation
+    // closed races drain-based closing and re-opens a closed-down
+    // downstream (work document #45)
+    // Resolve with the value; the bridge sends it in-activation — calling
+    // sendDone before resolving would double-done and re-activate a
+    // deactivated context (work document #45)
+    return new Promise((resolve) => {
+      setTimeout(() => resolve(data + c.nodeId), 1);
+    });
   });
   return c;
 };
@@ -142,10 +149,15 @@ const processGenerator = () => {
         cleanUp();
       }
       input.getData("start");
-      c.timer = context;
-      c.timer.interval = setInterval(() => {
-        output.send({ out: true });
-      }, 100);
+      // Hold the activation: every tick sends within it, and cleanUp
+      // completes it on stop or teardown
+      c.timer = {
+        interval: setInterval(() => {
+          output.send({ out: true });
+        }, 100),
+        deactivate: () => output.done(),
+      };
+      return;
     }
     if (input.hasData("stop")) {
       input.getData("stop");
@@ -577,6 +589,10 @@ describe("Network Lifecycle", () => {
         in1.post(new noflo.IP("openBracket", 1, { scope: "x" }));
         in1.post(new noflo.IP("data", "one", { scope: "x" }));
         in1.post(new noflo.IP("closeBracket", 1, { scope: "x" }));
+        // The driver is the boundary: signal EOT so the network
+        // can close (work document #45)
+        in1.disconnect();
+        in2.disconnect();
       }, done);
     });
   });

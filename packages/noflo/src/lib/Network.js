@@ -97,6 +97,7 @@ function connectPort(socket, process, port, index, inbound) {
  * @property {import("./ComponentLoader.js").ComponentRegistry} [registry] - Application-supplied component registry, used to construct a loader when no loader is given
  * @property {import("./Flowtrace.js").Flowtrace} [flowtrace] - Flowtrace instance to use for tracing this network run
  * @property {boolean} [asyncDelivery] - Make Information Packet delivery asynchronous
+ * @property {number} [closingDebounceMs] - The coalescing window for the drain-based closing evaluation; the end fires at the first evaluation after the state completes
  * @property {number|null} [highWaterMark] - Default backpressure buffer size for all edges in this network; null = unbounded
  * @property {Object<string, import("./Component.js").Component>} [instances] - Pre-built component instances to use instead of loading the node's component through the loader, keyed by node id. For embedding APIs that need the instance for port introspection before the network builds: the component is constructed once, not once for introspection and once again in the network (GitHub issue #608)
  */
@@ -138,6 +139,16 @@ export class Network extends EventBase {
      * @type {Array<internalSocket.InternalSocket>}
      */
     this.connections = [];
+    /**
+     * The coalescing window for the drain-based closing evaluation, in
+     * milliseconds. Scheduling only: the closing predicate is evaluated
+     * at most once per window, and the end fires at the first evaluation
+     * after the state completes.
+     * @type {number}
+     */
+    this.closingDebounceMs = options.closingDebounceMs ?? 10;
+    /** @type {boolean} */
+    this.closingCheckScheduled = false;
     /** Transport-level edge observers registered via {@link Network#observe}
      * @type {((ip: any, socket: internalSocket.InternalSocket, next: () => void) => void)[]}
      */
@@ -170,10 +181,6 @@ export class Network extends EventBase {
      * @type {boolean}
      */
     this.asyncDelivery = options.asyncDelivery || false;
-    /** Pending network-end check timer; deactivation bursts coalesce into one
-     * @type { ReturnType<typeof setTimeout> | null }
-     */
-    this.endCheckTimer = null;
     /** Events buffered while the network is not yet started, flushed on start
      * @type {Array<NetworkEvent>}
      */
@@ -689,6 +696,9 @@ export class Network extends EventBase {
         data: ip.data,
         metadata: socket.metadata,
       });
+      // A delivery (or the consumption of the last buffered packet) can
+      // complete network quiescence
+      this.scheduleClosingCheck();
     });
     socket.addEventListener("error", (event) => {
       const errEvent = event.detail;
@@ -716,12 +726,14 @@ export class Network extends EventBase {
       node.component
     );
     instance.addEventListener("activate", () => {
-      this.#abortEndCheck();
       this.bufferedEmit("activation", {
         id: node.id,
         load: instance.load,
         ended: false,
       });
+    });
+    instance.addEventListener("closedown", () => {
+      this.scheduleClosingCheck();
     });
     instance.addEventListener(
       "deactivate",
@@ -731,12 +743,17 @@ export class Network extends EventBase {
           load: instance.load,
           ended: true,
         });
-        if (event.detail > 0) {
-          return;
-        }
-        this.checkIfFinished();
+        // The last deactivation can complete quiescence
+        this.scheduleClosingCheck();
       },
     );
+    Object.keys(instance.inPorts.ports).forEach((portName) => {
+      instance.inPorts.ports[portName].addEventListener("disconnect", () => {
+        // A boundary input reaching end of transmission (the sender's terminal
+        // disconnect) can complete the network's end predicate
+        this.scheduleClosingCheck();
+      });
+    });
     if (!instance.getIcon) {
       return;
     }
@@ -1061,7 +1078,13 @@ export class Network extends EventBase {
                   initial: true,
                 }),
               );
-              return Promise.resolve();
+              // An IIP edge is a single-packet stream: once the packet
+              // has been delivered, the sender is done — disconnect so
+              // the receiving port reaches EOT (work document #45:
+              // the runtime performs the sender's disconnect on exhausted
+              // IIP edges). The disconnect drains first, so the packet
+              // never overtakes its own EOT.
+              return initial.socket.disconnect();
             }),
           Promise.resolve(),
         ),
@@ -1130,8 +1153,6 @@ export class Network extends EventBase {
    * @returns {Promise<this>}
    */
   start() {
-    this.#abortEndCheck();
-
     if (this.started) {
       return this.stop().then(() => this.start());
     }
@@ -1152,8 +1173,6 @@ export class Network extends EventBase {
    * @returns {Promise<this>}
    */
   stop() {
-    this.#abortEndCheck();
-
     if (!this.started) {
       this.stopped = true;
       return Promise.resolve(this);
@@ -1224,40 +1243,119 @@ export class Network extends EventBase {
   }
 
   /**
-   * End the network (emit `end`) once no process is active anymore. The
-   * check is coalesced: bursts of deactivations within the quiet window
-   * produce a single check, and a new activation or a start/stop cancels
-   * the pending check explicitly.
+   * End the network when its boundary inputs are all at end of transmission and
+   * the network is quiescent (work document #45): no open activation, no
+   * buffered deliverable data, no packet in flight on any edge. The
+   * boundary owns end-of-transmission — a network's own inports (exported
+   * ports and IIP feeds) are what can reach EOT; internal edges and cycles
+   * need no closedown, because a quiescent network with all sources
+   * finished is absorbing: no future event can occur inside it. A network
+   * whose boundary inputs never terminate (long-running graphs, remote
+   * subgraphs, generators) never ends.
+   *
+   * The evaluation is a pure predicate over state transitions — boundary
+   * EOT arrivals, activation closes, buffer consumption, edge delivery —
+   * with no quiet-window timer.
    *
    * @protected
    * @returns {void}
    */
-  checkIfFinished() {
-    if (this.isRunning()) {
+  scheduleClosingCheck() {
+    // Scheduling, not semantics: state transitions mark the closing
+    // predicate dirty, and one debounced evaluation runs per window. The
+    // predicate itself is the deterministic end condition — the window
+    // only coalesces the evaluation on busy networks (work document #45)
+    if (this.closingCheckScheduled) {
       return;
     }
-    if (this.endCheckTimer != null) {
-      clearTimeout(this.endCheckTimer);
-    }
-    this.endCheckTimer = setTimeout(() => {
-      this.endCheckTimer = null;
-      if (this.isRunning()) {
-        return;
-      }
-      this.setStarted(false);
-    }, 50);
+    this.closingCheckScheduled = true;
+    // The timer is intentionally ref'd: the closing evaluation is the
+    // pending work keeping the event loop alive while the network drains —
+    // unref'ing it (a no-op under Node's test runner, effective under
+    // Deno) would let the loop drain before the evaluation runs
+    setTimeout(() => {
+      this.closingCheckScheduled = false;
+      this.#evaluateClosing();
+    }, this.closingDebounceMs);
   }
 
   /**
-   * Cancel a pending network-end check.
+   * Evaluate the drain-based closing predicate.
    *
    * @returns {void}
    */
-  #abortEndCheck() {
-    if (this.endCheckTimer != null) {
-      clearTimeout(this.endCheckTimer);
-      this.endCheckTimer = null;
+  #evaluateClosing() {
+    if (this.isRunning()) {
+      return;
     }
+    // Boundary inputs: the targets of the graph's inport exports. A
+    // boundary input is at EOT when it has at least one external socket
+    // (a driver-attached or IIP socket — this network's sources) and every
+    // external socket is terminally closed. Internal edges targeting the
+    // same port are skipped: an edge whose both endpoints belong to this
+    // network's processes is cycle territory, and its terminal state is
+    // already covered by the quiescence check below — requiring it would
+    // deadlock feedback graphs through the boundary check (work document
+    // #45 review, PR #1092). A boundary input with no external sockets has
+    // not spoken yet (its driver may still attach and transmit), so the
+    // network stays open.
+    const exports = this.graph.exports().filter(
+      (exp) => exp.direction === "inport",
+    );
+    for (const exp of exports) {
+      const port =
+        this.processes[exp.internal.node]?.component?.inPorts.ports[
+          exp.internal.port
+        ];
+      if (!port) {
+        return;
+      }
+      let external = 0;
+      let terminal = 0;
+      for (const socket of port.sockets) {
+        if (!socket) {
+          continue;
+        }
+        // Internal edge: both endpoints are this network's processes.
+        // An IIP socket has no source process; a driver socket has no
+        // source at all — both are this network's boundary sources and
+        // gate the end.
+        const fromInternal =
+          socket.from?.process && this.processes[socket.from.process.id];
+        const toInternal =
+          socket.to?.process && this.processes[socket.to.process.id];
+        if (fromInternal && toInternal) {
+          continue;
+        }
+        external += 1;
+        if (socket.isTerminal()) {
+          terminal += 1;
+        }
+      }
+      // A boundary input is at EOT when it has external sockets and every
+      // one of them is terminally closed
+      if (external === 0 || terminal !== external) {
+        return;
+      }
+    }
+    // Quiescence: no open activations, no packet in flight on any edge.
+    // Buffered data is not gated: once every boundary input is at EOT, a
+    // buffered IP is stranded by definition (no arrival can complete a
+    // waiting context), and it surfaces loudly — the trace shows the last
+    // activation, and the shutdown diagnostics report unconsumed buffers
+    // (work document #45)
+    for (const name of Object.keys(this.processes)) {
+      const component = this.processes[name]?.component;
+      if (!component || component.load !== 0) {
+        return;
+      }
+    }
+    for (const connection of this.connections) {
+      if ((connection.edge?.pendingDeliveries ?? 0) > 0) {
+        return;
+      }
+    }
+    this.setStarted(false);
   }
 
   /**

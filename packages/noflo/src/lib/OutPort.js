@@ -115,6 +115,23 @@ export default class OutPort extends BasePort {
   }
 
   /**
+   * Terminally disconnect every attached socket, without the required-port
+   * check: closing down a component must not fail on an unconnected
+   * outport. Each disconnect drains first, so downstream sees
+   * EOT after the in-flight packets (work document #45).
+   *
+   * @returns {void}
+   */
+  disconnectAll() {
+    this.sockets.forEach((socket) => {
+      if (!socket) {
+        return;
+      }
+      socket.disconnect();
+    });
+  }
+
+  /**
    * Send an Information Packet to the port's socket(s), stamping it with the
    * port's datatype and schema, and returning `this`. The admission Promise
    * for the send is available on {@link OutPort#lastWrite}; it resolves once
@@ -124,9 +141,8 @@ export default class OutPort extends BasePort {
    * @param {any} [data]
    * @param {import("./IP.js").IPOptions} [options]
    * @param {number|null} [index]
-   * @param {boolean} [autoConnect]
    */
-  sendIP(type, data, options, index = null, autoConnect = true) {
+  sendIP(type, data, options, index = null) {
     /** @type {IP} */
     let ip;
     let idx = index;
@@ -176,7 +192,7 @@ export default class OutPort extends BasePort {
       if (fanout) {
         outgoing = this.isFanoutRefs() ? ip.envelope() : ip.clone();
       }
-      writes.push(socket.post(outgoing, autoConnect));
+      writes.push(socket.post(outgoing));
     });
     // Admission promise for the most recent send. The noop catch keeps
     // fire-and-forget callers off the unhandled-rejection channel —

@@ -164,6 +164,20 @@ export class Component extends EventBase {
      * @type {number}
      */
     this.load = 0;
+    /**
+     * Whether the component has closed down: every input is at EOT, no
+     * activation is open, and nothing buffered remains to deliver — the
+     * sender-side half of drain-based network closing (work document #45).
+     * A closed-down component has terminally disconnected its outports.
+     * @type {boolean}
+     */
+    this.closedDown = false;
+    /**
+     * Whether the component's post-drain closedown event has fired: the
+     * flag is set when the terminal disconnects have drained, which is
+     * what makes the network-end predicate safe (work document #45)
+     * @type {boolean}
+     */
 
     // Whether the component should keep send packets
     // out in the order they were received
@@ -177,6 +191,7 @@ export class Component extends EventBase {
      * @type {boolean|null}
      */
     this.autoOrdering = opts.autoOrdering != null ? opts.autoOrdering : null;
+
 
     // Queue for handling ordered output packets
     /**
@@ -336,6 +351,7 @@ export class Component extends EventBase {
       .then(() => this.setUp())
       .then(() => {
         this.started = true;
+        this.closedDown = false;
         this.dispatchLifecycleEvent("start");
       });
   }
@@ -504,6 +520,33 @@ export class Component extends EventBase {
         port.name = name;
       }
       port.addEventListener("ip", (event) => this.handleIP(event.detail, port));
+      // The port's connect/disconnect lifecycle events carry transmission
+      // semantics: disconnect is the sender's terminal close, connect a new
+      // transmission re-opening the input (work document #40 update #5)
+      port.addEventListener("disconnect", () =>
+        this.#handleInputStateChange(),
+      );
+      port.addEventListener("connect", () =>
+        this.#handleInputStateChange(),
+      );
+    });
+    Object.keys(this.outPorts.ports).forEach((name) => {
+      const port = /** @type {import("./OutPort.js").default} */ (
+        this.outPorts.ports[name]
+      );
+      if (!port.name) {
+        port.name = name;
+      }
+      // A socket attaching to a closed-down sender's outport goes terminal
+      // immediately: the sender is done, so nothing will ever come from it
+      // — a late-attached edge must not leave the receiving port waiting
+      // for an EOT that will never fire (work document #45, jekyll #1092
+      // bug 3)
+      port.addEventListener("attach", () => {
+        if (this.closedDown) {
+          port.disconnectAll();
+        }
+      });
     });
     return this;
   }
@@ -1139,6 +1182,107 @@ export class Component extends EventBase {
     }
     this.load -= 1;
     this.dispatchLifecycleEvent("deactivate", this.load);
+    this.#evaluateClosedown();
+  }
+
+  /**
+   * Whether the component has closed down: every input at EOT, no open
+   * activation, nothing buffered left to deliver. Its outports have been
+   * terminally disconnected — downstream sees EOT.
+   *
+   * @returns {boolean}
+   */
+  isClosedDown() {
+    return this.closedDown;
+  }
+
+  /**
+   * Evaluate the classical cascading-closedown rule (work document #45):
+   * a component closes down when every input is at EOT, no activation is
+   * open, and no buffered deliverable data remains (control ports are
+   * excluded — their standing values are legitimate at quiescence). On
+   * closedown the outports are terminally disconnected, so downstream
+   * ports reach EOT and the rule recurses. Runs on every state
+   * transition that can complete the condition: port EOT and activation
+   * close.
+   *
+   * @returns {void}
+   */
+  #handleInputStateChange() {
+    // Subgraph wrappers share their inner processes' port objects, so a
+    // shared-port EOT reflects the deepest sender's state, not the
+    // wrapper's own completion — a wrapper closes down when its inner
+    // network ends (see Subgraph#subscribeNetwork)
+    if (typeof this.isSubgraph === "function" && this.isSubgraph()) {
+      return;
+    }
+    // An input re-opening (a connect began a new transmission) revives a
+    // closed-down component: it is live again and may process
+    if (this.closedDown) {
+      const reopened = Object.keys(this.inPorts.ports).some(
+        (name) => !this.inPorts.ports[name].isEot(),
+      );
+      if (reopened) {
+        this.closedDown = false;
+      }
+    }
+    this.#evaluateClosedown();
+  }
+
+  #evaluateClosedown() {
+    if (this.closedDown) {
+      return;
+    }
+    if (typeof this.isSubgraph === "function" && this.isSubgraph()) {
+      return;
+    }
+    const portNames = Object.keys(this.inPorts.ports);
+    for (const name of portNames) {
+      const port = /** @type {InPort} */ (this.inPorts.ports[name]);
+      if (!port.isEot()) {
+        return;
+      }
+      // Buffered data on an end of transmission port is stranded by definition —
+      // no arrival can complete a waiting context once every input is at
+      // EOT — so it does not block closing. It surfaces loudly: the trace
+      // shows the last activation, and the shutdown diagnostics report the
+      // unconsumed buffers (work document #45)
+    }
+    if (this.load !== 0) {
+      return;
+    }
+    if (this.isOrdered() && this.outputQ.length > 0) {
+      return;
+    }
+    this.closedDown = true;
+    const disconnects = [];
+    Object.keys(this.outPorts.ports).forEach((name) => {
+      const port = /** @type {import("./OutPort.js").default} */ (
+        this.outPorts.ports[name]
+      );
+      port.sockets.forEach((socket) => {
+        if (!socket) {
+          return;
+        }
+        disconnects.push(socket.disconnect());
+      });
+    });
+    // The closedown completes only when the terminal disconnects have
+    // drained — in-flight outputs deliver before downstream sees
+    // EOT, and the network-end predicate (which this event
+    // triggers) must not fire ahead of them
+    Promise.all(disconnects)
+      .then(() => {
+        this.dispatchLifecycleEvent("closedown", this);
+      })
+      .catch((err) => {
+        // A rejected terminal disconnect must not skip the closedown
+        // event silently: the network can still end via other triggers,
+        // but the failure is diagnosable only if it is logged
+        debugComponent(
+          `${this.nodeId} terminal disconnect failed during closedown: ${err?.message ?? err}`,
+        );
+      });
   }
 }
 Component.description = "";
