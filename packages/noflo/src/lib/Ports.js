@@ -43,8 +43,10 @@ class Ports extends EventBase {
   /**
    * Add a port to the collection, replacing any previous port with the same
    * name. The port is also exposed as a property of the collection under its
-   * name. Port names must be lowercase alphanumeric characters, underscores,
-   * dots, or slashes; `add` and `remove` are reserved.
+   * name. Port names are case-significant and may contain alphanumeric
+   * characters, underscores, dots, or slashes; `add` and `remove` are
+   * reserved (work document #15: the 2.x naming policy preserves author
+   * casing — `out` and `OUT` are distinct ports).
    *
    * @param {string} name
    * @param {Object|import("./BasePort.js").default|PortOptions} [options]
@@ -55,9 +57,9 @@ class Ports extends EventBase {
     }
 
     /* eslint-disable no-useless-escape */
-    if (!name.match(/^[a-z0-9_./]+$/)) {
+    if (!name.match(/^[a-zA-Z0-9_./]+$/)) {
       throw new Error(
-        `Port names can only contain lowercase alphanumeric characters and underscores. '${name}' not allowed`,
+        `Port names can only contain alphanumeric characters, underscores, dots, or slashes. '${name}' not allowed`,
       );
     }
 

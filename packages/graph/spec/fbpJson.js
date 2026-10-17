@@ -190,3 +190,139 @@ describe("FBP JSON round-trip", () => {
     assert.equal(rebuilt.canonicalString(), model.canonicalString());
   });
 });
+
+// The caseSensitive normalization (work document #15): legacy documents
+// fold port names to lowercase across edges, IIPs, and exports — into a
+// fresh document, never rewriting the caller's object. Port values must
+// be strings: the normalization does not coerce. Case collisions on
+// exports throw rather than silently dropping one.
+describe("caseSensitive normalization", () => {
+  const legacyDoc = () => ({
+    caseSensitive: false,
+    processes: { n: { component: "x" } },
+    connections: [
+      {
+        src: { process: "n", port: "OutString" },
+        tgt: { process: "n", port: "InString" },
+      },
+      { data: "legacy", tgt: { process: "n", port: "InString" } },
+    ],
+    inports: { InString: { process: "n", port: "InString" } },
+    outports: { OutString: { process: "n", port: "OutString" } },
+  });
+
+  it("folds edge, IIP, and export port names to lowercase", () => {
+    const graph = importFbpJson(legacyDoc());
+    const edge = graph.edges()[0];
+    assert.equal(edge.from.port, "outstring");
+    assert.equal(edge.to.port, "instring");
+    assert.equal(graph.iips()[0].to.port, "instring");
+    const inExport = graph.exports().find((e) => e.direction === "inport");
+    assert.equal(inExport.public, "instring");
+    assert.equal(inExport.internal.port, "instring");
+    const outExport = graph.exports().find((e) => e.direction === "outport");
+    assert.equal(outExport.public, "outstring");
+    assert.equal(outExport.internal.port, "outstring");
+  });
+
+  it("does not mutate the caller's document", () => {
+    const doc = legacyDoc();
+    doc.inits = [{ data: "v", target: { id: "n", port: "InString" } }];
+    importFbpJson(doc);
+    // The caller's collections are untouched
+    assert.equal(doc.connections[0].src.port, "OutString");
+    assert.equal(doc.connections[0].tgt.port, "InString");
+    assert.equal(doc.connections[1].tgt.port, "InString");
+    assert.equal(doc.inits[0].target.port, "InString");
+    assert.deepEqual(Object.keys(doc.inports), ["InString"]);
+    assert.deepEqual(Object.keys(doc.outports), ["OutString"]);
+  });
+
+  it("does not mutate the caller's modern-shape document either", () => {
+    // The modern path is where the round-2 mutation actually bit:
+    // normalizeLegacyFbpJson returns the input object itself for
+    // canonical documents, so the fold must build its fresh view from
+    // that identity — and the caller's object must survive
+    const doc = {
+      caseSensitive: false,
+      nodes: [{ id: "n", component: "x" }],
+      edges: [
+        {
+          source: { id: "n", port: "OutString" },
+          target: { id: "n", port: "InString" },
+        },
+      ],
+      inits: [{ data: "v", target: { id: "n", port: "InString" } }],
+      inports: { InString: { process: "n", port: "InString" } },
+      outports: { OutString: { process: "n", port: "OutString" } },
+    };
+    importFbpJson(doc);
+    assert.equal(doc.edges[0].source.port, "OutString");
+    assert.equal(doc.edges[0].target.port, "InString");
+    assert.equal(doc.inits[0].target.port, "InString");
+    assert.deepEqual(Object.keys(doc.inports), ["InString"]);
+    assert.deepEqual(Object.keys(doc.outports), ["OutString"]);
+  });
+
+  it("carries top-level inits and case through normalization", () => {
+    // A modern document with a top-level inits field: the field must
+    // survive normalizeLegacyFbpJson, or its IIPs vanish
+    const graph = importFbpJson({
+      caseSensitive: false,
+      nodes: [{ id: "n", component: "x" }],
+      inits: [{ data: "v", target: { id: "n", port: "InString" } }],
+    });
+    assert.equal(graph.iips()[0].to.port, "instring");
+    const legacyCase = importFbpJson({
+      caseSensitive: false,
+      nodes: [{ id: "n", component: "x" }],
+      case: [{ data: "v", target: { id: "n", port: "InString" } }],
+    });
+    assert.equal(legacyCase.iips()[0].to.port, "instring");
+  });
+
+  it("preserves casing when caseSensitive is not false", () => {
+    const explicit = importFbpJson({ ...legacyDoc(), caseSensitive: true });
+    assert.equal(explicit.edges()[0].from.port, "OutString");
+    assert.equal(explicit.edges()[0].to.port, "InString");
+    // Absent flag: the same preservation default (legacyDoc carries the
+    // flag; strip it to exercise the absent case)
+    const { caseSensitive: stripped, ...withoutFlag } = legacyDoc();
+    void stripped;
+    const byDefault = importFbpJson(withoutFlag);
+    assert.equal(byDefault.edges()[0].from.port, "OutString");
+    assert.equal(byDefault.edges()[0].to.port, "InString");
+  });
+
+  it("throws on an export-name case collision", () => {
+    assert.throws(
+      () =>
+        importFbpJson({
+          caseSensitive: false,
+          processes: { n: { component: "x" } },
+          outports: {
+            out: { process: "n", port: "a" },
+            OUT: { process: "n", port: "b" },
+          },
+        }),
+      /normalization collides on outport 'out'/,
+    );
+  });
+
+  it("does not coerce non-string port values", () => {
+    assert.throws(
+      () =>
+        importFbpJson({
+          caseSensitive: false,
+          processes: { n: { component: "x" } },
+          connections: [
+            {
+              src: { process: "n", port: 123 },
+              tgt: { process: "n", port: "in" },
+            },
+          ],
+        }),
+      /must be a string/,
+    );
+  });
+});

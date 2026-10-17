@@ -35,6 +35,82 @@ import { GraphModel } from "./GraphModel.js";
  */
 
 /**
+ * Fold port names to lowercase across every collection that carries them —
+ * edges, IIPs (both the modern `inits` and legacy `case` fields), and
+ * exports (both the public name and the internal reference). Builds a
+ * fresh document; the input is never rewritten. Port values must be
+ * strings: the `caseSensitive: false` normalization does not coerce, so a
+ * non-string port fails here exactly as it would on the strict path.
+ *
+ * @param {Object<string, any>} document
+ * @returns {Object<string, any>} The case-folded view of the document.
+ */
+function foldCase(document) {
+  const foldPort = (name, field) => {
+    if (name === undefined) {
+      return name;
+    }
+    if (typeof name !== "string") {
+      throw new GraphModelError(
+        `${field} must be a string; the caseSensitive: false normalization does not coerce`,
+      );
+    }
+    return name.toLowerCase();
+  };
+  const folded = { ...document };
+  folded.edges = (document.edges ?? []).map((edge) => ({
+    ...edge,
+    source:
+      edge.source?.port !== undefined
+        ? {
+            ...edge.source,
+            port: foldPort(edge.source.port, "edge.source.port"),
+          }
+        : edge.source,
+    target:
+      edge.target?.port !== undefined
+        ? {
+            ...edge.target,
+            port: foldPort(edge.target.port, "edge.target.port"),
+          }
+        : edge.target,
+  }));
+  folded.inits = (document.inits ?? document.case ?? []).map((iip) => ({
+    ...iip,
+    target:
+      iip.target?.port !== undefined
+        ? { ...iip.target, port: foldPort(iip.target.port, "iip.target.port") }
+        : iip.target,
+  }));
+  delete folded.case;
+  const foldExports = (direction, defs) => {
+    const foldedDefs = {};
+    const seen = new Map();
+    for (const [name, def] of Object.entries(defs ?? {})) {
+      const normalized = foldPort(name, `${direction} export name`);
+      if (seen.has(normalized)) {
+        // A case collision during normalization is ambiguous: two
+        // exports differing only by case become one under the 1.x
+        // semantics, and silently dropping one would change the
+        // application's boundary
+        throw new GraphModelError(
+          `caseSensitive: false normalization collides on ${direction} '${normalized}': the document declares both '${seen.get(normalized)}' and '${name}'`,
+        );
+      }
+      seen.set(normalized, name);
+      foldedDefs[normalized] = {
+        ...def,
+        port: foldPort(def?.port, `${direction} port`),
+      };
+    }
+    return foldedDefs;
+  };
+  folded.inports = foldExports("inport", document.inports);
+  folded.outports = foldExports("outport", document.outports);
+  return folded;
+}
+
+/**
  * Import an FBP JSON document into a new graph model.
  *
  * @param {any} json - Parsed FBP JSON document
@@ -45,16 +121,25 @@ export function importFbpJson(json) {
     throw new GraphModelError("FBP JSON document must be an object");
   }
   const document = normalizeLegacyFbpJson(json);
+  // The 2.x naming policy is case-significant (work document #15): author
+  // casing is preserved end to end. Legacy documents carry
+  // `caseSensitive: false` (the 1.x interchange default, where the
+  // reference parser lowercased port names) — such documents import with
+  // port names folded to lowercase, so mixed-case references against
+  // lowercase-declared 1.x components resolve. `caseSensitive: true` or
+  // absent preserves casing as authored. The fold builds a fresh view;
+  // the caller's object is never rewritten.
+  const source = json.caseSensitive === false ? foldCase(document) : document;
   const options = /** @type {GraphModelOptions} */ ({});
   if (json.name !== undefined) {
     options.name = requireString(json.name, "name");
   }
   const model = new GraphModel(options);
 
-  for (const [key, value] of Object.entries(document.properties ?? {})) {
+  for (const [key, value] of Object.entries(source.properties ?? {})) {
     model.setGraphMetadata(key, value);
   }
-  for (const node of document.nodes ?? []) {
+  for (const node of source.nodes ?? []) {
     model.addNode({
       entity_id: requireString(node?.id, "node.id"),
       ...(node?.component === undefined
@@ -63,14 +148,14 @@ export function importFbpJson(json) {
       ...(node?.metadata === undefined ? {} : { metadata: node.metadata }),
     });
   }
-  for (const edge of document.edges ?? []) {
+  for (const edge of source.edges ?? []) {
     model.addEdge({
       from: jsonPortRef(edge?.source, "edge.source"),
       to: jsonPortRef(edge?.target, "edge.target"),
       ...(edge?.metadata === undefined ? {} : { metadata: edge.metadata }),
     });
   }
-  const iips = document.inits ?? document.case ?? [];
+  const iips = source.inits ?? source.case ?? [];
   for (const iip of iips) {
     model.addIIP({
       data: iip?.data,
@@ -78,7 +163,7 @@ export function importFbpJson(json) {
       ...(iip?.metadata === undefined ? {} : { metadata: iip.metadata }),
     });
   }
-  for (const [publicName, def] of Object.entries(document.inports ?? {})) {
+  for (const [publicName, def] of Object.entries(source.inports ?? {})) {
     model.addExport({
       direction: "inport",
       public: publicName,
@@ -93,7 +178,7 @@ export function importFbpJson(json) {
       ...withDefinedMetadata(exportMetadata(def)),
     });
   }
-  for (const [publicName, def] of Object.entries(document.outports ?? {})) {
+  for (const [publicName, def] of Object.entries(source.outports ?? {})) {
     model.addExport({
       direction: "outport",
       public: publicName,
@@ -108,7 +193,7 @@ export function importFbpJson(json) {
       ...withDefinedMetadata(exportMetadata(def)),
     });
   }
-  for (const group of document.groups ?? []) {
+  for (const group of source.groups ?? []) {
     model.addGroup({
       name: requireString(group?.name, "group.name"),
       nodes: requireGroupNodes(group?.nodes),
@@ -171,6 +256,11 @@ function normalizeLegacyFbpJson(json) {
     if (inits.length > 0) {
       document.inits = inits;
     }
+  }
+  if (json.inits !== undefined) {
+    document.inits = json.inits;
+  } else if (json.case !== undefined) {
+    document.case = json.case;
   }
   if (json.inports !== undefined) {
     document.inports = json.inports;

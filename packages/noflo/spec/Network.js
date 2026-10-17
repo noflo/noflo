@@ -302,7 +302,8 @@ describe("NoFlo Network", () => {
           const port = n.processes.Callback.component.inPorts.ports[name];
           assert.strictEqual(port.name, name);
           assert.strictEqual(port.node, "Callback");
-          assert.equal(port.getId(), `Callback ${name.toUpperCase()}`);
+          // Case-significant naming (work document #15): the id renders the name as authored
+          assert.equal(port.getId(), `Callback ${name}`);
         },
       );
       Object.keys(n.processes.Callback.component.outPorts.ports).forEach(
@@ -310,7 +311,8 @@ describe("NoFlo Network", () => {
           const port = n.processes.Callback.component.outPorts.ports[name];
           assert.strictEqual(port.name, name);
           assert.strictEqual(port.node, "Callback");
-          assert.equal(port.getId(), `Callback ${name.toUpperCase()}`);
+          // Case-significant naming (work document #15): the id renders the name as authored
+          assert.equal(port.getId(), `Callback ${name}`);
         },
       );
     });
@@ -407,7 +409,7 @@ describe("NoFlo Network", () => {
             const port = n.processes.Func.component.inPorts.ports[name];
             assert.strictEqual(port.name, name);
             assert.strictEqual(port.node, "Func");
-            assert.equal(port.getId(), `Func ${name.toUpperCase()}`);
+            assert.equal(port.getId(), `Func ${name}`);
           },
         );
         Object.keys(n.processes.Func.component.outPorts.ports).forEach(
@@ -415,7 +417,7 @@ describe("NoFlo Network", () => {
             const port = n.processes.Func.component.outPorts.ports[name];
             assert.strictEqual(port.name, name);
             assert.strictEqual(port.node, "Func");
-            assert.equal(port.getId(), `Func ${name.toUpperCase()}`);
+            assert.equal(port.getId(), `Func ${name}`);
           },
         );
       });

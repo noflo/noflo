@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Changed
+- Port names are case-significant (work document #15): the 1.x lowercase-only port-name constraint is retired and author casing is preserved end to end — `out` and `OUT` are distinct ports, and a case-mismatched graph reference fails loudly at network build instead of silently resolving. Legacy FBP JSON documents carrying `caseSensitive: false` (the 1.x interchange default) import with port names normalized to lowercase
 - The `HasValidationCallback` typedef documents the framing-aware validator form: the callback gains the optional `brackets` parameter — the bracket payload stack at the walk position, passed by `hasStream`'s framing-aware walks (a data IP inside one open bracket sees a stack of one; a bare data IP an empty stack) — while plain `has`/`hasData` walks stay stateless per-IP checks and leave it undefined. The runtime already passed the stack; the typedef now declares it, so components can decide their firing pattern from a stream's framing through the public API ("fire when the framed token stream has completed and holds N packets") without reaching into `InPort.getBuffer` internals
 
 ### Fixed
