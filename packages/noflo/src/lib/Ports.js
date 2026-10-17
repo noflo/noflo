@@ -59,7 +59,7 @@ class Ports extends EventBase {
     /* eslint-disable no-useless-escape */
     if (!name.match(/^[a-zA-Z0-9_./]+$/)) {
       throw new Error(
-        `Port names can only contain alphanumeric characters and underscores. '${name}' not allowed`,
+        `Port names can only contain alphanumeric characters, underscores, dots, or slashes. '${name}' not allowed`,
       );
     }
 

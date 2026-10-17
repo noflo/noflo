@@ -129,7 +129,10 @@ export default class BasePort extends EventBase {
     if (!this.node || !this.name) {
       return "Port";
     }
-    return `${this.node} ${this.name.toUpperCase()}`;
+    // Case-significant naming (work document #15): render the name as
+    // authored — uppercasing made case-differing ports ambiguous in
+    // error messages
+    return `${this.node} ${this.name}`;
   }
 
   /**

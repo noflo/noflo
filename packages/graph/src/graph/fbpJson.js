@@ -53,14 +53,6 @@ export function importFbpJson(json) {
   // lowercase-declared 1.x components resolve. `caseSensitive: true` or
   // absent preserves casing as authored
   if (json.caseSensitive === false) {
-    for (const node of document.nodes ?? []) {
-      for (const [portName, def] of Object.entries(node.ports ?? {})) {
-        if (portName !== portName.toLowerCase()) {
-          node.ports[portName.toLowerCase()] = def;
-          delete node.ports[portName];
-        }
-      }
-    }
     for (const edge of document.edges ?? []) {
       if (edge.source?.port !== undefined) {
         edge.source.port = String(edge.source.port).toLowerCase();
@@ -69,34 +61,39 @@ export function importFbpJson(json) {
         edge.target.port = String(edge.target.port).toLowerCase();
       }
     }
-    for (const [name, def] of Object.entries(document.inports ?? {})) {
-      if (name !== name.toLowerCase()) {
-        document.inports[name.toLowerCase()] = {
-          ...def,
-          port:
-            def?.port !== undefined
-              ? String(def.port).toLowerCase()
-              : def?.port,
-        };
-        delete document.inports[name];
-      } else if (def?.port !== undefined) {
-        def.port = String(def.port).toLowerCase();
+    // IIP targets normalize too: a mixed-case IIP target against a
+    // lowercase-declared 1.x component would otherwise be the
+    // silent-resolution-then-loud-failure shape the flag exists to
+    // prevent (work document #15)
+    for (const iip of document.inits ?? []) {
+      if (iip.target?.port !== undefined) {
+        iip.target.port = String(iip.target.port).toLowerCase();
       }
     }
-    for (const [name, def] of Object.entries(document.outports ?? {})) {
-      if (name !== name.toLowerCase()) {
-        document.outports[name.toLowerCase()] = {
-          ...def,
-          port:
-            def?.port !== undefined
-              ? String(def.port).toLowerCase()
-              : def?.port,
-        };
-        delete document.outports[name];
-      } else if (def?.port !== undefined) {
-        def.port = String(def.port).toLowerCase();
+    const normalizeExports = (direction, defs) => {
+      const seen = new Map();
+      for (const [name, def] of Object.entries(defs ?? {})) {
+        const normalized = name.toLowerCase();
+        const port =
+          def?.port !== undefined ? String(def.port).toLowerCase() : def?.port;
+        if (seen.has(normalized)) {
+          // A case collision during normalization is ambiguous: two
+          // exports differing only by case become one under the 1.x
+          // semantics, and silently dropping one would change the
+          // application's boundary
+          throw new GraphModelError(
+            `caseSensitive: false normalization collides on ${direction} '${normalized}': the document declares both '${seen.get(normalized)}' and '${name}'`,
+          );
+        }
+        seen.set(normalized, name);
+        defs[normalized] = { ...def, port };
+        if (name !== normalized) {
+          delete defs[name];
+        }
       }
-    }
+    };
+    normalizeExports("inport", document.inports);
+    normalizeExports("outport", document.outports);
   }
   const options = /** @type {GraphModelOptions} */ ({});
   if (json.name !== undefined) {

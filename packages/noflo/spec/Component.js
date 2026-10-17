@@ -200,7 +200,7 @@ describe("Component", () => {
       sendData(s1, "some-data");
     });
   });
-  describe("defining ports with invalid names", () => {
+  describe("defining ports", () => {
     it("accepts mixed-case port names (work document #15: names are case-significant)", () => {
       const shorthand = () =>
         new noflo.Component({
