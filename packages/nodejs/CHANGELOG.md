@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- The mesh attach (Reticulum init, identity load, and the runtime bind) now precedes the network start: a graph that finishes immediately under drain-based closing can no longer exit the process before the runtime has announced on the mesh. The announce line in batch mode therefore always precedes the run
+- The host start gates on the persistor hydration only (`rns.persistorLoadPromise`) instead of `rns.ready()`: the latter also awaits the AutoInterface discovery start promise, which never settles on hosts without usable multicast connectivity (CI containers, offline machines) — the discovery start must not block the program. Announcing to nobody remains the documented behavior for interface-less hosts (upstream @reticulum/core should still fix the unsettled start promise)
 
 ## [2.0.0-alpha.7] - 2026-10-16
 
