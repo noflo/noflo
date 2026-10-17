@@ -270,8 +270,12 @@ export class Network extends EventBase {
       return;
     }
     if (this.flowtraceName && this.flowtraceName !== this.flowtrace.mainGraph) {
-      // Let main graph log all events from subgraphs
-      return;
+      // Subgraph networks record their own lifecycle events under their
+      // own names; the data-plane events (ip, activation) are forwarded by
+      // the parent with the subgraph path and must not be recorded twice
+      if (event !== "start" && event !== "end") {
+        return;
+      }
     }
     switch (event) {
       case "ip": {

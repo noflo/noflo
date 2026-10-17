@@ -828,7 +828,13 @@ describe("NoFlo Subgraph component", () => {
         // their inner networks end (cascading closedown), so the wrapper
         // The wrapper lifecycle under cascading closedown: the empirical
         // activation sequence (work document #45)
+        // The inner networks' lifecycle events record under their own
+        // names: the two leading LIFECYCLE entries are the inner networks'
+        // starts (during startComponents), and the inner STOPs interleave
+        // with the wrapper closings at the tail (work document #45)
         assert.deepStrictEqual(eventTypes, [
+          noflo.EVENT_TYPE.LIFECYCLE,
+          noflo.EVENT_TYPE.LIFECYCLE,
           noflo.EVENT_TYPE.ACTIVATION_BEGIN,
           noflo.EVENT_TYPE.ACTIVATION_BEGIN,
           noflo.EVENT_TYPE.LIFECYCLE,
@@ -844,7 +850,9 @@ describe("NoFlo Subgraph component", () => {
           noflo.EVENT_TYPE.DATA,
           noflo.EVENT_TYPE.ACTIVATION_BEGIN,
           noflo.EVENT_TYPE.ACTIVATION_END,
+          noflo.EVENT_TYPE.LIFECYCLE,
           noflo.EVENT_TYPE.ACTIVATION_END,
+          noflo.EVENT_TYPE.LIFECYCLE,
           noflo.EVENT_TYPE.ACTIVATION_END,
           noflo.EVENT_TYPE.LIFECYCLE,
         ]);
@@ -852,8 +860,13 @@ describe("NoFlo Subgraph component", () => {
           const subgraph = chunk[3]?.subgraph;
           return subgraph ? subgraph.join(":") : "";
         });
+        // The lifecycle events carry their recording graph in the metadata
+        // (foo/AB, foo/AB2, main) and no subgraph path; the wrapper
+        // activations attribute to the subgraph they belong to
         assert.deepStrictEqual(subgraphs, [
           "",
+          "",
+          "",
           "Sub",
           "",
           "",
@@ -868,7 +881,9 @@ describe("NoFlo Subgraph component", () => {
           "",
           "",
           "",
+          "",
           "Sub",
+          "",
           "",
           "",
         ]);
