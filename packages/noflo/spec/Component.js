@@ -905,22 +905,29 @@ describe("Component", () => {
       });
       sin1.post(new noflo.IP("data", "first"));
     });
-    it("should trigger from non-triggering ports when other ports hold buffered data (#607)", async (_t) => {
-      const triggered = [];
+    it("re-fires pending work when another port receives input (#607)", async (_t) => {
+      // Work document #47: one firing rule for all ports. The firing
+      // pattern is the component's declared behavior (the has-checks);
+      // the engine's job is the wakeup — an arrival on any port re-fires
+      // the process for every scope holding unprocessed input. The
+      // observable is what the component consumed and produced, not the
+      // engine's firing decisions
+      const received = [];
       c = new noflo.Component({
         inPorts: {
-          foo: {
-            datatype: "string",
-            triggering: false,
-          },
+          foo: { datatype: "string" },
           bar: { datatype: "string" },
         },
         outPorts: {
-          baz: { datatype: "boolean" },
+          baz: { datatype: "string" },
         },
         process(input, output) {
-          triggered.push(input.port.name);
-          output.sendDone({ baz: true });
+          if (!input.hasData("foo", "bar")) {
+            return;
+          }
+          const [foo, bar] = input.getData("foo", "bar");
+          received.push(`${foo}+${bar}`);
+          output.sendDone({ baz: `${foo}+${bar}` });
         },
       });
 
@@ -928,22 +935,27 @@ describe("Component", () => {
       c.inPorts.bar.attach(sin2);
       c.outPorts.baz.attach(sout1);
 
+      // A lone arrival buffers — the handler runs and declines, nothing
+      // observable happens
       sin1.post(new noflo.IP("data", "first"));
+      await settle();
+      assert.deepStrictEqual(received, [], "a lone leg waits");
+      // The other port's arrival completes the pair
+      sin2.post(new noflo.IP("data", "second"));
+      await settle();
+      assert.deepStrictEqual(received, ["first+second"], "pair consumed");
+      // The #607 direction in both orders: buffered work is re-fired by
+      // an arrival on the other port
+      sin2.post(new noflo.IP("data", "b2"));
+      await settle();
+      assert.deepStrictEqual(received, ["first+second"], "lone bar waits");
+      sin1.post(new noflo.IP("data", "f2"));
       await settle();
       assert.deepStrictEqual(
-        triggered,
-        [],
-        "non-triggering port does not fire alone",
+        received,
+        ["first+second", "f2+b2"],
+        "the buffered bar paired with the new foo",
       );
-      sin2.post(new noflo.IP("data", "second"));
-      await settle();
-      assert.deepStrictEqual(triggered, ["bar"], "first firing");
-      sin1.post(new noflo.IP("data", "first"));
-      await settle();
-      assert.deepStrictEqual(triggered, ["bar", "foo"], "second firing");
-      sin2.post(new noflo.IP("data", "second"));
-      await settle();
-      assert.deepStrictEqual(triggered, ["bar", "foo", "bar"], "third firing");
     });
     it("should fetch undefined for premature data", (_t, done) => {
       c = new noflo.Component({
@@ -953,12 +965,10 @@ describe("Component", () => {
           },
           bar: {
             datatype: "boolean",
-            triggering: false,
             control: true,
           },
           baz: {
             datatype: "string",
-            triggering: false,
             control: true,
           },
         },
@@ -3521,7 +3531,7 @@ describe("control port firing (#607)", () => {
     c = new noflo.Component({
       inPorts: {
         in: { datatype: "int" },
-        control: { datatype: "string", triggering: false },
+        control: { datatype: "string", control: true },
       },
       outPorts: { out: { datatype: "int" } },
     });
@@ -3931,16 +3941,21 @@ describe("activation contract guard", () => {
       const c = new noflo.Component();
       c.inPorts.add("config", { control: true, datatype: "object" });
       c.inPorts.add("in", { datatype: "all" });
+      c.inPorts.add("gate", { datatype: "all" });
       c.outPorts.add("out", { datatype: "all" });
       c.process((input, output) => {
-        if (input.hasData("config")) {
-          // The control read activates the context
-          input.getData("config");
-        }
         if (!input.hasData("in")) {
           return;
         }
-        const data = input.getData("in");
+        if (input.hasData("config")) {
+          // The control standing read activates the context and
+          // consumes nothing
+          input.getData("config");
+        }
+        if (!input.hasData("gate")) {
+          return;
+        }
+        const data = input.getData("gate");
         output.sendDone({ out: data });
       });
       return c;
@@ -3949,6 +3964,12 @@ describe("activation contract guard", () => {
     const config = noflo.internalSocket.createSocket();
     instance.inPorts.config.attach(config);
     config.post(new noflo.IP("data", { mode: "test" }));
+    const inSocket = noflo.internalSocket.createSocket();
+    instance.inPorts.in.attach(inSocket);
+    // The data arrival fires the process; the control read inside the
+    // activation opens the context, and the gate's absence declines it —
+    // activated, consumed nothing, sent nothing: the leak
+    inSocket.post(new noflo.IP("data", "go"));
     await new Promise((resolve) => setTimeout(resolve, 20));
     // The activation opened by the control read is still open
     assert.strictEqual(instance.load, 1);

@@ -20,6 +20,20 @@ import Component from "@noflo/assembly";
  * signal failure through the error port rather than their data
  * outports), the collector fires with the errors accumulated into
  * `msg.errors` and whatever fields did deliver.
+ *
+ * The error port is the message's terminal event for its scope: firing
+ * on it completes the message even while other fields' streams are
+ * still open, because a failed inner will not deliver them. Inner data
+ * arriving after the error for the same scope has no collector waiting
+ * and surfaces in the shutdown diagnostics — inner components signal
+ * failure instead of continuing to deliver. Pairing is per scope:
+ * concurrent in-flight messages must carry scopes (the message's scope
+ * propagates through the fanout, extractors, and inner, so every leg of
+ * one message shares it), and the scope-aware has-checks resolve each
+ * message's legs independently — unscoped concurrent in-flight messages
+ * pair positionally and cross (work document #35 update #13, question
+ * (c); the liveness that makes the scoped wait safe is work document
+ * #45).
  */
 export class CollectFields extends Component {
   constructor() {

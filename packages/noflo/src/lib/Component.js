@@ -633,74 +633,95 @@ export class Component extends EventBase {
    * @returns {void}
    */
   handleIP(ip, port) {
-    if (!port.options.triggering) {
-      // Work document #1 Phase 2 (#607): control-triggered firing reacts
-      // to any data IP arriving on a non-triggering port, in any scope.
-      // Reading the control value follows normal port scoping: declare
-      // the control port scoped: false when an unscoped standing control
-      // IP should gate scoped data. The control IP stays buffered (a
-      // non-consuming standing gate) and each arrival is one firing
-      // edge. Bracket IPs on control ports do not fire. Addressable
-      // control ports do not participate in control-triggered firing
-      // yet.
-      if (ip.type !== "data") {
-        return;
-      }
-      if (port.options.scoped && ip.scope == null) {
-        // The one broken arrival: a scoped control port fed an unscoped
-        // control IP. The firing happens, but the control value is
-        // unreadable at this scope — warn loudly.
-        debugComponent(
-          `${this.nodeId} unscoped control IP on scoped control port '${port.name}': the control value cannot be read; declare the port scoped: false`,
-        );
-      }
-      const hasPendingData = (buffer) =>
-        Boolean(buffer?.some((buffered) => buffered.type === "data"));
-      const isNonControl = (other) =>
-        other !== port && other.options.triggering !== false;
-      /** @type {Array<string|null>} */
-      const scopesToFire = [];
-      let anyPending = false;
-      Object.keys(this.inPorts.ports).forEach((name) => {
-        const other = this.inPorts.ports[name];
-        if (!isNonControl(other)) {
-          return;
-        }
-        if (hasPendingData(other.getBuffer(null, null))) {
-          if (!scopesToFire.includes(null)) {
-            scopesToFire.push(null);
-            anyPending = true;
-          }
-        }
-        if (other.scopedBuffer) {
-          Object.keys(other.scopedBuffer).forEach((scope) => {
-            if (
-              hasPendingData(other.scopedBuffer[scope]) &&
-              !scopesToFire.includes(scope)
-            ) {
-              scopesToFire.push(scope);
-              anyPending = true;
-            }
-          });
-        }
-      });
-      if (!anyPending) {
-        return;
-      }
-      // Fire once per scope: unscoped for the default buffer, and once
-      // with the scope stamped on the context for each scoped buffer.
-      // The control IP itself stays buffered (non-consuming gate); each
-      // firing context carries the control packet with the scope set so
-      // that reads and output stamping resolve to that scope.
-      scopesToFire.forEach((scope) => {
-        const contextIp =
-          scope === null ? ip : new IP(ip.type, ip.data, { scope });
-        this.fireProcess(contextIp, port);
-      });
+    // One firing rule for all ports (work document #47; the semantics
+    // trustmaster articulated in the noflo/noflo#607 discussion and the
+    // maintainer agreed on): an arrival on any port re-fires the process
+    // once per scope that holds unprocessed input on any port, with the
+    // arriving IP — stamped to the firing scope — as the activation's
+    // context. The firing predicate is any buffered IP in the scope:
+    // data and brackets both, since a closeBracket completing a
+    // hasStream wait is a firing edge and openBracket arrivals engage
+    // auto-ordering. Control ports have no firing role: their buffers
+    // are standing state — non-consuming reads — not pending work, so
+    // the walk skips them and a control arrival with nothing pending
+    // buffers silently. Forwarding inports are exempt: their brackets
+    // are owned by the forwarding machinery in fireProcess, and their
+    // data arrivals keep the direct path.
+    if (this.isForwardingInport(port)) {
+      this.fireProcess(ip, port);
       return;
     }
-
-    this.fireProcess(ip, port);
+    if (port.options.control && port.options.scoped && ip.scope == null) {
+      // The one broken arrival: a scoped control port fed an unscoped
+      // control IP. The re-fires still happen, but the control value is
+      // unreadable at those scopes — warn loudly.
+      debugComponent(
+        `${this.nodeId} unscoped control IP on scoped control port '${port.name}': the control value cannot be read; declare the port scoped: false`,
+      );
+    }
+    /** @type {Array<string|null>} */
+    const scopesToFire = [];
+    let anyPending = false;
+    const mark = (scope) => {
+      if (!scopesToFire.includes(scope)) {
+        scopesToFire.push(scope);
+        anyPending = true;
+      }
+    };
+    Object.keys(this.inPorts.ports).forEach((name) => {
+      const other = this.inPorts.ports[name];
+      if (other.options.control) {
+        // Standing state, not pending work: control buffers are read
+        // non-consumingly and never drive firings on their own
+        return;
+      }
+      if (other.isAddressable()) {
+        Object.keys(other.indexedBuffer ?? {}).forEach((index) => {
+          if ((other.indexedBuffer[index] ?? []).length > 0) {
+            mark(null);
+          }
+        });
+        Object.keys(other.indexedIipBuffer ?? {}).forEach((index) => {
+          if ((other.indexedIipBuffer[index] ?? []).length > 0) {
+            mark(null);
+          }
+        });
+        Object.keys(other.indexedScopedBuffer ?? {}).forEach((scope) => {
+          Object.keys(other.indexedScopedBuffer[scope] ?? {}).forEach(
+            (index) => {
+              if ((other.indexedScopedBuffer[scope][index] ?? []).length > 0) {
+                mark(scope);
+              }
+            },
+          );
+        });
+        return;
+      }
+      if ((other.getBuffer(null, null) ?? []).length > 0) {
+        mark(null);
+      }
+      if ((other.iipBuffer ?? []).length > 0) {
+        mark(null);
+      }
+      Object.keys(other.scopedBuffer ?? {}).forEach((scope) => {
+        if ((other.scopedBuffer[scope] ?? []).length > 0) {
+          mark(scope);
+        }
+      });
+    });
+    if (!anyPending) {
+      return;
+    }
+    // Fire once per scope: unscoped for the default buffers, and once
+    // with the scope stamped on the context for each scoped buffer. The
+    // context IP is the wakeup cause, not the consumable: the has-first
+    // discipline reads the buffers, and reads resolve to the firing
+    // scope.
+    scopesToFire.forEach((scope) => {
+      const contextIp =
+        scope === null ? ip : new IP(ip.type, ip.data, { scope });
+      this.fireProcess(contextIp, port);
+    });
   }
 
   /**

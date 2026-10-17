@@ -65,6 +65,7 @@ msg inport → Fork ─┬→ ExtractField(source) → inner.source
                    ├→ (extractors per mapped inport)
                    ├→ CollectFields.msg
                    └→ (control passthroughs)
+ExtractField.error → CollectFields.error   (one wire per extractor)
 inner.destination → CollectFields.data[0]
 inner.error       → CollectFields.error
 CollectFields.out → outport
@@ -72,12 +73,18 @@ CollectFields.out → outport
 
 - **ExtractField** reads the assembly message and emits one field per
   mapped inport; the field name is the node's metadata, persistent for
-  every message through the node
+  every message through the node. A message lacking the mapped field is
+  malformed: the absence surfaces on the extractor's `error` outport,
+  wired into the collector's error accumulation, so the message
+  completes on the error leg with the failure recorded
 - **CollectFields** fires when every mapped field delivered, or when the
   inner signalled an error instead; inner errors accumulate into
   `msg.errors`; bracketed streams collect into arrays under the field;
   single packets unwrap to the value
-- **Positional correlation** inside the collector holds per connection
+- **Scope correlation** inside the collector holds per message: concurrent
+  in-flight messages carry scopes (the message's scope propagates through
+  the fanout, extractors, and inner), and the collector's scope-aware
+  checks pair each message's legs independently
   (FIFO), and **scopes are the correlation key for concurrent in-flight
   messages**: assign a scope per unit of work where the work is fanned
   out (for example one scope per file), and concurrent branches pair
