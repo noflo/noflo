@@ -489,7 +489,17 @@ export class Component extends EventBase {
         }
       });
       if (tmp.length === 0) {
-        delete this.forwardBrackets[inPort];
+        if (defaulted) {
+          // The built-in default adapts silently: a component without
+          // matching outports carries no forwarding
+          delete this.forwardBrackets[inPort];
+        } else {
+          // An explicitly-declared empty rule terminates framing on this
+          // port: brackets are consumed at arrival — they never fire,
+          // never buffer, and no output context is mirrored. Reading
+          // sees pure data (work document #40 update #13)
+          this.forwardBrackets[inPort] = [];
+        }
       } else {
         this.forwardBrackets[inPort] = tmp;
       }
@@ -723,6 +733,24 @@ export class Component extends EventBase {
     if (this.isForwardingInport(port)) {
       // For bracket-forwarding inports we need to initialize a bracket context
       // so that brackets can be sent as part of the output, and closed after.
+      // An explicitly-declared empty rule terminates framing on the port
+      // instead: the bracket is consumed at arrival — it never fires,
+      // never buffers, and no output context is mirrored (work document
+      // #40 update #13)
+      const forwardingTargets = this.forwardBrackets[port.name] ?? [];
+      if (
+        forwardingTargets.length === 0 &&
+        (ip.type === "openBracket" || ip.type === "closeBracket")
+      ) {
+        const terminating = port.getBuffer(ip.scope, ip.index);
+        if (terminating) {
+          const at = terminating.indexOf(ip);
+          if (at !== -1) {
+            terminating.splice(at, 1);
+          }
+        }
+        return;
+      }
       if (ip.type === "openBracket") {
         // For forwarding ports openBrackets don't fire
         return;
