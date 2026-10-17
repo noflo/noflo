@@ -450,13 +450,15 @@ export default class InPort extends BasePort {
    *   get fresh framing state
    */
   has(scope, index, makeValidate) {
-    /** @type {number|null} */
-    let idx;
-    if (typeof index === "function") {
-      idx = null;
-    } else {
-      idx = index;
+    if (typeof makeValidate !== "function") {
+      // A descriptive failure for old-style two-arg calls: the factory
+      // is the third parameter, and the two-arg overload is gone (work
+      // document #47 removed the legacy calling conventions)
+      throw new TypeError(
+        "InPort.has takes a validator factory: has(scope, index|null, () => validator)",
+      );
     }
+    const idx = /** @type {number|null} */ (index);
     // The validator arrives as a factory: each buffer walk — the regular
     // buffer, then the IIP buffer — gets fresh framing state, so a
     // partially open regular stream cannot poison the IIP-buffer check

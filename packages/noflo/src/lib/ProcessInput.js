@@ -186,7 +186,10 @@ export default class ProcessInput {
         }
         // The validator travels as a factory: InPort.has walks the
         // regular and IIP buffers with fresh framing state each (work
-        // document #47)
+        // document #47). Plain has()'s own validators are stateless by
+        // contract (a type check or a user callback evaluating one IP);
+        // the factory wrapping matters only for stateful validators,
+        // which belong in hasStream's framing-aware walks
         if (!portImpl.has(this.scope, null, () => validate)) {
           return false;
         }
