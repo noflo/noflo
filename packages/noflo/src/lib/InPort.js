@@ -27,9 +27,11 @@ import BasePort from "./BasePort.js";
  */
 export default class InPort extends BasePort {
   /**
-   * Create an input port. Control, scoping, and triggering behavior default
-   * to non-control, scoped, and triggering respectively; the buffer
-   * structures are prepared for regular and addressable use.
+   * Create an input port. Control and scoping behavior default to
+   * non-control and scoped respectively; the buffer structures are
+   * prepared for regular and addressable use. The 1.x `triggering`
+   * option is accepted and ignored — the firing model has one rule for
+   * all ports (work document #47).
    *
    * @param {PortOptions} [options]
    */
@@ -41,9 +43,11 @@ export default class InPort extends BasePort {
     if (opts.scoped == null) {
       opts.scoped = true;
     }
-    if (opts.triggering == null) {
-      opts.triggering = true;
-    }
+    // The 1.x `triggering` port option is accepted and ignored: the
+    // firing model has one rule for all ports (work document #47) — an
+    // arrival re-fires pending work per scope — and control ports have
+    // no firing role. The option is removed from the accepted set at
+    // 2.0.0.
     super(opts);
 
     /**
@@ -367,6 +371,23 @@ export default class InPort extends BasePort {
   }
 
   /**
+   * The stream-completeness check: the validator is bracket-aware, so on
+   * control ports the buffered stream's framing — not just data presence
+   * — decides completeness. A closeBracket completing a stream with data
+   * inside is the completion moment (work document #47).
+   *
+   * @param {string|null} scope
+   * @param {HasValidationCallback} validate
+   * @returns {boolean}
+   */
+  hasStream(scope, validate) {
+    if (this.hasIPinBuffer(scope, null, validate)) {
+      return true;
+    }
+    return this.hasIIP(null, validate);
+  }
+
+  /**
    * Fetches a packet from the port
    * @param {string|null} scope
    * @param {number|null} [index]
@@ -441,10 +462,16 @@ export default class InPort extends BasePort {
       idx = index;
     }
     // On control ports, has() reports whether a data IP is present in
-    // the buffered stream — buffered brackets alone do not satisfy it
+    // the buffered stream — buffered brackets alone do not satisfy it.
+    // The bracket-stack walk must still run: original() tracks the
+    // stream's framing, and the wrapper filters only the verdict, so an
+    // open stream's data does not satisfy a completion gate. The
+    // firing matrix caught the previous wrapper destroying the walk:
+    // hasStream on a control port returned true for any partially open
+    // stream (work document #47)
     if (this.options.control) {
       const original = valid;
-      valid = (ip) => ip.type === "data" && original(ip);
+      valid = (ip) => Boolean(original(ip)) && ip.type === "data";
     }
     if (this.hasIPinBuffer(scope, idx, valid)) {
       return true;

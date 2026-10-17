@@ -269,6 +269,21 @@ export default class ProcessInput {
         }
         return false;
       };
+      if (typeof port === "string") {
+        // Control-port streams take the framing-aware completeness
+        // check; the plain has() wrapper on them reports data presence,
+        // not stream completion (work document #47). Addressable
+        // access keeps the plain path
+        const portImpl = /** @type {import("./InPort.js").default} */ (
+          this.ports.ports[port]
+        );
+        if (portImpl && !portImpl.isAddressable() && portImpl.options.control) {
+          if (!portImpl.hasStream(this.scope, validate)) {
+            return false;
+          }
+          continue;
+        }
+      }
       if (!this.has(port, validate)) {
         return false;
       }

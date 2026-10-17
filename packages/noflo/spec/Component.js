@@ -905,22 +905,29 @@ describe("Component", () => {
       });
       sin1.post(new noflo.IP("data", "first"));
     });
-    it("should trigger from non-triggering ports when other ports hold buffered data (#607)", async (_t) => {
-      const triggered = [];
+    it("re-fires pending work when another port receives input (#607)", async (_t) => {
+      // Work document #47: one firing rule for all ports. The firing
+      // pattern is the component's declared behavior (the has-checks);
+      // the engine's job is the wakeup — an arrival on any port re-fires
+      // the process for every scope holding unprocessed input. The
+      // observable is what the component consumed and produced, not the
+      // engine's firing decisions
+      const received = [];
       c = new noflo.Component({
         inPorts: {
-          foo: {
-            datatype: "string",
-            triggering: false,
-          },
+          foo: { datatype: "string" },
           bar: { datatype: "string" },
         },
         outPorts: {
-          baz: { datatype: "boolean" },
+          baz: { datatype: "string" },
         },
         process(input, output) {
-          triggered.push(input.port.name);
-          output.sendDone({ baz: true });
+          if (!input.hasData("foo", "bar")) {
+            return;
+          }
+          const [foo, bar] = input.getData("foo", "bar");
+          received.push(`${foo}+${bar}`);
+          output.sendDone({ baz: `${foo}+${bar}` });
         },
       });
 
@@ -928,22 +935,27 @@ describe("Component", () => {
       c.inPorts.bar.attach(sin2);
       c.outPorts.baz.attach(sout1);
 
+      // A lone arrival buffers — the handler runs and declines, nothing
+      // observable happens
       sin1.post(new noflo.IP("data", "first"));
+      await settle();
+      assert.deepStrictEqual(received, [], "a lone leg waits");
+      // The other port's arrival completes the pair
+      sin2.post(new noflo.IP("data", "second"));
+      await settle();
+      assert.deepStrictEqual(received, ["first+second"], "pair consumed");
+      // The #607 direction in both orders: buffered work is re-fired by
+      // an arrival on the other port
+      sin2.post(new noflo.IP("data", "b2"));
+      await settle();
+      assert.deepStrictEqual(received, ["first+second"], "lone bar waits");
+      sin1.post(new noflo.IP("data", "f2"));
       await settle();
       assert.deepStrictEqual(
-        triggered,
-        [],
-        "non-triggering port does not fire alone",
+        received,
+        ["first+second", "f2+b2"],
+        "the buffered bar paired with the new foo",
       );
-      sin2.post(new noflo.IP("data", "second"));
-      await settle();
-      assert.deepStrictEqual(triggered, ["bar"], "first firing");
-      sin1.post(new noflo.IP("data", "first"));
-      await settle();
-      assert.deepStrictEqual(triggered, ["bar", "foo"], "second firing");
-      sin2.post(new noflo.IP("data", "second"));
-      await settle();
-      assert.deepStrictEqual(triggered, ["bar", "foo", "bar"], "third firing");
     });
     it("should fetch undefined for premature data", (_t, done) => {
       c = new noflo.Component({
@@ -953,12 +965,10 @@ describe("Component", () => {
           },
           bar: {
             datatype: "boolean",
-            triggering: false,
             control: true,
           },
           baz: {
             datatype: "string",
-            triggering: false,
             control: true,
           },
         },
@@ -3521,7 +3531,7 @@ describe("control port firing (#607)", () => {
     c = new noflo.Component({
       inPorts: {
         in: { datatype: "int" },
-        control: { datatype: "string", triggering: false },
+        control: { datatype: "string", control: true },
       },
       outPorts: { out: { datatype: "int" } },
     });
