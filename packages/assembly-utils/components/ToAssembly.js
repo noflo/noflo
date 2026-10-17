@@ -8,8 +8,21 @@ import noflo from "@noflo/noflo";
 
 /**
  * ToAssembly component factory.
+ *
+ * The optional `assembly.field` node metadata names the field the
+ * incoming value lands under (default `data`): an application turning
+ * bare values into assembly messages picks the message shape — e.g.
+ * `field: "path"` turns a path string into `{ errors: [], path: value
+ * }` for a downstream adapter that consumes `path`. The error envelope
+ * stays `{ errors: [error] }` regardless of the field: a failed value
+ * has no field content.
+ *
+ * @param {Record<string, unknown>} [metadata] - Node metadata; the
+ *   `assembly.field` key names the value field
  */
-export function getComponent() {
+export function getComponent(metadata = {}) {
+  const field =
+    /** @type {string | undefined} */ (metadata?.["assembly.field"]) ?? "data";
   const c = new noflo.Component();
   c.description = "Convert regular NoFlo data to an assembly message";
   c.inPorts.add("in", {
@@ -24,11 +37,11 @@ export function getComponent() {
   return c.process((input, output) => {
     if (input.hasData("in")) {
       const data = input.getData("in");
+      /** @type {Record<string, unknown>} */
+      const envelope = { errors: [] };
+      envelope[field] = data;
       output.sendDone({
-        out: {
-          errors: [],
-          data,
-        },
+        out: envelope,
       });
       return;
     }

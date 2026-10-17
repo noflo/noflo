@@ -21,6 +21,14 @@ import Component from "@noflo/assembly";
  * outports), the collector fires with the errors accumulated into
  * `msg.errors` and whatever fields did deliver.
  *
+ * A field name of `null` in the `fields` config is the whole-message
+ * replace mapping: the inner output becomes the message — its keys
+ * replace the originating message's — and the accumulated `errors`
+ * carry into the replacement. The replace output must be an object; a
+ * non-object accumulates an error into `msg.errors` instead of
+ * replacing. Only one field may be `null`; `asAssembly` validates the
+ * mapping at wrap time.
+ *
  * The error port is the message's terminal event for its scope: firing
  * on it completes the message even while other fields' streams are
  * still open, because a failed inner will not deliver them. Inner data
@@ -98,8 +106,9 @@ export class CollectFields extends Component {
     const fieldNames = JSON.parse(input.getData("fields"));
 
     // Fire when every mapped field delivered, or when the inner
-    // signalled an error instead of delivering
-    const result = { ...msg };
+    // signalled an error instead of delivering. The replace mapping
+    // rebinds the result to the inner output
+    let result = { ...msg };
     /** @type {unknown[]} */
     const errors = Array.isArray(msg.errors) ? [...msg.errors] : [];
     if (errorStream) {
@@ -121,7 +130,27 @@ export class CollectFields extends Component {
         .map((ip) => ip.data);
       // A bracketed inner stream collects as an array; a single packet
       // as the value itself
-      result[field] = values.length === 1 ? values[0] : values;
+      const collected = values.length === 1 ? values[0] : values;
+      if (field === null) {
+        // Whole-message replace: the inner output becomes the message,
+        // the accumulated errors carrying into it. A non-object output
+        // cannot replace a message: the error accumulates instead
+        if (
+          collected !== null &&
+          typeof collected === "object" &&
+          !Array.isArray(collected)
+        ) {
+          result = { ...collected, errors };
+        } else {
+          errors.push(
+            new Error(
+              `CollectFields: the replace-mapped inner output at connection ${idx} is not an object`,
+            ),
+          );
+        }
+        continue;
+      }
+      result[field] = collected;
     }
     result.errors = errors;
     output.sendDone({ out: result });
