@@ -374,6 +374,11 @@ export default class InPort extends BasePort {
    * @returns {boolean}
    */
   hasStream(scope, makeValidate) {
+    if (typeof makeValidate !== "function") {
+      throw new TypeError(
+        "InPort.hasStream takes a validator factory: hasStream(scope, () => validator)",
+      );
+    }
     // Each buffer walk gets fresh framing state: a partially open
     // regular stream must not poison the IIP-buffer walk (work document
     // #47 review)
