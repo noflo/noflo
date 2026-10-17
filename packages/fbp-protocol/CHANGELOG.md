@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Added
+- The tracefile event vocabulary gains `0x0f STRANDED`: bracket framing buffered on an input port whose senders have all terminally disconnected, reported at the moment it became inevitable. Payload: the flat tuple `[tgt_node, tgt_port, scope|null, open_count, close_count]` (work document #40 update #13)
 - `0x49 CMD_STREAM_OPEN` and `0x4A CMD_STREAM_EOT` (work documents #40, #45): the client-driven stream surface. `0x49` opens a persistent stream into an exported inport — a driver socket the port stays connected across, with back pressure respected; packets flow via `0x47 CMD_PACKET_SEND`. `0x4A` signals end of transmission: the runtime disconnects the driver, the boundary reaches EOT, and the network's drain-based closing cascade runs. Duplicate opens and stray EOTs answer `0x17 REASON.INVALID_STATE`. Boundary stream lifecycle is observable as `0x0b CONNECTION_OPEN` / `0x0c CONNECTION_CLOSE` with a nil source; the tracefile decoder emits the boundary payload form
 
 ## [2.0.0-alpha.8] - 2026-10-17

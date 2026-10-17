@@ -130,6 +130,12 @@ describe("trace file assembly and parsing", () => {
         [9, EVENT_TYPE.ERROR, "boom"],
       ]),
       chunk("sub-1", [[0, EVENT_TYPE.END_BRACKET, "g"]]),
+      // Stranded framing travels as the flat payload tuple; the sender
+      // side is not identified because the sender is gone (work document
+      // #40 update #13)
+      chunk("sub-1", [
+        [2, EVENT_TYPE.STRANDED, ["strander", "msg", null, 0, 1]],
+      ]),
     ];
     const file = assembleTraceFile({
       runtimeMetadata: { name: "mesh-runtime", kind: "noflo-nodejs" },
@@ -138,16 +144,27 @@ describe("trace file assembly and parsing", () => {
       timestampMs: 1000,
     });
     const parsed = readTraceFile(file);
+    const strandedChunk = parsed.chunks.find((c) =>
+      c.events.some((e) => e.eventType === EVENT_TYPE.STRANDED),
+    );
+    assert.ok(strandedChunk);
+    assert.deepEqual(strandedChunk.events[0].payload, [
+      "strander",
+      "msg",
+      null,
+      0,
+      1,
+    ]);
     assert.equal(parsed.snapshot.formatVersion, 1);
     assert.equal(parsed.snapshot.timestampMs, 1000);
     assert.deepEqual(parsed.snapshot.runtimeMetadata, {
       name: "mesh-runtime",
       kind: "noflo-nodejs",
     });
-    assert.equal(parsed.chunks.length, 3);
+    assert.equal(parsed.chunks.length, 4);
     assert.deepEqual(
       parsed.chunks.map((c) => c.events.length),
-      [2, 2, 1],
+      [2, 2, 1, 1],
     );
     // Chunk order is preserved: the first event of the second chunk decodes
     // to the DATA event it was assembled with.

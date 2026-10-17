@@ -551,6 +551,8 @@ Each item's `time_delta_ms` is a `uint32` offset from the chunk's
 
 **Process activation.** `EVENT_TYPE` gains `0x0d ACTIVATION_BEGIN` and `0x0e ACTIVATION_END` (work document #43) — the process-activation lifecycle a hung network's trace must show: the last activation that never deactivated is the hung process. Payload: the positional tuple `[node_id, load]` — for `BEGIN`, the node's load *after* the increment; for `END`, the load *after* the decrement, `0` marking the node going idle. Per node the payload walk is the previous value ± 1, so consumers reconstruct the open-activation spans and their concurrency (multiple simultaneous activations on one node) from the stream alone.
 
+**Stranded framing.** `EVENT_TYPE` gains `0x0f STRANDED` (work document #40 update #13) — bracket framing buffered on an input port whose senders have all terminally disconnected: the residue can never pair with arriving data, so the moment the port's last sender disconnects is when it becomes reportable. The residue is reported, not consumed — a component may legitimately decline a closeBracket now and consume it after its other input arrives. Payload: the flat tuple `[tgt_node, tgt_port, scope|null, open_count, close_count]`; the sender side is not identified because the sender is gone.
+
 Unified event types:
 
 | Code   | Event         | Payload                                   |
