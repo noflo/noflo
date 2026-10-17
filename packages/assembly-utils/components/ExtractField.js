@@ -55,9 +55,7 @@ export class ExtractField extends Component {
 
   processMessage(input, output) {
     if (!this.field) {
-      output.done(
-        new Error("ExtractField requires the field metadata"),
-      );
+      output.done(new Error("ExtractField requires the field metadata"));
       return;
     }
     if (!input.hasData("msg")) {

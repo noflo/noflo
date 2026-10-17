@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import noflo from "@noflo/noflo";
 import { getComponent as getAll } from "../components/All.js";
-import { getComponent as getMerge } from "../components/Merge.js";
 import { ExtractField } from "../components/ExtractField.js";
+import { getComponent as getMerge } from "../components/Merge.js";
 
 /**
  * Attach an addressable inport socket with an explicit connection index.
@@ -92,10 +92,6 @@ describe("ExtractField missing-field semantics", () => {
 
   it("delivers the field value with the message's scope stamped", async () => {
     const { msg, received } = makeExtractor("source");
-    const out = [];
-    // scope arrives on the data IP
-    const { c } = { c: null };
-    void c;
     msg.post(
       new noflo.IP("data", { errors: [], source: "go" }, { scope: "m1" }),
     );
