@@ -652,9 +652,7 @@ describe("wrapped component behavior matrix", () => {
         { scope: "good-1" },
       ),
     );
-    sockets.msg.post(
-      new noflo.IP("data", { errors: [] }, { scope: "bad-1" }),
-    );
+    sockets.msg.post(new noflo.IP("data", { errors: [] }, { scope: "bad-1" }));
     // The inner's control port needs its value per scope (the wrapped
     // signature exposes it directly)
     sockets.encoding.post(new noflo.IP("data", "utf-8", { scope: "good-1" }));
@@ -669,12 +667,6 @@ describe("wrapped component behavior matrix", () => {
       };
       setTimeout(check, 100);
     });
-    setTimeout(() => {
-      console.log("DBG received:", received.length, "load:", instance.load);
-      for (const [name, proc] of Object.entries(instance.network?.processes ?? {})) {
-        console.log("DBG inner", name, "load:", proc.component.load);
-      }
-    }, 1500);
 
     assert.equal(received.length, 2, "both messages completed");
     const good = received.find((ip) => ip.scope === "good-1");
