@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [2.0.0-alpha.9] - 2026-10-17
 ### Added
 - Client-driven streams (work documents #40, #45): `0x49 CMD_STREAM_OPEN` attaches a persistent driver socket to an exported inport, `0x47 CMD_PACKET_SEND` flows through the open driver with back pressure respected, and `0x4A CMD_STREAM_EOT` disconnects it — the boundary reaches end of transmission and the network ends drain-style. Without an open stream, `0x47` keeps its self-contained single-packet IIP semantics. Rejections: duplicate open, stray EOT, unknown port, non-running plane. The stream lifecycle records as `0x0b CONNECTION_OPEN` / `0x0c CONNECTION_CLOSE` telemetry events (nil source — the sender is outside the graph)
 

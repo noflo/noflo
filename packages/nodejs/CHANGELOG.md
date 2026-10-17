@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-alpha.9] - 2026-10-17
+
 ## [2.0.0-alpha.8] - 2026-10-17
 ### Changed
 - The mesh attach (Reticulum init, identity load, and the runtime bind) now precedes the network start: a graph that finishes immediately under drain-based closing can no longer exit the process before the runtime has announced on the mesh. The announce line in batch mode therefore always precedes the run
