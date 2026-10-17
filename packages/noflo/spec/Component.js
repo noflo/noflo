@@ -3931,16 +3931,21 @@ describe("activation contract guard", () => {
       const c = new noflo.Component();
       c.inPorts.add("config", { control: true, datatype: "object" });
       c.inPorts.add("in", { datatype: "all" });
+      c.inPorts.add("gate", { datatype: "all" });
       c.outPorts.add("out", { datatype: "all" });
       c.process((input, output) => {
-        if (input.hasData("config")) {
-          // The control read activates the context
-          input.getData("config");
-        }
         if (!input.hasData("in")) {
           return;
         }
-        const data = input.getData("in");
+        if (input.hasData("config")) {
+          // The control standing read activates the context and
+          // consumes nothing
+          input.getData("config");
+        }
+        if (!input.hasData("gate")) {
+          return;
+        }
+        const data = input.getData("gate");
         output.sendDone({ out: data });
       });
       return c;
@@ -3949,6 +3954,12 @@ describe("activation contract guard", () => {
     const config = noflo.internalSocket.createSocket();
     instance.inPorts.config.attach(config);
     config.post(new noflo.IP("data", { mode: "test" }));
+    const inSocket = noflo.internalSocket.createSocket();
+    instance.inPorts.in.attach(inSocket);
+    // The data arrival fires the process; the control read inside the
+    // activation opens the context, and the gate's absence declines it —
+    // activated, consumed nothing, sent nothing: the leak
+    inSocket.post(new noflo.IP("data", "go"));
     await new Promise((resolve) => setTimeout(resolve, 20));
     // The activation opened by the control read is still open
     assert.strictEqual(instance.load, 1);

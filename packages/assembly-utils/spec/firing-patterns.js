@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import noflo from "@noflo/noflo";
 import { getComponent as getAll } from "../components/All.js";
+import { ExtractField } from "../components/ExtractField.js";
 import { getComponent as getMerge } from "../components/Merge.js";
 
 /**
@@ -34,6 +35,71 @@ function attachOut(component, received) {
   });
   return socket;
 }
+
+describe("ExtractField missing-field semantics", () => {
+  // Work document #35 update #13, question (b): a message lacking the
+  // mapped field is malformed for the adapter — the absence surfaces on
+  // the error leg (which the generated graph wires into the collector's
+  // error accumulation) instead of a silent undefined delivery the inner
+  // would crash on. A present-but-null value is a value and delivers.
+  const makeExtractor = (field) => {
+    const c = new ExtractField({ "assembly.field": field });
+    const received = { out: [], error: [] };
+    const out = new noflo.internalSocket.InternalSocket();
+    const error = new noflo.internalSocket.InternalSocket();
+    c.outPorts.ports.out.attach(out);
+    c.outPorts.ports.error.attach(error);
+    out.addEventListener("ip", (event) => {
+      if (event.detail.type === "data") {
+        received.out.push(event.detail.data);
+      }
+    });
+    error.addEventListener("ip", (event) => {
+      // Error ports deliver data-typed IPs with the Error as payload
+      // (the migration guide's pitfall-reference entry)
+      if (event.detail.data instanceof Error) {
+        received.error.push(event.detail.data);
+      }
+    });
+    const msg = new noflo.internalSocket.InternalSocket();
+    c.inPorts.ports.msg.attach(msg);
+    return { c, msg, received };
+  };
+
+  it("errors on the error leg when the mapped field is absent", async () => {
+    const { c, msg, received } = makeExtractor("source");
+    msg.post(new noflo.IP("data", { errors: [], other: "x" }, { scope: "m1" }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(received.out.length, 0, "nothing delivered");
+    assert.equal(received.error.length, 1, "the error leg carries the failure");
+    assert.match(
+      String(received.error[0].message),
+      /lacks the mapped field 'source'/,
+    );
+    assert.equal(c.load, 0, "the activation completed");
+  });
+
+  it("delivers a present-but-null value; null is a value", async () => {
+    const { msg, received } = makeExtractor("source");
+    msg.post(
+      new noflo.IP("data", { errors: [], source: null }, { scope: "m1" }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(received.out.length, 1);
+    assert.strictEqual(received.out[0], null);
+    assert.equal(received.error.length, 0);
+  });
+
+  it("delivers the field value with the message's scope stamped", async () => {
+    const { msg, received } = makeExtractor("source");
+    msg.post(
+      new noflo.IP("data", { errors: [], source: "go" }, { scope: "m1" }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(received.out.length, 1);
+    assert.equal(received.out[0], "go");
+  });
+});
 
 describe("barrier firing patterns under concurrent scoped messages", () => {
   // The concurrency contract (work document #36): concurrent in-flight

@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Control ports are gates: their arrivals no longer fire a scopeless process activation — they re-fire pending work once per scope that holds data on the component's other ports, with the control value readable in that firing and left buffered (the control-triggered firing machinery from work document #1 #607, now the default control-port behavior). Previously a control arrival fired one scopeless activation that could not see scoped buffers, so standing configuration arriving after scoped messages silently failed to re-fire the waiting processes — the shape that stranded burst messages behind late-arriving configuration in wrapped-adapter pipelines (found by the noflo-jekyll burst investigation, work documents #35/#36). Components whose control arrival should itself be the trigger carry data, not configuration — declare them as regular firing ports
 
 ## [2.0.0-alpha.9] - 2026-10-17
 ### Added

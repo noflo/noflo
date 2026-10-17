@@ -616,4 +616,82 @@ describe("wrapped component behavior matrix", () => {
     assert.equal(byScope["file-2"].destination, "m2:utf-8");
     assert.equal(byScope["file-3"].destination, "m3:utf-8");
   });
+
+  it("completes a message lacking the mapped field on the error leg", async () => {
+    // Work document #35 update #13, question (b): the extractor's
+    // missing-field error wires into the collector's error accumulation,
+    // so the malformed message completes with the failure recorded
+    // instead of stranding the collector's wait or crashing the inner
+    const loader = await makeLoader();
+    loader.registerComponent("test", "CopyLike", {
+      getComponent: () => new CopyLike(),
+    });
+    const inner = new CopyLike();
+    const graph = asAssembly(inner, { target: "test/CopyLike" });
+    loader.registerComponent("test", "WrappedCopy", graph);
+    const instance = await loader.load("test/WrappedCopy");
+    const sockets = attachAll(instance, {
+      msg: instance.inPorts.ports.msg,
+      encoding: instance.inPorts.ports.encoding,
+      out: instance.outPorts.ports.out,
+    });
+
+    /** @type {Array<any>} */
+    const received = [];
+    sockets.out.addEventListener("ip", (event) => {
+      received.push(event.detail);
+    });
+
+    instance.start(() => {});
+    // A well-formed scoped message and a malformed one (no `source`
+    // field) in flight concurrently
+    sockets.msg.post(
+      new noflo.IP(
+        "data",
+        { errors: [], source: "good", encoding: "utf-8" },
+        { scope: "good-1" },
+      ),
+    );
+    sockets.msg.post(new noflo.IP("data", { errors: [] }, { scope: "bad-1" }));
+    // The inner's control port needs its value per scope (the wrapped
+    // signature exposes it directly)
+    sockets.encoding.post(new noflo.IP("data", "utf-8", { scope: "good-1" }));
+
+    await new Promise((resolve) => {
+      const check = () => {
+        if (received.length >= 2) {
+          resolve();
+          return;
+        }
+        setTimeout(check, 20);
+      };
+      setTimeout(check, 100);
+    });
+
+    assert.equal(received.length, 2, "both messages completed");
+    const good = received.find((ip) => ip.scope === "good-1");
+    const bad = received.find((ip) => ip.scope === "bad-1");
+    assert.ok(good, "the well-formed message completed");
+    assert.equal(good.data.destination, "good:utf-8");
+    assert.ok(bad, "the malformed message completed on the error leg");
+    assert.equal(bad.data.errors.length, 1);
+    assert.match(
+      String(bad.data.errors[0].message),
+      /lacks the mapped field 'source'/,
+    );
+    assert.equal(bad.data.destination, undefined, "the inner never fired");
+    // Close the boundary: the terminal disconnects cascade through the
+    // adapter (extractors and inner close down, the inner network ends),
+    // and the wrapper's start context pops
+    const ended = new Promise((resolve) => {
+      instance.network.addEventListener("end", resolve);
+    });
+    sockets.msg.disconnect();
+    sockets.encoding.disconnect();
+    await Promise.race([
+      ended,
+      new Promise((resolve) => setTimeout(resolve, 2000)),
+    ]);
+    assert.equal(instance.load, 0, "the closedown cascade completed");
+  });
 });
