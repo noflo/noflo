@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-alpha.8] - 2026-10-17
+
 ## [2.0.0-alpha.7] - 2026-10-16
 ### Added
 - The client-side schema store (work document #37 phase 2): `SchemaCache` fetches bodies over `0x28`/`0x29` and verifies every body against its digest before caching — a poisoned body is discarded and treated as absent. Closure completeness is client-checked against the local cache: a fetched root is unusable while any referenced digest is missing, and follow-up requests target only the missing digests. `RuntimeClient.syncSchemaBodies()` collects the schema digests the synced catalog's details reference and fetches the missing ones with closure bundling; the `UiEventSurface`'s `components` event now carries `schemaBodies` alongside the catalog. A runtime without a schema table answers all-nil and the store stays empty — the degradation ladder, not an error

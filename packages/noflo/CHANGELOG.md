@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.0.0-alpha.8] - 2026-10-17
 ### Changed
 - Drain-based network closing (work document #45): the quiet-window timer is replaced by boundary-owned end-of-transmission. A network ends when every boundary input is at end of transmission and the network is quiescent — no open activations, no packet in flight on any edge. Internal edges and cycles need no closedown: a quiescent network with all sources finished is absorbing (no future event can occur inside it). Networks with live boundary drivers — long-running graphs, remote subgraphs, generators — never end from internal quiet; the boundary owns end-of-transmission
 - Sending no longer disconnects: `InternalSocket.post` auto-connects but never auto-disconnects — per-burst disconnect framing is superseded by in-band brackets, and `disconnect()` is sender-terminal end-of-transmission (the 0.x intent). Components that ended a transmission by disconnecting must call `disconnect()` explicitly, or rely on drain-based closing

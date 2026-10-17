@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-alpha.8] - 2026-10-17
+
 ## [2.0.0-alpha.7] - 2026-10-16
 ### Added
 - The guard advisory on the authoring paths (work document #37 §3.1): `add-iip` and `send` compare the value against the target port's in-band guard from the synced signature before shipping, and warn to stderr on a violation — advisory only, the value goes out regardless; the runtime records the violation diagnostic-only on its side. Tier B hard validation at injection stays deferred: a full JSON Schema validator is a large dependency for the CLI, and that enforcement properly lives in the noflo-ui editor (work document #57)

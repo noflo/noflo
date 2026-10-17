@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+## [2.0.0-alpha.8] - 2026-10-17
+### Removed
+- **noflo**: The closing check no longer runs per delivered packet on every event-loop turn: the evaluation is debounced per `closingDebounceMs`, keeping the 10k-node stress network at ~1.4s
+### Added
+- **noflo**: `Network#closingDebounceMs` option: the coalescing window for the closing evaluation (default 10ms). Scheduling only — the closing predicate is evaluated at most once per window, and the end fires at the first evaluation after the state completes
+- **noflo**: `Component#isClosedDown()` and the `closedown` lifecycle event: the cascading-closedown state (every input at EOT, no open activation, nothing buffered to deliver) with terminally disconnected outports. Subgraph wrappers close down with their inner networks
+- **noflo**: `InPort#isEot()`: whether the input is at end of transmission (EOT) — every attached socket terminally closed by its sender. EOT is unscoped by definition: it is a fact about the sender, not about a stream or scope
+- **noflo**: `spec/NetworkClosing.js` pinning the closing sequencing: every closedown event before the network end, a revived component's second closedown gating the end, the nested order (inner end, wrapper closedown, outer end), and feedback cycles targeting exported inports ending instead of deadlocking
+### Changed
+- **noflo**: Drain-based network closing (work document #45): the quiet-window timer is replaced by boundary-owned end-of-transmission. A network ends when every boundary input is at end of transmission and the network is quiescent — no open activations, no packet in flight on any edge. Internal edges and cycles need no closedown: a quiescent network with all sources finished is absorbing (no future event can occur inside it). Networks with live boundary drivers — long-running graphs, remote subgraphs, generators — never end from internal quiet; the boundary owns end-of-transmission
+- **noflo**: Sending no longer disconnects: `InternalSocket.post` auto-connects but never auto-disconnects — per-burst disconnect framing is superseded by in-band brackets, and `disconnect()` is sender-terminal end-of-transmission (the 0.x intent). Components that ended a transmission by disconnecting must call `disconnect()` explicitly, or rely on drain-based closing
+- **noflo**: The activation contract is load-bearing: a void `process()` resolution means "the process already sent" — deferred sends must hold the activation open (resolve the promise with the value; the bridge sends in-activation). An out-of-activation send races drain-based closing and re-opens a closed-down downstream that can never trust end of transmission again. Self-driven generators hold their activation across emissions (as the migrated generator components already do), so they are never closed down mid-generation
+- **noflo**: `OutPort.sendIP()` drops the `autoConnect` parameter: sending auto-connects; disconnecting is the sender's explicit decision
+- **nodejs**: The mesh attach (Reticulum init, identity load, and the runtime bind) now precedes the network start: a graph that finishes immediately under drain-based closing can no longer exit the process before the runtime has announced on the mesh. The announce line in batch mode therefore always precedes the run
+- **nodejs**: The host start gates on the persistor hydration only (`rns.persistorLoadPromise`) instead of `rns.ready()`: the latter also awaits the AutoInterface discovery start promise, which never settles on hosts without usable multicast connectivity (CI containers, offline machines) — the discovery start must not block the program. Announcing to nobody remains the documented behavior for interface-less hosts (upstream @reticulum/core should still fix the unsettled start promise)
+### Fixed
+- **noflo**: A feedback edge targeting an exported inport no longer deadlocks the network end: the closing predicate's boundary check counts only external sockets (driver-attached and IIP); internal edges targeting the same port are covered by quiescence
+- **noflo**: A socket attaching to a closed-down component's outport goes terminal immediately — a late-attached edge no longer leaves its receiving port waiting for an EOT that will never fire
+- **noflo**: Subgraph wrappers mark end of transmission with their inner networks: the shared-port EOT state reflects the deepest sender's condition, not the wrapper's completion
+
 ## [2.0.0-alpha.7] - 2026-10-16
 ### Added
 - **noflo**: Process activation events in the trace stream (work document #43): `Network` emits an `activation` event with `{ id, load, ended }` payload on every component activation and deactivation (the same signal end-detection already consumed internally), subgraph networks forward their inner activations with the subgraph path prepended, and the `Flowtrace` recorder records them as `ACTIVATION_BEGIN` (`0x0d`) and `ACTIVATION_END` (`0x0e`) flowtrace events with the positional `[node_id, load]` payload — load after the change, `0` marking a node going idle. Trace replay can now answer "why didn't the network finish": the last activation that never deactivated is the hung process, with `load` showing concurrent activations. The vocabulary mirrors `@noflo/fbp-protocol` per the round-trip pin
