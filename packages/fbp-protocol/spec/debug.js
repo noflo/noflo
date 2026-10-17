@@ -21,6 +21,8 @@ import {
   CMD_PROCESS_LIST,
   CMD_PROCESS_LIST_REQ,
   CMD_RUN_CTRL,
+  CMD_STREAM_EOT,
+  CMD_STREAM_OPEN,
   COMPONENT_TYPE,
   decodeBreakpointClear,
   decodeBreakpointSet,
@@ -29,6 +31,8 @@ import {
   decodeProcessList,
   decodeProcessListReq,
   decodeRunCtrl,
+  decodeStreamEot,
+  decodeStreamOpen,
   EVENT_TYPE,
   EXECUTION_STATE,
   encodeBreakpointClear,
@@ -38,6 +42,8 @@ import {
   encodeProcessList,
   encodeProcessListReq,
   encodeRunCtrl,
+  encodeStreamEot,
+  encodeStreamOpen,
   LIFECYCLE_CODE,
   PROCESS_ACTION,
   ProtocolError,
@@ -254,6 +260,54 @@ describe("0x46 CMD_HWM_SET", () => {
     assert.throws(() => encodeHwmSet("16"), ProtocolError);
     const frame = MsgPack.encode([CMD_HWM_SET, -1]);
     assert.throws(() => decodeHwmSet(frame), ProtocolError);
+  });
+});
+
+describe("client-driven streams", () => {
+  it("round-trips 0x49 CMD_STREAM_OPEN", () => {
+    const decoded = decodeStreamOpen(
+      encodeStreamOpen({ planeId: null, port: "in" }),
+    );
+    assert.equal(decoded.cmd, CMD_STREAM_OPEN);
+    assert.equal(decoded.planeId, null);
+    assert.equal(decoded.port, "in");
+    const plane = decodeStreamOpen(
+      encodeStreamOpen({ planeId: "sg/main/sub", port: "data" }),
+    );
+    assert.equal(plane.planeId, "sg/main/sub");
+    assert.equal(plane.port, "data");
+    const wire = MsgPack.encode([CMD_STREAM_OPEN, null, "in"]);
+    assert.deepEqual(
+      [...encodeStreamOpen({ planeId: null, port: "in" })],
+      [...wire],
+    );
+  });
+
+  it("round-trips 0x4A CMD_STREAM_EOT", () => {
+    const decoded = decodeStreamEot(
+      encodeStreamEot({ planeId: null, port: "in" }),
+    );
+    assert.equal(decoded.cmd, CMD_STREAM_EOT);
+    assert.equal(decoded.planeId, null);
+    assert.equal(decoded.port, "in");
+    const wire = MsgPack.encode([CMD_STREAM_EOT, 7, "out"]);
+    assert.deepEqual(
+      [...encodeStreamEot({ planeId: 7, port: "out" })],
+      [...wire],
+    );
+  });
+
+  it("rejects empty ports", () => {
+    assert.throws(
+      () => encodeStreamOpen({ planeId: null, port: "" }),
+      ProtocolError,
+    );
+    assert.throws(
+      () => encodeStreamEot({ planeId: null, port: "" }),
+      ProtocolError,
+    );
+    const frame = MsgPack.encode([CMD_STREAM_OPEN, null, 42]);
+    assert.throws(() => decodeStreamOpen(frame), ProtocolError);
   });
 });
 

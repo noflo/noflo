@@ -545,7 +545,7 @@ The chunk's plane_id anchors the tree position through the `0x16`
 parent chain, so no subgraph path arrays travel per event.
 
 **Connection framing.** `EVENT_TYPE` gains `0x0b CONNECTION_OPEN` and
-`0x0c CONNECTION_CLOSE` — the framing 1.x UIs animate edge activity with. Payload: `[src_node, src_port, tgt_node, tgt_port]`.
+`0x0c CONNECTION_CLOSE` — the framing 1.x UIs animate edge activity with. Payload: `[src_node, src_port, tgt_node, tgt_port]`. For boundary streams — a sender outside the graph, client-driven or IIP — the source is nil: `[nil, nil, tgt_node, tgt_port]`. The events fire only for boundary connections; internal edges connect once at wire time and their lifecycle is not stream state.
 Each item's `time_delta_ms` is a `uint32` offset from the chunk's
 `base_timestamp_ms`.
 
@@ -728,6 +728,29 @@ PAUSED, `0x03` FAILED), the network's uptime in milliseconds, and the
 runtime's full advertised capability surface. The `getstatus` equivalent
 — late subscribers and monitors ask instead of inferring from lifecycle
 events they never saw. Requires `GRAPH_READ`.
+
+**`0x49` CMD_STREAM_OPEN** — open a persistent client-driven stream into
+a running network's inport: `[0x49, plane_id, port]`. The plane addresses
+the graph instance (nil = main); the port is an exported inport name.
+Where `0x47` without a stream delivers each packet as a self-contained
+single-packet stream (an IIP: connect, deliver, end of transmission), an
+open stream attaches a driver socket to the resolved inport: the port
+stays connected across many `0x47` packets, back pressure is respected,
+and the network's end predicate sees an open external sender. A `0x49`
+on a port that already has an open stream is rejected with `0x17`
+carrying `REASON.INVALID_STATE`. Requires `LIFECYCLE_CTRL`.
+
+**`0x4A` CMD_STREAM_EOT** — signal end of transmission on a
+client-driven stream: `[0x4A, plane_id, port]`. The stream opened with
+`0x49` is closed by its sender: the runtime disconnects the port's
+driver socket, the boundary reaches end of transmission, and the
+network's drain-based closing cascade runs — in-flight outputs deliver
+before the network ends. The boundary owns end of transmission; this
+command is how a remote sender exercises it (work documents #40, #45).
+The stream lifecycle is observable as `0x0b CONNECTION_OPEN` and `0x0c
+CONNECTION_CLOSE` events (§7). A `0x4A` on a port without an open
+stream is rejected with `0x17` carrying `REASON.INVALID_STATE`.
+Requires `LIFECYCLE_CTRL`.
 
 ## 9. Offline LXMF store & forward
 

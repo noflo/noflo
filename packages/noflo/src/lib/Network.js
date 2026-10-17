@@ -320,6 +320,20 @@ export class Network extends EventBase {
         this.flowtrace.addNetworkStopped(this.flowtraceName);
         break;
       }
+      case "connection": {
+        const to = payload.socket.to
+          ? {
+              node: payload.socket.to.process.id,
+              port: payload.socket.to.port,
+            }
+          : null;
+        this.flowtrace.addNetworkConnection(
+          this.flowtraceName,
+          to,
+          payload.open,
+        );
+        break;
+      }
       case "process-error": {
         this.flowtrace.addNetworkError(
           this.flowtraceName,
@@ -714,6 +728,22 @@ export class Network extends EventBase {
       }
       this.bufferedEmit("process-error", errEvent);
     });
+    // Boundary stream lifecycle: only sockets with no in-graph sender are
+    // boundary connections (driver-attached and IIP); internal edges
+    // connect once at wire time and their lifecycle is not stream state
+    // (work documents #40, #45)
+    socket.addEventListener("connect", () => {
+      if (socket.from) {
+        return;
+      }
+      this.bufferedEmit("connection", { socket, open: true });
+    });
+    socket.addEventListener("disconnect", () => {
+      if (socket.from) {
+        return;
+      }
+      this.bufferedEmit("connection", { socket, open: false });
+    });
   }
 
   /**
@@ -972,6 +1002,52 @@ export class Network extends EventBase {
         });
       }
       return socket;
+    });
+  }
+
+  /**
+   * Attach a persistent external driver socket to a process inport,
+   * without sending anything. Unlike the IIP path — where each injection
+   * is a self-contained single-packet stream that disconnects after its
+   * packet — the driver socket stays connected: each `send()`/`post()` on
+   * the returned socket delivers through the normal edge path with back
+   * pressure respected, the receiving port stays connected (not at EOT),
+   * and `disconnect()` marks the port at end of transmission, driving the
+   * drain-based network closing cascade. This is the embedder and runtime
+   * lever for boundary end-of-transmission: the boundary owns EOT, and a
+   * driver is how an outside sender exercises it across multiple packets
+   * (work documents #40, #45).
+   *
+   * The caller keeps the returned socket and is responsible for
+   * disconnecting it; a driver left open keeps the network from ending.
+   * Attaching does not change the network's run state.
+   *
+   * @param {{ node: string, port: string, index?: number }} initializer
+   * @param {Object} [options]
+   * @param {Object} [options.metadata]
+   * @returns {Promise<internalSocket.InternalSocket>} The attached driver
+   *   socket
+   */
+  addDriver(initializer, options = {}) {
+    return this.ensureNode(initializer.node, "inbound").then((to) => {
+      const socket = internalSocket.createSocket(options.metadata, {
+        debug: this.debug,
+        async: this.asyncDelivery,
+      });
+
+      // Subscribe to events from the socket
+      this.subscribeSocket(socket);
+
+      return connectPort(
+        socket,
+        to,
+        initializer.port,
+        initializer.index,
+        true,
+      ).then((attached) => {
+        this.connections.push(attached);
+        return attached;
+      });
     });
   }
 
@@ -1303,9 +1379,9 @@ export class Network extends EventBase {
     // #45 review, PR #1092). A boundary input with no external sockets has
     // not spoken yet (its driver may still attach and transmit), so the
     // network stays open.
-    const exports = this.graph.exports().filter(
-      (exp) => exp.direction === "inport",
-    );
+    const exports = this.graph
+      .exports()
+      .filter((exp) => exp.direction === "inport");
     for (const exp of exports) {
       const port =
         this.processes[exp.internal.node]?.component?.inPorts.ports[

@@ -697,6 +697,34 @@ export const CMD_PACKET_SEND = 0x47;
 export const CMD_GET_STATUS = 0x48;
 
 /**
+ * Open a persistent client-driven stream into a running network's inport:
+ * `[0x49, plane_id, port]`. The plane addresses the graph instance (nil =
+ * the main graph); the port is an exported inport name. Unlike the IIP
+ * path of `0x47 CMD_PACKET_SEND` — where each injection is a
+ * self-contained single-packet stream that disconnects after its packet —
+ * the stream keeps the port connected across many `0x47` packets, with
+ * back pressure respected, until the client sends `0x4A CMD_STREAM_EOT`.
+ * A second `0x49` on a port that already has an open stream is rejected
+ * with `REASON.INVALID_STATE`. Requires `LIFECYCLE_CTRL`.
+ *
+ * @type {number}
+ */
+export const CMD_STREAM_OPEN = 0x49;
+
+/**
+ * Signal end of transmission on a client-driven stream: `[0x4A, plane_id,
+ * port]`. The stream opened with `0x49 CMD_STREAM_OPEN` is closed by its
+ * sender: the runtime disconnects the port's driver socket, the boundary
+ * reaches end of transmission, and the network's drain-based closing
+ * cascade runs — in-flight outputs deliver before the network ends. A
+ * `0x4A` on a port without an open stream is rejected with
+ * `REASON.INVALID_STATE`. Requires `LIFECYCLE_CTRL`.
+ *
+ * @type {number}
+ */
+export const CMD_STREAM_EOT = 0x4a;
+
+/**
  * Run states of the `0x48` status reply, in `LIFECYCLE_CODE` vocabulary:
  * a network that never started is `STOPPED`; a rejected start reports
  * `FAILED` until the next attempt.

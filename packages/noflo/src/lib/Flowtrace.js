@@ -36,7 +36,10 @@
  * activation events (`ACTIVATION_BEGIN`, `ACTIVATION_END`) *are* recorded
  * (work document #43): they are what makes trace replay answer "why didn't
  * the network finish" — the last activation that never deactivated is the
- * hung process.
+ * hung process. Boundary stream lifecycle (`CONNECTION_OPEN`,
+ * `CONNECTION_CLOSE`) is recorded too (work documents #40, #45): the
+ * client-driven streams' open and end-of-transmission are part of the
+ * network's story.
  *
  * @type {Record<string, number>}
  */
@@ -47,6 +50,8 @@ export const EVENT_TYPE = {
   ERROR: 0x04,
   CONSOLE: 0x05,
   LIFECYCLE: 0x06,
+  CONNECTION_OPEN: 0x0b,
+  CONNECTION_CLOSE: 0x0c,
   ACTIVATION_BEGIN: 0x0d,
   ACTIVATION_END: 0x0e,
 };
@@ -258,6 +263,28 @@ export class Flowtrace {
    */
   addNetworkStopped(graph) {
     this.#record(EVENT_TYPE.LIFECYCLE, LIFECYCLE_CODE.STOP, { graph });
+  }
+
+  /**
+   * Record a boundary stream lifecycle event: an external sender opened or
+   * closed a stream into one of the graph's inports (`0x0b
+   * CONNECTION_OPEN` / `0x0c CONNECTION_CLOSE`). The sender is outside the
+   * graph, so only the receiving side is identified. Driver-attached
+   * streams and IIP single-packet streams both surface here, making the
+   * boundary end-of-transmission observable in the artifact (work
+   * documents #40, #45).
+   *
+   * @param {string} graph
+   * @param {{ node: string, port: string }|null} target
+   * @param {boolean} open
+   * @returns {void}
+   */
+  addNetworkConnection(graph, target, open) {
+    this.#record(
+      open ? EVENT_TYPE.CONNECTION_OPEN : EVENT_TYPE.CONNECTION_CLOSE,
+      null,
+      { graph, tgt: target ?? null },
+    );
   }
 
   /**

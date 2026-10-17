@@ -30,6 +30,8 @@ import {
   CMD_PROCESS_CTRL,
   CMD_PROCESS_LIST_REQ,
   CMD_RUN_CTRL,
+  CMD_STREAM_EOT,
+  CMD_STREAM_OPEN,
   COMPONENT_TYPE,
   EVENT_TYPE,
   EXECUTION_STATE,
@@ -41,6 +43,7 @@ import {
   RUN_ACTION,
   RUN_STATE,
 } from "@noflo/fbp-protocol";
+import { IP } from "@noflo/noflo";
 import { checkPacketGuard } from "./guards.js";
 
 /**
@@ -67,6 +70,16 @@ export class ExecutionProtocol {
    */
   /** @type {Map<string|number, import("./network-host.js").NetworkHost>} */
   #planeHosts = new Map();
+
+  /**
+   * Client-driven streams: one driver socket per plane-and-port, keyed as
+   * `${planeId ?? "main"}::${port}`. The value is the `addDriver` promise;
+   * senders await it so a stream opened and immediately used does not
+   * race the socket attach.
+   *
+   * @type {Map<string, Promise<import("@noflo/noflo").internalSocket.InternalSocket>>}
+   */
+  #drivers = new Map();
 
   constructor(options) {
     this.host = options.host;
@@ -148,95 +161,170 @@ export class ExecutionProtocol {
       this.#engineGap("per-process disable", decoded, context);
     });
     server.registerHandler(CMD_PACKET_SEND, (decoded, context) => {
-      const planeId = decoded.planeId;
-      const isMain = planeId === null || planeId === undefined;
-      const network = isMain
-        ? this.host.network
-        : this.#planeHosts.get(planeId)?.network;
-      if (!network) {
-        server.send(
-          encodeOpRejected({
-            rejectedCmd: CMD_PACKET_SEND,
-            planeId: planeId ?? null,
-            detail: {
-              reason: REASON.INVALID_STATE,
-              message: "plane network not running",
-            },
-          }),
-          context,
-        );
-        return;
-      }
-      const model = isMain
-        ? this.host.graph
-        : this.graphProtocol?.getPlane(planeId)?.model;
-      if (!model) {
-        server.send(
-          encodeOpRejected({
-            rejectedCmd: CMD_PACKET_SEND,
-            planeId: planeId ?? null,
-            detail: {
-              reason: REASON.UNKNOWN_TARGET,
-              message: "plane model not found",
-            },
-          }),
-          context,
-        );
-        return;
-      }
-      const target = this.#resolveExport(model, decoded.port);
-      if (!target) {
-        server.send(
-          encodeOpRejected({
-            rejectedCmd: CMD_PACKET_SEND,
-            planeId: planeId ?? null,
-            detail: {
-              reason: REASON.UNKNOWN_TARGET,
-              message: `no exported inport named ${decoded.port}`,
-            },
-          }),
-          context,
-        );
-        return;
-      }
-      // Tier A guard diagnostics: comparison-only, diagnostic-only — the
-      // packet is delivered regardless (work document #37 §6)
-      const guardVerdict = checkPacketGuard({
-        resolveSignature: this.signatureResolver,
-        component: isMain
-          ? (this.host.graph.node(target.node)?.component ?? "")
-          : (this.graphProtocol?.getPlane(planeId)?.model?.node(target.node)
-              ?.component ?? ""),
-        port: target.port,
-        isInport: true,
-        value: decoded.payload,
-      });
-      if (guardVerdict.checked && !guardVerdict.ok) {
-        this.onGuardViolation?.({
-          opType: CMD_PACKET_SEND,
-          entityId: null,
-          detail: guardVerdict.detail ?? "value fails the port's guard",
-        });
-      }
-      network
-        .addInitial({
-          entity_id: `packet-send-${++ExecutionProtocol.#packetSeq}`,
-          from: { data: decoded.payload },
-          to: { node: target.node, port: target.port },
-        })
-        .catch((/** @type {any} */ err) => {
-          server.send(
-            encodeOpRejected({
-              rejectedCmd: CMD_PACKET_SEND,
-              planeId: planeId ?? null,
-              detail: {
-                reason: REASON.INVALID_STATE,
-                message: err?.message ?? "injection failed",
-              },
-            }),
-            context,
+      this.#withStreamTarget(
+        server,
+        context,
+        CMD_PACKET_SEND,
+        decoded.planeId,
+        decoded.port,
+        (network, target, planeId) => {
+          // Tier A guard diagnostics: comparison-only, diagnostic-only —
+          // the packet is delivered regardless (work document #37 §6)
+          const guardVerdict = checkPacketGuard({
+            resolveSignature: this.signatureResolver,
+            component: this.#targetComponent(decoded.planeId, target),
+            port: target.port,
+            isInport: true,
+            value: decoded.payload,
+          });
+          if (guardVerdict.checked && !guardVerdict.ok) {
+            this.onGuardViolation?.({
+              opType: CMD_PACKET_SEND,
+              entityId: null,
+              detail: guardVerdict.detail ?? "value fails the port's guard",
+            });
+          }
+          const driver = this.#drivers.get(
+            this.#driverKey(planeId, decoded.port),
           );
-        });
+          if (driver) {
+            // A client-driven stream is open on this port: the packet
+            // flows through the driver socket — the port stays connected,
+            // back pressure respected, until the client sends EOT
+            driver
+              .then((socket) => socket.post(new IP("data", decoded.payload)))
+              .catch((/** @type {any} */ err) => {
+                server.send(
+                  encodeOpRejected({
+                    rejectedCmd: CMD_PACKET_SEND,
+                    planeId: planeId ?? null,
+                    detail: {
+                      reason: REASON.INVALID_STATE,
+                      message: err?.message ?? "stream send failed",
+                    },
+                  }),
+                  context,
+                );
+              });
+            return;
+          }
+          network
+            .addInitial({
+              entity_id: `packet-send-${++ExecutionProtocol.#packetSeq}`,
+              from: { data: decoded.payload },
+              to: { node: target.node, port: target.port },
+            })
+            .catch((/** @type {any} */ err) => {
+              server.send(
+                encodeOpRejected({
+                  rejectedCmd: CMD_PACKET_SEND,
+                  planeId: planeId ?? null,
+                  detail: {
+                    reason: REASON.INVALID_STATE,
+                    message: err?.message ?? "injection failed",
+                  },
+                }),
+                context,
+              );
+            });
+        },
+      );
+    });
+    server.registerHandler(CMD_STREAM_OPEN, (decoded, context) => {
+      this.#withStreamTarget(
+        server,
+        context,
+        CMD_STREAM_OPEN,
+        decoded.planeId,
+        decoded.port,
+        (network, target, planeId) => {
+          const key = this.#driverKey(planeId, decoded.port);
+          if (this.#drivers.has(key)) {
+            server.send(
+              encodeOpRejected({
+                rejectedCmd: CMD_STREAM_OPEN,
+                planeId: planeId ?? null,
+                detail: {
+                  reason: REASON.INVALID_STATE,
+                  message: "a client stream is already open on that port",
+                },
+              }),
+              context,
+            );
+            return;
+          }
+          const attached = network
+            .addDriver({ node: target.node, port: target.port })
+            .then((socket) => {
+              // The stream opens at attach: the boundary socket connects,
+              // the port leaves the fresh state, and the network's end
+              // predicate sees an open external sender
+              socket.connect();
+              return socket;
+            })
+            .catch((/** @type {any} */ err) => {
+              this.#drivers.delete(key);
+              server.send(
+                encodeOpRejected({
+                  rejectedCmd: CMD_STREAM_OPEN,
+                  planeId: planeId ?? null,
+                  detail: {
+                    reason: REASON.INVALID_STATE,
+                    message: err?.message ?? "stream open failed",
+                  },
+                }),
+                context,
+              );
+              return null;
+            });
+          this.#drivers.set(key, attached);
+        },
+      );
+    });
+    server.registerHandler(CMD_STREAM_EOT, (decoded, context) => {
+      this.#withStreamTarget(
+        server,
+        context,
+        CMD_STREAM_EOT,
+        decoded.planeId,
+        decoded.port,
+        (_network, _target, planeId) => {
+          const key = this.#driverKey(planeId, decoded.port);
+          const driver = this.#drivers.get(key);
+          if (!driver) {
+            server.send(
+              encodeOpRejected({
+                rejectedCmd: CMD_STREAM_EOT,
+                planeId: planeId ?? null,
+                detail: {
+                  reason: REASON.INVALID_STATE,
+                  message: "no open client stream on that port",
+                },
+              }),
+              context,
+            );
+            return;
+          }
+          // Delete the registration first: a send racing the EOT falls
+          // back to the IIP path rather than resurrecting a closing stream
+          this.#drivers.delete(key);
+          driver
+            .then((socket) => socket.disconnect())
+            .catch((/** @type {any} */ err) => {
+              server.send(
+                encodeOpRejected({
+                  rejectedCmd: CMD_STREAM_EOT,
+                  planeId: planeId ?? null,
+                  detail: {
+                    reason: REASON.INVALID_STATE,
+                    message: err?.message ?? "stream close failed",
+                  },
+                }),
+                context,
+              );
+            });
+        },
+      );
     });
     server.registerHandler(CMD_GET_STATUS, async (_decoded, context) => {
       const network = this.host.network;
@@ -342,6 +430,101 @@ export class ExecutionProtocol {
       }
     }
     return null;
+  }
+
+  /**
+   * Resolve a plane-and-port pair to the network and the owning node,
+   * rejecting on the wire when either is missing. Shared by the
+   * packet-send and client-driven stream commands.
+   *
+   * @param {import("./runtime-server.js").RuntimeServer} server
+   * @param {any} context
+   * @param {number} rejectedCmd
+   * @param {string|number|null|undefined} planeId
+   * @param {string} port
+   * @param {(network: any, target: { node: string, port: string }, planeId: string|number|null) => void} fn
+   * @returns {void}
+   */
+  #withStreamTarget(server, context, rejectedCmd, planeId, port, fn) {
+    const isMain = planeId === null || planeId === undefined;
+    const network = isMain
+      ? this.host.network
+      : this.#planeHosts.get(planeId)?.network;
+    if (!network) {
+      server.send(
+        encodeOpRejected({
+          rejectedCmd,
+          planeId: planeId ?? null,
+          detail: {
+            reason: REASON.INVALID_STATE,
+            message: "plane network not running",
+          },
+        }),
+        context,
+      );
+      return;
+    }
+    const model = isMain
+      ? this.host.graph
+      : this.graphProtocol?.getPlane(planeId)?.model;
+    if (!model) {
+      server.send(
+        encodeOpRejected({
+          rejectedCmd,
+          planeId: planeId ?? null,
+          detail: {
+            reason: REASON.UNKNOWN_TARGET,
+            message: "plane model not found",
+          },
+        }),
+        context,
+      );
+      return;
+    }
+    const target = this.#resolveExport(model, port);
+    if (!target) {
+      server.send(
+        encodeOpRejected({
+          rejectedCmd,
+          planeId: planeId ?? null,
+          detail: {
+            reason: REASON.UNKNOWN_TARGET,
+            message: `no exported inport named ${port}`,
+          },
+        }),
+        context,
+      );
+      return;
+    }
+    fn(network, target, isMain ? null : planeId);
+  }
+
+  /**
+   * The owning component name of a resolved target, for guard checks.
+   *
+   * @param {string|number|null|undefined} planeId
+   * @param {{ node: string, port: string }} target
+   * @returns {string}
+   */
+  #targetComponent(planeId, target) {
+    if (planeId === null || planeId === undefined) {
+      return this.host.graph.node(target.node)?.component ?? "";
+    }
+    return (
+      this.graphProtocol?.getPlane(planeId)?.model?.node(target.node)
+        ?.component ?? ""
+    );
+  }
+
+  /**
+   * The client-stream registry key for a plane-and-port pair.
+   *
+   * @param {string|number|null|undefined} planeId
+   * @param {string} port
+   * @returns {string}
+   */
+  #driverKey(planeId, port) {
+    return `${planeId === null || planeId === undefined ? "main" : planeId}::${port}`;
   }
 
   /**

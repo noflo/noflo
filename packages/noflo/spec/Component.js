@@ -3361,7 +3361,11 @@ describe("Component", () => {
       sin3.post(new noflo.IP("data", true));
       await waitFor(() => count === dcount);
       assert.ok(ticks >= 3, "the ticks emitted");
-      assert.strictEqual(count - dcount, 0, "the held activation closed on stop");
+      assert.strictEqual(
+        count - dcount,
+        0,
+        "the held activation closed on stop",
+      );
     });
     it("should emit end event when stopped and no activate after it", (_t, done) => {
       listen(c, "end", () => {

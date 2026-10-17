@@ -316,6 +316,26 @@
       },
       "x-capability": "GRAPH_READ (0x01)"
     },
+    "cmd/0x49": {
+      "description": "Client → runtime: open a persistent client-driven stream into an exported inport; packets follow via 0x47 until the client sends 0x4A (work documents #40, #45).",
+      "subscribe": {
+        "operationId": "streamOpen",
+        "message": {
+          "$ref": "#/components/messages/streamOpen"
+        }
+      },
+      "x-capability": "LIFECYCLE_CTRL (0x40)"
+    },
+    "cmd/0x4a": {
+      "description": "Client → runtime: end of transmission on a client-driven stream — the boundary disconnects and the drain-based closing cascade runs (work documents #40, #45).",
+      "subscribe": {
+        "operationId": "streamEot",
+        "message": {
+          "$ref": "#/components/messages/streamEot"
+        }
+      },
+      "x-capability": "LIFECYCLE_CTRL (0x40)"
+    },
     "cmd/0x26": {
       "description": "Client → runtime: read a component source from the runtime (the read counterpart of 0x25 — pulls source from embedded devices, syncs a project back). Runtime → client: the source, or nil when the runtime holds none (native/hardware components).",
       "publish": {
@@ -1702,6 +1722,74 @@
           }
         ],
         "x-msgpack-hex": "9447c0a2696ea568656c6c6f",
+        "x-verify": "frame"
+      },
+      "streamOpen": {
+        "name": "streamOpen",
+        "title": "0x49 CMD_STREAM_OPEN",
+        "summary": "Open a persistent client-driven stream into an exported inport.",
+        "description": "Client → runtime: attach a driver socket to the resolved inport — the port stays connected across many 0x47 CMD_PACKET_SEND packets (back pressure respected) until the client sends 0x4A CMD_STREAM_EOT. A duplicate open on a port with an open stream is rejected with 0x17 REASON.INVALID_STATE (work documents #40, #45).",
+        "payload": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": [
+            {
+              "type": "integer",
+              "const": 73,
+              "description": "CMD_STREAM_OPEN"
+            },
+            {
+              "type": ["integer", "string", "null"],
+              "description": "plane_id — nil addresses the main plane"
+            },
+            {
+              "type": "string",
+              "description": "port — exported inport name"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [73, null, "in"]
+          }
+        ],
+        "x-msgpack-hex": "9349c0a2696e",
+        "x-verify": "frame"
+      },
+      "streamEot": {
+        "name": "streamEot",
+        "title": "0x4A CMD_STREAM_EOT",
+        "summary": "Signal end of transmission on a client-driven stream.",
+        "description": "Client → runtime: close the stream opened with 0x49 CMD_STREAM_OPEN — the runtime disconnects the port's driver socket, the boundary reaches end of transmission, and the network's drain-based closing cascade runs. A stray EOT on a port without an open stream is rejected with 0x17 REASON.INVALID_STATE (work documents #40, #45).",
+        "payload": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": [
+            {
+              "type": "integer",
+              "const": 74,
+              "description": "CMD_STREAM_EOT"
+            },
+            {
+              "type": ["integer", "string", "null"],
+              "description": "plane_id — nil addresses the main plane"
+            },
+            {
+              "type": "string",
+              "description": "port — exported inport name"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "name": "decoded",
+            "payload": [74, null, "in"]
+          }
+        ],
+        "x-msgpack-hex": "934ac0a2696e",
         "x-verify": "frame"
       },
       "getStatusReq": {

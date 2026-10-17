@@ -48,6 +48,8 @@ import {
   CMD_SCHEMA_REQ,
   CMD_SCHEMA_RES,
   CMD_SCHEMA_WRITE,
+  CMD_STREAM_EOT,
+  CMD_STREAM_OPEN,
   decodeAnnounceAppData,
   decodeFrame,
   decodeLxmTelemetry,
@@ -136,6 +138,8 @@ const frameEncoders = {
       ? protocol.encodeCompSourceRes(decoded.componentName, decoded.source)
       : protocol.encodeCompSourceReq(decoded.componentName),
   [CMD_PACKET_SEND]: (decoded) => protocol.encodePacketSend(decoded),
+  [CMD_STREAM_OPEN]: (decoded) => protocol.encodeStreamOpen(decoded),
+  [CMD_STREAM_EOT]: (decoded) => protocol.encodeStreamEot(decoded),
   [CMD_GET_STATUS]: (decoded) =>
     decoded.runState !== undefined
       ? protocol.encodeGetStatusRes(decoded)

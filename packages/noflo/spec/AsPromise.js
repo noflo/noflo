@@ -393,16 +393,21 @@ describe("asPromise interface", () => {
         const eventTypes = collectedTrace.chunks.map(([, type]) => type);
         assert.deepStrictEqual(eventTypes, [
           noflo.EVENT_TYPE.LIFECYCLE,
+          noflo.EVENT_TYPE.CONNECTION_OPEN,
           noflo.EVENT_TYPE.DATA,
           noflo.EVENT_TYPE.ACTIVATION_BEGIN,
+          noflo.EVENT_TYPE.CONNECTION_CLOSE,
           noflo.EVENT_TYPE.ACTIVATION_END,
           noflo.EVENT_TYPE.DATA,
           noflo.EVENT_TYPE.LIFECYCLE,
         ]);
-        // The async process function schedules its send via setTimeout, so
-        // the activation closes before the output packet (work document #43).
-        assert.strictEqual(collectedTrace.chunks[1][2], "hello");
-        assert.deepStrictEqual(collectedTrace.chunks[1][3], {
+        // The IIP is a single-packet boundary stream: its connect and its
+        // sender-terminal disconnect frame the delivery as 0x0b/0x0c
+        // (work documents #40, #45). The disconnect is drain-ordered — it
+        // follows the packet through the edge, surfacing between the
+        // process activation's begin and end
+        assert.strictEqual(collectedTrace.chunks[2][2], "hello");
+        assert.deepStrictEqual(collectedTrace.chunks[2][3], {
           graph: "process/Async",
           subgraph: null,
           src: null,
@@ -413,20 +418,20 @@ describe("asPromise interface", () => {
           datatype: null,
           schema: null,
         });
-        assert.deepStrictEqual(collectedTrace.chunks[2][2], [
+        assert.deepStrictEqual(collectedTrace.chunks[3][2], [
           "process/Async",
           1,
         ]);
-        assert.deepStrictEqual(collectedTrace.chunks[2][3], {
+        assert.deepStrictEqual(collectedTrace.chunks[3][3], {
           graph: "process/Async",
           subgraph: null,
         });
-        assert.deepStrictEqual(collectedTrace.chunks[3][2], [
+        assert.deepStrictEqual(collectedTrace.chunks[5][2], [
           "process/Async",
           0,
         ]);
-        assert.strictEqual(collectedTrace.chunks[4][2], "hello");
-        assert.deepStrictEqual(collectedTrace.chunks[4][3], {
+        assert.strictEqual(collectedTrace.chunks[6][2], "hello");
+        assert.deepStrictEqual(collectedTrace.chunks[6][3], {
           graph: "process/Async",
           subgraph: null,
           src: {
@@ -436,6 +441,12 @@ describe("asPromise interface", () => {
           tgt: null,
           datatype: null,
           schema: null,
+        });
+        // The boundary connection events carry the receiving side, the
+        // source nil — the sender is outside the graph
+        assert.deepStrictEqual(collectedTrace.chunks[1][3], {
+          graph: "process/Async",
+          tgt: { node: "process/Async", port: "in" },
         });
       });
     });

@@ -16,6 +16,8 @@ import { asComponent } from "@noflo/as-component";
 import {
   CMD_AUTH_RESPONSE,
   CMD_PROCESS_LIST,
+  CMD_STREAM_EOT,
+  CMD_STREAM_OPEN,
   COMPONENT_TYPE,
   decodeFlowtraceChunk,
   decodeOpRejected,
@@ -25,10 +27,13 @@ import {
   encodeBreakpointClear,
   encodeBreakpointSet,
   encodeHwmSet,
+  encodePacketSend,
   encodeProcessCtrl,
   encodeProcessListReq,
   encodePubsubSub,
   encodeRunCtrl,
+  encodeStreamEot,
+  encodeStreamOpen,
   LIFECYCLE_CODE,
   REASON,
   RUN_ACTION,
@@ -452,5 +457,159 @@ describe("process listing (0x44 CMD_PROCESS_LIST_REQ)", () => {
     } finally {
       await host.stop();
     }
+  });
+});
+
+describe("client-driven streams (0x49 CMD_STREAM_OPEN, 0x4A CMD_STREAM_EOT)", () => {
+  it("holds the boundary open across packets and closes it on EOT", async () => {
+    const { server, telemetry, transport, host } = await wiredServer(
+      async (graph, loader) => {
+        await loader.registerComponent("runtime", "Pass", () =>
+          asComponent(
+            (input, output) => {
+              if (!input.hasData("input")) {
+                return;
+              }
+              output.sendDone({ out: input.getData("input") });
+            },
+            { outPorts: { out: { datatype: "all" } } },
+          ),
+        );
+        graph.addNode({ entity_id: "pass", component: "runtime/Pass" });
+        graph.addExport({
+          entity_id: "exp-in",
+          direction: "inport",
+          public: "in",
+          internal: { node: "pass", port: "input" },
+        });
+      },
+    );
+    server.handleFrame(encodeRunCtrl(RUN_ACTION.START), "link-1");
+    await waitFor(() => host.started, "the network to start");
+
+    // Open the client-driven stream on the exported inport
+    server.handleFrame(
+      encodeStreamOpen({ planeId: null, port: "in" }),
+      "link-1",
+    );
+    await waitFor(() => {
+      telemetry.flushAll();
+      return drain(transport).some(
+        (e) => e.eventType === EVENT_TYPE.CONNECTION_OPEN,
+      );
+    }, "the CONNECTION_OPEN telemetry event");
+    const openEvent = drain(transport).find(
+      (e) => e.eventType === EVENT_TYPE.CONNECTION_OPEN,
+    );
+    assert.deepEqual(openEvent.payload, [null, null, "pass", "input"]);
+
+    // Two packets across time: both delivered, the network stays running
+    server.handleFrame(
+      encodePacketSend({ planeId: null, port: "in", payload: "a" }),
+      "link-1",
+    );
+    await waitFor(() => {
+      telemetry.flushAll();
+      return drain(transport).some(
+        (e) => e.eventType === EVENT_TYPE.DATA && e.payload[2] === "a",
+      );
+    }, "the first packet's DATA event");
+    server.handleFrame(
+      encodePacketSend({ planeId: null, port: "in", payload: "b" }),
+      "link-1",
+    );
+    await waitFor(() => {
+      telemetry.flushAll();
+      return drain(transport).some(
+        (e) => e.eventType === EVENT_TYPE.DATA && e.payload[2] === "b",
+      );
+    }, "the second packet's DATA event");
+    assert.equal(host.started, true, "the stream keeps the network open");
+
+    // The client's end of transmission: the boundary EOT drives the close
+    server.handleFrame(
+      encodeStreamEot({ planeId: null, port: "in" }),
+      "link-1",
+    );
+    await waitFor(() => {
+      telemetry.flushAll();
+      return (
+        drain(transport).some(
+          (e) => e.eventType === EVENT_TYPE.CONNECTION_CLOSE,
+        ) &&
+        drain(transport).some(
+          (e) =>
+            e.eventType === EVENT_TYPE.LIFECYCLE &&
+            e.payload === LIFECYCLE_CODE.STOP,
+        )
+      );
+    }, "the CONNECTION_CLOSE and the drain-based network end");
+    const closeEvent = drain(transport).find(
+      (e) => e.eventType === EVENT_TYPE.CONNECTION_CLOSE,
+    );
+    assert.deepEqual(closeEvent.payload, [null, null, "pass", "input"]);
+  });
+
+  it("rejects a duplicate open and an EOT without an open stream", async () => {
+    const { server, telemetry, transport, host } = await wiredServer(
+      async (graph, loader) => {
+        await loader.registerComponent("runtime", "Pass", () =>
+          asComponent((input) => {
+            void input;
+          }),
+        );
+        graph.addNode({ entity_id: "pass", component: "runtime/Pass" });
+        graph.addExport({
+          entity_id: "exp-in",
+          direction: "inport",
+          public: "in",
+          internal: { node: "pass", port: "input" },
+        });
+      },
+    );
+    await host.start();
+
+    server.handleFrame(
+      encodeStreamOpen({ planeId: null, port: "in" }),
+      "link-1",
+    );
+    await waitFor(() => {
+      telemetry.flushAll();
+      return drain(transport).some(
+        (e) => e.eventType === EVENT_TYPE.CONNECTION_OPEN,
+      );
+    }, "the stream to open");
+
+    server.handleFrame(
+      encodeStreamOpen({ planeId: null, port: "in" }),
+      "link-1",
+    );
+    await waitFor(() => rejections(transport).length > 0, "the rejection");
+    const duplicate = rejections(transport).at(-1);
+    assert.equal(duplicate.rejectedCmd, CMD_STREAM_OPEN);
+    assert.equal(duplicate.detail.reason, REASON.INVALID_STATE);
+
+    server.handleFrame(
+      encodeStreamEot({ planeId: null, port: "in" }),
+      "link-1",
+    );
+    // The first EOT closes the open stream legitimately; a stray EOT is rejected
+    await waitFor(() => {
+      telemetry.flushAll();
+      return drain(transport).some(
+        (e) => e.eventType === EVENT_TYPE.CONNECTION_CLOSE,
+      );
+    }, "the stream to close");
+    server.handleFrame(
+      encodeStreamEot({ planeId: null, port: "in" }),
+      "link-1",
+    );
+    await waitFor(
+      () => rejections(transport).length > 1,
+      "the stray EOT to reject",
+    );
+    const stray = rejections(transport).at(-1);
+    assert.equal(stray.rejectedCmd, CMD_STREAM_EOT);
+    assert.equal(stray.detail.reason, REASON.INVALID_STATE);
   });
 });

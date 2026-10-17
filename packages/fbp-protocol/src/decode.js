@@ -43,6 +43,8 @@ import {
   CMD_SCHEMA_REQ,
   CMD_SCHEMA_RES,
   CMD_SCHEMA_WRITE,
+  CMD_STREAM_EOT,
+  CMD_STREAM_OPEN,
   REASON,
 } from "./constants.js";
 import {
@@ -56,6 +58,8 @@ import {
   decodeProcessList,
   decodeProcessListReq,
   decodeRunCtrl,
+  decodeStreamEot,
+  decodeStreamOpen,
 } from "./debug.js";
 import { ProtocolError } from "./errors.js";
 import {
@@ -180,6 +184,10 @@ export function decodeFrame(bytes) {
       return decodeProcessList(bytes);
     case CMD_HWM_SET:
       return decodeHwmSet(bytes);
+    case CMD_STREAM_OPEN:
+      return decodeStreamOpen(bytes);
+    case CMD_STREAM_EOT:
+      return decodeStreamEot(bytes);
     default: {
       // Machine-distinguishable for receivers (work document #4 update
       // #43): an unrecognized opcode answers REASON.UNKNOWN_COMMAND, a

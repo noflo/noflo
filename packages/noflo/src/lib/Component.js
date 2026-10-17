@@ -192,7 +192,6 @@ export class Component extends EventBase {
      */
     this.autoOrdering = opts.autoOrdering != null ? opts.autoOrdering : null;
 
-
     // Queue for handling ordered output packets
     /**
      * Output queue for ordered components, drained by {@link Component#processOutputQueue}
@@ -523,12 +522,8 @@ export class Component extends EventBase {
       // The port's connect/disconnect lifecycle events carry transmission
       // semantics: disconnect is the sender's terminal close, connect a new
       // transmission re-opening the input (work document #40 update #5)
-      port.addEventListener("disconnect", () =>
-        this.#handleInputStateChange(),
-      );
-      port.addEventListener("connect", () =>
-        this.#handleInputStateChange(),
-      );
+      port.addEventListener("disconnect", () => this.#handleInputStateChange());
+      port.addEventListener("connect", () => this.#handleInputStateChange());
     });
     Object.keys(this.outPorts.ports).forEach((name) => {
       const port = /** @type {import("./OutPort.js").default} */ (

@@ -25,6 +25,8 @@ import {
   CMD_PROCESS_LIST,
   CMD_PROCESS_LIST_REQ,
   CMD_RUN_CTRL,
+  CMD_STREAM_EOT,
+  CMD_STREAM_OPEN,
   COMPONENT_TYPE,
   EXECUTION_STATE,
   PROCESS_ACTION,
@@ -498,6 +500,74 @@ export function decodePacketSend(bytes) {
     throw new ProtocolError("port must be a non-empty string", cmd);
   }
   return { cmd: CMD_PACKET_SEND, planeId, port, payload };
+}
+
+/**
+ * Encode a `0x49 CMD_STREAM_OPEN`: `[0x49, plane_id, port]` — the client
+ * opens a persistent stream into an exported inport; packets follow via
+ * `0x47 CMD_PACKET_SEND` until the client sends `0x4A CMD_STREAM_EOT`
+ * (work documents #40, #45). Requires `LIFECYCLE_CTRL`.
+ *
+ * @param {object} options
+ * @param {number|string|null} options.planeId
+ * @param {string} options.port
+ * @returns {Uint8Array}
+ */
+export function encodeStreamOpen({ planeId, port }) {
+  if (typeof port !== "string" || port.length === 0) {
+    throw new ProtocolError("port must be a non-empty string", CMD_STREAM_OPEN);
+  }
+  return MsgPack.encode([CMD_STREAM_OPEN, planeId, port]);
+}
+
+/**
+ * Decode a `0x49 CMD_STREAM_OPEN`.
+ *
+ * @param {Uint8Array} bytes
+ * @returns {{ cmd: number, planeId: number|string|null, port: string }}
+ */
+export function decodeStreamOpen(bytes) {
+  const frame = MsgPack.decode(bytes);
+  expectFrame(frame, CMD_STREAM_OPEN, 3);
+  const [cmd, planeId, port] = frame;
+  if (typeof port !== "string" || port.length === 0) {
+    throw new ProtocolError("port must be a non-empty string", cmd);
+  }
+  return { cmd: CMD_STREAM_OPEN, planeId, port };
+}
+
+/**
+ * Encode a `0x4A CMD_STREAM_EOT`: `[0x4A, plane_id, port]` — the client's
+ * stream into an exported inport is done; the runtime disconnects the
+ * port's driver socket and the boundary reaches end of transmission (work
+ * documents #40, #45). Requires `LIFECYCLE_CTRL`.
+ *
+ * @param {object} options
+ * @param {number|string|null} options.planeId
+ * @param {string} options.port
+ * @returns {Uint8Array}
+ */
+export function encodeStreamEot({ planeId, port }) {
+  if (typeof port !== "string" || port.length === 0) {
+    throw new ProtocolError("port must be a non-empty string", CMD_STREAM_EOT);
+  }
+  return MsgPack.encode([CMD_STREAM_EOT, planeId, port]);
+}
+
+/**
+ * Decode a `0x4A CMD_STREAM_EOT`.
+ *
+ * @param {Uint8Array} bytes
+ * @returns {{ cmd: number, planeId: number|string|null, port: string }}
+ */
+export function decodeStreamEot(bytes) {
+  const frame = MsgPack.decode(bytes);
+  expectFrame(frame, CMD_STREAM_EOT, 3);
+  const [cmd, planeId, port] = frame;
+  if (typeof port !== "string" || port.length === 0) {
+    throw new ProtocolError("port must be a non-empty string", cmd);
+  }
+  return { cmd: CMD_STREAM_EOT, planeId, port };
 }
 
 /**

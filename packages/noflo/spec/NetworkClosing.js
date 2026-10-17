@@ -131,12 +131,7 @@ describe("drain-based network closing", () => {
     assert.equal(network.isStarted(), false);
     // Both bursts' outputs delivered, each followed by the per-cycle
     // output close: the revive did not strand or reorder them
-    assert.deepEqual(outLog, [
-      "data a",
-      "disconnect",
-      "data b",
-      "disconnect",
-    ]);
+    assert.deepEqual(outLog, ["data a", "disconnect", "data b", "disconnect"]);
   });
 
   it("ends a feedback graph whose cycle targets an exported inport", async () => {
@@ -291,6 +286,78 @@ describe("drain-based network closing", () => {
     // wrapper-closedown pair is ordered by listener registration — the
     // wrapper's closedown is dispatched within the inner end's dispatch —
     // so only their membership is asserted.)
-    assert.deepEqual(log.sort(), ["inner end", "outer end", "wrapper closedown"]);
+    assert.deepEqual(log.sort(), [
+      "inner end",
+      "outer end",
+      "wrapper closedown",
+    ]);
+  });
+
+  it("a client-driven driver stream holds the network open until its EOT", async () => {
+    // The remote-runtime scenario (work document #40): a client attaches a
+    // persistent driver to the exported inport, sends packets across time
+    // without the network ending between them, then signals end of
+    // transmission — the boundary EOT drives the drain-based close
+    const graph = new noflo.GraphModel({ name: "driver" });
+    graph.addNode({ entity_id: "Pass", component: "closing/Pass" });
+    graph.addExport({
+      direction: "inport",
+      public: "in",
+      internal: { node: "Pass", port: "in" },
+    });
+    const network = await noflo.createNetwork(graph, {
+      componentLoader: await (async () => {
+        const loader = new noflo.ComponentLoader({});
+        loader.registerComponent("closing", "Pass", () => {
+          const c = new noflo.Component();
+          c.inPorts.add("in", { datatype: "all" });
+          c.outPorts.add("out", { datatype: "all" });
+          c.process((input, output) => {
+            if (!input.hasData("in")) {
+              return;
+            }
+            output.sendDone({ out: input.getData("in") });
+          });
+          return c;
+        });
+        return loader;
+      })(),
+      delay: true,
+    });
+    await network.connect();
+    const outLog = [];
+    const out = noflo.internalSocket.createSocket();
+    network.getNode("Pass").component.outPorts.ports.out.attach(out);
+    out.addEventListener("ip", (event) => {
+      if (event.detail.type === "data") {
+        outLog.push(event.detail.data);
+      }
+    });
+    const connections = [];
+    network.addEventListener("connection", (event) => {
+      connections.push(event.detail.open ? "open" : "close");
+    });
+    await network.start();
+    const driver = await network.addDriver({ node: "Pass", port: "in" });
+    driver.connect();
+    driver.post(new noflo.IP("data", "a"));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    driver.post(new noflo.IP("data", "b"));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    // The stream is still open: the network has not ended between packets
+    assert.equal(network.isStarted(), true);
+    assert.deepEqual(outLog, ["a", "b"]);
+    assert.deepEqual(connections, ["open"]);
+    // The client's end of transmission: the boundary EOT drives the close
+    await driver.disconnect();
+    await new Promise((resolve) => {
+      const timer = setTimeout(resolve, 3000);
+      network.addEventListener("end", () => {
+        clearTimeout(timer);
+        resolve();
+      });
+    });
+    assert.equal(network.isStarted(), false);
+    assert.deepEqual(connections, ["open", "close"]);
   });
 });

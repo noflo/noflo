@@ -175,7 +175,14 @@ export class NetworkHost extends EventTarget {
    * @returns {void}
    */
   #subscribeNetwork(network) {
-    for (const type of ["start", "end", "ip", "process-error", "icon"]) {
+    for (const type of [
+      "start",
+      "end",
+      "ip",
+      "connection",
+      "process-error",
+      "icon",
+    ]) {
       network.addEventListener(type, (/** @type {any} */ event) => {
         this.#emit(type, event.detail);
       });

@@ -81,6 +81,8 @@ export {
   CMD_SCHEMA_REQ,
   CMD_SCHEMA_RES,
   CMD_SCHEMA_WRITE,
+  CMD_STREAM_EOT,
+  CMD_STREAM_OPEN,
   COMPONENT_TYPE,
   capabilitiesMask,
   EVENT_TYPE,
@@ -110,6 +112,8 @@ export {
   decodeProcessList,
   decodeProcessListReq,
   decodeRunCtrl,
+  decodeStreamEot,
+  decodeStreamOpen,
   encodeBreakpointClear,
   encodeBreakpointSet,
   encodeGetStatus,
@@ -120,6 +124,8 @@ export {
   encodeProcessList,
   encodeProcessListReq,
   encodeRunCtrl,
+  encodeStreamEot,
+  encodeStreamOpen,
 } from "./debug.js";
 export { decodeFrame } from "./decode.js";
 export { ProtocolError } from "./errors.js";

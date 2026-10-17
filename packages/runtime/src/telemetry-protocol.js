@@ -129,6 +129,9 @@ export class TelemetryProtocol {
     this.host.addEventListener("ip", (/** @type {any} */ event) => {
       this.#recordIp(event.detail);
     });
+    this.host.addEventListener("connection", (/** @type {any} */ event) => {
+      this.#recordConnection(event.detail);
+    });
     this.host.addEventListener("process-error", (/** @type {any} */ event) => {
       this.#recordError(event.detail);
     });
@@ -187,6 +190,9 @@ export class TelemetryProtocol {
     host.addEventListener("ip", (/** @type {any} */ event) => {
       this.#recordIp(event.detail, currentPlane);
     });
+    host.addEventListener("connection", (/** @type {any} */ event) => {
+      this.#recordConnection(event.detail, currentPlane);
+    });
     host.addEventListener("process-error", (/** @type {any} */ event) => {
       this.#recordError(event.detail, currentPlane);
     });
@@ -231,6 +237,26 @@ export class TelemetryProtocol {
         // events.
         break;
     }
+  }
+
+  /**
+   * Record one boundary stream lifecycle event: an external sender opened
+   * or closed a stream into one of the graph's inports (`0x0b
+   * CONNECTION_OPEN` / `0x0c CONNECTION_CLOSE`). The wire payload is the
+   * positional tuple `[src_node, src_port, tgt_node, tgt_port]` with a nil
+   * source — the sender is outside the graph (work documents #40, #45).
+   *
+   * @param {any} detail
+   * @param {string|number|null} [planeId]
+   * @returns {void}
+   */
+  #recordConnection(detail, planeId = null) {
+    const to = detail?.socket?.to;
+    this.record(
+      detail?.open ? EVENT_TYPE.CONNECTION_OPEN : EVENT_TYPE.CONNECTION_CLOSE,
+      [null, null, to?.process?.id ?? null, to?.port ?? null],
+      planeId,
+    );
   }
 
   /**

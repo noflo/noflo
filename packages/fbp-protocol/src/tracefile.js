@@ -226,17 +226,16 @@ export function assembleTraceFileFromRecorder(state) {
           if (
             (tuple[1] === EVENT_TYPE.CONNECTION_OPEN ||
               tuple[1] === EVENT_TYPE.CONNECTION_CLOSE) &&
-            meta?.src &&
-            meta?.tgt
+            (meta?.src || meta?.tgt)
           ) {
             return {
               timeDeltaMs: tuple[0],
               eventType: tuple[1],
               payload: [
-                meta.src.node,
-                meta.src.port,
-                meta.tgt.node,
-                meta.tgt.port,
+                meta.src?.node ?? null,
+                meta.src?.port ?? null,
+                meta.tgt?.node ?? null,
+                meta.tgt?.port ?? null,
               ],
             };
           }
