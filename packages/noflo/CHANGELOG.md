@@ -5,7 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-
+### Added
+- Per-run initial re-delivery and cycle-graph delivery counts pinned by spec (`spec/InitialRedelivery.js`): a cycle's packet delivers exactly once per arrival per run (the IIP and its echo — two arrivals, no duplication), an explicit restart re-posts the graph's IIPs (per-run semantics, the work document #45 gate 3 design decision), and component instance state persists across restarts. Instrumented investigation of the PR #1092 review's cycle-graph observations found no genuine duplication or fan-out miss against current master (work document #46)
 ## [2.0.0-alpha.8] - 2026-10-17
 ### Changed
 - Drain-based network closing (work document #45): the quiet-window timer is replaced by boundary-owned end-of-transmission. A network ends when every boundary input is at end of transmission and the network is quiescent — no open activations, no packet in flight on any edge. Internal edges and cycles need no closedown: a quiescent network with all sources finished is absorbing (no future event can occur inside it). Networks with live boundary drivers — long-running graphs, remote subgraphs, generators — never end from internal quiet; the boundary owns end-of-transmission
