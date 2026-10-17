@@ -209,6 +209,22 @@ export function asAssembly(inner, options) {
     }
   }
 
+  // The result collector merges the original message with the mapped
+  // inner outputs; the fanout feeds it the originating message. The
+  // collector fires when every mapped field delivered, or when the inner
+  // signalled an error instead (work document #36: components signal
+  // failure through the error port instead of their data outports).
+  // Declared before the extractors so their error legs can wire into it
+  const fieldNames = Object.values(outMapping);
+  graph.addNode({
+    entity_id: "collector",
+    component: "assembly-utils/CollectFields",
+  });
+  graph.addIIP({
+    data: JSON.stringify(fieldNames),
+    to: { node: "collector", port: "fields" },
+  });
+
   // Field extractors per mapped inner inport
   for (const [innerPort, field] of Object.entries(inMapping)) {
     if (field === null) {
@@ -234,23 +250,18 @@ export function asAssembly(inner, options) {
       from: { node: extractNode, port: "out" },
       to: { node: "inner", port: innerPort },
     });
+    // An extractor's error — a message lacking the mapped field —
+    // accumulates into the collector's error path, so the malformed
+    // message completes on the error leg instead of stranding the
+    // collector's wait for a field that will never deliver (work
+    // document #35 update #13, question (b))
+    graph.addEdge({
+      from: { node: extractNode, port: "error" },
+      to: { node: "collector", port: "error" },
+    });
     mergeIndex += 1;
   }
 
-  // The result collector merges the original message with the mapped
-  // inner outputs; the fanout feeds it the originating message. The
-  // collector fires when every mapped field delivered, or when the inner
-  // signalled an error instead (work document #36: components signal
-  // failure through the error port instead of their data outports)
-  const fieldNames = Object.values(outMapping);
-  graph.addNode({
-    entity_id: "collector",
-    component: "assembly-utils/CollectFields",
-  });
-  graph.addIIP({
-    data: JSON.stringify(fieldNames),
-    to: { node: "collector", port: "fields" },
-  });
   graph.addEdge({
     from: { node: "fanout", port: "out", index: mergeIndex },
     to: { node: "collector", port: "msg" },

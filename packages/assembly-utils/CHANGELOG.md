@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- `ExtractField` signals a missing mapped field on the `error` outport instead of silently delivering `undefined`: the generated adapter graphs wire the extractor's error leg into the collector's error accumulation, so a message lacking a required field completes on the error leg with the failure recorded, rather than crashing the inner component on a null deref. A field that is present with a `null` value is a value and delivers (work document #35 update #13, question (b))
+### Documented
+- `CollectFields`: the error contract is normative in the component docs — the inner's `error` port is the message's terminal event for its scope (the collector fires with the errors and whatever fields delivered); inner data arriving after the error for the same scope has no collector waiting and surfaces in the shutdown diagnostics. Pairing is per scope via the scope-aware has-checks (work document #35 update #13, question (c))
 
 ## [2.0.0-alpha.9] - 2026-10-17
 
