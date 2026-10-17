@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.0.0-alpha.10] - 2026-10-17
 ### Changed
 - `ExtractField` signals a missing mapped field on the `error` outport instead of silently delivering `undefined`: the generated adapter graphs wire the extractor's error leg into the collector's error accumulation, so a message lacking a required field completes on the error leg with the failure recorded, rather than crashing the inner component on a null deref. A field that is present with a `null` value is a value and delivers (work document #35 update #13, question (b))
 ### Documented

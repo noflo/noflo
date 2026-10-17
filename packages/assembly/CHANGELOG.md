@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.0.0-alpha.10] - 2026-10-17
 ### Changed
 - `asAssembly` generated graphs wire each field extractor's `error` outport into the result collector's error accumulation, so an extractor's missing-field failure completes the message on the error leg instead of stranding the collector's wait for a field that will never deliver (work document #35 update #13)
 

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.0.0-alpha.10] - 2026-10-17
+
 ## [2.0.0-alpha.9] - 2026-10-17
 ### Added
 - The tracefile event vocabulary gains `0x0f STRANDED`: bracket framing buffered on an input port whose senders have all terminally disconnected, reported at the moment it became inevitable. Payload: the flat tuple `[tgt_node, tgt_port, scope|null, open_count, close_count]` (work document #40 update #13)

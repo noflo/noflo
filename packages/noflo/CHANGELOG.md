@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.0.0-alpha.10] - 2026-10-17
 ### Changed
 - One firing rule for all ports: an arrival on any port re-fires the process once per scope that holds unprocessed input on any non-control port — control buffers are standing state — with the arriving IP — stamped to the firing scope — as the activation's context. The firing predicate is any buffered IP in the scope (data and brackets both); control ports keep their buffering semantics (non-consuming reads, the standing stream) and lose their firing role — their buffers are standing state, never pending work; forwarding inports are exempt (the forwarding machinery owns their brackets). Control-port arrivals no longer fire a scopeless activation that could not see scoped buffers — standing configuration arriving after scoped messages now re-fires the waiting processes instead of stranding them (the shape that stranded burst messages behind late-arriving configuration in wrapped-adapter pipelines; found by the noflo-jekyll burst investigation, work documents #35/#36). The 1.x `triggering` port option is removed from the typed and documented option set (work document #47, delivering the semantics trustmaster articulated in the noflo/noflo#607 discussion); a source still declaring it passes it through as an unknown key and it does nothing. The determinism contract — identical results under every arrival-order permutation — is pinned by `spec/FiringModel.js`
 
