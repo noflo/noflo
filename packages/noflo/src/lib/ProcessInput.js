@@ -169,7 +169,7 @@ export default class ProcessInput {
         }
         const portIdx =
           typeof port[1] === "string" ? parseInt(port[1], 10) : port[1];
-        if (!portImpl.has(this.scope, portIdx, validate)) {
+        if (!portImpl.has(this.scope, portIdx, () => validate)) {
           return false;
         }
       } else if (typeof port === "string") {
@@ -184,7 +184,10 @@ export default class ProcessInput {
             `For addressable ports, access must be with array [${port}, idx]`,
           );
         }
-        if (!portImpl.has(this.scope, validate)) {
+        // The validator travels as a factory: InPort.has walks the
+        // regular and IIP buffers with fresh framing state each (work
+        // document #47)
+        if (!portImpl.has(this.scope, null, () => validate)) {
           return false;
         }
       } else {
@@ -276,27 +279,47 @@ export default class ProcessInput {
           return false;
         };
       };
+      // The validator travels as a factory for every walk InPort.has
+      // performs: the regular and IIP buffers get fresh framing state
+      // each (work document #47)
       if (typeof port === "string") {
-        // Control-port streams take the framing-aware completeness
-        // check; the plain has() wrapper on them reports data presence,
-        // not stream completion (work document #47). Addressable
-        // access keeps the plain path
         const portImpl = /** @type {import("./InPort.js").default} */ (
           this.ports.ports[port]
         );
-        if (portImpl && !portImpl.isAddressable() && portImpl.options.control) {
+        if (!portImpl) {
+          throw new Error(this.#missingPortMessage(port));
+        }
+        if (portImpl.options.control && !portImpl.isAddressable()) {
+          // Control-port streams take the framing-aware completeness
+          // check; the plain has() wrapper on them reports data
+          // presence, not stream completion (work document #47)
           if (!portImpl.hasStream(this.scope, makeValidate)) {
             return false;
           }
           continue;
         }
-        if (portImpl?.isAddressable() && portImpl.options.control) {
+        if (portImpl.options.control && portImpl.isAddressable()) {
           debugStream(
             `${this.nodeInstance?.nodeId ?? ""} stream-completeness gating on addressable control port '${port}' is not supported: the data-presence check cannot see the stream's framing`,
           );
         }
+        if (!portImpl.has(this.scope, null, makeValidate)) {
+          return false;
+        }
+        continue;
       }
-      if (!this.has(port, makeValidate())) {
+      const portRef = /** @type {Array<string|number>} */ (port);
+      const portImpl = /** @type {import("./InPort.js").default} */ (
+        this.ports.ports[portRef[0]]
+      );
+      if (!portImpl) {
+        throw new Error(
+          this.#missingPortMessage(/** @type {string} */ (portRef[0])),
+        );
+      }
+      const portIdx =
+        typeof portRef[1] === "string" ? parseInt(portRef[1], 10) : portRef[1];
+      if (!portImpl.has(this.scope, portIdx, makeValidate)) {
         return false;
       }
     }

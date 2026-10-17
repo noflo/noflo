@@ -445,34 +445,43 @@ export default class InPort extends BasePort {
    * Returns true if port contains packet(s) matching the validator
    * @param {string|null} scope
    * @param {number|null|HasValidationCallback} index
-   * @param {HasValidationCallback} [validate]
+   * @param {() => HasValidationCallback} makeValidate - Factory for the
+   *   per-walk validator; the regular-buffer and IIP-buffer walks each
+   *   get fresh framing state
    */
-  has(scope, index, validate) {
-    let valid = validate;
+  has(scope, index, makeValidate) {
     /** @type {number|null} */
     let idx;
     if (typeof index === "function") {
-      valid = /** @type {HasValidationCallback} */ (index);
       idx = null;
     } else {
       idx = index;
     }
-    // On control ports, has() reports whether a data IP is present in
-    // the buffered stream — buffered brackets alone do not satisfy it.
-    // The bracket-stack walk must still run: original() tracks the
-    // stream's framing, and the wrapper filters only the verdict, so an
-    // open stream's data does not satisfy a completion gate. The
-    // firing matrix caught the previous wrapper destroying the walk:
-    // hasStream on a control port returned true for any partially open
-    // stream (work document #47)
-    if (this.options.control) {
-      const original = valid;
-      valid = (ip) => Boolean(original(ip)) && ip.type === "data";
-    }
-    if (this.hasIPinBuffer(scope, idx, valid)) {
+    // The validator arrives as a factory: each buffer walk — the regular
+    // buffer, then the IIP buffer — gets fresh framing state, so a
+    // partially open regular stream cannot poison the IIP-buffer check
+    // (work document #47). On control ports, plain has() reports whether
+    // a data IP is present in the buffered stream — buffered brackets
+    // alone do not satisfy it. The stream-completeness check (hasStream)
+    // bypasses this wrapper: its validator is bracket-aware, and the
+    // buffered stream's framing decides completeness.
+    const walk = () => {
+      let valid = makeValidate();
+      if (this.options.control) {
+        const original = valid;
+        valid = (ip) => {
+          // The bracket-stack walk runs for every IP so the framing
+          // state stays correct across the buffer
+          const verdict = original(ip);
+          return verdict && ip.type === "data";
+        };
+      }
+      return valid;
+    };
+    if (this.hasIPinBuffer(scope, idx, walk())) {
       return true;
     }
-    if (this.hasIIP(idx, valid)) {
+    if (this.hasIIP(idx, walk())) {
       return true;
     }
     return false;

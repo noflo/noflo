@@ -205,7 +205,7 @@
       "packages/as-component": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/noflo@^2.0.0-alpha.7",
+            "npm:@noflo/noflo@^2.0.0-alpha.10",
             "npm:get-function-params@^2.0.6"
           ]
         }
@@ -213,9 +213,9 @@
       "packages/assembly": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/fbp@^2.0.0-alpha.7",
-            "npm:@noflo/loader-node@^2.0.0-alpha.7",
-            "npm:@noflo/noflo@^2.0.0-alpha.7",
+            "npm:@noflo/fbp@^2.0.0-alpha.10",
+            "npm:@noflo/loader-node@^2.0.0-alpha.10",
+            "npm:@noflo/noflo@^2.0.0-alpha.10",
             "npm:@types/node@24",
             "npm:ajv@^8.20.0",
             "npm:typescript@5"
@@ -225,7 +225,7 @@
       "packages/assembly-utils": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/fbp-spec-runner@^2.0.0-alpha.7",
+            "npm:@noflo/fbp-spec-runner@^2.0.0-alpha.10",
             "npm:jsonpath-plus@^11.2.0"
           ]
         }
@@ -241,9 +241,9 @@
       "packages/fbp-client": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/fbp-protocol@^2.0.0-alpha.7",
-            "npm:@noflo/graph@^2.0.0-alpha.7",
-            "npm:@noflo/runtime-client@^2.0.0-alpha.7",
+            "npm:@noflo/fbp-protocol@^2.0.0-alpha.10",
+            "npm:@noflo/graph@^2.0.0-alpha.10",
+            "npm:@noflo/runtime-client@^2.0.0-alpha.10",
             "npm:@reticulum/core@~0.9.8",
             "npm:@reticulum/node@~0.9.8"
           ]
@@ -259,9 +259,9 @@
       "packages/fbp-spec-runner": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/fbp@^2.0.0-alpha.7",
-            "npm:@noflo/loader-node@^2.0.0-alpha.7",
-            "npm:@noflo/noflo@^2.0.0-alpha.7",
+            "npm:@noflo/fbp@^2.0.0-alpha.10",
+            "npm:@noflo/loader-node@^2.0.0-alpha.10",
+            "npm:@noflo/noflo@^2.0.0-alpha.10",
             "npm:@types/node@24",
             "npm:jsonpath-plus@^11.2.0"
           ]
@@ -270,9 +270,9 @@
       "packages/loader-node": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/fbp@^2.0.0-alpha.7",
-            "npm:@noflo/graph@^2.0.0-alpha.7",
-            "npm:@noflo/noflo@^2.0.0-alpha.7"
+            "npm:@noflo/fbp@^2.0.0-alpha.10",
+            "npm:@noflo/graph@^2.0.0-alpha.10",
+            "npm:@noflo/noflo@^2.0.0-alpha.10"
           ]
         }
       },
@@ -280,12 +280,12 @@
         "packageJson": {
           "dependencies": [
             "npm:@biomejs/biome@2",
-            "npm:@noflo/assembly@^2.0.0-alpha.7",
-            "npm:@noflo/fbp-protocol@^2.0.0-alpha.7",
-            "npm:@noflo/fbp@^2.0.0-alpha.7",
-            "npm:@noflo/graph@^2.0.0-alpha.7",
-            "npm:@noflo/loader-node@^2.0.0-alpha.7",
-            "npm:@noflo/noflo@^2.0.0-alpha.7",
+            "npm:@noflo/assembly@^2.0.0-alpha.10",
+            "npm:@noflo/fbp-protocol@^2.0.0-alpha.10",
+            "npm:@noflo/fbp@^2.0.0-alpha.10",
+            "npm:@noflo/graph@^2.0.0-alpha.10",
+            "npm:@noflo/loader-node@^2.0.0-alpha.10",
+            "npm:@noflo/noflo@^2.0.0-alpha.10",
             "npm:@types/node@24",
             "npm:ajv@^8.20.0",
             "npm:typescript@5"
@@ -295,11 +295,11 @@
       "packages/nodejs": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/fbp-protocol@^2.0.0-alpha.7",
-            "npm:@noflo/graph@^2.0.0-alpha.7",
-            "npm:@noflo/loader-node@^2.0.0-alpha.7",
-            "npm:@noflo/noflo@^2.0.0-alpha.7",
-            "npm:@noflo/runtime@^2.0.0-alpha.7",
+            "npm:@noflo/fbp-protocol@^2.0.0-alpha.10",
+            "npm:@noflo/graph@^2.0.0-alpha.10",
+            "npm:@noflo/loader-node@^2.0.0-alpha.10",
+            "npm:@noflo/noflo@^2.0.0-alpha.10",
+            "npm:@noflo/runtime@^2.0.0-alpha.10",
             "npm:@reticulum/core@~0.9.8",
             "npm:@reticulum/dacar@^1.6.1",
             "npm:@reticulum/node@~0.9.8",
@@ -311,7 +311,7 @@
       "packages/noflo": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/graph@^2.0.0-alpha.7",
+            "npm:@noflo/graph@^2.0.0-alpha.10",
             "npm:@types/node@24",
             "npm:typescript@^4.0.2"
           ]
@@ -320,9 +320,9 @@
       "packages/runtime": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/fbp-protocol@^2.0.0-alpha.7",
-            "npm:@noflo/graph@^2.0.0-alpha.7",
-            "npm:@noflo/noflo@^2.0.0-alpha.7",
+            "npm:@noflo/fbp-protocol@^2.0.0-alpha.10",
+            "npm:@noflo/graph@^2.0.0-alpha.10",
+            "npm:@noflo/noflo@^2.0.0-alpha.10",
             "npm:@reticulum/core@~0.9.8",
             "npm:@reticulum/dacar@^1.6.1",
             "npm:@reticulum/lxmf@~0.9.8",
@@ -333,8 +333,8 @@
       "packages/runtime-client": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/fbp-protocol@^2.0.0-alpha.7",
-            "npm:@noflo/graph@^2.0.0-alpha.7",
+            "npm:@noflo/fbp-protocol@^2.0.0-alpha.10",
+            "npm:@noflo/graph@^2.0.0-alpha.10",
             "npm:@reticulum/core@~0.9.8"
           ]
         }
