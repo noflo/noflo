@@ -589,7 +589,7 @@ describe("Network Lifecycle", () => {
         in1.post(new noflo.IP("openBracket", 1, { scope: "x" }));
         in1.post(new noflo.IP("data", "one", { scope: "x" }));
         in1.post(new noflo.IP("closeBracket", 1, { scope: "x" }));
-        // The driver is the boundary: signal end-of-input so the network
+        // The driver is the boundary: signal EOT so the network
         // can close (work document #45)
         in1.disconnect();
         in2.disconnect();

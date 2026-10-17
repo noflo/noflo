@@ -455,7 +455,7 @@ describe("NoFlo Subgraph component", () => {
       });
       await inst.start();
       i.send("Foo");
-      // Per-burst EOF: the driver is the boundary — without the disconnect
+      // Per-burst EOT: the driver is the boundary — without the disconnect
       // the subgraph network stays open under drain-based closing (work
       // document #45)
       i.disconnect();
@@ -597,7 +597,7 @@ describe("NoFlo Subgraph component", () => {
         for (const d of sends) {
           i.post(new noflo.IP("data", d));
         }
-        // Per-burst EOF: the driver is the boundary, and each burst is its
+        // Per-burst EOT: the driver is the boundary, and each burst is its
         // own transmission — without the disconnect the subgraph network
         // stays open across bursts under drain-based closing (work
         // document #45)

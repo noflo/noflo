@@ -1188,7 +1188,7 @@ export class Component extends EventBase {
   /**
    * Whether the component has closed down: every input at EOT, no open
    * activation, nothing buffered left to deliver. Its outports have been
-   * terminally disconnected — downstream sees end-of-input.
+   * terminally disconnected — downstream sees EOT.
    *
    * @returns {boolean}
    */
@@ -1202,7 +1202,7 @@ export class Component extends EventBase {
    * open, and no buffered deliverable data remains (control ports are
    * excluded — their standing values are legitimate at quiescence). On
    * closedown the outports are terminally disconnected, so downstream
-   * ports see end-of-input and the rule recurses. Runs on every state
+   * ports reach EOT and the rule recurses. Runs on every state
    * transition that can complete the condition: port EOT and activation
    * close.
    *
@@ -1244,7 +1244,7 @@ export class Component extends EventBase {
       }
       // Buffered data on an end of transmission port is stranded by definition —
       // no arrival can complete a waiting context once every input is at
-      // EOF — so it does not block closing. It surfaces loudly: the trace
+      // EOT — so it does not block closing. It surfaces loudly: the trace
       // shows the last activation, and the shutdown diagnostics report the
       // unconsumed buffers (work document #45)
     }
@@ -1269,7 +1269,7 @@ export class Component extends EventBase {
     });
     // The closedown completes only when the terminal disconnects have
     // drained — in-flight outputs deliver before downstream sees
-    // end-of-input, and the network-end predicate (which this event
+    // EOT, and the network-end predicate (which this event
     // triggers) must not fire ahead of them
     Promise.all(disconnects)
       .then(() => {

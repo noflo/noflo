@@ -698,7 +698,7 @@ export class Network extends EventBase {
       });
       // A delivery (or the consumption of the last buffered packet) can
       // complete network quiescence
-      this.checkIfFinished();
+      this.scheduleClosingCheck();
     });
     socket.addEventListener("error", (event) => {
       const errEvent = event.detail;
@@ -733,7 +733,7 @@ export class Network extends EventBase {
       });
     });
     instance.addEventListener("closedown", () => {
-      this.checkIfFinished();
+      this.scheduleClosingCheck();
     });
     instance.addEventListener(
       "deactivate",
@@ -744,14 +744,14 @@ export class Network extends EventBase {
           ended: true,
         });
         // The last deactivation can complete quiescence
-        this.checkIfFinished();
+        this.scheduleClosingCheck();
       },
     );
     Object.keys(instance.inPorts.ports).forEach((portName) => {
       instance.inPorts.ports[portName].addEventListener("disconnect", () => {
         // A boundary input reaching end of transmission (the sender's terminal
         // disconnect) can complete the network's end predicate
-        this.checkIfFinished();
+        this.scheduleClosingCheck();
       });
     });
     if (!instance.getIcon) {
@@ -1080,10 +1080,10 @@ export class Network extends EventBase {
               );
               // An IIP edge is a single-packet stream: once the packet
               // has been delivered, the sender is done — disconnect so
-              // the receiving port sees end-of-input (work document #45:
+              // the receiving port reaches EOT (work document #45:
               // the runtime performs the sender's disconnect on exhausted
               // IIP edges). The disconnect drains first, so the packet
-              // never overtakes its own EOF.
+              // never overtakes its own EOT.
               return initial.socket.disconnect();
             }),
           Promise.resolve(),
@@ -1247,20 +1247,20 @@ export class Network extends EventBase {
    * the network is quiescent (work document #45): no open activation, no
    * buffered deliverable data, no packet in flight on any edge. The
    * boundary owns end-of-transmission — a network's own inports (exported
-   * ports and IIP feeds) are what can be EOF'd; internal edges and cycles
+   * ports and IIP feeds) are what can reach EOT; internal edges and cycles
    * need no closedown, because a quiescent network with all sources
    * finished is absorbing: no future event can occur inside it. A network
    * whose boundary inputs never terminate (long-running graphs, remote
    * subgraphs, generators) never ends.
    *
    * The evaluation is a pure predicate over state transitions — boundary
-   * EOF arrivals, activation closes, buffer consumption, edge delivery —
+   * EOT arrivals, activation closes, buffer consumption, edge delivery —
    * with no quiet-window timer.
    *
    * @protected
    * @returns {void}
    */
-  checkIfFinished() {
+  scheduleClosingCheck() {
     // Scheduling, not semantics: state transitions mark the closing
     // predicate dirty, and one debounced evaluation runs per window. The
     // predicate itself is the deterministic end condition — the window
@@ -1289,7 +1289,7 @@ export class Network extends EventBase {
       return;
     }
     // Boundary inputs: the targets of the graph's inport exports. A
-    // boundary input is at EOF when it has at least one external socket
+    // boundary input is at EOT when it has at least one external socket
     // (a driver-attached or IIP socket — this network's sources) and every
     // external socket is terminally closed. Internal edges targeting the
     // same port are skipped: an edge whose both endpoints belong to this
@@ -1332,14 +1332,14 @@ export class Network extends EventBase {
           terminal += 1;
         }
       }
-      // A boundary input is at EOF when it has external sockets and every
+      // A boundary input is at EOT when it has external sockets and every
       // one of them is terminally closed
       if (external === 0 || terminal !== external) {
         return;
       }
     }
     // Quiescence: no open activations, no packet in flight on any edge.
-    // Buffered data is not gated: once every boundary input is at EOF, a
+    // Buffered data is not gated: once every boundary input is at EOT, a
     // buffered IP is stranded by definition (no arrival can complete a
     // waiting context), and it surfaces loudly — the trace shows the last
     // activation, and the shutdown diagnostics report unconsumed buffers

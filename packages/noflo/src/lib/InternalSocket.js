@@ -176,7 +176,7 @@ export class InternalSocket extends EventBase {
    * through the edge, so receiving ends never observe a disconnect
    * overtaking data; on an unbounded edge (synchronous delivery) it
    * resolves immediately. A socket that never connected also closes: a
-   * sender that finishes without ever transmitting still signals EOF
+   * sender that finishes without ever transmitting still signals EOT
    * downstream.
    *
    * @returns {Promise<void>} Resolves when the disconnect event has been
@@ -238,7 +238,7 @@ export class InternalSocket extends EventBase {
   // connection stays open after the send. Ending a transmission is a
   // sender decision — `disconnect()` — not an automatic side effect of
   // sending (work document #40 update #5: disconnect is sender-terminal
-  // EOF, not per-burst framing).
+  // EOT, not per-burst framing).
   /**
    * @param {IP} packet
    * @returns {Promise<void>|void} Resolves when the packet has been

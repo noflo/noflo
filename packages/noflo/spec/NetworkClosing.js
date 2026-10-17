@@ -81,7 +81,7 @@ describe("drain-based network closing", () => {
     assert.deepEqual([...log].sort(), ["closedown", "end"]);
     assert.equal(network.isStarted(), false);
     // The closedown's terminal disconnect drains first: the output
-    // delivered before the out socket saw end-of-input
+    // delivered before the out socket reached EOT
     assert.deepEqual(outLog, ["data a", "disconnect"]);
   });
 
@@ -93,7 +93,7 @@ describe("drain-based network closing", () => {
     // inner/outer events wrongly (work document #45)
     const { network, socket, outLog, log } = await makePassthrough();
     await network.start();
-    // Burst 1: the component processes and closes down (EOF)
+    // Burst 1: the component processes and closes down (EOT)
     socket.post(new noflo.IP("data", "a"));
     await socket.disconnect();
     // Burst 2 reconnects the same socket: the component revives, processes,
@@ -119,7 +119,7 @@ describe("drain-based network closing", () => {
       2,
       `expected two closedown cycles, log: ${JSON.stringify(log)}`,
     );
-    // The network ends after the first cycle (the boundary EOF'd and the
+    // The network ends after the first cycle (the boundary reached EOT and the
     // network drained); burst 2 runs on the ended network with the
     // component revived — whether a boundary reconnect re-arms the
     // network's started state is the re-open design question (work

@@ -304,7 +304,7 @@ function runNetwork(network, inputs) {
         }
         // The wrapper is the boundary: an input-map batch is one complete
         // transmission, so the sender's disconnect follows it — the ports
-        // see end-of-input once the batch has drained (work document #45)
+        // reach EOT once the batch has drained (work document #45)
         Promise.all(keys.map((port) => inSockets[port].disconnect())).catch(
           () => {},
         );
