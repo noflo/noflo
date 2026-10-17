@@ -52,7 +52,7 @@ An example of such components is [SupplyBodyParts](../example/components/SupplyB
 * `OUT` is the default output port for outgoing assembly messages. Use any meaningful names for output ports if the component splits an assembly into multiple ones.
 * Use other input ports, especially the `control` ports, for complementary data required for the component to do its job as needed. We don’t limit input and output to assembly messages only.
 
-In NoFlo 2.x, control ports are non-triggering and consumed per activation: post the configuration with every message (or rely on graph IIPs for static configuration).
+In NoFlo 2.x, control ports are gates: they hold standing configuration and read non-consumingly, and their arrivals re-fire the process for scopes with pending work rather than firing on their own. Feed static configuration through graph IIPs; edge-delivered configuration ports that should be readable from scoped messages declare `scoped: false`.
 
 As a positive side effect of this, you can use a more terse syntax to describe graphs in .FBP format, omitting the default port names understood by `fbp-parser`:
 
