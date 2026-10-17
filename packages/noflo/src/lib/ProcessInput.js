@@ -315,6 +315,12 @@ export default class ProcessInput {
       } else {
         ip = portImpl.get(this.scope, idxName);
         res.push(ip);
+        // Ownership moved into the component: the activation consumed.
+        // Control reads are non-consuming and never count (work
+        // document #45 review follow-up)
+        if (ip && !portImpl.options.control) {
+          this.context.consumed += 1;
+        }
       }
     }
 
@@ -345,6 +351,7 @@ export default class ProcessInput {
       if (!ip) {
         break;
       }
+      this.context.consumed += 1;
       if (ip.type === "data") {
         // Hit the data IP, stop here
         dataIp = ip;
@@ -553,6 +560,7 @@ export default class ProcessInput {
       }
       const ip = /** @type {IP} */ (portImpl.get(this.scope, idx));
       stream.push(ip);
+      this.context.consumed += 1;
       if (ip.type === "openBracket") {
         portBrackets.push(ip.data);
         this.nodeInstance

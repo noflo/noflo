@@ -20,6 +20,13 @@ export default class ProcessContext {
     this.scope = this.ip.scope;
     this.activated = false;
     this.deactivated = false;
+    // The activation contract bookkeeping: how many IPs this activation
+    // consumed (ownership moved into the component), and whether the
+    // process sent anything. A synchronous return that consumed nothing
+    // and sent nothing can never complete — the leak warning in
+    // fireProcess diagnoses it (work document #45 review follow-up)
+    this.consumed = 0;
+    this.sentOutput = false;
   }
 
   activate() {

@@ -3914,4 +3914,80 @@ describe("activation contract guard", () => {
     assert.deepStrictEqual(errors, []);
     assert.deepStrictEqual(received, ["held"]);
   });
+
+  it("does not complete a read-then-decline activation: the leak persists", async () => {
+    // The activation contract: reads activate the context, and an
+    // activated synchronous return must complete. A handler that reads a
+    // standing control value and then declines the data gate leaks the
+    // activation — nothing consumed, nothing sent, nothing will ever
+    // complete it. The engine diagnoses it (debug log naming the
+    // component) and leaves the activation open rather than auto-closing:
+    // auto-closing would break the legal deferred-completion patterns,
+    // which consume data or send before their synchronous return. Peek
+    // into buffered contents with has()/hasData()/hasStream() validators
+    // before reading instead (work document #45 review follow-up)
+    const loader = new noflo.ComponentLoader({});
+    loader.registerComponent("guard", "ReadDecline", () => {
+      const c = new noflo.Component();
+      c.inPorts.add("config", { control: true, datatype: "object" });
+      c.inPorts.add("in", { datatype: "all" });
+      c.outPorts.add("out", { datatype: "all" });
+      c.process((input, output) => {
+        if (input.hasData("config")) {
+          // The control read activates the context
+          input.getData("config");
+        }
+        if (!input.hasData("in")) {
+          return;
+        }
+        const data = input.getData("in");
+        output.sendDone({ out: data });
+      });
+      return c;
+    });
+    const instance = await loader.load("guard/ReadDecline");
+    const config = noflo.internalSocket.createSocket();
+    instance.inPorts.config.attach(config);
+    config.post(new noflo.IP("data", { mode: "test" }));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    // The activation opened by the control read is still open
+    assert.strictEqual(instance.load, 1);
+  });
+
+  it("lets the legal deferred-completion pattern complete normally", async () => {
+    // A synchronous return that consumed data may complete later: the
+    // activation holds until done(). The leak warning must not fire for
+    // this shape — it consumed, so it can complete
+    const loader = new noflo.ComponentLoader({});
+    loader.registerComponent("guard", "Deferred", () => {
+      const c = new noflo.Component();
+      c.inPorts.add("in", { datatype: "all" });
+      c.outPorts.add("out", { datatype: "all" });
+      c.process((input, output) => {
+        if (!input.hasData("in")) {
+          return;
+        }
+        input.getData("in");
+        setTimeout(() => {
+          output.sendDone({ out: "deferred" });
+        }, 5);
+      });
+      return c;
+    });
+    const instance = await loader.load("guard/Deferred");
+    const received = [];
+    const out = noflo.internalSocket.createSocket();
+    instance.outPorts.out.attach(out);
+    out.addEventListener("ip", (/** @type {any} */ event) => {
+      if (event.detail.type === "data") {
+        received.push(event.detail.data);
+      }
+    });
+    const inSocket = noflo.internalSocket.createSocket();
+    instance.inPorts.in.attach(inSocket);
+    inSocket.post(new noflo.IP("data", "go"));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.deepStrictEqual(received, ["deferred"]);
+    assert.strictEqual(instance.load, 0);
+  });
 });

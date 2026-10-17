@@ -73,6 +73,7 @@ export default class ProcessOutput {
    *   forget compatible: callers may ignore the Promise.
    */
   sendIP(port, packet) {
+    this.context.sentOutput = true;
     const ip = IP.isIP(packet) ? packet : new IP("data", packet);
     if (this.scope !== null && ip.scope === null) {
       ip.scope = this.scope;

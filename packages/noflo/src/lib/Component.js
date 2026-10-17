@@ -801,6 +801,22 @@ export class Component extends EventBase {
     }
 
     if (context.activated) {
+      // The activation contract: reads activate the context, and an
+      // activated synchronous return must complete — done(), a send, or
+      // a promise return. A return that consumed nothing and sent
+      // nothing can never complete: the activation leaks, the
+      // component's load never reaches zero, and the network never
+      // ends. Peek into buffered contents with has()/hasData()/
+      // hasStream() validators before reading instead. Diagnosed
+      // loudly, not auto-closed: the legal deferred-completion patterns
+      // consume data or send before their synchronous return, and
+      // auto-closing would break the deferral contract (work document
+      // #45 review follow-up)
+      if (!context.consumed && !context.sentOutput) {
+        debugComponent(
+          `${this.nodeId} process function returned without completing the activation it opened (nothing consumed, nothing sent) — the activation will remain open until done() is called`,
+        );
+      }
       return;
     }
     // If receiving an IP object didn't cause the component to
