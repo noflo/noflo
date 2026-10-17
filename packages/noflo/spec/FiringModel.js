@@ -58,7 +58,7 @@ const wire = (component) => {
     component.inPorts.ports[name].attach(socket);
     sockets[name] = socket;
   }
-  return { received, sockets };
+  return { component, received, sockets };
 };
 
 const post = (socket, value, scope) => {
@@ -88,7 +88,7 @@ describe("the firing model: order-independent wakeups", () => {
     const config = { mode: "pairing" };
     const expected = [{ ...config, a: 1, b: 2 }];
     for (const order of permutations) {
-      const { received, sockets } = wire(Pairer());
+      const { component, received, sockets } = wire(Pairer());
       for (const port of order) {
         post(sockets[port], port === "config" ? config : port === "a" ? 1 : 2);
       }
@@ -99,7 +99,7 @@ describe("the firing model: order-independent wakeups", () => {
         `arrival order ${order.join(",")} produced the same result`,
       );
       assert.strictEqual(
-        sockets.a.component?.load ?? 0,
+        component.load,
         0,
         "no activation left pending",
       );
@@ -127,7 +127,7 @@ describe("the firing model: order-independent wakeups", () => {
       ["b2", "b1", "a1", "a2"],
     ];
     for (const order of permutations) {
-      const { received, sockets } = wire(scopedPairer());
+      const { component, received, sockets } = wire(scopedPairer());
       post(sockets.config, { mode: "pairing" });
       const values = { a1: 1, a2: 10, b1: 2, b2: 20 };
       const scopes = { a1: "m1", a2: "m2", b1: "m1", b2: "m2" };
@@ -235,19 +235,6 @@ describe("the firing model: order-independent wakeups", () => {
     );
   });
 
-  it("treats the legacy triggering option as inert", async () => {
-    // The 1.x `triggering` port option is accepted and ignored during
-    // the alpha window: a port declaring it behaves identically to one
-    // that does not
-    const withOption = Pairer();
-    withOption.inPorts.add("legacy", { datatype: "all", triggering: false });
-    const { received, sockets } = wire(withOption);
-    post(sockets.a, 1);
-    post(sockets.b, 2);
-    post(sockets.config, { mode: "x" });
-    await settle();
-    assert.deepStrictEqual(received, [{ mode: "x", a: 1, b: 2 }]);
-  });
 });
 
 // ---------------------------------------------------------------------------

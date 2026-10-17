@@ -8,7 +8,6 @@ import BasePort from "./BasePort.js";
 /**
  * @typedef InPortOptions
  * @property {boolean} [control]
- * @property {boolean} [triggering]
  */
 /**
  * @callback HasValidationCallback
@@ -29,9 +28,7 @@ export default class InPort extends BasePort {
   /**
    * Create an input port. Control and scoping behavior default to
    * non-control and scoped respectively; the buffer structures are
-   * prepared for regular and addressable use. The 1.x `triggering`
-   * option is accepted and ignored — the firing model has one rule for
-   * all ports (work document #47).
+   * prepared for regular and addressable use.
    *
    * @param {PortOptions} [options]
    */
@@ -43,15 +40,10 @@ export default class InPort extends BasePort {
     if (opts.scoped == null) {
       opts.scoped = true;
     }
-    // The 1.x `triggering` port option is accepted and ignored: the
-    // firing model has one rule for all ports (work document #47) — an
-    // arrival re-fires pending work per scope — and control ports have
-    // no firing role. The option is removed from the accepted set at
-    // 2.0.0.
     super(opts);
 
     /**
-     * Port configuration, including datatype, schema, and control/scoping/triggering behavior
+     * Port configuration, including datatype, schema, and control/scoping behavior
      * @type {PortOptions}
      */
     const baseOptions = this.options;
@@ -377,14 +369,18 @@ export default class InPort extends BasePort {
    * inside is the completion moment (work document #47).
    *
    * @param {string|null} scope
-   * @param {HasValidationCallback} validate
+   * @param {() => HasValidationCallback} makeValidate - Factory for the
+   *   per-walk validator; each buffer walk gets fresh framing state
    * @returns {boolean}
    */
-  hasStream(scope, validate) {
-    if (this.hasIPinBuffer(scope, null, validate)) {
+  hasStream(scope, makeValidate) {
+    // Each buffer walk gets fresh framing state: a partially open
+    // regular stream must not poison the IIP-buffer walk (work document
+    // #47 review)
+    if (this.hasIPinBuffer(scope, null, makeValidate())) {
       return true;
     }
-    return this.hasIIP(null, validate);
+    return this.hasIIP(null, makeValidate());
   }
 
   /**

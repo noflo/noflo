@@ -62,6 +62,16 @@ export class ExtractField extends Component {
       return;
     }
     const msg = input.getData("msg");
+    if (typeof msg !== "object" || msg === null) {
+      // A kind envelope instead of a framework TypeError: the absence
+      // guard needs an object to introspect
+      output.done(
+        new Error(
+          `ExtractField: the assembly message is not an object, cannot extract '${this.field}'`,
+        ),
+      );
+      return;
+    }
     if (!Object.hasOwn(msg, this.field)) {
       // Absent field: the message is malformed for this adapter. The
       // error leg is the honest signal — the generated graph wires this

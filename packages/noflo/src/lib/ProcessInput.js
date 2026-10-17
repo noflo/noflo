@@ -10,6 +10,7 @@ import IP from "./IP.js"; // eslint-disable-line no-unused-vars
 import { createDebug } from "./logger.js";
 
 const debugComponent = createDebug("noflo:component");
+const debugStream = createDebug("noflo:component:stream");
 
 export default class ProcessInput {
   /**
@@ -238,36 +239,42 @@ export default class ProcessInput {
 
     for (let i = 0; i < args.length; i += 1) {
       const port = args[i];
-      /** @type Array<string> */
-      const portBrackets = [];
-      let hasData = false;
-      /** @type {HasValidationCallback} */
-      const validate = (ip) => {
-        if (ip.type === "openBracket") {
-          portBrackets.push(ip.data);
-          return false;
-        }
-        if (ip.type === "data") {
-          // Run the stream validation callback
-          hasData = validateStream(ip, portBrackets);
-          // Data IP on its own is a valid stream
-          if (!portBrackets.length) {
-            return hasData;
-          }
-          // Otherwise we need to check for complete stream
-          return false;
-        }
-        if (ip.type === "closeBracket") {
-          portBrackets.pop();
-          if (portBrackets.length) {
+      // The framing state is per walk: a factory so each buffer walk
+      // (the regular buffer, the IIP buffer, each port of a multi-port
+      // check) starts with an empty bracket stack. Sharing one closure
+      // across walks let a partially open stream's framing state poison
+      // the next walk (work document #47 review)
+      const makeValidate = () => {
+        /** @type Array<string> */
+        const portBrackets = [];
+        let hasData = false;
+        return (/** @type {IP} */ ip) => {
+          if (ip.type === "openBracket") {
+            portBrackets.push(ip.data);
             return false;
           }
-          if (!hasData) {
+          if (ip.type === "data") {
+            // Run the stream validation callback
+            hasData = validateStream(ip, portBrackets);
+            // Data IP on its own is a valid stream
+            if (!portBrackets.length) {
+              return hasData;
+            }
+            // Otherwise we need to check for complete stream
             return false;
           }
-          return true;
-        }
-        return false;
+          if (ip.type === "closeBracket") {
+            portBrackets.pop();
+            if (portBrackets.length) {
+              return false;
+            }
+            if (!hasData) {
+              return false;
+            }
+            return true;
+          }
+          return false;
+        };
       };
       if (typeof port === "string") {
         // Control-port streams take the framing-aware completeness
@@ -278,13 +285,18 @@ export default class ProcessInput {
           this.ports.ports[port]
         );
         if (portImpl && !portImpl.isAddressable() && portImpl.options.control) {
-          if (!portImpl.hasStream(this.scope, validate)) {
+          if (!portImpl.hasStream(this.scope, makeValidate)) {
             return false;
           }
           continue;
         }
+        if (portImpl?.isAddressable() && portImpl.options.control) {
+          debugStream(
+            `${this.nodeInstance?.nodeId ?? ""} stream-completeness gating on addressable control port '${port}' is not supported: the data-presence check cannot see the stream's framing`,
+          );
+        }
       }
-      if (!this.has(port, validate)) {
+      if (!this.has(port, makeValidate())) {
         return false;
       }
     }
