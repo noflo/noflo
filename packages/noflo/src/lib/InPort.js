@@ -11,7 +11,8 @@ import BasePort from "./BasePort.js";
  */
 /**
  * @callback HasValidationCallback
- * @param {import("./IP.js").default} ip
+ * @param {import("./IP.js").default} ip - The buffered IP the walk is visiting. The walk visits bracket IPs too, so a validator that only accepts data IPs must type-check the packet itself
+ * @param {string[]} [brackets] - The framing stack at the walk position, passed by the framing-aware walks: hasStream's validator receives the bracket payload stack accumulated up to this packet, so a data IP inside one open bracket sees a stack of one. Plain has and hasData walks are stateless per-IP checks and leave this undefined — their validators must not depend on framing state
  * @returns {boolean}
  */
 /**
@@ -374,6 +375,11 @@ export default class InPort extends BasePort {
    * @returns {boolean}
    */
   hasStream(scope, makeValidate) {
+    if (typeof makeValidate !== "function") {
+      throw new TypeError(
+        "InPort.hasStream takes a validator factory: hasStream(scope, () => validator)",
+      );
+    }
     // Each buffer walk gets fresh framing state: a partially open
     // regular stream must not poison the IIP-buffer walk (work document
     // #47 review)
@@ -445,34 +451,45 @@ export default class InPort extends BasePort {
    * Returns true if port contains packet(s) matching the validator
    * @param {string|null} scope
    * @param {number|null|HasValidationCallback} index
-   * @param {HasValidationCallback} [validate]
+   * @param {() => HasValidationCallback} makeValidate - Factory for the
+   *   per-walk validator; the regular-buffer and IIP-buffer walks each
+   *   get fresh framing state
    */
-  has(scope, index, validate) {
-    let valid = validate;
-    /** @type {number|null} */
-    let idx;
-    if (typeof index === "function") {
-      valid = /** @type {HasValidationCallback} */ (index);
-      idx = null;
-    } else {
-      idx = index;
+  has(scope, index, makeValidate) {
+    if (typeof makeValidate !== "function") {
+      // A descriptive failure for old-style two-arg calls: the factory
+      // is the third parameter, and the two-arg overload is gone (work
+      // document #47 removed the legacy calling conventions)
+      throw new TypeError(
+        "InPort.has takes a validator factory: has(scope, index|null, () => validator)",
+      );
     }
-    // On control ports, has() reports whether a data IP is present in
-    // the buffered stream — buffered brackets alone do not satisfy it.
-    // The bracket-stack walk must still run: original() tracks the
-    // stream's framing, and the wrapper filters only the verdict, so an
-    // open stream's data does not satisfy a completion gate. The
-    // firing matrix caught the previous wrapper destroying the walk:
-    // hasStream on a control port returned true for any partially open
-    // stream (work document #47)
-    if (this.options.control) {
-      const original = valid;
-      valid = (ip) => Boolean(original(ip)) && ip.type === "data";
-    }
-    if (this.hasIPinBuffer(scope, idx, valid)) {
+    const idx = /** @type {number|null} */ (index);
+    // The validator arrives as a factory: each buffer walk — the regular
+    // buffer, then the IIP buffer — gets fresh framing state, so a
+    // partially open regular stream cannot poison the IIP-buffer check
+    // (work document #47). On control ports, plain has() reports whether
+    // a data IP is present in the buffered stream — buffered brackets
+    // alone do not satisfy it. The stream-completeness check (hasStream)
+    // bypasses this wrapper: its validator is bracket-aware, and the
+    // buffered stream's framing decides completeness.
+    const walk = () => {
+      let valid = makeValidate();
+      if (this.options.control) {
+        const original = valid;
+        valid = (ip) => {
+          // The bracket-stack walk runs for every IP so the framing
+          // state stays correct across the buffer
+          const verdict = original(ip);
+          return verdict && ip.type === "data";
+        };
+      }
+      return valid;
+    };
+    if (this.hasIPinBuffer(scope, idx, walk())) {
       return true;
     }
-    if (this.hasIIP(idx, valid)) {
+    if (this.hasIIP(idx, walk())) {
       return true;
     }
     return false;

@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- The `HasValidationCallback` typedef documents the framing-aware validator form: the callback gains the optional `brackets` parameter — the bracket payload stack at the walk position, passed by `hasStream`'s framing-aware walks (a data IP inside one open bracket sees a stack of one; a bare data IP an empty stack) — while plain `has`/`hasData` walks stay stateless per-IP checks and leave it undefined. The runtime already passed the stack; the typedef now declares it, so components can decide their firing pattern from a stream's framing through the public API ("fire when the framed token stream has completed and holds N packets") without reaching into `InPort.getBuffer` internals
+
+### Fixed
+- The IIP-buffer check in plain `has()` could be poisoned by a partially open regular stream: the validator traveled as a bare callback, so the bracket-walk state built during the regular-buffer walk carried into the IIP-buffer walk — an IIP-fed standing value beside an unfinished stream read as being inside brackets. The validator now travels as a factory through the whole `has()` chain (`ProcessInput.has`, `hasStream`, and `InPort.has`), and every buffer walk gets fresh framing state; `hasStream`'s non-control path calls `InPort.has` directly with its factory (work document #47; the follow-up ledger's per-walk item, now closed for the control and non-control paths alike)
 
 ## [2.0.0-alpha.10] - 2026-10-17
 ### Changed

@@ -517,6 +517,36 @@ describe("the firing matrix", () => {
     }
   });
 
+  it("spread timing: arrivals across ticks produce the same result", async () => {
+    // The matrix posts each leg's steps back-to-back; real pipelines
+    // spread arrivals across ticks. The order-independence guarantee
+    // holds under spread timing too — this is the shape that makes
+    // async components tractable
+    const orders = [
+      ["a", "b", "config"],
+      ["config", "b", "a"],
+      ["b", "config", "a"],
+    ];
+    for (const order of orders) {
+      const component = Pairer();
+      const { received, sockets } = collect(component, ["a", "b", "config"]);
+      for (const port of order) {
+        sockets[port].post(
+          ip("data", port === "config" ? { mode: "m" } : port === "a" ? 1 : 2),
+        );
+        // A macrotask gap between the arrivals
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      await settle();
+      assert.deepStrictEqual(
+        received,
+        [{ mode: "m", a: 1, b: 2 }],
+        `spread order ${order.join(",")}`,
+      );
+      drain(component);
+    }
+  });
+
   it("two standing configs in either order, then the data leg", async () => {
     const build = () => {
       const c = new noflo.Component();
