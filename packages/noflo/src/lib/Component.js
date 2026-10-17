@@ -633,7 +633,13 @@ export class Component extends EventBase {
    * @returns {void}
    */
   handleIP(ip, port) {
-    if (!port.options.triggering) {
+    // The firing model follows the port's role: a control port is a
+    // gate — a standing, non-consumingly-read value whose arrivals
+    // re-fire pending work per scope and never fire a scopeless
+    // activation on their own. Regular firing ports fire directly per
+    // arrival; regular non-triggering ports share the gate machinery
+    // (work document #1 #607)
+    if (port.options.control || !port.options.triggering) {
       // Work document #1 Phase 2 (#607): control-triggered firing reacts
       // to any data IP arriving on a non-triggering port, in any scope.
       // Reading the control value follows normal port scoping: declare
