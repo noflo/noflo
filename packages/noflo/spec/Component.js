@@ -201,23 +201,19 @@ describe("Component", () => {
     });
   });
   describe("defining ports with invalid names", () => {
-    it("should throw an error with uppercase letters in inport", () => {
+    it("accepts mixed-case port names (work document #15: names are case-significant)", () => {
       const shorthand = () =>
         new noflo.Component({
           inPorts: {
             fooPort: {},
           },
-        });
-      assert.throws(shorthand);
-    });
-    it("should throw an error with uppercase letters in outport", () => {
-      const shorthand = () =>
-        new noflo.Component({
           outPorts: {
             BarPort: {},
           },
         });
-      assert.throws(shorthand);
+      const c = shorthand();
+      assert.notStrictEqual(c.inPorts.ports.fooPort, undefined);
+      assert.notStrictEqual(c.outPorts.ports.BarPort, undefined);
     });
     it("should throw an error with special characters in inport", () => {
       const shorthand = () =>

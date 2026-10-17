@@ -45,6 +45,59 @@ export function importFbpJson(json) {
     throw new GraphModelError("FBP JSON document must be an object");
   }
   const document = normalizeLegacyFbpJson(json);
+  // The 2.x naming policy is case-significant (work document #15): author
+  // casing is preserved end to end. Legacy documents carry
+  // `caseSensitive: false` (the 1.x interchange default, where the
+  // reference parser lowercased port names) — such documents import with
+  // port names normalized to lowercase, so mixed-case references against
+  // lowercase-declared 1.x components resolve. `caseSensitive: true` or
+  // absent preserves casing as authored
+  if (json.caseSensitive === false) {
+    for (const node of document.nodes ?? []) {
+      for (const [portName, def] of Object.entries(node.ports ?? {})) {
+        if (portName !== portName.toLowerCase()) {
+          node.ports[portName.toLowerCase()] = def;
+          delete node.ports[portName];
+        }
+      }
+    }
+    for (const edge of document.edges ?? []) {
+      if (edge.source?.port !== undefined) {
+        edge.source.port = String(edge.source.port).toLowerCase();
+      }
+      if (edge.target?.port !== undefined) {
+        edge.target.port = String(edge.target.port).toLowerCase();
+      }
+    }
+    for (const [name, def] of Object.entries(document.inports ?? {})) {
+      if (name !== name.toLowerCase()) {
+        document.inports[name.toLowerCase()] = {
+          ...def,
+          port:
+            def?.port !== undefined
+              ? String(def.port).toLowerCase()
+              : def?.port,
+        };
+        delete document.inports[name];
+      } else if (def?.port !== undefined) {
+        def.port = String(def.port).toLowerCase();
+      }
+    }
+    for (const [name, def] of Object.entries(document.outports ?? {})) {
+      if (name !== name.toLowerCase()) {
+        document.outports[name.toLowerCase()] = {
+          ...def,
+          port:
+            def?.port !== undefined
+              ? String(def.port).toLowerCase()
+              : def?.port,
+        };
+        delete document.outports[name];
+      } else if (def?.port !== undefined) {
+        def.port = String(def.port).toLowerCase();
+      }
+    }
+  }
   const options = /** @type {GraphModelOptions} */ ({});
   if (json.name !== undefined) {
     options.name = requireString(json.name, "name");
