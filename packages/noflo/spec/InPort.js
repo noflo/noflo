@@ -178,7 +178,6 @@ describe("Inport Port", () => {
   });
 });
 
-
 // The validator-factory contract (work document #47): ProcessInput
 // exercises the happy paths through every firing-pattern spec; these pin
 // the guard against old-style calls regressing into a bare makeValidate

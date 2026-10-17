@@ -11,7 +11,8 @@ import BasePort from "./BasePort.js";
  */
 /**
  * @callback HasValidationCallback
- * @param {import("./IP.js").default} ip
+ * @param {import("./IP.js").default} ip - The buffered IP the walk is visiting. The walk visits bracket IPs too, so a validator that only accepts data IPs must type-check the packet itself
+ * @param {string[]} [brackets] - The framing stack at the walk position, passed by the framing-aware walks: hasStream's validator receives the bracket payload stack accumulated up to this packet, so a data IP inside one open bracket sees a stack of one. Plain has and hasData walks are stateless per-IP checks and leave this undefined — their validators must not depend on framing state
  * @returns {boolean}
  */
 /**
