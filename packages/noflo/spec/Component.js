@@ -3954,6 +3954,53 @@ describe("activation contract guard", () => {
     assert.strictEqual(instance.load, 1);
   });
 
+  it("consumes brackets at arrival on a framing-terminating port", async () => {
+    // An explicitly-declared empty forwarding rule terminates framing on
+    // the port: brackets are consumed at arrival — they never fire, never
+    // buffer, and no output context is mirrored. Reading sees pure data
+    // (work document #40 update #13)
+    const loader = new noflo.ComponentLoader({});
+    loader.registerComponent("frame", "Terminator", () => {
+      const c = new noflo.Component();
+      c.inPorts.add("msg", { datatype: "all" });
+      c.outPorts.add("out", { datatype: "all" });
+      // Framing terminates here: the declaration, not an empty outcome of
+      // the defaulting logic
+      c.forwardBrackets = { msg: [] };
+      c.firings = 0;
+      c.process((input, output) => {
+        if (!input.hasData("msg")) {
+          return;
+        }
+        const data = input.getData("msg");
+        c.firings += 1;
+        output.sendDone({ out: data });
+      });
+      return c;
+    });
+    const instance = await loader.load("frame/Terminator");
+    const received = [];
+    const out = noflo.internalSocket.createSocket();
+    instance.outPorts.out.attach(out);
+    out.addEventListener("ip", (/** @type {any} */ event) => {
+      if (event.detail.type === "data") {
+        received.push(event.detail.data);
+      }
+    });
+    const msg = noflo.internalSocket.createSocket();
+    instance.inPorts.msg.attach(msg);
+    msg.post(new noflo.IP("openBracket", "stream"));
+    msg.post(new noflo.IP("data", "one"));
+    msg.post(new noflo.IP("data", "two"));
+    msg.post(new noflo.IP("closeBracket", "stream"));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    // Only the data packets fired the process; the brackets never did and
+    // never buffered
+    assert.strictEqual(instance.firings, 2);
+    assert.deepStrictEqual(received, ["one", "two"]);
+    assert.deepStrictEqual(instance.inPorts.ports.msg.buffer, []);
+  });
+
   it("lets the legal deferred-completion pattern complete normally", async () => {
     // A synchronous return that consumed data may complete later: the
     // activation holds until done(). The leak warning must not fire for

@@ -224,6 +224,7 @@ describe("flowtrace event types", () => {
     assert.equal(EVENT_TYPE.CONNECTION_CLOSE, 0x0c);
     assert.equal(EVENT_TYPE.ACTIVATION_BEGIN, 0x0d);
     assert.equal(EVENT_TYPE.ACTIVATION_END, 0x0e);
+    assert.equal(EVENT_TYPE.STRANDED, 0x0f);
   });
 });
 

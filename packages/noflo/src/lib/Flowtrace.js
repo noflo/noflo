@@ -54,6 +54,7 @@ export const EVENT_TYPE = {
   CONNECTION_CLOSE: 0x0c,
   ACTIVATION_BEGIN: 0x0d,
   ACTIVATION_END: 0x0e,
+  STRANDED: 0x0f,
 };
 
 /**
@@ -285,6 +286,28 @@ export class Flowtrace {
       null,
       { graph, tgt: target ?? null },
     );
+  }
+
+  /**
+   * Record a stranded-framing diagnostic as a `0x0f STRANDED` event:
+   * bracket framing buffered on an input port whose senders have all
+   * terminally disconnected — the framing can never pair with arriving
+   * data. The residue is reported, not consumed; the payload is the flat
+   * tuple `[node, port, scope|null, open_count, close_count]` (work
+   * document #40 update #13).
+   *
+   * @param {string} graph
+   * @param {string} node
+   * @param {string} port
+   * @param {string|null} scope
+   * @param {number} open
+   * @param {number} close
+   * @returns {void}
+   */
+  addNetworkStranded(graph, node, port, scope, open, close) {
+    this.#record(EVENT_TYPE.STRANDED, [node, port, scope, open, close], {
+      graph,
+    });
   }
 
   /**

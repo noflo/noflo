@@ -513,6 +513,15 @@ export const EVENT_TYPE = {
    * last open activation closed (work document #43).
    */
   ACTIVATION_END: 0x0e,
+  /**
+   * Bracket framing stranded at a port's end of transmission: bracket IPs
+   * buffered on an input port whose senders have all terminally
+   * disconnected — the framing can never pair with arriving data. The
+   * residue is reported, not consumed. Payload: the flat tuple
+   * `[tgt_node, tgt_port, scope|null, open_count, close_count]` (work
+   * document #40 update #13).
+   */
+  STRANDED: 0x0f,
 };
 
 /**

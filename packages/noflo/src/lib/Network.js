@@ -17,7 +17,10 @@ import { resolveHighWaterMark } from "./Edge.js";
 import { EventBase } from "./EventBase.js";
 import * as internalSocket from "./InternalSocket.js";
 import IP from "./IP.js";
+import { createDebug } from "./logger.js";
 import { makeAsync } from "./Platform.js";
+
+const debugNetwork = createDebug("noflo:network");
 
 /**
  * @typedef NetworkProcess
@@ -320,6 +323,17 @@ export class Network extends EventBase {
         this.flowtrace.addNetworkStopped(this.flowtraceName);
         break;
       }
+      case "stranded": {
+        this.flowtrace.addNetworkStranded(
+          this.flowtraceName,
+          payload.id,
+          payload.port,
+          payload.scope,
+          payload.open,
+          payload.close,
+        );
+        break;
+      }
       case "connection": {
         const to = payload.socket.to
           ? {
@@ -378,7 +392,7 @@ export class Network extends EventBase {
     // Add the event to Flowtrace immediately
     this.traceEvent(event, payload);
     // Errors get emitted immediately, like does network end
-    if (["icon", "process-error", "end"].includes(event)) {
+    if (["icon", "process-error", "end", "stranded"].includes(event)) {
       this.dispatchLifecycleEvent(event, payload);
       return;
     }
@@ -752,6 +766,52 @@ export class Network extends EventBase {
    *
    * @param {NetworkProcess} node
    */
+  /**
+   * When a port's last attached socket terminally disconnects, any bracket
+   * framing still buffered on the port can never pair with arriving data:
+   * the future is known. Surface the residue as a per-port, per-scope
+   * diagnostic — logged at debug level and recorded to Flowtrace as a
+   * `0x0f STRANDED` event — instead of it surfacing only in the shutdown
+   * buffer dump (work document #40 update #13). Reporting, not
+   * consumption: a component may legitimately decline a closeBracket now
+   * and consume it after its other input arrives.
+   *
+   * @param {NetworkProcess} node
+   * @param {string} portName
+   * @returns {void}
+   */
+  #reportStrandedFraming(node, portName) {
+    const instance = this.processes[node.id]?.component;
+    if (!instance) {
+      return;
+    }
+    const port = instance.inPorts.ports[portName];
+    if (!port) {
+      return;
+    }
+    const sockets =
+      /** @type {import("./InternalSocket.js").InternalSocket[]} */ (
+        port.sockets ?? []
+      );
+    if (!sockets.length || !sockets.every((socket) => socket?.isTerminal())) {
+      return;
+    }
+    const residue = port.strandedFraming();
+    for (const entry of residue) {
+      debugNetwork(
+        `${node.id} port '${portName}' holds stranded bracket framing at end of transmission (scope ${entry.scope ?? "unscoped"}${entry.index != null ? `[${entry.index}]` : ""}: ${entry.open} open, ${entry.close} close) — the framing can never pair with arriving data`,
+      );
+      this.bufferedEmit("stranded", {
+        id: node.id,
+        port: portName,
+        scope: entry.scope,
+        index: entry.index,
+        open: entry.open,
+        close: entry.close,
+      });
+    }
+  }
+
   subscribeNode(node) {
     if (!node.component) {
       return;
@@ -785,6 +845,7 @@ export class Network extends EventBase {
       instance.inPorts.ports[portName].addEventListener("disconnect", () => {
         // A boundary input reaching end of transmission (the sender's terminal
         // disconnect) can complete the network's end predicate
+        this.#reportStrandedFraming(node, portName);
         this.scheduleClosingCheck();
       });
     });

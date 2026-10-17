@@ -514,4 +514,64 @@ export default class InPort extends BasePort {
     count += (this.buffer ?? []).length;
     return count;
   }
+
+  /**
+   * Bracket framing residue in this port's buffers: bracket IPs that can
+   * never pair with arriving data once the port's senders have terminally
+   * disconnected. One entry per (scope, index) buffer holding brackets.
+   * Control ports are scanned like regular ones — a standing data value
+   * is legitimate, but bracket framing around it is the stranded class
+   * (work document #40 update #13).
+   *
+   * @returns {Array<{scope: string|null, index: number|null, open: number, close: number}>}
+   */
+  strandedFraming() {
+    /** @type {Array<{scope: string|null, index: number|null, open: number, close: number}>} */
+    const residue = [];
+    /**
+     * @param {Array<{type: string}>|undefined} buf
+     * @param {string|null} scope
+     * @param {number|null} index
+     */
+    const scan = (buf, scope, index) => {
+      let open = 0;
+      let close = 0;
+      for (const ip of buf ?? []) {
+        if (ip.type === "openBracket") {
+          open += 1;
+        } else if (ip.type === "closeBracket") {
+          close += 1;
+        }
+      }
+      if (open > 0 || close > 0) {
+        residue.push({ scope, index, open, close });
+      }
+    };
+    if (this.isAddressable()) {
+      if (this.options.scoped) {
+        Object.keys(this.indexedScopedBuffer ?? {}).forEach((scope) => {
+          Object.keys(this.indexedScopedBuffer[scope] ?? {}).forEach(
+            (index) => {
+              scan(
+                this.indexedScopedBuffer[scope][index],
+                scope,
+                Number(index),
+              );
+            },
+          );
+        });
+      }
+      Object.keys(this.indexedBuffer ?? {}).forEach((index) => {
+        scan(this.indexedBuffer[index], null, Number(index));
+      });
+      return residue;
+    }
+    if (this.options.scoped) {
+      Object.keys(this.scopedBuffer ?? {}).forEach((scope) => {
+        scan(this.scopedBuffer[scope], scope, null);
+      });
+    }
+    scan(this.buffer, null, null);
+    return residue;
+  }
 }
