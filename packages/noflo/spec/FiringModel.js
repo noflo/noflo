@@ -98,11 +98,7 @@ describe("the firing model: order-independent wakeups", () => {
         expected,
         `arrival order ${order.join(",")} produced the same result`,
       );
-      assert.strictEqual(
-        component.load,
-        0,
-        "no activation left pending",
-      );
+      assert.strictEqual(component.load, 0, "no activation left pending");
     }
   });
 
@@ -139,6 +135,7 @@ describe("the firing model: order-independent wakeups", () => {
         );
       }
       await settle();
+      assert.strictEqual(component.load, 0, "no activation left pending");
       assert.deepStrictEqual(
         received.sort((x, y) => x.a - y.a),
         [
@@ -234,7 +231,6 @@ describe("the firing model: order-independent wakeups", () => {
       "the closeBracket completed the wait",
     );
   });
-
 });
 
 // ---------------------------------------------------------------------------
@@ -296,6 +292,53 @@ const ip = (type, data, scope) => {
   }
   return packet;
 };
+
+describe("the retired triggering option", () => {
+  // The option is removed from the typed and documented option set; an
+  // unknown key passes through and does nothing. A port declaring it
+  // participates in firing like any data port — the opposite of its 1.x
+  // meaning, where the declaration suppressed arrival-firing
+  it("behaves as a regular data port despite the legacy declaration", async () => {
+    const c = new noflo.Component();
+    c.inPorts.add("a", { datatype: "all" });
+    c.inPorts.add("b", { datatype: "all", triggering: false });
+    c.outPorts.add("out", { datatype: "all" });
+    const received = [];
+    const out = noflo.internalSocket.createSocket();
+    c.outPorts.out.attach(out);
+    out.addEventListener("ip", (event) => {
+      if (event.detail.type === "data") {
+        received.push(event.detail.data);
+      }
+    });
+    const sa = noflo.internalSocket.createSocket();
+    const sb = noflo.internalSocket.createSocket();
+    c.inPorts.ports.a.attach(sa);
+    c.inPorts.ports.b.attach(sb);
+    c.process((input, output) => {
+      if (!input.hasData("a", "b")) {
+        return;
+      }
+      const [a, b] = input.getData("a", "b");
+      output.sendDone({ out: `${a}+${b}` });
+    });
+
+    post(sa, 1);
+    await settle();
+    assert.deepStrictEqual(received, [], "a buffers");
+    // Under the 1.x semantics this declaration would suppress the
+    // arrival-firing; the removed option changes nothing, so b's
+    // arrival pairs the buffered leg
+    post(sb, 2);
+    await settle();
+    assert.deepStrictEqual(
+      received,
+      ["1+2"],
+      "the legacy declaration is inert",
+    );
+    assert.strictEqual(c.load, 0);
+  });
+});
 
 describe("the firing matrix", () => {
   // A leg is an ordered step list: its internal sequence is the stream's
