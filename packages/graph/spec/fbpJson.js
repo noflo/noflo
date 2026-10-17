@@ -238,6 +238,32 @@ describe("caseSensitive normalization", () => {
     assert.deepEqual(Object.keys(doc.outports), ["OutString"]);
   });
 
+  it("does not mutate the caller's modern-shape document either", () => {
+    // The modern path is where the round-2 mutation actually bit:
+    // normalizeLegacyFbpJson returns the input object itself for
+    // canonical documents, so the fold must build its fresh view from
+    // that identity — and the caller's object must survive
+    const doc = {
+      caseSensitive: false,
+      nodes: [{ id: "n", component: "x" }],
+      edges: [
+        {
+          source: { id: "n", port: "OutString" },
+          target: { id: "n", port: "InString" },
+        },
+      ],
+      inits: [{ data: "v", target: { id: "n", port: "InString" } }],
+      inports: { InString: { process: "n", port: "InString" } },
+      outports: { OutString: { process: "n", port: "OutString" } },
+    };
+    importFbpJson(doc);
+    assert.equal(doc.edges[0].source.port, "OutString");
+    assert.equal(doc.edges[0].target.port, "InString");
+    assert.equal(doc.inits[0].target.port, "InString");
+    assert.deepEqual(Object.keys(doc.inports), ["InString"]);
+    assert.deepEqual(Object.keys(doc.outports), ["OutString"]);
+  });
+
   it("carries top-level inits and case through normalization", () => {
     // A modern document with a top-level inits field: the field must
     // survive normalizeLegacyFbpJson, or its IIPs vanish
