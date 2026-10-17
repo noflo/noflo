@@ -360,4 +360,188 @@ describe("drain-based network closing", () => {
     assert.equal(network.isStarted(), false);
     assert.deepEqual(connections, ["open", "close"]);
   });
+
+  it("holds the network open while a buffered message waits on a live sender leg", async () => {
+    // The noflo/noflo#1092 review repro shape (noflo-jekyll): a two-input
+    // builder declines a message whose preconditions span another port.
+    // The corpus leg's boundary driver is still open, so the network
+    // stays open and the late arrival completes the wait. The driver
+    // holding the leg open is what gates the close — the boundary-EOF
+    // check — because a compliant network's port-buffered data is
+    // stranded once every boundary is at EOT (see the strand-real test)
+    const graph = new noflo.GraphModel({ name: "race" });
+    graph.addNode({ entity_id: "Builder", component: "closing/Builder" });
+    graph.addNode({ entity_id: "Slow", component: "closing/Pass" });
+    graph.addEdge({
+      from: { node: "Slow", port: "out" },
+      to: { node: "Builder", port: "templates" },
+    });
+    graph.addExport({
+      direction: "inport",
+      public: "msg",
+      internal: { node: "Builder", port: "msg" },
+    });
+    graph.addExport({
+      direction: "inport",
+      public: "config",
+      internal: { node: "Slow", port: "in" },
+    });
+    const network = await noflo.createNetwork(graph, {
+      componentLoader: await (async () => {
+        const loader = new noflo.ComponentLoader({});
+        loader.registerComponent("closing", "Builder", () => {
+          const c = new noflo.Component();
+          c.inPorts.add("msg", { datatype: "all" });
+          c.inPorts.add("templates", { datatype: "all" });
+          c.outPorts.add("out", { datatype: "all" });
+          c.process((input, output) => {
+            // The has-first discipline: a message whose preconditions
+            // span another port waits — the packet stays buffered on the
+            // port until the corpus arrives
+            if (!input.hasData("msg") || !input.hasData("templates")) {
+              return;
+            }
+            const msg = input.getData("msg");
+            const tpl = input.getData("templates");
+            output.sendDone({ out: `${msg}:${tpl}` });
+          });
+          return c;
+        });
+        loader.registerComponent("closing", "Pass", () => {
+          const c = new noflo.Component();
+          c.inPorts.add("in", { datatype: "all" });
+          c.outPorts.add("out", { datatype: "all" });
+          c.process((input, output) => {
+            if (!input.hasData("in")) {
+              return;
+            }
+            output.sendDone({ out: input.getData("in") });
+          });
+          return c;
+        });
+        return loader;
+      })(),
+      delay: true,
+    });
+    await network.connect();
+    const msgSocket = noflo.internalSocket.createSocket();
+    network.getNode("Builder").component.inPorts.ports.msg.attach(msgSocket);
+    const configSocket = noflo.internalSocket.createSocket();
+    network.getNode("Slow").component.inPorts.ports.in.attach(configSocket);
+    const outLog = [];
+    const out = noflo.internalSocket.createSocket();
+    network.getNode("Builder").component.outPorts.ports.out.attach(out);
+    out.addEventListener("ip", (event) => {
+      if (event.detail.type === "data") {
+        outLog.push(event.detail.data);
+      }
+    });
+    await network.start();
+
+    // The message leg arrives and EOTs; the builder declines — the
+    // message waits buffered while the corpus leg is still open
+    msgSocket.post(new noflo.IP("data", "post"));
+    await msgSocket.disconnect();
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    // The old predicate ended the network here, stranding the message
+    assert.equal(network.isStarted(), true);
+
+    // The corpus arrives one tick later and completes the wait
+    configSocket.post(new noflo.IP("data", "corpus"));
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    assert.deepEqual(outLog, ["post:corpus"]);
+    // The corpus leg's sender finishes: the cascade closes down and the
+    // network ends cleanly
+    await configSocket.disconnect();
+    await new Promise((resolve) => {
+      const timer = setTimeout(resolve, 3000);
+      network.addEventListener("end", () => {
+        clearTimeout(timer);
+        resolve();
+      });
+    });
+    assert.equal(network.isStarted(), false);
+  });
+
+  it("ends the network when every feeding sender is done and a buffered message is genuinely stranded", async () => {
+    // The strand-real half of the rule: same shape, but the corpus leg's
+    // sender finishes without ever delivering — every socket that could
+    // feed the waiting component is terminally closed, so the buffered
+    // message is stranded for real and the network closes loudly
+    const graph = new noflo.GraphModel({ name: "strand" });
+    graph.addNode({ entity_id: "Builder", component: "closing/Builder" });
+    graph.addNode({ entity_id: "Slow", component: "closing/Pass" });
+    graph.addEdge({
+      from: { node: "Slow", port: "out" },
+      to: { node: "Builder", port: "templates" },
+    });
+    graph.addExport({
+      direction: "inport",
+      public: "msg",
+      internal: { node: "Builder", port: "msg" },
+    });
+    graph.addExport({
+      direction: "inport",
+      public: "config",
+      internal: { node: "Slow", port: "in" },
+    });
+    const network = await noflo.createNetwork(graph, {
+      componentLoader: await (async () => {
+        const loader = new noflo.ComponentLoader({});
+        loader.registerComponent("closing", "Builder", () => {
+          const c = new noflo.Component();
+          c.inPorts.add("msg", { datatype: "all" });
+          c.inPorts.add("templates", { datatype: "all" });
+          c.outPorts.add("out", { datatype: "all" });
+          c.process((input, output) => {
+            if (!input.hasData("msg") || !input.hasData("templates")) {
+              return;
+            }
+            const msg = input.getData("msg");
+            const tpl = input.getData("templates");
+            output.sendDone({ out: `${msg}:${tpl}` });
+          });
+          return c;
+        });
+        loader.registerComponent("closing", "Pass", () => {
+          const c = new noflo.Component();
+          c.inPorts.add("in", { datatype: "all" });
+          c.outPorts.add("out", { datatype: "all" });
+          c.process((input, output) => {
+            if (!input.hasData("in")) {
+              return;
+            }
+            output.sendDone({ out: input.getData("in") });
+          });
+          return c;
+        });
+        return loader;
+      })(),
+      delay: true,
+    });
+    await network.connect();
+    const msgSocket = noflo.internalSocket.createSocket();
+    network.getNode("Builder").component.inPorts.ports.msg.attach(msgSocket);
+    const configSocket = noflo.internalSocket.createSocket();
+    network.getNode("Slow").component.inPorts.ports.in.attach(configSocket);
+    await network.start();
+
+    msgSocket.post(new noflo.IP("data", "post"));
+    await msgSocket.disconnect();
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    assert.equal(network.isStarted(), true);
+
+    // The corpus leg's sender finishes without delivering: Slow closes
+    // down, its outport disconnects, and the builder's every socket is
+    // terminal — the strand is real and the network ends
+    await configSocket.disconnect();
+    await new Promise((resolve) => {
+      const timer = setTimeout(resolve, 3000);
+      network.addEventListener("end", () => {
+        clearTimeout(timer);
+        resolve();
+      });
+    });
+    assert.equal(network.isStarted(), false);
+  });
 });

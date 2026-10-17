@@ -3829,3 +3829,89 @@ describe("control port has() consistency", () => {
     }, 50);
   });
 });
+
+describe("activation contract guard", () => {
+  it("surfaces an out-of-activation data send as a process error", async () => {
+    const loader = new noflo.ComponentLoader({});
+    loader.registerComponent("guard", "Late", () => {
+      const c = new noflo.Component();
+      c.inPorts.add("in", { datatype: "all" });
+      c.outPorts.add("out", { datatype: "all" });
+      c.outPorts.add("error", { datatype: "object" });
+      c.process((input, output) => {
+        if (!input.hasData("in")) {
+          return;
+        }
+        input.getData("in");
+        // A void PROMISE resolution means "the process already sent" —
+        // the bridge completes the activation on resolution. A data send
+        // firing after that races drain-based closing
+        Promise.resolve().then(() => {
+          setTimeout(() => {
+            output.send({ out: "late" });
+          }, 5);
+        });
+        return Promise.resolve();
+      });
+      return c;
+    });
+    const instance = await loader.load("guard/Late");
+    const errors = [];
+    const errorSocket = noflo.internalSocket.createSocket();
+    instance.outPorts.error.attach(errorSocket);
+    errorSocket.addEventListener("ip", (/** @type {any} */ event) => {
+      if (event.detail.type === "error") {
+        errors.push(event.detail.data);
+      }
+    });
+    const inSocket = noflo.internalSocket.createSocket();
+    instance.inPorts.in.attach(inSocket);
+    inSocket.post(new noflo.IP("data", "go"));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.strictEqual(errors.length, 1);
+    assert.match(
+      /** @type {Error} */ (errors[0]).message,
+      /send outside the activation contract/,
+    );
+  });
+
+  it("does not fire for a compliant deferred send that holds the activation", async () => {
+    const loader = new noflo.ComponentLoader({});
+    loader.registerComponent("guard", "Held", () => {
+      const c = new noflo.Component();
+      c.inPorts.add("in", { datatype: "all" });
+      c.outPorts.add("out", { datatype: "all" });
+      c.process((input, output) => {
+        if (!input.hasData("in")) {
+          return;
+        }
+        input.getData("in");
+        // The compliant form: the promise return holds the activation
+        // until the deferred send completes
+        return new Promise((resolve) => {
+          setTimeout(() => resolve({ out: "held" }), 5);
+        });
+      });
+      return c;
+    });
+    const instance = await loader.load("guard/Held");
+    const errors = [];
+    instance.addEventListener("process-error", (/** @type {any} */ event) => {
+      errors.push(event.detail?.error ?? event.detail);
+    });
+    const received = [];
+    const out = noflo.internalSocket.createSocket();
+    instance.outPorts.out.attach(out);
+    out.addEventListener("ip", (/** @type {any} */ event) => {
+      if (event.detail.type === "data") {
+        received.push(event.detail.data);
+      }
+    });
+    const inSocket = noflo.internalSocket.createSocket();
+    instance.inPorts.in.attach(inSocket);
+    inSocket.post(new noflo.IP("data", "go"));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.deepStrictEqual(errors, []);
+    assert.deepStrictEqual(received, ["held"]);
+  });
+});

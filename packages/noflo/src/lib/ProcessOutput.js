@@ -116,6 +116,34 @@ export default class ProcessOutput {
    *   errors escalate through the socket error path).
    */
   send(outputMap) {
+    // The activation contract guard: a data send on a deactivated context
+    // is an out-of-activation send — the process resolved without
+    // sending, and the deferred send races drain-based closing,
+    // re-opening a closed-down downstream that can no longer trust end
+    // of transmission (work document #45; found by the noflo-jekyll
+    // review of PR #1092). Surfaced loudly instead of silently
+    // corrupting the close: the network error path and the trace both
+    // carry it. Error escalations are exempt — reporting a failure after
+    // the activation closed is the engine's own catch path
+    if (!isError(outputMap) && this.context.deactivated) {
+      const componentName = this.nodeInstance?.nodeId ?? "unknown";
+      const contractError = new Error(
+        `${componentName}: send outside the activation contract — the process resolved without sending; return the promise so the activation holds until the send completes`,
+      );
+      const errorPort = this.nodeInstance.outPorts.ports.error;
+      if (errorPort?.isAttached()) {
+        // Bypass the ordered output queue: the deferred send's activation
+        // is already resolved, so a queued error would never deliver
+        for (const socket of errorPort.sockets) {
+          if (!socket) {
+            continue;
+          }
+          socket.post(new IP("error", contractError));
+        }
+      } else {
+        throw contractError;
+      }
+    }
     if (isError(outputMap)) {
       const errors = /** @type {Error|Array<Error>} */ (outputMap);
       this.error(errors);
