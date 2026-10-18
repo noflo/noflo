@@ -132,6 +132,58 @@ describe("node_modules discovery contract", () => {
     const list = registry.list();
     assert.ok(!Object.keys(list).includes("nopackage/Zeta"));
   });
+
+  describe("signature sidecars (work documents #19 and #24)", () => {
+    it("discovers a stub-only sidecar as a StubComponent", async () => {
+      const list = registry.list();
+      assert.ok(Object.keys(list).includes("discoveryroot/Stubbed"));
+      const definition = await registry.get("discoveryroot/Stubbed");
+      const instance = instantiate(definition);
+      assert.strictEqual(instance.isStub(), true);
+      assert.strictEqual(instance.stubName, "discoveryroot/Stubbed");
+      // The sidecar's declared signature: type maps onto datatype,
+      // description and icon come from the file
+      assert.strictEqual(instance.inPorts.ports.in.getDataType(), "string");
+      assert.strictEqual(
+        instance.inPorts.ports.options.getDataType(),
+        "object",
+      );
+      assert.strictEqual(instance.outPorts.ports.out.getDataType(), "all");
+      assert.strictEqual(
+        instance.description,
+        "A declared signature with no implementation",
+      );
+      assert.strictEqual(instance.icon, "gear");
+    });
+
+    it("instantiates each load independently", async () => {
+      const definition = await registry.get("discoveryroot/Stubbed");
+      const first = instantiate(definition);
+      const second = instantiate(definition);
+      assert.notStrictEqual(first, second);
+    });
+
+    it("keeps the implementation when a source and a sidecar share a name", async () => {
+      const list = registry.list();
+      assert.ok(Object.keys(list).includes("discoveryroot/WithImpl"));
+      const definition = await registry.get("discoveryroot/WithImpl");
+      const instance = instantiate(definition);
+      // The .js sibling wins; the sidecar is documentation, not a second
+      // component
+      assert.strictEqual(instance.isStub(), false);
+      assert.strictEqual(
+        instance.description,
+        "Implemented sibling of a signature sidecar",
+      );
+    });
+
+    it("ignores JSON files in components directories that are not sidecars", () => {
+      // A stray JSON file (or a misplaced graph) stays undiscovered,
+      // as before sidecars existed
+      const list = registry.list();
+      assert.ok(!Object.keys(list).includes("discoveryroot/Stray"));
+    });
+  });
 });
 
 describe("node_modules discovery error handling", () => {
