@@ -156,7 +156,15 @@ async function getModuleInfo(baseDir) {
  * @param {string} name
  * @returns {string}
  */
-function normalizeLibraryName(name) {
+/**
+ * Apply the NoFlo library naming conventions to a package name: the
+ * package named exactly `noflo` maps to the empty library name, scope
+ * prefixes are stripped, and a leading `noflo-` prefix is dropped.
+ *
+ * @param {string} name
+ * @returns {string}
+ */
+export function normalizeLibraryName(name) {
   if (name === "noflo") {
     return "";
   }

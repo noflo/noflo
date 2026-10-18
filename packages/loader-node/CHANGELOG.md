@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Added
 - Signature sidecar discovery (work documents #19 and #24): `components/<name>.json` files — the per-component signature JSON noflo-ui materializes into a project workdir — are discovered as stub components and register as `StubComponent` factories via `StubComponent.fromSignature`, so a materialized project runs entirely on signature stubs without any library code present. Classification is by shape: a JSON object whose `inports` and `outports` are both arrays is a sidecar; anything else keeps the pre-sidecar ignore behavior. Port-level validation is the stub constructor's job, so a malformed sidecar fails loudly at load, named with the component. When an implementation source shares the sidecar's name, the implementation wins and the sidecar is dropped — documentation of the declared signature, not a second component (work document #24 update #2); when the implementation arrives later, the entry graduates
+- `normalizeLibraryName` is exported from the package entry point: the library naming conventions are consumed by hosts classifying component names against their own project namespace (work document #19)
 
 ## [2.0.0-alpha.11] - 2026-10-18
 
