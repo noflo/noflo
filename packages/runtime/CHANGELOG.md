@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- The `RuntimeCatalog.writeSource` hook contract documents the `0x25` signature-declaration payload convention (work document #19): the payload may be the on-disk sidecar shape noflo-ui materializes, classified by the catalog — docs only, no code change
 
 ## [2.0.0-alpha.11] - 2026-10-18
 
