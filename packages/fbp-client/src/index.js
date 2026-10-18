@@ -335,6 +335,64 @@ export function setSource(session, name, source) {
 }
 
 /**
+ * `stubs`: the runtime's stub entries — declared signatures with no
+ * implementation (work document #19). Discovery is the ordinary Two-Step
+ * Cache sync: manifest entries carry the declared kind, and a stub's full
+ * signature is cached like any other entry's, so what a design session
+ * needs to place or refine a stub needs no extra round trips.
+ *
+ * @param {Session} session
+ * @returns {Promise<Record<string, import("@noflo/runtime-client").CachedComponent>>}
+ */
+export async function stubs(session) {
+  const catalog = await session.client.syncComponents();
+  /** @type {Record<string, import("@noflo/runtime-client").CachedComponent>} */
+  const found = {};
+  for (const [name, entry] of Object.entries(catalog)) {
+    if (/** @type {any} */ (entry).type === "stub") {
+      found[name] = entry;
+    }
+  }
+  return found;
+}
+
+/**
+ * `stub set <name> <file>`: upload a stub — a declared signature with no
+ * implementation — to the runtime. The payload rides the ordinary `0x25`
+ * source write as a JSON signature declaration (work document #19): the
+ * runtime's catalog classifies it, materializes the sidecar, and registers
+ * a StubComponent. The signature is validated client-side first, so a
+ * non-signature file fails here instead of landing as component source.
+ *
+ * @param {Session} session
+ * @param {string} name - Library-namespaced component name
+ * @param {Object<string, any>|string} signature - The sidecar-shaped
+ *   signature object, or its JSON text
+ * @returns {Promise<void>}
+ */
+export async function setStub(session, name, signature) {
+  const text =
+    typeof signature === "string" ? signature : JSON.stringify(signature);
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (_err) {
+    throw new Error(`stub signature for ${name} is not valid JSON`);
+  }
+  if (
+    !parsed ||
+    typeof parsed !== "object" ||
+    !Array.isArray(parsed.inports) ||
+    !Array.isArray(parsed.outports)
+  ) {
+    throw new Error(
+      `stub signature for ${name} must be the sidecar shape: { name, description, icon, inports: […], outports: […] }`,
+    );
+  }
+  return session.client.setSource(name, text);
+}
+
+/**
  * `run`/`pause`/`step`/`stop`: run control over the network (`0x40`).
  *
  * @param {Session} session

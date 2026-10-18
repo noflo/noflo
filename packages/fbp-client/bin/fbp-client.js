@@ -57,7 +57,9 @@ import {
   setMetadata,
   setProcessState,
   setSource,
+  setStub,
   status,
+  stubs,
   watch,
 } from "../src/index.js";
 
@@ -128,6 +130,8 @@ Commands:
   planes               List the runtime's graph planes (0x16)
   graph                Render the mirrored graph (default: json)
   components           List the registry catalog (Two-Step Cache)
+  stubs                List the runtime's stub components (declared, unimplemented)
+  stub set <name> <file>  Upload a signature sidecar as a stub (0x25)
   schemas              List the schema bodies the catalog references (digest-verified)
   component <name>     One registry entry with its signature
   source get <name>    Read a component's source (0x26)
@@ -436,6 +440,44 @@ async function main() {
           const entry = await component(session, name);
           console.log(JSON.stringify(entry, null, 2));
           break;
+        }
+        case "stubs": {
+          // The runtime's declared-but-unimplemented components (work
+          // document #19): the kind is declared data from the catalog
+          const found = await stubs(session);
+          if (json) {
+            console.log(JSON.stringify(found, null, 2));
+          } else {
+            const entries = Object.entries(found).sort();
+            for (const [name, entry] of entries) {
+              const ins = entry.signature?.in.map((p) => p.id).join(", ");
+              const outs = entry.signature?.out.map((p) => p.id).join(", ");
+              console.log(`${name}\tin: ${ins || "—"}\tout: ${outs || "—"}`);
+            }
+            if (entries.length === 0) {
+              console.error("fbp-client: the runtime holds no stub components");
+            }
+          }
+          break;
+        }
+        case "stub": {
+          const sub = positional[1];
+          const name = positional[2];
+          if (sub === "set") {
+            const file = positional[3];
+            if (!name || !file) {
+              throw new Error("usage: fbp-client stub set <name> <file>");
+            }
+            const signature = await readFile(file, "utf8");
+            await setStub(session, name, signature);
+            if (!json) {
+              console.error(
+                `uploaded ${file} as stub ${name}; the runtime materializes it as a signature sidecar`,
+              );
+            }
+            break;
+          }
+          throw new Error("usage: fbp-client stub set <name> <file>");
         }
         case "source": {
           const sub = positional[1];
