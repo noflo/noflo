@@ -164,13 +164,21 @@ describe("wd #36 verification: bare-class component definitions", () => {
       thrown = String(error.message);
     }
     if (outcome === "threw") {
-      // Still open: the factory branch cannot construct bare classes
-      // (the thrown message names the class: "Class constructor Bare
-      // cannot be invoked without 'new'")
+      // Still open: the factory branch cannot construct bare classes.
+      // The phrasing varies by engine — V8: "Class constructor Bare
+      // cannot be invoked without 'new'"; JavaScriptCore (Bun): "Cannot
+      // call a class constructor Bare without |new|" — so the match is
+      // on the two stable parts: the constructor mention and the new
+      // invocation
       assert.match(
         thrown,
-        /cannot be invoked without 'new'/,
+        /constructor/i,
         "the bare-class shape is still unsupported — the work-document finding stands",
+      );
+      assert.match(
+        thrown,
+        /new/,
+        "the invocation error is the class-construction failure",
       );
     }
     // Either way the loader did not crash the test process; the finding
