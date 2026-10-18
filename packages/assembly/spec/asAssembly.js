@@ -838,6 +838,18 @@ describe("whole-message replace mapping", () => {
     assert.deepEqual(ip.data.errors, []);
   });
 
+  it("rejects an outport mapped to the reserved errors field", () => {
+    const inner = new TransformLike();
+    assert.throws(
+      () =>
+        asAssembly(inner, {
+          target: "test/TransformLike",
+          mapping: { in: { in: null }, out: { out: "errors" } },
+        }),
+      /must not map to 'errors'/,
+    );
+  });
+
   it("rejects more than one null outport at wrap time", () => {
     class TwoOut extends noflo.Component {
       constructor() {

@@ -83,14 +83,59 @@ describe("CollectFields whole-message replace", () => {
     assert.equal(first.received[0].replaced, true);
   });
 
-  it("carries accumulated errors into the replacement", async () => {
+  it("the replacement owns the envelope's error state", async () => {
+    // The replace supersedes the incoming envelope's errors: the inner
+    // received the full envelope and owns the accumulation. A
+    // relay-convention inner carries the accumulated errors forward
+    // inside its replacement; the collector does not merge the two
+    // channels (merging would double-count the envelope's original
+    // errors for a relay-convention inner)
     const c = makeCollector([null]);
-    c.msg.post(new noflo.IP("data", { errors: ["stale"], path: "/keep" }));
+    c.msg.post(new noflo.IP("data", { errors: ["upstream"], path: "/keep" }));
+    c.data[0].post(
+      new noflo.IP("data", {
+        errors: ["upstream", "added by the inner"],
+        path: "/replaced",
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(c.received.length, 1);
+    assert.equal(c.received[0].path, "/replaced");
+    assert.deepEqual(c.received[0].errors, ["upstream", "added by the inner"]);
+  });
+
+  it("a replacement that carries no errors supersedes the incoming ones", async () => {
+    // A fresh-envelope inner chose its own error state: the collector
+    // does not fold the incoming envelope's errors into it
+    const c = makeCollector([null]);
+    c.msg.post(new noflo.IP("data", { errors: ["upstream"], path: "/keep" }));
     c.data[0].post(new noflo.IP("data", { path: "/replaced" }));
     await new Promise((resolve) => setTimeout(resolve, 50));
     assert.equal(c.received.length, 1);
     assert.equal(c.received[0].path, "/replaced");
-    assert.deepEqual(c.received[0].errors, ["stale"]);
+    assert.deepEqual(c.received[0].errors, []);
+  });
+
+  it("the error port completes the message before the replace fires", async () => {
+    // The error leg is the message's terminal event for its scope (work
+    // document #36): when the inner signals through the error port, the
+    // message completes there — the replace mapping never fires for it,
+    // because a failed inner will not deliver its output
+    const c = makeCollector([null]);
+    c.msg.post(new noflo.IP("data", { errors: ["upstream"], path: "/keep" }));
+    c.error.post(new noflo.IP("data", new Error("signalled")));
+    c.data[0].post(
+      new noflo.IP("data", { errors: ["upstream"], path: "/replaced" }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(c.received.length, 1);
+    assert.equal(c.received[0].path, "/keep");
+    assert.equal(c.received[0].errors.length, 2);
+    assert.equal(c.received[0].errors[0], "upstream");
+    assert.match(
+      /** @type {Error} */ (c.received[0].errors[1]).message,
+      /signalled/,
+    );
   });
 
   it("keeps the original message when the replace output is not a plain object", async () => {
@@ -101,6 +146,8 @@ describe("CollectFields whole-message replace", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
       assert.equal(c.received.length, 1);
       assert.equal(c.received[0].path, "/keep");
+      // The not-plain error surfaces on the envelope channel: the
+      // replace did not happen
       assert.equal(c.received[0].errors.length, 1);
       assert.match(
         /** @type {Error} */ (c.received[0].errors[0]).message,

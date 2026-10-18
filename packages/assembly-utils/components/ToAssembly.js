@@ -32,6 +32,11 @@ export function getComponent(metadata = {}) {
       `ToAssembly: the assembly.field metadata must be a string (got ${JSON.stringify(field)})`,
     );
   }
+  if (field === "") {
+    throw new TypeError(
+      "ToAssembly: the assembly.field metadata must not be empty",
+    );
+  }
   if (field === "errors") {
     throw new TypeError(
       "ToAssembly: the assembly.field metadata must not be 'errors' — the error envelope owns that field",

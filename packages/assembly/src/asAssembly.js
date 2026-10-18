@@ -136,6 +136,11 @@ function resolveOutMapping(outports, mapping = {}) {
       );
     }
     resolved[port.name] = override === undefined ? port.name : override;
+    if (resolved[port.name] === "errors") {
+      throw new Error(
+        `asAssembly: mapping.out for port '${port.name}' must not map to 'errors' — the error accumulation owns that field`,
+      );
+    }
     if (resolved[port.name] === null) {
       replaces.push(port.name);
     }

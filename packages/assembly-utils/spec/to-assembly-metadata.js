@@ -50,6 +50,13 @@ describe("ToAssembly field option", () => {
     );
   });
 
+  it("rejects an empty field name at load time", () => {
+    assert.throws(
+      () => getComponent({ "assembly.field": "" }),
+      /must not be empty/,
+    );
+  });
+
   it("rejects the reserved errors field name at load time", () => {
     assert.throws(
       () => getComponent({ "assembly.field": "errors" }),

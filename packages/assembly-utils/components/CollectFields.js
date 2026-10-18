@@ -23,16 +23,23 @@ import Component from "@noflo/assembly";
  *
  * A field name of `null` in the `fields` config is the whole-message
  * replace mapping: the inner output becomes the message — its keys
- * replace the originating message's — and the accumulated `errors`
- * carry into the replacement. The replace output must be a plain
- * object; anything else (a non-object, an array, a class instance)
- * accumulates an error into `msg.errors` instead of replacing. Only
- * one field may be `null` — `asAssembly` validates the mapping at wrap
- * time and the collector rejects a doubled config defensively — and
- * the replace is processed first, then the named fields merge on top
- * of the replacement, so the result is independent of the inner
- * component's outport declaration order: a named field merges onto a
- * replaced message regardless of which connection index it rides.
+ * replace the originating message's — and the replace **supersedes the
+ * incoming envelope's error state**: the inner received the full
+ * envelope (its `in` maps the whole message) and owns the error
+ * accumulation, so a relay-convention inner carries the accumulated
+ * errors forward inside its replacement, and the collector's error
+ * port remains the out-of-band signal channel whose IPs still append.
+ * Merging the two channels would double-count the envelope's original
+ * errors for a relay-convention inner. The replace output must be a
+ * plain object; anything else (a non-object, an array, a class
+ * instance) accumulates an error into `msg.errors` instead of
+ * replacing. Only one field may be `null` — `asAssembly` validates the
+ * mapping at wrap time and the collector rejects a doubled config
+ * defensively — and the replace is processed first, then the named
+ * fields merge on top of the replacement, so the result is independent
+ * of the inner component's outport declaration order: a named field
+ * merges onto a replaced message regardless of which connection index
+ * it rides.
  *
  * The error port is the message's terminal event for its scope: firing
  * on it completes the message even while other fields' streams are
@@ -129,14 +136,19 @@ export class CollectFields extends Component {
     // processed first, then the named fields merge on top — the result
     // is independent of the connection order (work document #36)
     let result = { ...msg };
+    // Two error channels: the envelope's own accumulation (original
+    // msg.errors, superseded by a replace-mapped output — the inner
+    // received the full envelope and owns the accumulation), and the
+    // error port's out-of-band signal IPs, which append in both cases
+    const originalErrors = Array.isArray(msg.errors) ? [...msg.errors] : [];
     /** @type {unknown[]} */
-    const errors = Array.isArray(msg.errors) ? [...msg.errors] : [];
+    const errorPortErrors = [];
     if (errorStream) {
       for (const ip of input.getStream("error")) {
         if (ip.type !== "data") {
           continue;
         }
-        errors.push(ip.data);
+        errorPortErrors.push(ip.data);
       }
     }
     /** @type {Array<{ field: string | null | undefined, collectedValue: unknown }>} */
@@ -157,14 +169,16 @@ export class CollectFields extends Component {
         collectedValue: values.length === 1 ? values[0] : values,
       });
     }
+    /** @type {boolean} */
+    let replaced = false;
     for (const { field, collectedValue } of collected) {
       if (field !== null) {
         continue;
       }
-      // Whole-message replace: the inner output becomes the message,
-      // the accumulated errors carrying into it. Only a plain object
-      // can replace a message — a class instance or a Date would spread
-      // to nearly nothing — anything else errors instead
+      // Whole-message replace: the inner output becomes the message and
+      // supersedes the incoming envelope's error state. Only a plain
+      // object can replace a message — a class instance or a Date would
+      // spread to nearly nothing — anything else errors instead
       if (
         collectedValue !== null &&
         typeof collectedValue === "object" &&
@@ -172,9 +186,19 @@ export class CollectFields extends Component {
         (Object.getPrototypeOf(collectedValue) === Object.prototype ||
           Object.getPrototypeOf(collectedValue) === null)
       ) {
-        result = { ...collectedValue, errors };
+        const replacement = /** @type {{ errors?: unknown[] }} */ (
+          collectedValue
+        );
+        const replacementErrors = Array.isArray(replacement.errors)
+          ? [...replacement.errors]
+          : [];
+        result = {
+          ...replacement,
+          errors: [...replacementErrors, ...errorPortErrors],
+        };
+        replaced = true;
       } else {
-        errors.push(
+        originalErrors.push(
           new Error(
             "CollectFields: the replace-mapped inner output is not a plain object",
           ),
@@ -187,7 +211,9 @@ export class CollectFields extends Component {
       }
       result[field] = collectedValue;
     }
-    result.errors = errors;
+    if (!replaced) {
+      result.errors = [...originalErrors, ...errorPortErrors];
+    }
     output.sendDone({ out: result });
   }
 }
