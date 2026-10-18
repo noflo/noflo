@@ -992,7 +992,7 @@
         "name": "compWrite",
         "title": "0x25 CMD_COMP_WRITE",
         "summary": "Atomic full-source component update.",
-        "description": "For sources over 500 bytes, clients SHOULD pass a Reticulum Resource hash instead of a raw string. A write to a previously stub-only entry implements it while the signature stays unchanged — source and signature are orthogonal.",
+        "description": "For sources over 500 bytes, clients SHOULD pass a Reticulum Resource hash instead of a raw string. A write to a previously stub-only entry implements it while the signature stays unchanged — source and signature are orthogonal. The payload may also be a signature declaration (work document #19): a JSON document of the on-disk sidecar shape noflo-ui materializes, uploading a stub; classification is the runtime catalog's, not the wire's.",
         "payload": {
           "type": "array",
           "minItems": 3,
