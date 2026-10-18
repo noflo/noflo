@@ -695,3 +695,212 @@ describe("wrapped component behavior matrix", () => {
     assert.equal(instance.load, 0, "the closedown cascade completed");
   });
 });
+
+describe("whole-message replace mapping", () => {
+  // The transform-the-message shape (work document #36's mapping
+  // vocabulary): an inner component that mutates and forwards the
+  // message — the wrapped output replaces the message instead of
+  // nesting under a named field. The accumulated errors carry into the
+  // replacement.
+  class TransformLike extends noflo.Component {
+    constructor() {
+      super({
+        description: "Transforms the message and forwards it",
+        inPorts: {
+          in: { datatype: "object", required: true },
+        },
+        outPorts: {
+          out: { datatype: "object" },
+          error: { datatype: "object" },
+        },
+      });
+      this.process((input, output) => {
+        if (!input.hasData("in")) {
+          return;
+        }
+        const msg = input.getData("in");
+        output.sendDone({ out: { ...msg, transformed: true } });
+      });
+    }
+  }
+
+  class StringLike extends noflo.Component {
+    constructor() {
+      super({
+        description: "Emits a non-object value",
+        inPorts: {
+          in: { datatype: "all", required: true },
+        },
+        outPorts: {
+          out: { datatype: "all" },
+        },
+      });
+      this.process((input, output) => {
+        if (!input.hasData("in")) {
+          return;
+        }
+        output.sendDone({ out: "just a string" });
+      });
+    }
+  }
+
+  it("replaces the message with the inner output when an outport maps to null", async () => {
+    const loader = await makeLoader();
+    loader.registerComponent("test", "TransformLike", {
+      getComponent: () => new TransformLike(),
+    });
+    const inner = new TransformLike();
+    const graph = asAssembly(inner, {
+      target: "test/TransformLike",
+      mapping: { in: { in: null }, out: { out: null } },
+    });
+    loader.registerComponent("test", "Wrapped", graph);
+    const instance = await loader.load("test/Wrapped");
+
+    const out = new noflo.internalSocket.InternalSocket();
+    instance.outPorts.ports.out.attach(out);
+    const source = new noflo.internalSocket.InternalSocket();
+    instance.inPorts.ports.msg.attach(source);
+
+    const received = new Promise((resolve) => {
+      out.addEventListener("ip", (event) => resolve(event.detail));
+    });
+
+    instance.start(() => {});
+    source.post(
+      new noflo.IP("data", { errors: [], path: "/x/index.html", body: "b" }),
+    );
+    const ip = await received;
+    assert.equal(ip.type, "data");
+    // The inner output IS the message: its keys replace, the errors carry
+    assert.equal(ip.data.path, "/x/index.html");
+    assert.equal(ip.data.body, "b");
+    assert.equal(ip.data.transformed, true);
+    assert.deepEqual(ip.data.errors, []);
+  });
+
+  it("replaces first, then merges named fields on top, regardless of declaration order", async () => {
+    // The connection index is the inner's outport declaration order,
+    // which the graph author does not control: the replace must not
+    // discard a named field collected on a lower index
+    const loader = await makeLoader();
+    class TwoOut extends noflo.Component {
+      constructor() {
+        super({
+          inPorts: { in: { datatype: "object", required: true } },
+          outPorts: {
+            out1: { datatype: "object" },
+            out2: { datatype: "all" },
+          },
+        });
+        this.process((input, output) => {
+          if (!input.hasData("in")) {
+            return;
+          }
+          const msg = input.getData("in");
+          output.sendDone({
+            out1: { ...msg, transformed: true },
+            out2: "META",
+          });
+        });
+      }
+    }
+    loader.registerComponent("test", "TwoOut", {
+      getComponent: () => new TwoOut(),
+    });
+    const inner = new TwoOut();
+    const graph = asAssembly(inner, {
+      target: "test/TwoOut",
+      mapping: {
+        in: { in: null },
+        out: { out1: null, out2: "meta" },
+      },
+    });
+    loader.registerComponent("test", "Wrapped", graph);
+    const instance = await loader.load("test/Wrapped");
+
+    const out = new noflo.internalSocket.InternalSocket();
+    instance.outPorts.ports.out.attach(out);
+    const source = new noflo.internalSocket.InternalSocket();
+    instance.inPorts.ports.msg.attach(source);
+
+    const received = new Promise((resolve) => {
+      out.addEventListener("ip", (event) => resolve(event.detail));
+    });
+
+    instance.start(() => {});
+    source.post(new noflo.IP("data", { errors: [], path: "/x/index.html" }));
+    const ip = await received;
+    assert.equal(ip.type, "data");
+    assert.equal(ip.data.path, "/x/index.html");
+    assert.equal(ip.data.transformed, true);
+    assert.equal(ip.data.meta, "META");
+    assert.deepEqual(ip.data.errors, []);
+  });
+
+  it("rejects an outport mapped to the reserved errors field", () => {
+    const inner = new TransformLike();
+    assert.throws(
+      () =>
+        asAssembly(inner, {
+          target: "test/TransformLike",
+          mapping: { in: { in: null }, out: { out: "errors" } },
+        }),
+      /must not map to 'errors'/,
+    );
+  });
+
+  it("rejects more than one null outport at wrap time", () => {
+    class TwoOut extends noflo.Component {
+      constructor() {
+        super({
+          inPorts: { in: { datatype: "object", required: true } },
+          outPorts: {
+            out1: { datatype: "object" },
+            out2: { datatype: "object" },
+          },
+        });
+        this.process(() => {});
+      }
+    }
+    assert.throws(
+      () =>
+        asAssembly(new TwoOut(), {
+          target: "test/TwoOut",
+          mapping: { in: { in: null }, out: { out1: null, out2: null } },
+        }),
+      /only one outport may map to null/,
+    );
+  });
+
+  it("keeps the message and accumulates an error when the replace output is not an object", async () => {
+    const loader = await makeLoader();
+    loader.registerComponent("test", "StringLike", {
+      getComponent: () => new StringLike(),
+    });
+    const inner = new StringLike();
+    const graph = asAssembly(inner, {
+      target: "test/StringLike",
+      mapping: { in: { in: null }, out: { out: null } },
+    });
+    loader.registerComponent("test", "Wrapped", graph);
+    const instance = await loader.load("test/Wrapped");
+
+    const out = new noflo.internalSocket.InternalSocket();
+    instance.outPorts.ports.out.attach(out);
+    const source = new noflo.internalSocket.InternalSocket();
+    instance.inPorts.ports.msg.attach(source);
+
+    const received = new Promise((resolve) => {
+      out.addEventListener("ip", (event) => resolve(event.detail));
+    });
+
+    instance.start(() => {});
+    source.post(new noflo.IP("data", { errors: [], path: "/keep" }));
+    const ip = await received;
+    assert.equal(ip.type, "data");
+    assert.equal(ip.data.path, "/keep");
+    assert.equal(ip.data.errors.length, 1);
+    assert.match(ip.data.errors[0].message, /not a plain object/);
+  });
+});

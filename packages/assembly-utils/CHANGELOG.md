@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `ToAssembly` accepts the `assembly.field` node metadata to name the field the incoming value lands under (default `data`): the envelope creation goes stock — e.g. `field: "path"` turns a bare path string into `{ errors: [], path: value }` for a downstream adapter consuming `path`. The error envelope stays `{ errors: [error] }` regardless of the field
+
+### Changed
+
+- `CollectFields` honors `null` entries in its `fields` config as the whole-message replace mapping: the collected inner output becomes the message and supersedes the incoming envelope's error state — the inner received the full envelope and owns the accumulation, so a relay-convention inner carries the accumulated errors forward in its replacement and the collector's error port remains the out-of-band channel (merging the two channels would double-count the envelope's original errors) — with a non-object output accumulating an error instead (the collector-side of `asAssembly`'s `null` out-mapping)
+
 ## [2.0.0-alpha.10] - 2026-10-17
 ### Changed
 - `ExtractField` signals a missing mapped field on the `error` outport instead of silently delivering `undefined`: the generated adapter graphs wire the extractor's error leg into the collector's error accumulation, so a message lacking a required field completes on the error leg with the failure recorded, rather than crashing the inner component on a null deref. A field that is present with a `null` value is a value and delivers (work document #35 update #13, question (b))

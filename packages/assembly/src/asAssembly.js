@@ -120,16 +120,35 @@ function resolveInMapping(inports, mapping = {}) {
  * @returns {Object<string, string>}
  */
 function resolveOutMapping(outports, mapping = {}) {
-  /** @type {Object<string, string>} */
+  /** @type {Object<string, string|null>} */
   const resolved = {};
+  /** @type {string[]} */
+  const replaces = [];
   for (const port of outports) {
     const override = mapping.out?.[port.name];
-    if (override !== undefined && typeof override !== "string") {
+    if (
+      override !== undefined &&
+      override !== null &&
+      typeof override !== "string"
+    ) {
       throw new TypeError(
-        `asAssembly: mapping.out for port '${port.name}' must be a field name string (got ${JSON.stringify(override)})`,
+        `asAssembly: mapping.out for port '${port.name}' must be a field name string or null (got ${JSON.stringify(override)})`,
       );
     }
     resolved[port.name] = override === undefined ? port.name : override;
+    if (resolved[port.name] === "errors") {
+      throw new Error(
+        `asAssembly: mapping.out for port '${port.name}' must not map to 'errors' — the error accumulation owns that field`,
+      );
+    }
+    if (resolved[port.name] === null) {
+      replaces.push(port.name);
+    }
+  }
+  if (replaces.length > 1) {
+    throw new Error(
+      `asAssembly: only one outport may map to null (whole-message replace); got ${replaces.join(", ")}`,
+    );
   }
   return resolved;
 }
@@ -141,9 +160,12 @@ function resolveOutMapping(outports, mapping = {}) {
  * field extractors (one per mapped inner inport), the inner component
  * runs on the extracted values, and the result collector merges every
  * inner outport back into the originating message — `msg.errors`
- * accumulating inner errors, data fields overwriting by name. One
- * message in, one message out; the adapter graph holds no cross-message
- * state.
+ * accumulating inner errors, data fields overwriting by name, and an
+ * outport mapped to `null` replacing the message with the inner output
+ * entirely (the transform-the-message shape, e.g. a component that
+ * mutates and forwards the message; the accumulated errors carry into
+ * the replacement). One message in, one message out; the adapter graph
+ * holds no cross-message state.
  *
  * The inner component is referenced by its registry name: the caller
  * registers the inner definition (or it comes from a migrated library)
