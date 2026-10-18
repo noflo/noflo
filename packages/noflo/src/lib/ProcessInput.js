@@ -347,6 +347,12 @@ export default class ProcessInput {
     }
     /** @type {Array<IP|void>} */
     const res = [];
+    const trackConsumption = (value) => {
+      if (value) {
+        this.context.consumed += 1;
+      }
+      return value;
+    };
     for (let i = 0; i < args.length; i += 1) {
       const port = args[i];
       let idx;
@@ -363,10 +369,10 @@ export default class ProcessInput {
       const name = /** @type {string} */ (portname);
       const idxName = /** @type {number} */ (idx);
       if (this.nodeInstance.isForwardingInport(name)) {
-        ip = this.__getForForwarding(name, idxName);
+        ip = trackConsumption(this.__getForForwarding(name, idxName));
         res.push(ip);
       } else {
-        ip = portImpl.get(this.scope, idxName);
+        ip = trackConsumption(portImpl.get(this.scope, idxName));
         res.push(ip);
         // Ownership moved into the component: the activation consumed.
         // Control reads are non-consuming and never count (work

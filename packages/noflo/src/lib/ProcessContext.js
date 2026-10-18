@@ -20,6 +20,11 @@ export default class ProcessContext {
     this.scope = this.ip.scope;
     this.activated = false;
     this.deactivated = false;
+    // The drain pump's progress signal: how many IPs this activation
+    // consumed (ownership moved into the component). A completion with
+    // consumed > 0 re-offers the process for the buffers' remaining
+    // work (work document #47)
+    this.consumed = 0;
     // The activation contract bookkeeping: how many IPs this activation
     // consumed (ownership moved into the component), and whether the
     // process sent anything. A synchronous return that consumed nothing

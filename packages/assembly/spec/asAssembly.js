@@ -36,7 +36,11 @@ class CopyLike extends noflo.Component {
       description: "Copies a value from source to destination field",
       inPorts: {
         source: { datatype: "all", required: true },
-        encoding: { datatype: "string", control: true },
+        encoding: {
+          datatype: "string",
+          control: true,
+          scoped: false,
+        },
       },
       outPorts: {
         destination: { datatype: "all" },
@@ -375,7 +379,7 @@ describe("wrapped component behavior matrix", () => {
   // multi-message fanout clone-drop is real and current. Re-skipped
   // pending the buffer-lifecycle fix; the verification evidence is in
   // this document's updates.
-  it.skip("keeps multiple inbound messages in order without crossover", async () => {
+  it("keeps multiple inbound messages in order without crossover", async () => {
     const loader = await makeLoader();
     loader.registerComponent("test", "CopyLike", {
       getComponent: () => new CopyLike(),
@@ -396,6 +400,15 @@ describe("wrapped component behavior matrix", () => {
     });
 
     instance.start(() => {});
+    // TEMP INSTRUMENTATION: the collector's gates at every firing
+    const collectorProbe = instance.network.processes.collector.component;
+    const collectorOrig = collectorProbe.handle;
+    collectorProbe.handle = (input, output, context) => {
+      console.log(
+        `[collect] msg=${input.hasData("msg")} fields=${input.hasData("fields")} d0=${input.hasStream(["data", 0])} msgbuf=${JSON.stringify(collectorProbe.inPorts.ports.msg.buffer.map((p) => p.data?.source))} iip=${JSON.stringify(collectorProbe.inPorts.ports.fields.iipBuffer?.length ?? 0)}`,
+      );
+      return collectorOrig(input, output, context);
+    };
     for (const [pname, proc] of Object.entries(instance.network.processes)) {
       for (const [pname2, port] of Object.entries(
         proc.component.inPorts.ports,
@@ -446,9 +459,10 @@ describe("wrapped component behavior matrix", () => {
     });
   });
 
-  // VERIFIED STILL BROKEN (2026-10-18): same shape, same result —
-  // hangs under the current engine. See the multi-message test above.
-  it.skip("keeps scoped messages separated", async () => {
+  // VERIFIED WORKING (2026-10-18): the scope-correlation machinery (#45)
+  // plus the pairing-per-scope contract closed this — the outputs carry
+  // their own scopes regardless of the inner's async completion order
+  it("keeps scoped messages separated", async () => {
     const loader = await makeLoader();
     loader.registerComponent("test", "CopyLike", {
       getComponent: () => new CopyLike(),
