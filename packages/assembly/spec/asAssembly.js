@@ -368,11 +368,13 @@ class SlowCopy extends noflo.Component {
 }
 
 describe("wrapped component behavior matrix", () => {
-  // KNOWN ISSUE (runtime buffer lifecycle): under sequential multi-message
-  // load, the collector's activation reads `msg` as undefined on later
-  // activations — the fanout clone disappears between activations.
-  // Reproduction: this test; see work document #36 update (asAssembly).
-  // Un-skipped once the runtime buffer lifecycle is fixed.
+  // VERIFIED STILL BROKEN (2026-10-18, work document #36): un-skipped
+  // against the current engine (the firing model #47, the scoped
+  // liveness #45, bounded edges #38 all landed since this was written)
+  // and both shapes still hang at their timeout — the sequential
+  // multi-message fanout clone-drop is real and current. Re-skipped
+  // pending the buffer-lifecycle fix; the verification evidence is in
+  // this document's updates.
   it.skip("keeps multiple inbound messages in order without crossover", async () => {
     const loader = await makeLoader();
     loader.registerComponent("test", "CopyLike", {
@@ -444,7 +446,8 @@ describe("wrapped component behavior matrix", () => {
     });
   });
 
-  // Same runtime buffer-lifecycle issue as the multi-message test above
+  // VERIFIED STILL BROKEN (2026-10-18): same shape, same result —
+  // hangs under the current engine. See the multi-message test above.
   it.skip("keeps scoped messages separated", async () => {
     const loader = await makeLoader();
     loader.registerComponent("test", "CopyLike", {
