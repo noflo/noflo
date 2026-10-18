@@ -19,6 +19,7 @@ import * as internalSocket from "./InternalSocket.js";
 import IP from "./IP.js";
 import { createDebug } from "./logger.js";
 import { makeAsync } from "./Platform.js";
+import { applyPortMetadata } from "./PortMetadata.js";
 
 const debugNetwork = createDebug("noflo:network");
 
@@ -479,6 +480,29 @@ export class Network extends EventBase {
             port.nodeInstance = instance;
             port.name = name;
           });
+
+          // The per-instance port-behavior overrides (work document #44):
+          // the noflo.* metadata keys apply to this instance after
+          // instantiation and before wiring, so edge wiring sees the
+          // effective port semantics. Subgraph nodes are excluded: the
+          // relay semantics for exported ports are not defined
+          if (
+            instance.isSubgraph?.() &&
+            Object.keys(node.metadata ?? {}).some((key) =>
+              key.startsWith("noflo."),
+            )
+          ) {
+            throw new Error(
+              `Node ${node.entity_id}: noflo.* overrides do not apply to subgraph nodes — place the override on the inner graph's node`,
+            );
+          }
+          try {
+            applyPortMetadata(instance, node.metadata);
+          } catch (error) {
+            throw new Error(
+              `Node ${node.entity_id}: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
 
           if (instance.isSubgraph()) {
             this.subscribeSubgraph(process);

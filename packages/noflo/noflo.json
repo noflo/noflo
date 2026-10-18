@@ -1,0 +1,8 @@
+{
+  "schemas": {
+    "noflo/port-behavior": {
+      "digest": "967f7b196ae24e17586a121244ffd4d2d1e7db13770b0b30682686771ec5295f",
+      "path": "schemas/port-behavior.json"
+    }
+  }
+}

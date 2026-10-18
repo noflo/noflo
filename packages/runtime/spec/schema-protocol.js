@@ -314,3 +314,39 @@ describe("schema protocol", () => {
     assert.deepEqual(table.entry(digest), { ref: "rns:resourcehash" });
   });
 });
+
+// The shipped noflo schema artifact (work document #44): the noflo
+// package ships the port-behavior catalog and pins it in its manifest's
+// schemas table — a deployment loading installed packages' manifests
+// serves the noflo.* vocabulary to clients through the Two-Step Cache
+// without any project-authored writes.
+describe("the shipped noflo schema artifact", () => {
+  it("loads the port-behavior catalog from the @noflo/noflo package manifest", async () => {
+    const { createRequire } = await import("node:module");
+    const req = createRequire(import.meta.url);
+    const entryPath = req.resolve("@noflo/noflo");
+    // The main entry is src/lib/NoFlo.js; the package root is two levels up
+    const pkgDir = path.resolve(path.dirname(entryPath), "..", "..");
+    const table = new SchemaTable();
+    const loaded = await table.loadPackage(pkgDir);
+    assert.ok(loaded >= 1, "the package's schema set loaded");
+
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(pkgDir, "noflo.json"), "utf8"),
+    );
+    for (const [id, entryDef] of Object.entries(manifest.schemas ?? {})) {
+      assert.ok(table.has(entryDef.digest), `${id} is in the table by digest`);
+    }
+    const pin = manifest.schemas["noflo/port-behavior"];
+    const bodyPath = path.join(pkgDir, pin.path);
+    const body = JSON.parse(fs.readFileSync(bodyPath, "utf8"));
+    const served = table.entry(pin.digest);
+    assert.ok(served?.body, "the table holds the pinned body");
+    assert.deepEqual(
+      served.body,
+      body,
+      "the served body is the shipped artifact",
+    );
+    assert.equal(served.body.entries["noflo.control"].class, "config");
+  });
+});
