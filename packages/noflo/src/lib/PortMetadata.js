@@ -12,12 +12,15 @@
  * documents #37/#44).
  *
  * **Schema touchpoint**: the keys and their shapes are declared by the
- * `noflo/port-behavior` metadata schema — the `noflo`-namespace catalog
- * entry shipped with the publish-time machinery (work documents #37/#25),
- * where components opt in by composing the keys into their config
- * schemas. This module is the runtime consumer: it validates the subset
- * a running network can check (key recognition, port existence, value
- * shapes) and leaves the publish-time contracts to the gate.
+ * `noflo/port-behavior` metadata schema — shipped as this package's
+ * `schemas/port-behavior.json` artifact, pinned in the package manifest's
+ * schemas table, and loaded into a runtime's schema table at startup
+ * (the work document #37 Two-Step Cache: clients fetch it by digest via
+ * `0x29`). Components opt in by composing the keys into their config
+ * schemas — the publish-time contract (work documents #37/#25). This
+ * module is the runtime consumer: it validates the subset a running
+ * network can check (key recognition, port existence, value shapes) and
+ * leaves the publish-time contracts to the gate.
  *
  * The keys and their shapes:
  *
@@ -55,7 +58,7 @@
 
 /**
  * The `noflo.*` keys this helper recognizes, as declared by the
- * `noflo/port-behavior` metadata schema. Runtime validation only: a key
+ * `schemas/port-behavior.json` artifact. Runtime validation only: a key
  * outside this set is an error, because the `noflo` namespace is
  * core-owned and nothing else may extend it.
  *

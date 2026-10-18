@@ -50,6 +50,8 @@
   "files": [
     "src",
     "README.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "noflo.json",
+    "schemas"
   ]
 }

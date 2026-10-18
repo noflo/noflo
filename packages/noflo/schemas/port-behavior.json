@@ -1,0 +1,49 @@
+{
+  "$schema": "urn:noflo:noflo/meta-catalog@278e7057c1cce1a8f33fb75aab757450cbdcde7bb5135858d18ac0ca1bfe62c9",
+  "title": "The noflo port-behavior catalog",
+  "description": "The core-owned noflo.* node-metadata keys for per-instance port-behavior overrides (work document #44): the knobs tweak Process API semantics, and no other namespace may re-declare them. Consumed at runtime by @noflo/noflo's applyPortMetadata (the subset a running network can check) and at publish time by the gate (the namespace reservation and the opt-in composition, work documents #37/#25).",
+  "entries": {
+    "noflo.control": {
+      "schema": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "The instance's complete gate-inport set, replacing the component's declared control ports: a listed name is a gate (standing, non-consumingly-read configuration whose arrivals re-fire pending work per scope), an unlisted former gate becomes a direct firing edge. Addressable inports cannot be gates."
+      },
+      "class": "config",
+      "kinds": [
+        "node"
+      ]
+    },
+    "noflo.scoped": {
+      "schema": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "boolean"
+        },
+        "description": "Inport-name to boolean: whether IPs on the port participate in scope identity. Outports are not overridable (the outport-side flip interacts with the ordered-output and forwarding machinery and needs its own design pass)."
+      },
+      "class": "config",
+      "kinds": [
+        "node"
+      ]
+    },
+    "noflo.forwardBrackets": {
+      "schema": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": "Inport to outports array, the same shape as the component's forwardBrackets option: an instance entry replaces the component's declared rule for that inport, unlisted inports keep their declared or built-in rules, and the empty array is the framing-termination declaration."
+      },
+      "class": "config",
+      "kinds": [
+        "node"
+      ]
+    }
+  }
+}
