@@ -628,6 +628,7 @@ export class Network extends EventBase {
     const promise = Promise.resolve()
       .then(() => handleAll(this.graph.nodes(), "addNode"))
       .then(() => handleAll(this.graph.edges(), "addEdge"))
+      .then(() => this.addPortDefaults())
       .then(() => handleAll(this.graph.iips(), "addInitial"))
       .then(() => this);
     return promise;
@@ -1230,6 +1231,66 @@ export class Network extends EventBase {
    *
    * @returns Promise<void>
    */
+  /**
+   * Deliver every component port's `default` option as an initial
+   * Information Packet, before the graph's own IIPs.
+   *
+   * The 2.x engine does not read port defaults implicitly: a component
+   * whose process has-checks a defaulted control port declines forever
+   * when the application does not feed it — the `default` option was
+   * inert since the Process API rewrite (the 1.x network applied
+   * defaults at read time). The fix gives the default the IIP
+   * semantics: the value rides the same machinery as graph initials —
+   * the initial buffer, readable from any scope, non-consuming for
+   * control ports, consumed by the first read on regular ports, and
+   * re-delivered per run. A graph IIP fed for the same port suppresses
+   * the default entirely: the control-port buffering keeps the latest
+   * stream, so whichever delivered later would win and the component
+   * could fire in between — the explicit feed is the application's
+   * decision and the default yields to it. A defaulted data port fires
+   * once at start exactly as a graph IIP on that port would; the
+   * ecosystem's defaults are all control ports. Subgraph inner networks
+   * apply their own ports' defaults on their own start, so a wrapped
+   * component's defaulted control port works without the application
+   * feeding the wrapper.
+   *
+   * @returns {Promise<void>}
+   */
+  addPortDefaults() {
+    const promises = [];
+    const fedPorts = new Set(
+      this.graph.iips().map((iip) => `${iip.to.node}:${iip.to.port}`),
+    );
+    for (const id of Object.keys(this.processes)) {
+      const process = this.processes[id];
+      const component = process?.component;
+      if (!component) {
+        continue;
+      }
+      for (const portName of Object.keys(component.inPorts.ports)) {
+        const port = component.inPorts.ports[portName];
+        const def = port.options?.default;
+        if (def === undefined) {
+          continue;
+        }
+        if (fedPorts.has(`${id}:${portName}`)) {
+          continue;
+        }
+        promises.push(
+          this.addInitial(
+            {
+              entity_id: `${id}:${portName}:default`,
+              from: { data: def },
+              to: { node: id, port: portName },
+            },
+            { initial: true },
+          ),
+        );
+      }
+    }
+    return Promise.all(promises).then(() => undefined);
+  }
+
   sendInitials() {
     return new Promise((resolve) => {
       makeAsync(resolve, true);

@@ -8,6 +8,13 @@ import BasePort from "./BasePort.js";
 /**
  * @typedef InPortOptions
  * @property {boolean} [control]
+ * @property {unknown} [default] - The value the port acts as if it had
+ *   received when the application does not feed it: the network
+ *   delivers it as an initial packet at start (the IIP semantics —
+ *   work document #25's inert-defaults finding), so a defaulted
+ *   control port is standing configuration readable across
+ *   activations, an explicitly fed graph IIP suppresses it, and a
+ *   defaulted data port fires once at start like any IIP would
  */
 /**
  * @callback HasValidationCallback
