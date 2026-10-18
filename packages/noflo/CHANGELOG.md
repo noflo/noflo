@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- The drain pump: an activation that consumed input leaves the buffers holding more deliverable work — the next pairing waits for a wakeup that no arrival may provide (the strand class the noflo-jekyll burst investigation verified: one pair consumed per arrival-wakeup, the rest stranded behind the late-arriving standing config). When a consuming activation deactivates, one scheduled offer re-fires the process for every scope still holding deliverable input — the completion of a consumption is a state change, and the firing model's completeness guarantee (work document #47: every state change that could satisfy a precondition causes an evaluation) now covers it. Scheduled, so a multi-pair drain chains through macrotasks without stack depth; each offer either consumes (progress) or declines (the buffers unchanged, no further offer) — the pump terminates with the buffers. The two wrapped-adapter tests that hung on the fanout clone-drop shape since their writing are un-skipped and passing (work document #36)
+### Added
+- The component loader constructs bare-class component definitions: the factory-function branch previously called the definition without `new`, so a bare class registered directly rejected with the engine's class-invocation error (phrased differently per engine); the loader detects the class shape and constructs it, while registered factory functions keep the plain-call contract (work document #36)
 
 ## [2.0.0-alpha.11] - 2026-10-18
 ### Added

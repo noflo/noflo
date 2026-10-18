@@ -36,7 +36,11 @@ class CopyLike extends noflo.Component {
       description: "Copies a value from source to destination field",
       inPorts: {
         source: { datatype: "all", required: true },
-        encoding: { datatype: "string", control: true },
+        encoding: {
+          datatype: "string",
+          control: true,
+          scoped: false,
+        },
       },
       outPorts: {
         destination: { datatype: "all" },
@@ -368,12 +372,14 @@ class SlowCopy extends noflo.Component {
 }
 
 describe("wrapped component behavior matrix", () => {
-  // KNOWN ISSUE (runtime buffer lifecycle): under sequential multi-message
-  // load, the collector's activation reads `msg` as undefined on later
-  // activations — the fanout clone disappears between activations.
-  // Reproduction: this test; see work document #36 update (asAssembly).
-  // Un-skipped once the runtime buffer lifecycle is fixed.
-  it.skip("keeps multiple inbound messages in order without crossover", async () => {
+  // FIXED (2026-10-18, work document #36): un-skipped against the
+  // current engine, the shape failed on the crossover — which the
+  // investigation resolved as the parallel-positional-streams contract,
+  // not a message drop: the collector pairs positionally and the inner's
+  // async completion order reversed the destination delivery. The drain
+  // pump (Component.js) drains the pairs; the scope variant is the
+  // order-independent shape.
+  it("keeps multiple inbound messages in order without crossover", async () => {
     const loader = await makeLoader();
     loader.registerComponent("test", "CopyLike", {
       getComponent: () => new CopyLike(),
@@ -444,8 +450,10 @@ describe("wrapped component behavior matrix", () => {
     });
   });
 
-  // Same runtime buffer-lifecycle issue as the multi-message test above
-  it.skip("keeps scoped messages separated", async () => {
+  // VERIFIED WORKING (2026-10-18): the scope-correlation machinery (#45)
+  // plus the pairing-per-scope contract closed this — the outputs carry
+  // their own scopes regardless of the inner's async completion order
+  it("keeps scoped messages separated", async () => {
     const loader = await makeLoader();
     loader.registerComponent("test", "CopyLike", {
       getComponent: () => new CopyLike(),

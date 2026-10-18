@@ -15,6 +15,7 @@ import InPort from "./InPort.js"; // eslint-disable-line no-unused-vars
 import IP from "./IP.js"; // eslint-disable-line no-unused-vars
 import { createDebug } from "./logger.js";
 import OutPort from "./OutPort.js"; // eslint-disable-line no-unused-vars
+import { makeAsync } from "./Platform.js";
 import { InPorts, normalizePortName, OutPorts } from "./Ports.js";
 import ProcessContext from "./ProcessContext.js";
 import ProcessInput from "./ProcessInput.js";
@@ -53,6 +54,21 @@ const debugSend = createDebug("noflo:component:send");
 
 // eslint-disable-next-line max-len
 /** @typedef {{ __resolved?: boolean, __bracketClosingAfter?: BracketContext[], [key: string]: any }} ProcessResult */
+
+/**
+ * The activation-lifecycle context, duck-typed between the engine's
+ * `ProcessContext` (which carries the consumption counter the drain pump
+ * reads) and the wrapper's plain lifecycle objects (the Subgraph's start
+ * and end accounting, which carry none — and pump nothing).
+ *
+ * @typedef {object} ActivationContext
+ * @property {boolean} [activated] Whether the context is currently active.
+ * @property {boolean} [deactivated] Whether the context has completed.
+ * @property {number} [consumed] How many IPs the activation consumed
+ *   (ownership moved); absent for the wrapper's lifecycle contexts.
+ * @property {Object<string, any>} [result] The ordered-output result, for
+ *   ProcessContext instances.
+ */
 
 /**
  * The NoFlo Component base class.
@@ -659,57 +675,8 @@ export class Component extends EventBase {
         `${this.nodeId} unscoped control IP on scoped control port '${port.name}': the control value cannot be read; declare the port scoped: false`,
       );
     }
-    /** @type {Array<string|null>} */
-    const scopesToFire = [];
-    let anyPending = false;
-    const mark = (scope) => {
-      if (!scopesToFire.includes(scope)) {
-        scopesToFire.push(scope);
-        anyPending = true;
-      }
-    };
-    Object.keys(this.inPorts.ports).forEach((name) => {
-      const other = this.inPorts.ports[name];
-      if (other.options.control) {
-        // Standing state, not pending work: control buffers are read
-        // non-consumingly and never drive firings on their own
-        return;
-      }
-      if (other.isAddressable()) {
-        Object.keys(other.indexedBuffer ?? {}).forEach((index) => {
-          if ((other.indexedBuffer[index] ?? []).length > 0) {
-            mark(null);
-          }
-        });
-        Object.keys(other.indexedIipBuffer ?? {}).forEach((index) => {
-          if ((other.indexedIipBuffer[index] ?? []).length > 0) {
-            mark(null);
-          }
-        });
-        Object.keys(other.indexedScopedBuffer ?? {}).forEach((scope) => {
-          Object.keys(other.indexedScopedBuffer[scope] ?? {}).forEach(
-            (index) => {
-              if ((other.indexedScopedBuffer[scope][index] ?? []).length > 0) {
-                mark(scope);
-              }
-            },
-          );
-        });
-        return;
-      }
-      if ((other.getBuffer(null, null) ?? []).length > 0) {
-        mark(null);
-      }
-      if ((other.iipBuffer ?? []).length > 0) {
-        mark(null);
-      }
-      Object.keys(other.scopedBuffer ?? {}).forEach((scope) => {
-        if ((other.scopedBuffer[scope] ?? []).length > 0) {
-          mark(scope);
-        }
-      });
-    });
-    if (!anyPending) {
+    const ready = this.#readyScopes();
+    if (!ready.length) {
       return;
     }
     // Fire once per scope: unscoped for the default buffers, and once
@@ -717,10 +684,114 @@ export class Component extends EventBase {
     // context IP is the wakeup cause, not the consumable: the has-first
     // discipline reads the buffers, and reads resolve to the firing
     // scope.
-    scopesToFire.forEach((scope) => {
+    ready.forEach((readyScope) => {
       const contextIp =
-        scope === null ? ip : new IP(ip.type, ip.data, { scope });
-      this.fireProcess(contextIp, port);
+        readyScope.scope === null
+          ? ip
+          : new IP(ip.type, ip.data, { scope: readyScope.scope });
+      this.fireProcess(contextIp, readyScope.port);
+    });
+  }
+
+  /**
+   * Scan the inport buffers for scopes holding deliverable input: the
+   * unscoped default buffers, each scoped buffer, each addressable index,
+   * and the IIP buffers. Control buffers are standing state, not pending
+   * work, and are never scanned. Each entry carries the scope's head IP
+   * as captured during the scan, so the drain pump's offer never
+   * re-fetches across buffer shapes. Shared by the arrival walk
+   * (handleIP) and the drain pump (the post-completion re-offer, work
+   * document #47).
+   *
+   * @returns {Array<{scope: string|null, port: import("./InPort.js").default, head: import("./IP.js").default}>}
+   */
+  #readyScopes() {
+    /** @type {Array<{scope: string|null, port: import("./InPort.js").default, head: import("./IP.js").default}>} */
+    const ready = [];
+    Object.keys(this.inPorts.ports).forEach((name) => {
+      const port = this.inPorts.ports[name];
+      if (port.options.control) {
+        // Standing state, not pending work: control buffers are read
+        // non-consumingly and never drive firings on their own
+        return;
+      }
+      const mark = (scope, head) => {
+        // One firing per scope: the port of the first hit supplies the
+        // activation's context, and every leg's buffered work is visible
+        // to the has-first discipline regardless
+        if (ready.some((entry) => entry.scope === scope)) {
+          return;
+        }
+        ready.push({ scope, port, head });
+      };
+      if (port.isAddressable()) {
+        Object.keys(port.indexedBuffer ?? {}).forEach((index) => {
+          const buf = port.indexedBuffer[index] ?? [];
+          if (buf.length > 0) {
+            mark(null, buf[0]);
+          }
+        });
+        Object.keys(port.indexedIipBuffer ?? {}).forEach((index) => {
+          const buf = port.indexedIipBuffer[index] ?? [];
+          if (buf.length > 0) {
+            mark(null, buf[0]);
+          }
+        });
+        Object.keys(port.indexedScopedBuffer ?? {}).forEach((scope) => {
+          Object.keys(port.indexedScopedBuffer[scope] ?? {}).forEach(
+            (index) => {
+              const buf = port.indexedScopedBuffer[scope][index] ?? [];
+              if (buf.length > 0) {
+                mark(scope, buf[0]);
+              }
+            },
+          );
+        });
+        return;
+      }
+      const regular = port.getBuffer(null, null) ?? [];
+      if (regular.length > 0) {
+        mark(null, regular[0]);
+      }
+      if ((port.iipBuffer ?? []).length > 0) {
+        mark(null, port.iipBuffer[0]);
+      }
+      Object.keys(port.scopedBuffer ?? {}).forEach((scope) => {
+        const buf = port.scopedBuffer[scope] ?? [];
+        if (buf.length > 0) {
+          mark(scope, buf[0]);
+        }
+      });
+    });
+    return ready;
+  }
+
+  /**
+   * The drain pump: after a consuming activation completes, re-offer the
+   * process for every scope still holding deliverable input. Scheduled,
+   * so a multi-pair drain does not recurse; each scheduled offer either
+   * consumes (progress) or declines (the buffers unchanged, no further
+   * offer) — the pump terminates with the buffers (work document #47).
+   *
+   * @returns {void}
+   */
+  #offerResumption() {
+    makeAsync(() => {
+      if (this.closedDown || this.load > 0) {
+        return;
+      }
+      const ready = this.#readyScopes();
+      for (const readyScope of ready) {
+        // The head was captured during the scan: every buffer shape —
+        // addressable, IIP, scoped — offers with its own head
+        const contextIp =
+          readyScope.scope === null
+            ? readyScope.head
+            : new IP(readyScope.head.type, readyScope.head.data, {
+                scope: readyScope.scope,
+              });
+        this.fireProcess(contextIp, readyScope.port);
+      }
     });
   }
 
@@ -1205,10 +1276,9 @@ export class Component extends EventBase {
    * Signal that a processing context has activated. There may be multiple
    * activated contexts at the same time.
    *
-   * @param {Object} context
-   * @param {boolean} context.activated
-   * @param {boolean} context.deactivated
-   * @param {Object} context.result
+   * @param {ActivationContext} context - The lifecycle context: whether
+   *   it is active, completed, and (for ProcessContext instances) the
+   *   ordered-output result.
    */
   activate(context) {
     if (context.activated) {
@@ -1227,9 +1297,8 @@ export class Component extends EventBase {
    * Signal that a processing context has deactivated. There may be multiple
    * activated contexts at the same time.
    *
-   * @param {Object} context
-   * @param {boolean} context.activated
-   * @param {boolean} context.deactivated
+   * @param {ActivationContext} context - The lifecycle context: whether
+   *   it is active and completed.
    */
   deactivate(context) {
     if (context.deactivated) {
@@ -1242,6 +1311,26 @@ export class Component extends EventBase {
     }
     this.load -= 1;
     this.dispatchLifecycleEvent("deactivate", this.load);
+    // The drain pump (work document #47): an activation that consumed
+    // input leaves the buffers holding more deliverable work — the next
+    // pairing waits for a wakeup that no arrival may provide (the
+    // strand the noflo-jekyll burst investigation verified: one pair
+    // consumed per arrival-wakeup, the rest stranded behind the
+    // late-arriving standing config). The completion of a consuming
+    // activation is a state change, so the model's completeness
+    // guarantee re-offers the process for every scope still holding
+    // deliverable input. Scheduled, so a multi-pair drain does not
+    // recurse; each scheduled offer either consumes (progress) or
+    // declines (the buffers unchanged, no further offer) — the pump
+    // terminates with the buffers
+    if (context.consumed > 0 && !this.closedDown) {
+      makeAsync(() => {
+        if (this.closedDown || this.load > 0) {
+          return;
+        }
+        this.#offerResumption();
+      });
+    }
     this.#evaluateClosedown();
   }
 

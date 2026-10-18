@@ -309,10 +309,19 @@ export class ComponentLoader {
       } catch (error) {
         return Promise.reject(error);
       }
-      // Attempt to create a component using a factory function.
+      // Attempt to create a component using a factory function. A
+      // bare class is also legal: construct it with `new` — the
+      // class-invocation failure ("cannot be invoked without 'new'",
+      // phrased differently per engine) is the shape this branch
+      // previously rejected (work document #36)
     } else if (typeof implementation === "function") {
       try {
-        instance = implementation(metadata);
+        const isClass =
+          implementation.prototype?.constructor === implementation &&
+          /^\s*class\s/.test(String(implementation));
+        instance = isClass
+          ? new /** @type {any} */ (implementation)(metadata)
+          : implementation(metadata);
       } catch (error) {
         return Promise.reject(error);
       }
