@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.0.0-alpha.11] - 2026-10-18
 ### Added
 
 - `ToAssembly` accepts the `assembly.field` node metadata to name the field the incoming value lands under (default `data`): the envelope creation goes stock — e.g. `field: "path"` turns a bare path string into `{ errors: [], path: value }` for a downstream adapter consuming `path`. The error envelope stays `{ errors: [error] }` regardless of the field

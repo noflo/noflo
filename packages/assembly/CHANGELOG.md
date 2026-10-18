@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.0.0-alpha.11] - 2026-10-18
 ### Changed
 
 - `asAssembly`'s out-mapping accepts `null`: the mapped outport's inner output replaces the message entirely — the transform-the-message shape (a component that mutates and forwards the message, e.g. `packets/ScopeFromObject`) — and the named fields merge on top of the replacement, so the result is independent of the inner component's outport declaration order. The replace output must be a plain object; anything else (a non-object, an array, a class instance) accumulates an error into `msg.errors` instead of replacing. Only one outport may map to `null`; `asAssembly` validates loudly at wrap time (work document #36's mapping vocabulary, the out-side completion of the whole-message mapping)
