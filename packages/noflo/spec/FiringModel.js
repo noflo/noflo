@@ -388,7 +388,6 @@ describe("the drain pump", () => {
     // when the activation accounting is settled
     const component = Pairer();
     const { received, sockets } = wire(component);
-    const offers = [];
     // Instrument the drain: count the offers by observing the completions
     let completions = 0;
     component.addEventListener("deactivate", () => {
