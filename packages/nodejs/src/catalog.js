@@ -27,6 +27,7 @@ import {
   projectGuard,
   validateGuard,
 } from "@noflo/fbp-protocol";
+import { normalizeLibraryName } from "@noflo/loader-node";
 import { StubComponent } from "@noflo/noflo";
 
 /**
@@ -153,6 +154,82 @@ export async function componentDetail(component) {
 const implementationExtensions = [".js", ".ts", ".coffee", ".litcoffee"];
 
 /**
+ * Read the project's own library namespace: the `package.json` name under
+ * the NoFlo naming conventions. Signature uploads materialize into this
+ * project's `components/` directory, so a stub's reboot-stable identity
+ * is this namespace's — uploads naming another library are rejected, this
+ * host does not own those components.
+ *
+ * @param {string} baseDir
+ * @returns {Promise<string|null>} The normalized library name, or null when the project has no readable named package.json
+ */
+async function projectLibraryName(baseDir) {
+  try {
+    const contents = await readFile(
+      path.resolve(baseDir, "package.json"),
+      "utf-8",
+    );
+    const name = JSON.parse(contents).name;
+    if (typeof name === "string" && name) {
+      return normalizeLibraryName(name);
+    }
+  } catch (_err) {
+    // No package.json or unreadable: no own namespace to materialize into
+  }
+  return null;
+}
+
+/**
+ * Whether a registered component definition is a stub: instantiable as a
+ * component that self-describes as one. Graph models and factories that
+ * cannot construct count as implementations — the safe side of
+ * implementation wins.
+ *
+ * @param {any} definition
+ * @returns {boolean}
+ */
+function definitionIsStub(definition) {
+  /** @type {any} */
+  let instance = null;
+  try {
+    if (typeof definition?.getComponent === "function") {
+      instance = definition.getComponent();
+    } else if (typeof definition === "function") {
+      const isClass =
+        definition.prototype?.constructor === definition &&
+        /^\s*class\s/.test(String(definition));
+      instance = isClass ? new definition() : definition();
+    }
+  } catch (_err) {
+    return false;
+  }
+  if (!instance || typeof instance !== "object") {
+    return false;
+  }
+  return typeof instance.isStub === "function" ? instance.isStub() : false;
+}
+
+/**
+ * Look up a stored component source under the key forms the registry
+ * uses: `storeSource` keys `sourcesForComponents` as
+ * `${packageId}/${name}`, which for library-less packages is the
+ * `/${name}` form — not the bare name the catalog registers under.
+ *
+ * @param {import("@noflo/loader-node").NodeModulesRegistry} registry
+ * @param {...string} names - Candidate key forms to probe
+ * @returns {{ language: string, source: string }|undefined}
+ */
+function storedSourceFor(registry, ...names) {
+  const stored = /** @type {any} */ (registry).sourcesForComponents ?? {};
+  for (const name of names) {
+    if (stored[name]) {
+      return stored[name];
+    }
+  }
+  return undefined;
+}
+
+/**
  * Split a library-namespaced component name into its library prefix and
  * bare component name. A name without a slash keeps the empty library.
  *
@@ -224,8 +301,12 @@ function sortKeys(value) {
 /**
  * Build a {@link RuntimeCatalog} for `assembleRuntime` from a component
  * loader: every component in the loader's catalog is instantiated and
- * signature-harvested eagerly, so the registry snapshot is complete before
- * the first client syncs.
+ * signature-harvested eagerly at construction, and the snapshot stays
+ * live — every write path re-derives the affected entry in place, so the
+ * registry protocol's post-write `refresh()`, the `0x24` details, the
+ * registry hash, and the execution guard resolver (which holds the same
+ * snapshot object) all see uploaded stubs and newly written source
+ * without a restart.
  *
  * When the host's node-modules registry is supplied, the catalog also
  * backs the `0x25`/`0x26` source hooks (work document #19): a source
@@ -233,8 +314,19 @@ function sortKeys(value) {
  * `components/<name>.json` sidecar and registers as a StubComponent — the
  * upload path for top-down design — while anything else stores as
  * component source through the registry's own `setSource`, implementing a
- * stub in place. A signature upload over an existing implementation is
- * rejected: implementation wins, the sidecar never replaces code.
+ * stub in place. Upload rules:
+ *
+ * - The stub's stable identity is the project's own library namespace
+ *   (its package.json name, normalized): the upload must use that prefix
+ *   or none, and the stub registers under the full project-namespace name
+ *   — the same name discovery re-derives on every boot. Uploads naming
+ *   another library are rejected: this host does not own those
+ *   components, and materializing them would change identity on restart.
+ * - Implementation wins (work document #24 update #2): a signature upload
+ *   is rejected when an implementation exists anywhere it can — a source
+ *   file in the project's `components/`, a stored source, or any live
+ *   catalog entry that is not itself a stub. Refining an existing stub's
+ *   signature stays allowed.
  *
  * @param {import("@noflo/noflo").ComponentLoader} loader
  * @param {import("@noflo/loader-node").NodeModulesRegistry} [registry] The
@@ -244,20 +336,42 @@ function sortKeys(value) {
  */
 export async function catalogFromLoader(loader, registry = null) {
   /** @type {Record<string, import("@noflo/fbp-protocol").ComponentDetail>} */
-  const signatures = {};
+  const snapshot = {};
   const list = await loader.listComponents();
   for (const name of Object.keys(list)) {
     const component = await loader.load(name);
-    signatures[name] = await componentDetail(component);
+    snapshot[name] = await componentDetail(component);
   }
   if (!registry) {
     return {
-      signatures: () => signatures,
+      signatures: () => snapshot,
     };
   }
   const baseDir = registry.baseDir;
+
+  /**
+   * Re-derive one catalog entry after a write: let the loader's change
+   * bookkeeping settle (the registry's `change` dispatch resolves
+   * asynchronously), load the written component, and patch the snapshot
+   * in place — the object reference every consumer holds. A component
+   * that no longer loads drops from the snapshot: the registry keeps the
+   * broken definition, and the next load attempt surfaces the loud error.
+   *
+   * @param {string} name
+   * @returns {Promise<void>}
+   */
+  async function rederive(name) {
+    await new Promise((resolve) => setImmediate(resolve));
+    try {
+      const instance = await loader.load(name);
+      snapshot[name] = await componentDetail(instance);
+    } catch (_err) {
+      delete snapshot[name];
+    }
+  }
+
   return {
-    signatures: () => signatures,
+    signatures: () => snapshot,
     /**
      * @param {string} componentName
      * @param {string} source
@@ -271,12 +385,31 @@ export async function catalogFromLoader(loader, registry = null) {
         // sidecar stays on disk, ignored while the implementation exists
         const { library, bareName } = splitComponentName(componentName);
         await registry.setSource(library, bareName, source, "javascript");
+        await rederive(componentName);
         return;
       }
-      // Signature upload: refuse to stub over an implementation. The disk
-      // is the truth, so the check is file presence — a setSource-written
-      // implementation is covered by the registry's own bookkeeping
+      // Signature upload: the stub's stable identity is the project's own
+      // library namespace. Another library's prefix is rejected outright —
+      // this host does not own installed components, and materializing a
+      // stub under a foreign prefix would change identity on reboot
       const { library, bareName } = splitComponentName(componentName);
+      const projectPrefix = await projectLibraryName(baseDir);
+      if (projectPrefix === null) {
+        throw new Error(
+          `Cannot upload a signature stub for ${componentName}: the project has no readable named package.json, so there is no library namespace to materialize the stub into`,
+        );
+      }
+      if (library && library !== projectPrefix) {
+        throw new Error(
+          `Cannot upload a signature stub for ${componentName}: signature stubs materialize into this project's components/ directory, so the library prefix must be the project's own ('${projectPrefix}') or absent — '${library}' names another library, whose components this host does not own`,
+        );
+      }
+      const stableName = projectPrefix
+        ? `${projectPrefix}/${bareName}`
+        : bareName;
+      // Implementation wins, checked everywhere an implementation can
+      // live: a source file in the project's components directory, a
+      // stored source, or a live catalog entry that is not itself a stub
       for (const extension of implementationExtensions) {
         const candidate = path.resolve(
           baseDir,
@@ -290,16 +423,47 @@ export async function catalogFromLoader(loader, registry = null) {
         } catch (_err) {
           // Not there
         }
-        if (implemented || registry.sourcesForComponents[componentName]) {
+        if (implemented) {
           throw new Error(
-            `Component ${componentName} is already implemented — refusing to overwrite it with a signature stub (implementation wins)`,
+            `Component ${stableName} is already implemented — refusing to overwrite it with a signature stub (implementation wins)`,
           );
         }
       }
+      if (
+        storedSourceFor(registry, componentName, stableName, `/${bareName}`)
+      ) {
+        throw new Error(
+          `Component ${stableName} is already implemented — refusing to overwrite it with a signature stub (implementation wins)`,
+        );
+      }
+      /** @type {Record<string, any>} */
+      const catalog = /** @type {any} */ (registry).components ?? {};
+      // A parseable sidecar for this name is itself the stub declaration:
+      // reaching this point with one on disk means no implementation file
+      // and no stored source exist, so this upload refines that stub —
+      // even if the previously registered factory cannot construct (a
+      // signature the stub constructor rejects, for instance)
+      let declaredStub = false;
+      try {
+        const existingSidecar = await readFile(
+          path.resolve(baseDir, "components", `${bareName}.json`),
+          "utf-8",
+        );
+        declaredStub = parseSignaturePayload(existingSidecar) !== null;
+      } catch (_err) {
+        // No sidecar: the live catalog decides
+      }
+      const existing = catalog[stableName] ?? catalog[componentName];
+      if (!declaredStub && existing && !definitionIsStub(existing)) {
+        throw new Error(
+          `Component ${stableName} is already implemented — refusing to overwrite it with a signature stub (implementation wins)`,
+        );
+      }
       // Materialize the sidecar in the project workdir — the same shape
       // noflo-ui writes — canonicalized for byte-stable disk state, then
-      // register the stub factory and signal the catalog change. The file
-      // is the persistence: discovery re-derives the stub on every boot
+      // register the stub factory under the stable project-namespace name
+      // and signal the catalog change. The file is the persistence:
+      // discovery re-derives the stub on every boot under this same name
       signature.name = bareName;
       const sidecarPath = path.resolve(
         baseDir,
@@ -312,20 +476,28 @@ export async function catalogFromLoader(loader, registry = null) {
         `${JSON.stringify(sortKeys(signature), null, 2)}\n`,
         "utf-8",
       );
-      registry.registerComponent(library, bareName, {
-        getComponent: () =>
-          StubComponent.fromSignature(componentName, signature),
+      registry.registerComponent(projectPrefix, bareName, {
+        getComponent: () => StubComponent.fromSignature(stableName, signature),
       });
       registry.invalidate();
+      await rederive(stableName);
     },
     /**
      * @param {string} componentName
      * @returns {Promise<string|null>}
      */
     readSource: async (componentName) => {
+      const { bareName } = splitComponentName(componentName);
+      // A stored implementation source wins over the sidecar: source and
+      // signature are orthogonal, and once a stub is implemented the
+      // implementation is the truth — checking both key forms the
+      // registry's storeSource produces
+      const stored = storedSourceFor(registry, componentName, `/${bareName}`);
+      if (stored) {
+        return stored.source;
+      }
       // A stub-only entry's source is its signature sidecar: the read
       // round-trips the upload exactly
-      const { bareName } = splitComponentName(componentName);
       try {
         const sidecar = await readFile(
           path.resolve(baseDir, "components", `${bareName}.json`),
@@ -335,13 +507,13 @@ export async function catalogFromLoader(loader, registry = null) {
           return sidecar;
         }
       } catch (_err) {
-        // No sidecar: fall through to the implementation's stored source
+        // No sidecar: fall through to the registry's own source surface
       }
       try {
         const source = await registry.getSource(componentName);
         return source.code;
       } catch (_err) {
-        // Native components, graph models, and stub factories without a
+        // Native components and factories without stored source or
         // sidecar hold no readable source
         return null;
       }

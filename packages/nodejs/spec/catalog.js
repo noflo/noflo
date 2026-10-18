@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { before, beforeEach, describe, it } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 import { Component, ComponentLoader } from "@noflo/noflo";
 import { catalogFromLoader, componentDetail } from "../src/catalog.js";
 
@@ -165,18 +165,29 @@ describe("catalog", () => {
 
     before(async () => {
       baseDir = await fs.mkdtemp(path.join(os.tmpdir(), "noflo-catalog-"));
+      // The project's own library namespace: the reboot-stable identity a
+      // signature upload materializes into (work document #19)
+      await fs.writeFile(
+        path.join(baseDir, "package.json"),
+        JSON.stringify({ name: "proj" }),
+        "utf-8",
+      );
     });
 
     beforeEach(() => {
       invalidations = [];
       storedSources = [];
-      // A minimal NodeModulesRegistry stand-in: the catalog hook uses the
-      // registry's persistence root, registration surface, and change
-      // signaling — the real registry's discovery specs cover those
+      // A minimal NodeModulesRegistry stand-in, keyed exactly like the real
+      // one: registerComponent stores under the normalized `${prefix}/${name}`
+      // (bare for library-less packages), while storeSource keys
+      // `sourcesForComponents` as `${packageId}/${name}` — which for an
+      // empty packageId is the `/${name}` form. The stand-in diverging from
+      // that keying once masked a real implementation-wins bug
       registry = new EventTarget();
       registry.baseDir = baseDir;
       registry.components = {};
       registry.sourcesForComponents = {};
+      registry.list = () => registry.components;
       registry.registerComponent = (packageId, name, definition) => {
         const prefix = packageId
           ? packageId.replace(/^@[a-z-]+\//, "").replace(/^noflo-/, "")
@@ -186,6 +197,19 @@ describe("catalog", () => {
       };
       registry.setSource = async (packageId, name, source, language) => {
         storedSources.push({ packageId, name, source, language });
+        // Mirror the real storeSource's bookkeeping and change signal
+        registry.sourcesForComponents[`${packageId}/${name}`] = {
+          language,
+          source,
+        };
+        registry.components[packageId ? `${packageId}/${name}` : name] = {
+          getComponent: () => {},
+        };
+        registry.dispatchEvent(
+          new CustomEvent("change", {
+            detail: { name: `${packageId}/${name}` },
+          }),
+        );
       };
       registry.getSource = async () => {
         throw new Error("Can't provide source. Not a file");
@@ -198,18 +222,26 @@ describe("catalog", () => {
       };
     });
 
+    /**
+     * A production-shaped catalog: the loader over the stand-in registry,
+     * so re-derivation flows through the same objects the host uses.
+     *
+     * @returns {Promise<any>} The catalog
+     */
+    async function catalogUnderTest() {
+      const loader = new ComponentLoader({ registry });
+      return catalogFromLoader(loader, registry);
+    }
+
     it("materializes a signature upload as a sidecar and registers the stub", async () => {
-      const loader = new ComponentLoader({
-        registry: { list: () => ({}) },
-      });
-      const catalog = await catalogFromLoader(loader, registry);
+      const catalog = await catalogUnderTest();
       const sidecar = {
         name: "Planned",
         description: "Uploaded from the design session",
         inports: [{ name: "in", type: "string" }],
         outports: [{ name: "out", type: "all" }],
       };
-      await catalog.writeSource("test/Planned", JSON.stringify(sidecar));
+      await catalog.writeSource("proj/Planned", JSON.stringify(sidecar));
       // The sidecar materialized in the project workdir, canonicalized
       const written = await fs.readFile(
         path.join(baseDir, "components", "Planned.json"),
@@ -218,69 +250,221 @@ describe("catalog", () => {
       assert.deepEqual(JSON.parse(written), sidecar);
       assert.match(written, /^\{\n {2}"description"/);
       // The stub registered as a factory and the catalog signaled the change
-      const definition = registry.components["test/Planned"];
+      const definition = registry.components["proj/Planned"];
       const instance = definition.getComponent();
       assert.equal(instance.isStub(), true);
-      assert.equal(instance.stubName, "test/Planned");
+      assert.equal(instance.stubName, "proj/Planned");
       assert.equal(instance.inPorts.ports.in.getDataType(), "string");
       assert.equal(invalidations.length, 1);
     });
 
+    it("the uploaded stub is visible to clients without a restart", async () => {
+      // The registry protocol refreshes from catalog.signatures() after
+      // every 0x25 write; the snapshot must reflect the upload immediately,
+      // and it must stay the same object the guard resolver holds
+      const catalog = await catalogUnderTest();
+      const snapshot = catalog.signatures();
+      assert.ok(!("proj/Planned" in snapshot));
+      const sidecar = {
+        name: "Planned",
+        inports: [{ name: "in", type: "string" }],
+        outports: [],
+      };
+      await catalog.writeSource("proj/Planned", JSON.stringify(sidecar));
+      const fresh = catalog.signatures();
+      assert.strictEqual(fresh, snapshot);
+      assert.equal(fresh["proj/Planned"].type, "stub");
+      assert.deepEqual(
+        fresh["proj/Planned"].in.map((p) => p.id),
+        ["in"],
+      );
+    });
+
+    it("registers a bare-name upload under the project's stable namespace", async () => {
+      const catalog = await catalogUnderTest();
+      const sidecar = {
+        name: "BarePlanned",
+        inports: [{ name: "in", type: "string" }],
+        outports: [],
+      };
+      // Bare name: accepted, but the identity is the reboot-stable one —
+      // what discovery re-derives on boot is the project-namespaced entry
+      await catalog.writeSource("BarePlanned", JSON.stringify(sidecar));
+      assert.ok(registry.components["proj/BarePlanned"]);
+      assert.equal(
+        (await catalog.signatures())["proj/BarePlanned"].type,
+        "stub",
+      );
+    });
+
+    it("rejects uploads naming another library", async () => {
+      const catalog = await catalogUnderTest();
+      const sidecar = { name: "Reverse", inports: [], outports: [] };
+      // mylib is an installed library, not this project: the host does not
+      // own its components, and materializing the stub under a foreign
+      // prefix would change the component's identity on reboot
+      await assert.rejects(
+        () => catalog.writeSource("mylib/Reverse", JSON.stringify(sidecar)),
+        /library prefix must be the project's own/,
+      );
+    });
+
     it("stores non-signature payloads as component source", async () => {
-      const loader = new ComponentLoader({
-        registry: { list: () => ({}) },
-      });
-      const catalog = await catalogFromLoader(loader, registry);
+      const catalog = await catalogUnderTest();
       const source = "exports.getComponent = () => ({});";
-      await catalog.writeSource("test/Impl", source);
+      await catalog.writeSource("proj/Impl", source);
       assert.deepEqual(storedSources, [
-        { packageId: "test", name: "Impl", source, language: "javascript" },
+        { packageId: "proj", name: "Impl", source, language: "javascript" },
       ]);
       assert.equal(invalidations.length, 0);
     });
 
-    it("refuses to stub over an existing implementation", async () => {
+    it("refuses to stub over an implementation file on disk", async () => {
       await fs.writeFile(
         path.join(baseDir, "components", "Real.js"),
         "exports.getComponent = () => ({});",
         "utf-8",
       );
-      const loader = new ComponentLoader({
-        registry: { list: () => ({}) },
-      });
-      const catalog = await catalogFromLoader(loader, registry);
-      const sidecar = {
-        name: "Real",
-        inports: [],
-        outports: [],
-      };
+      const catalog = await catalogUnderTest();
+      const sidecar = { name: "Real", inports: [], outports: [] };
       await assert.rejects(
-        () => catalog.writeSource("test/Real", JSON.stringify(sidecar)),
+        () => catalog.writeSource("proj/Real", JSON.stringify(sidecar)),
         /already implemented/,
       );
     });
 
+    it("refuses to stub over a stored implementation source", async () => {
+      // Keyed the way the real registry's storeSource does — the form the
+      // first cut of the check missed
+      registry.sourcesForComponents["proj/Stored"] = {
+        language: "javascript",
+        source: "exports.getComponent = () => ({});",
+      };
+      const catalog = await catalogUnderTest();
+      const sidecar = { name: "Stored", inports: [], outports: [] };
+      await assert.rejects(
+        () => catalog.writeSource("proj/Stored", JSON.stringify(sidecar)),
+        /already implemented/,
+      );
+    });
+
+    it("refuses to stub over a live non-stub catalog entry", async () => {
+      registry.components["proj/Live"] = { getComponent: () => new Forward() };
+      const catalog = await catalogUnderTest();
+      const sidecar = { name: "Live", inports: [], outports: [] };
+      await assert.rejects(
+        () => catalog.writeSource("proj/Live", JSON.stringify(sidecar)),
+        /already implemented/,
+      );
+    });
+
+    it("refining an existing stub's signature stays allowed", async () => {
+      const catalog = await catalogUnderTest();
+      await catalog.writeSource(
+        "proj/Planned",
+        JSON.stringify({
+          name: "Planned",
+          inports: [{ name: "in", type: "string" }],
+          outports: [],
+        }),
+      );
+      await catalog.writeSource(
+        "proj/Planned",
+        JSON.stringify({
+          name: "Planned",
+          inports: [{ name: "in", type: "number" }],
+          outports: [],
+        }),
+      );
+      const detail = (await catalog.signatures())["proj/Planned"];
+      assert.deepEqual(
+        detail.in.map((p) => p.id),
+        ["in"],
+      );
+      assert.equal(detail.in[0].type, "number");
+    });
+
     it("round-trips a stub's source as its signature sidecar", async () => {
-      const loader = new ComponentLoader({
-        registry: { list: () => ({}) },
-      });
-      const catalog = await catalogFromLoader(loader, registry);
+      const catalog = await catalogUnderTest();
       const sidecar = {
         name: "Roundtrip",
         inports: [{ name: "in", type: "string" }],
         outports: [],
       };
-      await catalog.writeSource("test/Roundtrip", JSON.stringify(sidecar));
-      const read = await catalog.readSource("test/Roundtrip");
+      await catalog.writeSource("proj/Roundtrip", JSON.stringify(sidecar));
+      const read = await catalog.readSource("proj/Roundtrip");
       assert.deepEqual(JSON.parse(/** @type {string} */ (read)), sidecar);
     });
 
+    it("a stored implementation source wins the read over the sidecar", async () => {
+      const catalog = await catalogUnderTest();
+      await catalog.writeSource(
+        "proj/Planned",
+        JSON.stringify({ name: "Planned", inports: [], outports: [] }),
+      );
+      // The stub was implemented in place — source and signature are
+      // orthogonal — so the read must report the implementation, not the
+      // stale sidecar
+      registry.sourcesForComponents["proj/Planned"] = {
+        language: "javascript",
+        source: "exports.getComponent = () => ({});",
+      };
+      assert.equal(
+        await catalog.readSource("proj/Planned"),
+        "exports.getComponent = () => ({});",
+      );
+    });
+
     it("answers nil source for components without code or sidecar", async () => {
-      const loader = new ComponentLoader({
-        registry: { list: () => ({}) },
-      });
+      const catalog = await catalogUnderTest();
+      assert.equal(await catalog.readSource("proj/Missing"), null);
+    });
+  });
+
+  describe("catalogFromLoader against the real node-modules registry (work document #19)", () => {
+    // The stand-in specs above pin the hook logic; this one pins the
+    // integration with the real registry's own keying and discovery —
+    // the layer a divergent stand-in once masked
+    /** @type {string|null} */
+    let baseDir = null;
+
+    before(async () => {
+      baseDir = await fs.mkdtemp(path.join(os.tmpdir(), "noflo-catalog-real-"));
+      await fs.writeFile(
+        path.join(baseDir, "package.json"),
+        JSON.stringify({ name: "proj" }),
+        "utf-8",
+      );
+    });
+
+    after(async () => {
+      if (baseDir) {
+        await fs.rm(baseDir, { recursive: true, force: true });
+      }
+    });
+
+    it("uploads survive as sidecars and re-derive under the same name", async () => {
+      const { createNodeModulesRegistry } = await import("@noflo/loader-node");
+      const registry = await createNodeModulesRegistry(baseDir, {});
+      const loader = new ComponentLoader({ registry });
       const catalog = await catalogFromLoader(loader, registry);
-      assert.equal(await catalog.readSource("test/Missing"), null);
+      await catalog.writeSource(
+        "proj/Planned",
+        JSON.stringify({
+          name: "Planned",
+          inports: [{ name: "in", type: "string" }],
+          outports: [],
+        }),
+      );
+      // The live snapshot sees the upload (the registry protocol's
+      // post-write refresh reads exactly this)
+      assert.equal((await catalog.signatures())["proj/Planned"].type, "stub");
+      // A fresh boot re-derives the same identity from the sidecar
+      const rebooted = await createNodeModulesRegistry(baseDir, {});
+      const definition = rebooted.components["proj/Planned"];
+      const instance = definition.getComponent();
+      assert.equal(instance.isStub(), true);
+      assert.equal(instance.stubName, "proj/Planned");
     });
   });
 });
