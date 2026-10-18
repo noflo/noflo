@@ -13,6 +13,7 @@
 
 import { exportFbpJson, sameRef } from "@noflo/graph";
 import { ComponentLoader } from "./ComponentLoader.js";
+import { applyPortMetadata } from "./PortMetadata.js";
 import { resolveHighWaterMark } from "./Edge.js";
 import { EventBase } from "./EventBase.js";
 import * as internalSocket from "./InternalSocket.js";
@@ -479,6 +480,18 @@ export class Network extends EventBase {
             port.nodeInstance = instance;
             port.name = name;
           });
+
+          // The per-instance port-behavior overrides (work document #44):
+          // the noflo.* metadata keys apply to this instance after
+          // instantiation and before wiring, so edge wiring sees the
+          // effective port semantics
+          try {
+            applyPortMetadata(instance, node.metadata);
+          } catch (error) {
+            throw new Error(
+              `Node ${node.entity_id}: ${(error instanceof Error ? error.message : String(error))}`,
+            );
+          }
 
           if (instance.isSubgraph()) {
             this.subscribeSubgraph(process);
