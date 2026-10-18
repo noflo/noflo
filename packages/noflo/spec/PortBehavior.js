@@ -7,9 +7,8 @@
 // component carrying no metadata.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-
-import * as noflo from "../src/lib/NoFlo.js";
 import { Subgraph } from "../src/components/Subgraph.js";
+import * as noflo from "../src/lib/NoFlo.js";
 import { applyPortMetadata } from "../src/lib/PortMetadata.js";
 
 /**
@@ -321,8 +320,12 @@ describe("per-instance port behavior: the outport-side scoped flip", () => {
 
 describe("per-instance port behavior: subgraph exclusion", () => {
   it("rejects noflo. overrides on subgraph nodes", async () => {
+    // An empty inner graph: the exclusion fires before any inner wiring
+    // matters, and no inner load runs to leak activity past the
+    // assertion (the round-2 review's async-leak finding)
     const innerGraph = noflo.importFbpJson({
-      processes: { inner: { component: "Sink" } },
+      processes: {},
+      connections: [],
     });
     const graph = noflo.importFbpJson({
       processes: {
@@ -333,15 +336,11 @@ describe("per-instance port behavior: subgraph exclusion", () => {
       },
     });
     const network = await noflo.createNetwork(graph, { delay: true });
-    network.loader.registerComponent("", "Inner", (metadata) =>
-      new Subgraph(innerGraph, { metadata }),
+    network.loader.registerComponent(
+      "",
+      "Inner",
+      (metadata) => new Subgraph(innerGraph, { metadata }),
     );
-    network.loader.registerComponent("", "Sink", () => {
-      const c = new noflo.Component();
-      c.inPorts.add("in", { datatype: "all" });
-      c.process(() => {});
-      return c;
-    });
     await assert.rejects(
       () => network.connect(),
       /noflo\.\* overrides do not apply to subgraph nodes/,

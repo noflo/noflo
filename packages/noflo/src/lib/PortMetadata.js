@@ -179,6 +179,9 @@ function applyScoped(component, value) {
       `noflo.scoped must be an object of port-name to boolean — got ${typeof value}`,
     );
   }
+  // Validate everything first: the flips are atomic, so a later invalid
+  // entry cannot leave earlier ports already flipped (the helper is
+  // public API)
   for (const [name, scoped] of Object.entries(value)) {
     if (typeof scoped !== "boolean") {
       throw new Error(
@@ -192,8 +195,9 @@ function applyScoped(component, value) {
           : `noflo.scoped names port '${name}', which the component does not have`,
       );
     }
+  }
+  for (const [name, scoped] of Object.entries(value)) {
     const inPort = component.inPorts.ports[name];
-    const outPort = component.outPorts.ports[name];
     if (inPort) {
       if (inPort.options.scoped !== scoped) {
         inPort.options.scoped = scoped;
@@ -204,13 +208,8 @@ function applyScoped(component, value) {
       }
       continue;
     }
-    if (outPort) {
-      outPort.options.scoped = scoped;
-      continue;
-    }
-    throw new Error(
-      `noflo.scoped names port '${name}', which the component does not have`,
-    );
+    // An outport's scoped option gates the scope stamping at send time
+    component.outPorts.ports[name].options.scoped = scoped;
   }
 }
 
