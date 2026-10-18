@@ -513,3 +513,101 @@ describe("ComponentLoader", () => {
     });
   });
 });
+
+describe("ComponentLoader lazy-registry placeholders", () => {
+  // Work document #25's async-registry contract: a registry reports its
+  // catalog synchronously through list() and resolves implementations
+  // lazily through get(). The wrapped-registry shapes of the
+  // noflo-jekyll wave make the placeholders real: a registry whose
+  // list() carries empty-object entries for every component, with get()
+  // resolving the definitions. The loader must fall back to get() for a
+  // placeholder — a truthy empty object is a name, not a component.
+  it("resolves a placeholder entry through the registry's get()", async () => {
+    const LazyRegistry = {
+      /** @type {Object<string, Object>} */
+      definitions: {},
+      list() {
+        return {
+          "lazy/Thing": {},
+          "lazy/Other": {},
+        };
+      },
+      async get(name) {
+        return this.definitions[name];
+      },
+    };
+    const instance = () => {
+      const c = new noflo.Component({
+        inPorts: { in: { datatype: "string" } },
+        outPorts: { out: { datatype: "string" } },
+      });
+      c.process((input, output) => {
+        if (!input.hasData("in")) {
+          return;
+        }
+        output.sendDone({ out: `lazy:${input.getData("in")}` });
+      });
+      return c;
+    };
+    LazyRegistry.definitions["lazy/Thing"] = { getComponent: instance };
+    const loader = new noflo.ComponentLoader({ registry: LazyRegistry });
+    const loaded = await loader.load("lazy/Thing");
+    assert.ok(loaded, "the placeholder resolved to a component");
+    assert.equal(loaded.componentName, "lazy/Thing");
+
+    // An unresolvable placeholder stays an honest failure
+    await assert.rejects(() => loader.load("lazy/Other"), /not available/);
+  });
+
+  it("runs a network through a lazily-resolved placeholder component", async () => {
+    const instanceFactory = () => {
+      const c = new noflo.Component({
+        inPorts: { in: { datatype: "string" } },
+        outPorts: { out: { datatype: "string" } },
+      });
+      c.process((input, output) => {
+        if (!input.hasData("in")) {
+          return;
+        }
+        output.sendDone({ out: input.getData("in") });
+      });
+      return c;
+    };
+    const LazyRegistry = {
+      definitions: {
+        "lazy/Thing": { getComponent: instanceFactory },
+      },
+      list() {
+        return { "lazy/Thing": {} };
+      },
+      async get(name) {
+        return this.definitions[name];
+      },
+    };
+    const loader = new noflo.ComponentLoader({ registry: LazyRegistry });
+    const graph = noflo.importFbpJson({
+      processes: { thing: { component: "lazy/Thing" } },
+      connections: [{ tgt: { process: "thing", port: "in" }, data: "hello" }],
+      outports: { out: { process: "thing", port: "out" } },
+    });
+    const outputs = [];
+    const network = await noflo.createNetwork(graph, {
+      componentLoader: loader,
+      delay: true,
+    });
+    await network.connect();
+    const outPort = network.processes.thing.component.outPorts.ports.out;
+    const sock = noflo.internalSocket.createSocket();
+    outPort.attach(sock);
+    sock.addEventListener("ip", (event) => {
+      const ip = /** @type {any} */ (event).detail.ip ?? event.detail;
+      if (ip.type === "data") {
+        outputs.push(ip.data);
+      }
+    });
+    await network.start();
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    assert.deepEqual(outputs, ["hello"]);
+    await network.stop();
+  });
+});

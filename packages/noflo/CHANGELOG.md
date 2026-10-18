@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Fixed
+
+- `ComponentLoader.load` falls back to the application registry's `get()` when a `list()` entry is a placeholder: lazy registries (work document #25's async-registry contract) report catalog names synchronously and resolve implementations lazily through `get()` — a truthy placeholder entry (an empty object) was treated as a resolved definition, so the load failed `Component not available` instead of falling back to the registry's lazy resolution. The placeholder check is structural (an object with no `getComponent`, no graph nodes, and no own properties), so graphs, factories, and module paths are unaffected. Caught by the noflo-jekyll substitution wave: the wrapped-registry shapes made the placeholders real, and the load failed on a component the registry could resolve
 ### Changed
 - The drain pump: an activation that consumed input leaves the buffers holding more deliverable work — the next pairing waits for a wakeup that no arrival may provide (the strand class the noflo-jekyll burst investigation verified: one pair consumed per arrival-wakeup, the rest stranded behind the late-arriving standing config). When a consuming activation deactivates, one scheduled offer re-fires the process for every scope still holding deliverable input — the completion of a consumption is a state change, and the firing model's completeness guarantee (work document #47: every state change that could satisfy a precondition causes an evaluation) now covers it. Scheduled, so a multi-pair drain chains through macrotasks without stack depth; each offer either consumes (progress) or declines (the buffers unchanged, no further offer) — the pump terminates with the buffers. The two wrapped-adapter tests that hung on the fanout clone-drop shape since their writing are un-skipped and passing (work document #36)
 ### Added

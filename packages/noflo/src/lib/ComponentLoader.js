@@ -235,6 +235,28 @@ export class ComponentLoader {
           }
         }
       }
+      if (
+        this.#isPlaceholder(component) &&
+        this.registry &&
+        typeof this.registry.get === "function"
+      ) {
+        // A placeholder list() entry is not a component: lazy registries
+        // report catalog names synchronously and resolve implementations
+        // through get() (work document #25's async-registry contract —
+        // the wrapped-registry shapes of the noflo-jekyll wave). A
+        // truthy placeholder must fall back to the lazy resolution, or
+        // the load fails on an entry the registry can resolve
+        resolve(
+          Promise.resolve(this.registry.get(name)).then((impl) => {
+            if (!impl) {
+              reject(new Error(`Component ${name} not available`));
+              return undefined;
+            }
+            return impl;
+          }),
+        );
+        return;
+      }
       if (!component) {
         // Work document #6: the application registry resolves names the
         // catalog does not know about (also covers #593 dummy-component
@@ -342,6 +364,28 @@ export class ComponentLoader {
    * @param {import("@noflo/graph").GraphModel|object|string} cPath
    * @returns {boolean}
    */
+  /**
+   * Whether a catalog entry is a placeholder rather than a resolvable
+   * component definition: an empty object carries the name only. The
+   * registry contract (work document #25) lets registries be lazy —
+   * list() reports the catalog synchronously, get() resolves the
+   * implementation — so the loader must not treat a truthy placeholder
+   * as a definition (the #593 dummy and #6 top-down cases are handled
+   * by the same fallback).
+   * @param {unknown} cPath
+   * @returns {boolean}
+   */
+  #isPlaceholder(cPath) {
+    return (
+      cPath !== null &&
+      typeof cPath === "object" &&
+      !Array.isArray(cPath) &&
+      !(/** @type {any} */ (cPath).getComponent) &&
+      !(/** @type {any} */ (cPath).nodes) &&
+      Object.keys(/** @type {object} */ (cPath)).length === 0
+    );
+  }
+
   isGraph(cPath) {
     // Live graph model instance
     if (cPath instanceof GraphModel) {
