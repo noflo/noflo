@@ -56,6 +56,21 @@ const debugSend = createDebug("noflo:component:send");
 /** @typedef {{ __resolved?: boolean, __bracketClosingAfter?: BracketContext[], [key: string]: any }} ProcessResult */
 
 /**
+ * The activation-lifecycle context, duck-typed between the engine's
+ * `ProcessContext` (which carries the consumption counter the drain pump
+ * reads) and the wrapper's plain lifecycle objects (the Subgraph's start
+ * and end accounting, which carry none — and pump nothing).
+ *
+ * @typedef {object} ActivationContext
+ * @property {boolean} [activated] Whether the context is currently active.
+ * @property {boolean} [deactivated] Whether the context has completed.
+ * @property {number} [consumed] How many IPs the activation consumed
+ *   (ownership moved); absent for the wrapper's lifecycle contexts.
+ * @property {Object<string, any>} [result] The ordered-output result, for
+ *   ProcessContext instances.
+ */
+
+/**
  * The NoFlo Component base class.
  *
  * The `noflo.Component` interface provides a way to instantiate and extend
@@ -660,7 +675,6 @@ export class Component extends EventBase {
         `${this.nodeId} unscoped control IP on scoped control port '${port.name}': the control value cannot be read; declare the port scoped: false`,
       );
     }
-    /** @type {Array<string|null>} */
     const ready = this.#readyScopes();
     if (!ready.length) {
       return;
@@ -751,7 +765,6 @@ export class Component extends EventBase {
    * consumes (progress) or declines (the buffers unchanged, no further
    * offer) — the pump terminates with the buffers (work document #47).
    *
-   * @private
    * @returns {void}
    */
   #offerResumption() {
@@ -1259,10 +1272,9 @@ export class Component extends EventBase {
    * Signal that a processing context has activated. There may be multiple
    * activated contexts at the same time.
    *
-   * @param {Object} context
-   * @param {boolean} context.activated
-   * @param {boolean} context.deactivated
-   * @param {Object} context.result
+   * @param {ActivationContext} context - The lifecycle context: whether
+   *   it is active, completed, and (for ProcessContext instances) the
+   *   ordered-output result.
    */
   activate(context) {
     if (context.activated) {
@@ -1281,9 +1293,8 @@ export class Component extends EventBase {
    * Signal that a processing context has deactivated. There may be multiple
    * activated contexts at the same time.
    *
-   * @param {Object} context
-   * @param {boolean} context.activated
-   * @param {boolean} context.deactivated
+   * @param {ActivationContext} context - The lifecycle context: whether
+   *   it is active and completed.
    */
   deactivate(context) {
     if (context.deactivated) {
