@@ -17,6 +17,8 @@
  */
 /* @ts-self-types="./catalog.d.ts" */
 
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
 import {
   COMPONENT_TYPE,
   collectSchemaRefs,
@@ -25,6 +27,7 @@ import {
   projectGuard,
   validateGuard,
 } from "@noflo/fbp-protocol";
+import { StubComponent } from "@noflo/noflo";
 
 /**
  * Project one port collection to the wire's `PortInfo` list. Only
@@ -141,15 +144,105 @@ export async function componentDetail(component) {
 }
 
 /**
+ * The component source extensions an implementation can exist as in the
+ * project's `components/` directory. A stub upload refuses to overwrite
+ * any of them — implementation wins (work document #24 update #2).
+ *
+ * @type {string[]}
+ */
+const implementationExtensions = [".js", ".ts", ".coffee", ".litcoffee"];
+
+/**
+ * Split a library-namespaced component name into its library prefix and
+ * bare component name. A name without a slash keeps the empty library.
+ *
+ * @param {string} componentName
+ * @returns {{ library: string, bareName: string }}
+ */
+function splitComponentName(componentName) {
+  const slash = componentName.indexOf("/");
+  if (slash === -1) {
+    return { library: "", bareName: componentName };
+  }
+  return {
+    library: componentName.slice(0, slash),
+    bareName: componentName.slice(slash + 1),
+  };
+}
+
+/**
+ * Classify a `0x25` source payload: a parseable JSON object whose
+ * `inports` and `outports` are both arrays is a signature declaration —
+ * the on-disk sidecar shape noflo-ui materializes (work documents #19 and
+ * #24) — not component source. The two grammars do not overlap: component
+ * sources are JS/TS/Coffee, a signature is this fixed JSON shape. The
+ * classification belongs to the catalog — the signature owner — not to
+ * the wire: `0x25` stays an opaque string payload, and a runtime whose
+ * catalog does not implement the convention treats the payload as source.
+ *
+ * @param {string} source
+ * @returns {Object<string, any>|null} The signature, or null when the payload is component source
+ */
+export function parseSignaturePayload(source) {
+  let parsed;
+  try {
+    parsed = JSON.parse(source);
+  } catch (_err) {
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return null;
+  }
+  if (!Array.isArray(parsed.inports) || !Array.isArray(parsed.outports)) {
+    return null;
+  }
+  return parsed;
+}
+
+/**
+ * Sort object keys recursively, so a materialized sidecar is byte-stable
+ * across uploads (the noflo-ui materializer's own emission order).
+ *
+ * @param {any} value
+ * @returns {any}
+ */
+function sortKeys(value) {
+  if (Array.isArray(value)) {
+    return value.map(sortKeys);
+  }
+  if (value && typeof value === "object") {
+    /** @type {Object<string, any>} */
+    const sorted = {};
+    for (const key of Object.keys(value).sort()) {
+      sorted[key] = sortKeys(value[key]);
+    }
+    return sorted;
+  }
+  return value;
+}
+
+/**
  * Build a {@link RuntimeCatalog} for `assembleRuntime` from a component
  * loader: every component in the loader's catalog is instantiated and
  * signature-harvested eagerly, so the registry snapshot is complete before
  * the first client syncs.
  *
+ * When the host's node-modules registry is supplied, the catalog also
+ * backs the `0x25`/`0x26` source hooks (work document #19): a source
+ * payload that classifies as a signature declaration materializes as a
+ * `components/<name>.json` sidecar and registers as a StubComponent — the
+ * upload path for top-down design — while anything else stores as
+ * component source through the registry's own `setSource`, implementing a
+ * stub in place. A signature upload over an existing implementation is
+ * rejected: implementation wins, the sidecar never replaces code.
+ *
  * @param {import("@noflo/noflo").ComponentLoader} loader
+ * @param {import("@noflo/loader-node").NodeModulesRegistry} [registry] The
+ *   host's component registry; also the persistence root for materialized
+ *   sidecars (its `baseDir`)
  * @returns {Promise<import("@noflo/runtime/registry-protocol").RuntimeCatalog>}
  */
-export async function catalogFromLoader(loader) {
+export async function catalogFromLoader(loader, registry = null) {
   /** @type {Record<string, import("@noflo/fbp-protocol").ComponentDetail>} */
   const signatures = {};
   const list = await loader.listComponents();
@@ -157,7 +250,101 @@ export async function catalogFromLoader(loader) {
     const component = await loader.load(name);
     signatures[name] = await componentDetail(component);
   }
+  if (!registry) {
+    return {
+      signatures: () => signatures,
+    };
+  }
+  const baseDir = registry.baseDir;
   return {
     signatures: () => signatures,
+    /**
+     * @param {string} componentName
+     * @param {string} source
+     * @returns {Promise<void>}
+     */
+    writeSource: async (componentName, source) => {
+      const signature = parseSignaturePayload(source);
+      if (!signature) {
+        // Component source: store and evaluate through the registry. A
+        // source write to a stub-only entry implements it in place; the
+        // sidecar stays on disk, ignored while the implementation exists
+        const { library, bareName } = splitComponentName(componentName);
+        await registry.setSource(library, bareName, source, "javascript");
+        return;
+      }
+      // Signature upload: refuse to stub over an implementation. The disk
+      // is the truth, so the check is file presence — a setSource-written
+      // implementation is covered by the registry's own bookkeeping
+      const { library, bareName } = splitComponentName(componentName);
+      for (const extension of implementationExtensions) {
+        const candidate = path.resolve(
+          baseDir,
+          "components",
+          `${bareName}${extension}`,
+        );
+        let implemented = false;
+        try {
+          await readFile(candidate);
+          implemented = true;
+        } catch (_err) {
+          // Not there
+        }
+        if (implemented || registry.sourcesForComponents[componentName]) {
+          throw new Error(
+            `Component ${componentName} is already implemented — refusing to overwrite it with a signature stub (implementation wins)`,
+          );
+        }
+      }
+      // Materialize the sidecar in the project workdir — the same shape
+      // noflo-ui writes — canonicalized for byte-stable disk state, then
+      // register the stub factory and signal the catalog change. The file
+      // is the persistence: discovery re-derives the stub on every boot
+      signature.name = bareName;
+      const sidecarPath = path.resolve(
+        baseDir,
+        "components",
+        `${bareName}.json`,
+      );
+      await mkdir(path.dirname(sidecarPath), { recursive: true });
+      await writeFile(
+        sidecarPath,
+        `${JSON.stringify(sortKeys(signature), null, 2)}\n`,
+        "utf-8",
+      );
+      registry.registerComponent(library, bareName, {
+        getComponent: () =>
+          StubComponent.fromSignature(componentName, signature),
+      });
+      registry.invalidate();
+    },
+    /**
+     * @param {string} componentName
+     * @returns {Promise<string|null>}
+     */
+    readSource: async (componentName) => {
+      // A stub-only entry's source is its signature sidecar: the read
+      // round-trips the upload exactly
+      const { bareName } = splitComponentName(componentName);
+      try {
+        const sidecar = await readFile(
+          path.resolve(baseDir, "components", `${bareName}.json`),
+          "utf-8",
+        );
+        if (parseSignaturePayload(sidecar)) {
+          return sidecar;
+        }
+      } catch (_err) {
+        // No sidecar: fall through to the implementation's stored source
+      }
+      try {
+        const source = await registry.getSource(componentName);
+        return source.code;
+      } catch (_err) {
+        // Native components, graph models, and stub factories without a
+        // sidecar hold no readable source
+        return null;
+      }
+    },
   };
 }

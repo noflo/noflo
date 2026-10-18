@@ -240,7 +240,10 @@ export async function createHost(options = {}) {
 
   const runtime = await assembleRuntime({
     graph,
-    catalog: await catalogFromLoader(loader),
+    // The registry backs the catalog's source hooks (work document #19):
+    // 0x25 signature uploads materialize as components/<name>.json sidecars
+    // in the project, 0x26 reads round-trip them
+    catalog: await catalogFromLoader(loader, registry),
     componentLoader: loader,
     // The schema table loads from installed packages' manifests: the
     // manifest-first rung of the WD #24 ladder applied to schema bodies

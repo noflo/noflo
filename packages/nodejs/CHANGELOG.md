@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- The host's component catalog backs the `0x25`/`0x26` source hooks (work document #19): a source payload that classifies as a signature declaration — the on-disk sidecar shape noflo-ui materializes (`inports`/`outports` arrays; the grammars of component source and signature JSON do not overlap) — materializes as a `components/<name>.json` sidecar in the project workdir, canonicalized for byte-stable disk state, registers as a `StubComponent`, and signals the catalog change, closing the top-down design loop: a client uploads a stub, the sidecar persists it, and discovery re-derives the stub on every boot. A signature upload over an existing implementation is rejected — implementation wins. Any other payload stores as component source through the registry's own `setSource`, implementing a stub in place. `0x26` reads round-trip a stub's sidecar as its source. `componentDetail` reports stub instances as the `stub` kind through the new core `isStub()`
 
 ## [2.0.0-alpha.11] - 2026-10-18
 
