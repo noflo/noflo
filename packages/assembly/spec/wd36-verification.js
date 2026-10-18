@@ -136,14 +136,13 @@ describe("wd #36 verification: adapter bracket correlation", () => {
 });
 
 describe("wd #36 verification: bare-class component definitions", () => {
-  it("documents the current shape: a registered bare class", async () => {
+  it("constructs a registered bare class (the loader finding, fixed)", async () => {
     // The incidental finding (work document #36, the update-#11 era):
-    // ComponentLoader.createComponent's factory-function branch calls
+    // ComponentLoader.createComponent's factory-function branch called
     // the definition without `new`, so a bare class registered directly
-    // throws "Class constructor cannot be invoked without 'new'".
-    // Verified against the current loader: the class shape either
-    // constructs (if fixed) or throws (still open). This spec pins
-    // the current behavior; the fix flips it to the construct branch.
+    // threw. The loader now detects the class shape (prototype.constructor
+    // identity plus the class-source prefix) and constructs it; factory
+    // functions keep the plain-call contract.
     class Bare extends noflo.Component {
       constructor() {
         super({
@@ -154,35 +153,9 @@ describe("wd #36 verification: bare-class component definitions", () => {
     }
     const loader = new noflo.ComponentLoader({});
     loader.registerComponent("test", "Bare", Bare);
-    let outcome = "constructed";
-    let thrown = "";
-    try {
-      const instance = await loader.load("test/Bare");
-      assert.ok(instance, "the instance exists");
-    } catch (error) {
-      outcome = "threw";
-      thrown = String(error.message);
-    }
-    if (outcome === "threw") {
-      // Still open: the factory branch cannot construct bare classes.
-      // The phrasing varies by engine — V8: "Class constructor Bare
-      // cannot be invoked without 'new'"; JavaScriptCore (Bun): "Cannot
-      // call a class constructor Bare without |new|" — so the match is
-      // on the two stable parts: the constructor mention and the new
-      // invocation
-      assert.match(
-        thrown,
-        /constructor/i,
-        "the bare-class shape is still unsupported — the work-document finding stands",
-      );
-      assert.match(
-        thrown,
-        /new/,
-        "the invocation error is the class-construction failure",
-      );
-    }
-    // Either way the loader did not crash the test process; the finding
-    // is recorded by the outcome
+    const instance = await loader.load("test/Bare");
+    assert.ok(instance, "the bare class constructed");
+    assert.strictEqual(instance.constructor.name, "Bare");
   });
 });
 

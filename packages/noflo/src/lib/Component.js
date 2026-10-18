@@ -697,13 +697,16 @@ export class Component extends EventBase {
    * Scan the inport buffers for scopes holding deliverable input: the
    * unscoped default buffers, each scoped buffer, each addressable index,
    * and the IIP buffers. Control buffers are standing state, not pending
-   * work, and are never scanned. Shared by the arrival walk (handleIP)
-   * and the drain pump (the post-completion re-offer, work document #47).
+   * work, and are never scanned. Each entry carries the scope's head IP
+   * as captured during the scan, so the drain pump's offer never
+   * re-fetches across buffer shapes. Shared by the arrival walk
+   * (handleIP) and the drain pump (the post-completion re-offer, work
+   * document #47).
    *
-   * @returns {Array<{scope: string|null, port: import("./InPort.js").default}>}
+   * @returns {Array<{scope: string|null, port: import("./InPort.js").default, head: import("./IP.js").default}>}
    */
   #readyScopes() {
-    /** @type {Array<{scope: string|null, port: import("./InPort.js").default}>} */
+    /** @type {Array<{scope: string|null, port: import("./InPort.js").default, head: import("./IP.js").default}>} */
     const ready = [];
     Object.keys(this.inPorts.ports).forEach((name) => {
       const port = this.inPorts.ports[name];
@@ -712,46 +715,51 @@ export class Component extends EventBase {
         // non-consumingly and never drive firings on their own
         return;
       }
-      const mark = (scope) => {
+      const mark = (scope, head) => {
         // One firing per scope: the port of the first hit supplies the
         // activation's context, and every leg's buffered work is visible
         // to the has-first discipline regardless
         if (ready.some((entry) => entry.scope === scope)) {
           return;
         }
-        ready.push({ scope, port });
+        ready.push({ scope, port, head });
       };
       if (port.isAddressable()) {
         Object.keys(port.indexedBuffer ?? {}).forEach((index) => {
-          if ((port.indexedBuffer[index] ?? []).length > 0) {
-            mark(null);
+          const buf = port.indexedBuffer[index] ?? [];
+          if (buf.length > 0) {
+            mark(null, buf[0]);
           }
         });
         Object.keys(port.indexedIipBuffer ?? {}).forEach((index) => {
-          if ((port.indexedIipBuffer[index] ?? []).length > 0) {
-            mark(null);
+          const buf = port.indexedIipBuffer[index] ?? [];
+          if (buf.length > 0) {
+            mark(null, buf[0]);
           }
         });
         Object.keys(port.indexedScopedBuffer ?? {}).forEach((scope) => {
           Object.keys(port.indexedScopedBuffer[scope] ?? {}).forEach(
             (index) => {
-              if ((port.indexedScopedBuffer[scope][index] ?? []).length > 0) {
-                mark(scope);
+              const buf = port.indexedScopedBuffer[scope][index] ?? [];
+              if (buf.length > 0) {
+                mark(scope, buf[0]);
               }
             },
           );
         });
         return;
       }
-      if ((port.getBuffer(null, null) ?? []).length > 0) {
-        mark(null);
+      const regular = port.getBuffer(null, null) ?? [];
+      if (regular.length > 0) {
+        mark(null, regular[0]);
       }
       if ((port.iipBuffer ?? []).length > 0) {
-        mark(null);
+        mark(null, port.iipBuffer[0]);
       }
       Object.keys(port.scopedBuffer ?? {}).forEach((scope) => {
-        if ((port.scopedBuffer[scope] ?? []).length > 0) {
-          mark(scope);
+        const buf = port.scopedBuffer[scope] ?? [];
+        if (buf.length > 0) {
+          mark(scope, buf[0]);
         }
       });
     });
@@ -774,18 +782,14 @@ export class Component extends EventBase {
       }
       const ready = this.#readyScopes();
       for (const readyScope of ready) {
-        const buffer =
-          readyScope.scope === null
-            ? (readyScope.port.getBuffer(null, null) ?? [])
-            : (readyScope.port.getBuffer(readyScope.scope, null) ?? []);
-        if (!buffer.length) {
-          continue;
-        }
-        const head = buffer[0];
+        // The head was captured during the scan: every buffer shape —
+        // addressable, IIP, scoped — offers with its own head
         const contextIp =
           readyScope.scope === null
-            ? head
-            : new IP(head.type, head.data, { scope: readyScope.scope });
+            ? readyScope.head
+            : new IP(readyScope.head.type, readyScope.head.data, {
+                scope: readyScope.scope,
+              });
         this.fireProcess(contextIp, readyScope.port);
       }
     });

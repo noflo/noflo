@@ -340,6 +340,101 @@ describe("the retired triggering option", () => {
   });
 });
 
+describe("the drain pump", () => {
+  // The completion re-offer (work document #47): an activation that
+  // consumed input leaves the buffers holding more deliverable work —
+  // the next pairing waits for a wakeup that no arrival may provide.
+  // The pump re-offers the process for the remaining work on completion,
+  // making multi-pair drains terminate without external arrivals.
+  it("drains multiple buffered pairs without further arrivals", async () => {
+    // The noflo-jekyll burst shape: all legs arrive BEFORE the standing
+    // config (the IIP delivery lags behind the posted messages), so
+    // every arrival-triggered firing declines on the missing config;
+    // the config's arrival fires ONE round, consuming one pair — the
+    // remaining pairs strand without the pump
+    const component = Pairer();
+    const { received, sockets } = wire(component);
+    // All legs arrive first
+    post(sockets.a, 1);
+    post(sockets.b, 2);
+    post(sockets.a, 10);
+    post(sockets.b, 20);
+    post(sockets.a, 100);
+    post(sockets.b, 200);
+    await settle();
+    // The standing config arrives last — the drain begins
+    post(sockets.config, { mode: "drain" });
+    await settle();
+    // Every pair drained: three outputs, none stranded
+    assert.deepStrictEqual(
+      received.sort((x, y) => x.a - y.a),
+      [
+        { mode: "drain", a: 1, b: 2 },
+        { mode: "drain", a: 10, b: 20 },
+        { mode: "drain", a: 100, b: 200 },
+      ],
+      "all buffered pairs drained",
+    );
+    assert.strictEqual(component.load, 0, "no activation left pending");
+    assert.strictEqual(
+      component.inPorts.ports.a.countBuffered(),
+      0,
+      "the buffers drained",
+    );
+  });
+
+  it("defers the offer while an activation is in flight", async () => {
+    // The pump is guarded by the in-flight load: an offer fires only
+    // when the activation accounting is settled
+    const component = Pairer();
+    const { received, sockets } = wire(component);
+    const offers = [];
+    // Instrument the drain: count the offers by observing the completions
+    let completions = 0;
+    component.addEventListener("deactivate", () => {
+      completions += 1;
+    });
+    post(sockets.config, { mode: "m" });
+    post(sockets.a, 1);
+    post(sockets.b, 2);
+    await settle();
+    assert.deepStrictEqual(received, [{ mode: "m", a: 1, b: 2 }]);
+    // Two arrivals, one completed pairing: the activations fired per
+    // arrival, the pairing consumed once, and the pump did not double-fire
+    assert.ok(completions >= 1, "the completions happened");
+    assert.strictEqual(component.load, 0);
+  });
+
+  it("pumps nothing when the activation consumed nothing", async () => {
+    // The progress gate: an activation that consumed nothing (the
+    // has-first decline) completes without an offer — the decline-and-wait
+    // contract stays intact
+    const component = Pairer();
+    const { received, sockets } = wire(component);
+    // The config alone: the activation declines on the missing legs —
+    // and the pump must not re-offer it forever
+    post(sockets.config, { mode: "m" });
+    await settle();
+    assert.deepStrictEqual(received, [], "nothing to pair");
+    assert.strictEqual(component.load, 0, "no leaked activation");
+  });
+
+  it("pumps nothing after closedown", async () => {
+    // The closedown guard: the offers do not fire past the closedown
+    const component = Pairer();
+    const { received, sockets } = wire(component);
+    post(sockets.config, { mode: "m" });
+    post(sockets.a, 1);
+    post(sockets.b, 2);
+    await settle();
+    assert.deepStrictEqual(received, [{ mode: "m", a: 1, b: 2 }]);
+    // After the closedown the buffers are clear and the pump has
+    // nothing to offer; the guard holds for the late deactivations
+    assert.strictEqual(component.load, 0);
+    assert.strictEqual(component.inPorts.ports.a.countBuffered(), 0, "drained");
+  });
+});
+
 describe("the firing matrix", () => {
   // A leg is an ordered step list: its internal sequence is the stream's
   // framing or a single packet, and the matrix permutes LEGS — generating

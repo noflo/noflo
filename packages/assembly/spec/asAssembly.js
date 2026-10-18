@@ -372,13 +372,13 @@ class SlowCopy extends noflo.Component {
 }
 
 describe("wrapped component behavior matrix", () => {
-  // VERIFIED STILL BROKEN (2026-10-18, work document #36): un-skipped
-  // against the current engine (the firing model #47, the scoped
-  // liveness #45, bounded edges #38 all landed since this was written)
-  // and both shapes still hang at their timeout — the sequential
-  // multi-message fanout clone-drop is real and current. Re-skipped
-  // pending the buffer-lifecycle fix; the verification evidence is in
-  // this document's updates.
+  // FIXED (2026-10-18, work document #36): un-skipped against the
+  // current engine, the shape failed on the crossover — which the
+  // investigation resolved as the parallel-positional-streams contract,
+  // not a message drop: the collector pairs positionally and the inner's
+  // async completion order reversed the destination delivery. The drain
+  // pump (Component.js) drains the pairs; the scope variant is the
+  // order-independent shape.
   it("keeps multiple inbound messages in order without crossover", async () => {
     const loader = await makeLoader();
     loader.registerComponent("test", "CopyLike", {
@@ -400,15 +400,6 @@ describe("wrapped component behavior matrix", () => {
     });
 
     instance.start(() => {});
-    // TEMP INSTRUMENTATION: the collector's gates at every firing
-    const collectorProbe = instance.network.processes.collector.component;
-    const collectorOrig = collectorProbe.handle;
-    collectorProbe.handle = (input, output, context) => {
-      console.log(
-        `[collect] msg=${input.hasData("msg")} fields=${input.hasData("fields")} d0=${input.hasStream(["data", 0])} msgbuf=${JSON.stringify(collectorProbe.inPorts.ports.msg.buffer.map((p) => p.data?.source))} iip=${JSON.stringify(collectorProbe.inPorts.ports.fields.iipBuffer?.length ?? 0)}`,
-      );
-      return collectorOrig(input, output, context);
-    };
     for (const [pname, proc] of Object.entries(instance.network.processes)) {
       for (const [pname2, port] of Object.entries(
         proc.component.inPorts.ports,
