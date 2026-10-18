@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- The CLI's flowtrace event-name table covered only the first seven event types, so later events printed as raw numbers in `watch` and `replay` output — a stub component's `0x09 STUB_ERROR` would render as `9` instead of its name. The table now covers the full shared `EVENT_TYPE` vocabulary (work document #19)
 
 ## [2.0.0-alpha.11] - 2026-10-18
 
