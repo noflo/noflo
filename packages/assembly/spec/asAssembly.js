@@ -779,6 +779,65 @@ describe("whole-message replace mapping", () => {
     assert.deepEqual(ip.data.errors, []);
   });
 
+  it("replaces first, then merges named fields on top, regardless of declaration order", async () => {
+    // The connection index is the inner's outport declaration order,
+    // which the graph author does not control: the replace must not
+    // discard a named field collected on a lower index
+    const loader = await makeLoader();
+    class TwoOut extends noflo.Component {
+      constructor() {
+        super({
+          inPorts: { in: { datatype: "object", required: true } },
+          outPorts: {
+            out1: { datatype: "object" },
+            out2: { datatype: "all" },
+          },
+        });
+        this.process((input, output) => {
+          if (!input.hasData("in")) {
+            return;
+          }
+          const msg = input.getData("in");
+          output.sendDone({
+            out1: { ...msg, transformed: true },
+            out2: "META",
+          });
+        });
+      }
+    }
+    loader.registerComponent("test", "TwoOut", {
+      getComponent: () => new TwoOut(),
+    });
+    const inner = new TwoOut();
+    const graph = asAssembly(inner, {
+      target: "test/TwoOut",
+      mapping: {
+        in: { in: null },
+        out: { out1: null, out2: "meta" },
+      },
+    });
+    loader.registerComponent("test", "Wrapped", graph);
+    const instance = await loader.load("test/Wrapped");
+
+    const out = new noflo.internalSocket.InternalSocket();
+    instance.outPorts.ports.out.attach(out);
+    const source = new noflo.internalSocket.InternalSocket();
+    instance.inPorts.ports.msg.attach(source);
+
+    const received = new Promise((resolve) => {
+      out.addEventListener("ip", (event) => resolve(event.detail));
+    });
+
+    instance.start(() => {});
+    source.post(new noflo.IP("data", { errors: [], path: "/x/index.html" }));
+    const ip = await received;
+    assert.equal(ip.type, "data");
+    assert.equal(ip.data.path, "/x/index.html");
+    assert.equal(ip.data.transformed, true);
+    assert.equal(ip.data.meta, "META");
+    assert.deepEqual(ip.data.errors, []);
+  });
+
   it("rejects more than one null outport at wrap time", () => {
     class TwoOut extends noflo.Component {
       constructor() {
@@ -830,6 +889,6 @@ describe("whole-message replace mapping", () => {
     assert.equal(ip.type, "data");
     assert.equal(ip.data.path, "/keep");
     assert.equal(ip.data.errors.length, 1);
-    assert.match(ip.data.errors[0].message, /not an object/);
+    assert.match(ip.data.errors[0].message, /not a plain object/);
   });
 });

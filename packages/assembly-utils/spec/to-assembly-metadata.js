@@ -42,4 +42,18 @@ describe("ToAssembly field option", () => {
     const received = await run({ "assembly.field": "path" }, "/x/index.html");
     assert.deepEqual(received, [{ errors: [], path: "/x/index.html" }]);
   });
+
+  it("rejects a non-string field name at load time", () => {
+    assert.throws(
+      () => getComponent({ "assembly.field": 42 }),
+      /must be a string/,
+    );
+  });
+
+  it("rejects the reserved errors field name at load time", () => {
+    assert.throws(
+      () => getComponent({ "assembly.field": "errors" }),
+      /must not be 'errors'/,
+    );
+  });
 });

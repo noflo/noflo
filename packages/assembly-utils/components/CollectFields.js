@@ -24,10 +24,15 @@ import Component from "@noflo/assembly";
  * A field name of `null` in the `fields` config is the whole-message
  * replace mapping: the inner output becomes the message — its keys
  * replace the originating message's — and the accumulated `errors`
- * carry into the replacement. The replace output must be an object; a
- * non-object accumulates an error into `msg.errors` instead of
- * replacing. Only one field may be `null`; `asAssembly` validates the
- * mapping at wrap time.
+ * carry into the replacement. The replace output must be a plain
+ * object; anything else (a non-object, an array, a class instance)
+ * accumulates an error into `msg.errors` instead of replacing. Only
+ * one field may be `null` — `asAssembly` validates the mapping at wrap
+ * time and the collector rejects a doubled config defensively — and
+ * the replace is processed first, then the named fields merge on top
+ * of the replacement, so the result is independent of the inner
+ * component's outport declaration order: a named field merges onto a
+ * replaced message regardless of which connection index it rides.
  *
  * The error port is the message's terminal event for its scope: firing
  * on it completes the message even while other fields' streams are
@@ -105,9 +110,24 @@ export class CollectFields extends Component {
     const msg = input.getData("msg");
     const fieldNames = JSON.parse(input.getData("fields"));
 
+    // Only one field may be null: the whole-message replace mapping.
+    // asAssembly validates the mapping at wrap time; the collector
+    // rejects a doubled config defensively, because a hand-built graph
+    // bypasses that validation and a last-wins silent discard would
+    // drop a delivered field
+    if (fieldNames.filter((field) => field === null).length > 1) {
+      output.done(
+        new Error(
+          "CollectFields: the fields config may carry at most one null (the whole-message replace mapping)",
+        ),
+      );
+      return;
+    }
+
     // Fire when every mapped field delivered, or when the inner
-    // signalled an error instead of delivering. The replace mapping
-    // rebinds the result to the inner output
+    // signalled an error instead of delivering. The replace mapping is
+    // processed first, then the named fields merge on top — the result
+    // is independent of the connection order (work document #36)
     let result = { ...msg };
     /** @type {unknown[]} */
     const errors = Array.isArray(msg.errors) ? [...msg.errors] : [];
@@ -119,6 +139,8 @@ export class CollectFields extends Component {
         errors.push(ip.data);
       }
     }
+    /** @type {Array<{ field: string | null | undefined, collectedValue: unknown }>} */
+    const collected = [];
     for (const idx of complete) {
       const field = fieldNames[idx];
       if (field === undefined) {
@@ -130,27 +152,40 @@ export class CollectFields extends Component {
         .map((ip) => ip.data);
       // A bracketed inner stream collects as an array; a single packet
       // as the value itself
-      const collected = values.length === 1 ? values[0] : values;
-      if (field === null) {
-        // Whole-message replace: the inner output becomes the message,
-        // the accumulated errors carrying into it. A non-object output
-        // cannot replace a message: the error accumulates instead
-        if (
-          collected !== null &&
-          typeof collected === "object" &&
-          !Array.isArray(collected)
-        ) {
-          result = { ...collected, errors };
-        } else {
-          errors.push(
-            new Error(
-              `CollectFields: the replace-mapped inner output at connection ${idx} is not an object`,
-            ),
-          );
-        }
+      collected.push({
+        field,
+        collectedValue: values.length === 1 ? values[0] : values,
+      });
+    }
+    for (const { field, collectedValue } of collected) {
+      if (field !== null) {
         continue;
       }
-      result[field] = collected;
+      // Whole-message replace: the inner output becomes the message,
+      // the accumulated errors carrying into it. Only a plain object
+      // can replace a message — a class instance or a Date would spread
+      // to nearly nothing — anything else errors instead
+      if (
+        collectedValue !== null &&
+        typeof collectedValue === "object" &&
+        !Array.isArray(collectedValue) &&
+        (Object.getPrototypeOf(collectedValue) === Object.prototype ||
+          Object.getPrototypeOf(collectedValue) === null)
+      ) {
+        result = { ...collectedValue, errors };
+      } else {
+        errors.push(
+          new Error(
+            "CollectFields: the replace-mapped inner output is not a plain object",
+          ),
+        );
+      }
+    }
+    for (const { field, collectedValue } of collected) {
+      if (field === null || field === undefined) {
+        continue;
+      }
+      result[field] = collectedValue;
     }
     result.errors = errors;
     output.sendDone({ out: result });

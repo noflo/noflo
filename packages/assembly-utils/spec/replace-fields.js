@@ -42,10 +42,11 @@ function makeCollector(fieldNames) {
 }
 
 describe("CollectFields whole-message replace", () => {
-  it("replaces the message with a null-mapped inner output", async () => {
+  it("replaces first, then merges the named fields on top", async () => {
     // The transform-the-message shape (work document #36's mapping
     // vocabulary): the inner output becomes the message, the accumulated
-    // errors carrying into the replacement
+    // errors carrying into it, and the named fields merge on top — the
+    // connection order must not change the result
     const c = makeCollector(["output", null]);
     c.msg.post(new noflo.IP("data", { errors: [], path: "/origin" }));
     c.data[0].post(new noflo.IP("data", "<p>rendered</p>"));
@@ -57,9 +58,29 @@ describe("CollectFields whole-message replace", () => {
     assert.deepEqual(c.received[0], {
       path: "/x/index.html",
       body: "<p>rendered</p>",
+      output: "<p>rendered</p>",
       errors: [],
     });
-    await new Promise((resolve) => setTimeout(resolve, 10));
+  });
+
+  it("is independent of the inner component's outport declaration order", async () => {
+    // The connection index is the inner's outport declaration order,
+    // which the graph author does not control: [null, 'meta'] and
+    // ['meta', null] must produce the same message
+    const first = makeCollector([null, "meta"]);
+    first.msg.post(new noflo.IP("data", { errors: [], path: "/origin" }));
+    first.data[0].post(new noflo.IP("data", { replaced: true }));
+    first.data[1].post(new noflo.IP("data", "META"));
+    const second = makeCollector(["meta", null]);
+    second.msg.post(new noflo.IP("data", { errors: [], path: "/origin" }));
+    second.data[0].post(new noflo.IP("data", "META"));
+    second.data[1].post(new noflo.IP("data", { replaced: true }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(first.received.length, 1);
+    assert.equal(second.received.length, 1);
+    assert.deepEqual(first.received[0], second.received[0]);
+    assert.equal(first.received[0].meta, "META");
+    assert.equal(first.received[0].replaced, true);
   });
 
   it("carries accumulated errors into the replacement", async () => {
@@ -72,17 +93,35 @@ describe("CollectFields whole-message replace", () => {
     assert.deepEqual(c.received[0].errors, ["stale"]);
   });
 
-  it("keeps the original message when the replace output is not an object", async () => {
+  it("keeps the original message when the replace output is not a plain object", async () => {
+    for (const bad of ["just a string", new Date(), [1, 2, 3]]) {
+      const c = makeCollector([null]);
+      c.msg.post(new noflo.IP("data", { errors: [], path: "/keep" }));
+      c.data[0].post(new noflo.IP("data", bad));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      assert.equal(c.received.length, 1);
+      assert.equal(c.received[0].path, "/keep");
+      assert.equal(c.received[0].errors.length, 1);
+      assert.match(
+        /** @type {Error} */ (c.received[0].errors[0]).message,
+        /not a plain object/,
+      );
+    }
+  });
+
+  it("accepts Object.create(null) as a replace output", async () => {
+    // Null-prototype objects spread to their keys cleanly: data preserved
     const c = makeCollector([null]);
     c.msg.post(new noflo.IP("data", { errors: [], path: "/keep" }));
-    c.data[0].post(new noflo.IP("data", "just a string"));
+    c.data[0].post(
+      new noflo.IP(
+        "data",
+        Object.assign(Object.create(null), { replaced: true }),
+      ),
+    );
     await new Promise((resolve) => setTimeout(resolve, 50));
     assert.equal(c.received.length, 1);
-    assert.equal(c.received[0].path, "/keep");
-    assert.equal(c.received[0].errors.length, 1);
-    assert.match(
-      /** @type {Error} */ (c.received[0].errors[0]).message,
-      /not an object/,
-    );
+    assert.equal(c.received[0].replaced, true);
+    assert.equal(c.received[0].path, undefined);
   });
 });
