@@ -12,7 +12,7 @@
     "check:jsr": "node scripts/check-jsr-entrypoints.js",
     "check:browser": "node scripts/check-browser-sources.js",
     "lint": "npm run lint --workspaces --if-present",
-    "format": "npx @biomejs/biome check --use-editorconfig=true --write packages/*/src packages/*/spec packages/*/examples packages/assembly-utils/components scripts",
+    "format": "npx @biomejs/biome check --use-editorconfig=true --write packages/*/src packages/*/spec packages/*/examples packages/*/schemas packages/assembly-utils/components scripts",
     "test:deno": "npm run test:deno --workspaces --if-present",
     "test:bun": "npm run test:bun --workspaces --if-present",
     "check:types": "git diff --exit-code -- '**/*.d.ts'"

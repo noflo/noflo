@@ -12,9 +12,7 @@
         "description": "The instance's complete gate-inport set, replacing the component's declared control ports: a listed name is a gate (standing, non-consumingly-read configuration whose arrivals re-fire pending work per scope), an unlisted former gate becomes a direct firing edge. Addressable inports cannot be gates."
       },
       "class": "config",
-      "kinds": [
-        "node"
-      ]
+      "kinds": ["node"]
     },
     "noflo.scoped": {
       "schema": {
@@ -25,9 +23,7 @@
         "description": "Inport-name to boolean: whether IPs on the port participate in scope identity. Outports are not overridable (the outport-side flip interacts with the ordered-output and forwarding machinery and needs its own design pass)."
       },
       "class": "config",
-      "kinds": [
-        "node"
-      ]
+      "kinds": ["node"]
     },
     "noflo.forwardBrackets": {
       "schema": {
@@ -41,9 +37,7 @@
         "description": "Inport to outports array, the same shape as the component's forwardBrackets option: an instance entry replaces the component's declared rule for that inport, unlisted inports keep their declared or built-in rules, and the empty array is the framing-termination declaration."
       },
       "class": "config",
-      "kinds": [
-        "node"
-      ]
+      "kinds": ["node"]
     }
   }
 }

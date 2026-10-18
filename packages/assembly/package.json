@@ -40,7 +40,7 @@
     "url": "https://github.com/noflo/noflo/issues"
   },
   "scripts": {
-    "lint": "npx @biomejs/biome check --use-editorconfig=true src/ spec/",
+    "lint": "npx @biomejs/biome check --use-editorconfig=true src/ spec/ schemas/",
     "test": "node --test spec/*.js",
     "types": "find src -name '*.d.ts' -delete && tsc -p tsconfig.json",
     "test:deno": "deno test --allow-all --no-check spec/*.js",
