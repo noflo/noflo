@@ -486,7 +486,9 @@ export function runRelease({
     // (see the v2.0.0-alpha.4 residue)
     if (tryRun("deno --version", { cwd: root, stdio: "ignore" }) !== null) {
       if (tryRun("deno install", { cwd: root, stdio: "ignore" }) === null) {
-        console.log("  ⚠ deno install failed — update deno.lock manually.");
+        console.log(
+          "  ⚠ deno install failed — update deno.lock manually.",
+        );
       } else {
         console.log("  deno.lock ok");
       }
