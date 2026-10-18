@@ -27,8 +27,10 @@
  *   non-consumingly-read configuration whose arrivals re-fire pending
  *   work per scope), an unlisted control port is demoted to a direct
  *   firing edge. Unlisted data ports are unaffected (work document #47).
- * - `noflo.scoped: object` — port-name → boolean, for in- or outports.
- *   Flipping re-prepares the port's buffer structures.
+ * - `noflo.scoped: object` — inport-name → boolean. Flipping re-prepares
+ *   the port's buffer structures. The outport side is not supported: its
+ *   flip interacts with the ordered-output and forwarding machinery, and
+ *   the semantics need their own design pass.
  * - `noflo.forwardBrackets: object` — inport → outports array (the same
  *   shape as the component option; an empty array is the framing
  *   termination declaration, work document #47). An instance entry
@@ -39,6 +41,16 @@
  * component per node, so a second instance of the same component keeps
  * its declared behavior. The zero-regression posture: a node without
  * `noflo.*` metadata is untouched.
+ *
+ * **Call before wiring**: a `noflo.scoped` flip re-prepares the port's
+ * buffer structures, discarding buffered state. The network path applies
+ * the helper pre-wiring, where there is nothing buffered; direct API
+ * callers must honor the same contract.
+ *
+ * Subgraph nodes are out of scope: a `noflo.*` override on a subgraph
+ * node's exported ports has undefined relay semantics (the wrapper's
+ * relay machinery was not designed against per-instance port knobs), and
+ * the network path rejects it.
  */
 
 /**
@@ -79,8 +91,17 @@ export function applyPortMetadata(component, metadata = {}) {
       return [key.slice("noflo.".length), metadata[key]];
     });
 
+  // The zero-regression posture first: a node without noflo.* overrides
+  // is untouched — subgraph nodes included
   if (!overrides.length) {
     return;
+  }
+  // Overrides present on a subgraph node: the relay semantics for
+  // exported ports are not defined, so the network path rejects them
+  if (component.isSubgraph?.()) {
+    throw new Error(
+      "noflo.* overrides do not apply to subgraph nodes: the relay semantics for exported ports are not defined — place the override on the inner graph's node",
+    );
   }
 
   for (const [key, value] of overrides) {
@@ -111,12 +132,16 @@ function applyControl(component, value) {
       `noflo.control must be an array of inport names — got ${typeof value}`,
     );
   }
-  // Replace semantics: the list is the instance's complete gate set.
-  // Unlisted inports return to direct firing, whatever the component
-  // declared
+  // Validate everything first: a later invalid entry must not leave
+  // earlier ports already flipped (the helper is public API). The gate
+  // model on addressable ports is untested territory — the
+  // control-triggered walk does not scan addressable buffers — so an
+  // addressable promotion is rejected
   for (const name of value) {
     if (typeof name !== "string") {
-      throw new Error(`noflo.control entries must be port names — got ${typeof name}`);
+      throw new Error(
+        `noflo.control entries must be port names — got ${typeof name}`,
+      );
     }
     const port = component.inPorts.ports[name];
     if (!port) {
@@ -124,7 +149,17 @@ function applyControl(component, value) {
         `noflo.control names inport '${name}', which the component does not have`,
       );
     }
-    port.options.control = true;
+    if (port.isAddressable()) {
+      throw new Error(
+        `noflo.control names addressable inport '${name}' — the gate model does not support addressable ports`,
+      );
+    }
+  }
+  // Replace semantics: the list is the instance's complete gate set.
+  // Unlisted inports return to direct firing, whatever the component
+  // declared
+  for (const name of value) {
+    component.inPorts.ports[name].options.control = true;
   }
   for (const [name, port] of Object.entries(component.inPorts.ports)) {
     if (!value.includes(name)) {
@@ -148,6 +183,13 @@ function applyScoped(component, value) {
     if (typeof scoped !== "boolean") {
       throw new Error(
         `noflo.scoped values must be booleans — '${name}' got ${typeof scoped}`,
+      );
+    }
+    if (!component.inPorts.ports[name]) {
+      throw new Error(
+        component.outPorts.ports[name]
+          ? `noflo.scoped names outport '${name}' — the outport-side scoped flip interacts with the ordered-output and forwarding machinery and is not supported yet (work document #44)`
+          : `noflo.scoped names port '${name}', which the component does not have`,
       );
     }
     const inPort = component.inPorts.ports[name];
@@ -183,6 +225,7 @@ function applyForwardBrackets(component, value) {
       `noflo.forwardBrackets must be an object of inport-name to outport-name array — got ${typeof value}`,
     );
   }
+  // Validate everything first: the map application is atomic
   for (const [inPortName, outPorts] of Object.entries(value)) {
     if (typeof inPortName !== "string") {
       throw new Error(

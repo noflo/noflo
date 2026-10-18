@@ -100,11 +100,11 @@ export { Component } from "./Component.js";
 
 import { Component } from "./Component.js";
 
+export { applyPortMetadata, PORT_BEHAVIOR_KEYS } from "./PortMetadata.js";
 // ### NoFlo ports
 //
 // These classes are used for instantiating ports on NoFlo components.
 export { InPorts, OutPorts } from "./Ports.js";
-export { applyPortMetadata, PORT_BEHAVIOR_KEYS } from "./PortMetadata.js";
 
 import { InPorts, OutPorts } from "./Ports.js";
 

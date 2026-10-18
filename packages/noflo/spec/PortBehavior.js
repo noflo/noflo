@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import * as noflo from "../src/lib/NoFlo.js";
+import { Subgraph } from "../src/components/Subgraph.js";
 import { applyPortMetadata } from "../src/lib/PortMetadata.js";
 
 /**
@@ -116,7 +117,14 @@ describe("per-instance port behavior: the control knob", () => {
     await settle();
     assert.deepStrictEqual(
       received,
-      [{ config: { mode: "m" }, value: "gated", flat: "f", stream: ["s1", "s2"] }],
+      [
+        {
+          config: { mode: "m" },
+          value: "gated",
+          flat: "f",
+          stream: ["s1", "s2"],
+        },
+      ],
       "the pending work completed on the other legs' arrivals",
     );
     assert.strictEqual(instance.load, 0);
@@ -274,11 +282,15 @@ describe("per-instance port behavior: the forwarding knob", () => {
     framedStream(sockets.in);
     await settle();
     assert.deepStrictEqual(outReceived, ["x"], "the out leg is bare");
-    assert.deepStrictEqual(errorReceived, [
-      new noflo.IP("openBracket", "g"),
-      { detail: "processed:x" },
-      new noflo.IP("closeBracket", "g"),
-    ], "the framing rides the error leg");
+    assert.deepStrictEqual(
+      errorReceived,
+      [
+        new noflo.IP("openBracket", "g"),
+        { detail: "processed:x" },
+        new noflo.IP("closeBracket", "g"),
+      ],
+      "the framing rides the error leg",
+    );
   });
 
   it("terminates framing per instance via the empty rule", async () => {
@@ -290,6 +302,50 @@ describe("per-instance port behavior: the forwarding knob", () => {
     await settle();
     assert.deepStrictEqual(outReceived, ["x"], "the brackets terminated");
     assert.deepStrictEqual(errorReceived, [{ detail: "processed:x" }]);
+  });
+});
+
+describe("per-instance port behavior: the outport-side scoped flip", () => {
+  it("is rejected: its semantics need their own design pass", () => {
+    // An outport's scoped option gates the scope stamping at send time,
+    // and the flip interacts with the ordered-output and forwarding
+    // machinery — the under-tested combination the review flagged.
+    // Tightened rather than shipped untested
+    const instance = makeComponent();
+    assert.throws(
+      () => applyPortMetadata(instance, { "noflo.scoped": { out: false } }),
+      /the outport-side scoped flip interacts with the ordered-output and forwarding machinery/,
+    );
+  });
+});
+
+describe("per-instance port behavior: subgraph exclusion", () => {
+  it("rejects noflo. overrides on subgraph nodes", async () => {
+    const innerGraph = noflo.importFbpJson({
+      processes: { inner: { component: "Sink" } },
+    });
+    const graph = noflo.importFbpJson({
+      processes: {
+        wrapped: {
+          component: "Inner",
+          metadata: { "noflo.control": ["in"] },
+        },
+      },
+    });
+    const network = await noflo.createNetwork(graph, { delay: true });
+    network.loader.registerComponent("", "Inner", (metadata) =>
+      new Subgraph(innerGraph, { metadata }),
+    );
+    network.loader.registerComponent("", "Sink", () => {
+      const c = new noflo.Component();
+      c.inPorts.add("in", { datatype: "all" });
+      c.process(() => {});
+      return c;
+    });
+    await assert.rejects(
+      () => network.connect(),
+      /noflo\.\* overrides do not apply to subgraph nodes/,
+    );
   });
 });
 
@@ -313,7 +369,10 @@ describe("per-instance port behavior: validation", () => {
       /names port 'nope', which the component does not have/,
     );
     assert.throws(
-      () => applyPortMetadata(instance, { "noflo.forwardBrackets": { in: ["nope"] } }),
+      () =>
+        applyPortMetadata(instance, {
+          "noflo.forwardBrackets": { in: ["nope"] },
+        }),
       /references outport 'nope'/,
     );
   });
@@ -329,7 +388,10 @@ describe("per-instance port behavior: validation", () => {
       /must be booleans/,
     );
     assert.throws(
-      () => applyPortMetadata(instance, { "noflo.forwardBrackets": { framed: "out" } }),
+      () =>
+        applyPortMetadata(instance, {
+          "noflo.forwardBrackets": { framed: "out" },
+        }),
       /must be arrays/,
     );
     assert.throws(
@@ -338,19 +400,32 @@ describe("per-instance port behavior: validation", () => {
     );
   });
 
+  it("rejects promoting an addressable inport to a gate", () => {
+    const instance = new noflo.Component();
+    instance.inPorts.add("addr", { datatype: "all", addressable: true });
+    instance.inPorts.add("other", { datatype: "all" });
+    instance.outPorts.add("out", { datatype: "all" });
+    assert.throws(
+      () => applyPortMetadata(instance, { "noflo.control": ["addr"] }),
+      /the gate model does not support addressable ports/,
+    );
+  });
+
   it("is a no-op without noflo. metadata", () => {
     const instance = makeComponent();
     const before = JSON.stringify({
-      control: Object.entries(instance.inPorts.ports).map(
-        ([name, port]) => [name, port.options.control],
-      ),
+      control: Object.entries(instance.inPorts.ports).map(([name, port]) => [
+        name,
+        port.options.control,
+      ]),
     });
     applyPortMetadata(instance, {});
     applyPortMetadata(instance, { assembly: { field: "x" } });
     const after = JSON.stringify({
-      control: Object.entries(instance.inPorts.ports).map(
-        ([name, port]) => [name, port.options.control],
-      ),
+      control: Object.entries(instance.inPorts.ports).map(([name, port]) => [
+        name,
+        port.options.control,
+      ]),
     });
     assert.strictEqual(before, after, "untouched");
   });
