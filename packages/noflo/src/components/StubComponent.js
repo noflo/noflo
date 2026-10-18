@@ -9,7 +9,8 @@
 */
 
 import { Component } from "../lib/Component.js";
-import IP from "../lib/IP.js"; // eslint-disable-line no-unused-vars
+// biome-ignore lint/correctness/noUnusedImports: IP is referenced in the JSDoc casts below; a type-only import is rejected here (TS8006)
+import IP from "../lib/IP.js";
 
 /**
  * The error a stub component raises when a data packet reaches a component
