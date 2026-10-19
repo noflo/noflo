@@ -15,6 +15,13 @@ import Component from "@noflo/assembly";
  * (the assembly catalog's config key), which the
  * loader passes to `getComponent`.
  *
+ * The field may be a dot path: segments split on `.`, each walked as a
+ * plain own-property read — `frontmatter.head` reads `msg.frontmatter`
+ * then its `head`. An absent segment at any level is the same malformed
+ * message the flat mapping reports: the error names the full mapped
+ * path. An intermediate value that is not an object (a primitive, an
+ * array element walk is not supported) is the same absence.
+ *
  * A message that lacks the mapped field is malformed for this adapter:
  * the absence surfaces as an error on the `error` port — which the
  * generated graph wires into the collector's error accumulation, so the
@@ -72,24 +79,37 @@ export class ExtractField extends Component {
       );
       return;
     }
-    if (!Object.hasOwn(msg, this.field)) {
-      // Absent field: the message is malformed for this adapter. The
-      // error leg is the honest signal — the generated graph wires this
-      // port into the collector's error accumulation, so the message
-      // completes with the failure recorded instead of a silent
-      // undefined delivery crashing the inner component
-      output.done(
-        new Error(
-          `ExtractField: the message lacks the mapped field '${this.field}'`,
-        ),
-      );
-      return;
+    // Dot-path walk: segments split on `.`, each an own-property read.
+    // A single-segment path behaves exactly like the flat mapping
+    const segments = this.field.split(".");
+    /** @type {unknown} */
+    let value = msg;
+    for (const segment of segments) {
+      if (
+        typeof value !== "object" ||
+        value === null ||
+        Array.isArray(value) ||
+        !Object.hasOwn(value, segment)
+      ) {
+        // Absent path: the message is malformed for this adapter. The
+        // error leg is the honest signal — the generated graph wires this
+        // port into the collector's error accumulation, so the message
+        // completes with the failure recorded instead of a silent
+        // undefined delivery crashing the inner component
+        output.done(
+          new Error(
+            `ExtractField: the message lacks the mapped field '${this.field}'`,
+          ),
+        );
+        return;
+      }
+      value = /** @type {Record<string, unknown>} */ (value)[segment];
     }
     // Extraction is deliberately tolerant of failed messages: errors
     // accumulate in the envelope and the inner component's own wrapper
     // decides how to handle them. A present-but-null value is a value
     // and delivers
-    output.sendDone({ out: msg[this.field] });
+    output.sendDone({ out: value });
   }
 }
 

@@ -35,11 +35,28 @@ import Component from "@noflo/assembly";
  * instance) accumulates an error into `msg.errors` instead of
  * replacing. Only one field may be `null` — `asAssembly` validates the
  * mapping at wrap time and the collector rejects a doubled config
- * defensively — and the replace is processed first, then the named
- * fields merge on top of the replacement, so the result is independent
- * of the inner component's outport declaration order: a named field
- * merges onto a replaced message regardless of which connection index
- * it rides.
+ * defensively — and the processing order is fixed by mapping kind, not
+ * by connection order: the replace first, then the named fields, then
+ * the spread (below), so the result is independent of the inner
+ * component's outport declaration order — same-key collisions resolve
+ * identically whichever connection carries which mapping (work document
+ * #36's order-independence).
+ *
+ * A field name of `*` in the `fields` config is the spread mapping: the
+ * inner output's keys merge into the message — the mapping semantic for
+ * inners whose output is a flat field map destined for the message's
+ * top level (the parsed front matter, an extended configuration) rather
+ * than one named field or a wholesale replacement. The spread merges
+ * last, so a spread key overwrites a same-named message field. The
+ * spread never owns `errors`: the accumulation channels own the field —
+ * the envelope's own errors, superseded only by a replace, plus the
+ * error port's out-of-band errors — and a spread output carrying an
+ * `errors` key is excluded from the merge, because letting it merge
+ * would silently drop or clobber diagnostics depending on the config
+ * shape. The spread output must be a plain object; anything else
+ * accumulates an error into `msg.errors` instead of spreading. Only one
+ * field may be `*` — `asAssembly` validates the mapping at wrap time and
+ * the collector rejects a doubled config defensively.
  *
  * The error port is the message's terminal event for its scope: firing
  * on it completes the message even while other fields' streams are
@@ -118,14 +135,23 @@ export class CollectFields extends Component {
     const fieldNames = JSON.parse(input.getData("fields"));
 
     // Only one field may be null: the whole-message replace mapping.
-    // asAssembly validates the mapping at wrap time; the collector
-    // rejects a doubled config defensively, because a hand-built graph
-    // bypasses that validation and a last-wins silent discard would
-    // drop a delivered field
+    // Likewise only one may be `*`: the spread mapping. asAssembly
+    // validates the mapping at wrap time; the collector rejects a
+    // doubled config defensively, because a hand-built graph bypasses
+    // that validation and a last-wins silent discard would drop a
+    // delivered field
     if (fieldNames.filter((field) => field === null).length > 1) {
       output.done(
         new Error(
           "CollectFields: the fields config may carry at most one null (the whole-message replace mapping)",
+        ),
+      );
+      return;
+    }
+    if (fieldNames.filter((field) => field === "*").length > 1) {
+      output.done(
+        new Error(
+          "CollectFields: the fields config may carry at most one * (the spread mapping)",
         ),
       );
       return;
@@ -205,11 +231,52 @@ export class CollectFields extends Component {
         );
       }
     }
+    // The named fields merge second: one field per inner outport, so no
+    // collision within the pass
     for (const { field, collectedValue } of collected) {
-      if (field === null || field === undefined) {
+      if (field === null || field === undefined || field === "*") {
         continue;
       }
       result[field] = collectedValue;
+    }
+    // The spread merges last: its keys overwrite same-named fields. The
+    // processing order is fixed by mapping kind — replace, named,
+    // spread — never by connection order, so a same-key collision
+    // resolves identically whichever connection carries which mapping
+    // (work document #36's order-independence). The spread never owns
+    // errors: the accumulation channels own the field (the envelope's
+    // own errors, superseded only by a replace, plus the error port's
+    // out-of-band errors) — a spread output carrying an errors key is
+    // excluded from the merge, because letting it merge would silently
+    // drop or clobber diagnostics depending on the config shape
+    for (const { field, collectedValue } of collected) {
+      if (field !== "*") {
+        continue;
+      }
+      if (
+        collectedValue !== null &&
+        typeof collectedValue === "object" &&
+        !Array.isArray(collectedValue) &&
+        (Object.getPrototypeOf(collectedValue) === Object.prototype ||
+          Object.getPrototypeOf(collectedValue) === null)
+      ) {
+        const spreadSource = { ...collectedValue };
+        delete spreadSource.errors;
+        // Own-key define semantics, not Object.assign: assign routes
+        // through [[Set]], so an own `__proto__` key in the inner output
+        // (JSON.parse produces exactly that shape) would invoke the
+        // prototype setter and pollute the emitted message — and the
+        // spread's entire purpose is merging parsed untrusted content.
+        // Object spread defines own properties and never touches the
+        // prototype
+        result = { ...result, ...spreadSource };
+      } else {
+        originalErrors.push(
+          new Error(
+            "CollectFields: the spread-mapped inner output is not a plain object",
+          ),
+        );
+      }
     }
     if (!replaced) {
       result.errors = [...originalErrors, ...errorPortErrors];

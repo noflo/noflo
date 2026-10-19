@@ -881,6 +881,83 @@ describe("whole-message replace mapping", () => {
     );
   });
 
+  it("rejects more than one spread outport at wrap time", () => {
+    class TwoOut extends noflo.Component {
+      constructor() {
+        super({
+          inPorts: { in: { datatype: "object", required: true } },
+          outPorts: {
+            out1: { datatype: "object" },
+            out2: { datatype: "object" },
+          },
+        });
+        this.process(() => {});
+      }
+    }
+    assert.throws(
+      () =>
+        asAssembly(new TwoOut(), {
+          target: "test/TwoOut",
+          mapping: { in: { in: null }, out: { out1: "*", out2: "*" } },
+        }),
+      /only one outport may map to '\*'/,
+    );
+  });
+
+  it("rejects a spread marker on an inport mapping at wrap time", () => {
+    class Simple extends noflo.Component {
+      constructor() {
+        super({
+          inPorts: { in: { datatype: "object", required: true } },
+          outPorts: { out: { datatype: "object" } },
+        });
+        this.process(() => {});
+      }
+    }
+    assert.throws(
+      () =>
+        asAssembly(new Simple(), {
+          target: "test/Simple",
+          mapping: { in: { in: "*" } },
+        }),
+      /must not be '\*' — the spread marker is out-mapping vocabulary/,
+    );
+  });
+
+  it("carries the spread marker into the collector's fields config", async () => {
+    class Yamlish extends noflo.Component {
+      constructor() {
+        super({
+          description: "Emits a flat field map",
+          inPorts: { in: { datatype: "object", required: true } },
+          outPorts: { out: { datatype: "object" } },
+        });
+        this.process((input, output) => {
+          if (!input.hasData("in")) {
+            return;
+          }
+          output.sendDone({ out: { parsed: input.getData("in").raw } });
+        });
+      }
+    }
+    const loader = await makeLoader();
+    loader.registerComponent("test", "Yamlish", {
+      getComponent: () => new Yamlish(),
+    });
+    const graph = asAssembly(new Yamlish(), {
+      target: "test/Yamlish",
+      mapping: { in: { in: null }, out: { out: "*" } },
+    });
+    const fieldsInit = graph
+      .iips()
+      .find(
+        (/** @type {{ to: { node: string } }} */ i) =>
+          i.to.node === "collector" && i.to.port === "fields",
+      );
+    assert.ok(fieldsInit);
+    assert.deepEqual(JSON.parse(fieldsInit.from.data), ["*"]);
+  });
+
   it("keeps the message and accumulates an error when the replace output is not an object", async () => {
     const loader = await makeLoader();
     loader.registerComponent("test", "StringLike", {
