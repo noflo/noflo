@@ -358,6 +358,47 @@ describe("catalog", () => {
       );
     });
 
+    it("rejects a constructor-invalid signature before any state changes", async () => {
+      // A control-only signature under the throw policy can never fire;
+      // persisting it would poison the workdir — the entry would vanish
+      // from the snapshot and every boot would fail loading it
+      const catalog = await catalogUnderTest();
+      await assert.rejects(
+        () =>
+          catalog.writeSource(
+            "proj/Bad",
+            JSON.stringify({
+              name: "Bad",
+              inports: [{ name: "cfg", control: true }],
+              outports: [],
+            }),
+          ),
+        /declares no triggering inports/,
+      );
+      await assert.rejects(
+        () =>
+          catalog.writeSource(
+            "proj/Bad",
+            JSON.stringify({
+              name: "Bad",
+              inports: [
+                { name: "in", type: "all" },
+                { name: "in", type: "all" },
+              ],
+              outports: [],
+            }),
+          ),
+        /twice/,
+      );
+      // No sidecar, no registration, no snapshot entry: the failed
+      // upload left nothing behind
+      await assert.rejects(() =>
+        fs.access(path.join(baseDir, "components", "Bad.json")),
+      );
+      assert.equal(registry.components["proj/Bad"], undefined);
+      assert.equal((await catalog.signatures())["proj/Bad"], undefined);
+    });
+
     it("refining an existing stub's signature stays allowed", async () => {
       const catalog = await catalogUnderTest();
       await catalog.writeSource(
@@ -400,7 +441,11 @@ describe("catalog", () => {
       const catalog = await catalogUnderTest();
       await catalog.writeSource(
         "proj/Planned",
-        JSON.stringify({ name: "Planned", inports: [], outports: [] }),
+        JSON.stringify({
+          name: "Planned",
+          inports: [{ name: "in", type: "string" }],
+          outports: [],
+        }),
       );
       // The stub was implemented in place — source and signature are
       // orthogonal — so the read must report the implementation, not the

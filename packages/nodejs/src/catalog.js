@@ -459,6 +459,15 @@ export async function catalogFromLoader(loader, registry = null) {
           `Component ${stableName} is already implemented — refusing to overwrite it with a signature stub (implementation wins)`,
         );
       }
+      // Validate by construction before any state changes: the stub
+      // constructor's loud, named checks — duplicate port names,
+      // non-string datatypes, control on an outport, control-only
+      // signatures under the throw policy — reject the upload here, with
+      // no disk state touched. Persisting first would poison the workdir:
+      // the entry would vanish from the snapshot (rederive drops what
+      // cannot load) and every boot would fail loading the component
+      // until another upload overwrote the sidecar
+      StubComponent.fromSignature(stableName, signature);
       // Materialize the sidecar in the project workdir — the same shape
       // noflo-ui writes — canonicalized for byte-stable disk state, then
       // register the stub factory under the stable project-namespace name
