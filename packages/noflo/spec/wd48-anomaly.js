@@ -478,6 +478,14 @@ describe("work document #48: the closedown-vs-pump delivery race", () => {
     c.outPorts.ports.fail.addEventListener("stranded", (event) => {
       strandedEvents.push(event.detail);
     });
+    // The component's own stranded surface: the outport-side report must
+    // reach it exactly once, standalone (no network wiring the node —
+    // work document #48 review findings 1–2)
+    /** @type {Array<any>} */
+    const componentEvents = [];
+    c.addEventListener("stranded", (event) => {
+      componentEvents.push(event.detail);
+    });
     msgSocket.post(new IP("data", { path: "ok", fail: false }), false);
     msgSocket.post(new IP("data", { path: "bad", fail: true }), false);
     msgSocket.disconnect();
@@ -490,6 +498,66 @@ describe("work document #48: the closedown-vs-pump delivery race", () => {
       dropped,
       `the dropped error must surface on the stranded event — stranded events: ${JSON.stringify(strandedEvents)}`,
     );
+    const componentDropped = componentEvents.filter(
+      (e) => e.reason === "unattached-send" && e.port === "fail",
+    );
+    assert.equal(
+      componentDropped.length,
+      1,
+      `the unattached send must surface on the component's stranded surface exactly once — component events: ${JSON.stringify(componentEvents)}`,
+    );
+    assert.equal(componentDropped[0].port, "fail");
+    assert.ok(c.isClosedDown());
+  });
+
+  it("serializes the dropped-error payload and fires it once at component level", async () => {
+    // Review finding 3: the dropped-error detail carried the raw Error
+    // object — fine on a listener that keeps it in memory, but the
+    // network's emit path spreads the detail into the event payload where
+    // every other stranded entry is counts and strings. The error is
+    // serialized at the source. Findings 1–2's outport forwarding path
+    // is what delivers it to the component surface standalone, exactly
+    // once (the direct node-level dispatch is gone)
+    const c = new noflo.Component({
+      inPorts: { msg: { datatype: "object" } },
+      outPorts: {
+        out: { datatype: "object" },
+        // Declared but never attached: the unattached optional error leg
+        error: { datatype: "object" },
+      },
+    });
+    c.process((input, output) => {
+      if (!input.hasData("msg")) {
+        output.done();
+        return;
+      }
+      input.get("msg");
+      // The error leg is unattached and optional: output.done(err)
+      // would vanish silently without the surface
+      output.done(new Error("build failed for bad"));
+    });
+    const msgSocket = new noflo.internalSocket.InternalSocket({});
+    c.inPorts.msg.attach(msgSocket);
+    /** @type {Array<any>} */
+    const componentEvents = [];
+    c.addEventListener("stranded", (event) => {
+      componentEvents.push(event.detail);
+    });
+    msgSocket.post(new IP("data", { path: "bad" }), false);
+    msgSocket.disconnect();
+    const deadline = Date.now() + 2000;
+    while (!c.isClosedDown() && Date.now() < deadline) {
+      await setImmediateP();
+    }
+    const dropped = componentEvents.filter((e) => e.reason === "dropped-error");
+    assert.equal(
+      dropped.length,
+      1,
+      `the dropped error must surface exactly once at component level — component events: ${JSON.stringify(componentEvents)}`,
+    );
+    assert.equal(dropped[0].port, "error");
+    assert.equal(typeof dropped[0].error, "string");
+    assert.match(dropped[0].error, /build failed for bad/);
     assert.ok(c.isClosedDown());
   });
 

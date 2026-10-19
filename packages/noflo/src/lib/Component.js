@@ -591,6 +591,17 @@ export class Component extends EventBase {
           port.disconnectAll();
         }
       });
+      // Port-level stranded reports (unattached sends, dropped errors)
+      // forward to the component's own stranded surface, matching the
+      // inport path (work document #48): a standalone component sees its
+      // outport-side residue on the same surface the network subscribes
+      // to
+      port.addEventListener("stranded", (event) => {
+        this.dispatchLifecycleEvent("stranded", {
+          port: port.name ?? name,
+          ...event.detail,
+        });
+      });
     });
     return this;
   }

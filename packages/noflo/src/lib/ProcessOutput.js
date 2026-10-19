@@ -59,15 +59,14 @@ export default class ProcessOutput {
           debugComponent(
             `${this.nodeInstance?.nodeId ?? "component"} error message dropped: the '${this.ports.ports.error.name ?? "error"}' port is unattached and optional — ${e?.message ?? String(e)}`,
           );
+          // The error is serialized: every stranded payload is counts
+          // and strings, so the detail survives the network's emit-path
+          // spread and the tracefile unchanged (work document #48
+          // review)
           this.ports.ports.error.dispatchLifecycleEvent("stranded", {
             reason: "dropped-error",
             port: this.ports.ports.error.name ?? "error",
-            error: e,
-          });
-          this.nodeInstance?.dispatchLifecycleEvent("stranded", {
-            reason: "dropped-error",
-            port: this.ports.ports.error.name ?? "error",
-            error: e,
+            error: String(e),
           });
         }
       }

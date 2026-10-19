@@ -181,11 +181,8 @@ export default class OutPort extends BasePort {
       );
       this.dispatchLifecycleEvent("stranded", {
         reason: "unattached-send",
+        port: this.name ?? "?",
       });
-      /** @type {any} */ (this).nodeInstance?.dispatchLifecycleEvent(
-        "stranded",
-        { reason: "unattached-send", port: this.name ?? "?" },
-      );
     }
     const fanout = targets.length > 1;
     if (fanout && !ip.clonable && !this.isFanoutRefs()) {
