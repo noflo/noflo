@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.0.0-alpha.12] - 2026-10-19
 ### Added
 - `StubComponent`, the canonical signature-only placeholder component the registry contract hands back for top-down design (work document #19, noflo/noflo#593): declared ports render and validate graphs, output ports are never sourced, bracket forwarding is off, control inports are inert gate ports, and brackets are absorbed — consumed, never emitted. A data packet on a triggering inport raises the dedicated `StubNotImplementedError` (carrying `componentName`, wire-classifiable as the FBP protocol's `0x09 STUB_ERROR`) through `output.error` — sent to a connected `error` outport when the signature declares one, escalated to the network's `process-error` otherwise. The opt-in `onPacket: "drop"` policy consumes and discards instead, for structural dry-runs, performance tests, and demos. Policy `throw` with zero triggering inports is rejected at construction. `StubComponent.fromSignature` maps both signature entry paths losslessly onto port options: the full manifest field set (`name`, `datatype`, `addressable`, `description`, `required`, `control` — inports only) and the narrower on-disk sidecar shape noflo-ui materializes (`type` as the datatype name, missing flags defaulting to absent/false, missing datatypes to `all`). The base `Component` gains an `isStub()` self-description (always false; the stub class overrides), so UIs, runtimes, and flowtraces label "not yet implemented" from authoritative runtime information
 ### Fixed
