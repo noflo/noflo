@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- `asAssembly` out mappings accept the `'*'` spread marker (one per adapter): the generated collector's fields config carries it, and the wrap-time validation rejects a doubled marker the way it rejects a doubled whole-message replace.
+
 ## [2.0.0-alpha.13] - 2026-10-19
 
 ## [2.0.0-alpha.12] - 2026-10-19

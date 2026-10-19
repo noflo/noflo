@@ -41,6 +41,19 @@ import Component from "@noflo/assembly";
  * merges onto a replaced message regardless of which connection index
  * it rides.
  *
+ * A field name of `*` in the `fields` config is the spread mapping: the
+ * inner output's keys merge into the message — the mapping semantic for
+ * inners whose output is a flat field map destined for the message's
+ * top level (the parsed front matter, an extended configuration) rather
+ * than one named field or a wholesale replacement. The spread merges on
+ * top of the replace and the named fields, so a spread key overwrites a
+ * same-named message field, and the envelope's own fields (`path`,
+ * `errors`) survive unless the spread output carries them. The spread
+ * output must be a plain object; anything else accumulates an error
+ * into `msg.errors` instead of spreading. Only one field may be `*` —
+ * `asAssembly` validates the mapping at wrap time and the collector
+ * rejects a doubled config defensively.
+ *
  * The error port is the message's terminal event for its scope: firing
  * on it completes the message even while other fields' streams are
  * still open, because a failed inner will not deliver them. Inner data
@@ -118,14 +131,23 @@ export class CollectFields extends Component {
     const fieldNames = JSON.parse(input.getData("fields"));
 
     // Only one field may be null: the whole-message replace mapping.
-    // asAssembly validates the mapping at wrap time; the collector
-    // rejects a doubled config defensively, because a hand-built graph
-    // bypasses that validation and a last-wins silent discard would
-    // drop a delivered field
+    // Likewise only one may be `*`: the spread mapping. asAssembly
+    // validates the mapping at wrap time; the collector rejects a
+    // doubled config defensively, because a hand-built graph bypasses
+    // that validation and a last-wins silent discard would drop a
+    // delivered field
     if (fieldNames.filter((field) => field === null).length > 1) {
       output.done(
         new Error(
           "CollectFields: the fields config may carry at most one null (the whole-message replace mapping)",
+        ),
+      );
+      return;
+    }
+    if (fieldNames.filter((field) => field === "*").length > 1) {
+      output.done(
+        new Error(
+          "CollectFields: the fields config may carry at most one * (the spread mapping)",
         ),
       );
       return;
@@ -207,6 +229,27 @@ export class CollectFields extends Component {
     }
     for (const { field, collectedValue } of collected) {
       if (field === null || field === undefined) {
+        continue;
+      }
+      if (field === "*") {
+        // The spread mapping: the inner output's keys merge into the
+        // message. Only a plain object spreads — anything else errors
+        // instead, the same rule the replace mapping applies
+        if (
+          collectedValue !== null &&
+          typeof collectedValue === "object" &&
+          !Array.isArray(collectedValue) &&
+          (Object.getPrototypeOf(collectedValue) === Object.prototype ||
+            Object.getPrototypeOf(collectedValue) === null)
+        ) {
+          Object.assign(result, collectedValue);
+        } else {
+          originalErrors.push(
+            new Error(
+              "CollectFields: the spread-mapped inner output is not a plain object",
+            ),
+          );
+        }
         continue;
       }
       result[field] = collectedValue;

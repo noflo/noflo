@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- `ExtractField` maps dot paths: the field name may carry segments (`frontmatter.head`), each walked as a plain own-property read; an absent segment at any level is the same malformed-message error the flat mapping reports, naming the full mapped path. Arrays do not walk — a mapped path into a collected stream stays an error.
+- `CollectFields` gains the spread mapping: a `*` field name in the fields config merges the inner output's keys into the message's top level — the mapping semantic for inners whose output is a flat field map destined for the message (the parsed front matter), between the named-field nesting and the whole-message replace. The spread merges on top of the replace and the named fields, must be a plain object (anything else errors into `msg.errors`), and only one `*` is allowed — `asAssembly` validates at wrap time.
+
 ## [2.0.0-alpha.13] - 2026-10-19
 
 ## [2.0.0-alpha.12] - 2026-10-19

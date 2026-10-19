@@ -33,7 +33,10 @@ import { Component } from "./index.js";
  */
 /**
  * Mapping overrides: inner port name → message field name, or `null` for
- * whole-message mapping (the port receives the entire assembly message).
+ * whole-message mapping (the port receives the entire assembly message),
+ * or `'*'` for the spread mapping on outports (the inner output's keys
+ * merge into the message — work document #35 update #23's out-mapping
+ * semantics item).
  *
  * @typedef {Object} AsAssemblyMapping
  * @property {Object<string, string|null>} [in] - Inner inport → msg field
@@ -148,6 +151,12 @@ function resolveOutMapping(outports, mapping = {}) {
   if (replaces.length > 1) {
     throw new Error(
       `asAssembly: only one outport may map to null (whole-message replace); got ${replaces.join(", ")}`,
+    );
+  }
+  const spreads = Object.values(resolved).filter((field) => field === "*");
+  if (spreads.length > 1) {
+    throw new Error(
+      `asAssembly: only one outport may map to '*' (the spread mapping); got ${spreads.length}`,
     );
   }
   return resolved;

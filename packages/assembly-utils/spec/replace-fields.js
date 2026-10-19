@@ -38,7 +38,7 @@ function makeCollector(fieldNames) {
       received.push(event.detail.data);
     }
   });
-  return { msg, data, error, received };
+  return { component: c, msg, data, error, received };
 }
 
 describe("CollectFields whole-message replace", () => {
@@ -170,5 +170,96 @@ describe("CollectFields whole-message replace", () => {
     assert.equal(c.received.length, 1);
     assert.equal(c.received[0].replaced, true);
     assert.equal(c.received[0].path, undefined);
+  });
+
+  it("spreads the mapped output's keys into the message", async () => {
+    // The front-matter shape (work document #35 update #23's
+    // out-mapping semantics): the parsed fields merge into the message's
+    // top level instead of nesting under a named field or replacing it
+    const c = makeCollector(["*"]);
+    c.msg.post(
+      new noflo.IP("data", {
+        errors: [],
+        path: "/site/_posts/hello.md",
+        body: "<p>hi</p>",
+      }),
+    );
+    c.data[0].post(new noflo.IP("data", { title: "Hello", layout: "post" }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(c.received.length, 1);
+    assert.deepEqual(c.received[0], {
+      errors: [],
+      path: "/site/_posts/hello.md",
+      body: "<p>hi</p>",
+      title: "Hello",
+      layout: "post",
+    });
+  });
+
+  it("a spread key overwrites a same-named message field", async () => {
+    const c = makeCollector(["*"]);
+    c.msg.post(
+      new noflo.IP("data", { errors: [], path: "/keep", title: "old" }),
+    );
+    c.data[0].post(new noflo.IP("data", { title: "new", extra: 1 }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(c.received.length, 1);
+    assert.equal(c.received[0].title, "new");
+    assert.equal(c.received[0].path, "/keep");
+    assert.equal(c.received[0].extra, 1);
+  });
+
+  it("spreads after the named fields and the replace", async () => {
+    // The precedence chain: replace first, named fields merge, the
+    // spread merges last — a spread key wins over a same-named named
+    // field, mirroring the front-matter-over-message semantic
+    const c = makeCollector(["meta", null, "*"]);
+    c.msg.post(new noflo.IP("data", { errors: [], path: "/origin" }));
+    c.data[0].post(new noflo.IP("data", "META"));
+    c.data[1].post(new noflo.IP("data", { replaced: true, meta: "old" }));
+    c.data[2].post(new noflo.IP("data", { meta: "new", spread: true }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(c.received.length, 1);
+    assert.equal(c.received[0].replaced, true);
+    assert.equal(c.received[0].meta, "new");
+    assert.equal(c.received[0].spread, true);
+  });
+
+  it("errors on a non-object spread output", async () => {
+    const c = makeCollector(["*"]);
+    c.msg.post(new noflo.IP("data", { errors: [], path: "/keep" }));
+    c.data[0].post(new noflo.IP("data", "not an object"));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(c.received.length, 1);
+    assert.equal(c.received[0].path, "/keep");
+    assert.equal(c.received[0].errors.length, 1);
+    assert.match(
+      String(c.received[0].errors[0].message),
+      /spread-mapped inner output is not a plain object/,
+    );
+  });
+
+  it("rejects a doubled spread config", async () => {
+    const c = makeCollector(["*", "*"]);
+    /** @type {Error[]} */
+    const errors = [];
+    // The doubled config rejects the write: the returned promise rejects
+    // for awaiting callers, and the socket's error listener absorbs the
+    // side-channel escalation (loud throw without one)
+    for (const socket of [c.msg, ...c.data, c.error]) {
+      socket.addEventListener("error", (/** @type {CustomEvent} */ event) => {
+        errors.push(/** @type {Error} */ (event.detail?.error ?? event.detail));
+      });
+    }
+    await c.msg.post(new noflo.IP("data", { errors: [] })).catch(() => {});
+    await c.data[0].post(new noflo.IP("data", { a: 1 })).catch(() => {});
+    await c.data[1].post(new noflo.IP("data", { b: 2 })).catch(() => {});
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.deepEqual(c.received, []);
+    assert.equal(errors.length, 1);
+    assert.match(
+      String(errors[0].message),
+      /at most one \* \(the spread mapping\)/,
+    );
   });
 });
