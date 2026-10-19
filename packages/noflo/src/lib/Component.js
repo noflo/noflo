@@ -730,14 +730,25 @@ export class Component extends EventBase {
     }
     // Fire once per scope: unscoped for the default buffers, and once
     // with the scope stamped on the context for each scoped buffer. The
-    // context IP is the wakeup cause, not the consumable: the has-first
-    // discipline reads the buffers, and reads resolve to the firing
-    // scope.
+    // context IP is the scope's own head as captured during the scan —
+    // never the arriving IP unless the arrival is that head: a wake on
+    // port A must not hand port B's firing A's context IP. The concrete
+    // failure a cross-port context produced (work document #48 update
+    // #13): a control port's buffered openBracket arrived while another
+    // port held unscoped work, became that port's firing context, and
+    // fireProcess's openBracket check engaged auto-ordering for the
+    // whole component — the drain's sends then queued into the ordered
+    // output machinery although no stream ever arrived on the firing
+    // port. The has-first discipline reads the buffers, and reads
+    // resolve to the firing scope, so the head is the truthful context
+    // in every case
     ready.forEach((readyScope) => {
       const contextIp =
         readyScope.scope === null
-          ? ip
-          : new IP(ip.type, ip.data, { scope: readyScope.scope });
+          ? readyScope.head
+          : new IP(readyScope.head.type, readyScope.head.data, {
+              scope: readyScope.scope,
+            });
       this.fireProcess(contextIp, readyScope.port);
     });
   }
@@ -764,10 +775,14 @@ export class Component extends EventBase {
         // non-consumingly and never drive firings on their own
         return;
       }
-      const mark = (scope, head) => {
+      const mark = (head) => {
         // One firing per scope: the port of the first hit supplies the
         // activation's context, and every leg's buffered work is visible
-        // to the has-first discipline regardless
+        // to the has-first discipline regardless. The scope is the
+        // head's own — the buffer keys are strings (object keys), while
+        // the IPs carry the scope primitive the process and its outputs
+        // must see (integer scopes are contract)
+        const scope = head.scope ?? null;
         if (ready.some((entry) => entry.scope === scope)) {
           return;
         }
@@ -777,13 +792,13 @@ export class Component extends EventBase {
         Object.keys(port.indexedBuffer ?? {}).forEach((index) => {
           const buf = port.indexedBuffer[index] ?? [];
           if (buf.length > 0) {
-            mark(null, buf[0]);
+            mark(buf[0]);
           }
         });
         Object.keys(port.indexedIipBuffer ?? {}).forEach((index) => {
           const buf = port.indexedIipBuffer[index] ?? [];
           if (buf.length > 0) {
-            mark(null, buf[0]);
+            mark(buf[0]);
           }
         });
         Object.keys(port.indexedScopedBuffer ?? {}).forEach((scope) => {
@@ -791,7 +806,7 @@ export class Component extends EventBase {
             (index) => {
               const buf = port.indexedScopedBuffer[scope][index] ?? [];
               if (buf.length > 0) {
-                mark(scope, buf[0]);
+                mark(buf[0]);
               }
             },
           );
@@ -800,15 +815,15 @@ export class Component extends EventBase {
       }
       const regular = port.getBuffer(null, null) ?? [];
       if (regular.length > 0) {
-        mark(null, regular[0]);
+        mark(regular[0]);
       }
       if ((port.iipBuffer ?? []).length > 0) {
-        mark(null, port.iipBuffer[0]);
+        mark(port.iipBuffer[0]);
       }
       Object.keys(port.scopedBuffer ?? {}).forEach((scope) => {
         const buf = port.scopedBuffer[scope] ?? [];
         if (buf.length > 0) {
-          mark(scope, buf[0]);
+          mark(buf[0]);
         }
       });
     });

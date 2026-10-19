@@ -565,4 +565,115 @@ describe("work document #48: the closedown-vs-pump delivery race", () => {
       "the held message was never re-fired by the corpus arrival — the forwarding inport's direct path skipped the ready-scope walk",
     );
   });
+
+  it("re-fires the unscoped partition when a late corpus packet completes the head's gate", async () => {
+    // The builder shape from the noflo-jekyll verification (work document
+    // #48 update #12): unscoped documents buffered head-of-line whose
+    // layout chain completes only with the corpus's LAST template — the
+    // corpus arrives packet-by-packet after the documents buffered, and
+    // the completing packet's arrival must re-fire the unscoped
+    // partition. Every observed strand in the testbed is unscoped root
+    // pages; scoped posts always drain — this pin answers whether the
+    // one-firing rule's walk covers the null-scope partition
+    const c = new noflo.Component({
+      inPorts: {
+        templates: { datatype: "object", control: true, scoped: false },
+        msg: { datatype: "object" },
+      },
+      outPorts: { out: { datatype: "object" } },
+    });
+    /** @type {Record<string, any>} */
+    const store = {};
+    c.process((input, output) => {
+      if (input.hasData("templates")) {
+        for (const ip of input.getStream("templates")) {
+          if (ip.type === "data") {
+            store[ip.data.name] = ip.data;
+          }
+        }
+      }
+      if (!input.hasData("msg")) {
+        output.done();
+        return;
+      }
+      // Head-first resolvability: the head document's layout chain must
+      // be complete in the store
+      const resolvable = (/** @type {any} */ ip) =>
+        ip.type === "data" &&
+        store[ip.data.layout] !== undefined &&
+        store[ip.data.layout2] !== undefined;
+      if (!input.has("msg", resolvable)) {
+        output.done();
+        return;
+      }
+      // Drain the unscoped partition head-first, re-checking after each
+      // send
+      for (;;) {
+        if (!input.has("msg", resolvable)) {
+          break;
+        }
+        output.sendDone({ out: input.getData("msg") });
+      }
+      output.done();
+    });
+    const templatesSocket = new noflo.internalSocket.InternalSocket({});
+    const msgSocket = new noflo.internalSocket.InternalSocket({});
+    const outSocket = new noflo.internalSocket.InternalSocket({});
+    c.inPorts.templates.attach(templatesSocket);
+    c.inPorts.msg.attach(msgSocket);
+    c.outPorts.out.attach(outSocket);
+    /** @type {string[]} */
+    const emitted = [];
+    outSocket.addEventListener("ip", (event) => {
+      if (event.detail.type === "data") emitted.push(event.detail.data.path);
+    });
+
+    // The documents arrive first: the head needs templates "a" and "b",
+    // neither buffered yet — every activation declines, the documents
+    // stay buffered in the unscoped partition
+    for (const path of ["d1", "d2", "d3"]) {
+      msgSocket.post(
+        new IP("data", { path, layout: "a", layout2: "b" }),
+        false,
+      );
+      await setImmediateP();
+    }
+    assert.deepEqual(emitted, []);
+
+    // The corpus arrives packet-by-packet: the completing template ("b")
+    // is the LAST data packet of the framed stream, exactly like the
+    // testbed's index layout arriving last
+    templatesSocket.post(new IP("openBracket", "corpus"), false);
+    templatesSocket.post(new IP("data", { name: "a", body: "a-body" }), false);
+    templatesSocket.post(
+      new IP("data", { name: "footer", body: "footer-body" }),
+      false,
+    );
+    templatesSocket.post(new IP("data", { name: "b", body: "b-body" }), false);
+    templatesSocket.post(new IP("closeBracket", "corpus"), false);
+    // End of transmission: the corpus stream completed, the sender
+    // closed — the closedown predicate evaluates with the documents
+    // still held, and the drain-pump offer must fire before the
+    // closedown lands
+    templatesSocket.disconnect();
+    msgSocket.disconnect();
+    const deadline = Date.now() + 2000;
+    while ((emitted.length < 3 || !c.isClosedDown()) && Date.now() < deadline) {
+      await setImmediateP();
+    }
+    // The exact sequence, order and multiplicity included: exactly one
+    // emission per held document. A cross-port firing context — the
+    // corpus's control-port packets offered as the msg port's firing
+    // context — engages auto-ordering for the whole component and the
+    // ordered output machinery re-sends the activation's accumulated
+    // result on every flush; the pin's exact-sequence assert catches
+    // both the strand and the duplication (work document #48 update
+    // #13)
+    assert.deepEqual(
+      emitted,
+      ["d1", "d2", "d3"],
+      `the unscoped partition was not drained exactly once when the corpus completed the head's gate (emitted: ${JSON.stringify(emitted)}, closed: ${c.isClosedDown()})`,
+    );
+    assert.ok(c.isClosedDown());
+  });
 });
