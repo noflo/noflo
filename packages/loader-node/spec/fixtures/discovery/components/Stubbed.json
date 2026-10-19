@@ -1,0 +1,10 @@
+{
+  "name": "Stubbed",
+  "description": "A declared signature with no implementation",
+  "icon": "gear",
+  "inports": [
+    { "name": "in", "type": "string" },
+    { "name": "options", "type": "object" }
+  ],
+  "outports": [{ "name": "out", "type": "all" }]
+}

@@ -295,6 +295,20 @@ export class Component extends EventBase {
   }
 
   /**
+   * Check whether the component is a signature-only stub placeholder:
+   * a declared interface with no implementation behind it (work document
+   * #19). Always false for regular components; the stub component class
+   * overrides this. UIs, runtimes, and flowtraces label "not yet
+   * implemented" from this authoritative runtime information instead of
+   * inferring from registry lookups that can drift.
+   *
+   * @returns {boolean}
+   */
+  isStub() {
+    return false;
+  }
+
+  /**
    * Set the component icon and inform the network about the change.
    *
    * @param {string} icon - Updated icon for the component

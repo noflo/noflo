@@ -78,15 +78,15 @@ describe("ComponentLoader", () => {
         get: async (name) => {
           getCalls += 1;
           if (name === "dummy/NoOp") {
-            // #593: no-op dummy components for top-down design
+            // #593: stub components for top-down design resolve through the
+            // canonical StubComponent (work document #19)
             return {
-              getComponent: () => {
-                const c = new noflo.Component();
-                c.inPorts.add("in");
-                c.outPorts.add("out");
-                c.process((_input, output) => output.done());
-                return c;
-              },
+              getComponent: () =>
+                new noflo.StubComponent({
+                  name: "dummy/NoOp",
+                  inPorts: { in: { datatype: "all" } },
+                  outPorts: { out: { datatype: "all" } },
+                }),
             };
           }
           return undefined;
@@ -116,9 +116,11 @@ describe("ComponentLoader", () => {
       assert.ok(instance.inPorts.ports.in);
     });
 
-    it("resolves unknown names through registry.get (#593 dummy support)", async () => {
+    it("resolves unknown names through registry.get (#593 stub support)", async () => {
       const instance = await loader.load("dummy/NoOp");
       assert.strictEqual(typeof instance, "object");
+      assert.strictEqual(instance.isStub(), true);
+      assert.strictEqual(instance.componentName, "dummy/NoOp");
       assert.ok(getCalls > 0);
     });
 

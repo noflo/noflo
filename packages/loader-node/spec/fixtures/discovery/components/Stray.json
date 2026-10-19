@@ -1,0 +1,3 @@
+{
+  "note": "A JSON file in a components directory that is not a signature sidecar stays undiscovered"
+}

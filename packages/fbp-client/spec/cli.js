@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
+  decodeCompWrite,
   encodeCompDetailRes,
   encodeCompManifest,
   encodeCompSourceRes,
@@ -26,7 +27,9 @@ import {
   RUN_STATE_NAMES,
   schemas,
   setSource,
+  setStub,
   status,
+  stubs,
 } from "../src/index.js";
 import { FakeLink } from "./support/fake-link.js";
 
@@ -180,6 +183,63 @@ describe("fbp-client commands", () => {
     await setSource(session, "mylib/Repeat", "export const x = 2;");
     assert.equal(link.sent.length, 1);
     assert.equal(link.sent[0][1], 0x25);
+  });
+
+  it("stubs filters the catalog to the declared stub kind (work document #19)", async () => {
+    const { link, session } = makeSession();
+    const pending = stubs(session);
+    link.deliver(
+      encodeCompManifest("reg-hash-1", {
+        "math/Add": { sigHash: "a".repeat(64), type: "elementary" },
+        "design/Planned": { sigHash: "b".repeat(64), type: "stub" },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    link.deliver(
+      encodeCompDetailRes({
+        "math/Add": {
+          type: "elementary",
+          in: [{ id: "a", type: "number" }],
+          out: [{ id: "sum", type: "number" }],
+        },
+        "design/Planned": {
+          type: "stub",
+          in: [{ id: "in", type: "string" }],
+          out: [{ id: "out", type: "all" }],
+        },
+      }),
+    );
+    const found = await pending;
+    assert.deepEqual(Object.keys(found), ["design/Planned"]);
+    assert.equal(found["design/Planned"].signature.in[0].id, "in");
+  });
+
+  it("stub set uploads the sidecar JSON over the 0x25 frame", async () => {
+    const { link, session } = makeSession();
+    const signature = {
+      name: "Planned",
+      description: "Uploaded from the design session",
+      inports: [{ name: "in", type: "string" }],
+      outports: [{ name: "out", type: "all" }],
+    };
+    await setStub(session, "design/Planned", signature);
+    assert.equal(link.sent.length, 1);
+    assert.equal(link.sent[0][1], 0x25);
+    const decoded = decodeCompWrite(link.sent[0]);
+    assert.equal(decoded.componentName, "design/Planned");
+    assert.deepEqual(JSON.parse(decoded.source), signature);
+  });
+
+  it("stub set rejects a payload that is not a signature", async () => {
+    const { session } = makeSession();
+    await assert.rejects(
+      () => setStub(session, "design/Planned", '{"foo": 1}'),
+      /must be the sidecar shape/,
+    );
+    await assert.rejects(
+      () => setStub(session, "design/Planned", "{not json"),
+      /not valid JSON/,
+    );
   });
 
   it("refuses unsupported graph formats", async () => {

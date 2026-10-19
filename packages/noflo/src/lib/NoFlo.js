@@ -98,6 +98,18 @@ import { ComponentLoader } from "./ComponentLoader.js";
 // These baseclasses can be used for defining NoFlo components.
 export { Component } from "./Component.js";
 
+// ### Stub components
+//
+// The signature-only placeholder component the registry contract hands back
+// for top-down design (work document #19), and the dedicated error it raises
+// when a data packet reaches an unimplemented component.
+import {
+  StubComponent,
+  StubNotImplementedError,
+} from "../components/StubComponent.js";
+
+export { StubComponent, StubNotImplementedError };
+
 import { Component } from "./Component.js";
 
 export { applyPortMetadata, PORT_BEHAVIOR_KEYS } from "./PortMetadata.js";
@@ -166,6 +178,8 @@ export default {
   exportFbpJson,
   ComponentLoader,
   Component,
+  StubComponent,
+  StubNotImplementedError,
   InPorts,
   OutPorts,
   InPort,

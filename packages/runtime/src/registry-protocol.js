@@ -46,7 +46,10 @@ import {
  * @property {(name: string, source: string) => Promise<void>} [writeSource]
  *   Store full component source (`0x25`). Source and signature are
  *   orthogonal: writing source to a stub-only entry implements it while the
- *   signature stays unchanged.
+ *   signature stays unchanged. The payload may also be a signature
+ *   declaration (work document #19): the on-disk sidecar shape noflo-ui
+ *   materializes, uploading a stub — classification is the catalog's, the
+ *   two grammars do not overlap
  * @property {(packageUri: string) => Promise<void>} [install]
  *   Install an ES module package (`0x27`), resolving through the ecosystem
  *   catalog's provenance fields (work document #26).

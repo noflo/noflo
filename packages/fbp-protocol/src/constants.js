@@ -318,6 +318,14 @@ export const CMD_COMP_DETAIL_RES = 0x24;
  * string. Writing source to a previously stub-only entry implements it while
  * the signature stays unchanged (update #10 item 4).
  *
+ * The payload may also be a **signature declaration** (work document #19): a
+ * JSON document of the on-disk sidecar shape noflo-ui materializes
+ * (`{ name, description, icon, inports: […], outports: […] }`), uploading a
+ * stub. Classification is the runtime catalog's, not the wire's: the source
+ * string stays opaque here, and the two grammars — component source and
+ * signature JSON — do not overlap. A runtime whose catalog does not
+ * implement the convention evaluates the payload as source, as always.
+ *
  * @type {number}
  */
 export const CMD_COMP_WRITE = 0x25;

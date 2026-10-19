@@ -24,6 +24,7 @@ export {
   loadGraphJson,
   saveGraphFile,
 } from "./graphFile.js";
+export { normalizeLibraryName } from "./manifest.js";
 export {
   createNodeModulesRegistry,
   NodeModulesRegistry,

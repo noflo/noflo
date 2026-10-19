@@ -86,6 +86,10 @@ function parsePlatform(source) {
  * @property {string} name
  * @property {string} path - Component file path, relative to the discovery root
  * @property {string} [tests] - fbp-spec test file path, relative to the discovery root
+ * @property {"stub"} [type] - Declared component kind (work documents #19
+ *   and #24): signature sidecar files (`components/<name>.json`) register
+ *   as stubs — a declared signature with no implementation. Entries
+ *   without the field are implementation sources or graphs, as before
  */
 /**
  * A discovered module entry, as stored in the `fbp.json` v1 manifest.
@@ -152,7 +156,15 @@ async function getModuleInfo(baseDir) {
  * @param {string} name
  * @returns {string}
  */
-function normalizeLibraryName(name) {
+/**
+ * Apply the NoFlo library naming conventions to a package name: the
+ * package named exactly `noflo` maps to the empty library name, scope
+ * prefixes are stripped, and a leading `noflo-` prefix is dropped.
+ *
+ * @param {string} name
+ * @returns {string}
+ */
+export function normalizeLibraryName(name) {
   if (name === "noflo") {
     return "";
   }
@@ -180,15 +192,71 @@ function resolveRuntime(runtime) {
 }
 
 /**
+ * Read a potential signature sidecar: a `components/<name>.json` file
+ * carrying the declared component signature noflo-ui materializes for
+ * every registry entry (work documents #19 and #24). The sidecar shape is
+ * `{ name, description, icon, inports: […], outports: […] }` with
+ * `{ name, type, addressable }` port entries — a subset of the manifest
+ * port field set, mapped losslessly onto a StubComponent at load.
+ *
+ * Classification is by shape: a parseable JSON object whose `inports` and
+ * `outports` are both arrays is a sidecar; anything else is not a
+ * component and stays undiscovered, exactly as before sidecars existed
+ * (stray JSON in a components directory keeps today's ignore behavior).
+ * Port-level validation is the StubComponent constructor's job, so a
+ * malformed sidecar fails loudly at load, named with the component.
+ *
+ * @param {string} source - File contents
+ * @returns {Object<string, any>|null} The sidecar signature, or null when the file is not one
+ */
+function parseSidecar(source) {
+  let parsed;
+  try {
+    parsed = JSON.parse(source);
+  } catch (_err) {
+    // Not classifiable JSON: not a sidecar (and not a graph either —
+    // unparseable files are skipped, as the graph path does)
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return null;
+  }
+  if (!Array.isArray(parsed.inports) || !Array.isArray(parsed.outports)) {
+    return null;
+  }
+  return parsed;
+}
+
+/**
  * List component sources in a directory tree. Component names come
  * from the `@name` source annotation, falling back to the filename.
  * Subdirectories are traversed recursively.
+ *
+ * Signature sidecars (`components/<name>.json`) are discovered as stub
+ * entries. When an implementation source exists for the same name, the
+ * implementation wins and the sidecar is dropped — it documents the
+ * declared signature, it is not a second component (work document #24
+ * update #2); when the implementation arrives later, the entry graduates.
  *
  * @param {string} componentDir
  * @param {string} root - Discovery root for relative paths
  * @returns {Promise<Array<ManifestComponent & {runtime: string}>>}
  */
 async function listComponents(componentDir, root) {
+  return listComponentsRecursive(componentDir, root);
+}
+
+/**
+ * Recursive walker behind {@link listComponents}: collects implementation
+ * sources and signature sidecars separately at every level, so the
+ * implementation-wins dedupe runs over the whole subtree before the flat
+ * list is returned.
+ *
+ * @param {string} componentDir
+ * @param {string} root - Discovery root for relative paths
+ * @returns {Promise<Array<ManifestComponent & {runtime: string}>>}
+ */
+async function listComponentsRecursive(componentDir, root) {
   let entries;
   try {
     entries = await fs.promises.readdir(componentDir);
@@ -201,8 +269,13 @@ async function listComponents(componentDir, root) {
   const potentialComponents = entries.filter((c) =>
     componentExtensions.includes(path.extname(c)),
   );
+  const potentialSidecars = entries.filter(
+    (c) => path.extname(c) === ".json" && !c.includes(".d.ts"),
+  );
   /** @type {Array<ManifestComponent & {runtime: string}>} */
   const components = [];
+  /** @type {Array<ManifestComponent & {runtime: string}>} */
+  const sidecars = [];
   /** @type {string[]} */
   const subdirs = [];
   await Promise.all(
@@ -214,6 +287,22 @@ async function listComponents(componentDir, root) {
       const entryPath = path.resolve(componentDir, entry);
       const stats = await fs.promises.stat(entryPath);
       if (!potentialComponents.includes(entry)) {
+        if (potentialSidecars.includes(entry) && stats.isFile()) {
+          const source = await readFile(entryPath, "utf-8");
+          const sidecar = parseSidecar(source);
+          if (sidecar) {
+            sidecars.push({
+              name:
+                typeof sidecar.name === "string" && sidecar.name
+                  ? sidecar.name
+                  : path.basename(entryPath, ".json"),
+              path: path.relative(root, entryPath),
+              runtime: "noflo",
+              type: "stub",
+            });
+          }
+          return;
+        }
         if (stats.isDirectory()) {
           subdirs.push(entry);
         }
@@ -236,10 +325,23 @@ async function listComponents(componentDir, root) {
   );
   for (const dir of subdirs.sort()) {
     // eslint-disable-next-line no-await-in-loop
-    const nested = await listComponents(path.resolve(componentDir, dir), root);
+    const nested = await listComponentsRecursive(
+      path.resolve(componentDir, dir),
+      root,
+    );
     components.push(...nested);
   }
-  return components;
+  // Implementation wins: a name discovered both as a source and as a
+  // sidecar keeps the source; the sidecar is documentation of the
+  // declared signature (work document #24 update #2). Filtering the
+  // merged list at every level resolves collisions across sibling
+  // subdirectories too
+  const sourceNames = new Set(
+    components.filter((c) => c.type !== "stub").map((c) => c.name),
+  );
+  return components.concat(
+    sidecars.filter((sidecar) => !sourceNames.has(sidecar.name)),
+  );
 }
 
 /**

@@ -14,6 +14,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { promisify } from "node:util";
 import { exportFbpJson, GraphModel } from "@noflo/graph";
+import { StubComponent } from "@noflo/noflo";
 import { loadGraphFile } from "./graphFile.js";
 import { discoverModules } from "./manifest.js";
 import * as utils from "./utils.js";
@@ -355,6 +356,22 @@ export class NodeModulesRegistry extends EventTarget {
 
         await Promise.all(
           m.components.map(async (c) => {
+            if (c.type === "stub") {
+              // A signature sidecar (work documents #19 and #24): a declared
+              // signature with no implementation registers as a StubComponent
+              // factory — a fresh instance per load, ports per instance
+              const sidecarPath = path.resolve(this.baseDir, c.path);
+              const contents = await readFile(sidecarPath, "utf-8");
+              const signature = JSON.parse(contents);
+              const prefix = this.getModulePrefix(m.name);
+              const fullName = m.name ? `${prefix}/${c.name}` : c.name;
+              this.registerComponent(m.name, c.name, {
+                getComponent: () =>
+                  StubComponent.fromSignature(fullName, signature),
+              });
+              this.registerSpecs(m.name, c.name, c.tests);
+              return;
+            }
             const extension = path.extname(c.path);
             if (extension === ".fbp" || extension === ".json") {
               // Graph files register as pre-parsed graph models
