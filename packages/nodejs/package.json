@@ -1,6 +1,6 @@
 {
   "name": "@noflo/nodejs",
-  "version": "2.0.0-alpha.12",
+  "version": "2.0.0-alpha.13",
   "description": "Command-line host for running NoFlo programs on Node.js",
   "keywords": [
     "noflo",
@@ -43,11 +43,11 @@
     "test:bun": "bun test ./spec/*.js"
   },
   "dependencies": {
-    "@noflo/fbp-protocol": "^2.0.0-alpha.12",
-    "@noflo/graph": "^2.0.0-alpha.12",
-    "@noflo/loader-node": "^2.0.0-alpha.12",
-    "@noflo/noflo": "^2.0.0-alpha.12",
-    "@noflo/runtime": "^2.0.0-alpha.12",
+    "@noflo/fbp-protocol": "^2.0.0-alpha.13",
+    "@noflo/graph": "^2.0.0-alpha.13",
+    "@noflo/loader-node": "^2.0.0-alpha.13",
+    "@noflo/noflo": "^2.0.0-alpha.13",
+    "@noflo/runtime": "^2.0.0-alpha.13",
     "@reticulum/core": "^0.9.8",
     "@reticulum/dacar": "^1.6.1",
     "@reticulum/node": "^0.9.8"

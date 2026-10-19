@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.0.0-alpha.13] - 2026-10-19
+
 ## [2.0.0-alpha.12] - 2026-10-19
 ### Added
 - The `0x25 CMD_COMP_WRITE` payload is documented as also carrying a **signature declaration** (work document #19): a JSON document of the on-disk sidecar shape noflo-ui materializes, uploading a stub component. Classification is the runtime catalog's, not the wire's — the source string stays opaque, and the two grammars (component source, signature JSON) do not overlap. No codec or frame-shape change: the frozen wire format is untouched, this documents the payload convention the runtime catalog implements

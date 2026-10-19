@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-alpha.13] - 2026-10-19
+
 ## [2.0.0-alpha.12] - 2026-10-19
 ### Added
 - Stub discovery and upload (work document #19): `stubs` filters the synced Two-Step Cache catalog to the entries whose declared kind is `stub` — the runtime's declared-but-unimplemented components, signatures included, no extra round trips — and `stub set <name> <file>` uploads a signature sidecar as a stub. The upload rides the ordinary `0x25` source write as a JSON signature declaration; the client validates the sidecar shape first, so a non-signature file fails locally instead of landing as component source. Both surface as CLI commands (`stubs`, `stub set`) with `--json` output
