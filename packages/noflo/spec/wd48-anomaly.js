@@ -34,6 +34,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import IP from "../src/lib/IP.js";
 import * as noflo from "../src/lib/NoFlo.js";
+import { nativeGraph } from "./utils/nativeGraph.js";
 
 const setImmediateP = () => new Promise((resolve) => setImmediate(resolve));
 
@@ -559,6 +560,56 @@ describe("work document #48: the closedown-vs-pump delivery race", () => {
     assert.equal(typeof dropped[0].error, "string");
     assert.match(dropped[0].error, /build failed for bad/);
     assert.ok(c.isClosedDown());
+  });
+
+  it("escalates a done(err) on a component with no error port to process-error", async () => {
+    // The no-error-port contract, verified (work document #48 update
+    // #16): error() throws; fireProcess's catch answers with its own
+    // sendDone(e), which throws again from inside the catch; the
+    // synchronous listener-throw propagation rejects the delivering
+    // edge's write; and the socket's error side-channel turns it into
+    // the network's process-error. The chain is load-bearing — the
+    // no-silent-loss invariant for components without an error leg —
+    // and a refactor of the catch could sever it silently: this pin
+    // holds it
+    const Boom = () =>
+      new noflo.Component({
+        inPorts: { msg: { datatype: "object" } },
+        outPorts: { out: { datatype: "object" } },
+      }).process((input, output) => {
+        if (!input.hasData("msg")) {
+          output.done();
+          return;
+        }
+        input.getData("msg");
+        output.done(new Error("boom with no error leg"));
+      });
+    const g = nativeGraph();
+    g.addNode("Boom", "Boom");
+    g.addInitial({ path: "trigger" }, "Boom", "msg");
+    const network = await noflo.createNetwork(g, {
+      asyncDelivery: true,
+      delay: true,
+    });
+    network.loader.components.Boom = Boom;
+    await network.connect();
+    /** @type {Array<any>} */
+    const errors = [];
+    network.addEventListener("process-error", (event) => {
+      errors.push(event.detail);
+    });
+    await network.start();
+    const deadline = Date.now() + 2000;
+    while (errors.length === 0 && Date.now() < deadline) {
+      await setImmediateP();
+    }
+    assert.equal(
+      errors.length,
+      1,
+      `the unlegged error must surface exactly once as process-error — errors: ${JSON.stringify(errors, (k, v) => (k === "error" ? String(v) : v))}`,
+    );
+    assert.match(errors[0].error.message, /boom with no error leg/);
+    await network.stop();
   });
 
   it("re-fires pending scopes when a forwarding inport's arrival completes their gate", async () => {
