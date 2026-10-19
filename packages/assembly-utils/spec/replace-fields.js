@@ -246,6 +246,31 @@ describe("CollectFields whole-message replace", () => {
     assert.equal(spreadFirst.received[0].meta, namedFirst.received[0].meta);
   });
 
+  it("an own __proto__ key in the spread output cannot pollute the message", async () => {
+    // The spread merges parsed untrusted content, and JSON.parse
+    // produces exactly the attack shape — an own `__proto__` key. The
+    // merge must define own properties (object spread), not assign via
+    // [[Set]] (Object.assign), which would route the key through the
+    // prototype setter and hand the emitted message an attacker-chosen
+    // prototype (the round-2 review's probe)
+    const payload = JSON.parse('{"title":"T","__proto__":{"isAdmin":true}}');
+    assert.deepEqual(Object.keys(payload), ["title", "__proto__"]);
+    const c = makeCollector(["*"]);
+    c.msg.post(new noflo.IP("data", { errors: [], path: "/origin" }));
+    c.data[0].post(new noflo.IP("data", payload));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(c.received.length, 1);
+    const emitted = c.received[0];
+    assert.equal(
+      Object.getPrototypeOf(emitted),
+      Object.prototype,
+      "the emitted message's prototype is unchanged",
+    );
+    assert.equal(emitted.isAdmin, undefined);
+    assert.equal(emitted.title, "T");
+    assert.equal(emitted.path, "/origin");
+  });
+
   it("the spread never owns errors: the accumulation channels keep them", async () => {
     // The review found the spread's errors key silently discarded in the
     // spread-only shape and clobbering the whole accumulation in the

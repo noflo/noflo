@@ -262,7 +262,14 @@ export class CollectFields extends Component {
       ) {
         const spreadSource = { ...collectedValue };
         delete spreadSource.errors;
-        Object.assign(result, spreadSource);
+        // Own-key define semantics, not Object.assign: assign routes
+        // through [[Set]], so an own `__proto__` key in the inner output
+        // (JSON.parse produces exactly that shape) would invoke the
+        // prototype setter and pollute the emitted message — and the
+        // spread's entire purpose is merging parsed untrusted content.
+        // Object spread defines own properties and never touches the
+        // prototype
+        result = { ...result, ...spreadSource };
       } else {
         originalErrors.push(
           new Error(
