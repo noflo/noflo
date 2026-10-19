@@ -325,6 +325,13 @@ export class Network extends EventBase {
         break;
       }
       case "stranded": {
+        if (payload.open === undefined && payload.close === undefined) {
+          // The data-residue and dropped-error surfaces are engine-level
+          // for now: the `0x0f STRANDED` payload is bracket-shaped and
+          // the wire format is frozen — the tracefile encoding of data
+          // residue belongs in the freeze discussion (work document #48)
+          break;
+        }
         this.flowtrace.addNetworkStranded(
           this.flowtraceName,
           payload.id,
@@ -852,6 +859,28 @@ export class Network extends EventBase {
     });
     instance.addEventListener("closedown", () => {
       this.scheduleClosingCheck();
+    });
+    // The component's stranded surface (work document #48): closedown
+    // residue censuses, control-stream replacement clobbers, and dropped
+    // error messages — forwarded onto the network event bus. The
+    // bracket-shaped entries record to Flowtrace under the existing
+    // `0x0f STRANDED` encoding; the data-shaped entries stay on the JS
+    // event surface (their wire encoding is a freeze-discussion item)
+    instance.addEventListener("stranded", (event) => {
+      const detail = /** @type {any} */ (event).detail ?? {};
+      if (detail.reason === "closedown" && Array.isArray(detail.residue)) {
+        for (const entry of detail.residue) {
+          this.bufferedEmit("stranded", {
+            id: node.id,
+            port: entry.port,
+            scope: entry.scope,
+            index: entry.index,
+            data: entry.data,
+          });
+        }
+        return;
+      }
+      this.bufferedEmit("stranded", { id: node.id, ...detail });
     });
     instance.addEventListener(
       "deactivate",

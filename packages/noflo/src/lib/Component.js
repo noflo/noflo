@@ -564,6 +564,15 @@ export class Component extends EventBase {
       // transmission re-opening the input (work document #40 update #5)
       port.addEventListener("disconnect", () => this.#handleInputStateChange());
       port.addEventListener("connect", () => this.#handleInputStateChange());
+      // Port-level stranded reports (control-stream replacement clobbers)
+      // forward to the component's own stranded surface, which the network
+      // subscribes to (work document #48)
+      port.addEventListener("stranded", (event) => {
+        this.dispatchLifecycleEvent("stranded", {
+          port: port.name ?? name,
+          ...event.detail,
+        });
+      });
     });
     Object.keys(this.outPorts.ports).forEach((name) => {
       const port = /** @type {import("./OutPort.js").default} */ (
@@ -581,6 +590,17 @@ export class Component extends EventBase {
         if (this.closedDown) {
           port.disconnectAll();
         }
+      });
+      // Port-level stranded reports (unattached sends, dropped errors)
+      // forward to the component's own stranded surface, matching the
+      // inport path (work document #48): a standalone component sees its
+      // outport-side residue on the same surface the network subscribes
+      // to
+      port.addEventListener("stranded", (event) => {
+        this.dispatchLifecycleEvent("stranded", {
+          port: port.name ?? name,
+          ...event.detail,
+        });
       });
     });
     return this;
@@ -674,11 +694,37 @@ export class Component extends EventBase {
     // auto-ordering. Control ports have no firing role: their buffers
     // are standing state — non-consuming reads — not pending work, so
     // the walk skips them and a control arrival with nothing pending
-    // buffers silently. Forwarding inports are exempt: their brackets
-    // are owned by the forwarding machinery in fireProcess, and their
-    // data arrivals keep the direct path.
+    // buffers silently. Forwarding inports' brackets are owned by the
+    // forwarding machinery in fireProcess, and their data arrivals fire
+    // the direct path — which is the arriving IP's own firing. The
+    // one-firing rule still applies to every OTHER scope holding pending
+    // work: the arrival is a state change that may complete their
+    // preconditions (the corpus arriving on a framing-terminated control
+    // port completes every held document's hasStream gate), so the
+    // ready-scope walk runs for the remaining scopes. Skipping it made
+    // the walk's completeness guarantee stop at forwarding inports — the
+    // silent-drop class the noflo-jekyll testbed's verification localized
+    // (work document #48 update #11)
     if (this.isForwardingInport(port)) {
       this.fireProcess(ip, port);
+      // The arriving IP was buffered before this dispatch, so the walk
+      // would re-offer its own scope — the direct fireProcess above was
+      // that scope's firing; dedupe it. Control ports are skipped by the
+      // walk itself (standing state, not pending work)
+      const arrivingScope = ip.scope ?? null;
+      const ready = this.#readyScopes();
+      for (const readyScope of ready) {
+        if (readyScope.port === port && readyScope.scope === arrivingScope) {
+          continue;
+        }
+        const contextIp =
+          readyScope.scope === null
+            ? readyScope.head
+            : new IP(readyScope.head.type, readyScope.head.data, {
+                scope: readyScope.scope,
+              });
+        this.fireProcess(contextIp, readyScope.port);
+      }
       return;
     }
     if (port.options.control && port.options.scoped && ip.scope == null) {
@@ -695,14 +741,25 @@ export class Component extends EventBase {
     }
     // Fire once per scope: unscoped for the default buffers, and once
     // with the scope stamped on the context for each scoped buffer. The
-    // context IP is the wakeup cause, not the consumable: the has-first
-    // discipline reads the buffers, and reads resolve to the firing
-    // scope.
+    // context IP is the scope's own head as captured during the scan —
+    // never the arriving IP unless the arrival is that head: a wake on
+    // port A must not hand port B's firing A's context IP. The concrete
+    // failure a cross-port context produced (work document #48 update
+    // #13): a control port's buffered openBracket arrived while another
+    // port held unscoped work, became that port's firing context, and
+    // fireProcess's openBracket check engaged auto-ordering for the
+    // whole component — the drain's sends then queued into the ordered
+    // output machinery although no stream ever arrived on the firing
+    // port. The has-first discipline reads the buffers, and reads
+    // resolve to the firing scope, so the head is the truthful context
+    // in every case
     ready.forEach((readyScope) => {
       const contextIp =
         readyScope.scope === null
-          ? ip
-          : new IP(ip.type, ip.data, { scope: readyScope.scope });
+          ? readyScope.head
+          : new IP(readyScope.head.type, readyScope.head.data, {
+              scope: readyScope.scope,
+            });
       this.fireProcess(contextIp, readyScope.port);
     });
   }
@@ -729,10 +786,14 @@ export class Component extends EventBase {
         // non-consumingly and never drive firings on their own
         return;
       }
-      const mark = (scope, head) => {
+      const mark = (head) => {
         // One firing per scope: the port of the first hit supplies the
         // activation's context, and every leg's buffered work is visible
-        // to the has-first discipline regardless
+        // to the has-first discipline regardless. The scope is the
+        // head's own — the buffer keys are strings (object keys), while
+        // the IPs carry the scope primitive the process and its outputs
+        // must see (integer scopes are contract)
+        const scope = head.scope ?? null;
         if (ready.some((entry) => entry.scope === scope)) {
           return;
         }
@@ -742,13 +803,13 @@ export class Component extends EventBase {
         Object.keys(port.indexedBuffer ?? {}).forEach((index) => {
           const buf = port.indexedBuffer[index] ?? [];
           if (buf.length > 0) {
-            mark(null, buf[0]);
+            mark(buf[0]);
           }
         });
         Object.keys(port.indexedIipBuffer ?? {}).forEach((index) => {
           const buf = port.indexedIipBuffer[index] ?? [];
           if (buf.length > 0) {
-            mark(null, buf[0]);
+            mark(buf[0]);
           }
         });
         Object.keys(port.indexedScopedBuffer ?? {}).forEach((scope) => {
@@ -756,7 +817,7 @@ export class Component extends EventBase {
             (index) => {
               const buf = port.indexedScopedBuffer[scope][index] ?? [];
               if (buf.length > 0) {
-                mark(scope, buf[0]);
+                mark(buf[0]);
               }
             },
           );
@@ -765,15 +826,15 @@ export class Component extends EventBase {
       }
       const regular = port.getBuffer(null, null) ?? [];
       if (regular.length > 0) {
-        mark(null, regular[0]);
+        mark(regular[0]);
       }
       if ((port.iipBuffer ?? []).length > 0) {
-        mark(null, port.iipBuffer[0]);
+        mark(port.iipBuffer[0]);
       }
       Object.keys(port.scopedBuffer ?? {}).forEach((scope) => {
         const buf = port.scopedBuffer[scope] ?? [];
         if (buf.length > 0) {
-          mark(scope, buf[0]);
+          mark(buf[0]);
         }
       });
     });
@@ -1528,6 +1589,40 @@ export class Component extends EventBase {
     }
     if (this.isOrdered() && this.outputQ.length > 0) {
       return;
+    }
+    // The strand is final here: the pump's offers have settled (the
+    // pending-offer deferral guarantees it), so whatever data remains
+    // buffered was declined by every wake and no arrival can complete a
+    // context for it. Surface the residue before the shutdown clears it
+    // — the no-silent-loss invariant (work document #48): standing IIP
+    // buffers are excluded, an unconsumed initial is configuration
+    // re-delivered per run, not stranded work (work document #46)
+    const residue = [];
+    Object.keys(this.inPorts.ports).forEach((name) => {
+      const port = /** @type {import("./InPort.js").default} */ (
+        this.inPorts.ports[name]
+      );
+      if (port.options.control) {
+        return;
+      }
+      for (const entry of port.strandedData()) {
+        residue.push({ port: name, ...entry });
+      }
+    });
+    if (residue.length > 0) {
+      const total = residue.reduce((n, entry) => n + entry.data, 0);
+      debugComponent(
+        `${this.nodeId ?? "component"} closes down with ${total} undeliverable data packets buffered — stranded by definition at end of transmission (work document #45): ${residue
+          .map(
+            (entry) =>
+              `${entry.port}[${entry.scope ?? "unscoped"}]=${entry.data}`,
+          )
+          .join(", ")}`,
+      );
+      this.dispatchLifecycleEvent("stranded", {
+        reason: "closedown",
+        residue,
+      });
     }
     this.closedDown = true;
     const disconnects = [];

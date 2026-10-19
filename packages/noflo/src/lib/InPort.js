@@ -4,6 +4,9 @@
 //     NoFlo may be freely distributed under the MIT license
 /* @ts-self-types="./InPort.d.ts" */
 import BasePort from "./BasePort.js";
+import { createDebug } from "./logger.js";
+
+const debugPort = createDebug("noflo:ports");
 
 /**
  * @typedef InPortOptions
@@ -188,8 +191,42 @@ export default class InPort extends BasePort {
     const buf = this.prepareBufferForIP(ip);
     // Control ports buffer the latest stream: brackets are kept, an
     // unbracketed data IP is its own stream, and a new openBracket
-    // discards any previously buffered stream
+    // discards any previously buffered stream. The replacement is
+    // by-design (re-registration), but data discarded by it is a silent
+    // loss unless surfaced — the replaced stream's unconsumed packets
+    // are stranded by the replacement, not by end of transmission
+    // (work document #48)
     if (this.options.control) {
+      const replaced =
+        (packet.type === "openBracket" && buf.length > 0) ||
+        (packet.type === "data" &&
+          !buf.some((buffered) => buffered.type === "openBracket"));
+      if (replaced && buf.length > 0) {
+        let data = 0;
+        let open = 0;
+        let close = 0;
+        for (const discarded of buf) {
+          if (discarded.type === "data") {
+            data += 1;
+          } else if (discarded.type === "openBracket") {
+            open += 1;
+          } else if (discarded.type === "closeBracket") {
+            close += 1;
+          }
+        }
+        if (data > 0 || open > 0 || close > 0) {
+          debugPort(
+            `control port replacement discards buffered stream content (${data} data, ${open} open, ${close} close) — the replaced stream is superseded by design, but the discard is surfaced (work document #48)`,
+          );
+          this.dispatchLifecycleEvent("stranded", {
+            reason: "stream-replaced",
+            scope: ip.scope ?? null,
+            data,
+            open,
+            close,
+          });
+        }
+      }
       if (packet.type === "openBracket" && buf.length > 0) {
         buf.length = 0;
       }
@@ -585,6 +622,68 @@ export default class InPort extends BasePort {
       }
       if (open > 0 || close > 0) {
         residue.push({ scope, index, open, close });
+      }
+    };
+    if (this.isAddressable()) {
+      if (this.options.scoped) {
+        Object.keys(this.indexedScopedBuffer ?? {}).forEach((scope) => {
+          Object.keys(this.indexedScopedBuffer[scope] ?? {}).forEach(
+            (index) => {
+              scan(
+                this.indexedScopedBuffer[scope][index],
+                scope,
+                Number(index),
+              );
+            },
+          );
+        });
+      }
+      Object.keys(this.indexedBuffer ?? {}).forEach((index) => {
+        scan(this.indexedBuffer[index], null, Number(index));
+      });
+      return residue;
+    }
+    if (this.options.scoped) {
+      Object.keys(this.scopedBuffer ?? {}).forEach((scope) => {
+        scan(this.scopedBuffer[scope], scope, null);
+      });
+    }
+    scan(this.buffer, null, null);
+    return residue;
+  }
+
+  /**
+   * Undelivered data residue in this port's buffers: data IPs that no
+   * future arrival can complete a context for once the port's senders
+   * have terminally disconnected. One entry per (scope, index) buffer
+   * holding data. The standing IIP buffers are excluded — an unconsumed
+   * initial is standing configuration, re-delivered per run (work
+   * document #46), not stranded work. Consumed by the component's
+   * closedown residue report (work document #48): the moment the
+   * component gives up draining is when the strand becomes final — end
+   * of transmission alone is not, since the drain pump may still rescue
+   * deliverable buffers after it.
+   *
+   * @returns {Array<{scope: string|null, index: number|null, data: number}>}
+   */
+  strandedData() {
+    /** @type {Array<{scope: string|null, index: number|null, data: number}>} */
+    const residue = [];
+    /**
+     * @param {Array<{type: string}>|undefined} buf
+     * @param {string|null} scope
+     * @param {number|null} index
+     * @returns {void}
+     */
+    const scan = (buf, scope, index) => {
+      let data = 0;
+      for (const ip of buf ?? []) {
+        if (ip.type === "data") {
+          data += 1;
+        }
+      }
+      if (data > 0) {
+        residue.push({ scope, index, data });
       }
     };
     if (this.isAddressable()) {

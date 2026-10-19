@@ -5,6 +5,9 @@
 /* @ts-self-types="./OutPort.d.ts" */
 import BasePort from "./BasePort.js";
 import IP from "./IP.js";
+import { createDebug } from "./logger.js";
+
+const debugPort = createDebug("noflo:ports");
 
 /**
  * @typedef OutPortOptions
@@ -167,6 +170,20 @@ export default class OutPort extends BasePort {
     }
 
     const targets = sockets.filter((socket) => socket);
+    if (targets.length === 0) {
+      // A send into an unattached outport vanishes by contract — the
+      // consumer opted out — but a vanished send is a silent loss unless
+      // surfaced (work document #48's no-silent-loss invariant). The
+      // component-side answer for a leg that must not drop is
+      // `required: true`, which escalates in checkRequired instead
+      debugPort(
+        `${this.getId()} sends into the void: the port has no attached sockets — the packet is dropped`,
+      );
+      this.dispatchLifecycleEvent("stranded", {
+        reason: "unattached-send",
+        port: this.name ?? "?",
+      });
+    }
     const fanout = targets.length > 1;
     if (fanout && !ip.clonable && !this.isFanoutRefs()) {
       throw new Error(

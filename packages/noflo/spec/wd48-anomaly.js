@@ -34,6 +34,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import IP from "../src/lib/IP.js";
 import * as noflo from "../src/lib/NoFlo.js";
+import { nativeGraph } from "./utils/nativeGraph.js";
 
 const setImmediateP = () => new Promise((resolve) => setImmediate(resolve));
 
@@ -351,5 +352,447 @@ describe("work document #48: the closedown-vs-pump delivery race", () => {
       c.isClosedDown(),
       "the component should close down after everything drained",
     );
+  });
+
+  it("surfaces the residue census at closedown when the gate never arms", async () => {
+    // Shape 1's engine essence (work document #48 update #8): a gate that
+    // never arms strands the buffered documents in the component's own
+    // buffers; the closedown discard is silent unless the residue is
+    // surfaced. The stranded event is the no-silent-loss surface
+    const c = new noflo.Component({
+      inPorts: {
+        config: { datatype: "object", control: true, scoped: false },
+        msg: { datatype: "object" },
+      },
+      outPorts: { out: { datatype: "object" } },
+    });
+    // No config ever arrives: every page declines and stays buffered
+    c.process((input, output) => {
+      if (!input.hasData("config")) {
+        output.done();
+        return;
+      }
+      output.sendDone({ out: input.getData("msg") });
+    });
+    const msgSocket = new noflo.internalSocket.InternalSocket({});
+    const configSocket = new noflo.internalSocket.InternalSocket({});
+    c.inPorts.msg.attach(msgSocket);
+    c.inPorts.config.attach(configSocket);
+    /** @type {Array<any>} */
+    const strandedEvents = [];
+    c.addEventListener("stranded", (event) => {
+      strandedEvents.push(event.detail);
+    });
+    for (const path of ["r1", "r2", "r3"]) {
+      msgSocket.post(new IP("data", { path }, { scope: path }), false);
+    }
+    msgSocket.disconnect();
+    configSocket.disconnect();
+    const deadline = Date.now() + 2000;
+    while (!c.isClosedDown() && Date.now() < deadline) {
+      await setImmediateP();
+    }
+    assert.ok(c.isClosedDown(), "the component should close down");
+    const closedownEvent = strandedEvents.find((e) => e.reason === "closedown");
+    assert.ok(
+      closedownEvent,
+      `the closedown residue census must surface the held documents — stranded events: ${JSON.stringify(strandedEvents)}`,
+    );
+    const total = closedownEvent.residue.reduce((n, r) => n + r.data, 0);
+    assert.equal(total, 3, "the census names all three held documents");
+  });
+
+  it("surfaces a control-stream replacement clobber", async () => {
+    // The bang-vs-corpus hazard from the noflo-jekyll verification: a
+    // control port keeps the latest stream, so a late stream replaces an
+    // earlier one whose data was never consumed — the replaced data
+    // strands at the replacement moment and must surface there, not as
+    // silence
+    const c = new noflo.Component({
+      inPorts: {
+        includes: { datatype: "all", control: true, scoped: false },
+      },
+      outPorts: { out: { datatype: "all" } },
+    });
+    c.process((_input, output) => {
+      output.done();
+    });
+    const includesSocket = new noflo.internalSocket.InternalSocket({});
+    c.inPorts.includes.attach(includesSocket);
+    /** @type {Array<any>} */
+    const strandedEvents = [];
+    c.inPorts.includes.addEventListener("stranded", (event) => {
+      strandedEvents.push(event.detail);
+    });
+    // The corpus arrives first (one unbracketed data IP: its own stream)
+    includesSocket.post(new IP("data", "footer.html"), false);
+    await setImmediateP();
+    // A later stream replaces it while its data was never consumed
+    includesSocket.post(new IP("data", "replacement"), false);
+    await setImmediateP();
+    await setImmediateP();
+    const clobber = strandedEvents.find((e) => e.reason === "stream-replaced");
+    assert.ok(
+      clobber,
+      `the replacement must surface the discarded stream content — stranded events: ${JSON.stringify(strandedEvents)}`,
+    );
+    assert.equal(clobber.data, 1);
+  });
+
+  it("surfaces the dropped error when the fail leg is unattached and optional", async () => {
+    // Shape 2's engine essence: a build error sent to an unattached
+    // optional fail leg vanishes by contract — the no-silent-loss
+    // invariant requires the drop itself to be surfaced. The component-
+    // side fix for the pipeline is `required: true`, which escalates
+    // instead of dropping
+    const c = new noflo.Component({
+      inPorts: { msg: { datatype: "object" } },
+      outPorts: {
+        out: { datatype: "object" },
+        fail: { datatype: "object" },
+      },
+    });
+    c.process((input, output) => {
+      if (!input.hasData("msg")) {
+        output.done();
+        return;
+      }
+      const msg = input.getData("msg");
+      const deliver = async () => {
+        try {
+          if (msg.fail) {
+            throw new Error(`build failed for ${msg.path}`);
+          }
+          await output.send({ out: msg });
+          output.done();
+        } catch (err) {
+          output.send({ fail: { errors: [err], path: msg.path } });
+          output.done();
+        }
+      };
+      deliver();
+    });
+    const msgSocket = new noflo.internalSocket.InternalSocket({});
+    c.inPorts.msg.attach(msgSocket);
+    /** @type {Array<any>} */
+    const strandedEvents = [];
+    c.outPorts.ports.fail.addEventListener("stranded", (event) => {
+      strandedEvents.push(event.detail);
+    });
+    // The component's own stranded surface: the outport-side report must
+    // reach it exactly once, standalone (no network wiring the node —
+    // work document #48 review findings 1–2)
+    /** @type {Array<any>} */
+    const componentEvents = [];
+    c.addEventListener("stranded", (event) => {
+      componentEvents.push(event.detail);
+    });
+    msgSocket.post(new IP("data", { path: "ok", fail: false }), false);
+    msgSocket.post(new IP("data", { path: "bad", fail: true }), false);
+    msgSocket.disconnect();
+    const deadline = Date.now() + 2000;
+    while (!c.isClosedDown() && Date.now() < deadline) {
+      await setImmediateP();
+    }
+    const dropped = strandedEvents.find((e) => e.reason === "unattached-send");
+    assert.ok(
+      dropped,
+      `the dropped error must surface on the stranded event — stranded events: ${JSON.stringify(strandedEvents)}`,
+    );
+    const componentDropped = componentEvents.filter(
+      (e) => e.reason === "unattached-send" && e.port === "fail",
+    );
+    assert.equal(
+      componentDropped.length,
+      1,
+      `the unattached send must surface on the component's stranded surface exactly once — component events: ${JSON.stringify(componentEvents)}`,
+    );
+    assert.equal(componentDropped[0].port, "fail");
+    assert.ok(c.isClosedDown());
+  });
+
+  it("serializes the dropped-error payload and fires it once at component level", async () => {
+    // Review finding 3: the dropped-error detail carried the raw Error
+    // object — fine on a listener that keeps it in memory, but the
+    // network's emit path spreads the detail into the event payload where
+    // every other stranded entry is counts and strings. The error is
+    // serialized at the source. Findings 1–2's outport forwarding path
+    // is what delivers it to the component surface standalone, exactly
+    // once (the direct node-level dispatch is gone)
+    const c = new noflo.Component({
+      inPorts: { msg: { datatype: "object" } },
+      outPorts: {
+        out: { datatype: "object" },
+        // Declared but never attached: the unattached optional error leg
+        error: { datatype: "object" },
+      },
+    });
+    c.process((input, output) => {
+      if (!input.hasData("msg")) {
+        output.done();
+        return;
+      }
+      input.get("msg");
+      // The error leg is unattached and optional: output.done(err)
+      // would vanish silently without the surface
+      output.done(new Error("build failed for bad"));
+    });
+    const msgSocket = new noflo.internalSocket.InternalSocket({});
+    c.inPorts.msg.attach(msgSocket);
+    /** @type {Array<any>} */
+    const componentEvents = [];
+    c.addEventListener("stranded", (event) => {
+      componentEvents.push(event.detail);
+    });
+    msgSocket.post(new IP("data", { path: "bad" }), false);
+    msgSocket.disconnect();
+    const deadline = Date.now() + 2000;
+    while (!c.isClosedDown() && Date.now() < deadline) {
+      await setImmediateP();
+    }
+    const dropped = componentEvents.filter((e) => e.reason === "dropped-error");
+    assert.equal(
+      dropped.length,
+      1,
+      `the dropped error must surface exactly once at component level — component events: ${JSON.stringify(componentEvents)}`,
+    );
+    assert.equal(dropped[0].port, "error");
+    assert.equal(typeof dropped[0].error, "string");
+    assert.match(dropped[0].error, /build failed for bad/);
+    assert.ok(c.isClosedDown());
+  });
+
+  it("escalates a done(err) on a component with no error port to process-error", async () => {
+    // The no-error-port contract, verified (work document #48 update
+    // #16): error() throws; fireProcess's catch answers with its own
+    // sendDone(e), which throws again from inside the catch; the
+    // synchronous listener-throw propagation rejects the delivering
+    // edge's write; and the socket's error side-channel turns it into
+    // the network's process-error. The chain is load-bearing — the
+    // no-silent-loss invariant for components without an error leg —
+    // and a refactor of the catch could sever it silently: this pin
+    // holds it
+    const Boom = () =>
+      new noflo.Component({
+        inPorts: { msg: { datatype: "object" } },
+        outPorts: { out: { datatype: "object" } },
+      }).process((input, output) => {
+        if (!input.hasData("msg")) {
+          output.done();
+          return;
+        }
+        input.getData("msg");
+        output.done(new Error("boom with no error leg"));
+      });
+    const g = nativeGraph();
+    g.addNode("Boom", "Boom");
+    g.addInitial({ path: "trigger" }, "Boom", "msg");
+    const network = await noflo.createNetwork(g, {
+      asyncDelivery: true,
+      delay: true,
+    });
+    network.loader.components.Boom = Boom;
+    await network.connect();
+    /** @type {Array<any>} */
+    const errors = [];
+    network.addEventListener("process-error", (event) => {
+      errors.push(event.detail);
+    });
+    await network.start();
+    const deadline = Date.now() + 2000;
+    while (errors.length === 0 && Date.now() < deadline) {
+      await setImmediateP();
+    }
+    assert.equal(
+      errors.length,
+      1,
+      `the unlegged error must surface exactly once as process-error — errors: ${JSON.stringify(errors, (k, v) => (k === "error" ? String(v) : v))}`,
+    );
+    assert.match(errors[0].error.message, /boom with no error leg/);
+    await network.stop();
+  });
+
+  it("re-fires pending scopes when a forwarding inport's arrival completes their gate", async () => {
+    // The one-firing rule must apply to forwarding inports' arrivals too
+    // (work document #48): a corpus arrival on a framing-terminated
+    // control port fires the direct path — one activation for the
+    // arriving IP's own scope — and before the fix SKIPPED the
+    // ready-scope walk, so pending work in other scopes whose gate the
+    // corpus completes never re-fired. This is the liquid Template's
+    // includes race: the corpus arrives after the pages buffered, the
+    // corpus's own scope sees no template/variables, the pages strand
+    const c = new noflo.Component({
+      inPorts: {
+        // The corpus port: standing control stream with declared framing
+        // termination — a forwarding inport, exactly like the liquid
+        // Template's includes port
+        includes: { datatype: "all", control: true, scoped: false },
+        msg: { datatype: "object" },
+      },
+      outPorts: { out: { datatype: "object" } },
+    });
+    c.forwardBrackets = { includes: [] };
+    c.process((input, output) => {
+      // The gate, mirroring the liquid Template: the corpus must have
+      // arrived (hasStream) before the message may consume
+      if (
+        input.attached("includes").length > 0 &&
+        !input.hasStream("includes")
+      ) {
+        output.done();
+        return;
+      }
+      if (!input.hasData("msg")) {
+        output.done();
+        return;
+      }
+      output.sendDone({ out: input.getData("msg") });
+    });
+    const includesSocket = new noflo.internalSocket.InternalSocket({});
+    const msgSocket = new noflo.internalSocket.InternalSocket({});
+    const outSocket = new noflo.internalSocket.InternalSocket({});
+    c.inPorts.includes.attach(includesSocket);
+    c.inPorts.msg.attach(msgSocket);
+    c.outPorts.out.attach(outSocket);
+    /** @type {string[]} */
+    const emitted = [];
+    outSocket.addEventListener("ip", (event) => {
+      if (event.detail.type === "data") emitted.push(event.detail.data);
+    });
+
+    // The message arrives FIRST, in a scope of its own: the corpus gate
+    // declines it (hasStream false — nothing buffered yet), it stays
+    // buffered
+    msgSocket.post(
+      new IP("data", { path: "page-1" }, { scope: "page-1" }),
+      false,
+    );
+    await setImmediateP();
+    assert.deepEqual(emitted, []);
+
+    // The corpus arrives on the forwarding control port: its arrival
+    // completes the held message's gate and must re-fire the pending
+    // scope
+    includesSocket.post(new IP("data", "footer"), false);
+    const deadline = Date.now() + 2000;
+    while (emitted.length < 1 && Date.now() < deadline) {
+      await setImmediateP();
+    }
+    assert.deepEqual(
+      emitted.map((e) => e.path),
+      ["page-1"],
+      "the held message was never re-fired by the corpus arrival — the forwarding inport's direct path skipped the ready-scope walk",
+    );
+  });
+
+  it("re-fires the unscoped partition when a late corpus packet completes the head's gate", async () => {
+    // The builder shape from the noflo-jekyll verification (work document
+    // #48 update #12): unscoped documents buffered head-of-line whose
+    // layout chain completes only with the corpus's LAST template — the
+    // corpus arrives packet-by-packet after the documents buffered, and
+    // the completing packet's arrival must re-fire the unscoped
+    // partition. Every observed strand in the testbed is unscoped root
+    // pages; scoped posts always drain — this pin answers whether the
+    // one-firing rule's walk covers the null-scope partition
+    const c = new noflo.Component({
+      inPorts: {
+        templates: { datatype: "object", control: true, scoped: false },
+        msg: { datatype: "object" },
+      },
+      outPorts: { out: { datatype: "object" } },
+    });
+    /** @type {Record<string, any>} */
+    const store = {};
+    c.process((input, output) => {
+      if (input.hasData("templates")) {
+        for (const ip of input.getStream("templates")) {
+          if (ip.type === "data") {
+            store[ip.data.name] = ip.data;
+          }
+        }
+      }
+      if (!input.hasData("msg")) {
+        output.done();
+        return;
+      }
+      // Head-first resolvability: the head document's layout chain must
+      // be complete in the store
+      const resolvable = (/** @type {any} */ ip) =>
+        ip.type === "data" &&
+        store[ip.data.layout] !== undefined &&
+        store[ip.data.layout2] !== undefined;
+      if (!input.has("msg", resolvable)) {
+        output.done();
+        return;
+      }
+      // Drain the unscoped partition head-first, re-checking after each
+      // send
+      for (;;) {
+        if (!input.has("msg", resolvable)) {
+          break;
+        }
+        output.sendDone({ out: input.getData("msg") });
+      }
+      output.done();
+    });
+    const templatesSocket = new noflo.internalSocket.InternalSocket({});
+    const msgSocket = new noflo.internalSocket.InternalSocket({});
+    const outSocket = new noflo.internalSocket.InternalSocket({});
+    c.inPorts.templates.attach(templatesSocket);
+    c.inPorts.msg.attach(msgSocket);
+    c.outPorts.out.attach(outSocket);
+    /** @type {string[]} */
+    const emitted = [];
+    outSocket.addEventListener("ip", (event) => {
+      if (event.detail.type === "data") emitted.push(event.detail.data.path);
+    });
+
+    // The documents arrive first: the head needs templates "a" and "b",
+    // neither buffered yet — every activation declines, the documents
+    // stay buffered in the unscoped partition
+    for (const path of ["d1", "d2", "d3"]) {
+      msgSocket.post(
+        new IP("data", { path, layout: "a", layout2: "b" }),
+        false,
+      );
+      await setImmediateP();
+    }
+    assert.deepEqual(emitted, []);
+
+    // The corpus arrives packet-by-packet: the completing template ("b")
+    // is the LAST data packet of the framed stream, exactly like the
+    // testbed's index layout arriving last
+    templatesSocket.post(new IP("openBracket", "corpus"), false);
+    templatesSocket.post(new IP("data", { name: "a", body: "a-body" }), false);
+    templatesSocket.post(
+      new IP("data", { name: "footer", body: "footer-body" }),
+      false,
+    );
+    templatesSocket.post(new IP("data", { name: "b", body: "b-body" }), false);
+    templatesSocket.post(new IP("closeBracket", "corpus"), false);
+    // End of transmission: the corpus stream completed, the sender
+    // closed — the closedown predicate evaluates with the documents
+    // still held, and the drain-pump offer must fire before the
+    // closedown lands
+    templatesSocket.disconnect();
+    msgSocket.disconnect();
+    const deadline = Date.now() + 2000;
+    while ((emitted.length < 3 || !c.isClosedDown()) && Date.now() < deadline) {
+      await setImmediateP();
+    }
+    // The exact sequence, order and multiplicity included: exactly one
+    // emission per held document. A cross-port firing context — the
+    // corpus's control-port packets offered as the msg port's firing
+    // context — engages auto-ordering for the whole component and the
+    // ordered output machinery re-sends the activation's accumulated
+    // result on every flush; the pin's exact-sequence assert catches
+    // both the strand and the duplication (work document #48 update
+    // #13)
+    assert.deepEqual(
+      emitted,
+      ["d1", "d2", "d3"],
+      `the unscoped partition was not drained exactly once when the corpus completed the head's gate (emitted: ${JSON.stringify(emitted)}, closed: ${c.isClosedDown()})`,
+    );
+    assert.ok(c.isClosedDown());
   });
 });
