@@ -787,11 +787,28 @@ export class Component extends EventBase {
    * consumes (progress) or declines (the buffers unchanged, no further
    * offer) — the pump terminates with the buffers (work document #47).
    *
+   * The closedown interaction (work document #48): the closedown
+   * predicate runs synchronously inside `deactivate`, and the pump offer
+   * scheduled by that same deactivation fires later — the closedown
+   * would set `closedDown` first and the pump's guard would cancel the
+   * one offer that could drain buffers which became deliverable before
+   * end of transmission (the silent-drop race the noflo-jekyll testbed
+   * reproduced). The pending flag makes the closedown evaluation defer
+   * until the offer has settled, and the offer re-evaluates closedown
+   * after its pass: an offer that consumed leaves open activations whose
+   * deactivations re-evaluate; an offer that declined declares the
+   * residue stranded with the loud diagnostics the #45 contract
+   * promises.
+   *
    * @returns {void}
    */
   #offerResumption() {
     makeAsync(() => {
+      // The offer has settled: the deferred closedown evaluation must
+      // follow it whether it offered or was mooted by closedown or load
+      this.#pendingOffer = false;
       if (this.closedDown || this.load > 0) {
+        this.#evaluateClosedown();
         return;
       }
       const ready = this.#readyScopes();
@@ -806,6 +823,10 @@ export class Component extends EventBase {
               });
         this.fireProcess(contextIp, readyScope.port);
       }
+      // The offers either consumed (open activations — closedown waits
+      // for their deactivations, each re-scheduling the pump) or
+      // declined (buffers unchanged): the closedown evaluation follows
+      this.#evaluateClosedown();
     });
   }
 
@@ -1338,10 +1359,13 @@ export class Component extends EventBase {
     // declines (the buffers unchanged, no further offer) — the pump
     // terminates with the buffers
     if (context.consumed > 0 && !this.closedDown) {
+      // The pending flag defers the closedown evaluation until this offer
+      // has settled: the closedown predicate would otherwise run before
+      // the offer fires and cancel it on `closedDown` — stranding buffers
+      // that became deliverable before end of transmission (work
+      // document #48)
+      this.#pendingOffer = true;
       makeAsync(() => {
-        if (this.closedDown || this.load > 0) {
-          return;
-        }
         this.#offerResumption();
       });
     }
@@ -1360,17 +1384,78 @@ export class Component extends EventBase {
   }
 
   /**
-   * Evaluate the classical cascading-closedown rule (work document #45):
-   * a component closes down when every input is at EOT, no activation is
-   * open, and no buffered deliverable data remains (control ports are
-   * excluded — their standing values are legitimate at quiescence). On
-   * closedown the outports are terminally disconnected, so downstream
-   * ports reach EOT and the rule recurses. Runs on every state
-   * transition that can complete the condition: port EOT and activation
-   * close.
+   * React to an input state change (a socket connecting or terminally
+   * disconnecting): a reconnect revives a closed-down component, and
+   * every transition re-evaluates the closedown predicate.
    *
    * @returns {void}
    */
+  /**
+   * Whether a drain-pump offer is scheduled but has not run yet. The
+   * closedown evaluation defers while one is pending: the offer may
+   * drain buffers that would otherwise be declared stranded at end of
+   * transmission (work document #48). The flag is set when the offer is
+   * scheduled and cleared when the offer's body runs, which then
+   * re-evaluates the closedown itself — no evaluation is lost.
+   *
+   * @type {boolean}
+   */
+  #pendingOffer = false;
+
+  /**
+   * Whether any inport holds buffered packets the pump's own reach
+   * covers: the data a pending pump offer might drain. The shapes mirror
+   * `#readyScopes()` exactly — the regular, scoped, and addressable
+   * buffers plus the IIP buffers, whose non-control contents are
+   * consumable work like any other. Control ports are excluded — their
+   * standing values are legitimate at quiescence and never block closing
+   * (work document #45). A deferral keyed to a narrower set than the
+   * pump's reach would let the closedown strand packets the pump could
+   * have drained (work document #48).
+   *
+   * @returns {boolean}
+   */
+  #inputBuffersHold() {
+    const portNames = Object.keys(this.inPorts.ports);
+    for (const name of portNames) {
+      const port = /** @type {import("./InPort.js").default} */ (
+        this.inPorts.ports[name]
+      );
+      if (port.options.control) {
+        continue;
+      }
+      if ((port.buffer ?? []).length > 0) {
+        return true;
+      }
+      if ((port.iipBuffer ?? []).length > 0) {
+        return true;
+      }
+      for (const buf of Object.values(port.scopedBuffer ?? {})) {
+        if ((buf ?? []).length > 0) {
+          return true;
+        }
+      }
+      for (const buf of Object.values(port.indexedBuffer ?? {})) {
+        if ((buf ?? []).length > 0) {
+          return true;
+        }
+      }
+      for (const buf of Object.values(port.indexedIipBuffer ?? {})) {
+        if ((buf ?? []).length > 0) {
+          return true;
+        }
+      }
+      for (const scoped of Object.values(port.indexedScopedBuffer ?? {})) {
+        for (const buf of Object.values(scoped ?? {})) {
+          if ((buf ?? []).length > 0) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
   #handleInputStateChange() {
     // Subgraph wrappers share their inner processes' port objects, so a
     // shared-port EOT reflects the deepest sender's state, not the
@@ -1392,8 +1477,35 @@ export class Component extends EventBase {
     this.#evaluateClosedown();
   }
 
+  /**
+   * Evaluate the classical cascading-closedown rule (work document #45):
+   * a component closes down when every input is at EOT, no activation is
+   * open, and no buffered deliverable data remains (control ports are
+   * excluded — their standing values are legitimate at quiescence). On
+   * closedown the outports are terminally disconnected, so downstream
+   * ports reach EOT and the rule recurses. Runs on every state
+   * transition that can complete the condition: port EOT and activation
+   * close.
+   *
+   * The evaluation defers while a drain-pump offer is pending (#48): the
+   * offer may drain buffered data that this rule would otherwise declare
+   * stranded at end of transmission; the offer's own tail re-invokes
+   * this evaluation.
+   *
+   * @returns {void}
+   */
   #evaluateClosedown() {
     if (this.closedDown) {
+      return;
+    }
+    if (this.#pendingOffer && this.#inputBuffersHold()) {
+      // A pump offer is scheduled and the inport buffers hold packets it
+      // may drain: the closedown evaluation defers, because declaring the
+      // residue stranded here would cancel the one offer that could
+      // drain data which became deliverable before end of transmission
+      // (work document #48). The offer's own tail re-evaluates the
+      // closedown once it has settled. Empty buffers do not defer — the
+      // closedown granularity (one per burst cycle) is preserved
       return;
     }
     if (typeof this.isSubgraph === "function" && this.isSubgraph()) {
