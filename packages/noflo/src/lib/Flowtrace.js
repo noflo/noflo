@@ -219,7 +219,24 @@ export class Flowtrace {
     switch (event) {
       case "network:data": {
         eventType = EVENT_TYPE.DATA;
-        value = payload.data;
+        // Snapshot at record time: a trace's contract is history, and
+        // holding the payload reference fabricates it — the export
+        // would carry the FINAL state of shared mutable objects for
+        // every event carrying them, not the state at send (the
+        // noflo-jekyll content race was invisible in traces for
+        // exactly this reason). The recorder itself is already opt-in,
+        // so the copy cost lands only on traced sessions; payloads
+        // structuredClone cannot handle (functions, host objects) keep
+        // the reference rather than dropping the event
+        if (payload.data !== null && typeof payload.data === "object") {
+          try {
+            value = structuredClone(payload.data);
+          } catch {
+            value = payload.data;
+          }
+        } else {
+          value = payload.data;
+        }
         break;
       }
       case "network:begingroup": {
