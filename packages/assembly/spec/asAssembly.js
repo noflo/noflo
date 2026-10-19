@@ -904,6 +904,26 @@ describe("whole-message replace mapping", () => {
     );
   });
 
+  it("rejects a spread marker on an inport mapping at wrap time", () => {
+    class Simple extends noflo.Component {
+      constructor() {
+        super({
+          inPorts: { in: { datatype: "object", required: true } },
+          outPorts: { out: { datatype: "object" } },
+        });
+        this.process(() => {});
+      }
+    }
+    assert.throws(
+      () =>
+        asAssembly(new Simple(), {
+          target: "test/Simple",
+          mapping: { in: { in: "*" } },
+        }),
+      /must not be '\*' — the spread marker is out-mapping vocabulary/,
+    );
+  });
+
   it("carries the spread marker into the collector's fields config", async () => {
     class Yamlish extends noflo.Component {
       constructor() {

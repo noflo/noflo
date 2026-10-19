@@ -108,6 +108,15 @@ function resolveInMapping(inports, mapping = {}) {
       continue;
     }
     const override = mapping.in?.[port.name];
+    if (override === "*") {
+      // The spread marker is out-mapping vocabulary: an in-mapping value
+      // of '*' would generate an extractor walking a literal '*' key and
+      // failing at runtime — rejected at wrap time like the out-side's
+      // doubled marker
+      throw new TypeError(
+        `asAssembly: mapping.in for port '${port.name}' must not be '*' — the spread marker is out-mapping vocabulary`,
+      );
+    }
     resolved[port.name] = override === undefined ? port.name : override;
   }
   return resolved;

@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- `asAssembly` out mappings accept the `'*'` spread marker (one per adapter): the generated collector's fields config carries it, and the wrap-time validation rejects a doubled marker the way it rejects a doubled whole-message replace.
+- `asAssembly` out mappings accept the `'*'` spread marker (one per adapter): the generated collector's fields config carries it, and the wrap-time validation rejects a doubled marker the way it rejects a doubled whole-message replace. An in-mapping value of `'*'` is rejected at wrap time too — the spread marker is out-mapping vocabulary, and an in-side `'*'` would generate an extractor walking a literal `'*'` key and failing at runtime.
 
 ## [2.0.0-alpha.13] - 2026-10-19
 

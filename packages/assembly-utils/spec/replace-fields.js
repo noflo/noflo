@@ -225,6 +225,107 @@ describe("CollectFields whole-message replace", () => {
     assert.equal(c.received[0].spread, true);
   });
 
+  it("spread-vs-named precedence is connection-order independent", async () => {
+    // The processing order is fixed by mapping kind — replace, named,
+    // spread — so a same-key collision resolves identically whichever
+    // connection carries which mapping (the review's probe found the
+    // single merge loop making it connection-order dependent)
+    const spreadFirst = makeCollector(["*", "meta"]);
+    spreadFirst.msg.post(new noflo.IP("data", { errors: [], path: "/origin" }));
+    spreadFirst.data[0].post(new noflo.IP("data", { meta: "from-spread" }));
+    spreadFirst.data[1].post(new noflo.IP("data", "from-named"));
+    const namedFirst = makeCollector(["meta", "*"]);
+    namedFirst.msg.post(new noflo.IP("data", { errors: [], path: "/origin" }));
+    namedFirst.data[0].post(new noflo.IP("data", "from-named"));
+    namedFirst.data[1].post(new noflo.IP("data", { meta: "from-spread" }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(spreadFirst.received.length, 1);
+    assert.equal(namedFirst.received.length, 1);
+    assert.equal(spreadFirst.received[0].meta, "from-spread");
+    assert.equal(namedFirst.received[0].meta, "from-spread");
+    assert.equal(spreadFirst.received[0].meta, namedFirst.received[0].meta);
+  });
+
+  it("the spread never owns errors: the accumulation channels keep them", async () => {
+    // The review found the spread's errors key silently discarded in the
+    // spread-only shape and clobbering the whole accumulation in the
+    // replace+spread shape — the spread is now excluded from the merge,
+    // so both config shapes behave identically: the accumulation channels
+    // (the envelope's own errors, superseded only by a replace) own the
+    // field
+    const spreadOnly = makeCollector(["*"]);
+    spreadOnly.msg.post(
+      new noflo.IP("data", {
+        errors: [new Error("the envelope's own error")],
+        path: "/origin",
+      }),
+    );
+    spreadOnly.data[0].post(
+      new noflo.IP("data", {
+        title: "T",
+        errors: [new Error("the spread's errors key")],
+      }),
+    );
+    const replaceAndSpread = makeCollector([null, "*"]);
+    replaceAndSpread.msg.post(
+      new noflo.IP("data", { errors: [], path: "/origin" }),
+    );
+    replaceAndSpread.data[0].post(
+      new noflo.IP("data", {
+        replaced: true,
+        errors: [new Error("the replacement's own")],
+      }),
+    );
+    replaceAndSpread.data[1].post(
+      new noflo.IP("data", {
+        title: "T",
+        errors: [new Error("the spread's errors key")],
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(spreadOnly.received.length, 1);
+    assert.equal(spreadOnly.received[0].title, "T");
+    assert.equal(spreadOnly.received[0].errors.length, 1);
+    assert.equal(
+      spreadOnly.received[0].errors[0].message,
+      "the envelope's own error",
+    );
+    assert.equal(replaceAndSpread.received.length, 1);
+    assert.equal(replaceAndSpread.received[0].replaced, true);
+    assert.equal(replaceAndSpread.received[0].title, "T");
+    const messages = replaceAndSpread.received[0].errors.map(
+      (/** @type {Error} */ e) => e.message,
+    );
+    assert.ok(messages.includes("the replacement's own"));
+    assert.ok(!messages.includes("the spread's errors key"));
+  });
+
+  it("an error-port signal appends to the replace's accumulation", async () => {
+    // The error leg is the message's terminal event: an error IP while
+    // fields are still pending completes the message with what delivered
+    // — the replace's accumulation and the out-of-band signal appended,
+    // the not-yet-delivered spread field's data completing later without
+    // a collector waiting (the pre-existing terminal-event semantics,
+    // now consistent with the spread's errors exclusion)
+    const c = makeCollector([null, "*"]);
+    c.msg.post(new noflo.IP("data", { errors: [], path: "/origin" }));
+    c.data[0].post(
+      new noflo.IP("data", {
+        replaced: true,
+        errors: [new Error("the replacement's own")],
+      }),
+    );
+    c.error.post(new noflo.IP("data", new Error("from the error port")));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(c.received.length, 1);
+    assert.equal(c.received[0].replaced, true);
+    const messages = c.received[0].errors.map(
+      (/** @type {Error} */ e) => e.message,
+    );
+    assert.ok(messages.includes("the replacement's own"));
+    assert.ok(messages.includes("from the error port"));
+  });
+
   it("errors on a non-object spread output", async () => {
     const c = makeCollector(["*"]);
     c.msg.post(new noflo.IP("data", { errors: [], path: "/keep" }));
