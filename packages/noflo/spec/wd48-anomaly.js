@@ -261,4 +261,95 @@ describe("work document #48: the closedown-vs-pump delivery race", () => {
       "the component should close down after everything drained",
     );
   });
+
+  it("drains a pending non-control IIP buffered before the gate armed", async () => {
+    // The same closedown-vs-pump race through a different buffer shape:
+    // the held work sits in the port's IIP buffer, which the pump's
+    // ready-scope scan reaches just like the regular buffers — the
+    // closedown deferral must reach it too, or the IIP is stranded at
+    // end of transmission exactly like the head-of-line pages above
+    let armed = false;
+    const c = new noflo.Component({
+      inPorts: {
+        in: { datatype: "all" },
+        trig: { datatype: "all" },
+      },
+      outPorts: { out: { datatype: "all" } },
+    });
+    c.process((input, output) => {
+      if (input.hasData("in")) {
+        const a = input.getData("in");
+        const deliver = async () => {
+          // The gate arms asynchronously: an arrival landing in this
+          // window declines and waits for the pump's re-offer
+          await setImmediateP();
+          armed = true;
+          await output.send({ out: `a:${a}` });
+          output.done();
+        };
+        deliver();
+        return;
+      }
+      if (input.hasData("trig")) {
+        if (!armed) {
+          // The gate is not armed yet: decline without consuming — the
+          // packet waits in the IIP buffer for the pump's re-offer
+          output.done();
+          return;
+        }
+        const b = input.getData("trig");
+        const deliver = async () => {
+          await output.send({ out: `b:${b}` });
+          output.done();
+        };
+        deliver();
+        return;
+      }
+      output.done();
+    });
+    const inSocket = new noflo.internalSocket.InternalSocket({});
+    const trigSocket = new noflo.internalSocket.InternalSocket({});
+    const outSocket = new noflo.internalSocket.InternalSocket({});
+    c.inPorts.in.attach(inSocket);
+    c.inPorts.trig.attach(trigSocket);
+    c.outPorts.out.attach(outSocket);
+    /** @type {string[]} */
+    const received = [];
+    let closedownFired = false;
+    outSocket.addEventListener("ip", (event) => {
+      if (event.detail.type === "data") {
+        received.push(event.detail.data);
+      }
+    });
+    c.addEventListener("closedown", () => {
+      closedownFired = true;
+    });
+
+    // a arrives first; its activation consumes it and parks on the
+    // arming delay
+    inSocket.post(new IP("data", "work"), false);
+    // b arrives as a non-control IIP while the gate is still unarmed:
+    // its activation declines, the packet holds in the IIP buffer
+    const trigger = new IP("data", "trigger");
+    trigger.initial = true;
+    trigSocket.post(trigger, false);
+    // Every input reaches EOT while a's activation is still parked —
+    // the closedown-vs-pump race window
+    inSocket.disconnect();
+    trigSocket.disconnect();
+
+    const deadline = Date.now() + 2000;
+    while (received.length < 2 && Date.now() < deadline) {
+      await setImmediateP();
+    }
+    assert.deepEqual(
+      received.sort(),
+      ["a:work", "b:trigger"],
+      `the buffered IIP was silently dropped at closedown — received: ${JSON.stringify(received)}, closedownFired: ${closedownFired}`,
+    );
+    assert.ok(
+      c.isClosedDown(),
+      "the component should close down after everything drained",
+    );
+  });
 });

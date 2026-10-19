@@ -1384,14 +1384,9 @@ export class Component extends EventBase {
   }
 
   /**
-   * Evaluate the classical cascading-closedown rule (work document #45):
-   * a component closes down when every input is at EOT, no activation is
-   * open, and no buffered deliverable data remains (control ports are
-   * excluded — their standing values are legitimate at quiescence). On
-   * closedown the outports are terminally disconnected, so downstream
-   * ports reach EOT and the rule recurses. Runs on every state
-   * transition that can complete the condition: port EOT and activation
-   * close.
+   * React to an input state change (a socket connecting or terminally
+   * disconnecting): a reconnect revives a closed-down component, and
+   * every transition re-evaluates the closedown predicate.
    *
    * @returns {void}
    */
@@ -1408,10 +1403,15 @@ export class Component extends EventBase {
   #pendingOffer = false;
 
   /**
-   * Whether any inport holds buffered packets outside the standing IIP
-   * buffers: the data a pending pump offer might drain. Control ports
-   * are excluded — their standing values are legitimate at quiescence
-   * and never block closing (work document #45).
+   * Whether any inport holds buffered packets the pump's own reach
+   * covers: the data a pending pump offer might drain. The shapes mirror
+   * `#readyScopes()` exactly — the regular, scoped, and addressable
+   * buffers plus the IIP buffers, whose non-control contents are
+   * consumable work like any other. Control ports are excluded — their
+   * standing values are legitimate at quiescence and never block closing
+   * (work document #45). A deferral keyed to a narrower set than the
+   * pump's reach would let the closedown strand packets the pump could
+   * have drained (work document #48).
    *
    * @returns {boolean}
    */
@@ -1427,6 +1427,9 @@ export class Component extends EventBase {
       if ((port.buffer ?? []).length > 0) {
         return true;
       }
+      if ((port.iipBuffer ?? []).length > 0) {
+        return true;
+      }
       for (const buf of Object.values(port.scopedBuffer ?? {})) {
         if ((buf ?? []).length > 0) {
           return true;
@@ -1435,6 +1438,18 @@ export class Component extends EventBase {
       for (const buf of Object.values(port.indexedBuffer ?? {})) {
         if ((buf ?? []).length > 0) {
           return true;
+        }
+      }
+      for (const buf of Object.values(port.indexedIipBuffer ?? {})) {
+        if ((buf ?? []).length > 0) {
+          return true;
+        }
+      }
+      for (const scoped of Object.values(port.indexedScopedBuffer ?? {})) {
+        for (const buf of Object.values(scoped ?? {})) {
+          if ((buf ?? []).length > 0) {
+            return true;
+          }
         }
       }
     }
@@ -1462,6 +1477,23 @@ export class Component extends EventBase {
     this.#evaluateClosedown();
   }
 
+  /**
+   * Evaluate the classical cascading-closedown rule (work document #45):
+   * a component closes down when every input is at EOT, no activation is
+   * open, and no buffered deliverable data remains (control ports are
+   * excluded — their standing values are legitimate at quiescence). On
+   * closedown the outports are terminally disconnected, so downstream
+   * ports reach EOT and the rule recurses. Runs on every state
+   * transition that can complete the condition: port EOT and activation
+   * close.
+   *
+   * The evaluation defers while a drain-pump offer is pending (#48): the
+   * offer may drain buffered data that this rule would otherwise declare
+   * stranded at end of transmission; the offer's own tail re-invokes
+   * this evaluation.
+   *
+   * @returns {void}
+   */
   #evaluateClosedown() {
     if (this.closedDown) {
       return;
