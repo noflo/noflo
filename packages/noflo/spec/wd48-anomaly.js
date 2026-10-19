@@ -352,4 +352,144 @@ describe("work document #48: the closedown-vs-pump delivery race", () => {
       "the component should close down after everything drained",
     );
   });
+
+  it("surfaces the residue census at closedown when the gate never arms", async () => {
+    // Shape 1's engine essence (work document #48 update #8): a gate that
+    // never arms strands the buffered documents in the component's own
+    // buffers; the closedown discard is silent unless the residue is
+    // surfaced. The stranded event is the no-silent-loss surface
+    const c = new noflo.Component({
+      inPorts: {
+        config: { datatype: "object", control: true, scoped: false },
+        msg: { datatype: "object" },
+      },
+      outPorts: { out: { datatype: "object" } },
+    });
+    // No config ever arrives: every page declines and stays buffered
+    c.process((input, output) => {
+      if (!input.hasData("config")) {
+        output.done();
+        return;
+      }
+      output.sendDone({ out: input.getData("msg") });
+    });
+    const msgSocket = new noflo.internalSocket.InternalSocket({});
+    const configSocket = new noflo.internalSocket.InternalSocket({});
+    c.inPorts.msg.attach(msgSocket);
+    c.inPorts.config.attach(configSocket);
+    /** @type {Array<any>} */
+    const strandedEvents = [];
+    c.addEventListener("stranded", (event) => {
+      strandedEvents.push(event.detail);
+    });
+    for (const path of ["r1", "r2", "r3"]) {
+      msgSocket.post(new IP("data", { path }, { scope: path }), false);
+    }
+    msgSocket.disconnect();
+    configSocket.disconnect();
+    const deadline = Date.now() + 2000;
+    while (!c.isClosedDown() && Date.now() < deadline) {
+      await setImmediateP();
+    }
+    assert.ok(c.isClosedDown(), "the component should close down");
+    const closedownEvent = strandedEvents.find((e) => e.reason === "closedown");
+    assert.ok(
+      closedownEvent,
+      `the closedown residue census must surface the held documents — stranded events: ${JSON.stringify(strandedEvents)}`,
+    );
+    const total = closedownEvent.residue.reduce((n, r) => n + r.data, 0);
+    assert.equal(total, 3, "the census names all three held documents");
+  });
+
+  it("surfaces a control-stream replacement clobber", async () => {
+    // The bang-vs-corpus hazard from the noflo-jekyll verification: a
+    // control port keeps the latest stream, so a late stream replaces an
+    // earlier one whose data was never consumed — the replaced data
+    // strands at the replacement moment and must surface there, not as
+    // silence
+    const c = new noflo.Component({
+      inPorts: {
+        includes: { datatype: "all", control: true, scoped: false },
+      },
+      outPorts: { out: { datatype: "all" } },
+    });
+    c.process((_input, output) => {
+      output.done();
+    });
+    const includesSocket = new noflo.internalSocket.InternalSocket({});
+    c.inPorts.includes.attach(includesSocket);
+    /** @type {Array<any>} */
+    const strandedEvents = [];
+    c.inPorts.includes.addEventListener("stranded", (event) => {
+      strandedEvents.push(event.detail);
+    });
+    // The corpus arrives first (one unbracketed data IP: its own stream)
+    includesSocket.post(new IP("data", "footer.html"), false);
+    await setImmediateP();
+    // A later stream replaces it while its data was never consumed
+    includesSocket.post(new IP("data", "replacement"), false);
+    await setImmediateP();
+    await setImmediateP();
+    const clobber = strandedEvents.find((e) => e.reason === "stream-replaced");
+    assert.ok(
+      clobber,
+      `the replacement must surface the discarded stream content — stranded events: ${JSON.stringify(strandedEvents)}`,
+    );
+    assert.equal(clobber.data, 1);
+  });
+
+  it("surfaces the dropped error when the fail leg is unattached and optional", async () => {
+    // Shape 2's engine essence: a build error sent to an unattached
+    // optional fail leg vanishes by contract — the no-silent-loss
+    // invariant requires the drop itself to be surfaced. The component-
+    // side fix for the pipeline is `required: true`, which escalates
+    // instead of dropping
+    const c = new noflo.Component({
+      inPorts: { msg: { datatype: "object" } },
+      outPorts: {
+        out: { datatype: "object" },
+        fail: { datatype: "object" },
+      },
+    });
+    c.process((input, output) => {
+      if (!input.hasData("msg")) {
+        output.done();
+        return;
+      }
+      const msg = input.getData("msg");
+      const deliver = async () => {
+        try {
+          if (msg.fail) {
+            throw new Error(`build failed for ${msg.path}`);
+          }
+          await output.send({ out: msg });
+          output.done();
+        } catch (err) {
+          output.send({ fail: { errors: [err], path: msg.path } });
+          output.done();
+        }
+      };
+      deliver();
+    });
+    const msgSocket = new noflo.internalSocket.InternalSocket({});
+    c.inPorts.msg.attach(msgSocket);
+    /** @type {Array<any>} */
+    const strandedEvents = [];
+    c.outPorts.ports.fail.addEventListener("stranded", (event) => {
+      strandedEvents.push(event.detail);
+    });
+    msgSocket.post(new IP("data", { path: "ok", fail: false }), false);
+    msgSocket.post(new IP("data", { path: "bad", fail: true }), false);
+    msgSocket.disconnect();
+    const deadline = Date.now() + 2000;
+    while (!c.isClosedDown() && Date.now() < deadline) {
+      await setImmediateP();
+    }
+    const dropped = strandedEvents.find((e) => e.reason === "unattached-send");
+    assert.ok(
+      dropped,
+      `the dropped error must surface on the stranded event — stranded events: ${JSON.stringify(strandedEvents)}`,
+    );
+    assert.ok(c.isClosedDown());
+  });
 });

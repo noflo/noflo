@@ -564,6 +564,15 @@ export class Component extends EventBase {
       // transmission re-opening the input (work document #40 update #5)
       port.addEventListener("disconnect", () => this.#handleInputStateChange());
       port.addEventListener("connect", () => this.#handleInputStateChange());
+      // Port-level stranded reports (control-stream replacement clobbers)
+      // forward to the component's own stranded surface, which the network
+      // subscribes to (work document #48)
+      port.addEventListener("stranded", (event) => {
+        this.dispatchLifecycleEvent("stranded", {
+          port: port.name ?? name,
+          ...event.detail,
+        });
+      });
     });
     Object.keys(this.outPorts.ports).forEach((name) => {
       const port = /** @type {import("./OutPort.js").default} */ (
@@ -1528,6 +1537,40 @@ export class Component extends EventBase {
     }
     if (this.isOrdered() && this.outputQ.length > 0) {
       return;
+    }
+    // The strand is final here: the pump's offers have settled (the
+    // pending-offer deferral guarantees it), so whatever data remains
+    // buffered was declined by every wake and no arrival can complete a
+    // context for it. Surface the residue before the shutdown clears it
+    // — the no-silent-loss invariant (work document #48): standing IIP
+    // buffers are excluded, an unconsumed initial is configuration
+    // re-delivered per run, not stranded work (work document #46)
+    const residue = [];
+    Object.keys(this.inPorts.ports).forEach((name) => {
+      const port = /** @type {import("./InPort.js").default} */ (
+        this.inPorts.ports[name]
+      );
+      if (port.options.control) {
+        return;
+      }
+      for (const entry of port.strandedData()) {
+        residue.push({ port: name, ...entry });
+      }
+    });
+    if (residue.length > 0) {
+      const total = residue.reduce((n, entry) => n + entry.data, 0);
+      debugComponent(
+        `${this.nodeId ?? "component"} closes down with ${total} undeliverable data packets buffered — stranded by definition at end of transmission (work document #45): ${residue
+          .map(
+            (entry) =>
+              `${entry.port}[${entry.scope ?? "unscoped"}]=${entry.data}`,
+          )
+          .join(", ")}`,
+      );
+      this.dispatchLifecycleEvent("stranded", {
+        reason: "closedown",
+        residue,
+      });
     }
     this.closedDown = true;
     const disconnects = [];

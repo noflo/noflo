@@ -48,6 +48,29 @@ export default class ProcessOutput {
       (this.ports.ports.error.isAttached() ||
         !this.ports.ports.error.isRequired())
     ) {
+      if (!this.ports.ports.error.isAttached()) {
+        // The unattached optional error leg: the sends below vanish by
+        // contract (the consumer opted out of errors) — but a dropped
+        // error is a silent loss unless surfaced (work document #48's
+        // no-silent-loss invariant). The component-side answer for a leg
+        // that must not drop is `required: true`, which escalates here
+        // instead
+        for (const e of errs) {
+          debugComponent(
+            `${this.nodeInstance?.nodeId ?? "component"} error message dropped: the '${this.ports.ports.error.name ?? "error"}' port is unattached and optional — ${e?.message ?? String(e)}`,
+          );
+          this.ports.ports.error.dispatchLifecycleEvent("stranded", {
+            reason: "dropped-error",
+            port: this.ports.ports.error.name ?? "error",
+            error: e,
+          });
+          this.nodeInstance?.dispatchLifecycleEvent("stranded", {
+            reason: "dropped-error",
+            port: this.ports.ports.error.name ?? "error",
+            error: e,
+          });
+        }
+      }
       if (errs.length > 1) {
         this.sendIP("error", new IP("openBracket"));
       }
