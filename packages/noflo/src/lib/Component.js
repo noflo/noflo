@@ -683,11 +683,37 @@ export class Component extends EventBase {
     // auto-ordering. Control ports have no firing role: their buffers
     // are standing state — non-consuming reads — not pending work, so
     // the walk skips them and a control arrival with nothing pending
-    // buffers silently. Forwarding inports are exempt: their brackets
-    // are owned by the forwarding machinery in fireProcess, and their
-    // data arrivals keep the direct path.
+    // buffers silently. Forwarding inports' brackets are owned by the
+    // forwarding machinery in fireProcess, and their data arrivals fire
+    // the direct path — which is the arriving IP's own firing. The
+    // one-firing rule still applies to every OTHER scope holding pending
+    // work: the arrival is a state change that may complete their
+    // preconditions (the corpus arriving on a framing-terminated control
+    // port completes every held document's hasStream gate), so the
+    // ready-scope walk runs for the remaining scopes. Skipping it made
+    // the walk's completeness guarantee stop at forwarding inports — the
+    // silent-drop class the noflo-jekyll testbed's verification localized
+    // (work document #48 update #11)
     if (this.isForwardingInport(port)) {
       this.fireProcess(ip, port);
+      // The arriving IP was buffered before this dispatch, so the walk
+      // would re-offer its own scope — the direct fireProcess above was
+      // that scope's firing; dedupe it. Control ports are skipped by the
+      // walk itself (standing state, not pending work)
+      const arrivingScope = ip.scope ?? null;
+      const ready = this.#readyScopes();
+      for (const readyScope of ready) {
+        if (readyScope.port === port && readyScope.scope === arrivingScope) {
+          continue;
+        }
+        const contextIp =
+          readyScope.scope === null
+            ? readyScope.head
+            : new IP(readyScope.head.type, readyScope.head.data, {
+                scope: readyScope.scope,
+              });
+        this.fireProcess(contextIp, readyScope.port);
+      }
       return;
     }
     if (port.options.control && port.options.scoped && ip.scope == null) {

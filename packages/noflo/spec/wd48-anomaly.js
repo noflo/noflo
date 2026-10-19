@@ -492,4 +492,77 @@ describe("work document #48: the closedown-vs-pump delivery race", () => {
     );
     assert.ok(c.isClosedDown());
   });
+
+  it("re-fires pending scopes when a forwarding inport's arrival completes their gate", async () => {
+    // The one-firing rule must apply to forwarding inports' arrivals too
+    // (work document #48): a corpus arrival on a framing-terminated
+    // control port fires the direct path — one activation for the
+    // arriving IP's own scope — and before the fix SKIPPED the
+    // ready-scope walk, so pending work in other scopes whose gate the
+    // corpus completes never re-fired. This is the liquid Template's
+    // includes race: the corpus arrives after the pages buffered, the
+    // corpus's own scope sees no template/variables, the pages strand
+    const c = new noflo.Component({
+      inPorts: {
+        // The corpus port: standing control stream with declared framing
+        // termination — a forwarding inport, exactly like the liquid
+        // Template's includes port
+        includes: { datatype: "all", control: true, scoped: false },
+        msg: { datatype: "object" },
+      },
+      outPorts: { out: { datatype: "object" } },
+    });
+    c.forwardBrackets = { includes: [] };
+    c.process((input, output) => {
+      // The gate, mirroring the liquid Template: the corpus must have
+      // arrived (hasStream) before the message may consume
+      if (
+        input.attached("includes").length > 0 &&
+        !input.hasStream("includes")
+      ) {
+        output.done();
+        return;
+      }
+      if (!input.hasData("msg")) {
+        output.done();
+        return;
+      }
+      output.sendDone({ out: input.getData("msg") });
+    });
+    const includesSocket = new noflo.internalSocket.InternalSocket({});
+    const msgSocket = new noflo.internalSocket.InternalSocket({});
+    const outSocket = new noflo.internalSocket.InternalSocket({});
+    c.inPorts.includes.attach(includesSocket);
+    c.inPorts.msg.attach(msgSocket);
+    c.outPorts.out.attach(outSocket);
+    /** @type {string[]} */
+    const emitted = [];
+    outSocket.addEventListener("ip", (event) => {
+      if (event.detail.type === "data") emitted.push(event.detail.data);
+    });
+
+    // The message arrives FIRST, in a scope of its own: the corpus gate
+    // declines it (hasStream false — nothing buffered yet), it stays
+    // buffered
+    msgSocket.post(
+      new IP("data", { path: "page-1" }, { scope: "page-1" }),
+      false,
+    );
+    await setImmediateP();
+    assert.deepEqual(emitted, []);
+
+    // The corpus arrives on the forwarding control port: its arrival
+    // completes the held message's gate and must re-fire the pending
+    // scope
+    includesSocket.post(new IP("data", "footer"), false);
+    const deadline = Date.now() + 2000;
+    while (emitted.length < 1 && Date.now() < deadline) {
+      await setImmediateP();
+    }
+    assert.deepEqual(
+      emitted.map((e) => e.path),
+      ["page-1"],
+      "the held message was never re-fired by the corpus arrival — the forwarding inport's direct path skipped the ready-scope walk",
+    );
+  });
 });

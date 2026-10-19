@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- The one-firing rule now covers forwarding inports (work document #48): a forwarding inport's arrival — a framing-terminated control port's corpus, or a bracket-forwarding port's data — fired the direct path only, one activation for the arriving IP's own scope, while the ready-scope walk that re-fires every other scope holding pending work was skipped. Work whose gate the arrival completes (a corpus completing a held document's `hasStream` gate) stranded behind its scope until the shutdown silently discarded it — the intermittent silent message drop the noflo-jekyll testbed reproduced end-to-end at ~10% per build, localized by per-adapter trace attribution to the liquid Template's includes gate. The fix runs the ready-scope walk for the remaining scopes after the direct firing, deduplicating the arriving scope; the forwarding machinery's bracket ownership is unchanged. This completes the one-firing rule's coverage: every arrival on every port re-fires every scope holding pending work
 
 ## [2.0.0-alpha.12] - 2026-10-19
 ### Added
