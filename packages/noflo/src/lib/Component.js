@@ -1338,6 +1338,13 @@ export class Component extends EventBase {
               this.outPorts[port].sendIP(ip);
             });
           });
+          // The queue holds unsent work only: the sent entries leave the
+          // result object (keys kept — the bracket machinery walks them),
+          // so a re-activated context re-pushing the same result cannot
+          // re-send its history (work document #49)
+          Object.keys(ips).forEach((index) => {
+            ips[index].length = 0;
+          });
           return;
         }
         if (!this.outPorts.ports[port].isAttached()) {
@@ -1362,6 +1369,10 @@ export class Component extends EventBase {
           }
           this.outPorts[port].sendIP(ip);
         });
+        // The queue holds unsent work only: the sent entries leave the
+        // result object, so a re-activated context re-pushing the same
+        // result cannot re-send its history (work document #49)
+        ips.length = 0;
       });
     }
   }
