@@ -1,5 +1,5 @@
 {
   "files": {
-    "includes": ["**", "!**/*.d.ts", "!**/noflo.json"]
+    "includes": ["**", "!**/*.d.ts", "!**/noflo.json", "!**/schemas/*.json"]
   }
 }
