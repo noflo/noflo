@@ -4,7 +4,11 @@
   "title": "The body-line message with mounted parts",
   "description": "The order envelope carrying the body after parts are supplied and mounted: the CombineAssemblies b-input shape. Parts may linger until Release strips them.",
   "type": "object",
-  "required": ["errors", "id", "body"],
+  "required": [
+    "errors",
+    "id",
+    "body"
+  ],
   "properties": {
     "errors": {
       "type": "array",
@@ -21,7 +25,10 @@
     },
     "parts": {
       "type": "object",
-      "required": ["interior", "doors"],
+      "required": [
+        "interior",
+        "doors"
+      ],
       "properties": {
         "interior": {
           "type": "string"

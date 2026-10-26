@@ -4,7 +4,10 @@
   "title": "The chassis sub-assembly",
   "description": "The chassis line's mounting stages, frame through wheels: fields accumulate along the line, so the early stages require only the frame-stage fields and the completion gate requires them all.",
   "type": "object",
-  "required": ["id", "frame"],
+  "required": [
+    "id",
+    "frame"
+  ],
   "properties": {
     "id": {
       "type": "integer",
@@ -24,7 +27,11 @@
     },
     "suspension": {
       "type": "object",
-      "required": ["levers", "shocks", "coils"],
+      "required": [
+        "levers",
+        "shocks",
+        "coils"
+      ],
       "properties": {
         "levers": {
           "type": "string"

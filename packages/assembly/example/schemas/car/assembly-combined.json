@@ -4,7 +4,12 @@
   "title": "The combined car message",
   "description": "The merged chassis and body lines (CombineAssemblies' output, Release's input): both sub-assemblies complete, correlated by id.",
   "type": "object",
-  "required": ["errors", "id", "chassis", "body"],
+  "required": [
+    "errors",
+    "id",
+    "chassis",
+    "body"
+  ],
   "properties": {
     "errors": {
       "type": "array",
@@ -24,7 +29,10 @@
     },
     "parts": {
       "type": "object",
-      "required": ["interior", "doors"],
+      "required": [
+        "interior",
+        "doors"
+      ],
       "properties": {
         "interior": {
           "type": "string"

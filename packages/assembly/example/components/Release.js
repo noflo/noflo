@@ -23,7 +23,9 @@ class Release extends Component {
   relay(msg, output) {
     // Display errors at this point
     if (failed(msg)) {
-      msg.errors.forEach((e) => console.error(e));
+      msg.errors.forEach((e) => {
+        console.error(e);
+      });
     } else {
       if (msg.parts) {
         delete msg.parts;

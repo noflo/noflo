@@ -4,7 +4,10 @@
   "title": "The car order envelope",
   "description": "The assembly message starting a car production run (the example package's Order component): the shared error envelope plus the production id the two assembly lines correlate on.",
   "type": "object",
-  "required": ["errors", "id"],
+  "required": [
+    "errors",
+    "id"
+  ],
   "properties": {
     "errors": {
       "type": "array",

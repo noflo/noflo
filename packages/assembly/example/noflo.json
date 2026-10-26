@@ -7,7 +7,7 @@
   "npm": "example",
   "jsr": null,
   "source": null,
-  "revision": "d0072789efe7fac1644d499d4e8b12918e354811",
+  "revision": "2568888bcc92ea2db62857f406295a7602142044",
   "loader": false,
   "namespaces": {},
   "schemas": {
@@ -90,7 +90,10 @@
             },
             "guard": {
               "type": "object",
-              "required": ["errors", "id"]
+              "required": [
+                "errors",
+                "id"
+              ]
             }
           }
         ],
@@ -108,14 +111,23 @@
             },
             "guard": {
               "type": "object",
-              "required": ["body", "errors", "id"]
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
             }
           }
         ]
       },
       "spec": null,
       "assembly": true,
-      "platforms": ["browser", "node", "deno", "bun"]
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
     },
     {
       "name": "example/BuildFrame",
@@ -138,7 +150,10 @@
             },
             "guard": {
               "type": "object",
-              "required": ["errors", "id"]
+              "required": [
+                "errors",
+                "id"
+              ]
             }
           }
         ],
@@ -156,14 +171,23 @@
             },
             "guard": {
               "type": "object",
-              "required": ["chassis", "errors", "id"]
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
             }
           }
         ]
       },
       "spec": null,
       "assembly": true,
-      "platforms": ["browser", "node", "deno", "bun"]
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
     },
     {
       "name": "example/CombineAssemblies",
@@ -186,7 +210,11 @@
             },
             "guard": {
               "type": "object",
-              "required": ["body", "errors", "id"]
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
             }
           },
           {
@@ -202,7 +230,11 @@
             },
             "guard": {
               "type": "object",
-              "required": ["chassis", "errors", "id"]
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
             }
           }
         ],
@@ -220,14 +252,24 @@
             },
             "guard": {
               "type": "object",
-              "required": ["body", "chassis", "errors", "id"]
+              "required": [
+                "body",
+                "chassis",
+                "errors",
+                "id"
+              ]
             }
           }
         ]
       },
       "spec": null,
       "assembly": true,
-      "platforms": ["browser", "node", "deno", "bun"]
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
     },
     {
       "name": "example/MountBodyParts",
@@ -250,7 +292,11 @@
             },
             "guard": {
               "type": "object",
-              "required": ["body", "errors", "id"]
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
             }
           },
           {
@@ -265,7 +311,10 @@
             },
             "guard": {
               "type": "string",
-              "enum": ["interior", "doors"]
+              "enum": [
+                "interior",
+                "doors"
+              ]
             }
           }
         ],
@@ -283,14 +332,23 @@
             },
             "guard": {
               "type": "object",
-              "required": ["body", "errors", "id"]
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
             }
           }
         ]
       },
       "spec": null,
       "assembly": true,
-      "platforms": ["browser", "node", "deno", "bun"]
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
     },
     {
       "name": "example/MountEngine",
@@ -313,7 +371,11 @@
             },
             "guard": {
               "type": "object",
-              "required": ["chassis", "errors", "id"]
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
             }
           },
           {
@@ -345,14 +407,23 @@
             },
             "guard": {
               "type": "object",
-              "required": ["chassis", "errors", "id"]
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
             }
           }
         ]
       },
       "spec": null,
       "assembly": true,
-      "platforms": ["browser", "node", "deno", "bun"]
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
     },
     {
       "name": "example/MountPanels",
@@ -375,7 +446,11 @@
             },
             "guard": {
               "type": "object",
-              "required": ["body", "errors", "id"]
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
             }
           }
         ],
@@ -393,14 +468,23 @@
             },
             "guard": {
               "type": "object",
-              "required": ["body", "errors", "id"]
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
             }
           }
         ]
       },
       "spec": null,
       "assembly": true,
-      "platforms": ["browser", "node", "deno", "bun"]
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
     },
     {
       "name": "example/MountSuspension",
@@ -423,7 +507,11 @@
             },
             "guard": {
               "type": "object",
-              "required": ["chassis", "errors", "id"]
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
             }
           }
         ],
@@ -441,14 +529,23 @@
             },
             "guard": {
               "type": "object",
-              "required": ["chassis", "errors", "id"]
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
             }
           }
         ]
       },
       "spec": null,
       "assembly": true,
-      "platforms": ["browser", "node", "deno", "bun"]
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
     },
     {
       "name": "example/MountTransmission",
@@ -471,7 +568,11 @@
             },
             "guard": {
               "type": "object",
-              "required": ["chassis", "errors", "id"]
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
             }
           }
         ],
@@ -489,14 +590,23 @@
             },
             "guard": {
               "type": "object",
-              "required": ["chassis", "errors", "id"]
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
             }
           }
         ]
       },
       "spec": null,
       "assembly": true,
-      "platforms": ["browser", "node", "deno", "bun"]
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
     },
     {
       "name": "example/MountWheels",
@@ -519,7 +629,11 @@
             },
             "guard": {
               "type": "object",
-              "required": ["chassis", "errors", "id"]
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
             }
           },
           {
@@ -552,14 +666,23 @@
             },
             "guard": {
               "type": "object",
-              "required": ["chassis", "errors", "id"]
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
             }
           }
         ]
       },
       "spec": null,
       "assembly": true,
-      "platforms": ["browser", "node", "deno", "bun"]
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
     },
     {
       "name": "example/Order",
@@ -594,14 +717,22 @@
             },
             "guard": {
               "type": "object",
-              "required": ["errors", "id"]
+              "required": [
+                "errors",
+                "id"
+              ]
             }
           }
         ]
       },
       "spec": null,
       "assembly": true,
-      "platforms": ["browser", "node", "deno", "bun"]
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
     },
     {
       "name": "example/Release",
@@ -624,7 +755,12 @@
             },
             "guard": {
               "type": "object",
-              "required": ["body", "chassis", "errors", "id"]
+              "required": [
+                "body",
+                "chassis",
+                "errors",
+                "id"
+              ]
             }
           }
         ],
@@ -642,14 +778,24 @@
             },
             "guard": {
               "type": "object",
-              "required": ["body", "chassis", "errors", "id"]
+              "required": [
+                "body",
+                "chassis",
+                "errors",
+                "id"
+              ]
             }
           }
         ]
       },
       "spec": null,
       "assembly": true,
-      "platforms": ["browser", "node", "deno", "bun"]
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
     },
     {
       "name": "example/SplitAssemblies",
@@ -672,7 +818,10 @@
             },
             "guard": {
               "type": "object",
-              "required": ["errors", "id"]
+              "required": [
+                "errors",
+                "id"
+              ]
             }
           }
         ],
@@ -690,7 +839,10 @@
             },
             "guard": {
               "type": "object",
-              "required": ["errors", "id"]
+              "required": [
+                "errors",
+                "id"
+              ]
             }
           },
           {
@@ -706,14 +858,22 @@
             },
             "guard": {
               "type": "object",
-              "required": ["errors", "id"]
+              "required": [
+                "errors",
+                "id"
+              ]
             }
           }
         ]
       },
       "spec": null,
       "assembly": true,
-      "platforms": ["browser", "node", "deno", "bun"]
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
     },
     {
       "name": "example/SupplyBodyParts",
@@ -736,7 +896,11 @@
             },
             "guard": {
               "type": "object",
-              "required": ["body", "errors", "id"]
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
             }
           },
           {
@@ -797,7 +961,11 @@
             },
             "guard": {
               "type": "object",
-              "required": ["body", "errors", "id"]
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
             }
           },
           {
@@ -813,14 +981,23 @@
             },
             "guard": {
               "type": "object",
-              "required": ["body", "errors", "id"]
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
             }
           }
         ]
       },
       "spec": null,
       "assembly": true,
-      "platforms": ["browser", "node", "deno", "bun"]
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
     },
     {
       "name": "example/WireElectrics",
@@ -843,7 +1020,11 @@
             },
             "guard": {
               "type": "object",
-              "required": ["body", "errors", "id"]
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
             }
           },
           {
@@ -859,7 +1040,11 @@
             },
             "guard": {
               "type": "object",
-              "required": ["body", "errors", "id"]
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
             }
           }
         ],
@@ -877,14 +1062,23 @@
             },
             "guard": {
               "type": "object",
-              "required": ["body", "errors", "id"]
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
             }
           }
         ]
       },
       "spec": null,
       "assembly": true,
-      "platforms": ["browser", "node", "deno", "bun"]
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
     },
     {
       "name": "example/BuildBody",
@@ -907,7 +1101,10 @@
             },
             "guard": {
               "type": "object",
-              "required": ["errors", "id"]
+              "required": [
+                "errors",
+                "id"
+              ]
             }
           }
         ],
@@ -925,7 +1122,11 @@
             },
             "guard": {
               "type": "object",
-              "required": ["body", "errors", "id"]
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
             }
           }
         ]
@@ -939,7 +1140,12 @@
         "example/MountBodyParts",
         "example/WireElectrics"
       ],
-      "platforms": ["browser", "node", "deno", "bun"]
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
     },
     {
       "name": "example/BuildCar",
@@ -974,7 +1180,12 @@
             },
             "guard": {
               "type": "object",
-              "required": ["body", "chassis", "errors", "id"]
+              "required": [
+                "body",
+                "chassis",
+                "errors",
+                "id"
+              ]
             }
           }
         ]
@@ -989,7 +1200,9 @@
         "example/CombineAssemblies",
         "example/Release"
       ],
-      "platforms": ["node"]
+      "platforms": [
+        "node"
+      ]
     },
     {
       "name": "example/BuildChassis",
@@ -1012,7 +1225,10 @@
             },
             "guard": {
               "type": "object",
-              "required": ["errors", "id"]
+              "required": [
+                "errors",
+                "id"
+              ]
             }
           }
         ],
@@ -1030,7 +1246,11 @@
             },
             "guard": {
               "type": "object",
-              "required": ["chassis", "errors", "id"]
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
             }
           }
         ]
@@ -1044,7 +1264,12 @@
         "example/MountSuspension",
         "example/MountWheels"
       ],
-      "platforms": ["browser", "node", "deno", "bun"]
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
     }
   ]
 }

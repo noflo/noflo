@@ -15,7 +15,7 @@ class Order extends Component {
     this.counter = 0;
   }
 
-  processMessage(input, output) {
+  processMessage(_input, output) {
     this.counter += 1;
     // Create a new assembly message
     const msg = {

@@ -4,7 +4,11 @@
   "title": "The chassis-line message, completed",
   "description": "The order envelope carrying the fully mounted chassis: the CombineAssemblies c-input shape.",
   "type": "object",
-  "required": ["errors", "id", "chassis"],
+  "required": [
+    "errors",
+    "id",
+    "chassis"
+  ],
   "properties": {
     "errors": {
       "type": "array",

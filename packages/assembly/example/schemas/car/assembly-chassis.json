@@ -4,7 +4,11 @@
   "title": "The chassis-line message, frame stage",
   "description": "The order envelope carrying the chassis sub-assembly after the frame is mounted (BuildFrame's output, the input of the chassis mounting stages).",
   "type": "object",
-  "required": ["errors", "id", "chassis"],
+  "required": [
+    "errors",
+    "id",
+    "chassis"
+  ],
   "properties": {
     "errors": {
       "type": "array",

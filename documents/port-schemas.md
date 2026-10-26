@@ -54,6 +54,7 @@ Two implementation notes from the dogfood:
 
 - **Graph format and case**: the `.fbp` loader path folds port names to the 1.x lowercase, while the manifest generator's graph import is case-strict — a package that ships graphs and schemas should author its graphs as FBP JSON (exact case significance) so one document satisfies both paths.
 - **Subgraph boundary ports**: a subgraph instance's ports are its exported public names — internal edges reference those, not the inner nodes' own port names.
+- **Commit the raw generator output**: a committed `noflo.json` is a build artifact — formatting tools must skip it (exempt `**/noflo.json` from the formatter) so a regeneration diffs only when the manifest's content changes, not when a formatter's array-collapsing style changes. Hand-formatting the committed file guarantees a noisy diff on every regeneration. The `revision` field is provenance for the content that generated the manifest; the authoritative publish-time provenance is the workflow's regeneration (`--revision $GITHUB_SHA`), since a committed manifest can never carry the hash of the commit that first ships it.
 
 ## Honest boundaries
 

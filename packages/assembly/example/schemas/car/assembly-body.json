@@ -4,7 +4,11 @@
   "title": "The body-line message, base stage",
   "description": "The order envelope carrying the body sub-assembly after the base is built (BuildBodyBase's output).",
   "type": "object",
-  "required": ["errors", "id", "body"],
+  "required": [
+    "errors",
+    "id",
+    "body"
+  ],
   "properties": {
     "errors": {
       "type": "array",

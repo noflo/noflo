@@ -53,6 +53,25 @@ const loadExample = async (name) => {
 };
 
 /**
+ * Wait until the predicate holds, polling instead of sleeping a fixed
+ * time: the wait ends when the condition is true, not when a guess
+ * about CI speed expires.
+ *
+ * @param {() => boolean} predicate
+ * @param {number} [timeoutMs]
+ * @returns {Promise<void>}
+ */
+const until = async (predicate, timeoutMs = 5_000) => {
+	const deadline = Date.now() + timeoutMs;
+	while (!predicate()) {
+		if (Date.now() > deadline) {
+			throw new Error("timed out waiting for the condition");
+		}
+		await new Promise((resolve) => setTimeout(resolve, 25));
+	}
+};
+
+/**
  * @param {import("@noflo/noflo").Component} component
  */
 const wire = (component) => {

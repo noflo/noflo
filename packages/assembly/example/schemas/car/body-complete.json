@@ -4,7 +4,13 @@
   "title": "The completed body sub-assembly",
   "description": "The body after every mounting stage.",
   "type": "object",
-  "required": ["id", "panels", "interior", "doors", "electrics"],
+  "required": [
+    "id",
+    "panels",
+    "interior",
+    "doors",
+    "electrics"
+  ],
   "properties": {
     "id": {
       "type": "integer",

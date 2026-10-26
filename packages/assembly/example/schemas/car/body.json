@@ -4,7 +4,9 @@
   "title": "The body sub-assembly",
   "description": "The body line's mounting stages, base through electrics.",
   "type": "object",
-  "required": ["id"],
+  "required": [
+    "id"
+  ],
   "properties": {
     "id": {
       "type": "integer",

@@ -4,7 +4,12 @@
   "title": "The released car",
   "description": "The vehicle as Release hands it to the outer world: the completed chassis and body, correlated by id, the transient parts carriage stripped.",
   "type": "object",
-  "required": ["errors", "id", "chassis", "body"],
+  "required": [
+    "errors",
+    "id",
+    "chassis",
+    "body"
+  ],
   "properties": {
     "errors": {
       "type": "array",

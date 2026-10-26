@@ -32,7 +32,11 @@
     },
     "suspension": {
       "type": "object",
-      "required": ["levers", "shocks", "coils"],
+      "required": [
+        "levers",
+        "shocks",
+        "coils"
+      ],
       "properties": {
         "levers": {
           "type": "string"
