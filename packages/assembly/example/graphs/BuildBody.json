@@ -1,0 +1,140 @@
+{
+  "name": "BuildBody",
+  "nodes": [
+    {
+      "id": "BuildBase",
+      "component": "example/BuildBodyBase"
+    },
+    {
+      "id": "MountPanels",
+      "component": "example/MountPanels"
+    },
+    {
+      "id": "SupplyParts",
+      "component": "example/SupplyBodyParts"
+    },
+    {
+      "id": "InstallInterior",
+      "component": "example/MountBodyParts"
+    },
+    {
+      "id": "MountDoors",
+      "component": "example/MountBodyParts"
+    },
+    {
+      "id": "WireElectrics",
+      "component": "example/WireElectrics"
+    }
+  ],
+  "edges": [
+    {
+      "source": {
+        "id": "BuildBase",
+        "port": "out"
+      },
+      "target": {
+        "id": "MountPanels",
+        "port": "in"
+      }
+    },
+    {
+      "source": {
+        "id": "MountPanels",
+        "port": "out"
+      },
+      "target": {
+        "id": "SupplyParts",
+        "port": "in"
+      }
+    },
+    {
+      "source": {
+        "id": "SupplyParts",
+        "port": "main"
+      },
+      "target": {
+        "id": "InstallInterior",
+        "port": "in"
+      }
+    },
+    {
+      "source": {
+        "id": "SupplyParts",
+        "port": "aux"
+      },
+      "target": {
+        "id": "MountDoors",
+        "port": "in"
+      }
+    },
+    {
+      "source": {
+        "id": "InstallInterior",
+        "port": "out"
+      },
+      "target": {
+        "id": "WireElectrics",
+        "port": "main"
+      }
+    },
+    {
+      "source": {
+        "id": "MountDoors",
+        "port": "out"
+      },
+      "target": {
+        "id": "WireElectrics",
+        "port": "aux"
+      }
+    }
+  ],
+  "inits": [
+    {
+      "data": "Cool Modern Interior",
+      "target": {
+        "id": "SupplyParts",
+        "port": "interior"
+      }
+    },
+    {
+      "data": "Door",
+      "target": {
+        "id": "SupplyParts",
+        "port": "doortype"
+      }
+    },
+    {
+      "data": 4,
+      "target": {
+        "id": "SupplyParts",
+        "port": "doornum"
+      }
+    },
+    {
+      "data": "interior",
+      "target": {
+        "id": "InstallInterior",
+        "port": "partname"
+      }
+    },
+    {
+      "data": "doors",
+      "target": {
+        "id": "MountDoors",
+        "port": "partname"
+      }
+    }
+  ],
+  "inports": {
+    "in": {
+      "process": "BuildBase",
+      "port": "in"
+    }
+  },
+  "outports": {
+    "out": {
+      "process": "WireElectrics",
+      "port": "out"
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "urn:noflo:noflo/meta-catalog@278e7057c1cce1a8f33fb75aab757450cbdcde7bb5135858d18ac0ca1bfe62c9",
+  "$id": "car/assembly-body-complete",
+  "title": "The body-line message with mounted parts",
+  "description": "The order envelope carrying the body after parts are supplied and mounted: the CombineAssemblies b-input shape. Parts may linger until Release strips them.",
+  "type": "object",
+  "required": ["errors", "id", "body"],
+  "properties": {
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "body": {
+      "$ref": "urn:noflo:car/body-complete@913d7f43e83ef760dd351c809c23b9584a66133a3ab035f8119eaf53e652d8c6"
+    },
+    "parts": {
+      "type": "object",
+      "required": ["interior", "doors"],
+      "properties": {
+        "interior": {
+          "type": "string"
+        },
+        "doors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "$schema": "urn:noflo:noflo/meta-catalog@278e7057c1cce1a8f33fb75aab757450cbdcde7bb5135858d18ac0ca1bfe62c9",
+  "$id": "car/assembly-chassis-complete",
+  "title": "The chassis-line message, completed",
+  "description": "The order envelope carrying the fully mounted chassis: the CombineAssemblies c-input shape.",
+  "type": "object",
+  "required": ["errors", "id", "chassis"],
+  "properties": {
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "chassis": {
+      "$ref": "urn:noflo:car/chassis-complete@0b61f97b85766521fe1f2903849210b73a7312975d6f86f946e8939bafd2d023"
+    }
+  }
+}

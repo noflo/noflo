@@ -1,7 +1,23 @@
 import { Component } from "../../src/index.js";
 
 class MountSuspension extends Component {
-  // Can skip constructor
+  constructor() {
+    super({
+      inPorts: {
+        in: {
+          datatype: "object",
+          schema: "car/assembly-chassis",
+        },
+      },
+      outPorts: {
+        out: {
+          datatype: "object",
+          schema: "car/assembly-chassis",
+        },
+      },
+    });
+  }
+
   relay(msg, output) {
     msg.chassis.suspension = {
       levers: "> | | <",

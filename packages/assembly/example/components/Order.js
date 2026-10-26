@@ -5,6 +5,12 @@ class Order extends Component {
   constructor() {
     super({
       description: "Place an order of a new car production",
+      outPorts: {
+        out: {
+          datatype: "object",
+          schema: "car/order",
+        },
+      },
     });
     this.counter = 0;
   }

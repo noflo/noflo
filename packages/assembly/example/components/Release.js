@@ -4,6 +4,18 @@ class Release extends Component {
   constructor() {
     super({
       description: "Release a car to the outer world",
+      inPorts: {
+        in: {
+          datatype: "object",
+          schema: "car/assembly-combined",
+        },
+      },
+      outPorts: {
+        out: {
+          datatype: "object",
+          schema: "car/car",
+        },
+      },
       validates: ["chassis.id", "body.id"],
     });
   }

@@ -1,0 +1,29 @@
+{
+  "$schema": "urn:noflo:noflo/meta-catalog@278e7057c1cce1a8f33fb75aab757450cbdcde7bb5135858d18ac0ca1bfe62c9",
+  "$id": "car/body",
+  "title": "The body sub-assembly",
+  "description": "The body line's mounting stages, base through electrics.",
+  "type": "object",
+  "required": ["id"],
+  "properties": {
+    "id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "panels": {
+      "type": "string"
+    },
+    "interior": {
+      "type": "string"
+    },
+    "doors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "electrics": {
+      "type": "string"
+    }
+  }
+}
