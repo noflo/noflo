@@ -64,11 +64,11 @@ import getParams from "get-function-params";
 //
 // Usage example:
 //
-//     exports.getComponent = function () {
+//     export function getComponent() {
 //       return noflo.asComponent(Math.random, {
 //         description: 'Generate a random number',
 //       });
-//     };
+//     }
 //
 // ### Wrapping built-in functions
 //
@@ -78,14 +78,14 @@ import getParams from "get-function-params";
 //
 // Example:
 //
-//     exports.getComponent = function () {
+//     export function getComponent() {
 //       return noflo.asComponent(function (selector) {
 //         return document.querySelector(selector);
 //       }, {
 //         description: 'Return an element matching the CSS selector',
 //         icon: 'html5',
 //       });
-//     };
+//     }
 //
 // ### Default values
 //

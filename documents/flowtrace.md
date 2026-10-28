@@ -38,7 +38,7 @@ Process activation semantics worth knowing:
 Pass a `Flowtrace` instance as the `flowtrace` network option:
 
 ```js
-import noflo from "noflo";
+import noflo from "@noflo/noflo";
 
 const trace = new noflo.Flowtrace({
   runtimeMetadata: { name: "my-app", type: "in-process" },

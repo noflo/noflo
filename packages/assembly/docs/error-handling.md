@@ -37,7 +37,7 @@ Forwarding errored requests may look like a waste of resources as you could send
 
 In a graph that has several branches processing the same request concurrently, an error that occurs in one of the branches usually makes it uneasy to finish the other branches and converge into a correct error response. Such graphs often end up just hanging, or containing garbage from previously failed requests, or trying to use database transactions that have already been terminated elsewhere. This is the problem that Assembly Line error passing convention addresses.
 
-As JavaScript objects are passed by reference and NoFlo encourages passing such references on fan-out connections by default, the assembly message that travels across concurrent branches in the graph are actually the same thing, or share the same `errors` property. Thus if a message contains errors, it is also seen across the graphs as failed immediately. This prevents from performing actions on a failed request in vain or by mistake.
+When an assembly line splits into concurrent branches, NoFlo 2.x fan-out gives each branch its own clone of the message, so the branches cannot corrupt each other's message state. The shared failure state comes from `fork()`: forked messages keep referencing the same `errors` array. Thus if a message contains errors, it is seen as failed across all the branches immediately. This prevents from performing actions on a failed request in vain or by mistake.
 
 And because Assembly Line components always pass failed messages further down the graph, all the concurrent branches eventually converge no matter if something failed or not, preventing the graph from being stuck or accumulating uncollectable garbage.
 

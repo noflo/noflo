@@ -47,13 +47,13 @@ NoFlo 2.x series goals:
 - Library methods use Promises, not callbacks
 - Component loading and registration is done by the application calling NoFlo library
 - Components must be written using ES Modules
-- In addition to JavaScript, components can be written TypeScript
+- In addition to JavaScript, components can be written in TypeScript
 
 ## Commands
 
-- Build: `npm run build` (check type safety and extract TypeScript definitions from source code)
+- Type check: `npm run types --workspaces` (extract TypeScript definitions from source code and verify type safety), with `npm run check:types` guarding against uncommitted declaration drift
 - Test: `npm test` (run unit tests)
-- Lint: `npm run lint` to (check code for formatting errors)
+- Lint: `npm run lint` (check code for lint and formatting errors)
 
 ## Project structure
 
@@ -64,7 +64,8 @@ NoFlo is developed as a monorepo managed with npm workspaces. The commands above
   - `spec/`: unit and integration tests
   - `examples/`: example graphs and components
 - `scripts/`: monorepo release and tooling scripts (version bumping, changelog compilation, JSR publishing helpers)
-- `docs/`: documentation in Markdown format
+- `documents/`: living architecture documentation in Markdown format (component loading, port schemas, flowtrace, the component-library migration protocol)
+- `packages/assembly/docs/`: the Assembly Line design-pattern documentation
 
 Technical work is planned using work documents (in Markdown) that are managed [using rngit](https://reticulum.network/manual/git.html#work-documents) in <rns://3ea5aad068a337670f5bb8073226adb4/public/noflo>.
 

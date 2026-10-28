@@ -36,26 +36,26 @@ See also the [list of reusable NoFlo modules on NPM](https://www.npmjs.com/brows
 
 ## Requirements and installing
 
-NoFlo is available for Node.js [via NPM](https://npmjs.org/package/noflo), so you can install it with:
+NoFlo is available for Node.js [via NPM](https://www.npmjs.com/package/@noflo/noflo), so you can install it with:
 
 ```bash
-$ npm install noflo --save
+$ npm install @noflo/noflo --save
 ```
 
-You can make a browser build of NoFlo using webpack. For webpack builds, you need configure the component loader statically with [noflo-component-loader](https://github.com/noflo/noflo-component-loader). For projects using Grunt, [grunt-noflo-browser](https://github.com/noflo/grunt-noflo-browser) plugin makes this easy.
+NoFlo 2.x requires Node.js 22 or later. It runs in the browser as plain ES modules with no build step: applications supply their components through a component registry — a static registry literal, or [discovery on Node.js](https://github.com/noflo/noflo/tree/master/packages/loader-node). See [component loading](documents/component-loading.md) for the patterns.
 
 ### Installing from Git
 
-NoFlo requires a reasonably recent version of [Node.js](http://nodejs.org/), and some [npm](http://npmjs.org/) packages. Ensure that you have NoFlo checked out from Git, and all NPM dependencies installed. Build NoFlo with:
+NoFlo is developed as an npm-workspaces monorepo. Check it out from Git and install the workspace dependencies:
 
 ```bash
-$ npm run build
+$ npm install
 ```
 
-Then you can install everything needed by a simple:
+There is no build step — the packages ship plain ES modules. When working against the checkout, generate the TypeScript definitions once so type checks resolve:
 
 ```bash
-$ npm link
+$ npm run types --workspaces
 ```
 
 NoFlo is available from [GitHub](https://github.com/noflo/noflo) under the MIT license.
@@ -75,7 +75,6 @@ NoFlo development happens on GitHub. Just fork the [main repository](https://git
 We have an extensive suite of tests available for NoFlo. Run them with:
 
 ```bash
-$ npm run build
 $ npm test
 ```
 

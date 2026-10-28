@@ -19,11 +19,11 @@ Supported function styles:
 ```js
 import { asComponent } from "@noflo/as-component";
 
-exports.getComponent = function () {
+export function getComponent() {
   return asComponent(Math.random, {
     description: "Generate a random number",
   });
-};
+}
 ```
 
 Built-in JavaScript functions don't make their arguments introspectable,

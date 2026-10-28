@@ -78,13 +78,13 @@ Parallel branches in the graph may reduce response time per each request. While 
 
 In Classical FBP (e.g. JavaFBP) the default policy for fan-out nodes (with same data being sent to multiple connections) is to send different clones of the same IP to each of the connections. This kind of behavior guarantees that no races occur when parallel branches attempt to read or modify the same IP.
 
-In NoFlo the default policy for fan-out nodes is to send the reference to the same IP object to each of the connections. It can save memory and processing time, and makes it possible for the changes to be visible in other branches (which is used in our [Error handling](./error-handling.md) pattern). But it makes the IPs unprotected from data races upon concurrent access.
+In NoFlo 2.x the Classical FBP policy is the default: an IP is owned by exactly one process at a time, and fan-out delivers a fresh IP envelope with a deep-cloned payload to each of the connections. This keeps the IPs safe from data races upon concurrent access.
 
-NoFlo provides `IP.clonable` property to take control over this behavior, so if a component send an IP with `clonable: true` property, it will behave like Classical FBP and send clones of this IP rather than the reference to the same object:
+Components that must share a non-copyable payload — a shared canvas, a function, a resource handle — mark the IP `clonable: false`. Fan-out of such an IP throws unless the outport declares `fanoutRefs: true`, in which case each connection receives its own envelope carrying the same payload reference: the changes stay visible in the other branches (which is used in our [Error handling](./error-handling.md) pattern):
 
 ```javascript
-const ip = new IP('data', msg, { clonable: true });
-output.sendDone(ip);
+const ip = new IP('data', msg, { clonable: false });
+output.sendDone(ip); // the outport declares fanoutRefs: true
 ```
 
 ### Forks

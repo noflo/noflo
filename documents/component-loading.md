@@ -70,7 +70,7 @@ The factory discovers components and graph files (registering graphs as pre-pars
 ## Passing registries around
 
 - `new noflo.ComponentLoader({ registry })` constructs a loader around a registry
-- `noflo.createNetwork(graph, { registry })` and `noflo.asCallback(component, { registry })` construct one when no loader is given
+- `noflo.createNetwork(graph, { registry })` and `noflo.asPromise(component, { registry })` construct one when no loader is given
 - Subgraph child networks inherit the parent loader, so the registry applies to the whole network tree
 - Runtimes that edit component sources keep their own reference to the registry and call `setSource` on it directly; the loader stays current through `change` events
 

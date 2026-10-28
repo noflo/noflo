@@ -434,7 +434,7 @@ Rules:
 
 - The core dependency is exactly `"@noflo/noflo": "^2.0.0"` in `dependencies`. A library depending on unscoped `noflo` 1.x alongside `@noflo/noflo` 2.x mixes generations and is not a valid end state.
 - For any other NoFlo-related package in the dependency tree, check npm for an `@noflo`-scoped 2.x version before keeping the legacy one. If none exists, either inline the small amount of needed functionality or stop and ask the user.
-- Component imports use the named surface of `@noflo/noflo`: `Component`, `InPort`, `OutPort`, `IP`, `InPorts`, `OutPorts`, `ComponentLoader`, `internalSocket`, `createNetwork`, `asCallback`, `asPromise`.
+- Component imports use the named surface of `@noflo/noflo`: `Component`, `InPort`, `OutPort`, `IP`, `InPorts`, `OutPorts`, `ComponentLoader`, `internalSocket`, `createNetwork`, `asPromise`.
 
 ### 5.3 Lint, format, types
 

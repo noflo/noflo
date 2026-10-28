@@ -66,7 +66,7 @@ The remaining difference from the classical call stack: activations are suspende
 
 Documented so the response does not overclaim equivalence. NoFlo 2.x extends classical FBP in four ways that Morrison's model does not cover:
 
-- **Scopes**: concurrent activations carry scopes, letting multiple in-flight messages pair correctly through components that fan out and merge — an concurrency feature classical FBP handles per-process, expressed here per-scope.
+- **Scopes**: concurrent activations carry scopes, letting multiple in-flight messages pair correctly through components that fan out and merge — a concurrency feature classical FBP handles per-process, expressed here per-scope.
 - **Subgraph planes and remote subgraphs**: the network model is hierarchical with plane addressing, so a graph's subgraphs and remote executions share one wire vocabulary.
 - **The Web Streams substrate**: edges are Web-Stream-based, which is what makes the browser and runtime deployments share the component model with Node.
 - **The FBP Protocol**: the wire vocabulary (graph sync, telemetry, execution control) makes the same networks observable and drivable remotely — beyond classical FBP's single-process view.
