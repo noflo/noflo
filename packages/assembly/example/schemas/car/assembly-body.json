@@ -1,0 +1,27 @@
+{
+  "$schema": "urn:noflo:noflo/meta-catalog@278e7057c1cce1a8f33fb75aab757450cbdcde7bb5135858d18ac0ca1bfe62c9",
+  "$id": "car/assembly-body",
+  "title": "The body-line message, base stage",
+  "description": "The order envelope carrying the body sub-assembly after the base is built (BuildBodyBase's output).",
+  "type": "object",
+  "required": [
+    "errors",
+    "id",
+    "body"
+  ],
+  "properties": {
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "body": {
+      "$ref": "urn:noflo:car/body@ba0ddf9cb597340dc33355cd3a318f3216c985e3d9f303371f0ccb151a8427b5"
+    }
+  }
+}

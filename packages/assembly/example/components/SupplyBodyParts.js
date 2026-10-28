@@ -8,20 +8,24 @@ class SupplyBodyParts extends Component {
         in: {
           datatype: "object",
           description: "Assembly",
+          schema: "car/assembly-body",
         },
         interior: {
           datatype: "string",
           description: "Complete interior",
+          schema: { type: "string", minLength: 1 },
           control: true,
         },
         doortype: {
           datatype: "string",
           description: "Door type/contents",
+          schema: { type: "string", minLength: 1 },
           control: true,
         },
         doornum: {
           datatype: "int",
           description: "Number of doors",
+          schema: { type: "integer", minimum: 1 },
           control: true,
         },
       },
@@ -29,10 +33,12 @@ class SupplyBodyParts extends Component {
         main: {
           datatype: "object",
           description: "Primary output",
+          schema: "car/assembly-body-complete",
         },
         aux: {
           datatype: "object",
           description: "Secondary output",
+          schema: "car/assembly-body-complete",
         },
       },
       validates: {

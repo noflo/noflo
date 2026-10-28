@@ -4,8 +4,19 @@ class BuildFrame extends Component {
   constructor() {
     super({
       description: "Builds car frame",
+      inPorts: {
+        in: {
+          datatype: "object",
+          schema: "car/order",
+        },
+      },
+      outPorts: {
+        out: {
+          datatype: "object",
+          schema: "car/assembly-chassis",
+        },
+      },
       validates: { id: "num" },
-      // Port definition is not necessary
     });
   }
 

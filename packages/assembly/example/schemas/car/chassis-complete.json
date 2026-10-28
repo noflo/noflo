@@ -1,0 +1,70 @@
+{
+  "$schema": "urn:noflo:noflo/meta-catalog@278e7057c1cce1a8f33fb75aab757450cbdcde7bb5135858d18ac0ca1bfe62c9",
+  "$id": "car/chassis-complete",
+  "title": "The completed chassis sub-assembly",
+  "description": "The chassis after every mounting stage: every field the line attaches is required.",
+  "type": "object",
+  "required": [
+    "id",
+    "frame",
+    "engine",
+    "transmission",
+    "driveShaft",
+    "suspension",
+    "wheels"
+  ],
+  "properties": {
+    "id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "frame": {
+      "type": "string"
+    },
+    "engine": {
+      "type": "string"
+    },
+    "transmission": {
+      "type": "string"
+    },
+    "driveShaft": {
+      "type": "string"
+    },
+    "suspension": {
+      "type": "object",
+      "required": [
+        "levers",
+        "shocks",
+        "coils"
+      ],
+      "properties": {
+        "levers": {
+          "type": "string"
+        },
+        "shocks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "coils": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 4,
+          "maxItems": 4
+        }
+      }
+    },
+    "wheels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    }
+  }
+}

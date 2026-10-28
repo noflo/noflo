@@ -8,11 +8,19 @@ class MountEngine extends Component {
         in: {
           datatype: "object",
           description: "Assembly",
+          schema: "car/assembly-chassis",
         },
         engine: {
           datatype: "string",
           description: "Engine name",
+          schema: { type: "string", minLength: 1 },
           control: true, // for simplicity of example graph
+        },
+      },
+      outPorts: {
+        out: {
+          datatype: "object",
+          schema: "car/assembly-chassis",
         },
       },
       validates: { chassis: "obj" },

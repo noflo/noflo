@@ -8,11 +8,19 @@ class MountBodyParts extends Component {
         in: {
           datatype: "object",
           description: "Assembly",
+          schema: "car/assembly-body-complete",
         },
         partname: {
           datatype: "string",
           description: "Part name",
+          schema: { type: "string", enum: ["interior", "doors"] },
           control: true,
+        },
+      },
+      outPorts: {
+        out: {
+          datatype: "object",
+          schema: "car/assembly-body-complete",
         },
       },
       validates: {

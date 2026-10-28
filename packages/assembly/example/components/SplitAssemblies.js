@@ -4,7 +4,22 @@ class SplitAssemblies extends Component {
   constructor() {
     super({
       description: "Split production into concurrent lines",
-      outPorts: ["b", "c"],
+      inPorts: {
+        in: {
+          datatype: "object",
+          schema: "car/order",
+        },
+      },
+      outPorts: {
+        b: {
+          datatype: "object",
+          schema: "car/order",
+        },
+        c: {
+          datatype: "object",
+          schema: "car/order",
+        },
+      },
       validates: { id: "num" },
     });
   }

@@ -4,7 +4,22 @@ class CombineAssemblies extends Component {
   constructor() {
     super({
       description: "Combines sub-assemblies into a complete car",
-      inPorts: ["b", "c"],
+      inPorts: {
+        b: {
+          datatype: "object",
+          schema: "car/assembly-body-complete",
+        },
+        c: {
+          datatype: "object",
+          schema: "car/assembly-chassis-complete",
+        },
+      },
+      outPorts: {
+        out: {
+          datatype: "object",
+          schema: "car/assembly-combined",
+        },
+      },
     });
   }
 

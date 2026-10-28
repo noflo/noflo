@@ -1,0 +1,65 @@
+{
+  "$schema": "urn:noflo:noflo/meta-catalog@278e7057c1cce1a8f33fb75aab757450cbdcde7bb5135858d18ac0ca1bfe62c9",
+  "$id": "car/chassis",
+  "title": "The chassis sub-assembly",
+  "description": "The chassis line's mounting stages, frame through wheels: fields accumulate along the line, so the early stages require only the frame-stage fields and the completion gate requires them all.",
+  "type": "object",
+  "required": [
+    "id",
+    "frame"
+  ],
+  "properties": {
+    "id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "frame": {
+      "type": "string"
+    },
+    "engine": {
+      "type": "string"
+    },
+    "transmission": {
+      "type": "string"
+    },
+    "driveShaft": {
+      "type": "string"
+    },
+    "suspension": {
+      "type": "object",
+      "required": [
+        "levers",
+        "shocks",
+        "coils"
+      ],
+      "properties": {
+        "levers": {
+          "type": "string"
+        },
+        "shocks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "coils": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 4,
+          "maxItems": 4
+        }
+      }
+    },
+    "wheels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    }
+  }
+}

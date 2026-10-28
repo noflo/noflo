@@ -1,0 +1,23 @@
+{
+  "$schema": "urn:noflo:noflo/meta-catalog@278e7057c1cce1a8f33fb75aab757450cbdcde7bb5135858d18ac0ca1bfe62c9",
+  "$id": "car/order",
+  "title": "The car order envelope",
+  "description": "The assembly message starting a car production run (the example package's Order component): the shared error envelope plus the production id the two assembly lines correlate on.",
+  "type": "object",
+  "required": [
+    "errors",
+    "id"
+  ],
+  "properties": {
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "id": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}

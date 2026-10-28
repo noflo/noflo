@@ -1,0 +1,95 @@
+{
+  "name": "BuildChassis",
+  "nodes": [
+    {
+      "id": "BuildFrame",
+      "component": "example/BuildFrame"
+    },
+    {
+      "id": "MountEngine",
+      "component": "example/MountEngine"
+    },
+    {
+      "id": "MountTransmission",
+      "component": "example/MountTransmission"
+    },
+    {
+      "id": "MountSuspension",
+      "component": "example/MountSuspension"
+    },
+    {
+      "id": "MountWheels",
+      "component": "example/MountWheels"
+    }
+  ],
+  "edges": [
+    {
+      "source": {
+        "id": "BuildFrame",
+        "port": "out"
+      },
+      "target": {
+        "id": "MountEngine",
+        "port": "in"
+      }
+    },
+    {
+      "source": {
+        "id": "MountEngine",
+        "port": "out"
+      },
+      "target": {
+        "id": "MountTransmission",
+        "port": "in"
+      }
+    },
+    {
+      "source": {
+        "id": "MountTransmission",
+        "port": "out"
+      },
+      "target": {
+        "id": "MountSuspension",
+        "port": "in"
+      }
+    },
+    {
+      "source": {
+        "id": "MountSuspension",
+        "port": "out"
+      },
+      "target": {
+        "id": "MountWheels",
+        "port": "in"
+      }
+    }
+  ],
+  "inits": [
+    {
+      "data": "Mercedes V8 5.0",
+      "target": {
+        "id": "MountEngine",
+        "port": "engine"
+      }
+    },
+    {
+      "data": 4,
+      "target": {
+        "id": "MountWheels",
+        "port": "count"
+      }
+    }
+  ],
+  "inports": {
+    "in": {
+      "process": "BuildFrame",
+      "port": "in"
+    }
+  },
+  "outports": {
+    "out": {
+      "process": "MountWheels",
+      "port": "out"
+    }
+  }
+}

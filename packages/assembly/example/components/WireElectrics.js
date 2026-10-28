@@ -4,7 +4,22 @@ class WireElectrics extends Component {
   constructor() {
     super({
       description: "Wires body electrics",
-      inPorts: ["main", "aux"],
+      inPorts: {
+        main: {
+          datatype: "object",
+          schema: "car/assembly-body-complete",
+        },
+        aux: {
+          datatype: "object",
+          schema: "car/assembly-body-complete",
+        },
+      },
+      outPorts: {
+        out: {
+          datatype: "object",
+          schema: "car/assembly-body-complete",
+        },
+      },
       validates: ["body.id"],
     });
   }

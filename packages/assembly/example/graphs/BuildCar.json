@@ -1,0 +1,103 @@
+{
+  "name": "BuildCar",
+  "nodes": [
+    {
+      "id": "Order",
+      "component": "example/Order"
+    },
+    {
+      "id": "Split",
+      "component": "example/SplitAssemblies"
+    },
+    {
+      "id": "BuildBody",
+      "component": "example/BuildBody"
+    },
+    {
+      "id": "BuildChassis",
+      "component": "example/BuildChassis"
+    },
+    {
+      "id": "Combine",
+      "component": "example/CombineAssemblies"
+    },
+    {
+      "id": "Release",
+      "component": "example/Release"
+    }
+  ],
+  "edges": [
+    {
+      "source": {
+        "id": "Order",
+        "port": "out"
+      },
+      "target": {
+        "id": "Split",
+        "port": "in"
+      }
+    },
+    {
+      "source": {
+        "id": "Split",
+        "port": "b"
+      },
+      "target": {
+        "id": "BuildBody",
+        "port": "in"
+      }
+    },
+    {
+      "source": {
+        "id": "Split",
+        "port": "c"
+      },
+      "target": {
+        "id": "BuildChassis",
+        "port": "in"
+      }
+    },
+    {
+      "source": {
+        "id": "BuildBody",
+        "port": "out"
+      },
+      "target": {
+        "id": "Combine",
+        "port": "b"
+      }
+    },
+    {
+      "source": {
+        "id": "BuildChassis",
+        "port": "out"
+      },
+      "target": {
+        "id": "Combine",
+        "port": "c"
+      }
+    },
+    {
+      "source": {
+        "id": "Combine",
+        "port": "out"
+      },
+      "target": {
+        "id": "Release",
+        "port": "in"
+      }
+    }
+  ],
+  "inports": {
+    "in": {
+      "process": "Order",
+      "port": "in"
+    }
+  },
+  "outports": {
+    "out": {
+      "process": "Release",
+      "port": "out"
+    }
+  }
+}

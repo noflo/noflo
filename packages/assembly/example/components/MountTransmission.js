@@ -4,6 +4,18 @@ class MountTransmission extends Component {
   constructor() {
     super({
       description: "Mounts transmission and drive shaft",
+      inPorts: {
+        in: {
+          datatype: "object",
+          schema: "car/assembly-chassis",
+        },
+      },
+      outPorts: {
+        out: {
+          datatype: "object",
+          schema: "car/assembly-chassis",
+        },
+      },
     });
   }
 

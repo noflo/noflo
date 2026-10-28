@@ -1,0 +1,27 @@
+{
+  "$schema": "urn:noflo:noflo/meta-catalog@278e7057c1cce1a8f33fb75aab757450cbdcde7bb5135858d18ac0ca1bfe62c9",
+  "$id": "car/assembly-chassis",
+  "title": "The chassis-line message, frame stage",
+  "description": "The order envelope carrying the chassis sub-assembly after the frame is mounted (BuildFrame's output, the input of the chassis mounting stages).",
+  "type": "object",
+  "required": [
+    "errors",
+    "id",
+    "chassis"
+  ],
+  "properties": {
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "chassis": {
+      "$ref": "urn:noflo:car/chassis@829f27afde2eaab16b73f83319ef33b1ad5efcdba66297b1e9f35a10da1a4266"
+    }
+  }
+}

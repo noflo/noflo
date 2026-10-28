@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- The car-factory example dogfoods the schemas machinery: named JSON Schemas under `example/schemas/` in the free `car` namespace model the full message surface (order → chassis/body assemblies → released car, eleven documents with cross-references), the example components declare `schema:` markers on their message and control ports, and the example ships a committed generated `noflo.json` manifest carrying the schemas table. The example graphs are FBP JSON documents (exact case significance; the `.fbp` loader path folds port names to the 1.x lowercase). A spec validates the end-to-end BuildCar run's output against `car/car` through the manifest's table and pins the guard projection.
+
 ### Changed
 
 - `asAssembly` out mappings accept the `'*'` spread marker (one per adapter): the generated collector's fields config carries it, and the wrap-time validation rejects a doubled marker the way it rejects a doubled whole-message replace. An in-mapping value of `'*'` is rejected at wrap time too — the spread marker is out-mapping vocabulary, and an in-side `'*'` would generate an extractor walking a literal `'*'` key and failing at runtime.

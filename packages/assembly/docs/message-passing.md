@@ -81,3 +81,12 @@ msg.order = order;
 ```
 
 Even if you don’t need the whole object right now, it’s very likely you’ll need it later when you add new features to the graph.
+## Schema-guarding the message structure
+
+The conventions above are free-form: `All other properties are at your thoughtful command.` Once a pipeline grows past a few components, that freedom becomes undocumented implicit knowledge — which fields exist, when they are required, and what a completed message looks like live in every component's code.
+
+Port schemas make the message contract explicit and verified. A component's port declares a `schema` — a named document from the package's `schemas/` directory or an inline JSON Schema object — and the publish pipeline pins references, hoists inline documents, derives cheap per-port guards, and ships the table to protocol clients. A graph can then declare, per port, which stage of completeness a message must have reached: the car-factory example in this package distinguishes the frame-stage chassis (`car/chassis`) from the fully mounted one (`car/chassis-complete`), and the released vehicle (`car/car`) is declared error-free.
+
+The division of labor matters: schemas guard **structure** — fields, types, staging completeness, envelope shape — while the component's code keeps **business logic**: value correctness, cross-field invariants (`chassis.id === body.id` is `CombineAssemblies`' runtime check, not a schema constraint), and the failure contract. Encoding business rules as schema combinators scatters them into declarative documents where they cannot be tested or debugged.
+
+See [`documents/port-schemas.md`](../../../documents/port-schemas.md) in the monorepo for the full doctrine, and the example package (`example/` — its `schemas/car/` documents, `schema:` port markers, generated `noflo.json`, and `spec/ExampleSchemas.js`) as the worked reference.

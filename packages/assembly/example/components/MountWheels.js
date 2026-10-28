@@ -8,11 +8,19 @@ class MountWheels extends Component {
         in: {
           datatype: "object",
           description: "Assembly",
+          schema: "car/assembly-chassis",
         },
         count: {
           datatype: "int",
           description: "Number of wheels",
+          schema: { type: "integer", minimum: 1 },
           control: true, // for simplicity of example graph
+        },
+      },
+      outPorts: {
+        out: {
+          datatype: "object",
+          schema: "car/assembly-chassis-complete",
         },
       },
       validates: { chassis: "obj" },

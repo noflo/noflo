@@ -1,0 +1,1275 @@
+{
+  "format": "noflo-manifest",
+  "version": 1,
+  "id": "example",
+  "description": "How to build a car with NoFlo ;-)",
+  "icon": null,
+  "npm": "example",
+  "jsr": null,
+  "source": null,
+  "revision": "da8f1d2a152c70d9e808eac529fedc5c373d10d0",
+  "loader": false,
+  "namespaces": {},
+  "schemas": {
+    "car/body-complete": {
+      "digest": "913d7f43e83ef760dd351c809c23b9584a66133a3ab035f8119eaf53e652d8c6",
+      "path": "schemas/car/body-complete.json"
+    },
+    "car/assembly-body-complete": {
+      "digest": "2627ee3358db1b37b913bd280359c9700225361067f1c94de9b10c86fb66959b",
+      "path": "schemas/car/assembly-body-complete.json"
+    },
+    "car/body": {
+      "digest": "ba0ddf9cb597340dc33355cd3a318f3216c985e3d9f303371f0ccb151a8427b5",
+      "path": "schemas/car/body.json"
+    },
+    "car/assembly-body": {
+      "digest": "1cc9807a59cebfb1a24b26a92f8fcb1558dfc0a6b499220ee0cbfafdec16c937",
+      "path": "schemas/car/assembly-body.json"
+    },
+    "car/chassis-complete": {
+      "digest": "0b61f97b85766521fe1f2903849210b73a7312975d6f86f946e8939bafd2d023",
+      "path": "schemas/car/chassis-complete.json"
+    },
+    "car/assembly-chassis-complete": {
+      "digest": "70240f4b8c9f474adf611af1a2c17ab3a70c968f45887d6132c3d9064b3ba033",
+      "path": "schemas/car/assembly-chassis-complete.json"
+    },
+    "car/chassis": {
+      "digest": "829f27afde2eaab16b73f83319ef33b1ad5efcdba66297b1e9f35a10da1a4266",
+      "path": "schemas/car/chassis.json"
+    },
+    "car/assembly-chassis": {
+      "digest": "9a4c361edb3292afeaf3c4d101f0e9d24e61854a2b04877bf20f78fa0cb6939b",
+      "path": "schemas/car/assembly-chassis.json"
+    },
+    "car/assembly-combined": {
+      "digest": "a6044a5f1acc38bf891f3396c0cfd7b5cfebb2061d17ac741ec224920cc7838a",
+      "path": "schemas/car/assembly-combined.json"
+    },
+    "car/car": {
+      "digest": "f6598324fc99b3c973e5fa9eaef5da708e8ed9d5fb6927827a70ab63ea432c3c",
+      "path": "schemas/car/car.json"
+    },
+    "car/order": {
+      "digest": "077eecfa5e9726b9e47f1db9bb110da3cebc9f892b997b4cf6e90f4632c6d568",
+      "path": "schemas/car/order.json"
+    }
+  },
+  "anonymousSchemas": {
+    "2a1379ebe9f4b632fbdf3732d4b86b26e9fbf2aa92cf2449dde7bf4dc122060f": {
+      "path": "schemas/2a1379ebe9f4b632fbdf3732d4b86b26e9fbf2aa92cf2449dde7bf4dc122060f.json"
+    },
+    "9ac136edb99a2063b3091602181c8d2022fdccb5b514991319d58544c2e57e95": {
+      "path": "schemas/9ac136edb99a2063b3091602181c8d2022fdccb5b514991319d58544c2e57e95.json"
+    },
+    "dc134b10eae9ed2faa6fc78164d004cf7f64eb1a0b93200edb774622d497062a": {
+      "path": "schemas/dc134b10eae9ed2faa6fc78164d004cf7f64eb1a0b93200edb774622d497062a.json"
+    }
+  },
+  "foreignSchemas": {},
+  "components": [
+    {
+      "name": "example/BuildBodyBase",
+      "path": "components/BuildBodyBase.js",
+      "type": "elementary",
+      "description": "Builds the base of car body",
+      "icon": "",
+      "signature": {
+        "inports": [
+          {
+            "name": "in",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/order",
+              "digest": "077eecfa5e9726b9e47f1db9bb110da3cebc9f892b997b4cf6e90f4632c6d568"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ],
+        "outports": [
+          {
+            "name": "out",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-body",
+              "digest": "1cc9807a59cebfb1a24b26a92f8fcb1558dfc0a6b499220ee0cbfafdec16c937"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      "spec": null,
+      "assembly": true,
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
+    },
+    {
+      "name": "example/BuildFrame",
+      "path": "components/BuildFrame.js",
+      "type": "elementary",
+      "description": "Builds car frame",
+      "icon": "",
+      "signature": {
+        "inports": [
+          {
+            "name": "in",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/order",
+              "digest": "077eecfa5e9726b9e47f1db9bb110da3cebc9f892b997b4cf6e90f4632c6d568"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ],
+        "outports": [
+          {
+            "name": "out",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-chassis",
+              "digest": "9a4c361edb3292afeaf3c4d101f0e9d24e61854a2b04877bf20f78fa0cb6939b"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      "spec": null,
+      "assembly": true,
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
+    },
+    {
+      "name": "example/CombineAssemblies",
+      "path": "components/CombineAssemblies.js",
+      "type": "elementary",
+      "description": "Combines sub-assemblies into a complete car",
+      "icon": "",
+      "signature": {
+        "inports": [
+          {
+            "name": "b",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-body-complete",
+              "digest": "2627ee3358db1b37b913bd280359c9700225361067f1c94de9b10c86fb66959b"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
+            }
+          },
+          {
+            "name": "c",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-chassis-complete",
+              "digest": "70240f4b8c9f474adf611af1a2c17ab3a70c968f45887d6132c3d9064b3ba033"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ],
+        "outports": [
+          {
+            "name": "out",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-combined",
+              "digest": "a6044a5f1acc38bf891f3396c0cfd7b5cfebb2061d17ac741ec224920cc7838a"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "body",
+                "chassis",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      "spec": null,
+      "assembly": true,
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
+    },
+    {
+      "name": "example/MountBodyParts",
+      "path": "components/MountBodyParts.js",
+      "type": "elementary",
+      "description": "Unified body part mounter",
+      "icon": "",
+      "signature": {
+        "inports": [
+          {
+            "name": "in",
+            "datatype": "object",
+            "addressable": false,
+            "description": "Assembly",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-body-complete",
+              "digest": "2627ee3358db1b37b913bd280359c9700225361067f1c94de9b10c86fb66959b"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
+            }
+          },
+          {
+            "name": "partname",
+            "datatype": "string",
+            "addressable": false,
+            "description": "Part name",
+            "required": false,
+            "control": true,
+            "schema": {
+              "digest": "dc134b10eae9ed2faa6fc78164d004cf7f64eb1a0b93200edb774622d497062a"
+            },
+            "guard": {
+              "type": "string",
+              "enum": [
+                "interior",
+                "doors"
+              ]
+            }
+          }
+        ],
+        "outports": [
+          {
+            "name": "out",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-body-complete",
+              "digest": "2627ee3358db1b37b913bd280359c9700225361067f1c94de9b10c86fb66959b"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      "spec": null,
+      "assembly": true,
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
+    },
+    {
+      "name": "example/MountEngine",
+      "path": "components/MountEngine.js",
+      "type": "elementary",
+      "description": "Mounts 3rd party engine on chassis",
+      "icon": "",
+      "signature": {
+        "inports": [
+          {
+            "name": "in",
+            "datatype": "object",
+            "addressable": false,
+            "description": "Assembly",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-chassis",
+              "digest": "9a4c361edb3292afeaf3c4d101f0e9d24e61854a2b04877bf20f78fa0cb6939b"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
+            }
+          },
+          {
+            "name": "engine",
+            "datatype": "string",
+            "addressable": false,
+            "description": "Engine name",
+            "required": false,
+            "control": true,
+            "schema": {
+              "digest": "9ac136edb99a2063b3091602181c8d2022fdccb5b514991319d58544c2e57e95"
+            },
+            "guard": {
+              "type": "string"
+            }
+          }
+        ],
+        "outports": [
+          {
+            "name": "out",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-chassis",
+              "digest": "9a4c361edb3292afeaf3c4d101f0e9d24e61854a2b04877bf20f78fa0cb6939b"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      "spec": null,
+      "assembly": true,
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
+    },
+    {
+      "name": "example/MountPanels",
+      "path": "components/MountPanels.js",
+      "type": "elementary",
+      "description": "Mounts body panels",
+      "icon": "",
+      "signature": {
+        "inports": [
+          {
+            "name": "in",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-body",
+              "digest": "1cc9807a59cebfb1a24b26a92f8fcb1558dfc0a6b499220ee0cbfafdec16c937"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ],
+        "outports": [
+          {
+            "name": "out",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-body",
+              "digest": "1cc9807a59cebfb1a24b26a92f8fcb1558dfc0a6b499220ee0cbfafdec16c937"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      "spec": null,
+      "assembly": true,
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
+    },
+    {
+      "name": "example/MountSuspension",
+      "path": "components/MountSuspension.js",
+      "type": "elementary",
+      "description": "",
+      "icon": "",
+      "signature": {
+        "inports": [
+          {
+            "name": "in",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-chassis",
+              "digest": "9a4c361edb3292afeaf3c4d101f0e9d24e61854a2b04877bf20f78fa0cb6939b"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ],
+        "outports": [
+          {
+            "name": "out",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-chassis",
+              "digest": "9a4c361edb3292afeaf3c4d101f0e9d24e61854a2b04877bf20f78fa0cb6939b"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      "spec": null,
+      "assembly": true,
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
+    },
+    {
+      "name": "example/MountTransmission",
+      "path": "components/MountTransmission.js",
+      "type": "elementary",
+      "description": "Mounts transmission and drive shaft",
+      "icon": "",
+      "signature": {
+        "inports": [
+          {
+            "name": "in",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-chassis",
+              "digest": "9a4c361edb3292afeaf3c4d101f0e9d24e61854a2b04877bf20f78fa0cb6939b"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ],
+        "outports": [
+          {
+            "name": "out",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-chassis",
+              "digest": "9a4c361edb3292afeaf3c4d101f0e9d24e61854a2b04877bf20f78fa0cb6939b"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      "spec": null,
+      "assembly": true,
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
+    },
+    {
+      "name": "example/MountWheels",
+      "path": "components/MountWheels.js",
+      "type": "elementary",
+      "description": "Mounts wheels",
+      "icon": "",
+      "signature": {
+        "inports": [
+          {
+            "name": "in",
+            "datatype": "object",
+            "addressable": false,
+            "description": "Assembly",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-chassis",
+              "digest": "9a4c361edb3292afeaf3c4d101f0e9d24e61854a2b04877bf20f78fa0cb6939b"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
+            }
+          },
+          {
+            "name": "count",
+            "datatype": "int",
+            "addressable": false,
+            "description": "Number of wheels",
+            "required": false,
+            "control": true,
+            "schema": {
+              "digest": "2a1379ebe9f4b632fbdf3732d4b86b26e9fbf2aa92cf2449dde7bf4dc122060f"
+            },
+            "guard": {
+              "type": "integer",
+              "min": 1
+            }
+          }
+        ],
+        "outports": [
+          {
+            "name": "out",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-chassis-complete",
+              "digest": "70240f4b8c9f474adf611af1a2c17ab3a70c968f45887d6132c3d9064b3ba033"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      "spec": null,
+      "assembly": true,
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
+    },
+    {
+      "name": "example/Order",
+      "path": "components/Order.js",
+      "type": "elementary",
+      "description": "Place an order of a new car production",
+      "icon": "",
+      "signature": {
+        "inports": [
+          {
+            "name": "in",
+            "datatype": "object",
+            "addressable": false,
+            "description": "Incoming message",
+            "required": true,
+            "control": false,
+            "schema": null,
+            "guard": null
+          }
+        ],
+        "outports": [
+          {
+            "name": "out",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/order",
+              "digest": "077eecfa5e9726b9e47f1db9bb110da3cebc9f892b997b4cf6e90f4632c6d568"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      "spec": null,
+      "assembly": true,
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
+    },
+    {
+      "name": "example/Release",
+      "path": "components/Release.js",
+      "type": "elementary",
+      "description": "Release a car to the outer world",
+      "icon": "",
+      "signature": {
+        "inports": [
+          {
+            "name": "in",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-combined",
+              "digest": "a6044a5f1acc38bf891f3396c0cfd7b5cfebb2061d17ac741ec224920cc7838a"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "body",
+                "chassis",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ],
+        "outports": [
+          {
+            "name": "out",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/car",
+              "digest": "f6598324fc99b3c973e5fa9eaef5da708e8ed9d5fb6927827a70ab63ea432c3c"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "body",
+                "chassis",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      "spec": null,
+      "assembly": true,
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
+    },
+    {
+      "name": "example/SplitAssemblies",
+      "path": "components/SplitAssemblies.js",
+      "type": "elementary",
+      "description": "Split production into concurrent lines",
+      "icon": "",
+      "signature": {
+        "inports": [
+          {
+            "name": "in",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/order",
+              "digest": "077eecfa5e9726b9e47f1db9bb110da3cebc9f892b997b4cf6e90f4632c6d568"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ],
+        "outports": [
+          {
+            "name": "b",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/order",
+              "digest": "077eecfa5e9726b9e47f1db9bb110da3cebc9f892b997b4cf6e90f4632c6d568"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "errors",
+                "id"
+              ]
+            }
+          },
+          {
+            "name": "c",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/order",
+              "digest": "077eecfa5e9726b9e47f1db9bb110da3cebc9f892b997b4cf6e90f4632c6d568"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      "spec": null,
+      "assembly": true,
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
+    },
+    {
+      "name": "example/SupplyBodyParts",
+      "path": "components/SupplyBodyParts.js",
+      "type": "elementary",
+      "description": "Example component with multiple ins and outs",
+      "icon": "",
+      "signature": {
+        "inports": [
+          {
+            "name": "in",
+            "datatype": "object",
+            "addressable": false,
+            "description": "Assembly",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-body",
+              "digest": "1cc9807a59cebfb1a24b26a92f8fcb1558dfc0a6b499220ee0cbfafdec16c937"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
+            }
+          },
+          {
+            "name": "interior",
+            "datatype": "string",
+            "addressable": false,
+            "description": "Complete interior",
+            "required": false,
+            "control": true,
+            "schema": {
+              "digest": "9ac136edb99a2063b3091602181c8d2022fdccb5b514991319d58544c2e57e95"
+            },
+            "guard": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "doortype",
+            "datatype": "string",
+            "addressable": false,
+            "description": "Door type/contents",
+            "required": false,
+            "control": true,
+            "schema": {
+              "digest": "9ac136edb99a2063b3091602181c8d2022fdccb5b514991319d58544c2e57e95"
+            },
+            "guard": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "doornum",
+            "datatype": "int",
+            "addressable": false,
+            "description": "Number of doors",
+            "required": false,
+            "control": true,
+            "schema": {
+              "digest": "2a1379ebe9f4b632fbdf3732d4b86b26e9fbf2aa92cf2449dde7bf4dc122060f"
+            },
+            "guard": {
+              "type": "integer",
+              "min": 1
+            }
+          }
+        ],
+        "outports": [
+          {
+            "name": "main",
+            "datatype": "object",
+            "addressable": false,
+            "description": "Primary output",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-body-complete",
+              "digest": "2627ee3358db1b37b913bd280359c9700225361067f1c94de9b10c86fb66959b"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
+            }
+          },
+          {
+            "name": "aux",
+            "datatype": "object",
+            "addressable": false,
+            "description": "Secondary output",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-body-complete",
+              "digest": "2627ee3358db1b37b913bd280359c9700225361067f1c94de9b10c86fb66959b"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      "spec": null,
+      "assembly": true,
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
+    },
+    {
+      "name": "example/WireElectrics",
+      "path": "components/WireElectrics.js",
+      "type": "elementary",
+      "description": "Wires body electrics",
+      "icon": "",
+      "signature": {
+        "inports": [
+          {
+            "name": "main",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-body-complete",
+              "digest": "2627ee3358db1b37b913bd280359c9700225361067f1c94de9b10c86fb66959b"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
+            }
+          },
+          {
+            "name": "aux",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-body-complete",
+              "digest": "2627ee3358db1b37b913bd280359c9700225361067f1c94de9b10c86fb66959b"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ],
+        "outports": [
+          {
+            "name": "out",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-body-complete",
+              "digest": "2627ee3358db1b37b913bd280359c9700225361067f1c94de9b10c86fb66959b"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      "spec": null,
+      "assembly": true,
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
+    },
+    {
+      "name": "example/BuildBody",
+      "path": "graphs/BuildBody.json",
+      "type": "subgraph",
+      "description": "",
+      "icon": "sitemap",
+      "signature": {
+        "inports": [
+          {
+            "name": "in",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/order",
+              "digest": "077eecfa5e9726b9e47f1db9bb110da3cebc9f892b997b4cf6e90f4632c6d568"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ],
+        "outports": [
+          {
+            "name": "out",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-body-complete",
+              "digest": "2627ee3358db1b37b913bd280359c9700225361067f1c94de9b10c86fb66959b"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "body",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      "spec": null,
+      "assembly": false,
+      "references": [
+        "example/BuildBodyBase",
+        "example/MountPanels",
+        "example/SupplyBodyParts",
+        "example/MountBodyParts",
+        "example/WireElectrics"
+      ],
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
+    },
+    {
+      "name": "example/BuildCar",
+      "path": "graphs/BuildCar.json",
+      "type": "subgraph",
+      "description": null,
+      "icon": null,
+      "signature": {
+        "inports": [
+          {
+            "name": "in",
+            "datatype": "object",
+            "addressable": false,
+            "description": "Incoming message",
+            "required": true,
+            "control": false,
+            "schema": null,
+            "guard": null
+          }
+        ],
+        "outports": [
+          {
+            "name": "out",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/car",
+              "digest": "f6598324fc99b3c973e5fa9eaef5da708e8ed9d5fb6927827a70ab63ea432c3c"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "body",
+                "chassis",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      "spec": null,
+      "assembly": false,
+      "references": [
+        "example/Order",
+        "example/SplitAssemblies",
+        "example/BuildBody",
+        "example/BuildChassis",
+        "example/CombineAssemblies",
+        "example/Release"
+      ],
+      "platforms": [
+        "node"
+      ]
+    },
+    {
+      "name": "example/BuildChassis",
+      "path": "graphs/BuildChassis.json",
+      "type": "subgraph",
+      "description": null,
+      "icon": null,
+      "signature": {
+        "inports": [
+          {
+            "name": "in",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/order",
+              "digest": "077eecfa5e9726b9e47f1db9bb110da3cebc9f892b997b4cf6e90f4632c6d568"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ],
+        "outports": [
+          {
+            "name": "out",
+            "datatype": "object",
+            "addressable": false,
+            "description": "",
+            "required": false,
+            "control": false,
+            "schema": {
+              "id": "car/assembly-chassis-complete",
+              "digest": "70240f4b8c9f474adf611af1a2c17ab3a70c968f45887d6132c3d9064b3ba033"
+            },
+            "guard": {
+              "type": "object",
+              "required": [
+                "chassis",
+                "errors",
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      "spec": null,
+      "assembly": false,
+      "references": [
+        "example/BuildFrame",
+        "example/MountEngine",
+        "example/MountTransmission",
+        "example/MountSuspension",
+        "example/MountWheels"
+      ],
+      "platforms": [
+        "browser",
+        "node",
+        "deno",
+        "bun"
+      ]
+    }
+  ]
+}

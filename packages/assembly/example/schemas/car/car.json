@@ -1,0 +1,32 @@
+{
+  "$schema": "urn:noflo:noflo/meta-catalog@278e7057c1cce1a8f33fb75aab757450cbdcde7bb5135858d18ac0ca1bfe62c9",
+  "$id": "car/car",
+  "title": "The released car",
+  "description": "The vehicle as Release hands it to the outer world: the completed chassis and body, correlated by id, the transient parts carriage stripped.",
+  "type": "object",
+  "required": [
+    "errors",
+    "id",
+    "chassis",
+    "body"
+  ],
+  "properties": {
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 0
+    },
+    "id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "chassis": {
+      "$ref": "urn:noflo:car/chassis-complete@0b61f97b85766521fe1f2903849210b73a7312975d6f86f946e8939bafd2d023"
+    },
+    "body": {
+      "$ref": "urn:noflo:car/body-complete@913d7f43e83ef760dd351c809c23b9584a66133a3ab035f8119eaf53e652d8c6"
+    }
+  }
+}
