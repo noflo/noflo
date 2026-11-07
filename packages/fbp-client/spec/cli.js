@@ -116,6 +116,34 @@ describe("fbp-client commands", () => {
     );
   });
 
+  it("refuses unsupported graph formats", async () => {
+    const { session } = makeSession();
+    await assert.rejects(
+      graph(session, { format: "xml" }),
+      /unsupported graph format/,
+    );
+  });
+
+  it("graph renders DOT for format=dot", async () => {
+    const { link, session } = makeSession();
+    const canonical = {
+      name: "main",
+      nodes: [{ id: "node-1", component: "math/Add" }],
+    };
+    link.resources.set(
+      "res-hash-1",
+      new TextEncoder().encode(JSON.stringify(canonical)),
+    );
+    const pending = graph(session, { format: "dot" });
+    setTimeout(() => {
+      link.deliver(encodeCrdtStaleEpoch(null, "epoch-7", "res-hash-1"));
+    }, 10);
+    const dot = await pending;
+    assert.match(dot, /digraph \{/);
+    // importFbpJson mints entity ids; the label carries id + component
+    assert.match(dot, /"n1" \[label="n1\\n\(math\/Add\)"\];/);
+  });
+
   it("components syncs the catalog through the Two-Step flow", async () => {
     const { link, session } = makeSession();
     const pending = components(session);

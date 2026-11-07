@@ -82,7 +82,6 @@ export function toDOT(graph) {
   const nodes = [...(graph.nodes ?? [])].sort((a, b) =>
     a.entity_id < b.entity_id ? -1 : a.entity_id > b.entity_id ? 1 : 0,
   );
-  const nodeIds = new Set(nodes.map((n) => n.entity_id));
 
   // Nodes: id + component
   for (const node of nodes) {
@@ -153,13 +152,15 @@ export function toDOT(graph) {
             ? 1
             : 0) || a.i - b.i,
     );
-  for (const { group, i } of sortedGroups) {
-    lines.push(`  subgraph cluster_${i} {`);
+  // Groups: clusters over member nodes, numbered by sorted position.
+  // Members render even when their ids dangle: Graphviz implicitly
+  // creates the phantom node inside the cluster, surfacing the
+  // dangling reference instead of hiding it.
+  for (const [position, { group }] of sortedGroups.entries()) {
+    lines.push(`  subgraph cluster_${position} {`);
     lines.push(`    label="${esc(group.name)}";`);
     for (const memberId of [...(group.nodes ?? [])].sort()) {
-      if (nodeIds.has(memberId)) {
-        lines.push(`    "${esc(memberId)}";`);
-      }
+      lines.push(`    "${esc(memberId)}";`);
     }
     lines.push("  }");
   }
