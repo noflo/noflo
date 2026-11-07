@@ -177,6 +177,18 @@ describe("node_modules discovery contract", () => {
       );
     });
 
+    it("propagates the sidecar's guards onto the implemented sibling's ports", async () => {
+      const definition = await registry.get("discoveryroot/WithImpl");
+      const instance = instantiate(definition);
+      // The retained declared signature's guards become the port options
+      // the admission checks read (work document #50)
+      assert.deepEqual(instance.inPorts.ports.in.getGuard(), {
+        type: "object",
+        required: ["id"],
+      });
+      assert.strictEqual(instance.outPorts.ports.out.getGuard(), null);
+    });
+
     it("ignores JSON files in components directories that are not sidecars", () => {
       // A stray JSON file (or a misplaced graph) stays undiscovered,
       // as before sidecars existed

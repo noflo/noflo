@@ -1,6 +1,22 @@
 {
   "name": "WithImpl",
   "description": "Sidecar documenting the implemented sibling",
-  "inports": [{ "name": "in", "type": "all" }],
-  "outports": [{ "name": "out", "type": "all" }]
+  "inports": [
+    {
+      "name": "in",
+      "type": "all",
+      "guard": {
+        "type": "object",
+        "required": [
+          "id"
+        ]
+      }
+    }
+  ],
+  "outports": [
+    {
+      "name": "out",
+      "type": "all"
+    }
+  ]
 }

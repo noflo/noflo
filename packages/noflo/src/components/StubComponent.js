@@ -353,6 +353,16 @@ function signaturePorts(componentName, direction, ports) {
         port.control,
       );
     }
+    if (port.guard !== undefined) {
+      if (port.guard === null || typeof port.guard !== "object") {
+        throw new Error(
+          `StubComponent ${componentName}: signature ${at} port '${port.name}' carries a non-object guard`,
+        );
+      }
+      // The projected in-band guard (work document #50): admission
+      // checks apply it at the send and IIP surfaces
+      portOptions.guard = port.guard;
+    }
     mapped[port.name] = portOptions;
   });
   return mapped;

@@ -236,6 +236,84 @@ async function importDefinition(componentPath) {
 }
 
 /**
+ * Wrap a component implementation so every instantiated instance carries
+ * the published signature's projected guards on its ports (work document
+ * #50): the manifest's guards become the ports' `guard` options, the
+ * admission checks' data. Instances are created per load, so the wrapper
+ * applies the guards per instantiation.
+ *
+ * @param {ComponentImplementation} implementation
+ * @param {any} signature - The manifest signature, when the component ships one
+ * @returns {ComponentImplementation}
+ */
+function withSignatureGuards(implementation, signature) {
+  const ports = collectSignatureGuards(signature);
+  if (ports === null) {
+    return implementation;
+  }
+  const applyGuards = (/** @type {any} */ instance) => {
+    if (!instance) {
+      return instance;
+    }
+    for (const [direction, entries] of Object.entries(ports)) {
+      const side = direction === "inports" ? instance.inPorts : instance.outPorts;
+      for (const [name, guard] of Object.entries(entries)) {
+        if (side?.ports?.[name]) {
+          side.ports[name].options.guard = guard;
+        }
+      }
+    }
+    return instance;
+  };
+  const isFactory = typeof implementation === "function";
+  const isModule = !isFactory && typeof /** @type {any} */ (implementation).getComponent === "function";
+  if (isFactory || isModule) {
+    const factory = /** @type {any} */ (
+      isFactory ? implementation : /** @type {any} */ (implementation).getComponent.bind(implementation)
+    );
+    const wrapped = /** @type {any} */ (...args) =>
+      applyGuards(factory(...args));
+    if (isFactory) {
+      return wrapped;
+    }
+    return { getComponent: wrapped };
+  }
+  // Graph models and other non-factory implementations: guards do not
+  // propagate through the subgraph wrapper (recorded follow-up)
+  return implementation;
+}
+
+/**
+ * Collect the guards from a signature's port entries, keyed by direction
+ * then port name. Null when the signature carries no guards at all.
+ *
+ * @param {any} signature
+ * @returns {Record<string, Record<string, any>>|null}
+ */
+function collectSignatureGuards(signature) {
+  if (!signature || typeof signature !== "object") {
+    return null;
+  }
+  /** @type {Record<string, Record<string, any>>} */
+  const collected = {};
+  let count = 0;
+  for (const direction of ["inports", "outports"]) {
+    const entries = signature[direction];
+    if (!Array.isArray(entries)) {
+      continue;
+    }
+    for (const port of entries) {
+      if (port?.name && port.guard !== undefined && port.guard !== null) {
+        collected[direction] ??= {};
+        collected[direction][port.name] = port.guard;
+        count += 1;
+      }
+    }
+  }
+  return count > 0 ? collected : null;
+}
+
+/**
  * Component registry backed by node_modules and file-system discovery
  * (work document #16). Implements the `ComponentRegistry` contract:
  *
@@ -395,7 +473,11 @@ export class NodeModulesRegistry extends EventTarget {
             const implementation = await importDefinition(
               path.resolve(this.baseDir, c.path),
             );
-            this.registerComponent(m.name, c.name, implementation);
+            this.registerComponent(
+              m.name,
+              c.name,
+              withSignatureGuards(implementation, c.signature),
+            );
             this.registerSpecs(m.name, c.name, c.tests);
           }),
         );

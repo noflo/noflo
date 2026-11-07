@@ -34,6 +34,12 @@
  *   the port's buffer structures. The outport side is not supported: its
  *   flip interacts with the ordered-output and forwarding machinery, and
  *   the semantics need their own design pass.
+ * - `noflo.contract: string` — the instance's port-contract enforcement
+ *   policy (work document #50): `off` (default, today's behavior),
+ *   `diagnostic` (admission checks record violations, never drop), or
+ *   `strict` (violations are loud — build rejections at graph-construction
+ *   time, process-error escalation at send). Applied to every port of the
+ *   instance; edge metadata still takes precedence over it.
  * - `noflo.forwardBrackets: object` — inport → outports array (the same
  *   shape as the component option; an empty array is the framing
  *   termination declaration, work document #47). An instance entry
@@ -68,6 +74,7 @@ export const PORT_BEHAVIOR_KEYS = [
   "noflo.control",
   "noflo.scoped",
   "noflo.forwardBrackets",
+  "noflo.contract",
 ];
 
 /**
@@ -120,7 +127,37 @@ export function applyPortMetadata(component, metadata = {}) {
       applyForwardBrackets(component, value);
       continue;
     }
+    if (key === "contract") {
+      applyContract(component, value);
+      continue;
+    }
     throw new Error(`Unknown 'noflo.' metadata key '${key}'`);
+  }
+}
+
+/**
+ * Apply the instance-wide port-contract policy: every port of the
+ * component carries it as its declared policy (work document #50). Edge
+ * metadata still takes precedence at the resolution chain.
+ *
+ * @param {import("./Component.js").Component} component
+ * @param {any} value
+ * @returns {void}
+ */
+function applyContract(component, value) {
+  if (
+    value !== "off" &&
+    value !== "diagnostic" &&
+    value !== "strict"
+  ) {
+    throw new Error(
+      `noflo.contract must be one of off, diagnostic, strict — got ${typeof value === "string" ? value : typeof value}`,
+    );
+  }
+  for (const side of [component.inPorts, component.outPorts]) {
+    for (const port of Object.values(side.ports)) {
+      /** @type {any} */ (port).options.contract = value;
+    }
   }
 }
 

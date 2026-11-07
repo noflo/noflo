@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Guard propagation (work document #50): implemented components with signature sidecars retain the sidecar as their declared signature, and the loader carries its guard-bearing port contracts onto every loaded instance's ports — the data the port-contract admission checks read. Stubs already built ports from their signatures.
+
 ## [2.0.0-alpha.13] - 2026-10-19
 
 ## [2.0.0-alpha.12] - 2026-10-19

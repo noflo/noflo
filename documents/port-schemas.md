@@ -56,8 +56,28 @@ Two implementation notes from the dogfood:
 - **Subgraph boundary ports**: a subgraph instance's ports are its exported public names — internal edges reference those, not the inner nodes' own port names.
 - **The publish pipeline owns the schemas' bytes**: the generator rewrites every named schema document to canonical published bytes (pinned references, expanded arrays, two-space indent) — the published bytes are the digested bytes, and the rewrite is idempotent. The whole `schemas/` tree plus `noflo.json` is therefore formatter-exempt (`!**/schemas/**/*.json`, `!**/noflo.json`); a formatter that collapses width-fitting arrays fights the next regeneration and loses, producing a diff on every cycle. Author schema content, not schema style. The exemption's reach is wider than the generator's rewrite: it also un-formats hand-authored catalog documents whose bytes are digest-pinned elsewhere (the fbp-protocol meta-catalogs, noflo's port-behavior) — reformatting those would change the bytes their published digests vouch for, so no formatter may touch them either. The tradeoff is that nothing notices if such a document drifts stylistically; that is the price of bytes being contract. The `revision` field is provenance for the content that generated the manifest; the authoritative publish-time provenance is the workflow's regeneration (`--revision $GITHUB_SHA`), since a committed manifest can never carry the hash of the commit that first ships it.
 
+
+## Enforcement in the engine
+
+Declarations without enforcement are documentation. The engine applies the projected guards at three admission surfaces — and nowhere else (work document #50):
+
+1. **Edge add (build time)** — contract subsumption between the connected ports: everything the source guard guarantees must cover everything the target guard demands (a `car/chassis`-stage source cannot feed a `car/assembly-combined`-demanding target, though the datatypes both read `object`). Checked before any connection attaches; a strict violation fails the network build loudly.
+2. **Outport send** — the outgoing value versus the port's own guard, at the source, before fan-out multiplies the violation. This is the class of failure no editor can ever see: a component emitting data that violates its own declared contract.
+3. **IIP add** — the initial data versus the target port's guard, once at graph construction.
+
+Per-hop delivery checks are deliberately absent: with wiring subsumption verified at build, the middle of the graph is transitively sound, and the steady-state hot path pays nothing. The honest residual gap: a consumer mutating a shared payload mid-graph — already an anti-pattern under the assembly conventions.
+
+Enforcement is **policy, not declaration** — no per-port `strict` flag (the 2016 shape). The policy resolves hierarchically, the same shape as edge `highWaterMark`: edge metadata, then the receiving port's declaration, then the sending port's, then the network default, with the `noflo.contract` node-metadata key (`off` | `diagnostic` | `strict`) applying the policy instance-wide. `off` is the default and is today's behavior: zero cost, full compatibility.
+
+- `diagnostic` checks and records (a warning at build time, a network `process-error`-visible diagnostic at delivery) and never drops.
+- `strict` makes violations loud: build-time violations (edge subsumption, IIP admission) reject the network build; a send-time violation throws inside the sender's process activation, routing through the `done(err)` escalation — the lying sender's failure is the sender's own process error.
+
+The in-process checks are the comparison-only guard vocabulary (`type`, `enum`, `required`, `min`/`max`) plus datatype — no schema bodies loaded, no validator dependency in the core. Full JSON Schema validation stays at the boundaries: the publish gate, the editor, fbp-client pre-injection (`0x47`).
+
+Guards reach the ports through propagation: a component may declare the guard inline (the `guard` port option), the loader carries the published signature's guards onto loaded instances (implemented components via their retained sidecars, stubs via `fromSignature`), and the `noflo.contract` metadata key applies policy instance-wide. Subgraph boundary-port guard propagation is recorded follow-up work.
+
 ## Honest boundaries
 
 - Schemas do not replace the component's runtime validation. The assembly `validates` vocabulary's business checks remain in code; wiring the vocabulary to schema-derived *structural* guards is recorded follow-up work (work document #25) and stays on the structural side of the line.
 - Schemas do not enforce cross-field business invariants. That is CombineAssemblies' runtime job and stays there.
-- Full-schema validation is a client and boundary tool today; the in-process runtime applies the projected guards, not the full documents.
+- Full-schema validation stays a client and boundary tool; the in-process engine applies the projected guards only (see the enforcement section below).
