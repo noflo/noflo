@@ -128,7 +128,7 @@ describe("fbp-client commands", () => {
     const { link, session } = makeSession();
     const canonical = {
       name: "main",
-      nodes: [{ id: "node-1", component: "math/Add" }],
+      nodes: [{ entity_id: "node-1", component: "math/Add" }],
     };
     link.resources.set(
       "res-hash-1",
@@ -140,8 +140,7 @@ describe("fbp-client commands", () => {
     }, 10);
     const dot = await pending;
     assert.match(dot, /digraph \{/);
-    // importFbpJson mints entity ids; the label carries id + component
-    assert.match(dot, /"n1" \[label="n1\\n\(math\/Add\)"\];/);
+    assert.match(dot, /"node-1" \[label="node-1\\n\(math\/Add\)"\];/);
   });
 
   it("components syncs the catalog through the Two-Step flow", async () => {

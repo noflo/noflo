@@ -64,11 +64,29 @@ describe("toDOT", () => {
     assert.match(dot, /label="\\"hello\.txt\\""/);
   });
 
-  it("renders groups as clusters", () => {
+  it("renders groups as clusters, numbered by sorted position", () => {
     const dot = toDOT(canonical());
-    assert.match(dot, /subgraph cluster_\d+ \{/);
+    assert.match(dot, /subgraph cluster_0 \{/);
     assert.match(dot, /label="production"/);
     assert.match(dot, / {4}"Order";/);
+  });
+
+  it("renders dangling group members as phantom cluster nodes", () => {
+    const dot = toDOT({
+      nodes: [{ entity_id: "Order", component: "example/Order" }],
+      edges: [],
+      iips: [],
+      exports: [],
+      groups: [
+        {
+          entity_id: "g1",
+          name: "production",
+          nodes: ["Order", "Ghost"],
+        },
+      ],
+    });
+    assert.match(dot, /subgraph cluster_0 \{/);
+    assert.match(dot, / {4}"Ghost";/);
   });
 
   it("escapes quotes and backslashes in labels", () => {
