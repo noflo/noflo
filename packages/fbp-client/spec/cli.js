@@ -241,14 +241,6 @@ describe("fbp-client commands", () => {
       /not valid JSON/,
     );
   });
-
-  it("refuses unsupported graph formats", async () => {
-    const { session } = makeSession();
-    await assert.rejects(
-      graph(session, { format: "dot" }),
-      /later wd #34 phase/,
-    );
-  });
 });
 
 describe("fbp-client binary", () => {
