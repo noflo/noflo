@@ -128,7 +128,7 @@ Commands:
   scan                 List announced FBP runtimes on the mesh
   status               Run state, uptime, epoch, capabilities (0x48)
   planes               List the runtime's graph planes (0x16)
-  graph                Render the mirrored graph (default: json)
+  graph                Render the mirrored graph (json, fbp, or dot)
   components           List the registry catalog (Two-Step Cache)
   stubs                List the runtime's stub components (declared, unimplemented)
   stub set <name> <file>  Upload a signature sidecar as a stub (0x25)
@@ -158,7 +158,7 @@ Graph modification (0x14 ops):
 Options:
   --name <name>        Pin discovery to one runtime name
   --interface <h:p>    rnsd TCP interface (default 127.0.0.1:4242)
-  --format <fmt>       Output format for graph: json or fbp (dot: later phase)
+  --format <fmt>       Output format for graph: json, fbp, or dot
   --plane <id>         Target plane for modification (default: main)
   --id <id>            Entity id for add-* commands (default: fresh id)
   --metadata <json>    Metadata object for add-* commands

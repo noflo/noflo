@@ -18,6 +18,7 @@ export {
 } from "./graph/entities.js";
 export { exportFbpJson, importFbpJson } from "./graph/fbpJson.js";
 export { GraphModel } from "./graph/GraphModel.js";
+export { toDOT } from "./toDot.js";
 
 /**
  * Reference to one end of a connection: a node (by `entity_id`) and one of

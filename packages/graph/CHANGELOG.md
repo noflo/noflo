@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- `toDOT()`: the Graphviz DOT renderer — renders a canonical graph document (the `GraphModel.serialize()` shape) as a deterministic digraph: nodes labeled with their components, port-to-port edge labels, IIPs as note-shaped nodes, exports as dashed boundary nodes, groups as clusters. An inspection format, not an interchange one (work document #41 item 1).
+
 ## [2.0.0-alpha.13] - 2026-10-19
 
 ## [2.0.0-alpha.12] - 2026-10-19

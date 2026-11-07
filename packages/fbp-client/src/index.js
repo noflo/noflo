@@ -19,6 +19,7 @@
 
 import { toFBP } from "@noflo/fbp";
 import { checkGuard, RUN_STATE } from "@noflo/fbp-protocol";
+import { toDOT } from "@noflo/graph";
 import {
   connectRuntime,
   discoverRuntime,
@@ -168,19 +169,23 @@ export async function planes(session) {
  *
  * @param {Session} session
  * @param {Object} [options]
- * @param {string} [options.format] - `json` (canonical document, default) or `fbp` (DSL source); `dot` lands with a later phase
- * @returns {Promise<string|any>} The serialized document, or the DSL source for the `fbp` format
+ * @param {string} [options.format] - `json` (canonical document, default), `fbp` (DSL source), or `dot` (Graphviz digraph)
+ * @returns {Promise<string|any>} The serialized document, or the rendered source for the `fbp` and `dot` formats
  */
 export async function graph(session, options = {}) {
   const { format = "json" } = options;
-  if (format !== "json" && format !== "fbp") {
-    throw new Error(
-      `unsupported graph format '${format}' (dot lands with a later wd #34 phase)`,
-    );
+  if (format !== "json" && format !== "fbp" && format !== "dot") {
+    throw new Error(`unsupported graph format '${format}'`);
   }
   const sync = await session.client.syncGraph();
   const canonical = sync.graph.serialize();
-  return format === "fbp" ? toFBP(canonical) : canonical;
+  if (format === "fbp") {
+    return toFBP(canonical);
+  }
+  if (format === "dot") {
+    return toDOT(canonical);
+  }
+  return canonical;
 }
 
 /**
