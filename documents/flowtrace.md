@@ -127,6 +127,16 @@ for (const chunk of chunks) {
 }
 ```
 
+The reader is strict by default: truncation or trailing garbage throws and the caller gets nothing. For files a killed writer left mid-flush, tolerant mode matches the crash profile of a mesh runtime — every frame that parsed completely is returned, the untrustworthy tail is discarded and reported:
+
+```js
+const { snapshot, chunks, truncated, tailBytes } = readTraceFile(bytes, {
+  tolerantTail: true,
+});
+```
+
+A snapshot that is itself torn leaves nothing to recover and still throws; content corruption inside a length-valid frame throws in both modes — that is corruption, not tearing.
+
 ### The `fbp-client` commands
 
 `@noflo/fbp-client` works with traces over the wire and offline:
