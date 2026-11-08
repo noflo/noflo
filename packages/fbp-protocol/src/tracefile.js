@@ -14,7 +14,10 @@
 import { MsgPack } from "@reticulum/core";
 import { EVENT_TYPE, TRACE_SNAPSHOT } from "./constants.js";
 import { ProtocolError } from "./errors.js";
-import { splitMsgpackFrames } from "./msgpack-frames.js";
+import {
+  splitMsgpackFrames,
+  splitMsgpackFramesTolerant,
+} from "./msgpack-frames.js";
 import { decodeFlowtraceChunk, encodeFlowtraceChunk } from "./telemetry.js";
 
 /**
@@ -113,8 +116,31 @@ export function assembleTraceFile({
  * @throws {ProtocolError} When the first frame is not a snapshot or a later
  *   frame is not a chunk.
  */
-export function readTraceFile(bytes) {
-  const frames = splitMsgpackFrames(bytes);
+/**
+ * Parse a complete trace file: the snapshot frame plus every appended chunk
+ * in flush order.
+ *
+ * By default the reader is strict: truncation or trailing garbage throws,
+ * and the caller gets nothing. With `tolerantTail` the reader matches the
+ * crash profile of a runtime killed mid-flush: every frame that parsed
+ * completely is returned, the untrustworthy tail is discarded and reported
+ * (`truncated: true` with the discarded byte count), and the committed
+ * prefix stays readable. A snapshot frame that is itself torn leaves
+ * nothing to recover and still throws. Content corruption inside a
+ * length-valid frame throws in both modes: that is corruption, not tearing.
+ *
+ * @param {Uint8Array} bytes
+ * @param {{ tolerantTail?: boolean }} [options]
+ * @returns {{ snapshot: { formatVersion: number, timestampMs: number, runtimeMetadata: RuntimeMetadata, graphDefinition: any }, chunks: ReturnType<typeof decodeFlowtraceChunk>[], truncated: boolean, tailBytes: number }}
+ * @throws {ProtocolError} When the first frame is not a snapshot, a later
+ *   frame is not a chunk, the snapshot is torn, or — without `tolerantTail`
+ *   — the tail is torn.
+ */
+export function readTraceFile(bytes, options = {}) {
+  const { tolerantTail = false } = options;
+  const { frames, tailBytes } = tolerantTail
+    ? splitMsgpackFramesTolerant(bytes)
+    : { frames: splitMsgpackFrames(bytes), tailBytes: 0 };
   if (frames.length === 0) {
     throw new ProtocolError(
       "a trace file needs at least the snapshot frame",
@@ -157,6 +183,8 @@ export function readTraceFile(bytes) {
   return {
     snapshot: { formatVersion, timestampMs, runtimeMetadata, graphDefinition },
     chunks,
+    truncated: tailBytes > 0,
+    tailBytes,
   };
 }
 

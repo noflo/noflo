@@ -39,6 +39,11 @@ const validTypes = [
  *   §3.1). URL and MIME schemas are retired.
  * @property {boolean} [required=false]
  * @property {boolean} [scoped=true]
+ * @property {import("./PortContract.js").Guard} [guard] - The port's
+ *   projected in-band structural guard (work document #50): declared
+ *   inline or propagated from the published manifest signature
+ * @property {import("./PortContract.js").ContractPolicy} [contract] - The
+ *   port's declared port-contract enforcement policy
  * @property {number|null} [highWaterMark] - Backpressure buffer size for edges from this port; null = unbounded
  */
 
@@ -144,6 +149,27 @@ export default class BasePort extends EventBase {
 
   getSchema() {
     return this.options.schema || null;
+  }
+
+  /**
+   * The port's projected in-band guard (work document #50): the
+   * comparison-only structural contract admission checks apply. Declared
+   * inline via the `guard` port option, or propagated at load time from
+   * the package manifest's published signature.
+   *
+   * @returns {import("./PortContract.js").Guard|null}
+   */
+  getGuard() {
+    return this.options.guard || null;
+  }
+
+  /**
+   * The port's declared contract policy, when it declares one.
+   *
+   * @returns {import("./PortContract.js").ContractPolicy|undefined}
+   */
+  getContractPolicy() {
+    return this.options.contract;
   }
 
   getDescription() {

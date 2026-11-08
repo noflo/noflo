@@ -234,3 +234,73 @@ describe("trace file assembly and parsing", () => {
     assert.deepEqual(parsed.chunks[0], decodeFlowtraceChunk(chunk));
   });
 });
+
+describe("tolerant tail reading (C0DATA stream-log contract)", () => {
+	function chunk(subId, deltas) {
+		return encodeFlowtraceChunk({
+			subId,
+			baseTimestampMs: 1000,
+			events: deltas.map(([timeDeltaMs, eventType, payload]) => ({
+				timeDeltaMs,
+				eventType,
+				payload,
+			})),
+		});
+	}
+
+	/** A three-chunk trace file. */
+	function validFile() {
+		const chunks = [
+			chunk("sub-1", [[0, EVENT_TYPE.DATA, "one"]]),
+			chunk("sub-1", [[0, EVENT_TYPE.DATA, "two"]]),
+			chunk("sub-1", [[0, EVENT_TYPE.DATA, "three"]]),
+		];
+		return assembleTraceFile({
+			runtimeMetadata: { name: "mesh-runtime" },
+			graphDefinition: { nodes: [{ id: "a" }], edges: [] },
+			chunks,
+			timestampMs: 1000,
+		});
+	}
+
+	it("strict mode throws on a torn tail", () => {
+		const file = validFile();
+		const torn = file.subarray(0, file.byteLength - 3);
+		assert.throws(() => readTraceFile(torn), /truncated|trailing/);
+	});
+
+	it("tolerant mode keeps the committed prefix and reports the tail", () => {
+		const file = validFile();
+		// Cut into the last chunk: the snapshot and the first two chunks
+		// are complete, the tail is torn
+		const cut = file.subarray(0, file.byteLength - 3);
+		const parsed = readTraceFile(cut, { tolerantTail: true });
+		assert.equal(parsed.truncated, true);
+		assert.ok(parsed.tailBytes > 0);
+		assert.ok(parsed.chunks.length >= 1, "committed chunks survive");
+		const last = parsed.chunks[parsed.chunks.length - 1];
+		assert.ok(
+			last.events.some(
+				(e) => e.eventType === EVENT_TYPE.DATA && e.payload === "two",
+			),
+			"the last complete chunk is the second one",
+		);
+	});
+
+	it("tolerant mode reports an untorn file as clean", () => {
+		const file = validFile();
+		const parsed = readTraceFile(file, { tolerantTail: true });
+		assert.equal(parsed.truncated, false);
+		assert.equal(parsed.tailBytes, 0);
+		assert.equal(parsed.chunks.length, 3);
+	});
+
+	it("a torn snapshot leaves nothing to recover and throws", () => {
+		const file = validFile();
+		const torn = file.subarray(0, 5);
+		assert.throws(
+			() => readTraceFile(torn, { tolerantTail: true }),
+			/at least the snapshot frame|snapshot/,
+		);
+	});
+});

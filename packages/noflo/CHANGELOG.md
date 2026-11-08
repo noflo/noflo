@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Port-contract enforcement (work document #50): the engine applies the projected guards at three admission surfaces — build-time edge subsumption (the source guard's guarantees must cover the target's demands), outport send against the port's own guard, and IIP admission against the target port's guard. Enforcement is policy, resolved hierarchically (edge metadata → `noflo.contract` node metadata → port declaration → network default): `off` (default), `diagnostic` (record, never drop), `strict` (build rejections at graph-construction surfaces, `done(err)` escalation at send). The comparison-only guard vocabulary (`type`, `enum`, `min`/`max`, `required`) mirrors the wire's diagnostic tier; no validator dependency enters the core. `checkAdmission` on outports covers both the direct `send` and the Process API `sendIP` paths.
+
+### Fixed
+
+- `schemas/port-behavior.json` regains its `$id` (`noflo/port-behavior`): the artifact had lost it, leaving the package's manifest regeneration failing loudly on the schemas gate. The `noflo.contract` key joins the catalog; the manifest's schemas-table digest is updated. Note: the `noflo` namespace governance (the catalog lives in `@noflo/noflo`, the namespace is reserved to `@noflo/fbp-protocol`) needs a maintainer decision — recorded on work document #50.
+
 ## [2.0.0-alpha.13] - 2026-10-19
 ### Fixed
 - Ordered components no longer re-send accumulated output when a process function re-activates its context (work document #49): in ordered mode every activation pushes its context's result object into the output queue, and a drain that completes its activation per item (`sendDone` in a loop) re-activated the same context on its continuation — re-pushing the same result whose port arrays still held every already-sent IP, so each ordered flush re-sent the accumulated history (three logical sends emitted six-to-nine packets in a prefix-growing pattern). `processOutputQueue` now empties a result's port arrays as it sends them — the queue holds unsent work only, by construction, making the re-push harmless regardless of how many times a context re-activates

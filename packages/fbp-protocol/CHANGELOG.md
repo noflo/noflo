@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Tolerant tail reading for trace files (work document #53 cross-reference, from the C0DATA stream-log contract): `readTraceFile(bytes, { tolerantTail: true })` decodes every frame that parsed completely, discards the untrustworthy torn tail, and reports it (`truncated`, `tailBytes`) — the crash-profile reader for a runtime killed mid-flush, where the strict reader's throw would render the committed prefix unrecoverable. A torn snapshot still throws (nothing to recover), and content corruption inside a length-valid frame throws in both modes. `splitMsgpackFramesTolerant` exposes the same contract at the frame-walking layer.
+
 ## [2.0.0-alpha.13] - 2026-10-19
 
 ## [2.0.0-alpha.12] - 2026-10-19

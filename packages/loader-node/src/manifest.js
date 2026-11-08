@@ -90,6 +90,10 @@ function parsePlatform(source) {
  *   and #24): signature sidecar files (`components/<name>.json`) register
  *   as stubs — a declared signature with no implementation. Entries
  *   without the field are implementation sources or graphs, as before
+ * @property {{ inports?: any[], outports?: any[] }} [signature] - The
+ *   implemented sibling's declared signature, retained from a dropped
+ *   sidecar so the guard-bearing port contracts (work document #50)
+ *   propagate to the loaded instance
  */
 /**
  * A discovered module entry, as stored in the `fbp.json` v1 manifest.
@@ -335,10 +339,30 @@ async function listComponentsRecursive(componentDir, root) {
   // sidecar keeps the source; the sidecar is documentation of the
   // declared signature (work document #24 update #2). Filtering the
   // merged list at every level resolves collisions across sibling
-  // subdirectories too
+  // subdirectories too. The winning entry retains the sidecar as its
+  // declared signature: the guard-bearing port contracts (work document
+  // #50) propagate to the loaded instance through it
   const sourceNames = new Set(
     components.filter((c) => c.type !== "stub").map((c) => c.name),
   );
+  const sidecarByName = new Map(
+    sidecars.map((sidecar) => [sidecar.name, sidecar]),
+  );
+  for (const component of components) {
+    if (component.type !== "stub") {
+      const sidecar = sidecarByName.get(component.name);
+      if (sidecar) {
+        component.signature = {
+          inports: JSON.parse(
+            fs.readFileSync(path.resolve(root, sidecar.path), "utf8"),
+          ).inports,
+          outports: JSON.parse(
+            fs.readFileSync(path.resolve(root, sidecar.path), "utf8"),
+          ).outports,
+        };
+      }
+    }
+  }
   return components.concat(
     sidecars.filter((sidecar) => !sourceNames.has(sidecar.name)),
   );

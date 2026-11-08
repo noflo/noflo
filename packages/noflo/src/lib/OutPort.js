@@ -5,6 +5,12 @@
 /* @ts-self-types="./OutPort.d.ts" */
 import BasePort from "./BasePort.js";
 import IP from "./IP.js";
+import {
+  describeGuardViolation,
+  guardAccepts,
+  PortContractError,
+  resolveContractPolicy,
+} from "./PortContract.js";
 import { createDebug } from "./logger.js";
 
 const debugPort = createDebug("noflo:ports");
@@ -93,12 +99,50 @@ export default class OutPort extends BasePort {
   send(data, index = null) {
     const sockets = this.getSockets(index);
     this.checkRequired(sockets);
+    this.checkAdmission(data, sockets);
     sockets.forEach((socket) => {
       if (!socket) {
         return;
       }
       socket.send(data);
     });
+  }
+
+  /**
+   * Send admission (work document #50): the port's own guard checked
+   * against the outgoing value, at the source — before fan-out
+   * multiplies a violation. Strict violations escalate as process errors
+   * (a throw inside a process activation routes through the done(err)
+   * escalation); diagnostic violations are recorded and delivered.
+   *
+   * @param {any} data
+   * @param {Array<import("./InternalSocket.js").InternalSocket|void>} sockets
+   * @returns {void}
+   */
+  checkAdmission(data, sockets) {
+    const guard = this.getGuard();
+    if (guard === null) {
+      return;
+    }
+    // The edge's resolved policy already elevates both endpoints'
+    // declarations and the network default; an unattached send falls
+    // back to the port's own declaration
+    const policy = resolveContractPolicy(
+      /** @type {any} */ (sockets[0])?.contract,
+      this.options.contract,
+    );
+    if (policy === "off" || guardAccepts(guard, data)) {
+      return;
+    }
+    const message = `${this.getId()} violates its own port guard: ${describeGuardViolation(guard, data)}`;
+    if (policy === "strict") {
+      throw new PortContractError(message, {
+        policy,
+        surface: "send",
+        port: this.getId(),
+      });
+    }
+    debugPort(`PortContract (diagnostic): ${message}`);
   }
 
   /**
@@ -159,6 +203,9 @@ export default class OutPort extends BasePort {
     }
     const sockets = this.getSockets(idx);
     this.checkRequired(sockets);
+    if (ip.type === "data") {
+      this.checkAdmission(ip.data, sockets);
+    }
 
     if (ip.datatype === "all") {
       // Stamp non-specific IP objects with port datatype

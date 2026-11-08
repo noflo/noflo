@@ -19,6 +19,14 @@ import * as internalSocket from "./InternalSocket.js";
 import IP from "./IP.js";
 import { createDebug } from "./logger.js";
 import { makeAsync } from "./Platform.js";
+import {
+  describeGuardViolation,
+  guardAccepts,
+  guardSubsumes,
+  PortContractError,
+  resolveContractPolicy,
+  strictestContractPolicy,
+} from "./PortContract.js";
 import { applyPortMetadata } from "./PortMetadata.js";
 
 const debugNetwork = createDebug("noflo:network");
@@ -103,6 +111,7 @@ function connectPort(socket, process, port, index, inbound) {
  * @property {boolean} [asyncDelivery] - Make Information Packet delivery asynchronous
  * @property {number} [closingDebounceMs] - The coalescing window for the drain-based closing evaluation; the end fires at the first evaluation after the state completes
  * @property {number|null} [highWaterMark] - Default backpressure buffer size for all edges in this network; null = unbounded
+ * @property {import("./PortContract.js").ContractPolicy} [contract] - Default port-contract enforcement policy for all edges in this network (work document #50); edge metadata and port declarations take precedence
  * @property {Object<string, import("./Component.js").Component>} [instances] - Pre-built component instances to use instead of loading the node's component through the loader, keyed by node id. For embedding APIs that need the instance for port introspection before the network builds: the component is constructed once, not once for introspection and once again in the network (GitHub issue #608)
  */
 
@@ -994,6 +1003,39 @@ export class Network extends EventBase {
       });
       return this.ensureNode(edge.to.node, "inbound")
         .then((to) => {
+          // Port-contract subsumption at build time (work document #50):
+          // the source guard's guarantees must cover the target guard's
+          // demands. Checked before any connection attaches, so a
+          // violation fails the build loudly — the same doctrine as the
+          // case-collision rejection at graph import. The resolved
+          // policy rides on the socket for the admission surfaces.
+          const targetPort = to.component?.inPorts?.ports?.[edge.to.port];
+          // Either endpoint's declaration elevates the edge; an explicit
+          // edge metadata policy wins outright
+          const policy =
+            /** @type {any} */ (edge.metadata)?.contract ??
+            strictestContractPolicy(
+              targetPort?.getContractPolicy?.(),
+              sourcePort?.getContractPolicy?.(),
+              this.options.contract,
+            );
+          socket.contract = policy;
+          if (policy !== "off" && targetPort && sourcePort) {
+            const sourceGuard = sourcePort.getGuard?.() ?? null;
+            const targetGuard = targetPort.getGuard?.() ?? null;
+            if (!guardSubsumes(sourceGuard, targetGuard)) {
+              const message = `Port-contract subsumption violation on ${edge.from.node}.${edge.from.port} -> ${edge.to.node}.${edge.to.port}: the source guard does not guarantee the target's demands`;
+              if (policy === "strict") {
+                throw new PortContractError(message, {
+                  policy,
+                  surface: "edge-add",
+                  port: `${edge.from.node}.${edge.from.port}`,
+                });
+              }
+              debugNetwork(`PortContract (diagnostic): ${message}`);
+            }
+          }
+
           // Subscribe to events from the socket
           this.subscribeSocket(socket);
 
@@ -1087,6 +1129,42 @@ export class Network extends EventBase {
         );
       })
       .then((socket) => {
+        // IIP admission (work document #50): the initial data must
+        // satisfy the target port's guard. The policy resolves from the
+        // initializer's metadata through the target port to the network
+        // default; strict makes a violation a loud build failure, and
+        // the socket carries the policy for the delivery surface.
+        const targetPort =
+          socket.to?.process?.component?.inPorts?.ports?.[socket.to.port];
+        const policy = resolveContractPolicy(
+          /** @type {any} */ (initializer.metadata)?.contract,
+          targetPort?.getContractPolicy?.(),
+          this.options.contract,
+        );
+        socket.contract = policy;
+        if (policy !== "off" && targetPort) {
+          const guard = targetPort.getGuard?.() ?? null;
+          const violation =
+            guard === null
+              ? ""
+              : (() => {
+                  if (guardAccepts(guard, initializer.from.data)) {
+                    return "";
+                  }
+                  return describeGuardViolation(guard, initializer.from.data);
+                })();
+          if (violation) {
+            const message = `IIP for ${initializer.to.node}.${initializer.to.port} violates the port guard: ${violation}`;
+            if (policy === "strict") {
+              throw new PortContractError(message, {
+                policy,
+                surface: "iip-add",
+                port: `${initializer.to.node}.${initializer.to.port}`,
+              });
+            }
+            debugNetwork(`PortContract (diagnostic): ${message}`);
+          }
+        }
         this.connections.push(socket);
         const init = {
           socket,

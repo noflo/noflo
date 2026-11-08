@@ -43,15 +43,62 @@ export function msgpackValueLength(bytes, offset = 0) {
  * @throws {ProtocolError} On truncation or trailing garbage.
  */
 export function splitMsgpackFrames(bytes) {
+  return splitMsgpackFramesWalk(bytes).frames;
+}
+
+/**
+ * Split concatenated MsgPack values tolerating a torn tail: every value
+ * that parses completely is returned; the first value that fails to walk
+ * (truncation or a corrupt marker) ends the walk, and its bytes — to the
+ * end of the buffer — are reported as the tail. This is the crash-profile
+ * reader for stream files a killed writer left mid-flush: the committed
+ * prefix stays readable, the untrustworthy tail is reported, not thrown.
+ *
+ * @param {Uint8Array} bytes
+ * @returns {{ frames: Uint8Array[], tailBytes: number }} The complete
+ *   frames and the number of trailing bytes discarded as the torn tail
+ *   (0 when the buffer walked clean).
+ */
+export function splitMsgpackFramesTolerant(bytes) {
+  const { frames, tailBytes } = splitMsgpackFramesWalk(bytes, true);
+  return { frames, tailBytes };
+}
+
+/**
+ * The frame walk behind both splitters.
+ *
+ * @param {Uint8Array} bytes
+ * @param {boolean} [tolerant] Stop at the first untrustworthy value and
+ *   report the tail instead of throwing.
+ * @returns {{ frames: Uint8Array[], tailBytes: number }}
+ * @throws {ProtocolError} When not tolerant, on truncation or trailing garbage.
+ */
+function splitMsgpackFramesWalk(bytes, tolerant = false) {
   /** @type {Uint8Array[]} */
   const frames = [];
   let offset = 0;
   while (offset < bytes.byteLength) {
-    const length = msgpackValueLength(bytes, offset);
+    let length;
+    try {
+      length = msgpackValueLength(bytes, offset);
+    } catch (error) {
+      if (!tolerant) {
+        throw error;
+      }
+      // The tail is untrustworthy: everything from here is discarded
+      return { frames, tailBytes: bytes.byteLength - offset };
+    }
+    if (offset + length > bytes.byteLength) {
+      // The value header promises more bytes than remain: a torn write
+      if (!tolerant) {
+        throw new ProtocolError("truncated msgpack value");
+      }
+      return { frames, tailBytes: bytes.byteLength - offset };
+    }
     frames.push(bytes.subarray(offset, offset + length));
     offset += length;
   }
-  return frames;
+  return { frames, tailBytes: 0 };
 }
 
 /**

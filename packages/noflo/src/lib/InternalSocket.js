@@ -6,6 +6,7 @@
 /* @ts-self-types="./InternalSocket.d.ts" */
 
 import { Edge, resolveHighWaterMark } from "./Edge.js";
+import { resolveContractPolicy } from "./PortContract.js";
 import { EventBase } from "./EventBase.js";
 import IP from "./IP.js";
 import { makeAsync } from "./Platform.js";
@@ -65,6 +66,7 @@ export class InternalSocket extends EventBase {
    * @property {boolean} [debug] - Whether to catch exceptions caused by IP transmission
    * @property {boolean} [async] - Whether IP transmission should be asynchronous
    * @property {number|null} [highWaterMark] - Pre-resolved default (component ∪ runtime levels); the socket's edge metadata still takes precedence
+   * @property {import("./PortContract.js").ContractPolicy} [contract] - Pre-resolved port-contract policy for the edge (work document #50); the socket's edge metadata still takes precedence
    */
 
   /**
@@ -86,6 +88,12 @@ export class InternalSocket extends EventBase {
     // default (component port and runtime levels, merged by the network);
     // unbounded (the 1.x default) takes the Edge's synchronous fast path,
     // preserving the legacy delivery timing exactly.
+    // The resolved port-contract policy for this edge (work document
+    // #50): admission checks read it at the send and IIP surfaces
+    this.contract = resolveContractPolicy(
+      /** @type {any} */ (metadata)?.contract,
+      options.contract,
+    );
     this.edge = new Edge({
       highWaterMark: resolveHighWaterMark(metadata, options.highWaterMark),
     });
