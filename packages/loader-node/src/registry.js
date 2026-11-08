@@ -256,7 +256,8 @@ function withSignatureGuards(implementation, signature) {
       return instance;
     }
     for (const [direction, entries] of Object.entries(ports)) {
-      const side = direction === "inports" ? instance.inPorts : instance.outPorts;
+      const side =
+        direction === "inports" ? instance.inPorts : instance.outPorts;
       for (const [name, guard] of Object.entries(entries)) {
         if (side?.ports?.[name]) {
           side.ports[name].options.guard = guard;
@@ -266,10 +267,14 @@ function withSignatureGuards(implementation, signature) {
     return instance;
   };
   const isFactory = typeof implementation === "function";
-  const isModule = !isFactory && typeof /** @type {any} */ (implementation).getComponent === "function";
+  const isModule =
+    !isFactory &&
+    typeof (/** @type {any} */ (implementation).getComponent) === "function";
   if (isFactory || isModule) {
     const factory = /** @type {any} */ (
-      isFactory ? implementation : /** @type {any} */ (implementation).getComponent.bind(implementation)
+      isFactory
+        ? implementation
+        : /** @type {any} */ (implementation).getComponent.bind(implementation)
     );
     const wrapped = /** @type {any} */ (...args) =>
       applyGuards(factory(...args));
