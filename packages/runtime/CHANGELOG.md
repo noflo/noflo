@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- The project-authored schema store (`0x2a CMD_SCHEMA_WRITE`) has an entry budget (1024, configurable via `SchemaTable({ maxProjectEntries })`): the grow-only store previously accepted unbounded entries from a COMPONENT_WRITE peer. Writes past the budget answer `0x17 REASON.LINK_SATURATED`, digest mismatches answer `0x17 REASON.PAYLOAD_UNSUPPORTED` — a rejected write is now answered on the wire instead of surfacing only as an `error` event
 - `main` joins `sg/` as a reserved plane id: the main plane is addressed by nil, and a client-minted ephemeral named `main` would collide with it in the subgraph id chain (`sg/main/…`) and the execution protocol's per-plane stream keys. Minting ops and syncs for it answer `0x17 REASON.UNSUPPORTED`
 - `0x47 CMD_PACKET_SEND` without an open client stream is now a transient boundary send (`Network#sendBoundaryPacket`): the packet rides a temporary socket and reaches its target, but no longer inserts an IIP into the graph. The previous path made every injected packet graph state — broadcast to all clients as an `INSERT_IIP` op, dirtying the epoch, and growing the graph without bound on runtimes used as remote subgraphs
 - The dispatch requirement map is now the allowlist: a command code with no capability entry is denied with a `notpermitted` event instead of dispatching unchecked

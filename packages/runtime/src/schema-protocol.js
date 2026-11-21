@@ -25,12 +25,26 @@ import {
   CMD_SCHEMA_WRITE,
   collectSchemaRefs,
   digestSchema,
+  encodeOpRejected,
   encodeSchemaRes,
   parseSchemaRef,
+  REASON,
   SCHEMA_BUNDLE_MAX_ENTRIES,
   SCHEMA_INLINE_LIMIT,
 } from "@noflo/fbp-protocol";
 import { MsgPack } from "@reticulum/core";
+
+/**
+ * The project schema store's budget is exhausted: the write is refused as
+ * a capacity matter (`0x17 REASON.LINK_SATURATED`), distinct from a body
+ * failing its claimed digest (`REASON.PAYLOAD_UNSUPPORTED`).
+ */
+class StoreFullError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "StoreFullError";
+  }
+}
 
 /**
  * A resolved schema entry: an inline body or a resource-backed reference.
@@ -55,6 +69,19 @@ export class SchemaTable {
 
   /** @type {Map<string, string>} */
   #idIndex = new Map();
+
+  /**
+   * @param {object} [options]
+   * @param {number} [options.maxProjectEntries] Budget for project-authored
+   *   entries (the `0x2a` live-programming writes). The store is grow-only;
+   *   without a budget a COMPONENT_WRITE peer could grow it without bound,
+   *   one wire frame at a time. Defaults to 1024. Package-loaded entries
+   *   (installed manifests, digest-verified at startup) are the host's own
+   *   trust domain and stay outside the budget.
+   */
+  constructor(options = {}) {
+    this.maxProjectEntries = options.maxProjectEntries ?? 1024;
+  }
 
   /**
    * Load one installed package's schema set from its manifest: every
@@ -206,6 +233,11 @@ export class SchemaTable {
         // Grow-only and idempotent: the same digest is the same body
         return;
       }
+      if (this.#project.size >= this.maxProjectEntries) {
+        throw new StoreFullError(
+          `the project schema store is full (${this.maxProjectEntries} entries)`,
+        );
+      }
       const $id =
         typeof body.$id === "string" ? parseSchemaRef(body.$id).id : null;
       if ($id) {
@@ -215,6 +247,11 @@ export class SchemaTable {
       return;
     }
     if (ref && !this.has(digest)) {
+      if (this.#project.size >= this.maxProjectEntries) {
+        throw new StoreFullError(
+          `the project schema store is full (${this.maxProjectEntries} entries)`,
+        );
+      }
       this.#project.set(digest, { ref });
     }
   }
@@ -264,14 +301,34 @@ export class SchemaProtocol {
       }
       server.send(encodeSchemaRes(bodies), context);
     });
-    server.registerHandler(CMD_SCHEMA_WRITE, async (decoded) => {
-      await this.table.write(decoded.digest, {
-        body: decoded.body,
-        ref: decoded.ref,
-      });
-      // No reply: writes are content-addressed, idempotent, and confirmed
-      // by the client's own digest verification on first use — the same
-      // fire-and-forget shape as 0x25 COMP_WRITE
+    server.registerHandler(CMD_SCHEMA_WRITE, async (decoded, context) => {
+      try {
+        await this.table.write(decoded.digest, {
+          body: decoded.body,
+          ref: decoded.ref,
+        });
+      } catch (error) {
+        // A rejected write (digest mismatch, store budget exhausted)
+        // answers the wire: silence never carries semantics.
+        server.send(
+          encodeOpRejected({
+            rejectedCmd: CMD_SCHEMA_WRITE,
+            planeId: null,
+            detail: {
+              reason:
+                error instanceof StoreFullError
+                  ? REASON.LINK_SATURATED
+                  : REASON.PAYLOAD_UNSUPPORTED,
+              message: error instanceof Error ? error.message : String(error),
+            },
+          }),
+          context,
+        );
+        return;
+      }
+      // No reply on success: writes are content-addressed, idempotent, and
+      // confirmed by the client's own digest verification on first use —
+      // the same fire-and-forget shape as 0x25 COMP_WRITE
     });
   }
 }
