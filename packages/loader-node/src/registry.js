@@ -158,6 +158,10 @@ async function transpileSource(packageId, name, source, language) {
  * @returns {Promise<Object|Function>}
  */
 async function evaluateModule(baseDir, packageId, name, source) {
+  // The name becomes a file name under the project's `components/`
+  // directory: reject path-unsafe names before any filesystem join, so a
+  // remote component write cannot traverse out of the project
+  utils.assertSafeComponentName(name);
   const { Module } = await import("node:module");
   const { mkdirSync, rmSync, writeFileSync } = await import("node:fs");
   // Use the Node.js module API to evaluate in the correct directory context
@@ -172,24 +176,28 @@ async function evaluateModule(baseDir, packageId, name, source) {
 
   /** @type {any} */
   let implementation;
-  // @ts-expect-error — Bun global only exists under the Bun runtime
-  if (typeof Bun !== "undefined") {
-    // Bun: Module._compile evaluates ESM lazily; require(esm) is eager
-    // and native
-    const { createRequire } = await import("node:module");
-    implementation = createRequire(modulePath)(modulePath);
-  } else {
-    const moduleImpl = new Module(modulePath);
-    // @ts-expect-error
-    moduleImpl.paths = Module._nodeModulePaths(path.dirname(modulePath));
-    moduleImpl.filename = modulePath;
-    // @ts-expect-error
-    moduleImpl._compile(source, modulePath);
-    implementation = moduleImpl.exports;
+  try {
+    // @ts-expect-error — Bun global only exists under the Bun runtime
+    if (typeof Bun !== "undefined") {
+      // Bun: Module._compile evaluates ESM lazily; require(esm) is eager
+      // and native
+      const { createRequire } = await import("node:module");
+      implementation = createRequire(modulePath)(modulePath);
+    } else {
+      const moduleImpl = new Module(modulePath);
+      // @ts-expect-error
+      moduleImpl.paths = Module._nodeModulePaths(path.dirname(modulePath));
+      moduleImpl.filename = modulePath;
+      // @ts-expect-error
+      moduleImpl._compile(source, modulePath);
+      implementation = moduleImpl.exports;
+    }
+  } finally {
+    // Remove the materialized file whether or not the evaluation
+    // succeeded: a throwing source must leave no residue in the project's
+    // components directory
+    rmSync(modulePath, { force: true });
   }
-  // The evaluation has happened; remove the materialized file so source
-  // storage leaves no residue in the project's components directory
-  rmSync(modulePath, { force: true });
   if (
     typeof implementation !== "function" &&
     typeof implementation.getComponent !== "function"
@@ -661,6 +669,9 @@ export class NodeModulesRegistry extends EventTarget {
    * @returns {Promise<void>}
    */
   async storeSource(packageId, name, source, language) {
+    // Validate before transpilation, so an unsafe name fails before any
+    // work or filesystem access (evaluateModule re-checks as the sink)
+    utils.assertSafeComponentName(name);
     const src = await transpileSource(packageId, name, source, language);
     const implementation = await serializeEvaluation(() =>
       evaluateModule(this.baseDir, packageId, name, src),

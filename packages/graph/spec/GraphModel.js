@@ -441,6 +441,26 @@ describe("GraphModel metadata", () => {
     assert.equal(events.length, 2);
   });
 
+  it("keeps prototype-named metadata keys as inert data", () => {
+    // Wire-supplied UI_METADATA ops key by attacker-chosen strings: a
+    // `__proto__` key must stay an own data property, not run through
+    // the prototype setter.
+    const model = new GraphModel();
+    model.setGraphMetadata("__proto__", { injected: true });
+    const stored = model.graphMetadata();
+    assert.ok(Object.hasOwn(stored, "__proto__"), "the key is an own property");
+    assert.equal(stored.injected, undefined, "nothing was inherited");
+    assert.equal(Object.getPrototypeOf(stored), Object.prototype);
+    // Round-trips through the canonical serialization as plain data.
+    const serializedValue = Object.getOwnPropertyDescriptor(
+      model.serialize().metadata,
+      "__proto__",
+    )?.value;
+    assert.deepEqual(serializedValue, { injected: true });
+    model.removeGraphMetadata("__proto__");
+    assert.deepEqual(model.graphMetadata(), {});
+  });
+
   it("does not leave a stale metadata map after removing the last key", () => {
     const model = new GraphModel();
     model.addNode({ entity_id: "A", component: "x" });

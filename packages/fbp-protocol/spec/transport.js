@@ -8,7 +8,7 @@
 
 import assert from "node:assert";
 import { describe, it } from "node:test";
-
+import { MsgPack } from "@reticulum/core";
 import {
   CMD_AUTH_RESPONSE,
   decodeAnnounceAppData,
@@ -90,6 +90,43 @@ describe("announce app_data", () => {
     );
     assert.throws(
       () => encodeAnnounceAppData({ destinationHash: "zz", nodeName: "x" }),
+      ProtocolError,
+    );
+  });
+
+  it("rejects non-string, empty, and over-long node names", () => {
+    // Announce app_data crosses the trust boundary on every announce: the
+    // name must be a bounded string, not whatever a hostile peer packed.
+    for (const nodeName of [undefined, null, 42, ["a"], ""]) {
+      assert.throws(
+        () =>
+          encodeAnnounceAppData({
+            destinationHash: new Uint8Array(16),
+            nodeName,
+          }),
+        ProtocolError,
+      );
+    }
+    assert.throws(
+      () =>
+        encodeAnnounceAppData({
+          destinationHash: new Uint8Array(16),
+          nodeName: "x".repeat(129),
+        }),
+      ProtocolError,
+    );
+  });
+
+  it("decode rejects a hostile node name", () => {
+    // A peer-controlled announce carrying a non-string name (or an
+    // unbounded one) is rejected instead of flowing into clients.
+    const frame = (nodeName) =>
+      MsgPack.encode([PROTOCOL_VERSION, new Uint8Array(16), nodeName]);
+    assert.throws(() => decodeAnnounceAppData(frame(42)), ProtocolError);
+    assert.throws(() => decodeAnnounceAppData(frame(["a"])), ProtocolError);
+    assert.throws(() => decodeAnnounceAppData(frame("")), ProtocolError);
+    assert.throws(
+      () => decodeAnnounceAppData(frame("x".repeat(129))),
       ProtocolError,
     );
   });

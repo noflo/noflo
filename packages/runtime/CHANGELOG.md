@@ -1,6 +1,16 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Telemetry subscription buffers are bounded (`TelemetryProtocol({ maxBufferedEvents })`, default 4096): a subscriber holding a long flush interval could previously accumulate unbounded memory on a busy network. Events past the budget are dropped and the drop is reported at the next flush as a synthetic `0x04 ERROR` flowtrace event
+- The runtime core bounds inbound frame intake: `RuntimeServer({ maxFrameSize })` (default 1 MiB) refuses oversized frames with `0x17 REASON.MALFORMED` without decoding. The Reticulum path was already bounded by the link MTU; this closes the transport-neutral case where an embedder feeds `handleFrame` from a larger transport
+- The project-authored schema store (`0x2a CMD_SCHEMA_WRITE`) has an entry budget (1024, configurable via `SchemaTable({ maxProjectEntries })`): the grow-only store previously accepted unbounded entries from a COMPONENT_WRITE peer. Writes past the budget answer `0x17 REASON.LINK_SATURATED`, digest mismatches answer `0x17 REASON.PAYLOAD_UNSUPPORTED` — a rejected write is now answered on the wire instead of surfacing only as an `error` event
+- `main` joins `sg/` as a reserved plane id: the main plane is addressed by nil, and a client-minted ephemeral named `main` would collide with it in the subgraph id chain (`sg/main/…`) and the execution protocol's per-plane stream keys. Minting ops and syncs for it answer `0x17 REASON.UNSUPPORTED`
+- `0x47 CMD_PACKET_SEND` without an open client stream is now a transient boundary send (`Network#sendBoundaryPacket`): the packet rides a temporary socket and reaches its target, but no longer inserts an IIP into the graph. The previous path made every injected packet graph state — broadcast to all clients as an `INSERT_IIP` op, dirtying the epoch, and growing the graph without bound on runtimes used as remote subgraphs
+- The dispatch requirement map is now the allowlist: a command code with no capability entry is denied with a `notpermitted` event instead of dispatching unchecked
+- Ephemeral plane epochs are derived with SHA-256 over the canonical serialization, the same content addressing as the main plane: the previous 31-bit string hash could collide two different plane states onto one epoch id, and the runtime would answer `0x11 UP_TO_DATE` to a diverged client
+- `RuntimeServer.refreshAuthorizations()`: re-resolves every authorized context's capability mask through the authorization plane and re-sends the `0x02` auth response. A per-context mask is a cache of the policy's decision — a DACAR revocation now bites established links when the application refreshes its plane, instead of only the next link. `noflo-nodejs` calls it after a `SIGHUP` Dacar reload
+- Materializing an ephemeral plane is a write-side effect and now requires `GRAPH_EDIT` on the requesting context: a `0x10 CMD_CRDT_SYNC_REQ` naming a fresh plane id from a context holding only the command's `GRAPH_READ` is refused with `0x17 REASON.PERMISSION_DENIED`, instead of allocating an unbounded plane per minted id from a read-only peer. Handshakes on planes that already exist stay read-only. `getPlane` no longer materializes as a side effect of a lookup
 
 ## [2.0.0-alpha.13] - 2026-10-19
 

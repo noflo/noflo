@@ -134,6 +134,30 @@ test("parses JSON IIPs into values", () => {
   ]);
 });
 
+test("caps JSON IIP nesting depth", () => {
+  // The scanner recurses per nesting level over untrusted text: an
+  // adversarial payload must fail the parse, not exhaust the stack.
+  const deep = "[".repeat(500) + "]".repeat(500);
+  assert.throws(() => parse(`${deep} -> IN Display(Output)`));
+  // Depths within the cap still parse.
+  const shallow = "[".repeat(50) + "]".repeat(50);
+  const graph = parse(`${shallow} -> IN Display(Output)`, {
+    caseSensitive: false,
+  });
+  assert.ok(Array.isArray(graph.connections[0].data));
+});
+
+test("keeps prototype-named JSON IIP keys as inert data", () => {
+  const graph = parse(
+    '{ "__proto__": { "x": 1 }, "a": 2 } -> IN Display(Output)',
+    { caseSensitive: false },
+  );
+  const data = graph.connections[0].data;
+  assert.ok(Object.hasOwn(data, "__proto__"), "the key is an own property");
+  assert.equal(Object.getPrototypeOf(data), Object.prototype);
+  assert.equal(data.x, undefined, "nothing was inherited");
+});
+
 test("unescapes only quotes in quoted IIPs", () => {
   const graph = parse("'a\\'b\\\\c' -> IN Display(Output)");
   assert.equal(graph.connections[0].data, "a'b\\\\c");

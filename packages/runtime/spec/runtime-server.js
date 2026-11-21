@@ -13,6 +13,8 @@ import { describe, it } from "node:test";
 import {
   CAPABILITY,
   CMD_COMP_INSTALL_REQ,
+  CMD_COMP_MANIFEST,
+  CMD_COMP_SYNC_REQ,
   CMD_CRDT_SYNC_REQ,
   CMD_CRDT_UPDATE,
   CMD_RUN_CTRL,
@@ -20,6 +22,7 @@ import {
   decodeOpRejected,
   encodeAuthResponse,
   encodeCompInstallReq,
+  encodeCompManifest,
   encodeCompSyncReq,
   encodeCrdtSyncReq,
   encodeCrdtUpdate,
@@ -216,6 +219,46 @@ describe("RuntimeServer permissions (DACAR)", () => {
       decodeAuthResponse(transport.log.sent[1].bytes).capabilityMask,
       CAPABILITY.GRAPH_READ,
     );
+  });
+
+  it("applies a mid-link policy revocation through refreshAuthorizations", async () => {
+    const transport = capture();
+    const serverPolicy = staticPolicy({}, ["GRAPH_READ"]);
+    const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
+      send: transport.send,
+      capabilities: ["GRAPH_READ", "COMPONENT_WRITE"],
+    });
+    const handled = [];
+    /** @type {any[]} */
+    const dropped = [];
+    server.registerHandler(CMD_COMP_INSTALL_REQ, (decoded) =>
+      handled.push(decoded),
+    );
+    server.addEventListener("notpermitted", (event) =>
+      dropped.push(event.detail),
+    );
+    serverPolicy.grant("aabb", ["COMPONENT_WRITE", "GRAPH_READ"]);
+    await server.authorize("link-1", "aabb");
+    // The peer exercises its grant.
+    server.handleFrame(encodeCompInstallReq("npm:example"), "link-1");
+    assert.equal(handled.length, 1);
+    // The plane revokes; the cached per-context mask must not outlive it.
+    serverPolicy.revoke("aabb");
+    await server.refreshAuthorizations();
+    // The fresh auth response advertises the narrowed mask: the write
+    // grant is gone, the plane's fallback read remains.
+    const refreshed = decodeAuthResponse(transport.log.sent.at(-1).bytes);
+    assert.equal(refreshed.capabilityMask, CAPABILITY.GRAPH_READ);
+    // Enforcement follows: the same frame is now dropped unanswered.
+    server.handleFrame(encodeCompInstallReq("npm:example"), "link-1");
+    assert.equal(handled.length, 1);
+    assert.equal(dropped.length, 1);
+    assert.equal(dropped[0].required, CAPABILITY.COMPONENT_WRITE);
+    // And a forgotten context is not resurrected by the refresh.
+    server.forgetContext("link-1");
+    await server.refreshAuthorizations();
+    assert.equal(server.grantedFor("link-1"), 0);
   });
 
   it("resolves capabilities through one shared identity-based seam", async () => {
@@ -489,6 +532,71 @@ describe("RuntimeServer frame routing", () => {
       }),
       "link-1",
     );
+    assert.equal(handled.length, 1);
+  });
+
+  it("denies command codes with no capability requirement", async () => {
+    const transport = capture();
+    const server = new RuntimeServer({
+      capabilityPolicy: staticPolicy(),
+      send: transport.send,
+      capabilities: 0xff,
+    });
+    const handled = [];
+    /** @type {any[]} */
+    const dropped = [];
+    // A command code the requirement map does not cover (here a
+    // runtime→client code a host wrongly registered a handler for): the
+    // map is the dispatch allowlist, so the absence of an entry denies
+    // the frame even for a fully granted context.
+    server.registerHandler(CMD_COMP_MANIFEST, (decoded) =>
+      handled.push(decoded),
+    );
+    server.addEventListener("notpermitted", (event) =>
+      dropped.push(event.detail),
+    );
+    await server.authorize("link-1", "test-identity");
+    server.handleFrame(encodeCompManifest("hash", {}), "link-1");
+    assert.equal(handled.length, 0);
+    assert.equal(dropped.length, 1);
+    assert.equal(dropped[0].required, undefined);
+  });
+
+  it("refuses oversized frames without decoding them", async () => {
+    // The core is transport-neutral: Reticulum links bound frame size at
+    // the MTU, but an embedder feeding handleFrame from a larger transport
+    // gets a decode-side bound. An oversized frame is answered 0x17
+    // MALFORMED without decode, and the diagnostic carries only a prefix.
+    const transport = capture();
+    const server = new RuntimeServer({
+      capabilityPolicy: staticPolicy(),
+      send: transport.send,
+      maxFrameSize: 64,
+    });
+    const handled = [];
+    /** @type {any[]} */
+    const undecodable = [];
+    server.registerHandler(CMD_COMP_SYNC_REQ, (decoded) =>
+      handled.push(decoded),
+    );
+    server.addEventListener("undecodable", (event) =>
+      undecodable.push(event.detail),
+    );
+    await server.authorize("link-1", "test-identity");
+    // A well-formed sync frame padded past the bound.
+    const oversized = new Uint8Array(65);
+    oversized.set(encodeCompSyncReq("stale"));
+    server.handleFrame(oversized, "link-1");
+    assert.equal(handled.length, 0);
+    assert.equal(undecodable.length, 1);
+    // The diagnostic truncates at 256 bytes; a 65-byte frame passes whole.
+    assert.equal(undecodable[0].bytes.byteLength, 65);
+    const rejection = decodeOpRejected(transport.log.sent.at(-1).bytes);
+    assert.equal(rejection.rejectedCmd, 0);
+    assert.equal(rejection.detail.reason, REASON.MALFORMED);
+    assert.match(rejection.detail.message, /byte maximum/);
+    // Within the bound, the same frame decodes and dispatches.
+    server.handleFrame(encodeCompSyncReq("stale"), "link-1");
     assert.equal(handled.length, 1);
   });
 

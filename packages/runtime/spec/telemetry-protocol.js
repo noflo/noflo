@@ -145,6 +145,46 @@ describe("telemetry: subscriptions", () => {
     assert.ok(telemetry.subscriptions.has("sub-3"));
   });
 
+  it("caps the subscription buffer and reports the overflow", async () => {
+    const transport = capture();
+    const serverPolicy = staticPolicy();
+    const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
+      send: transport.send,
+      capabilities: ["TELEMETRY_READ"],
+    });
+    const host = new FakeHost();
+    const telemetry = new TelemetryProtocol({
+      host,
+      maxBufferedEvents: 4,
+    });
+    telemetry.register(server);
+    await server.authorize("link-1", "test-identity");
+    subscribe(server, "sub-1", "link-1");
+    // Ten events against a four-event buffer: four retained, six dropped.
+    for (let i = 0; i < 10; i++) {
+      host.emit("ip", { type: "data", data: i });
+    }
+    telemetry.flushAll();
+    const chunk = decodeFlowtraceChunk(wire(transport)[0].bytes);
+    assert.equal(chunk.events.length, 5);
+    const retained = chunk.events.filter(
+      (e) => e.eventType === EVENT_TYPE.DATA,
+    );
+    assert.equal(retained.length, 4);
+    const overflow = chunk.events.find((e) => e.eventType === EVENT_TYPE.ERROR);
+    assert.ok(overflow, "the overflow is reported as a flowtrace event");
+    assert.match(String(overflow.payload), /6 telemetry events dropped/);
+    // The chunk stays chronological after the synthetic append.
+    const base = chunk.baseTimestampMs;
+    assert.deepEqual(
+      chunk.events.map((e) => e.timeDeltaMs),
+      [...chunk.events.map((e) => e.timeDeltaMs)].sort((a, b) => a - b),
+    );
+    assert.ok(chunk.events.at(-1).timeDeltaMs >= 0);
+    assert.ok(base >= 0);
+  });
+
   it("ceilings the client's requested flush interval", async () => {
     const transport = capture();
     const serverPolicy = staticPolicy();

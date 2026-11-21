@@ -24,6 +24,25 @@ const FAIL = Symbol("json-fail");
 const NUMBER_RE = /-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?/y;
 const HEX_RE = /[0-9a-fA-F]/y;
 
+/**
+ * Maximum nesting depth. The scanner is a recursive-descent parser over
+ * untrusted text (IIP JSON literals in .fbp sources): without a cap a
+ * deeply nested payload exhausts the stack. 128 mirrors the MsgPack
+ * decoder's own depth cap — well above any legitimate structure.
+ *
+ * @type {number}
+ */
+const MAX_DEPTH = 128;
+
+/**
+ * Keys the decoder defines as own data properties instead of assigning.
+ * Assignment would run `__proto__` through the prototype setter, letting
+ * a parsed document swap its own container's prototype.
+ *
+ * @type {ReadonlySet<string>}
+ */
+const PROTOTYPE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
 const ESCAPES = /** @type {const} */ ({
   '"': '"',
   "\\": "\\",
@@ -89,13 +108,16 @@ class JsonScanner {
   }
 
   /** @returns {any} */
-  value() {
+  value(depth = 0) {
+    if (depth > MAX_DEPTH) {
+      return FAIL;
+    }
     const c = this.input[this.pos];
     switch (c) {
       case "{":
-        return this.object();
+        return this.object(depth + 1);
       case "[":
-        return this.array();
+        return this.array(depth + 1);
       case '"':
         return this.string();
       case "t":
@@ -122,8 +144,11 @@ class JsonScanner {
     return FAIL;
   }
 
-  /** @returns {any} */
-  object() {
+  /**
+   * @param {number} depth
+   * @returns {any}
+   */
+  object(depth) {
     this.pos++; // "{"
     this.skipWhitespace();
     /** @type {Record<string, any>} */
@@ -143,11 +168,20 @@ class JsonScanner {
       }
       this.pos++;
       this.skipWhitespace();
-      const value = this.value();
+      const value = this.value(depth);
       if (value === FAIL) {
         return FAIL;
       }
-      result[key] = value;
+      if (PROTOTYPE_KEYS.has(key)) {
+        Object.defineProperty(result, key, {
+          value,
+          enumerable: true,
+          configurable: true,
+          writable: true,
+        });
+      } else {
+        result[key] = value;
+      }
       this.skipWhitespace();
       if (this.input[this.pos] === ",") {
         this.pos++;
@@ -162,8 +196,11 @@ class JsonScanner {
     }
   }
 
-  /** @returns {any} */
-  array() {
+  /**
+   * @param {number} depth
+   * @returns {any}
+   */
+  array(depth) {
     this.pos++; // "["
     this.skipWhitespace();
     /** @type {any[]} */
@@ -173,7 +210,7 @@ class JsonScanner {
       return result;
     }
     while (true) {
-      const value = this.value();
+      const value = this.value(depth);
       if (value === FAIL) {
         return FAIL;
       }

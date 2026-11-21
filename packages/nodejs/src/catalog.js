@@ -27,7 +27,11 @@ import {
   projectGuard,
   validateGuard,
 } from "@noflo/fbp-protocol";
-import { normalizeLibraryName } from "@noflo/loader-node";
+import {
+  assertSafeComponentName,
+  isSafeComponentName,
+  normalizeLibraryName,
+} from "@noflo/loader-node";
 import { StubComponent } from "@noflo/noflo";
 
 /**
@@ -389,10 +393,13 @@ export async function catalogFromLoader(loader, registry = null) {
         return;
       }
       // Signature upload: the stub's stable identity is the project's own
-      // library namespace. Another library's prefix is rejected outright —
-      // this host does not own installed components, and materializing a
-      // stub under a foreign prefix would change identity on reboot
+      // library namespace. The bare name materializes as a
+      // `components/<name>.json` sidecar and keys every implementation-wins
+      // filesystem check, so reject path-unsafe names before any
+      // filesystem join — a remote write must not traverse out of the
+      // project's components directory
       const { library, bareName } = splitComponentName(componentName);
+      assertSafeComponentName(bareName);
       const projectPrefix = await projectLibraryName(baseDir);
       if (projectPrefix === null) {
         throw new Error(
@@ -506,17 +513,21 @@ export async function catalogFromLoader(loader, registry = null) {
         return stored.source;
       }
       // A stub-only entry's source is its signature sidecar: the read
-      // round-trips the upload exactly
-      try {
-        const sidecar = await readFile(
-          path.resolve(baseDir, "components", `${bareName}.json`),
-          "utf-8",
-        );
-        if (parseSignaturePayload(sidecar)) {
-          return sidecar;
+      // round-trips the upload exactly. The bare name joins a filesystem
+      // path here — skip the sidecar read for path-unsafe names instead
+      // of probing outside the project's components directory
+      if (isSafeComponentName(bareName)) {
+        try {
+          const sidecar = await readFile(
+            path.resolve(baseDir, "components", `${bareName}.json`),
+            "utf-8",
+          );
+          if (parseSignaturePayload(sidecar)) {
+            return sidecar;
+          }
+        } catch (_err) {
+          // No sidecar: fall through to the registry's own source surface
         }
-      } catch (_err) {
-        // No sidecar: fall through to the registry's own source surface
       }
       try {
         const source = await registry.getSource(componentName);

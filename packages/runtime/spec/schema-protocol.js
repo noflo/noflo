@@ -18,10 +18,13 @@ import { fileURLToPath } from "node:url";
 
 import {
   CMD_SCHEMA_RES,
+  CMD_SCHEMA_WRITE,
+  decodeOpRejected,
   decodeSchemaRes,
   digestSchema,
   encodeSchemaReq,
   encodeSchemaWrite,
+  REASON,
 } from "@noflo/fbp-protocol";
 import { RuntimeServer, SchemaTable } from "../src/index.js";
 import { SchemaProtocol } from "../src/schema-protocol.js";
@@ -130,6 +133,11 @@ function reply(transport) {
   );
   assert.equal(frames.length, 1, "exactly one 0x29 reply expected");
   return decodeSchemaRes(frames[0].bytes).bodies;
+}
+
+/** Outbound frames with the unilateral auth responses excluded. */
+function nonAuth(transport) {
+  return transport.log.sent.filter((entry) => entry.bytes[1] !== 0x02);
 }
 
 describe("schema table", () => {
@@ -312,6 +320,54 @@ describe("schema protocol", () => {
     server.handleFrame(encodeSchemaWrite(digest, "rns:resourcehash"), "link-1");
     await waitFor(() => table.entry(digest) !== null);
     assert.deepEqual(table.entry(digest), { ref: "rns:resourcehash" });
+  });
+
+  it("refuses writes past the project store budget with 0x17", async () => {
+    const transport = capture();
+    const server = new RuntimeServer({
+      capabilityPolicy: staticPolicy(),
+      send: transport.send,
+      capabilities: ["COMPONENT_READ", "COMPONENT_WRITE", "GRAPH_READ"],
+    });
+    const table = new SchemaTable({ maxProjectEntries: 2 });
+    const schema = new SchemaProtocol({ table });
+    schema.register(server);
+    await server.authorize("link-1", "test-identity");
+    // The store is grow-only: without a budget a COMPONENT_WRITE peer
+    // could grow it one wire frame at a time.
+    const digests = [];
+    for (let i = 0; i < 2; i++) {
+      const body = { $id: `project/live-${i}`, type: "string" };
+      const digest = await digestSchema(body);
+      digests.push(digest);
+      server.handleFrame(encodeSchemaWrite(digest, body), "link-1");
+      await waitFor(() => table.has(digest));
+    }
+    // Rewriting a held digest stays idempotent even at the budget.
+    server.handleFrame(
+      encodeSchemaWrite(digests[0], { $id: "project/live-0", type: "string" }),
+      "link-1",
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.equal(table.size, 2);
+    // The third distinct write is refused on the wire.
+    const body3 = { $id: "project/live-3", type: "string" };
+    const digest3 = await digestSchema(body3);
+    server.handleFrame(encodeSchemaWrite(digest3, body3), "link-1");
+    await waitFor(() => nonAuth(transport).length > 0);
+    const rejection = decodeOpRejected(nonAuth(transport)[0].bytes);
+    assert.equal(rejection.rejectedCmd, CMD_SCHEMA_WRITE);
+    assert.equal(rejection.detail.reason, REASON.LINK_SATURATED);
+    assert.match(rejection.detail.message, /store is full/);
+    assert.equal(table.has(digest3), false);
+    // A digest mismatch answers PAYLOAD_UNSUPPORTED, not saturation.
+    server.handleFrame(
+      encodeSchemaWrite("f".repeat(64), { $id: "project/wrong" }),
+      "link-1",
+    );
+    await waitFor(() => nonAuth(transport).length > 1);
+    const mismatch = decodeOpRejected(nonAuth(transport)[1].bytes);
+    assert.equal(mismatch.detail.reason, REASON.PAYLOAD_UNSUPPORTED);
   });
 });
 

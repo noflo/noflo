@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Announce node names are validated on both codec sides: a bounded non-empty string is required, so a hostile peer's announce carrying a non-string or unbounded `node_name` is rejected at decode instead of flowing into client surfaces
 
 ## [2.0.0-alpha.13] - 2026-10-19
 

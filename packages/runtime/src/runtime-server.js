@@ -46,13 +46,18 @@ import {
   encodeOpRejected,
   LIMITATION,
   PROTOCOL_VERSION,
+  ProtocolError,
   REASON,
 } from "@noflo/fbp-protocol";
 
 /**
  * Capability a client needs to send a given command. Only client→runtime
  * commands appear here: runtime→client codes arriving inbound are simply
- * commands with no handler. Requests and control commands map to the mask
+ * commands with no handler. The map is the dispatch allowlist — a command
+ * code with no entry is denied outright (fail closed), so a future command
+ * or an application extension is admitted only by adding its requirement
+ * here, never by dispatching on the absence of one. Requests and control
+ * commands map to the mask
  * bits the auth response advertises — a client sending a command the
  * runtime did not advertise is dropped with a `notpermitted` event.
  *
@@ -106,6 +111,9 @@ export class RuntimeServer extends EventTarget {
   /** @type {Map<any, number>} Per-context capability mask, set at authorize. */
   #contextCapabilities = new Map();
 
+  /** @type {Map<any, string|undefined>} The identity each context was authorized with. */
+  #contextIdentities = new Map();
+
   /**
    * @param {object} options
    * @param {string[]|number} [options.capabilities] Capability names or a
@@ -136,6 +144,13 @@ export class RuntimeServer extends EventTarget {
    *   a frame to every authorized client context except the given one, if
    *   any — used to converge operation logs without echoing an operation
    *   back to its origin.
+   * @param {number} [options.maxFrameSize] The largest inbound frame the
+   *   core will decode, in bytes. The Reticulum binding is bounded by the
+   *   link MTU, but the core is transport-neutral: an embedder feeding
+   *   `handleFrame` from a larger transport gets a decode-side bound
+   *   instead of unbounded buffer intake. Oversized frames are answered
+   *   `0x17 REASON.MALFORMED` without being decoded. Defaults to
+   *   1048576 (1 MiB) — generous, but bounded.
    */
   constructor(options) {
     super();
@@ -167,6 +182,7 @@ export class RuntimeServer extends EventTarget {
     this.send = options.send ?? (() => {});
     /** @type {(bytes: Uint8Array, exceptContext?: any) => void} */
     this.broadcast = options.broadcast ?? (() => {});
+    this.maxFrameSize = options.maxFrameSize ?? 1048576;
     /** @type {Map<number, (decoded: any, context: any) => any>} */
     this.handlers = new Map();
     /** @type {Map<any, number>} Capability mask resolved per authorized context. */
@@ -222,7 +238,8 @@ export class RuntimeServer extends EventTarget {
    * the mask the authorization plane grants the identified peer — filtered
    * through the advertised surface. The mask
    * is enforced per context from here on; the transport evicts the entry
-   * when the context dies (forgetContext).
+   * when the context dies (forgetContext). Mid-link policy changes reach
+   * established contexts through {@link refreshAuthorizations}.
    *
    * @param {any} context
    * @param {string} [identityHash] Hex hash of the peer's verified identity;
@@ -231,6 +248,34 @@ export class RuntimeServer extends EventTarget {
    * @returns {Promise<void>}
    */
   async authorize(context, identityHash) {
+    this.#contextIdentities.set(context, identityHash);
+    await this.#applyCapabilities(context, identityHash);
+  }
+
+  /**
+   * Re-resolve every authorized context's capability mask through the
+   * authorization plane and re-advertise it. This is how a policy change
+   * — a DACAR grant revoke among them — bites established links instead
+   * of only the next one: a per-context mask is a cached decision, and a
+   * plane refresh must invalidate the cache. A context whose identity the
+   * plane now rejects or no longer answers is denied closed. Each
+   * re-resolved context receives a fresh `0x02` auth response, so peers
+   * learn their new grant without waiting for telemetry to reveal it.
+   *
+   * @returns {Promise<void>}
+   */
+  async refreshAuthorizations() {
+    for (const [context, identityHash] of this.#contextIdentities) {
+      await this.#applyCapabilities(context, identityHash);
+    }
+  }
+
+  /**
+   * @param {any} context
+   * @param {string|undefined} identityHash
+   * @returns {Promise<void>}
+   */
+  async #applyCapabilities(context, identityHash) {
     let mask = 0;
     if (identityHash !== undefined) {
       try {
@@ -267,6 +312,7 @@ export class RuntimeServer extends EventTarget {
    */
   forgetContext(context) {
     this.#contextCapabilities.delete(context);
+    this.#contextIdentities.delete(context);
   }
 
   /**
@@ -309,15 +355,42 @@ export class RuntimeServer extends EventTarget {
    * has no error channel for them, and a runtime must survive hostile link
    * traffic. They surface as `undecodable` events instead. Commands the
    * runtime did not advertise a capability for are dropped with a
-   * `notpermitted` event; commands with no handler yet emit
-   * `unhandledframe`; handler failures surface as `error` events. None of
-   * these escape to the transport.
+   * `notpermitted` event, as are command codes the requirement map does
+   * not cover — the map is the dispatch allowlist; commands with no
+   * handler yet emit `unhandledframe`; handler failures surface as `error`
+   * events. None of these escape to the transport.
    *
    * @param {Uint8Array} bytes
    * @param {any} context
    * @returns {void}
    */
   handleFrame(bytes, context) {
+    if (bytes.byteLength > this.maxFrameSize) {
+      // Oversized: refuse before decoding, so intake is bounded even for
+      // transports without their own frame limit. The diagnostic carries
+      // only a prefix of the hostile bytes (see below).
+      this.#emit("undecodable", {
+        bytes: bytes.slice(0, 256),
+        context,
+        error: new ProtocolError(
+          `frame exceeds the ${this.maxFrameSize}-byte maximum`,
+          undefined,
+          REASON.MALFORMED,
+        ),
+      });
+      this.send(
+        encodeOpRejected({
+          rejectedCmd: 0,
+          planeId: null,
+          detail: {
+            reason: REASON.MALFORMED,
+            message: `frame exceeds the ${this.maxFrameSize}-byte maximum`,
+          },
+        }),
+        context,
+      );
+      return;
+    }
     /** @type {ReturnType<decodeFrame>|null} */
     let decoded = null;
     try {
@@ -370,13 +443,15 @@ export class RuntimeServer extends EventTarget {
       return;
     }
     const required = REQUIRED_CAPABILITY[decoded.cmd];
-    // Fail closed: a context the transport never authorized has no
-    // capabilities, whatever the authorization plane would say. The
+    // Fail closed twice over: a context the transport never authorized has
+    // no capabilities, whatever the authorization plane would say — the
     // pre-identification window of a link is attacker-controlled, so the
-    // default mask must never be granted implicitly — only an explicit
-    // authorize() resolves it for the context.
+    // default mask must never be granted implicitly — and a command code
+    // with no capability requirement at all is denied like any other. The
+    // requirement map is the allowlist: a future command must be added to
+    // it explicitly, never silently dispatch on the absence of an entry.
     const granted = this.#contextCapabilities.get(context) ?? 0;
-    if (required !== undefined && (granted & required) !== required) {
+    if (required === undefined || (granted & required) !== required) {
       // The peer was not granted this capability: it is violating what its
       // auth response told it. Drop the frame.
       this.#emit("notpermitted", { decoded, context, required });

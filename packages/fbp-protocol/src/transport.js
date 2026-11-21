@@ -21,6 +21,15 @@ import { ProtocolError } from "./errors.js";
 const DESTINATION_HASH_BYTES = 16;
 
 /**
+ * The largest announce node name, in characters. Announce app_data
+ * crosses the trust boundary on every announce — a hostile peer's name
+ * must be a bounded string before it reaches client surfaces.
+ *
+ * @type {number}
+ */
+const MAX_NODE_NAME_LENGTH = 128;
+
+/**
  * A Reticulum destination hash: raw 16 bytes or its 32-character hex form.
  *
  * @typedef {Uint8Array|string} DestinationHash
@@ -43,6 +52,7 @@ export function encodeAnnounceAppData({
   destinationHash,
   nodeName,
 }) {
+  assertNodeName(nodeName);
   return MsgPack.encode([
     protocolVersion,
     destinationHashBytes(destinationHash),
@@ -67,6 +77,7 @@ export function decodeAnnounceAppData(bytes) {
       "announce app_data protocol_version must be a uint",
     );
   }
+  assertNodeName(nodeName);
   const hash = destinationHashBytes(destinationHash);
   return {
     protocolVersion,
@@ -176,6 +187,24 @@ export function decodeAuthResponse(bytes) {
     runtimeMetadata,
     advertisedMask,
   };
+}
+
+/**
+ * @param {any} nodeName
+ * @returns {void}
+ * @throws {ProtocolError} When the name is not a bounded non-empty string.
+ */
+function assertNodeName(nodeName) {
+  if (typeof nodeName !== "string" || nodeName.length === 0) {
+    throw new ProtocolError(
+      "announce app_data node_name must be a non-empty string",
+    );
+  }
+  if (nodeName.length > MAX_NODE_NAME_LENGTH) {
+    throw new ProtocolError(
+      `announce app_data node_name must stay within ${MAX_NODE_NAME_LENGTH} characters`,
+    );
+  }
 }
 
 /**

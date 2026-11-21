@@ -113,10 +113,16 @@ export async function main() {
     flushTrace(options, host.flowtrace, name);
   });
   process.on("SIGHUP", () => {
-    // Re-read the Dacar grant store after an external `dacar sync`
+    // Re-read the Dacar grant store after an external `dacar sync`, and
+    // re-resolve every established link's capability mask: a cached
+    // per-context grant must not outlive the policy change, so revocations
+    // bite live links instead of only the next one
     dacar
       ?.refresh()
-      .then(() => console.log("Dacar grant state reloaded"))
+      .then(async () => {
+        await host.runtime.server.refreshAuthorizations();
+        console.log("Dacar grant state reloaded");
+      })
       .catch((err) => console.error(err));
   });
   if (!options.catchExceptions) {
