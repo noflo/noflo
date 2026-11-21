@@ -622,6 +622,16 @@ export class GraphProtocol {
         CMD_CRDT_UPDATE,
       );
     }
+    if (planeId === "main") {
+      // The main plane is addressed by nil; a client-minted ephemeral
+      // named "main" would collide with it — the subgraph plane ids and
+      // the execution protocol's per-plane stream keys both use "main" as
+      // the nil stand-in (update #42).
+      throw new ProtocolError(
+        "the main plane id is reserved: nil addresses the main plane",
+        CMD_CRDT_UPDATE,
+      );
+    }
     let plane = this.#planes.get(planeId);
     if (!plane) {
       const model = new /** @type {any} */ (this.graph).constructor({

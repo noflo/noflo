@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- `main` joins `sg/` as a reserved plane id: the main plane is addressed by nil, and a client-minted ephemeral named `main` would collide with it in the subgraph id chain (`sg/main/…`) and the execution protocol's per-plane stream keys. Minting ops and syncs for it answer `0x17 REASON.UNSUPPORTED`
 - `0x47 CMD_PACKET_SEND` without an open client stream is now a transient boundary send (`Network#sendBoundaryPacket`): the packet rides a temporary socket and reaches its target, but no longer inserts an IIP into the graph. The previous path made every injected packet graph state — broadcast to all clients as an `INSERT_IIP` op, dirtying the epoch, and growing the graph without bound on runtimes used as remote subgraphs
 - The dispatch requirement map is now the allowlist: a command code with no capability entry is denied with a `notpermitted` event instead of dispatching unchecked
 - Ephemeral plane epochs are derived with SHA-256 over the canonical serialization, the same content addressing as the main plane: the previous 31-bit string hash could collide two different plane states onto one epoch id, and the runtime would answer `0x11 UP_TO_DATE` to a diverged client

@@ -531,6 +531,43 @@ describe("graph protocol: subgraph planes (update #42)", () => {
     assert.equal(list.entries.filter((e) => e.kind === "subgraph").length, 0);
   });
 
+  it("rejects minting the reserved main plane id", async () => {
+    // The main plane is addressed by nil; a client-minted ephemeral named
+    // "main" would collide with it in the subgraph id chain and the
+    // execution protocol's per-plane stream keys.
+    const { server, protocol, transport } = await wiredServer();
+    server.handleFrame(encodeCrdtSyncReq("main", 0, {}), "link-1");
+    server.handleFrame(
+      encodeCrdtUpdate({
+        planeId: "main",
+        clientId: "client-a",
+        logicalClock: 1,
+        opType: OP_TYPE.INSERT_NODE,
+        entityId: "node-9",
+        payload: { component: "math/Add" },
+      }),
+      "link-1",
+    );
+    // Both handlers refuse before any async step: the rejections are
+    // synchronous.
+    await flush();
+    const rejections = wire(transport)
+      .map((entry) => {
+        try {
+          return decodeOpRejected(entry.bytes);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+    assert.equal(rejections.length, 2);
+    for (const rejection of rejections) {
+      assert.equal(rejection.detail.reason, REASON.UNSUPPORTED);
+      assert.match(rejection.detail.message, /main plane id is reserved/);
+    }
+    assert.equal(protocol.getPlane("main"), null);
+  });
+
   it("rejects ops and syncs minting the reserved sg/ plane prefix", async () => {
     const { server, transport } = await wiredServer();
     server.handleFrame(
