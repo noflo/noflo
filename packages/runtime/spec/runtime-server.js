@@ -13,6 +13,7 @@ import { describe, it } from "node:test";
 import {
   CAPABILITY,
   CMD_COMP_INSTALL_REQ,
+  CMD_COMP_MANIFEST,
   CMD_CRDT_SYNC_REQ,
   CMD_CRDT_UPDATE,
   CMD_RUN_CTRL,
@@ -20,6 +21,7 @@ import {
   decodeOpRejected,
   encodeAuthResponse,
   encodeCompInstallReq,
+  encodeCompManifest,
   encodeCompSyncReq,
   encodeCrdtSyncReq,
   encodeCrdtUpdate,
@@ -530,6 +532,33 @@ describe("RuntimeServer frame routing", () => {
       "link-1",
     );
     assert.equal(handled.length, 1);
+  });
+
+  it("denies command codes with no capability requirement", async () => {
+    const transport = capture();
+    const server = new RuntimeServer({
+      capabilityPolicy: staticPolicy(),
+      send: transport.send,
+      capabilities: 0xff,
+    });
+    const handled = [];
+    /** @type {any[]} */
+    const dropped = [];
+    // A command code the requirement map does not cover (here a
+    // runtime→client code a host wrongly registered a handler for): the
+    // map is the dispatch allowlist, so the absence of an entry denies
+    // the frame even for a fully granted context.
+    server.registerHandler(CMD_COMP_MANIFEST, (decoded) =>
+      handled.push(decoded),
+    );
+    server.addEventListener("notpermitted", (event) =>
+      dropped.push(event.detail),
+    );
+    await server.authorize("link-1", "test-identity");
+    server.handleFrame(encodeCompManifest("hash", {}), "link-1");
+    assert.equal(handled.length, 0);
+    assert.equal(dropped.length, 1);
+    assert.equal(dropped[0].required, undefined);
   });
 
   it("survives handler failures without throwing", async () => {

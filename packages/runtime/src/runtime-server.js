@@ -52,7 +52,11 @@ import {
 /**
  * Capability a client needs to send a given command. Only client→runtime
  * commands appear here: runtime→client codes arriving inbound are simply
- * commands with no handler. Requests and control commands map to the mask
+ * commands with no handler. The map is the dispatch allowlist — a command
+ * code with no entry is denied outright (fail closed), so a future command
+ * or an application extension is admitted only by adding its requirement
+ * here, never by dispatching on the absence of one. Requests and control
+ * commands map to the mask
  * bits the auth response advertises — a client sending a command the
  * runtime did not advertise is dropped with a `notpermitted` event.
  *
@@ -342,9 +346,10 @@ export class RuntimeServer extends EventTarget {
    * has no error channel for them, and a runtime must survive hostile link
    * traffic. They surface as `undecodable` events instead. Commands the
    * runtime did not advertise a capability for are dropped with a
-   * `notpermitted` event; commands with no handler yet emit
-   * `unhandledframe`; handler failures surface as `error` events. None of
-   * these escape to the transport.
+   * `notpermitted` event, as are command codes the requirement map does
+   * not cover — the map is the dispatch allowlist; commands with no
+   * handler yet emit `unhandledframe`; handler failures surface as `error`
+   * events. None of these escape to the transport.
    *
    * @param {Uint8Array} bytes
    * @param {any} context
@@ -403,13 +408,15 @@ export class RuntimeServer extends EventTarget {
       return;
     }
     const required = REQUIRED_CAPABILITY[decoded.cmd];
-    // Fail closed: a context the transport never authorized has no
-    // capabilities, whatever the authorization plane would say. The
+    // Fail closed twice over: a context the transport never authorized has
+    // no capabilities, whatever the authorization plane would say — the
     // pre-identification window of a link is attacker-controlled, so the
-    // default mask must never be granted implicitly — only an explicit
-    // authorize() resolves it for the context.
+    // default mask must never be granted implicitly — and a command code
+    // with no capability requirement at all is denied like any other. The
+    // requirement map is the allowlist: a future command must be added to
+    // it explicitly, never silently dispatch on the absence of an entry.
     const granted = this.#contextCapabilities.get(context) ?? 0;
-    if (required !== undefined && (granted & required) !== required) {
+    if (required === undefined || (granted & required) !== required) {
       // The peer was not granted this capability: it is violating what its
       // auth response told it. Drop the frame.
       this.#emit("notpermitted", { decoded, context, required });
