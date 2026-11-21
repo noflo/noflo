@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Graph-level metadata is stored in a `Map`: wire-supplied UI_METADATA keys such as `__proto__` stay inert own data instead of running through the prototype setter on the internal metadata object. `graphMetadata()` and the canonical serialization are unchanged for ordinary keys
 
 ### Added
 

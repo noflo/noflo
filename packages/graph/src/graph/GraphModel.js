@@ -126,8 +126,8 @@ export class GraphModel extends EventTarget {
   /** @type {Map<string, GraphGroup>} */
   #groups = new Map();
 
-  /** @type {Object<string, any>} */
-  #metadata = {};
+  /** @type {Map<string, any>} */
+  #metadata = new Map();
 
   /** @type {number} */
   #counter = 0;
@@ -166,7 +166,21 @@ export class GraphModel extends EventTarget {
    * @returns {Object<string, any>}
    */
   graphMetadata() {
-    return structuredClone(this.#metadata);
+    return this.#metadataSnapshot();
+  }
+
+  /**
+   * The metadata as a plain object with deep-cloned values. Storage is a
+   * `Map`, so wire-supplied keys such as `__proto__` stay inert own data
+   * — assignment into a plain object would run them through the
+   * prototype setter instead.
+   *
+   * @returns {Object<string, any>}
+   */
+  #metadataSnapshot() {
+    return Object.fromEntries(
+      [...this.#metadata].map(([key, value]) => [key, structuredClone(value)]),
+    );
   }
 
   /**
@@ -178,7 +192,7 @@ export class GraphModel extends EventTarget {
    */
   setGraphMetadata(key, value) {
     requireString(key, "key");
-    this.#metadata[key] = value;
+    this.#metadata.set(key, value);
     this.#emit("changeProperties", { key, value });
   }
 
@@ -190,7 +204,7 @@ export class GraphModel extends EventTarget {
    */
   removeGraphMetadata(key) {
     requireString(key, "key");
-    delete this.#metadata[key];
+    this.#metadata.delete(key);
     this.#emit("changeProperties", { key, value: undefined });
   }
 
@@ -785,7 +799,7 @@ export class GraphModel extends EventTarget {
   serialize() {
     return {
       ...(this.#name === undefined ? {} : { name: this.#name }),
-      metadata: structuredClone(this.#metadata),
+      metadata: this.#metadataSnapshot(),
       nodes: this.nodes().sort(compareEntityIds),
       edges: this.edges().sort(compareEntityIds),
       iips: this.iips().sort(compareEntityIds),
