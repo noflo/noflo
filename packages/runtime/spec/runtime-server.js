@@ -14,6 +14,7 @@ import {
   CAPABILITY,
   CMD_COMP_INSTALL_REQ,
   CMD_COMP_MANIFEST,
+  CMD_COMP_SYNC_REQ,
   CMD_CRDT_SYNC_REQ,
   CMD_CRDT_UPDATE,
   CMD_RUN_CTRL,
@@ -559,6 +560,44 @@ describe("RuntimeServer frame routing", () => {
     assert.equal(handled.length, 0);
     assert.equal(dropped.length, 1);
     assert.equal(dropped[0].required, undefined);
+  });
+
+  it("refuses oversized frames without decoding them", async () => {
+    // The core is transport-neutral: Reticulum links bound frame size at
+    // the MTU, but an embedder feeding handleFrame from a larger transport
+    // gets a decode-side bound. An oversized frame is answered 0x17
+    // MALFORMED without decode, and the diagnostic carries only a prefix.
+    const transport = capture();
+    const server = new RuntimeServer({
+      capabilityPolicy: staticPolicy(),
+      send: transport.send,
+      maxFrameSize: 64,
+    });
+    const handled = [];
+    /** @type {any[]} */
+    const undecodable = [];
+    server.registerHandler(CMD_COMP_SYNC_REQ, (decoded) =>
+      handled.push(decoded),
+    );
+    server.addEventListener("undecodable", (event) =>
+      undecodable.push(event.detail),
+    );
+    await server.authorize("link-1", "test-identity");
+    // A well-formed sync frame padded past the bound.
+    const oversized = new Uint8Array(65);
+    oversized.set(encodeCompSyncReq("stale"));
+    server.handleFrame(oversized, "link-1");
+    assert.equal(handled.length, 0);
+    assert.equal(undecodable.length, 1);
+    // The diagnostic truncates at 256 bytes; a 65-byte frame passes whole.
+    assert.equal(undecodable[0].bytes.byteLength, 65);
+    const rejection = decodeOpRejected(transport.log.sent.at(-1).bytes);
+    assert.equal(rejection.rejectedCmd, 0);
+    assert.equal(rejection.detail.reason, REASON.MALFORMED);
+    assert.match(rejection.detail.message, /byte maximum/);
+    // Within the bound, the same frame decodes and dispatches.
+    server.handleFrame(encodeCompSyncReq("stale"), "link-1");
+    assert.equal(handled.length, 1);
   });
 
   it("survives handler failures without throwing", async () => {

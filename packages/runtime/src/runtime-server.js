@@ -46,6 +46,7 @@ import {
   encodeOpRejected,
   LIMITATION,
   PROTOCOL_VERSION,
+  ProtocolError,
   REASON,
 } from "@noflo/fbp-protocol";
 
@@ -143,6 +144,13 @@ export class RuntimeServer extends EventTarget {
    *   a frame to every authorized client context except the given one, if
    *   any — used to converge operation logs without echoing an operation
    *   back to its origin.
+   * @param {number} [options.maxFrameSize] The largest inbound frame the
+   *   core will decode, in bytes. The Reticulum binding is bounded by the
+   *   link MTU, but the core is transport-neutral: an embedder feeding
+   *   `handleFrame` from a larger transport gets a decode-side bound
+   *   instead of unbounded buffer intake. Oversized frames are answered
+   *   `0x17 REASON.MALFORMED` without being decoded. Defaults to
+   *   1048576 (1 MiB) — generous, but bounded.
    */
   constructor(options) {
     super();
@@ -174,6 +182,7 @@ export class RuntimeServer extends EventTarget {
     this.send = options.send ?? (() => {});
     /** @type {(bytes: Uint8Array, exceptContext?: any) => void} */
     this.broadcast = options.broadcast ?? (() => {});
+    this.maxFrameSize = options.maxFrameSize ?? 1048576;
     /** @type {Map<number, (decoded: any, context: any) => any>} */
     this.handlers = new Map();
     /** @type {Map<any, number>} Capability mask resolved per authorized context. */
@@ -356,6 +365,32 @@ export class RuntimeServer extends EventTarget {
    * @returns {void}
    */
   handleFrame(bytes, context) {
+    if (bytes.byteLength > this.maxFrameSize) {
+      // Oversized: refuse before decoding, so intake is bounded even for
+      // transports without their own frame limit. The diagnostic carries
+      // only a prefix of the hostile bytes (see below).
+      this.#emit("undecodable", {
+        bytes: bytes.slice(0, 256),
+        context,
+        error: new ProtocolError(
+          `frame exceeds the ${this.maxFrameSize}-byte maximum`,
+          undefined,
+          REASON.MALFORMED,
+        ),
+      });
+      this.send(
+        encodeOpRejected({
+          rejectedCmd: 0,
+          planeId: null,
+          detail: {
+            reason: REASON.MALFORMED,
+            message: `frame exceeds the ${this.maxFrameSize}-byte maximum`,
+          },
+        }),
+        context,
+      );
+      return;
+    }
     /** @type {ReturnType<decodeFrame>|null} */
     let decoded = null;
     try {
