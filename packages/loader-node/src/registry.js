@@ -176,24 +176,28 @@ async function evaluateModule(baseDir, packageId, name, source) {
 
   /** @type {any} */
   let implementation;
-  // @ts-expect-error — Bun global only exists under the Bun runtime
-  if (typeof Bun !== "undefined") {
-    // Bun: Module._compile evaluates ESM lazily; require(esm) is eager
-    // and native
-    const { createRequire } = await import("node:module");
-    implementation = createRequire(modulePath)(modulePath);
-  } else {
-    const moduleImpl = new Module(modulePath);
-    // @ts-expect-error
-    moduleImpl.paths = Module._nodeModulePaths(path.dirname(modulePath));
-    moduleImpl.filename = modulePath;
-    // @ts-expect-error
-    moduleImpl._compile(source, modulePath);
-    implementation = moduleImpl.exports;
+  try {
+    // @ts-expect-error — Bun global only exists under the Bun runtime
+    if (typeof Bun !== "undefined") {
+      // Bun: Module._compile evaluates ESM lazily; require(esm) is eager
+      // and native
+      const { createRequire } = await import("node:module");
+      implementation = createRequire(modulePath)(modulePath);
+    } else {
+      const moduleImpl = new Module(modulePath);
+      // @ts-expect-error
+      moduleImpl.paths = Module._nodeModulePaths(path.dirname(modulePath));
+      moduleImpl.filename = modulePath;
+      // @ts-expect-error
+      moduleImpl._compile(source, modulePath);
+      implementation = moduleImpl.exports;
+    }
+  } finally {
+    // Remove the materialized file whether or not the evaluation
+    // succeeded: a throwing source must leave no residue in the project's
+    // components directory
+    rmSync(modulePath, { force: true });
   }
-  // The evaluation has happened; remove the materialized file so source
-  // storage leaves no residue in the project's components directory
-  rmSync(modulePath, { force: true });
   if (
     typeof implementation !== "function" &&
     typeof implementation.getComponent !== "function"

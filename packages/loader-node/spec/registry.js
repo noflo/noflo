@@ -206,6 +206,23 @@ export function getComponent(): any {
     );
   });
 
+  it("cleans up the materialized source when evaluation fails", async () => {
+    // A source that throws at compile time used to leave its materialized
+    // file behind in the project's components directory.
+    await assert.rejects(
+      registry.setSource(
+        "componentloader",
+        "Broken",
+        "this is not ( valid javascript",
+        "javascript",
+      ),
+    );
+    assert.ok(
+      !fs.existsSync(path.join(baseDir, "components", "Broken.js")),
+      "a failed evaluation must leave no residue",
+    );
+  });
+
   it("provides source for graph model components", async () => {
     const graph = await loadGraphFile(
       path.resolve(baseDir, "../subgraph.json"),

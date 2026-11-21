@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Fixed
 - Component names reaching the filesystem are validated before any `path.join`: `setSource` (and the `evaluateModule` sink beneath it) rejects bare names outside the `[A-Za-z0-9_][A-Za-z0-9_.-]*` vocabulary, so a remote `0x25 CMD_COMP_WRITE` with a traversal name (`../../evil`) can no longer write — and evaluate — source outside the project's `components/` directory. The new `isSafeComponentName`/`assertSafeComponentName` helpers are exported from the package entry for hosts building their own write paths
+- `evaluateModule` removes the materialized source file whether or not the evaluation succeeded: a compile-time-throwing source used to leave its file behind in the project's `components/` directory
 
 ## [2.0.0-alpha.13] - 2026-10-19
 
