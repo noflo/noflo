@@ -106,6 +106,9 @@ export class RuntimeServer extends EventTarget {
   /** @type {Map<any, number>} Per-context capability mask, set at authorize. */
   #contextCapabilities = new Map();
 
+  /** @type {Map<any, string|undefined>} The identity each context was authorized with. */
+  #contextIdentities = new Map();
+
   /**
    * @param {object} options
    * @param {string[]|number} [options.capabilities] Capability names or a
@@ -222,7 +225,8 @@ export class RuntimeServer extends EventTarget {
    * the mask the authorization plane grants the identified peer — filtered
    * through the advertised surface. The mask
    * is enforced per context from here on; the transport evicts the entry
-   * when the context dies (forgetContext).
+   * when the context dies (forgetContext). Mid-link policy changes reach
+   * established contexts through {@link refreshAuthorizations}.
    *
    * @param {any} context
    * @param {string} [identityHash] Hex hash of the peer's verified identity;
@@ -231,6 +235,34 @@ export class RuntimeServer extends EventTarget {
    * @returns {Promise<void>}
    */
   async authorize(context, identityHash) {
+    this.#contextIdentities.set(context, identityHash);
+    await this.#applyCapabilities(context, identityHash);
+  }
+
+  /**
+   * Re-resolve every authorized context's capability mask through the
+   * authorization plane and re-advertise it. This is how a policy change
+   * — a DACAR grant revoke among them — bites established links instead
+   * of only the next one: a per-context mask is a cached decision, and a
+   * plane refresh must invalidate the cache. A context whose identity the
+   * plane now rejects or no longer answers is denied closed. Each
+   * re-resolved context receives a fresh `0x02` auth response, so peers
+   * learn their new grant without waiting for telemetry to reveal it.
+   *
+   * @returns {Promise<void>}
+   */
+  async refreshAuthorizations() {
+    for (const [context, identityHash] of this.#contextIdentities) {
+      await this.#applyCapabilities(context, identityHash);
+    }
+  }
+
+  /**
+   * @param {any} context
+   * @param {string|undefined} identityHash
+   * @returns {Promise<void>}
+   */
+  async #applyCapabilities(context, identityHash) {
     let mask = 0;
     if (identityHash !== undefined) {
       try {
@@ -267,6 +299,7 @@ export class RuntimeServer extends EventTarget {
    */
   forgetContext(context) {
     this.#contextCapabilities.delete(context);
+    this.#contextIdentities.delete(context);
   }
 
   /**

@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Fixed
+- `noflo-nodejs` re-resolves every established link's capability mask after a `SIGHUP` Dacar reload (`RuntimeServer.refreshAuthorizations`): a revoked grant now bites live links instead of only the next one
 - Signature-stub uploads and source reads validate the bare component name against the file-safe vocabulary before any `path.join` into the project's `components/` directory: a remote `0x25` signature write with a traversal name (`../package`) can no longer materialize a sidecar outside `components/` (the project manifest was one reachable target), and a `0x26` read with a traversal name no longer probes for sidecars outside the project
 
 ## [2.0.0-alpha.13] - 2026-10-19

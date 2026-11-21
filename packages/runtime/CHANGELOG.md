@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- `RuntimeServer.refreshAuthorizations()`: re-resolves every authorized context's capability mask through the authorization plane and re-sends the `0x02` auth response. A per-context mask is a cache of the policy's decision — a DACAR revocation now bites established links when the application refreshes its plane, instead of only the next link. `noflo-nodejs` calls it after a `SIGHUP` Dacar reload
 - Materializing an ephemeral plane is a write-side effect and now requires `GRAPH_EDIT` on the requesting context: a `0x10 CMD_CRDT_SYNC_REQ` naming a fresh plane id from a context holding only the command's `GRAPH_READ` is refused with `0x17 REASON.PERMISSION_DENIED`, instead of allocating an unbounded plane per minted id from a read-only peer. Handshakes on planes that already exist stay read-only. `getPlane` no longer materializes as a side effect of a lookup
 
 ## [2.0.0-alpha.13] - 2026-10-19

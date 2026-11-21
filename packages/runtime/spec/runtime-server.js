@@ -218,6 +218,46 @@ describe("RuntimeServer permissions (DACAR)", () => {
     );
   });
 
+  it("applies a mid-link policy revocation through refreshAuthorizations", async () => {
+    const transport = capture();
+    const serverPolicy = staticPolicy({}, ["GRAPH_READ"]);
+    const server = new RuntimeServer({
+      capabilityPolicy: serverPolicy,
+      send: transport.send,
+      capabilities: ["GRAPH_READ", "COMPONENT_WRITE"],
+    });
+    const handled = [];
+    /** @type {any[]} */
+    const dropped = [];
+    server.registerHandler(CMD_COMP_INSTALL_REQ, (decoded) =>
+      handled.push(decoded),
+    );
+    server.addEventListener("notpermitted", (event) =>
+      dropped.push(event.detail),
+    );
+    serverPolicy.grant("aabb", ["COMPONENT_WRITE", "GRAPH_READ"]);
+    await server.authorize("link-1", "aabb");
+    // The peer exercises its grant.
+    server.handleFrame(encodeCompInstallReq("npm:example"), "link-1");
+    assert.equal(handled.length, 1);
+    // The plane revokes; the cached per-context mask must not outlive it.
+    serverPolicy.revoke("aabb");
+    await server.refreshAuthorizations();
+    // The fresh auth response advertises the narrowed mask: the write
+    // grant is gone, the plane's fallback read remains.
+    const refreshed = decodeAuthResponse(transport.log.sent.at(-1).bytes);
+    assert.equal(refreshed.capabilityMask, CAPABILITY.GRAPH_READ);
+    // Enforcement follows: the same frame is now dropped unanswered.
+    server.handleFrame(encodeCompInstallReq("npm:example"), "link-1");
+    assert.equal(handled.length, 1);
+    assert.equal(dropped.length, 1);
+    assert.equal(dropped[0].required, CAPABILITY.COMPONENT_WRITE);
+    // And a forgotten context is not resurrected by the refresh.
+    server.forgetContext("link-1");
+    await server.refreshAuthorizations();
+    assert.equal(server.grantedFor("link-1"), 0);
+  });
+
   it("resolves capabilities through one shared identity-based seam", async () => {
     const serverPolicy = staticPolicy({ aabb: ["GRAPH_EDIT"] }, ["GRAPH_READ"]);
     const server = new RuntimeServer({
