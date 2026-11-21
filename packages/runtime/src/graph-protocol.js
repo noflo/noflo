@@ -166,7 +166,7 @@ export class GraphProtocol {
           );
           return;
         }
-        const current = this.#planeEpoch(plane);
+        const current = await this.#planeEpoch(plane);
         if (decoded.epochId === current) {
           server.send(encodeCrdtUpToDate(decoded.planeId, current), context);
           return;
@@ -779,18 +779,18 @@ export class GraphProtocol {
   /**
    * The current epoch of a plane: derived from the model's content so
    * unmodified re-syncs match (external review point 6 — wall-clock
-   * epochs always looked stale).
+   * epochs always looked stale). SHA-256 hex over the canonical
+   * serialization, the same content addressing as the main plane's
+   * `epoch()` — a weak string hash would let two different plane states
+   * collide on one epoch id, and the runtime would answer "up to date"
+   * to a diverged client.
    *
    * @param {{ model: import("@noflo/graph").GraphModel }} plane
-   * @returns {number}
+   * @returns {Promise<string>}
    */
-  #planeEpoch(plane) {
-    const str = plane.model.canonicalString();
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
-    }
-    return Math.abs(hash) || 1;
+  async #planeEpoch(plane) {
+    const bytes = new TextEncoder().encode(plane.model.canonicalString());
+    return sha256Hex(bytes);
   }
 
   /**

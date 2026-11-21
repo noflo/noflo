@@ -656,6 +656,17 @@ describe("graph protocol: subgraph planes (update #42)", () => {
 });
 
 describe("graph protocol: ephemeral plane authorization", () => {
+  /** Poll until a condition holds; plane syncs answer after a WebCrypto digest. */
+  async function waitFor(condition, description) {
+    const deadline = Date.now() + 2000;
+    while (!condition()) {
+      if (Date.now() > deadline) {
+        throw new Error(`timeout: ${description}`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+  }
+
   /** A read-only server: GRAPH_READ advertised and granted, nothing else. */
   async function readOnlyServer() {
     const graph = new GraphModel({ name: "main" });
@@ -674,7 +685,10 @@ describe("graph protocol: ephemeral plane authorization", () => {
   it("rejects minting a fresh ephemeral plane on sync without GRAPH_EDIT", async () => {
     const { server, protocol, transport } = await readOnlyServer();
     server.handleFrame(encodeCrdtSyncReq("minted-1", 0, {}), "link-1");
-    await flush();
+    await waitFor(
+      () => wire(transport).length === 1,
+      "the PERMISSION_DENIED rejection",
+    );
     const rejection = decodeOpRejected(wire(transport)[0].bytes);
     assert.equal(rejection.rejectedCmd, CMD_CRDT_SYNC_REQ);
     assert.equal(rejection.planeId, "minted-1");
@@ -683,7 +697,7 @@ describe("graph protocol: ephemeral plane authorization", () => {
     // Nothing materialized: the listing shows only the main plane, and
     // the lookup is side-effect free
     server.handleFrame(encodePlaneList(), "link-1");
-    await flush();
+    await waitFor(() => wire(transport).length === 2, "the plane listing");
     const list = decodePlaneListRes(wire(transport)[1].bytes);
     assert.equal(list.entries.length, 1);
     assert.equal(protocol.getPlane("minted-1"), null);
@@ -708,7 +722,10 @@ describe("graph protocol: ephemeral plane authorization", () => {
     server.capabilityPolicy.grant("read-only-identity", ["GRAPH_READ"]);
     await server.authorize("link-2", "read-only-identity");
     server.handleFrame(encodeCrdtSyncReq("shared-1", 0, {}), "link-2");
-    await flush();
+    await waitFor(
+      () => wire(transport).some((entry) => entry.context === "link-2"),
+      "the stale-epoch reply to the read-only peer",
+    );
     const stale = decodeCrdtStaleEpoch(
       wire(transport).filter((entry) => entry.context === "link-2")[0].bytes,
     );
@@ -720,10 +737,25 @@ describe("graph protocol: ephemeral plane authorization", () => {
   it("materializes a fresh plane on sync for a GRAPH_EDIT-granted context", async () => {
     const { server, protocol, transport } = await wiredServer();
     server.handleFrame(encodeCrdtSyncReq("minted-2", 0, {}), "link-1");
-    await flush();
+    await waitFor(() => wire(transport).length === 1, "the stale-epoch reply");
     const stale = decodeCrdtStaleEpoch(wire(transport)[0].bytes);
     assert.equal(stale.cmd, CMD_CRDT_STALE_EPOCH);
     assert.equal(stale.planeId, "minted-2");
     assert.ok(protocol.getPlane("minted-2"), "the plane materialized");
+    // Content-addressed like the main plane: SHA-256 hex over the
+    // canonical serialization — a weak hash would let divergent states
+    // collide on one epoch id and be told "up to date"
+    assert.match(stale.newEpochId, /^[0-9a-f]{64}$/);
+    server.handleFrame(
+      encodeCrdtSyncReq("minted-2", stale.newEpochId, {}),
+      "link-1",
+    );
+    await waitFor(
+      () => wire(transport).length === 2,
+      "the up-to-date short-circuit",
+    );
+    const upToDate = decodeCrdtUpToDate(wire(transport).at(-1).bytes);
+    assert.equal(upToDate.cmd, CMD_CRDT_UP_TO_DATE);
+    assert.equal(upToDate.epochId, stale.newEpochId);
   });
 });
