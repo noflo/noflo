@@ -58,7 +58,6 @@ import { checkPacketGuard } from "./guards.js";
  * {@link ExecutionProtocol#register}.
  */
 export class ExecutionProtocol {
-  static #packetSeq = 0;
   /**
    * @param {object} options
    * @param {import("./network-host.js").NetworkHost} options.host
@@ -209,11 +208,12 @@ export class ExecutionProtocol {
             return;
           }
           network
-            .addInitial({
-              entity_id: `packet-send-${++ExecutionProtocol.#packetSeq}`,
-              from: { data: decoded.payload },
-              to: { node: target.node, port: target.port },
-            })
+            // A transient boundary send: the packet rides a temporary
+            // socket and leaves no graph state. The graph-inserting IIP
+            // path is wrong here — a runtime used as a remote subgraph
+            // receives thousands of these, and each must not grow the
+            // graph, the convergence stream, or the restart replay queue
+            .sendBoundaryPacket({ to: target, data: decoded.payload })
             .catch((/** @type {any} */ err) => {
               server.send(
                 encodeOpRejected({

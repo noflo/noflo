@@ -613,3 +613,88 @@ describe("client-driven streams (0x49 CMD_STREAM_OPEN, 0x4A CMD_STREAM_EOT)", ()
     assert.equal(stray.detail.reason, REASON.INVALID_STATE);
   });
 });
+
+describe("packet injection without a stream (0x47)", () => {
+  it("delivers a transient packet without changing the graph", async () => {
+    const { server, telemetry, transport, host, graph } = await wiredServer(
+      async (graph, loader) => {
+        await loader.registerComponent("runtime", "Pass", () =>
+          asComponent(
+            (input, output) => {
+              if (!input.hasData("input")) {
+                return;
+              }
+              output.sendDone({ out: input.getData("input") });
+            },
+            { outPorts: { out: { datatype: "all" } } },
+          ),
+        );
+        graph.addNode({ entity_id: "pass", component: "runtime/Pass" });
+        graph.addExport({
+          entity_id: "exp-in",
+          direction: "inport",
+          public: "in",
+          internal: { node: "pass", port: "input" },
+        });
+      },
+    );
+    server.handleFrame(encodeRunCtrl(RUN_ACTION.START), "link-1");
+    await waitFor(() => host.started, "the network to start");
+
+    // No client-driven stream is open: the packet takes the transient
+    // boundary path.
+    server.handleFrame(
+      encodePacketSend({ planeId: null, port: "in", payload: "x" }),
+      "link-1",
+    );
+    await waitFor(() => {
+      telemetry.flushAll();
+      return drain(transport).some(
+        (e) => e.eventType === EVENT_TYPE.DATA && e.payload[2] === "x",
+      );
+    }, "the packet's DATA event");
+
+    // No residue: the packet must not become graph state that converges
+    // to clients and replays on restart — a runtime used as a remote
+    // subgraph receives thousands of these.
+    assert.equal(graph.iips().length, 0);
+    assert.equal(host.network.connections.length, 0);
+    assert.equal(host.network.initials.length, 0);
+    assert.equal(host.network.nextInitials.length, 0);
+  });
+
+  it("rejects a send to an unknown exported port", async () => {
+    const { server, transport, host } = await wiredServer(
+      async (graph, loader) => {
+        await loader.registerComponent("runtime", "Pass", () =>
+          asComponent(
+            (input, output) => {
+              if (!input.hasData("input")) {
+                return;
+              }
+              output.sendDone({ out: input.getData("input") });
+            },
+            { outPorts: { out: { datatype: "all" } } },
+          ),
+        );
+        graph.addNode({ entity_id: "pass", component: "runtime/Pass" });
+        graph.addExport({
+          entity_id: "exp-in",
+          direction: "inport",
+          public: "in",
+          internal: { node: "pass", port: "input" },
+        });
+      },
+    );
+    server.handleFrame(encodeRunCtrl(RUN_ACTION.START), "link-1");
+    await waitFor(() => host.started, "the network to start");
+    server.handleFrame(
+      encodePacketSend({ planeId: null, port: "nosuch", payload: 1 }),
+      "link-1",
+    );
+    await waitFor(() => rejections(transport).length > 0, "the rejection");
+    const rejection = rejections(transport).at(-1);
+    assert.equal(rejection.rejectedCmd, 0x47);
+    assert.equal(rejection.detail.reason, REASON.UNKNOWN_TARGET);
+  });
+});

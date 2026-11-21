@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- `0x47 CMD_PACKET_SEND` without an open client stream is now a transient boundary send (`Network#sendBoundaryPacket`): the packet rides a temporary socket and reaches its target, but no longer inserts an IIP into the graph. The previous path made every injected packet graph state — broadcast to all clients as an `INSERT_IIP` op, dirtying the epoch, and growing the graph without bound on runtimes used as remote subgraphs
 - The dispatch requirement map is now the allowlist: a command code with no capability entry is denied with a `notpermitted` event instead of dispatching unchecked
 - Ephemeral plane epochs are derived with SHA-256 over the canonical serialization, the same content addressing as the main plane: the previous 31-bit string hash could collide two different plane states onto one epoch id, and the runtime would answer `0x11 UP_TO_DATE` to a diverged client
 - `RuntimeServer.refreshAuthorizations()`: re-resolves every authorized context's capability mask through the authorization plane and re-sends the `0x02` auth response. A per-context mask is a cache of the policy's decision — a DACAR revocation now bites established links when the application refreshes its plane, instead of only the next link. `noflo-nodejs` calls it after a `SIGHUP` Dacar reload

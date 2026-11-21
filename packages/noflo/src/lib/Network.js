@@ -1120,6 +1120,64 @@ export class Network extends EventBase {
   }
 
   /**
+   * Send one transient packet into a process inport without changing the
+   * graph: the packet rides a temporary boundary socket — attach, send,
+   * sender-side disconnect — and leaves no IIP in the graph, nothing in
+   * the restart replay queue, and no connection behind. This is the
+   * injection lever for runtimes that receive single packets from the
+   * wire (`0x47 CMD_PACKET_SEND`): unlike the IIP path — where every
+   * injection is graph state that converges to clients and survives a
+   * restart — thousands of transient invocations leave no residue.
+   *
+   * @param {{ to: { node: string, port: string, index?: number }, data: any, metadata?: Object<string, any> }} initializer
+   *   The target port ref and the packet value, in the edge-ref shape the
+   *   graph model uses.
+   * @returns {Promise<void>} Resolves when the packet has been delivered
+   *   and the boundary has reached end of transmission.
+   */
+  sendBoundaryPacket(initializer) {
+    return this.ensureNode(initializer.to.node, "inbound")
+      .then((to) => {
+        const socket = internalSocket.createSocket(initializer.metadata, {
+          debug: this.debug,
+          async: this.asyncDelivery,
+        });
+        // Subscribe to events from the socket: the boundary open/close
+        // pair is stream state (work documents #40, #45) and observable
+        // like any other boundary connection
+        this.subscribeSocket(socket);
+        return connectPort(
+          socket,
+          to,
+          initializer.to.port,
+          initializer.to.index,
+          true,
+        ).then(() => socket);
+      })
+      .then((socket) => {
+        this.connections.push(socket);
+        const sent = socket.post(new IP("data", initializer.data));
+        // A transient boundary is a single-packet stream: the sender is
+        // done after its packet — disconnect so the receiving port reaches
+        // EOT (work document #45: the runtime performs the sender's
+        // disconnect on exhausted edges). The disconnect drains first, so
+        // the packet never overtakes its own EOT; a send error disconnects
+        // too, then propagates.
+        return Promise.resolve(sent)
+          .catch((error) =>
+            socket.disconnect().then(() => Promise.reject(error)),
+          )
+          .then(() => socket.disconnect())
+          .then(() => {
+            const index = this.connections.indexOf(socket);
+            if (index !== -1) {
+              this.connections.splice(index, 1);
+            }
+          });
+      });
+  }
+
+  /**
    * Attach a persistent external driver socket to a process inport,
    * without sending anything. Unlike the IIP path — where each injection
    * is a self-contained single-packet stream that disconnects after its

@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- `Network#sendBoundaryPacket({ to, data, metadata? })`: one transient boundary packet into a process inport — attach, send, sender-side disconnect — without changing the graph: no IIP in the graph, nothing in the restart replay queue, no connection left behind. The injection lever for runtimes receiving single packets from the wire, where thousands of invocations must leave no residue
 
 ## [2.0.0-alpha.13] - 2026-10-19
 ### Fixed
