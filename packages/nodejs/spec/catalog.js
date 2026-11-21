@@ -464,6 +464,30 @@ describe("catalog", () => {
       const catalog = await catalogUnderTest();
       assert.equal(await catalog.readSource("proj/Missing"), null);
     });
+
+    it("rejects path-unsafe component names on write and read", async () => {
+      // A remote 0x25 write and 0x26 read carry attacker-chosen names; the
+      // bare name joins `components/<name>` and must not traverse out of
+      // the project
+      const catalog = await catalogUnderTest();
+      const sidecar = {
+        name: "Planned",
+        inports: [{ name: "in", type: "string" }],
+        outports: [],
+      };
+      await assert.rejects(
+        () => catalog.writeSource("proj/../package", JSON.stringify(sidecar)),
+        /not a safe file name/,
+      );
+      // The project manifest outside components/ was not overwritten
+      const manifest = JSON.parse(
+        await fs.readFile(path.join(baseDir, "package.json"), "utf-8"),
+      );
+      assert.equal(manifest.name, "proj");
+      // Reads skip the sidecar probe for traversal names instead of
+      // probing files outside the project
+      assert.equal(await catalog.readSource("proj/../../etc/whatever"), null);
+    });
   });
 
   describe("catalogFromLoader against the real node-modules registry (work document #19)", () => {

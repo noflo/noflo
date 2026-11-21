@@ -29,3 +29,8 @@ export {
   createNodeModulesRegistry,
   NodeModulesRegistry,
 } from "./registry.js";
+export {
+  assertSafeComponentName,
+  guessLanguageFromFilename,
+  isSafeComponentName,
+} from "./utils.js";

@@ -249,6 +249,34 @@ export function getComponent(): any {
     assert.ok(languages.includes("javascript"));
     assert.ok(languages.includes("es2015"));
   });
+
+  it("rejects path-unsafe component names before touching the filesystem", async () => {
+    // A remote 0x25 write carries attacker-chosen names: the bare name
+    // joins `components/<name>` and must not traverse out of the project
+    await assert.rejects(
+      registry.setSource(
+        "componentloader",
+        "../../escape",
+        "exports.getComponent = () => ({});",
+        "javascript",
+      ),
+      /not a safe file name/,
+    );
+    await assert.rejects(
+      registry.setSource(
+        "componentloader",
+        ".hidden",
+        "exports.getComponent = () => ({});",
+        "javascript",
+      ),
+      /not a safe file name/,
+    );
+    // Nothing landed outside the project's components directory
+    assert.ok(
+      !fs.existsSync(path.resolve(fixtureDir, "escape.js")),
+      "a traversal name must not write outside the project",
+    );
+  });
 });
 
 describe("manifest cache", () => {
