@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Materializing an ephemeral plane is a write-side effect and now requires `GRAPH_EDIT` on the requesting context: a `0x10 CMD_CRDT_SYNC_REQ` naming a fresh plane id from a context holding only the command's `GRAPH_READ` is refused with `0x17 REASON.PERMISSION_DENIED`, instead of allocating an unbounded plane per minted id from a read-only peer. Handshakes on planes that already exist stay read-only. `getPlane` no longer materializes as a side effect of a lookup
 
 ## [2.0.0-alpha.13] - 2026-10-19
 

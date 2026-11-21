@@ -654,3 +654,76 @@ describe("graph protocol: subgraph planes (update #42)", () => {
     assert.equal(protocol.subgraphPlane(null, "missing"), null);
   });
 });
+
+describe("graph protocol: ephemeral plane authorization", () => {
+  /** A read-only server: GRAPH_READ advertised and granted, nothing else. */
+  async function readOnlyServer() {
+    const graph = new GraphModel({ name: "main" });
+    const transport = capture();
+    const server = new RuntimeServer({
+      capabilityPolicy: staticPolicy({}, ["GRAPH_READ"]),
+      send: transport.send,
+      capabilities: ["GRAPH_READ"],
+    });
+    const protocol = new GraphProtocol({ graph });
+    protocol.register(server);
+    await server.authorize("link-1", "test-identity");
+    return { graph, server, protocol, transport };
+  }
+
+  it("rejects minting a fresh ephemeral plane on sync without GRAPH_EDIT", async () => {
+    const { server, protocol, transport } = await readOnlyServer();
+    server.handleFrame(encodeCrdtSyncReq("minted-1", 0, {}), "link-1");
+    await flush();
+    const rejection = decodeOpRejected(wire(transport)[0].bytes);
+    assert.equal(rejection.rejectedCmd, CMD_CRDT_SYNC_REQ);
+    assert.equal(rejection.planeId, "minted-1");
+    assert.equal(rejection.detail.reason, REASON.PERMISSION_DENIED);
+    assert.match(rejection.detail.message, /GRAPH_EDIT/);
+    // Nothing materialized: the listing shows only the main plane, and
+    // the lookup is side-effect free
+    server.handleFrame(encodePlaneList(), "link-1");
+    await flush();
+    const list = decodePlaneListRes(wire(transport)[1].bytes);
+    assert.equal(list.entries.length, 1);
+    assert.equal(protocol.getPlane("minted-1"), null);
+  });
+
+  it("answers syncs on an existing plane for a read-only peer", async () => {
+    const { server, protocol, transport } = await wiredServer();
+    // A GRAPH_EDIT-granted context materializes the plane via an op
+    server.handleFrame(
+      encodeCrdtUpdate({
+        planeId: "shared-1",
+        clientId: "client-a",
+        logicalClock: 1,
+        opType: OP_TYPE.INSERT_NODE,
+        entityId: "node-9",
+        payload: { component: "math/Add" },
+      }),
+      "link-1",
+    );
+    // A second context holding GRAPH_READ alone handshakes the existing
+    // plane: the stale-epoch reply is a read, not an allocation
+    server.capabilityPolicy.grant("read-only-identity", ["GRAPH_READ"]);
+    await server.authorize("link-2", "read-only-identity");
+    server.handleFrame(encodeCrdtSyncReq("shared-1", 0, {}), "link-2");
+    await flush();
+    const stale = decodeCrdtStaleEpoch(
+      wire(transport).filter((entry) => entry.context === "link-2")[0].bytes,
+    );
+    assert.equal(stale.cmd, CMD_CRDT_STALE_EPOCH);
+    assert.equal(stale.planeId, "shared-1");
+    assert.ok(protocol.getPlane("shared-1"), "the plane exists");
+  });
+
+  it("materializes a fresh plane on sync for a GRAPH_EDIT-granted context", async () => {
+    const { server, protocol, transport } = await wiredServer();
+    server.handleFrame(encodeCrdtSyncReq("minted-2", 0, {}), "link-1");
+    await flush();
+    const stale = decodeCrdtStaleEpoch(wire(transport)[0].bytes);
+    assert.equal(stale.cmd, CMD_CRDT_STALE_EPOCH);
+    assert.equal(stale.planeId, "minted-2");
+    assert.ok(protocol.getPlane("minted-2"), "the plane materialized");
+  });
+});

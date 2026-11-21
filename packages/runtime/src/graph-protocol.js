@@ -19,6 +19,7 @@
 /* @ts-self-types="./graph-protocol.d.ts" */
 
 import {
+  CAPABILITY,
   CMD_CRDT_SYNC_REQ,
   CMD_CRDT_UPDATE,
   CMD_PLANE_DROP,
@@ -140,17 +141,24 @@ export class GraphProtocol {
         // Materialize the ephemeral plane on first sync (work document #4
         // update #28: the plane registry). The `sg/` prefix is reserved
         // for subgraph planes: a client minting one is rejected (update
-        // #42) — silence never carries semantics.
+        // #42) — silence never carries semantics. Materialization is a
+        // write-side effect: it allocates a plane that outlives the
+        // request, so it requires GRAPH_EDIT — the sync command's own
+        // GRAPH_READ covers handshakes on planes that already exist, and
+        // a read-only peer cannot grow the registry with minted ids.
         let plane;
         try {
-          plane = this.#plane(decoded.planeId);
+          plane = this.#planeForSync(decoded.planeId, context);
         } catch (error) {
           server.send(
             encodeOpRejected({
               rejectedCmd: CMD_CRDT_SYNC_REQ,
               planeId: decoded.planeId,
               detail: {
-                reason: REASON.UNSUPPORTED,
+                reason:
+                  error instanceof PermissionRequired
+                    ? REASON.PERMISSION_DENIED
+                    : REASON.UNSUPPORTED,
                 message: error instanceof Error ? error.message : String(error),
               },
             }),
@@ -380,20 +388,18 @@ export class GraphProtocol {
   }
 
   /**
-   * Get or materialize an ephemeral plane by its client-minted id.
-   * Public accessor for the execution protocol's multi-plane support.
-   * Subgraph planes are returned when registered; their reserved `sg/`
-   * ids never materialize.
+   * Get a registered plane by id, without materializing one. Read-only
+   * accessor for the execution protocol's multi-plane support: planes are
+   * created by `0x14` ops and `0x10` syncs from GRAPH_EDIT-granted
+   * contexts, never as a side effect of a lookup. Subgraph planes are
+   * returned when registered; their reserved `sg/` ids never exist here.
    *
    * @param {string|number} planeId
    * @returns {{ model: import("@noflo/graph").GraphModel|null }|null}
    */
   getPlane(planeId) {
     if (planeId === null || planeId === undefined) return null;
-    const existing = this.#planes.get(planeId);
-    if (existing) return existing;
-    if (typeof planeId === "string" && planeId.startsWith("sg/")) return null;
-    return this.#plane(planeId) ?? null;
+    return this.#planes.get(planeId) ?? null;
   }
 
   /**
@@ -633,6 +639,30 @@ export class GraphProtocol {
       this.#planes.set(planeId, plane);
     }
     return plane;
+  }
+
+  /**
+   * The sync-path plane accessor: an existing plane is answered as-is,
+   * but materializing a new one is a write-side effect and requires
+   * GRAPH_EDIT on the requesting context — the sync command's own
+   * GRAPH_READ covers handshakes, not allocation.
+   *
+   * @param {string|number} planeId
+   * @param {any} context
+   * @returns {Plane}
+   * @throws {ProtocolError} On a reserved id.
+   * @throws {PermissionRequired} When the context lacks GRAPH_EDIT.
+   */
+  #planeForSync(planeId, context) {
+    const existing = this.#planes.get(planeId);
+    if (existing) return existing;
+    const granted = this.server?.grantedFor(context) ?? 0;
+    if ((granted & CAPABILITY.GRAPH_EDIT) !== CAPABILITY.GRAPH_EDIT) {
+      throw new PermissionRequired(
+        "materializing an ephemeral plane requires GRAPH_EDIT",
+      );
+    }
+    return this.#plane(planeId);
   }
 
   /**
@@ -931,6 +961,21 @@ function entityPayload(opTypeName, entity) {
     return { ...rest, data: from?.data };
   }
   return definition;
+}
+
+/**
+ * A permission-shaped rejection: the command is supported, but the
+ * requesting context's capability grant does not cover the write-side
+ * effect it would trigger. Answers `REASON.PERMISSION_DENIED` on the wire.
+ */
+class PermissionRequired extends Error {
+  /**
+   * @param {string} message
+   */
+  constructor(message) {
+    super(message);
+    this.name = "PermissionRequired";
+  }
 }
 
 /**
