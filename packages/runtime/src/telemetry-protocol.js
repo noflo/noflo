@@ -33,6 +33,9 @@ import { MsgPack } from "@reticulum/core";
  * @property {number} requestedFlushIntervalMs
  * @property {any} context The link the subscription arrived on.
  * @property {{ timestampMs: number, eventType: number, payload: any, planeId?: string|number|null }[]} buffer
+ * @property {number} [overflow] Events dropped past the buffer budget
+ *   since the last flush.
+ * @property {number|null} [overflowAt] When the first drop happened.
  * @property {any} timer
  */
 
@@ -58,6 +61,12 @@ export class TelemetryProtocol {
    *   create unbounded subscription state per unique `sub_id`. When the
    *   budget is exhausted the new subscription is rejected and a
    *   `subscriptionlimit` event surfaces on the server. Defaults to 32.
+   * @param {number} [options.maxBufferedEvents] Per-subscription buffer
+   *   budget, in events. A busy network buffers events until the flush
+   *   fires — without a cap, a subscriber holding a long flush interval
+   *   would accumulate unbounded memory between flushes. Events past the
+   *   budget are dropped; the next flush reports the drop as a synthetic
+   *   `0x04 ERROR` flowtrace event. Defaults to 4096.
    * @param {string} [options.stubErrorName] Error name classifying a
    *   process error as raised by a stub component (work document #19's
    *   `StubNotImplementedError`); mapped to `0x09 STUB_ERROR` instead of
@@ -72,6 +81,7 @@ export class TelemetryProtocol {
     this.flushFloorMs = options.flushFloorMs ?? 0;
     this.flushCeilingMs = options.flushCeilingMs ?? 300_000;
     this.maxSubscriptionsPerContext = options.maxSubscriptionsPerContext ?? 32;
+    this.maxBufferedEvents = options.maxBufferedEvents ?? 4096;
     this.stubErrorName = options.stubErrorName ?? "StubNotImplementedError";
     /** @type {import("./graph-protocol.js").GraphProtocol|null} */
     this.graphProtocol = options.graphProtocol ?? null;
@@ -117,6 +127,8 @@ export class TelemetryProtocol {
         requestedFlushIntervalMs: decoded.requestedFlushIntervalMs,
         context,
         buffer: [],
+        overflow: 0,
+        overflowAt: null,
         timer: null,
       });
     });
@@ -347,6 +359,14 @@ export class TelemetryProtocol {
     const timestampMs = Date.now();
     const sanitized = frugalPayload(payload);
     for (const subscription of this.subscriptions.values()) {
+      if (subscription.buffer.length >= this.maxBufferedEvents) {
+        // The buffer is a bounded holding area, not a queue: a subscriber
+        // with a long flush interval must not accumulate unbounded memory
+        // on a busy network. The drop is reported at the next flush.
+        subscription.overflow = (subscription.overflow ?? 0) + 1;
+        subscription.overflowAt ??= timestampMs;
+        continue;
+      }
       subscription.buffer.push({
         timestampMs,
         eventType,
@@ -386,8 +406,21 @@ export class TelemetryProtocol {
    * @returns {void}
    */
   #flush(subscription) {
-    if (subscription.buffer.length === 0) {
+    if (subscription.buffer.length === 0 && !(subscription.overflow > 0)) {
       return;
+    }
+    if (subscription.overflow > 0) {
+      // Report the overflow as a synthetic flowtrace event, appended
+      // after the retained events so the chunk stays chronological.
+      const lastTimestamp = subscription.buffer.at(-1)?.timestampMs ?? 0;
+      subscription.buffer.push({
+        timestampMs: Math.max(subscription.overflowAt ?? 0, lastTimestamp),
+        eventType: EVENT_TYPE.ERROR,
+        payload: `${subscription.overflow} telemetry events dropped (buffer overflow)`,
+        planeId: null,
+      });
+      subscription.overflow = 0;
+      subscription.overflowAt = null;
     }
     const events = subscription.buffer;
     subscription.buffer = [];

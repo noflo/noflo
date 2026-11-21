@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
+- Telemetry subscription buffers are bounded (`TelemetryProtocol({ maxBufferedEvents })`, default 4096): a subscriber holding a long flush interval could previously accumulate unbounded memory on a busy network. Events past the budget are dropped and the drop is reported at the next flush as a synthetic `0x04 ERROR` flowtrace event
 - The runtime core bounds inbound frame intake: `RuntimeServer({ maxFrameSize })` (default 1 MiB) refuses oversized frames with `0x17 REASON.MALFORMED` without decoding. The Reticulum path was already bounded by the link MTU; this closes the transport-neutral case where an embedder feeds `handleFrame` from a larger transport
 - The project-authored schema store (`0x2a CMD_SCHEMA_WRITE`) has an entry budget (1024, configurable via `SchemaTable({ maxProjectEntries })`): the grow-only store previously accepted unbounded entries from a COMPONENT_WRITE peer. Writes past the budget answer `0x17 REASON.LINK_SATURATED`, digest mismatches answer `0x17 REASON.PAYLOAD_UNSUPPORTED` — a rejected write is now answered on the wire instead of surfacing only as an `error` event
 - `main` joins `sg/` as a reserved plane id: the main plane is addressed by nil, and a client-minted ephemeral named `main` would collide with it in the subgraph id chain (`sg/main/…`) and the execution protocol's per-plane stream keys. Minting ops and syncs for it answer `0x17 REASON.UNSUPPORTED`
