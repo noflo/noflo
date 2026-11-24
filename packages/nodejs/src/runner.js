@@ -31,6 +31,7 @@ import { createNodeModulesRegistry, loadGraphFile } from "@noflo/loader-node";
 import { ComponentLoader, Flowtrace } from "@noflo/noflo";
 import { assembleRuntime, bindReticulum } from "@noflo/runtime";
 import { Reticulum } from "@reticulum/core";
+import { TransportCore } from "@reticulum/core/src/transport/transport.js";
 import {
   AutoInterface,
   FileStorageAdapter,
@@ -77,6 +78,14 @@ async function createReticulum(options) {
   // on the fast node:crypto engine in a worker thread instead of blocking
   // the runtime's event loop on WebCrypto
   useNodeStamper();
+  // The upstream-sanctioned consumer opt-out: headless hosts (CI, scripts,
+  // test spawns) pay a ~90 s value-25.0 stamp mine per process start, and
+  // the stamp cache does not persist across restarts. Peers accept
+  // unstamped traffic — stamp enforcement is off everywhere by default.
+  if (process.env.NOFLO_STAMPS === "off") {
+    TransportCore.STAMP_DESTINATIONS = false;
+    TransportCore.STAMP_PATH_REQUESTS = false;
+  }
   const rns = new Reticulum({
     logLevel: "warning",
     storageAdapter: new FileStorageAdapter(options.storage),

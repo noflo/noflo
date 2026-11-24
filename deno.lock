@@ -2,10 +2,10 @@
   "version": "5",
   "specifiers": {
     "npm:@biomejs/biome@2": "2.5.15",
-    "npm:@reticulum/core@~0.9.8": "0.9.8",
-    "npm:@reticulum/dacar@^1.6.1": "1.6.1",
-    "npm:@reticulum/lxmf@~0.9.8": "0.9.8",
-    "npm:@reticulum/node@~0.9.8": "0.9.8",
+    "npm:@reticulum/core@0.10": "0.10.0",
+    "npm:@reticulum/dacar@^1.7.0": "1.7.0",
+    "npm:@reticulum/lxmf@0.10": "0.10.0",
+    "npm:@reticulum/node@0.10": "0.10.0",
     "npm:@types/node@24": "24.19.1",
     "npm:ajv@^8.20.0": "8.20.0",
     "npm:fbp@^1.8.0": "1.8.0",
@@ -81,44 +81,28 @@
         "jsep"
       ]
     },
-    "@noflo/core@2.0.0-alpha.1": {
-      "integrity": "sha512-sr+9Oq8DODhUVsIgYO6qJpwFwknfAsYWg+mQBFoLA8887iEKEPzz5g7UJU5o45rfzpVqJnjKK88wSVolybafQQ==",
-      "dependencies": [
-        "@noflo/noflo"
-      ]
+    "@reticulum/core@0.10.0": {
+      "integrity": "sha512-YNmaghCOSuLjKQELuSg4evjeThY/3N5+VaEHUwWQPyCDFw1E+vcY7eMUT5GgrV+sD1EdzuEIz5SNPnttrmcTJQ=="
     },
-    "@noflo/graph@2.0.0-alpha.3": {
-      "integrity": "sha512-+sUWU2uocOwUsWeJNdeImKtvvItOXgkGuImI0Hka/SsI/frdZIOjKb/HAQnCJFBTcTHkGYlZBXaMTTwo3EIaSQ=="
-    },
-    "@noflo/noflo@2.0.0-alpha.3": {
-      "integrity": "sha512-i0tDt679Bxa8B/92Wg7nlwZPun1Js8A4VTXPGPkCJ7Hi3XOPm8GBJ7SZhnFweykCGRrlQyeBf3fDjq4qQbPrYg==",
-      "dependencies": [
-        "@noflo/graph"
-      ],
-      "bin": true
-    },
-    "@reticulum/core@0.9.8": {
-      "integrity": "sha512-Kb6oMAzWiVsTaNFjTMnFmQX9onjcpMKq1jxccQwspjWBWyRZxxi/soS6ymwCSxlmJHBdWqTJwoeowy4tKjy9PA=="
-    },
-    "@reticulum/dacar@1.6.1": {
-      "integrity": "sha512-/PRpUlEOAte8/WgFQyz/SP3wyPMIZobDJtolk53PsHdOEHPy7hzg4vM5FhSjsbywfzbv8L7nQYnq1+puz3/EGg==",
+    "@reticulum/dacar@1.7.0": {
+      "integrity": "sha512-EY3CCQP3g73QMWhXjxFNrqdqZhnCzU6ujo7/ibRamp9MhqBwx7KYfSQI8jLl6TyjdTcv+yYX0XyCkQ4DO4UOvw==",
       "dependencies": [
         "@reticulum/core",
         "@reticulum/lxmf",
         "@reticulum/node",
         "@reticulum/rfed",
-        "@types/node@26.6.5"
+        "@types/node@26.6.6"
       ],
       "bin": true
     },
-    "@reticulum/lxmf@0.9.8": {
-      "integrity": "sha512-nt/cvf+OcEgoH/gZhFmur7n9jywB58onlm4dYC0uSt7Cd/RYm85kcoYyXU3iQ+c0foJBNAlBP1CCFnxOfVIUYQ==",
+    "@reticulum/lxmf@0.10.0": {
+      "integrity": "sha512-0ctb7vGWNjaViS/LRASKkzNUSdNjoeB4zU2R0e+OfYijGaahIBGKXJkkZZXcXPeFNzq8B3MQloUsM/C2QT+ZCA==",
       "dependencies": [
         "@reticulum/core"
       ]
     },
-    "@reticulum/node@0.9.8": {
-      "integrity": "sha512-5OWB1lkzFU3AWGfUJDZaSZ9WYRkovQ6JSPYnDov4wSCo07wOqs1uWEc9x4K5RRTS/xEuAy6UTuqWLhMWVY7sag==",
+    "@reticulum/node@0.10.0": {
+      "integrity": "sha512-TtrYDWp+62H1koVbr7j173qNDIa6v/CVH7MEPOibqJ6bgzsAdgptgJ2Ib2W6rF/BT65qO+LEVa+E97QNE+JaDA==",
       "dependencies": [
         "@reticulum/core",
         "@reticulum/lxmf",
@@ -126,8 +110,8 @@
       ],
       "bin": true
     },
-    "@reticulum/rfed@0.9.8": {
-      "integrity": "sha512-K+evsSY62I9ux29rluluk37nJVM6I3kgT49aV9RQ1ngmahSrSHwKdx99oqKwR3EFysSvmg0iMm4vZesAIqWeLA==",
+    "@reticulum/rfed@0.10.0": {
+      "integrity": "sha512-b2fSPn3sKu4pu4JaJjs+t7C4pYjz+fUazHylBhYZAekPRNO+4SQJBnAa1KjqoLY4ej8t28w5qngBQ9Q8DUA6pQ==",
       "dependencies": [
         "@reticulum/core",
         "@reticulum/lxmf"
@@ -139,8 +123,8 @@
         "undici-types@7.24.6"
       ]
     },
-    "@types/node@26.6.5": {
-      "integrity": "sha512-uMzsv9stDdofIZBx4UGh4Z9ZgXnGC9seRDscilBcTHAeOFk67MZg/k9bWVfO+bk4qZmG+l52hRnLwUiH2LnJTg==",
+    "@types/node@26.6.6": {
+      "integrity": "sha512-MzQj+8Kx3XI40OmUAE6Qoh58ZMNstNNMwn2nfd3qWsfe7nDNSqJNzes4njhz6AHwrSHOffSLwXU6yb474Q4aog==",
       "dependencies": [
         "undici-types@8.9.0"
       ]
@@ -205,7 +189,7 @@
       "packages/as-component": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/noflo@^2.0.0-alpha.11",
+            "npm:@noflo/noflo@^2.0.0-alpha.13",
             "npm:get-function-params@^2.0.6"
           ]
         }
@@ -213,9 +197,9 @@
       "packages/assembly": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/fbp@^2.0.0-alpha.11",
-            "npm:@noflo/loader-node@^2.0.0-alpha.11",
-            "npm:@noflo/noflo@^2.0.0-alpha.11",
+            "npm:@noflo/fbp@^2.0.0-alpha.13",
+            "npm:@noflo/loader-node@^2.0.0-alpha.13",
+            "npm:@noflo/noflo@^2.0.0-alpha.13",
             "npm:@types/node@24",
             "npm:ajv@^8.20.0",
             "npm:typescript@5"
@@ -225,7 +209,7 @@
       "packages/assembly-utils": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/fbp-spec-runner@^2.0.0-alpha.11",
+            "npm:@noflo/fbp-spec-runner@^2.0.0-alpha.13",
             "npm:jsonpath-plus@^11.2.0"
           ]
         }
@@ -241,27 +225,27 @@
       "packages/fbp-client": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/fbp-protocol@^2.0.0-alpha.11",
-            "npm:@noflo/graph@^2.0.0-alpha.11",
-            "npm:@noflo/runtime-client@^2.0.0-alpha.11",
-            "npm:@reticulum/core@~0.9.8",
-            "npm:@reticulum/node@~0.9.8"
+            "npm:@noflo/fbp-protocol@^2.0.0-alpha.13",
+            "npm:@noflo/graph@^2.0.0-alpha.13",
+            "npm:@noflo/runtime-client@^2.0.0-alpha.13",
+            "npm:@reticulum/core@0.10",
+            "npm:@reticulum/node@0.10"
           ]
         }
       },
       "packages/fbp-protocol": {
         "packageJson": {
           "dependencies": [
-            "npm:@reticulum/core@~0.9.8"
+            "npm:@reticulum/core@0.10"
           ]
         }
       },
       "packages/fbp-spec-runner": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/fbp@^2.0.0-alpha.11",
-            "npm:@noflo/loader-node@^2.0.0-alpha.11",
-            "npm:@noflo/noflo@^2.0.0-alpha.11",
+            "npm:@noflo/fbp@^2.0.0-alpha.13",
+            "npm:@noflo/loader-node@^2.0.0-alpha.13",
+            "npm:@noflo/noflo@^2.0.0-alpha.13",
             "npm:@types/node@24",
             "npm:jsonpath-plus@^11.2.0"
           ]
@@ -270,9 +254,9 @@
       "packages/loader-node": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/fbp@^2.0.0-alpha.11",
-            "npm:@noflo/graph@^2.0.0-alpha.11",
-            "npm:@noflo/noflo@^2.0.0-alpha.11"
+            "npm:@noflo/fbp@^2.0.0-alpha.13",
+            "npm:@noflo/graph@^2.0.0-alpha.13",
+            "npm:@noflo/noflo@^2.0.0-alpha.13"
           ]
         }
       },
@@ -280,12 +264,12 @@
         "packageJson": {
           "dependencies": [
             "npm:@biomejs/biome@2",
-            "npm:@noflo/assembly@^2.0.0-alpha.11",
-            "npm:@noflo/fbp-protocol@^2.0.0-alpha.11",
-            "npm:@noflo/fbp@^2.0.0-alpha.11",
-            "npm:@noflo/graph@^2.0.0-alpha.11",
-            "npm:@noflo/loader-node@^2.0.0-alpha.11",
-            "npm:@noflo/noflo@^2.0.0-alpha.11",
+            "npm:@noflo/assembly@^2.0.0-alpha.13",
+            "npm:@noflo/fbp-protocol@^2.0.0-alpha.13",
+            "npm:@noflo/fbp@^2.0.0-alpha.13",
+            "npm:@noflo/graph@^2.0.0-alpha.13",
+            "npm:@noflo/loader-node@^2.0.0-alpha.13",
+            "npm:@noflo/noflo@^2.0.0-alpha.13",
             "npm:@types/node@24",
             "npm:ajv@^8.20.0",
             "npm:typescript@5"
@@ -295,14 +279,14 @@
       "packages/nodejs": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/fbp-protocol@^2.0.0-alpha.11",
-            "npm:@noflo/graph@^2.0.0-alpha.11",
-            "npm:@noflo/loader-node@^2.0.0-alpha.11",
-            "npm:@noflo/noflo@^2.0.0-alpha.11",
-            "npm:@noflo/runtime@^2.0.0-alpha.11",
-            "npm:@reticulum/core@~0.9.8",
-            "npm:@reticulum/dacar@^1.6.1",
-            "npm:@reticulum/node@~0.9.8",
+            "npm:@noflo/fbp-protocol@^2.0.0-alpha.13",
+            "npm:@noflo/graph@^2.0.0-alpha.13",
+            "npm:@noflo/loader-node@^2.0.0-alpha.13",
+            "npm:@noflo/noflo@^2.0.0-alpha.13",
+            "npm:@noflo/runtime@^2.0.0-alpha.13",
+            "npm:@reticulum/core@0.10",
+            "npm:@reticulum/dacar@^1.7.0",
+            "npm:@reticulum/node@0.10",
             "npm:@types/node@24",
             "npm:typescript@5"
           ]
@@ -311,7 +295,7 @@
       "packages/noflo": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/graph@^2.0.0-alpha.11",
+            "npm:@noflo/graph@^2.0.0-alpha.13",
             "npm:@types/node@24",
             "npm:typescript@^4.0.2"
           ]
@@ -320,22 +304,22 @@
       "packages/runtime": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/fbp-protocol@^2.0.0-alpha.11",
-            "npm:@noflo/graph@^2.0.0-alpha.11",
-            "npm:@noflo/noflo@^2.0.0-alpha.11",
-            "npm:@reticulum/core@~0.9.8",
-            "npm:@reticulum/dacar@^1.6.1",
-            "npm:@reticulum/lxmf@~0.9.8",
-            "npm:@reticulum/node@~0.9.8"
+            "npm:@noflo/fbp-protocol@^2.0.0-alpha.13",
+            "npm:@noflo/graph@^2.0.0-alpha.13",
+            "npm:@noflo/noflo@^2.0.0-alpha.13",
+            "npm:@reticulum/core@0.10",
+            "npm:@reticulum/dacar@^1.7.0",
+            "npm:@reticulum/lxmf@0.10",
+            "npm:@reticulum/node@0.10"
           ]
         }
       },
       "packages/runtime-client": {
         "packageJson": {
           "dependencies": [
-            "npm:@noflo/fbp-protocol@^2.0.0-alpha.11",
-            "npm:@noflo/graph@^2.0.0-alpha.11",
-            "npm:@reticulum/core@~0.9.8"
+            "npm:@noflo/fbp-protocol@^2.0.0-alpha.13",
+            "npm:@noflo/graph@^2.0.0-alpha.13",
+            "npm:@reticulum/core@0.10"
           ]
         }
       }

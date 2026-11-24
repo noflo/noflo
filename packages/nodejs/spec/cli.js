@@ -17,10 +17,6 @@ import { readTraceFile } from "@noflo/fbp-protocol";
 
 const packageDir = fileURLToPath(new URL("../", import.meta.url));
 const fixtureDir = fileURLToPath(new URL("./fixtures/host/", import.meta.url));
-// Stamp-emission opt-out for the spawned CLI (see fixtures/no-stamps.js)
-const noStamps = fileURLToPath(
-  new URL("./fixtures/no-stamps.js", import.meta.url),
-);
 const bin = join(packageDir, "bin", "noflo-nodejs");
 
 /**
@@ -50,11 +46,19 @@ function runCli(args, cwd) {
   return new Promise((resolve) => {
     execFile(
       process.execPath,
-      ["--import", noStamps, bin, ...args],
+      [bin, ...args],
       {
         cwd,
         timeout: 30000,
-        env: { ...process.env, RNS_HOST: "", RNS_PORT: "" },
+        env: {
+          ...process.env,
+          RNS_HOST: "",
+          RNS_PORT: "",
+          // reticulum-js 0.10.0 stamps announces by default; a value-25.0
+          // stamp mines ~90 s per process start, which would blow the spawn
+          // timeout. Works under Node and Deno alike (see runner.js)
+          NOFLO_STAMPS: "off",
+        },
       },
       (err, stdout, stderr) => {
         const code = err && typeof err.code === "number" ? err.code : 0;
