@@ -156,16 +156,16 @@ Graph modification (0x14 ops):
   set-metadata <entityId|graph> <json>
 
 Options:
-  --name <name>        Pin discovery to one runtime name
-  --interface <h:p>    rnsd TCP interface (default 127.0.0.1:4242)
-  --format <fmt>       Output format for graph: json, fbp, or dot
-  --plane <id>         Target plane for modification (default: main)
-  --id <id>            Entity id for add-* commands (default: fresh id)
-  --metadata <json>    Metadata object for add-* commands
-  --identity <file>    Client identity key (default ~/.fbp-client/identity.key,
-                       env FBP_CLIENT_IDENTITY)
-  --json               Machine-readable JSON output
-  --help               This help`);
+  --name <name>       Pin discovery to one runtime name
+  --interface <h:p>   rnsd TCP interface (default 127.0.0.1:4242)
+  --format <fmt>      Output format for graph: json, fbp, or dot
+  --plane <id>        Target plane for modification (default: main)
+  --id <id>           Entity id for add-* commands (default: fresh id)
+  --metadata <json>   Metadata object for add-* commands
+  --identity <file>   Client identity key (default ~/.fbp-client/identity.key,
+                      env FBP_CLIENT_IDENTITY)
+  --json              Machine-readable JSON output
+  --help              This help`);
 }
 
 /** Build a Reticulum instance wired to the rnsd TCP interface. */

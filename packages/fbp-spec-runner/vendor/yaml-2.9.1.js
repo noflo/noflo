@@ -4977,9 +4977,9 @@ function _visit(path, item, visitor) {
 
 // node_modules/yaml/browser/dist/parse/cst.js
 var BOM = "\uFEFF";
-var DOCUMENT = "";
-var FLOW_END = "";
-var SCALAR2 = "";
+var DOCUMENT = "\x02";
+var FLOW_END = "\x18";
+var SCALAR2 = "\x1f";
 var isCollection2 = (token) => !!token && "items" in token;
 var isScalar2 = (token) => !!token && (token.type === "scalar" || token.type === "single-quoted-scalar" || token.type === "double-quoted-scalar" || token.type === "block-scalar");
 function prettyToken(token) {

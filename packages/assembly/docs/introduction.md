@@ -48,7 +48,8 @@ Consider whole application as an industrial factory producing complex objects. P
 
 Assembly lines consist of worker components and incoming objects are passed from one worker to another, producing a complete or intermediate result at the end of the line.
 
-Parts of the assembly line are black boxed as subgraphs, meaning that some of the workers are assembly lines themselves. Requests travel along the assembly line as composite assembly objects, being added more data or modified the existing. 
+Parts of the assembly line are black boxed as subgraphs, meaning that some of the workers are assembly lines themselves. Requests travel along the assembly line as composite assembly objects, being added more data or modified the existing.
+
 
 Assembly lines can be split into parallel lines and converged back to make the request processing time shorter, but splitting and merging is always explicit in the graph and even when the request is split into multiple packets, it still references the original object to be merged or rejected correctly when needed.
 

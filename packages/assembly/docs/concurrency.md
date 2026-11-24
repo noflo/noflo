@@ -93,8 +93,8 @@ In Assembly Line the approach is to take the best of the two worlds: have the li
 
 By default assembly messages are passed by reference. However, when an assembly line is split into multiple lines, a decision on how to split the message has to be made:
 
- - if you know for sure, that parallel branches will never try to modify the same message properties, the same message can be passed to all outputs;
- - otherwise it would make sense to use `fork()` and then `merge()` when merging the parallel lines back into one.
+  - if you know for sure, that parallel branches will never try to modify the same message properties, the same message can be passed to all outputs;
+  - otherwise it would make sense to use `fork()` and then `merge()` when merging the parallel lines back into one.
 
 Forked messages do not reference the same object. But they have properties which may reference the same object. For instance, if `m1` and `m2` are the forks of `m0`, then `m0.errors === m1.errors === m2.errors`. Like mentioned before, this is critical for [Error handling](./error-handling.md) in parallel branches. When forking, you can specify message properties to be omitted or cloned rather than copied by reference.
 

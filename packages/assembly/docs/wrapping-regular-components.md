@@ -62,9 +62,9 @@ The generated graph is:
 
 ```
 msg inport → Fork ─┬→ ExtractField(source) → inner.source
-                   ├→ (extractors per mapped inport)
-                   ├→ CollectFields.msg
-                   └→ (control passthroughs)
+                    ├→ (extractors per mapped inport)
+                    ├→ CollectFields.msg
+                    └→ (control passthroughs)
 ExtractField.error → CollectFields.error   (one wire per extractor)
 inner.destination → CollectFields.data[0]
 inner.error       → CollectFields.error

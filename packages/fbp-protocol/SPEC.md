@@ -773,9 +773,9 @@ Flowtraces record to disk as fully self-contained, append-only recordings,
 enabling seamless playback in UI Web Workers (no external replay tool):
 
 1. **Frame 1 (topology snapshot)** — must be the first frame:
-   `[0xF0, format_ver, timestamp_ms, runtime_metadata, complete_graph_definition]`
+    `[0xF0, format_ver, timestamp_ms, runtime_metadata, complete_graph_definition]`
 2. **Frames 2..N (execution stream)** — raw `0x32` CMD_FLOWTRACE_CHUNK byte
-   arrays appended sequentially as they flush from the engine.
+    arrays appended sequentially as they flush from the engine.
 
 ## 11. Out-of-band observability
 
