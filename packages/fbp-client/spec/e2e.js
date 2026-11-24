@@ -37,7 +37,22 @@ import { GraphModel } from "@noflo/graph";
 import { Component, ComponentLoader } from "@noflo/noflo";
 import { assembleRuntime, bindReticulum } from "@noflo/runtime";
 import { Identity, Reticulum } from "@reticulum/core";
-import { TCPClientInterface, TCPServerInterface } from "@reticulum/node";
+import { TransportCore } from "@reticulum/core/src/transport/transport.js";
+import {
+  TCPClientInterface,
+  TCPServerInterface,
+  useNodeStamper,
+} from "@reticulum/node";
+
+// reticulum-js 0.10.0 emits RNS 1.6.1 announce/path-request stamps by
+// default; a value-25.0 destination stamp mines for ~90 s even on the fast
+// node:crypto engine, which would blow the suite's timeout. Peers accept
+// unstamped traffic (stamp enforcement is off everywhere by default), so
+// the test transports broadcast without stamps; the spawned CLI children
+// keep production defaults. The knobs are class statics and deliberately
+// cannot be opted out per instance via the `[stamps]` config.
+TransportCore.STAMP_DESTINATIONS = false;
+TransportCore.STAMP_PATH_REQUESTS = false;
 
 const RNSD = process.env.RUNTIME_E2E_RNSD;
 
@@ -154,6 +169,9 @@ describe("fbp-client hello-world session over a live runtime", () => {
   }
 
   before(async () => {
+    // Same fast stamp engine the CLI children use: RNS 1.6.1 announce
+    // stamps (reticulum-js 0.10.0) otherwise mine inline on WebCrypto
+    useNodeStamper();
     rns = new Reticulum({ logLevel: "warning" });
     if (RNSD) {
       // Opt-in mesh topology: the runtime connects to a transport node so

@@ -27,7 +27,11 @@ import { homedir } from "node:os";
 import path from "node:path";
 import { EVENT_TYPE } from "@noflo/fbp-protocol";
 import { Identity, Reticulum, toHex } from "@reticulum/core";
-import { FileStorageAdapter, TCPClientInterface } from "@reticulum/node";
+import {
+  FileStorageAdapter,
+  TCPClientInterface,
+  useNodeStamper,
+} from "@reticulum/node";
 import {
   addEdge,
   addExport,
@@ -170,6 +174,10 @@ Options:
 
 /** Build a Reticulum instance wired to the rnsd TCP interface. */
 async function instance(target, stateDir) {
+  // RNS 1.6.1 announce/path-request stamps (reticulum-js 0.10.0) are mined
+  // on the fast node:crypto engine in a worker thread instead of blocking
+  // the CLI's event loop on WebCrypto
+  useNodeStamper();
   const rns = new Reticulum({
     logLevel: "warning",
     // Persist the transport state (node identity, learned destinations):

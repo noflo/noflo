@@ -36,6 +36,7 @@ import {
   FileStorageAdapter,
   LocalClientInterface,
   TCPClientInterface,
+  useNodeStamper,
 } from "@reticulum/node";
 import { catalogFromLoader } from "./catalog.js";
 import { addDebug } from "./debug.js";
@@ -72,6 +73,10 @@ import { writeTrace } from "./trace.js";
  * @returns {Promise<Reticulum>}
  */
 async function createReticulum(options) {
+  // RNS 1.6.1 announce/path-request stamps (reticulum-js 0.10.0) are mined
+  // on the fast node:crypto engine in a worker thread instead of blocking
+  // the runtime's event loop on WebCrypto
+  useNodeStamper();
   const rns = new Reticulum({
     logLevel: "warning",
     storageAdapter: new FileStorageAdapter(options.storage),

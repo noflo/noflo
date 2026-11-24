@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The `@reticulum/core` dependency was bumped to reticulum-js 0.10.0 (RNS 1.6.1 wire parity: network stamps, announce-stamp validation, link MTU discovery); discovery behavior is unchanged
+
 ## [2.0.0-alpha.13] - 2026-10-19
 
 ## [2.0.0-alpha.12] - 2026-10-19

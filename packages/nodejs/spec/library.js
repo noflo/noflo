@@ -15,8 +15,17 @@ import { fileURLToPath } from "node:url";
 import { readTraceFile } from "@noflo/fbp-protocol";
 import { GraphModel } from "@noflo/graph";
 import { EVENT_TYPE } from "@noflo/noflo";
+import { TransportCore } from "@reticulum/core/src/transport/transport.js";
 import { run } from "../src/library.js";
 import { writeTrace } from "../src/trace.js";
+
+// reticulum-js 0.10.0 emits RNS 1.6.1 announce/path-request stamps by
+// default; a value-25.0 destination stamp mines for ~90 s even on the fast
+// node:crypto engine (and the stamp cache re-mines per process). Peers
+// accept unstamped traffic (stamp enforcement is off everywhere by
+// default), so the in-process test hosts broadcast without stamps.
+TransportCore.STAMP_DESTINATIONS = false;
+TransportCore.STAMP_PATH_REQUESTS = false;
 
 const fixtureDir = fileURLToPath(new URL("./fixtures/host/", import.meta.url));
 

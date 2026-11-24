@@ -48,9 +48,9 @@
     "@noflo/loader-node": "^2.0.0-alpha.13",
     "@noflo/noflo": "^2.0.0-alpha.13",
     "@noflo/runtime": "^2.0.0-alpha.13",
-    "@reticulum/core": "^0.9.8",
-    "@reticulum/dacar": "^1.6.1",
-    "@reticulum/node": "^0.9.8"
+    "@reticulum/core": "^0.10.0",
+    "@reticulum/dacar": "^1.7.0",
+    "@reticulum/node": "^0.10.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

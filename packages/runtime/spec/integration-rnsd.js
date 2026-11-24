@@ -39,11 +39,21 @@ import {
   PacketType,
   Reticulum,
 } from "@reticulum/core";
-import { TCPClientInterface } from "@reticulum/node/src/interfaces/tcp.js";
+import { TransportCore } from "@reticulum/core/src/transport/transport.js";
+import { TCPClientInterface, useNodeStamper } from "@reticulum/node";
 import { assembleRuntime, bindReticulum } from "../src/index.js";
 import { staticPolicy } from "./policy.js";
 
 const RNSD = process.env.RUNTIME_E2E_RNSD;
+
+// reticulum-js 0.10.0 emits RNS 1.6.1 announce/path-request stamps by
+// default; a value-25.0 destination stamp mines for ~90 s even on the fast
+// node:crypto engine. Peers accept unstamped traffic (stamp enforcement is
+// off everywhere by default), so the test transports broadcast without
+// stamps. The knobs are class statics and deliberately cannot be opted out
+// per instance via the `[stamps]` config.
+TransportCore.STAMP_DESTINATIONS = false;
+TransportCore.STAMP_PATH_REQUESTS = false;
 
 /** The E2E suite only runs when an rnsd target is provided. */
 const describeE2E = RNSD ? describe : describe.skip;
@@ -77,6 +87,10 @@ async function waitFor(predicate, timeoutMs, what) {
 
 /** Build a Reticulum instance wired to the rnsd's TCP interface. */
 async function instance(target, name) {
+  // Same fast stamp engine production uses: RNS 1.6.1 announce and
+  // path-request stamps (reticulum-js 0.10.0) otherwise mine inline on
+  // WebCrypto
+  useNodeStamper();
   const rns = new Reticulum({ logLevel: "warning" });
   const iface = new TCPClientInterface({
     name,

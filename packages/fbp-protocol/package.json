@@ -39,6 +39,6 @@
     "test:bun": "bun test ./spec/*.js"
   },
   "dependencies": {
-    "@reticulum/core": "^0.9.8"
+    "@reticulum/core": "^0.10.0"
   }
 }

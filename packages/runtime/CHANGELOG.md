@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- The `@reticulum/*` dependencies were bumped to reticulum-js 0.10.0 (`core`, `lxmf`, `node`) and `@reticulum/dacar` 1.7.0, adopting RNS 1.6.1 parity: announce and path-request stamps are emitted by default, and link MTU discovery upgrades links above 500 bytes over interfaces that can carry larger frames. Test transports opt out of stamp emission (a value-25.0 announce stamp mines for ~90 s per process); production keeps the protocol defaults
 ### Fixed
 - Telemetry subscription buffers are bounded (`TelemetryProtocol({ maxBufferedEvents })`, default 4096): a subscriber holding a long flush interval could previously accumulate unbounded memory on a busy network. Events past the budget are dropped and the drop is reported at the next flush as a synthetic `0x04 ERROR` flowtrace event
 - The runtime core bounds inbound frame intake: `RuntimeServer({ maxFrameSize })` (default 1 MiB) refuses oversized frames with `0x17 REASON.MALFORMED` without decoding. The Reticulum path was already bounded by the link MTU; this closes the transport-neutral case where an embedder feeds `handleFrame` from a larger transport

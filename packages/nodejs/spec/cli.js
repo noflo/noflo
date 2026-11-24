@@ -17,6 +17,10 @@ import { readTraceFile } from "@noflo/fbp-protocol";
 
 const packageDir = fileURLToPath(new URL("../", import.meta.url));
 const fixtureDir = fileURLToPath(new URL("./fixtures/host/", import.meta.url));
+// Stamp-emission opt-out for the spawned CLI (see fixtures/no-stamps.js)
+const noStamps = fileURLToPath(
+  new URL("./fixtures/no-stamps.js", import.meta.url),
+);
 const bin = join(packageDir, "bin", "noflo-nodejs");
 
 /**
@@ -46,7 +50,7 @@ function runCli(args, cwd) {
   return new Promise((resolve) => {
     execFile(
       process.execPath,
-      [bin, ...args],
+      ["--import", noStamps, bin, ...args],
       {
         cwd,
         timeout: 30000,

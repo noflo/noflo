@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `graph --format dot`: the mirror renders as a Graphviz digraph via `@noflo/graph`'s new `toDOT()` (work document #41 item 1).
 
+### Changed
+
+- The `@reticulum/*` dependencies were bumped to reticulum-js 0.10.0 (`core`, `node`) and `@reticulum/dacar` 1.7.0, adopting RNS 1.6.1 parity: announce and path-request stamps are emitted by default, and link MTU discovery upgrades links above 500 bytes over interfaces that can carry larger frames. The CLI installs the `@reticulum/node` fast stamp engine (`useNodeStamper()`), so the first announce's value-25.0 stamp (~90 s of hashing) mines off the event loop in a worker thread; note it still re-mines per process start, so the first command of a session pays it before discovery
+
 ## [2.0.0-alpha.13] - 2026-10-19
 
 ## [2.0.0-alpha.12] - 2026-10-19

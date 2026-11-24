@@ -1,7 +1,8 @@
 # Changelog
 
 ## [Unreleased]
-### Fixed
+### Changed
+- The `@reticulum/core` dependency was bumped to reticulum-js 0.10.0 (RNS 1.6.1 wire parity: network stamps, announce-stamp validation, link MTU discovery); codec behavior is unchanged, no frame-shape impact
 - Announce node names are validated on both codec sides: a bounded non-empty string is required, so a hostile peer's announce carrying a non-string or unbounded `node_name` is rejected at decode instead of flowing into client surfaces
 
 ## [2.0.0-alpha.13] - 2026-10-19
