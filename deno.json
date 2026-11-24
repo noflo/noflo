@@ -4,5 +4,13 @@
   // deno.lock pins exact versions with integrity hashes — so the default
   // 24-hour minimum dependency age only ever blocks our own first-party
   // packages. Disable it here; third-party risk is covered by the lockfile.
-  "minimumDependencyAge": 0
+  "minimumDependencyAge": 0,
+  // Deno and npm share one node_modules in local development. Deno's
+  // default "auto" mode rewrites that directory with its own resolution on
+  // every `deno test`/`deno run` (its store picks different transitive
+  // versions than the npm lockfile — e.g. typescript), which silently breaks
+  // `npm test`'s generated-type checks afterwards. "manual" keeps Deno's
+  // hands off the directory unless `deno install` is run explicitly — which
+  // is exactly what the CI Deno job already does.
+  "nodeModulesDir": "manual"
 }
