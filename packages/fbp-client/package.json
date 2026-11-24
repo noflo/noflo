@@ -1,7 +1,7 @@
 {
   "name": "@noflo/fbp-client",
   "version": "2.0.0-alpha.14",
-  "description": "Command-line tool and scriptable front for FBP Protocol 2.0 runtimes (work document #34)",
+  "description": "Command-line tool and scriptable front for FBP Protocol 2.0 runtimes",
   "type": "module",
   "main": "./src/index.js",
   "bin": {

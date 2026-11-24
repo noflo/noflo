@@ -3,18 +3,15 @@
  * SPDX-License-Identifier: EUPL-1.2
  * @file spec/schema-protocol.js
  * @description The runtime's schema table and the `0x28`/`0x29`/`0x2a`
- *   server side (work document #37 phase 2): package loading with digest
- *   verification, all-nil answers, closure bundling within the stated
- *   maximum, digest-verified writes, and grow-only idempotence — driven
- *   end-to-end through the runtime core.
+ *   server side (work document #37 phase 2): package-body ingestion with
+ *   digest verification, all-nil answers, closure bundling within the
+ *   stated maximum, digest-verified writes, and grow-only idempotence —
+ *   driven end-to-end through the runtime core. The filesystem package
+ *   loader lives in `@noflo/nodejs`; the table itself is isomorphic.
  */
 
 import assert from "node:assert";
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
-import { fileURLToPath } from "node:url";
+import { describe, it } from "node:test";
 
 import {
   CMD_SCHEMA_RES,
@@ -56,48 +53,15 @@ const LINE = {
   properties: { y: { type: "number" } },
 };
 
-/** @type {string} */
-let baseDir;
-/** @type {string} */
-let pointDigest;
-/** @type {string} */
-let lineDigest;
+const pointDigest = await digestSchema(POINT);
+const lineDigest = await digestSchema(LINE);
 
-beforeEach(async () => {
-  baseDir = fs.mkdtempSync(path.join(os.tmpdir(), "noflo-schema-rt-"));
-  fs.symlinkSync(
-    fileURLToPath(new URL("../../../node_modules", import.meta.url)),
-    path.join(baseDir, "node_modules"),
-    "dir",
-  );
-  fs.mkdirSync(path.join(baseDir, "schemas", "canvas"), { recursive: true });
-  fs.writeFileSync(
-    path.join(baseDir, "schemas", "canvas", "point.json"),
-    `${JSON.stringify(POINT, null, 2)}\n`,
-  );
-  fs.writeFileSync(
-    path.join(baseDir, "schemas", "canvas", "line.json"),
-    `${JSON.stringify(LINE, null, 2)}\n`,
-  );
-  pointDigest = await digestSchema(POINT);
-  lineDigest = await digestSchema(LINE);
-  fs.writeFileSync(
-    path.join(baseDir, "noflo.json"),
-    JSON.stringify({
-      schemas: {
-        "canvas/point": {
-          digest: pointDigest,
-          path: "schemas/canvas/point.json",
-        },
-        "canvas/line": { digest: lineDigest, path: "schemas/canvas/line.json" },
-      },
-    }),
-  );
-});
-
-afterEach(() => {
-  fs.rmSync(baseDir, { recursive: true, force: true });
-});
+/** Ingest the two fixture bodies the way a host's package loader would. */
+async function fillTable(table) {
+  await table.addPackageSchema("canvas/point", pointDigest, POINT);
+  await table.addPackageSchema("canvas/line", lineDigest, LINE);
+  return table;
+}
 
 async function wiredServer() {
   const transport = capture();
@@ -107,7 +71,7 @@ async function wiredServer() {
     capabilities: ["COMPONENT_READ", "COMPONENT_WRITE", "GRAPH_READ"],
   });
   const table = new SchemaTable();
-  await table.loadPackage(baseDir);
+  await fillTable(table);
   const schema = new SchemaProtocol({ table });
   schema.register(server);
   await server.authorize("link-1", "test-identity");
@@ -141,21 +105,24 @@ function nonAuth(transport) {
 }
 
 describe("schema table", () => {
-  it("loads package schemas with digest verification", async () => {
-    const table = new SchemaTable();
-    assert.equal(await table.loadPackage(baseDir), 2);
+  it("ingests package-loaded bodies digest-verified", async () => {
+    const table = await fillTable(new SchemaTable());
     assert.ok(table.has(pointDigest));
     assert.ok(table.has(lineDigest));
+    assert.equal(table.size, 2);
+    // Ingestion is idempotent: the same digest is the same body
+    await fillTable(table);
+    assert.equal(table.size, 2);
   });
 
-  it("rejects a digest mismatch at load", async () => {
-    fs.writeFileSync(
-      path.join(baseDir, "schemas", "canvas", "point.json"),
-      `${JSON.stringify({ $id: "canvas/point", type: "string" })}\n`,
-    );
+  it("rejects a digest mismatch at ingestion", async () => {
     const table = new SchemaTable();
     await assert.rejects(
-      () => table.loadPackage(baseDir),
+      () =>
+        table.addPackageSchema("canvas/point", pointDigest, {
+          $id: "canvas/point",
+          type: "string",
+        }),
       /Digest mismatch loading the schema closure/,
     );
   });
@@ -194,8 +161,7 @@ describe("schema table", () => {
   });
 
   it("bundles the transitive closure of served bodies", async () => {
-    const table = new SchemaTable();
-    await table.loadPackage(baseDir);
+    const table = await fillTable(new SchemaTable());
     const answer = table.request([lineDigest], true);
     // The line's $ref closure brings the point along
     assert.ok(answer.has(pointDigest));
@@ -229,38 +195,17 @@ describe("schema table", () => {
 
   it("degrades an over-cap package body instead of throwing at encode time", async () => {
     const table = new SchemaTable();
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "noflo-schema-cap-"));
-    try {
-      const overcap = {
-        $id: "big/thing",
-        type: "object",
-        description: "x".repeat(6000),
-      };
-      const digest = await digestSchema(overcap);
-      fs.mkdirSync(path.join(dir, "schemas"), { recursive: true });
-      fs.writeFileSync(
-        path.join(dir, "schemas", "big-thing.json"),
-        `${JSON.stringify(overcap, null, 2)}\n`,
-      );
-      fs.writeFileSync(
-        path.join(dir, "noflo.json"),
-        JSON.stringify({
-          schemas: {
-            "big/thing": {
-              digest,
-              path: "schemas/big-thing.json",
-            },
-          },
-        }),
-      );
-      await table.loadPackage(dir);
-      // Serving the body inline would make encodeSchemaRes throw and
-      // leave the 0x28 request unanswered — degrade to nil instead
-      const answer = table.request([digest], false);
-      assert.equal(answer.get(digest), null);
-    } finally {
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
+    const overcap = {
+      $id: "big/thing",
+      type: "object",
+      description: "x".repeat(6000),
+    };
+    const digest = await digestSchema(overcap);
+    await table.addPackageSchema("big/thing", digest, overcap);
+    // Serving the body inline would make encodeSchemaRes throw and
+    // leave the 0x28 request unanswered — degrade to nil instead
+    const answer = table.request([digest], false);
+    assert.equal(answer.get(digest), null);
   });
 });
 
@@ -368,41 +313,5 @@ describe("schema protocol", () => {
     await waitFor(() => nonAuth(transport).length > 1);
     const mismatch = decodeOpRejected(nonAuth(transport)[1].bytes);
     assert.equal(mismatch.detail.reason, REASON.PAYLOAD_UNSUPPORTED);
-  });
-});
-
-// The shipped noflo schema artifact (work document #44): the noflo
-// package ships the port-behavior catalog and pins it in its manifest's
-// schemas table — a deployment loading installed packages' manifests
-// serves the noflo.* vocabulary to clients through the Two-Step Cache
-// without any project-authored writes.
-describe("the shipped noflo schema artifact", () => {
-  it("loads the port-behavior catalog from the @noflo/noflo package manifest", async () => {
-    const { createRequire } = await import("node:module");
-    const req = createRequire(import.meta.url);
-    const entryPath = req.resolve("@noflo/noflo");
-    // The main entry is src/lib/NoFlo.js; the package root is two levels up
-    const pkgDir = path.resolve(path.dirname(entryPath), "..", "..");
-    const table = new SchemaTable();
-    const loaded = await table.loadPackage(pkgDir);
-    assert.ok(loaded >= 1, "the package's schema set loaded");
-
-    const manifest = JSON.parse(
-      fs.readFileSync(path.join(pkgDir, "noflo.json"), "utf8"),
-    );
-    for (const [id, entryDef] of Object.entries(manifest.schemas ?? {})) {
-      assert.ok(table.has(entryDef.digest), `${id} is in the table by digest`);
-    }
-    const pin = manifest.schemas["noflo/port-behavior"];
-    const bodyPath = path.join(pkgDir, pin.path);
-    const body = JSON.parse(fs.readFileSync(bodyPath, "utf8"));
-    const served = table.entry(pin.digest);
-    assert.ok(served?.body, "the table holds the pinned body");
-    assert.deepEqual(
-      served.body,
-      body,
-      "the served body is the shipped artifact",
-    );
-    assert.equal(served.body.entries["noflo.control"].class, "config");
   });
 });

@@ -19,6 +19,20 @@ function fixture(pkgDir, src) {
   return pkgDir;
 }
 
+/**
+ * Build a fake package dir whose runtime sources live in a top-level
+ * `components/` directory — the `@noflo/assembly-utils` layout.
+ *
+ * @param {string} pkgDir
+ * @param {string} src Source content for `components/Bad.js`
+ * @returns {string} The package dir
+ */
+function componentsFixture(pkgDir, src) {
+  mkdirSync(join(pkgDir, "components"), { recursive: true });
+  writeFileSync(join(pkgDir, "components", "Bad.js"), src);
+  return pkgDir;
+}
+
 test("clean browser-friendly source passes", () => {
   const root = mkdtempSync(join(tmpdir(), "cbs-"));
   try {
@@ -61,6 +75,33 @@ test("comments mentioning banned APIs do not trip the guard", () => {
       `/** Never call eval() or require() here; no node: imports either. */\n// process.env is not available in browsers\nexport const x = 1;\n`,
     );
     assert.deepEqual(checkPackage(pkg, root), []);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("runtime sources in a top-level components/ dir are scanned", () => {
+  const root = mkdtempSync(join(tmpdir(), "cbs-"));
+  try {
+    // Clean components pass.
+    const clean = componentsFixture(
+      join(root, "packages", "assembly-utils"),
+      `import { GraphModel } from "@noflo/graph";
+export const x = 1;
+`,
+    );
+    assert.deepEqual(checkPackage(clean, root), []);
+    // A node: import in components/ is flagged, with package attribution.
+    componentsFixture(
+      join(root, "packages", "assembly-utils"),
+      `import fs from "node:fs";
+`,
+    );
+    const problems = checkAll(root);
+    assert.equal(problems.length, 1);
+    assert.equal(problems[0].pkg, "assembly-utils");
+    assert.equal(problems[0].kind, "node-import");
+    assert.match(problems[0].file, /components\/Bad\.js$/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

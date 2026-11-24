@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- `loadSchemaPackage(table, pkgDir)`: loads one installed package's schema set into a `SchemaTable`, digest-verifying every body against its manifest pin — the filesystem half of schema package loading, moved here from `@noflo/runtime`'s removed `SchemaTable.loadPackage` so the runtime core stays browser-clean (work document #18). `schemaTableFromNodeModules` now builds on it; skip semantics are unchanged (entries without a readable body path are skipped, packages without a schemas table contribute nothing)
 
 ## [2.0.0-alpha.14] - 2026-11-24
 ### Changed

@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Removed
+- `SchemaTable.loadPackage(pkgDir)`: the filesystem half of schema package loading moved to `@noflo/nodejs` as `loadSchemaPackage(table, pkgDir)`, leaving the runtime core's sources free of Node builtins so `@noflo/runtime` loads in browsers as plain ESM under the no-build contract (work document #18) — persistence was already runtime policy, and reading package directories is the host's business. Hosts read manifests and bodies themselves and hand each body to the new isomorphic `SchemaTable.addPackageSchema(id, digest, body)`, which keeps the digest-pin verification (a mismatch fails loudly) and files the entry into the package-loaded section, outside the project-write budget. `@noflo/runtime` is now guarded by `check:browser` like the other browser-reachable packages
 
 ## [2.0.0-alpha.14] - 2026-11-24
 ### Changed

@@ -5,8 +5,11 @@
  * @description Guard for the no-build browser compatibility contract
  *   (work document #18): the packages a browser imports directly —
  *   `@noflo/noflo`, `@noflo/graph`, `@noflo/fbp` (plus the authoring helper
- *   `@noflo/as-component`, which runs wherever noflo runs) — must operate as
- *   plain ES modules with zero build step, under strict CSP.
+ *   `@noflo/as-component`, which runs wherever noflo runs), the assembly
+ *   message conventions (`@noflo/assembly`, `@noflo/assembly-utils`), the
+ *   mesh client `@noflo/runtime-client`, and the runtime core
+ *   `@noflo/runtime` — must operate as plain ES modules with zero build
+ *   step, under strict CSP.
  *
  *   The check enforces, on every runtime `.js` file under each package's
  *   `src/`:
@@ -22,8 +25,13 @@
  *      reaching for `process` fails here and must either drop the Node-ism or
  *      be consciously reviewed onto the allowlist.
  *
- *   Server-side-only packages (`@noflo/loader-node`, `@noflo/fbp-spec-runner`)
- *   are out of scope: they are the pieces that *may* use Node APIs.
+ *   Runtime sources are scanned under each package's `src/` and, where the
+ *   package ships components as its public surface (`@noflo/assembly-utils`),
+ *   its top-level `components/`.
+ *
+ *   Server-side-only packages (`@noflo/loader-node`, `@noflo/fbp-spec-runner`,
+ *   `@noflo/manifest`, `@noflo/nodejs`, `@noflo/fbp-client`) are out of
+ *   scope: they are the pieces that *may* use Node APIs.
  *
  *   Comments and `*.d.ts` type-only files are ignored. Wired into the root
  *   `test` script next to `check:jsr`, so every `npm test` fails fast on a
@@ -40,13 +48,31 @@ import { fileURLToPath } from "node:url";
 const DEFAULT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
- * Packages whose `src/` trees are browser-reachable and therefore guarded.
- * The loader and the spec runner are the server side of the split and are
- * deliberately not listed.
+ * Packages whose runtime sources are browser-reachable and therefore
+ * guarded. The loader, spec runner, manifest generator, and the CLI hosts
+ * are the server side of the split and are deliberately not listed.
  *
  * @type {string[]}
  */
-const BROWSER_PACKAGES = ["noflo", "graph", "fbp", "as-component"];
+const BROWSER_PACKAGES = [
+  "noflo",
+  "graph",
+  "fbp",
+  "as-component",
+  "assembly",
+  "assembly-utils",
+  "runtime-client",
+  "runtime",
+];
+
+/**
+ * Top-level directories holding runtime sources in a guarded package.
+ * Most packages keep everything under `src/`; `@noflo/assembly-utils`
+ * publishes its NoFlo components as its public surface instead.
+ *
+ * @type {string[]}
+ */
+const SOURCE_DIRS = ["src", "components"];
 
 /**
  * Files where Node `process` global access is allowed: every use is behind a
@@ -166,8 +192,7 @@ function stripComments(src) {
  */
 export function checkPackage(pkgDir, root) {
   const pkg = basename(pkgDir);
-  const srcDir = join(pkgDir, "src");
-  if (!statSync(pkgDir).isDirectory() || !statSync(srcDir).isDirectory()) {
+  if (!statSync(pkgDir).isDirectory()) {
     return [];
   }
   const rel = (file) => relative(root, file).replaceAll("\\", "/");
@@ -207,7 +232,12 @@ export function checkPackage(pkgDir, root) {
       }
     }
   };
-  walk(srcDir);
+  for (const dirName of SOURCE_DIRS) {
+    const srcDir = join(pkgDir, dirName);
+    if (statSync(srcDir, { throwIfNoEntry: false })?.isDirectory()) {
+      walk(srcDir);
+    }
+  }
   return problems;
 }
 

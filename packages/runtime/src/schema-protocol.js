@@ -8,7 +8,9 @@
  *   content-addressed store with two provenance sections: package-loaded
  *   at startup from installed packages' `noflo.json` schemas tables (the
  *   WD #24 manifest ladder — data consumed as JSON, never as a package
- *   dependency), and project-authored via `0x2a` (live programming).
+ *   dependency; the host reads and hands them over via
+ *   {@linkcode SchemaTable.addPackageSchema}), and project-authored via
+ *   `0x2a` (live programming).
  *   Persistence of both is runtime policy, not protocol.
  *
  *   Tier A rules hold throughout: serving bodies is introspection, the
@@ -18,8 +20,6 @@
 
 /* @ts-self-types="./schema-protocol.d.ts" */
 
-import fs from "node:fs";
-import path from "node:path";
 import {
   CMD_SCHEMA_REQ,
   CMD_SCHEMA_WRITE,
@@ -84,40 +84,30 @@ export class SchemaTable {
   }
 
   /**
-   * Load one installed package's schema set from its manifest: every
-   * `schemas` entry's body is read from the package's own `schemas/`
-   * directory and verified against the manifest's digest pin before it
-   * enters the table — a mismatch is a corrupt closure and fails loudly.
+   * Ingest one package-loaded schema body: the platform-neutral half of
+   * package loading. Hosts read manifests and bodies themselves —
+   * persistence is runtime policy, and reading a package directory is
+   * the host's business (`@noflo/nodejs` ships the filesystem loader) —
+   * then hand each body here for digest verification and entry into the
+   * package-loaded section: the host's own trust domain, outside the
+   * project-write budget. A body failing its manifest pin is a corrupt
+   * closure and fails loudly.
    *
-   * @param {string} pkgDir Installed package directory.
-   * @returns {Promise<number>} The number of bodies loaded.
+   * @param {string} id The manifest's schema id (e.g. `noflo/port-behavior`).
+   * @param {string} digest The manifest's digest pin for the body.
+   * @param {Record<string, any>} body The schema body.
+   * @returns {Promise<void>}
+   * @throws {Error} When the body fails its digest verification.
    */
-  async loadPackage(pkgDir) {
-    const manifestPath = path.join(pkgDir, "noflo.json");
-    if (!fs.existsSync(manifestPath)) {
-      return 0;
-    }
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-    let loaded = 0;
-    for (const [id, entry] of Object.entries(manifest.schemas ?? {})) {
-      const tableEntry = /** @type {{ digest: string, path?: string }} */ (
-        entry
+  async addPackageSchema(id, digest, body) {
+    const computed = await digestSchema(body);
+    if (computed !== digest) {
+      throw new Error(
+        `Digest mismatch loading the schema closure: ${id} is pinned at ${digest} by the package manifest but its body digests to ${computed}`,
       );
-      if (!tableEntry.path) continue;
-      const bodyPath = path.join(pkgDir, tableEntry.path);
-      if (!fs.existsSync(bodyPath)) continue;
-      const body = JSON.parse(fs.readFileSync(bodyPath, "utf8"));
-      const computed = await digestSchema(body);
-      if (computed !== tableEntry.digest) {
-        throw new Error(
-          `Digest mismatch loading the schema closure: ${id} is pinned at ${tableEntry.digest} by the package manifest but its body digests to ${computed}`,
-        );
-      }
-      this.#packageLoaded.set(tableEntry.digest, { body });
-      this.#idIndex.set(id, tableEntry.digest);
-      loaded += 1;
     }
-    return loaded;
+    this.#packageLoaded.set(digest, { body });
+    this.#idIndex.set(id, digest);
   }
 
   /**

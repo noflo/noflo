@@ -9,7 +9,8 @@
  *   `noflo.json` with a schemas table contributes its digest-verified
  *   bodies to the grow-only store. This is the manifest-first rung of the
  *   WD #24 discovery ladder applied to schema bodies — the manifests are
- *   consumed as data, never as package dependencies.
+ *   consumed as data, never as package dependencies. Disk access lives
+ *   here, in the Node host; the {@link SchemaTable} itself is isomorphic.
  */
 /* @ts-self-types="./schema-table.d.ts" */
 
@@ -32,14 +33,46 @@ export async function schemaTableFromNodeModules(baseDir) {
   // The project's own manifest first: the runtime serves its own schemas
   const self = path.join(baseDir, "noflo.json");
   if (hasSchemaTable(self)) {
-    await table.loadPackage(baseDir);
+    await loadSchemaPackage(table, baseDir);
   }
   for (const pkgDir of await listPackages(baseDir)) {
     if (hasSchemaTable(path.join(pkgDir, "noflo.json"))) {
-      await table.loadPackage(pkgDir);
+      await loadSchemaPackage(table, pkgDir);
     }
   }
   return table;
+}
+
+/**
+ * Load one installed package's schema set into a {@link SchemaTable}:
+ * every `schemas` entry in the package's `noflo.json` has its body read
+ * from the package's own `schemas/` directory and handed to the table,
+ * which verifies it against the manifest's digest pin before it enters
+ * the store — a mismatch is a corrupt closure and fails loudly. Entries
+ * without a readable body path are skipped; a package without a schemas
+ * table contributes nothing.
+ *
+ * @param {SchemaTable} table The table to load into.
+ * @param {string} pkgDir Installed package directory.
+ * @returns {Promise<number>} The number of bodies loaded.
+ */
+export async function loadSchemaPackage(table, pkgDir) {
+  const manifestPath = path.join(pkgDir, "noflo.json");
+  if (!fs.existsSync(manifestPath)) {
+    return 0;
+  }
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  let loaded = 0;
+  for (const [id, entry] of Object.entries(manifest.schemas ?? {})) {
+    const tableEntry = /** @type {{ digest: string, path?: string }} */ (entry);
+    if (!tableEntry.path) continue;
+    const bodyPath = path.join(pkgDir, tableEntry.path);
+    if (!fs.existsSync(bodyPath)) continue;
+    const body = JSON.parse(fs.readFileSync(bodyPath, "utf8"));
+    await table.addPackageSchema(id, tableEntry.digest, body);
+    loaded += 1;
+  }
+  return loaded;
 }
 
 /**
