@@ -2,11 +2,7 @@
 
 Industrial approach to writing NoFlo applications
 
-Assembly Line provides message-relay conventions for NoFlo programs:
-a shared message envelope (`msg.errors` for error accumulation), a
-small library of validation helpers, and a `Component` base class where
-components either declare a `relay(msg, output)` hook for single-input
-processing or a `processMessage(input, output)` hook for multi-port ones.
+Assembly Line provides message-relay conventions for NoFlo programs: a shared message envelope (`msg.errors` for error accumulation), a small library of validation helpers, and a `Component` base class where components either declare a `relay(msg, output)` hook for single-input processing or a `processMessage(input, output)` hook for multi-port ones.
 
 ## Goals
 
@@ -31,9 +27,7 @@ An [example](https://github.com/noflo/noflo/tree/master/packages/assembly/exampl
 
 ## Documentation
 
-The Assembly Line design pattern, conventions, and the
-`asAssembly` wrapping machinery are documented in
-[docs/](./docs/index.md):
+The Assembly Line design pattern, conventions, and the `asAssembly` wrapping machinery are documented in [docs/](./docs/index.md):
 
 - [Introduction](./docs/introduction.md) — rationale and mental model
 - [Components and ports](./docs/components-and-ports.md)
@@ -41,4 +35,3 @@ The Assembly Line design pattern, conventions, and the
 - [Error handling](./docs/error-handling.md)
 - [Concurrency handling](./docs/concurrency.md)
 - [Wrapping regular components](./docs/wrapping-regular-components.md)
-

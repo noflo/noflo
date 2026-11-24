@@ -1,7 +1,7 @@
 {
   "name": "@noflo/runtime-client",
   "version": "2.0.0-alpha.14",
-  "description": "FBP Protocol 2.0 client library over Reticulum (work document #29)",
+  "description": "FBP Protocol 2.0 client library over Reticulum",
   "type": "module",
   "main": "./src/index.js",
   "keywords": [

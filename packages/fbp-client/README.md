@@ -1,6 +1,6 @@
 # @noflo/fbp-client
 
-Command-line tool and scriptable front for FBP Protocol 2.0 runtimes (work document #34). A thin subcommand layer over [`@noflo/runtime-client`](../runtime-client) — if a command is awkward to script against, the library surface needs work before it is frozen for noflo-ui. The remote successor of the original 2011 `noflo` CLI: instead of embedding NoFlo, it speaks the protocol to any 2.0 runtime over Reticulum.
+Command-line tool and scriptable front for FBP Protocol 2.0 runtimes. A thin subcommand layer over [`@noflo/runtime-client`](../runtime-client) — if a command is awkward to script against, the library surface needs work before it is frozen for noflo-ui. The remote successor of the original 2011 `noflo` CLI: instead of embedding NoFlo, it speaks the protocol to any 2.0 runtime over Reticulum.
 
 Isomorphic: plain ESM, no Node builtins in library code — consumable in browsers under the no-build contract. The `fbp-client` binary is a leaf entry point that owns the platform wiring (`@reticulum/node` transports, process I/O).
 
