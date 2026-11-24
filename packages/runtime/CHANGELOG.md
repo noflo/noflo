@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [2.0.0-alpha.14] - 2026-11-24
 ### Changed
 - The `@reticulum/*` dependencies were bumped to reticulum-js 0.10.0 (`core`, `lxmf`, `node`) and `@reticulum/dacar` 1.7.0, adopting RNS 1.6.1 parity: announce and path-request stamps are emitted by default, and link MTU discovery upgrades links above 500 bytes over interfaces that can carry larger frames. Test transports opt out of stamp emission (a value-25.0 announce stamp mines for ~90 s per process); production keeps the protocol defaults
 ### Fixed

@@ -1,6 +1,6 @@
 {
   "name": "@noflo/fbp-client",
-  "version": "2.0.0-alpha.13",
+  "version": "2.0.0-alpha.14",
   "description": "Command-line tool and scriptable front for FBP Protocol 2.0 runtimes (work document #34)",
   "type": "module",
   "main": "./src/index.js",
@@ -25,9 +25,9 @@
   },
   "homepage": "https://github.com/noflo/noflo#readme",
   "dependencies": {
-    "@noflo/fbp-protocol": "^2.0.0-alpha.13",
-    "@noflo/graph": "^2.0.0-alpha.13",
-    "@noflo/runtime-client": "^2.0.0-alpha.13",
+    "@noflo/fbp-protocol": "^2.0.0-alpha.14",
+    "@noflo/graph": "^2.0.0-alpha.14",
+    "@noflo/runtime-client": "^2.0.0-alpha.14",
     "@reticulum/core": "^0.10.0",
     "@reticulum/node": "^0.10.0"
   },

@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.0.0-alpha.14] - 2026-11-24
 ### Changed
 
 - `ExtractField` maps dot paths: the field name may carry segments (`frontmatter.head`), each walked as a plain own-property read; an absent segment at any level is the same malformed-message error the flat mapping reports, naming the full mapped path. Arrays do not walk — a mapped path into a collected stream stays an error.

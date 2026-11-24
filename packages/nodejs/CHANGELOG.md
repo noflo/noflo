@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.0.0-alpha.14] - 2026-11-24
 ### Changed
 - The `@reticulum/*` dependencies were bumped to reticulum-js 0.10.0 (`core`, `node`) and `@reticulum/dacar` 1.7.0, adopting RNS 1.6.1 parity: announce and path-request stamps are emitted by default, and link MTU discovery upgrades links above 500 bytes over interfaces that can carry larger frames. The host installs the `@reticulum/node` fast stamp engine (`useNodeStamper()`), so the first announce's value-25.0 stamp (~90 s of hashing) mines off the event loop in a worker thread; note it re-mines per process start, so every batch run and daemon restart pays it before announcing. Headless hosts can skip stamp mining entirely with `NOFLO_STAMPS=off` — peers accept unstamped traffic (stamp enforcement is off everywhere by default); the CLI test spawns use the same switch
 ### Fixed

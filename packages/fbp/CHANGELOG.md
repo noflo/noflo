@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [2.0.0-alpha.14] - 2026-11-24
 ### Fixed
 - The JSON value scanner (IIP literals in .fbp sources) caps nesting depth at 128 — a deeply nested adversarial payload now fails the parse instead of exhausting the stack — and defines prototype-named keys (`__proto__`, `constructor`, `prototype`) as own data properties, mirroring the MsgPack decoder
 

@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-alpha.14] - 2026-11-24
 ### Added
 
 - `graph --format dot`: the mirror renders as a Graphviz digraph via `@noflo/graph`'s new `toDOT()` (work document #41 item 1).
