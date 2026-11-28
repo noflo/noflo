@@ -1,8 +1,8 @@
-//     NoFlo - Flow-Based Programming for JavaScript
-//     (c) 2021-2026 Henri Bergius
-//     NoFlo may be freely distributed under the MIT license
-
 /**
+ * @noflo/nodejs - command-line host for running NoFlo programs on Node.js
+ * (c) 2021-2026 Henri Bergius
+ * NoFlo may be freely distributed under the MIT license
+ *
  * @module library
  * @description The programmatic entry: run a NoFlo program on Node.js with
  *   an attached FBP Protocol 2.0 runtime, from inside an application —
